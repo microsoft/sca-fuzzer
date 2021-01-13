@@ -18,9 +18,12 @@ from postprocessor import minimize
 
 
 def check_config():
+    # TODO: make this a part of CONF class
     assert CONF.prng_seed != 0  # deprecated?
     if CONF.max_outliers > 20:
         print("Are you sure you want to ignore so many outliers?")
+    if CONF.attack_variant not in ["F+R", "P+P"]:
+        print("CONFIG: Unknown attack_variant")
 
 
 def ensure_reliable_environment():
@@ -115,7 +118,6 @@ def main():
     # Fuzzing
     if args.subparser_name == 'fuzz':
         # Make sure we're ready for fuzzing
-        check_config()
         ensure_reliable_environment()
         if args.working_directory and not os.path.isdir(args.working_directory):
             print("The working directory does not exist")
@@ -127,6 +129,7 @@ def main():
                 config_update: Dict = yaml.safe_load(f)
             for var, value in config_update.items():
                 CONF.set(var, value)
+        check_config()
 
         if args.verbose:
             CONF.set('verbose', 1)

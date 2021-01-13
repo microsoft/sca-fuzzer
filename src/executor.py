@@ -29,12 +29,18 @@ class Executor(ABC):
 
 
 class X86Intel(Executor):
-    PFC_CONFIG_PATH = '"./executor/x86/observer-L1D.txt"'
     previous_num_inputs: int = 0
 
     def __init__(self):
-        write_to_pseudo_file(self.PFC_CONFIG_PATH, "/sys/x86-executor/config")
         write_to_pseudo_file(CONF.warmups, '/sys/x86-executor/warmups')
+        write_to_pseudo_file("1" if CONF.enable_ssbp_patch else "0",
+                             "/sys/x86-executor/enable_ssbp_patch")
+        write_to_pseudo_file("1" if CONF.enable_ssbp_patch else "0",
+                             "/sys/x86-executor/enable_pre_run_flush")
+        if CONF.attack_variant == 'F+F':
+            write_to_pseudo_file("F", "/sys/x86-executor/measurement_mode")
+        elif CONF.attack_variant == 'P+P':
+            write_to_pseudo_file("P", "/sys/x86-executor/measurement_mode")
 
     def load_test_case(self, test_case_asm: str):
         assemble(test_case_asm, 'generated.o')

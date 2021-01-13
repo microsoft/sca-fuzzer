@@ -12,7 +12,7 @@ FAST_TEST=1
     bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/evict_second_line.asm -i 3"
     run cat measurement.txt
     [ "$status" -eq 0 ]
-    [[ "$output" == *"0,2305843009213693952"* ]]
+    [[ "$output" == *"2305843009213693952"* ]]
 }
 
 @test "Model: One load based on the PRNG value" {
