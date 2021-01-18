@@ -239,7 +239,10 @@ class X86UnicornModel(Model):
 
     @staticmethod
     def trace_code(emulator: Uc, address, size, user_data):
-        pass  # Implemented by subclasses
+        """
+        :return: False if there was a rollback and tracing has to stop; True otherwise
+        """
+        return True  # Implemented by subclasses
 
     @staticmethod
     def checkpoint(emulator, next_instruction):
@@ -270,6 +273,7 @@ class X86UnicornSeq(X86UnicornModel):
     def trace_code(emulator: Uc, address, size, user_data):
         global model
         model.tracer.trace_code(address, size)
+        return True
 
 
 class X86UnicornSpec(X86UnicornSeq):
@@ -292,6 +296,14 @@ class X86UnicornSpec(X86UnicornSeq):
             model.store_logs[-1].append((address, emulator.mem_read(address, 8)))
 
         X86UnicornSeq.trace_mem_access(emulator, access, address, size, value, user_data)
+
+    @staticmethod
+    def trace_code(emulator: Uc, address, size, user_data):
+        global model
+        if not X86UnicornSeq.trace_code(emulator, address, size, user_data):
+            return False
+
+        return True
 
     @staticmethod
     def checkpoint(emulator, next_instruction):
@@ -378,11 +390,12 @@ class X86UnicornCB(X86UnicornSpec):
     @staticmethod
     def trace_code(emulator: Uc, address, size, user_data):
         global model
-        X86UnicornSpec.trace_code(emulator, address, size, user_data)
+        if not X86UnicornSpec.trace_code(emulator, address, size, user_data):
+            return False
 
         # reached max spec. window? skip
         if len(model.checkpoints) >= CONF.max_nesting:
-            return
+            return True
 
         # decode the instruction
         flags = emulator.reg_read(UC_X86_REG_EFLAGS)
@@ -391,7 +404,7 @@ class X86UnicornCB(X86UnicornSpec):
 
         # not a a cond. jump? ignore
         if not target:
-            return
+            return True
 
         # Take a checkpoint
         next_instr = address + size + target if will_jump else address + size
@@ -402,6 +415,7 @@ class X86UnicornCB(X86UnicornSpec):
             emulator.reg_write(UC_X86_REG_RIP, address + size)
         else:
             emulator.reg_write(UC_X86_REG_RIP, address + size + target)
+        return True
 
     @staticmethod
     def decode(code: bytearray, flags: int) -> (int, bool):
@@ -438,10 +452,12 @@ class X86UnicornSBP(X86UnicornSpec):
     @staticmethod
     def trace_code(emulator: Uc, address, size, user_data):
         global model
+        if not X86UnicornSpec.trace_code(emulator, address, size, user_data):
+            return False
 
         # reached max spec. window? skip
         if len(model.checkpoints) >= CONF.max_nesting:
-            return
+            return True
 
         if model.previous_store[0]:
             store_addr = model.previous_store[0]
@@ -457,6 +473,7 @@ class X86UnicornSBP(X86UnicornSpec):
             emulator.mem_write(store_addr, old_value)
             model.store_logs[-1].append((store_addr, new_value))
         model.previous_store = (0, 0, 0, 0)
+        return True
 
 
 class X86UnicornCbSbp(X86UnicornSpec):
@@ -466,8 +483,11 @@ class X86UnicornCbSbp(X86UnicornSpec):
 
     @staticmethod
     def trace_code(emulator: Uc, address, size, user_data):
-        X86UnicornCB.trace_code(emulator, address, size, user_data)
-        X86UnicornSBP.trace_code(emulator, address, size, user_data)
+        if not X86UnicornCB.trace_code(emulator, address, size, user_data):
+            return False
+        if not X86UnicornSBP.trace_code(emulator, address, size, user_data):
+            return False
+        return True
 
 
 # =============================================================================
