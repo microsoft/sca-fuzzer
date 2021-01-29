@@ -1,15 +1,6 @@
 .intel_syntax noprefix
 MOV rcx, r14
 
-# initialize eax and ebx with two random values
-XOR rax, rax
-XOR rbx, rbx
-IMUL edi, edi, 2891336453
-ADD edi, 12345
-MOV eax, edi
-IMUL edi, edi, 2891336453
-ADD edi, 12345
-MOV ebx, edi
 LFENCE
 
 # delay the cond. jump

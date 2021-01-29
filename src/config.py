@@ -73,7 +73,7 @@ class ConfCls:
     warmups: int = 1
     num_measurements: int = 40
     max_outliers = 3
-    attack_variant: str = 'F+R'  # options: 'F+R', 'P+P'
+    attack_variant: str = 'P+P'  # options: 'F+R', 'P+P'
     enable_ssbp_patch: bool = True
     enable_pre_run_flush: bool = True
     enable_mds: bool = False

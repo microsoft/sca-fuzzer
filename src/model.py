@@ -211,10 +211,22 @@ class X86UnicornModel(Model):
         self.emulator.reg_write(UC_X86_REG_RBP, self.rbp_init)
         self.emulator.reg_write(UC_X86_REG_R14, self.r14_init)
 
+        # Values in memory
         random_value = seed
         random_value = ((random_value * 2891336453) % POW32 + 12345) % POW32
         for i in range(0, 4096, 64):
             self.emulator.mem_write(self.r14_init + i, random_value.to_bytes(8, byteorder='little'))
+
+        # Values in registers
+        for reg in [UC_X86_REG_RAX, UC_X86_REG_RBX, UC_X86_REG_RCX, UC_X86_REG_RDX]:
+            random_value = ((random_value * 2891336453) % POW32 + 12345) % POW32
+            self.emulator.reg_write(reg, random_value)
+
+        # FLAGS
+        random_value = ((random_value * 2891336453) % POW32 + 12345) % POW32
+        flags_value = (random_value & 2263) | 2
+        self.emulator.reg_write(UC_X86_REG_EFLAGS, flags_value)
+
         self.emulator.reg_write(UC_X86_REG_RDI, random_value)
 
         # MDS assist page
@@ -363,7 +375,8 @@ class X86UnicornCond(X86UnicornSpec):
         0x7F: lambda c, f:
         (c[1:], f & UC_FLAGS_ZF == 0 and (f & UC_FLAGS_SF == 0) == (f & UC_FLAGS_OF == 0)),
         0xE3: lambda c, f: ([0], True),  # J*CXZ - not yet supported
-        0x0F: lambda c, f: X86UnicornCond.multibyte_jmp.get(c[1], (lambda _, __: ([0], False)))(c, f)
+        0x0F: lambda c, f:
+        X86UnicornCond.multibyte_jmp.get(c[1], (lambda _, __: ([0], False)))(c, f)
     }
 
     multibyte_jmp = {

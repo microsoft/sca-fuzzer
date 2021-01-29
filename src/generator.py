@@ -771,53 +771,7 @@ class InputGenerationPass(Pass):
         self.use_rand = use_rand
 
     def run_on_dag(self, DAG: TestCaseDAG) -> None:
-        all_regs = ["EAX", "EBX", "ECX", "EDX", "ESI", "EDI", "R8D", "R9D", "R10D", "R11D", "R12D",
-                    "R13D"]
-        all_regs = filter(lambda x: x not in CONF.gpr_blocklist, all_regs)
-
         entry_block: BasicBlock = DAG.main.entry
-        if self.use_rand:
-            for reg in all_regs:
-                # 32-bit LCG with a=2891336453 and c=12345
-                # IMUL EDI, EDI, 2891336453
-                # ADD EDI, 12345
-                # MOV reg, EDI
-                entry_block.append_non_terminator(
-                    Instruction("IMUL").add_reg('EDI').add_reg('EDI').add_imm('2891336453'))
-                entry_block.append_non_terminator(
-                    Instruction("ADD").add_reg('EDI').add_imm('12345'))
-                entry_block.append_non_terminator(
-                    Instruction("MOV").add_reg(reg).add_reg('EDI'))
-
-            # FLAGS requires special treatment as only some of its bits can be set to a random value
-            # Namely, all its bits except status bits must be preserved
-            # We achieve this through the ADD and OR (see below)
-            entry_block.append_non_terminator(  # Move the stack pointer to use the first cache line
-                Instruction("ADD").add_reg('RSP').add_imm('8'))
-            entry_block.append_non_terminator(
-                Instruction("IMUL").add_reg('EDI').add_reg('EDI').add_imm('2891336453'))
-            entry_block.append_non_terminator(
-                Instruction("ADD").add_reg('EDI').add_imm('12345'))
-            entry_block.append_non_terminator(
-                Instruction("PUSHQ").add_reg('RDI'))
-            entry_block.append_non_terminator(
-                Instruction("AND").add_mem('qword ptr', 'RSP').add_imm('2263'))
-            entry_block.append_non_terminator(
-                Instruction("OR").add_mem('qword ptr', 'RSP').add_imm('2'))
-            entry_block.append_non_terminator(
-                Instruction("POPFQ"))
-            # Move the stack pointer up to use the first cache line without affecting FLAGS
-            entry_block.append_non_terminator(
-                Instruction("LEA").add_reg('RSP').add_mem('qword ptr', 'RSP - 8'))
-
-        else:
-            for reg in all_regs:
-                mov = Instruction("MOV")
-                mov.operands.append(RegisterOperand(reg))
-                mov.operands.append(
-                    ImmediateOperand(str(random.randint(pow(2, 63) * -1, pow(2, 63) - 1))))
-                entry_block.append_non_terminator(mov)
-
         fence = Instruction("LFENCE")
         entry_block.append_non_terminator(fence)
 

@@ -6,9 +6,6 @@ MOV rcx, r14
 
 # input: ebx - a random value, eax - fixed value
 MOV rax, 128
-IMUL edi, edi, 2891336453
-ADD edi, 12345
-MOV ebx, edi
 LFENCE
 
 # no delay to increase the likelihood of a false positive

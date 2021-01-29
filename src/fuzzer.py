@@ -125,7 +125,7 @@ class Fuzzer:
                 primer_end = violation.original_positions[priming_group_member]
 
                 # find a small primer that produces the same traces
-                primer_size = CONF.min_primer_size % len(inputs)
+                primer_size = CONF.min_primer_size % len(inputs) + 1
                 while True:
                     # build a set of priming inputs
                     primer_start = primer_end + 1 - primer_size

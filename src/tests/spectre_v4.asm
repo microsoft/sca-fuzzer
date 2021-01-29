@@ -1,11 +1,7 @@
 .intel_syntax noprefix
 MOV rax, 0
 
-# the leaked value:
-# generate randomly
-IMUL edi, edi, 2891336453
-ADD edi, 12345
-MOV ecx, edi
+# the leaked value - rcx
 # construct a page offset from the random value
 SHL rcx, 58
 SHR rcx, 58
@@ -16,41 +12,37 @@ ADD rcx, 64
 MOV qword ptr [r14], rcx
 MFENCE
 
-# generate a random value + delay the store
+# delay the store
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+
+# select the store address based on the random value
 # the likelihood of the match must be relatively low, otherwise the predictor won't kick in
 # at least 1/8 runs
-IMUL edi, edi, 2891336453
-ADD edi, 12345
-MOV ebx, edi
-
-# delay
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-# select the store address based on the random value
 SHL rbx, 61
 SHR rbx, 61
 SHL rbx, 3 # multiply by 8 to avoid collisions with the load

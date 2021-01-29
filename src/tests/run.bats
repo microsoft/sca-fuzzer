@@ -7,7 +7,7 @@ INSTRUCTION_SET='instruction_sets/x86/base.xml'
 FAST_TEST=1
 
 @test "Executor: Hardware tracing with F+R" {
-    bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/evict_second_line.asm -i 3"
+    bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/evict_second_line.asm -c tests/ct-seq-fr.yaml  -i 3"
     run cat measurement.txt
     [ "$status" -eq 0 ]
     [[ "$output" == *"2305843009213693952"* ]]
@@ -17,7 +17,7 @@ FAST_TEST=1
     bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/evict_second_line.asm -c tests/ct-seq-pp.yaml -i 3"
     run cat measurement.txt
     [ "$status" -eq 0 ]
-    [[ "$output" == *"2305843009213693952"* ]]
+    [[ "$output" == *"2305843009213693953"* ]]
 }
 
 @test "Model: One load based on the PRNG value" {
@@ -34,8 +34,16 @@ FAST_TEST=1
     [ "$output" = "" ]
 }
 
-@test "Environment: Empty sample" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/empty.asm -i $REPS"
+@test "Environment: Empty sample with F+R" {
+    skip
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/empty.asm -i 1000 -c tests/ct-seq-fr.yaml "
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [ "$output" = "" ]
+}
+
+@test "Environment: Empty sample with P+P" {
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/empty.asm -c tests/ct-seq-pp.yaml -i 1000"
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
@@ -43,13 +51,6 @@ FAST_TEST=1
 
 @test "Environment: A sequence of NOPs" {
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/nops.asm -i $REPS"
-    echo "$output"
-    [ "$status" -eq 0 ]
-    [ "$output" = "" ]
-}
-
-@test "Environment: A sequence of fences" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/fences.asm -i $REPS"
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "" ]

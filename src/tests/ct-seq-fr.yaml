@@ -1,0 +1,4 @@
+attacker_capability: ct
+contracts:
+  - seq
+attack_variant: F+R
