@@ -125,14 +125,14 @@ class Fuzzer:
                 primer_end = violation.original_positions[priming_group_member]
 
                 # find a small primer that produces the same traces
-                primer_size = CONF.min_primer_size
+                primer_size = CONF.min_primer_size % len(inputs)
                 while True:
                     # build a set of priming inputs
                     primer_start = primer_end + 1 - primer_size
-                    if primer_start < 0:
-                        primer_start = 0
-                        primer_size = primer_end + 1
-                    primer = inputs[primer_start:primer_end + 1]
+                    if primer_start >= 0:
+                        primer = inputs[primer_start:primer_end + 1]
+                    else:
+                        primer = inputs[primer_start:] + inputs[0:primer_end + 1]
 
                     primed_input_sequence = []
                     for _ in primed_ids:
@@ -143,7 +143,7 @@ class Fuzzer:
                                                          primer_size, primer_htrace, 1):
                         break
 
-                    if primer_size > CONF.max_primer_size or primer_start == 0:
+                    if primer_size > CONF.max_primer_size or primer_size >= len(inputs):
                         # maybe, we have too few executions. try more
                         primer_found = self._trace_primed_input_sequence(executor,
                                                                          primed_input_sequence,
@@ -158,6 +158,7 @@ class Fuzzer:
                     primer_size *= 2
 
                 if broken_measurement:
+                    print("Could not reproduce previous results with priming.")
                     STAT.broken_measurements += 1
                     break
 
