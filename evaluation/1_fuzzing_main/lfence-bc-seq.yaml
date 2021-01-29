@@ -16,4 +16,5 @@ attacker_capability: l1d
 contracts:
   - seq
 model: x86-serializing
-enable_mds: False
+enable_ssbp_patch: false
+enable_mds: false

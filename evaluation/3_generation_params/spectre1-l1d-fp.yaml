@@ -13,7 +13,7 @@ supported_categories:
   - PUSH
 attacker_capability: l1d
 contracts:
-  - cb
+  - cond
 #model: x86-serializing
 
 # base

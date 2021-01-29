@@ -1,15 +1,20 @@
 #!/usr/bin/env bats
 REPS=1000
 REPS_SPECTRE=100
-REPS_FP=1000
-REPS_GENERATED=10000
 
 INSTRUCTION_SET='instruction_sets/x86/base.xml'
 
 FAST_TEST=1
 
-@test "Executor: Can detect evictions" {
+@test "Executor: Hardware tracing with F+R" {
     bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/evict_second_line.asm -i 3"
+    run cat measurement.txt
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"2305843009213693952"* ]]
+}
+
+@test "Executor: Hardware tracing with P+P" {
+    bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/evict_second_line.asm -c tests/ct-seq-pp.yaml -i 3"
     run cat measurement.txt
     [ "$status" -eq 0 ]
     [[ "$output" == *"2305843009213693952"* ]]
@@ -108,37 +113,57 @@ FAST_TEST=1
     [ "$output" = "" ]
 }
 
-@test "Detection: Spectre V1 - BCB load" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v1.asm -i $REPS_SPECTRE"
+@test "Detection: Spectre V1 - BCB load - P" {
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v1.asm -i 10"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" = *"=== Violations detected ==="* ]]
+}
+
+@test "Detection: Spectre V1 - BCB load - N" {
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v1.asm -c tests/ct-cond.yaml -i 10"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"=== Violations detected ==="* ]]
 }
 
 @test "Detection: Spectre V1.1 - BCB store" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v1.1.asm -i $REPS_SPECTRE"
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v1.1.asm -i 10"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" = *"=== Violations detected ==="* ]]
 }
 
-@test "Detection: Spectre V2 - BTI" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v2.asm -i $REPS_SPECTRE"
+@test "Detection: Spectre V2 - BTI - P" {
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v2.asm -i 10"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" = *"=== Violations detected ==="* ]]
 }
 
-@test "Detection: Spectre V4 - SSBP" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v4.asm -i 1000"
+@test "Detection: Spectre V2 - BTI - N" {
+    skip
+}
+
+@test "Detection: Spectre V4 - SSBP - P" {
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v4.asm -c tests/ct-seq-ssbp-patch-off.yaml -i 10"
     echo "$output"
     [ "$status" -eq 0 ]
-
-    # if the microcode patch against SSBP is disabled
     [[ "$output" = *"=== Violations detected ==="* ]]
+}
 
-    # enabled
-#    [[ "$output" != *"=== Violations detected ==="* ]]
+@test "Detection: Spectre V4 - SSBP - N (patch off)" {
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v4.asm -c tests/ct-bpas-ssbp-patch-off.yaml -i 10"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"=== Violations detected ==="* ]]
+}
+
+@test "Detection: Spectre V4 - SSBP - N (patch on)" {
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v4.asm -i 10"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"=== Violations detected ==="* ]]
 }
 
 @test "Detection: Return misprediction" {
@@ -155,13 +180,6 @@ FAST_TEST=1
     [[ "$output" != *"=== Violations detected ==="* ]]
 }
 
-@test "False Positive: Cross-training between inputs" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_nested.asm -i $REPS_FP -c ./tests/ct-cb.yaml"
-    echo "$output"
-    [ "$status" -eq 0 ]
-    [[ "$output" != *"=== Violations detected ==="* ]]
-}
-
 @test "False Positive: Generated samples" {
     if [ $FAST_TEST -eq 1 ]; then
         skip
@@ -169,9 +187,17 @@ FAST_TEST=1
 
     for test_case in tests/generated-fp/* ; do
         echo "Testing $test_case"
-        run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t $test_case -i $REPS_GENERATED -c ./tests/ct-cb-sbp.yaml"
+        run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t $test_case -i 10000 -c ./tests/ct-cond-bpas.yaml"
         echo "$output"
         [ "$status" -eq 0 ]
         [[ "$output" != *"=== Violations detected ==="* ]]
     done
+}
+
+@test "Analyser: Priming" {
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_nested.asm -i 1000 -c ./tests/ct-cond.yaml"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [[ "$output" = *"=== Priming ==="* ]]
+    [[ "$output" != *"=== Violations detected ==="* ]]
 }

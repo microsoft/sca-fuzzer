@@ -13,7 +13,7 @@ supported_categories:
   - PUSH
 attacker_capability: ct
 contracts:
-  - cb
+  - cond
 
 test_case_size: 64
 max_mem_accesses: 32

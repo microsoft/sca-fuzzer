@@ -12,7 +12,7 @@ supported_categories:
   - PUSH
 attacker_capability: l1d
 contracts:
-  - sbp
+  - bpas
 #model: x86-serializing
 
 # base

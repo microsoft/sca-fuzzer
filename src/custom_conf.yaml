@@ -14,5 +14,5 @@ supported_categories:
 attacker_capability: l1d # ct, l1d
 contracts:
   - seq
-#  - cb
-#  - sbp
+#  - cond
+#  - bpas

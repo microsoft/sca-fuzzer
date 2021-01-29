@@ -1,3 +1,4 @@
 attacker_capability: ct
 contracts:
-  - cb
+  - seq
+attack_variant: P+P

@@ -10,14 +10,14 @@ if [ -z "${WORK_DIR}" ]; then
 fi
 SCRIPT=$(realpath $0)
 SCRIPT_DIR=$(dirname $SCRIPT)
-TIMEOUT=36000
+TIMEOUT=3600
 
 cd "$REVIZOR_DIR" || exit
 
 timestamp=$(date '+%y-%m-%d-%H-%M')
 
-#for name in bcm-cb-sbp bm-cb-sbp bm-sbp bc-seq; do
-for name in lfence-bc-seq; do
+for name in bcm-cond-bpas bm-cond-bpas bm-bpas bc-seq; do
+#for name in lfence-bc-seq; do
     echo "--------------------------------------------------------------------"
     echo "Running $name"
     exp_dir="$WORK_DIR/$timestamp/$name"

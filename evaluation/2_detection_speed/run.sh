@@ -11,7 +11,7 @@ if [ -z "${WORK_DIR}" ]; then
 fi
 SCRIPT=$(realpath $0)
 SCRIPT_DIR=$(dirname $SCRIPT)
-NUM_TESTS=460
+NUM_TESTS=1000
 
 timestamp=$(date '+%y-%m-%d-%H-%M')
 instructions='instruction_sets/x86/base.xml'

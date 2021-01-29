@@ -335,7 +335,7 @@ class X86UnicornSpec(X86UnicornSeq):
                                 timeout=10000)
 
 
-class X86UnicornCB(X86UnicornSpec):
+class X86UnicornCond(X86UnicornSpec):
     """
     Contract for conditional branch mispredicitons.
     Forces all cond. branches to speculatively go into a wrong target
@@ -363,7 +363,7 @@ class X86UnicornCB(X86UnicornSpec):
         0x7F: lambda c, f:
         (c[1:], f & UC_FLAGS_ZF == 0 and (f & UC_FLAGS_SF == 0) == (f & UC_FLAGS_OF == 0)),
         0xE3: lambda c, f: ([0], True),  # J*CXZ - not yet supported
-        0x0F: lambda c, f: X86UnicornCB.multibyte_jmp.get(c[1], (lambda _, __: ([0], False)))(c, f)
+        0x0F: lambda c, f: X86UnicornCond.multibyte_jmp.get(c[1], (lambda _, __: ([0], False)))(c, f)
     }
 
     multibyte_jmp = {
@@ -400,7 +400,7 @@ class X86UnicornCB(X86UnicornSpec):
         # decode the instruction
         flags = emulator.reg_read(UC_X86_REG_EFLAGS)
         code = emulator.mem_read(address, size)
-        target, will_jump = X86UnicornCB.decode(code, flags)
+        target, will_jump = X86UnicornCond.decode(code, flags)
 
         # not a a cond. jump? ignore
         if not target:
@@ -424,14 +424,14 @@ class X86UnicornCB(X86UnicornSpec):
         returns its expected target and whether it will jump to the target, based
         on the `flags` value.
         """
-        calculate_target = X86UnicornCB.jumps.get(code[0], (lambda _, __: ([0], False)))
+        calculate_target = X86UnicornCond.jumps.get(code[0], (lambda _, __: ([0], False)))
         target, will_jump = calculate_target(code, flags)
         if len(target) == 1:
             return target[0], will_jump
         return int.from_bytes(target, byteorder='little'), will_jump
 
 
-class X86UnicornSBP(X86UnicornSpec):
+class X86UnicornBpas(X86UnicornSpec):
     @staticmethod
     def trace_mem_access(emulator, access, address, size, value, user_data):
         """
@@ -476,16 +476,16 @@ class X86UnicornSBP(X86UnicornSpec):
         return True
 
 
-class X86UnicornCbSbp(X86UnicornSpec):
+class X86UnicornCondBpas(X86UnicornSpec):
     @staticmethod
     def trace_mem_access(emulator, access, address, size, value, user_data):
-        X86UnicornSBP.trace_mem_access(emulator, access, address, size, value, user_data)
+        X86UnicornBpas.trace_mem_access(emulator, access, address, size, value, user_data)
 
     @staticmethod
     def trace_code(emulator: Uc, address, size, user_data):
-        if not X86UnicornCB.trace_code(emulator, address, size, user_data):
+        if not X86UnicornCond.trace_code(emulator, address, size, user_data):
             return False
-        if not X86UnicornSBP.trace_code(emulator, address, size, user_data):
+        if not X86UnicornBpas.trace_code(emulator, address, size, user_data):
             return False
         return True
 
@@ -517,12 +517,12 @@ def get_model(bases) -> Model:
     global model
     if CONF.model == 'x86-unicorn':
         # functional part of the contract
-        if "cb" in CONF.contracts and "sbp" in CONF.contracts:
-            model = X86UnicornCbSbp(bases[0], bases[1], bases[2])
-        elif "cb" in CONF.contracts:
-            model = X86UnicornCB(bases[0], bases[1], bases[2])
-        elif "sbp" in CONF.contracts:
-            model = X86UnicornSBP(bases[0], bases[1], bases[2])
+        if "cond" in CONF.contracts and "bpas" in CONF.contracts:
+            model = X86UnicornCondBpas(bases[0], bases[1], bases[2])
+        elif "cond" in CONF.contracts:
+            model = X86UnicornCond(bases[0], bases[1], bases[2])
+        elif "bpas" in CONF.contracts:
+            model = X86UnicornBpas(bases[0], bases[1], bases[2])
         elif "seq" in CONF.contracts:
             model = X86UnicornSeq(bases[0], bases[1], bases[2])
         else:

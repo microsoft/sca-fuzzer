@@ -15,3 +15,5 @@ supported_categories:
 attacker_capability: ct
 contracts:
   - seq
+enable_ssbp_patch: false
+enable_mds: false

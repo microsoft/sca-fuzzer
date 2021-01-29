@@ -56,7 +56,6 @@ class ConfCls:
         'CR0', 'CR2', 'CR3', 'CR4', 'CR8',
         'DR0', 'DR1', 'DR2', 'DR3', 'DR4', 'DR5', 'DR6', 'DR7'
     ]
-    enable_mds: bool = True
     # ==============================================================================================
     # Input Generator
     prng_seed: int = 10  # zero is a reserved value, do not use it
@@ -64,7 +63,7 @@ class ConfCls:
     # ==============================================================================================
     # Model
     model: str = 'x86-unicorn'  # options: 'x86-serializing', 'x86-unicorn'
-    contracts: List[str] = ["seq"]  # options: "seq", "cb", "sbp"
+    contracts: List[str] = ["seq"]  # options: "seq", "cond", "bpas"
     attacker_capability = 'ct'  # options: 'l1d', 'memory', 'ct'
     max_nesting = 1
     # ==============================================================================================
@@ -77,6 +76,7 @@ class ConfCls:
     attack_variant: str = 'F+R'  # options: 'F+R', 'P+P'
     enable_ssbp_patch: bool = True
     enable_pre_run_flush: bool = True
+    enable_mds: bool = True
     # ==============================================================================================
     # Analyser
     analyser: str = 'equivalence-classes'

@@ -1,0 +1,4 @@
+attacker_capability: ct
+contracts:
+  - cond
+enable_ssbp_patch: false

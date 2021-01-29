@@ -12,4 +12,6 @@ supported_categories:
   - PUSH
 attacker_capability: ct
 contracts:
-  - sbp
+  - bpas
+enable_ssbp_patch: false
+enable_mds: false
