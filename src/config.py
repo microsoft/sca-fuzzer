@@ -76,7 +76,7 @@ class ConfCls:
     attack_variant: str = 'F+R'  # options: 'F+R', 'P+P'
     enable_ssbp_patch: bool = True
     enable_pre_run_flush: bool = True
-    enable_mds: bool = True
+    enable_mds: bool = False
     # ==============================================================================================
     # Analyser
     analyser: str = 'equivalence-classes'

@@ -37,7 +37,7 @@ class X86Intel(Executor):
                              "/sys/x86-executor/enable_ssbp_patch")
         write_to_pseudo_file("1" if CONF.enable_ssbp_patch else "0",
                              "/sys/x86-executor/enable_pre_run_flush")
-        if CONF.attack_variant == 'F+F':
+        if CONF.attack_variant == 'F+R':
             write_to_pseudo_file("F", "/sys/x86-executor/measurement_mode")
         elif CONF.attack_variant == 'P+P':
             write_to_pseudo_file("P", "/sys/x86-executor/measurement_mode")
