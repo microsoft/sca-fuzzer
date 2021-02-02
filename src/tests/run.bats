@@ -20,21 +20,21 @@ FAST_TEST=1
     [[ "$output" == *"2305843009213693953"* ]]
 }
 
-@test "Model: One load based on the PRNG value" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/random_load.asm -i $REPS_SPECTRE"
+@test "Model and Executor are initialized with the same register and memory values" {
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/model_match.asm -c tests/model_match.yaml -i 1000"
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
 }
 
-@test "Model: Emulation of FLAGS" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/cmov.asm -i $REPS_SPECTRE"
+@test "Model and Executor are initialized with the same FLAGS value" {
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/model_flags_match.asm -c tests/model_match.yaml -i 1000"
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
 }
 
-@test "Environment: Empty sample with F+R" {
+@test "Fuzzing: Empty test case [F+R]" {
     skip
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/empty.asm -i 1000 -c tests/ct-seq-fr.yaml "
     echo "$output"
@@ -42,21 +42,21 @@ FAST_TEST=1
     [ "$output" = "" ]
 }
 
-@test "Environment: Empty sample with P+P" {
+@test "Fuzzing: Empty test case [P+P]" {
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/empty.asm -c tests/ct-seq-pp.yaml -i 1000"
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
 }
 
-@test "Environment: A sequence of NOPs" {
+@test "Fuzzing: A sequence of NOPs" {
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/nops.asm -i $REPS"
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
 }
 
-@test "Environment: A sequence of direct jumps" {
+@test "Fuzzing: A sequence of direct jumps" {
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/direct_jumps.asm -i $REPS"
     echo "$output"
     [ "$status" -eq 0 ]
@@ -64,14 +64,14 @@ FAST_TEST=1
 }
 
 
-@test "Environment: A long measurement period" {
+@test "Fuzzing: A long measurement period" {
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/large_arithmetic.asm -i $REPS_SPECTRE"
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
 }
 
-@test "Environment: A sequence of RDRANDs" {
+@test "Fuzzing: A sequence of RDRANDs" {
     skip
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/rdrand.asm -i $REPS"
     echo "$output"
@@ -79,35 +79,35 @@ FAST_TEST=1
     [ "$output" = "" ]
 }
 
-@test "Environment: A sequence of CALLs" {
+@test "Fuzzing: A sequence of CALLs" {
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/calls.asm -i $REPS"
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
 }
 
-@test "Environment: A sequence of valid loads (cache hits)" {
+@test "Fuzzing: A sequence of valid loads (cache hits)" {
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/valid_loads.asm -i $REPS"
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
 }
 
-@test "Environment: A sequence of valid loads (cache misses)" {
+@test "Fuzzing: A sequence of valid loads (cache misses)" {
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/valid_loads_with_miss.asm -i $REPS"
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
 }
 
-@test "Environment: A sequence of valid stores (cache hits)" {
+@test "Fuzzing: A sequence of valid stores (cache hits)" {
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/valid_stores.asm -i $REPS"
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
 }
 
-@test "Environment: An empty test case template" {
+@test "Fuzzing: An empty test case template" {
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/empty_template.asm -i $REPS"
     echo "$output"
     [ "$status" -eq 0 ]

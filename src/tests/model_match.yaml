@@ -1,0 +1,5 @@
+attacker_capability: l1d
+contracts:
+  - seq
+enable_ssbp_patch: true
+self_test_mode: true
