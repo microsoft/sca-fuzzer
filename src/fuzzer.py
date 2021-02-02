@@ -82,7 +82,7 @@ class Fuzzer:
         if CONF.self_test_mode and CONF.attacker_capability == 'l1d':
             for i, ctrace in enumerate(ctraces):
                 if (ctrace % POW2_64) > htraces[i]:
-                    print(f"> Broken measurement: {i} {inputs[i]}")
+                    print(f"\n> Broken measurement. Input id {i}; Input value: {inputs[i]}")
                     print(pretty_bitmap(ctraces[i], True))
                     print(pretty_bitmap(htraces[i]))
                     return False
@@ -270,8 +270,12 @@ class Fuzzer:
     @staticmethod
     def report_violations(violation: EquivalenceClass):
         print("\n\n================================ Violations detected ==========================")
-        print(f"  Contract trace (hash):\n"
-              f"    {violation.ctrace:064b}")
+        print(f"  Contract trace (hash):\n")
+        if violation.ctrace <= pow(2, 64):
+            print(f"    {violation.ctrace:064b}")
+        else:
+            print(f"    {violation.ctrace % violation.mod2p64:064b} [ns]\n"
+                  f"    {(violation.ctrace >> 64) % violation.mod2p64:064b} [s]\n")
         print(f"  Hardware traces:")
         for group in violation.htrace_groups.values():
             inputs = [violation.inputs[i] for i in group]
