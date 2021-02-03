@@ -16,8 +16,7 @@ cd "$REVIZOR_DIR" || exit
 
 timestamp=$(date '+%y-%m-%d-%H-%M')
 
-for name in bcm-cond-bpas bm-cond-bpas bm-bpas bc-seq; do
-#for name in lfence-bc-seq; do
+for name in bcm-cond-bpas bm-cond-bpas bm-bpas bc-seq lfence-bc-seq; do
     echo "--------------------------------------------------------------------"
     echo "Running $name"
     exp_dir="$WORK_DIR/$timestamp/$name"
@@ -31,5 +30,3 @@ for name in bcm-cond-bpas bm-cond-bpas bm-bpas bc-seq; do
 done
 
 cd - || exit
-
-# ./cli.py fuzz -s instruction_sets/x86/base.xml -n 100000 -i 10000 -v --timeout 600 -c "$SCRIPT_DIR"/${name}.yaml 2>&1 | tee -a "$exp_dir"/experiment.log
