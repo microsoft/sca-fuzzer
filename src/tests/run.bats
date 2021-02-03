@@ -50,14 +50,14 @@ FAST_TEST=1
 }
 
 @test "Fuzzing: A sequence of NOPs" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/nops.asm -i $REPS"
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/nops.asm -i 1000"
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
 }
 
 @test "Fuzzing: A sequence of direct jumps" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/direct_jumps.asm -i $REPS"
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/direct_jumps.asm -i 1000"
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
@@ -65,7 +65,7 @@ FAST_TEST=1
 
 
 @test "Fuzzing: A long measurement period" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/large_arithmetic.asm -i $REPS_SPECTRE"
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/large_arithmetic.asm -i 1000"
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
@@ -167,11 +167,23 @@ FAST_TEST=1
     [[ "$output" != *"=== Violations detected ==="* ]]
 }
 
-@test "Detection: Return misprediction" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_ret.asm -i $REPS_SPECTRE"
+@test "Detection: Spectre V5-ret" {
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_ret.asm -i 10"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" = *"=== Violations detected ==="* ]]
+}
+
+@test "Detection: Nested misprediction" {
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v4_n2.asm -i 10 -c tests/ct-bpas-ssbp-patch-off.yaml"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [[ "$output" = *"=== Violations detected ==="* ]]
+
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v4_n2.asm -i 10 -c tests/ct-bpas-n2-ssbp-patch-off.yaml"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"=== Violations detected ==="* ]]
 }
 
 @test "False Positive: Input-independent branch misprediction" {
@@ -196,6 +208,7 @@ FAST_TEST=1
 }
 
 @test "Analyser: Priming" {
+    skip
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_nested.asm -i 1000 -c ./tests/ct-cond.yaml"
     echo "$output"
     [ "$status" -eq 0 ]

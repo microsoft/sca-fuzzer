@@ -2,6 +2,11 @@
 LFENCE
 
 # delay the cond. jump
+mov rbx, [r14 + 64]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
 LEA rbx, [rbx + rax + 1]
 LEA rbx, [rbx + rax + 1]
 LEA rbx, [rbx + rax + 1]
