@@ -137,6 +137,9 @@ class Postprocessor:
                 del instructions[cursor]
             else:
                 print("-", end="", flush=True)
+                # skip instrumentation
+                if "DIV" in instructions[cursor]:
+                    cursor -= 3
 
         return instructions
 
