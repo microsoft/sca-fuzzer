@@ -10,16 +10,17 @@ from collections import defaultdict
 CTrace = int
 HTrace = int
 Input = int
+InputID = int
 CombinedHTrace = int
 InputList = List[int]
 
 
 class EquivalenceClass:
     ctrace: CTrace
+    original_positions: List[InputID]
     inputs: List[Input]
     htraces: List[HTrace]
     htrace_groups: Dict[HTrace, List[int]]
-    original_positions: List[int]
     primed_positions: Dict[int, List[int]]
     mod2p64 = pow(2, 64)
 

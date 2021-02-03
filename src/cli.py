@@ -13,8 +13,8 @@ from typing import Dict
 from argparse import ArgumentParser
 from fuzzer import Fuzzer
 from generator import Generator
+from postprocessor import Postprocessor
 from config import CONF
-from postprocessor import minimize
 
 
 def check_config():
@@ -112,8 +112,42 @@ def main():
         type=str,
         required=True,
     )
+    parser_mini.add_argument(
+        "-c", "--config",
+        type=str,
+        required=False
+    )
+    parser_mini.add_argument(
+        "-n", "--num-inputs",
+        type=int,
+        default=100,
+        help="Number of inputs per test case.",
+    )
+    parser_mini.add_argument(
+        "-f", "--add-fences",
+        action='store_true',
+        default=False,
+        help="Add as many LFENCEs as possible, while preserving the violation.",
+    )
 
     args = parser.parse_args()
+
+    # Generator test
+    if args.subparser_name == "generator-test":
+        binary_generator = Generator(args.instruction_set)
+        binary_generator.create_test_case(test_mode=True)
+        binary_generator.materialize('generated.asm')
+        return
+
+    # Update configuration
+    if getattr(args, 'verbose', 0):
+        CONF.set('verbose', 1)
+    if args.config:
+        with open(args.config, "r") as f:
+            config_update: Dict = yaml.safe_load(f)
+        for var, value in config_update.items():
+            CONF.set(var, value)
+    check_config()
 
     # Fuzzing
     if args.subparser_name == 'fuzz':
@@ -122,17 +156,6 @@ def main():
         if args.working_directory and not os.path.isdir(args.working_directory):
             print("The working directory does not exist")
             exit(1)
-
-        # Update configuration
-        if args.config:
-            with open(args.config, "r") as f:
-                config_update: Dict = yaml.safe_load(f)
-            for var, value in config_update.items():
-                CONF.set(var, value)
-        check_config()
-
-        if args.verbose:
-            CONF.set('verbose', 1)
 
         # Normal fuzzing mode
         fuzzer = Fuzzer(args.instruction_set, args.working_directory, args.testcase)
@@ -145,16 +168,10 @@ def main():
         )
         return
 
-    # Generator test
-    if args.subparser_name == "generator-test":
-        binary_generator = Generator(args.instruction_set)
-        binary_generator.create_test_case(test_mode=True)
-        binary_generator.materialize('generated.asm')
-        return
-
     # Test Case minimisation
     if args.subparser_name == "minimize":
-        minimize(args.infile, args.outfile)
+        postprocessor = Postprocessor()
+        postprocessor.minimize(args.infile, args.outfile, args.num_inputs, args.add_fences)
         return
 
     raise Exception("Unreachable")

@@ -22,10 +22,11 @@ from config import CONF
 
 class Fuzzer:
     def __init__(self, instruction_set_spec: str, work_dir: str, existing_test_case: str = None):
-        self.generator = Generator(instruction_set_spec)
         self.work_dir = work_dir
         self.test_case = existing_test_case
         self.enable_generation = True if not existing_test_case else False
+        if self.enable_generation:
+            self.generator = Generator(instruction_set_spec)
 
     def start(self, num_test_cases: int, num_inputs: int, timeout: int, nonstop: bool = False,
               verbose: bool = False):
@@ -49,7 +50,7 @@ class Fuzzer:
             inputs: List[Input] = input_gen.generate(CONF.prng_seed, num_inputs)
 
             # Fuzz the test case
-            has_violations = self.fuzzing_round(executor, model, analyser, inputs, verbose)
+            has_violations = self.fuzzing_round(executor, model, analyser, inputs)
             STAT.test_cases += 1
             if has_violations:
                 self.store_test_case(False)
@@ -68,8 +69,7 @@ class Fuzzer:
         self._log_finish()
 
     def fuzzing_round(self, executor: Executor, model: Model, analyser: Analyser,
-                      inputs: List[Input],
-                      verbose) -> bool:
+                      inputs: List[Input]) -> bool:
         self._log_start()
 
         # Initial measurement
@@ -78,6 +78,13 @@ class Fuzzer:
 
         executor.load_test_case(self.test_case)
         htraces: List[HTrace] = executor.trace_test_case(inputs)
+
+        if CONF.verbose == 999 and len(inputs) < 10:
+            print("")
+            for i, ctrace in enumerate(ctraces):
+                print("..............................................................")
+                print(pretty_bitmap(ctraces[i], True))
+                print(pretty_bitmap(htraces[i]))
 
         if CONF.self_test_mode and CONF.attacker_capability == 'l1d':
             for i, ctrace in enumerate(ctraces):
@@ -107,83 +114,99 @@ class Fuzzer:
         while violations:
             self._log_priming(len(violations))
             violation: EquivalenceClass = violations.pop()
-            broken_measurement = False
-            ordered_htraces = sorted(violation.htrace_groups.keys(),
-                                     key=lambda x: bit_count(x),
-                                     reverse=False)
-            original_groups = violation.htrace_groups
-
-            for primer_htrace in ordered_htraces:
-                # list of inputs to be tested
-                primed_ids = []
-                for key, group in original_groups.items():
-                    if key != primer_htrace:
-                        primed_ids.extend(group)
-
-                # take one input from the priming group
-                priming_group_member = original_groups[primer_htrace][-1]
-                primer_end = violation.original_positions[priming_group_member]
-
-                # find a small primer that produces the same traces
-                primer_size = CONF.min_primer_size % len(inputs) + 1
-                while True:
-                    # build a set of priming inputs
-                    primer_start = primer_end + 1 - primer_size
-                    if primer_start >= 0:
-                        primer = inputs[primer_start:primer_end + 1]
-                    else:
-                        primer = inputs[primer_start:] + inputs[0:primer_end + 1]
-
-                    primed_input_sequence = []
-                    for _ in primed_ids:
-                        primed_input_sequence.extend(primer)
-
-                    # verify that the hardware trace did not change
-                    if self._trace_primed_input_sequence(executor, primed_input_sequence,
-                                                         primer_size, primer_htrace, 1):
-                        break
-
-                    if primer_size > CONF.max_primer_size or primer_size >= len(inputs):
-                        # maybe, we have too few executions. try more
-                        primer_found = self._trace_primed_input_sequence(executor,
-                                                                         primed_input_sequence,
-                                                                         primer_size,
-                                                                         primer_htrace,
-                                                                         CONF.priming_retries)
-                        if not primer_found:
-                            broken_measurement = True
-                        break
-
-                    # try a larger primer
-                    primer_size *= 2
-
-                if broken_measurement:
-                    print("Could not reproduce previous results with priming.")
-                    STAT.broken_measurements += 1
-                    break
-
-                # insert the tested inputs into their places
-                for i, id_ in enumerate(primed_ids):
-                    primed_input_sequence[(i + 1) * primer_size - 1] = violation.inputs[id_]
-
-                # try swapping
-                reproduced = self._trace_primed_input_sequence(executor,
-                                                               primed_input_sequence,
-                                                               primer_size,
-                                                               primer_htrace,
-                                                               CONF.priming_retries)
-                if not reproduced:
-                    self.report_violations(violation)
-                    return True
-
-                for id_ in primed_ids:
-                    violation.htraces[id_] |= primer_htrace
-                violation.update_groups()
-                if len(violation.htrace_groups) == 1:
-                    break
+            if self.verify_with_priming(violation, executor, inputs):
+                self.report_violations(violation)
+                return True
 
         # all violations were cleaned. all good
         return False
+
+    def verify_with_priming(self, violation: EquivalenceClass, executor: Executor,
+                            inputs: List[Input]) -> bool:
+        ordered_htraces = sorted(violation.htrace_groups.keys(),
+                                 key=lambda x: bit_count(x),
+                                 reverse=False)
+        original_groups = violation.htrace_groups
+
+        for primer_htrace in ordered_htraces:
+            # list of inputs to be tested
+            primed_ids = []
+            for key, group in original_groups.items():
+                if key != primer_htrace:
+                    primed_ids.extend(group)
+
+            # create a multiprimer based on the last element in the group
+            priming_group_member = original_groups[primer_htrace][-1]
+            target_id = violation.original_positions[priming_group_member]
+            multiprimer = self.get_min_primer(executor, inputs, target_id,
+                                              primer_htrace, len(primed_ids))
+            primer_size = len(multiprimer) // len(primed_ids)
+
+            # insert the tested inputs into their places
+            for i, id_ in enumerate(primed_ids):
+                multiprimer[(i + 1) * primer_size - 1] = violation.inputs[id_]
+
+            # try swapping
+            reproduced = self.check_multiprimer(executor,
+                                                multiprimer,
+                                                primer_size,
+                                                primer_htrace,
+                                                CONF.priming_retries)
+            if not reproduced:
+                return True
+
+            for id_ in primed_ids:
+                violation.htraces[id_] |= primer_htrace
+            violation.update_groups()
+
+            if len(violation.htrace_groups) == 1:
+                break
+
+        return False
+
+    def get_min_primer(self, executor, inputs, target_id,
+                       expected_htrace, num_primed_inputs) -> List[Input]:
+        # first size to be tested
+        primer_size = CONF.min_primer_size % len(inputs) + 1
+
+        while True:
+            # build a set of priming inputs (i.e., multiprimer)
+            primer_end = target_id + 1
+            primer_start = primer_end - primer_size
+            primer = inputs[primer_start:primer_end] if primer_start >= 0 else \
+                inputs[primer_start:] + inputs[0:primer_end]
+
+            multiprimer = []
+            for _ in range(num_primed_inputs):
+                multiprimer.extend(primer)
+
+            # check if the hardware trace of the target_id matches
+            # the hardware trace received with the primer
+            primer_found = self.check_multiprimer(executor, multiprimer,
+                                                  primer_size, expected_htrace, 1)
+
+            if primer_found:
+                return multiprimer
+
+            # run out of inputs to test?
+            if primer_size >= len(inputs):
+                # maybe, we have too few executions; try with more
+                primer_found = self.check_multiprimer(executor, multiprimer, primer_size,
+                                                      expected_htrace,
+                                                      CONF.priming_retries)
+                if not primer_found:
+                    print("Could not reproduce previous results with priming.")
+                    STAT.broken_measurements += 1
+                    return []
+                return multiprimer
+
+            # if a larger primer is allowed, try adding more inputs
+            if primer_size <= CONF.max_primer_size:
+                primer_size *= 2
+                continue
+
+            # otherwise, we failed to find a primer
+            return []
 
     def store_test_case(self, require_retires: bool):
         if not self.work_dir:
@@ -196,8 +219,8 @@ class Fuzzer:
         shutil.copy2(self.test_case, self.work_dir + "/" + name)
 
     @staticmethod
-    def _trace_primed_input_sequence(executor: Executor, inputs: List[int], primer_size: int,
-                                     expected_htrace: HTrace, retries: int) -> bool:
+    def check_multiprimer(executor: Executor, inputs: List[int], primer_size: int,
+                          expected_htrace: HTrace, retries: int) -> bool:
         num_inputs = len(inputs) // primer_size
         num_measurements: int = CONF.num_measurements
         for i in range(retries):
@@ -322,40 +345,3 @@ class Fuzzer:
             print("")
             print(STAT)
             print(datetime.today().strftime('Finished at %H:%M:%S'))
-
-# class ModelFuzzer(Fuzzer):
-#     # TODO: there's too much code duplication here. Get rid of this class
-#
-#     def start(self, num_test_cases: int, num_inputs: int, timeout: int, nonstop: bool = False,
-#               verbose: bool = False):
-#         """
-#         This function is almost identical to a normal fuzzer, except generator uses
-#         a serializing mode
-#         """
-#         self._log_init(num_test_cases, datetime.today(), verbose)
-#         executor: Executor = get_executor()
-#         model: Model = get_model(executor.read_base_addresses())
-#
-#         for i in range(num_test_cases):
-#             # Generate a test case, if necessary
-#             if self.enable_generation:
-#                 self.test_case = 'generated.asm'
-#                 self.generator.create_test_case()
-#                 self.generator.materialize(self.test_case, serial_mode=True)
-#
-#             # Load the test case
-#             executor.load_test_case(self.test_case)
-#             model.load_test_case(self.test_case)
-#
-#             # Prepare the input generator
-#             executor.write_prng_state(CONF.prng_seed)
-#
-#             # Fuzz the test case
-#             success = self.fuzzing_round(executor, model, num_inputs, verbose)
-#             if not success:
-#                 # All retries failed
-#                 self.store_test_case()
-#                 if not nonstop:
-#                     break
-#
-#         self._log_finish(verbose)

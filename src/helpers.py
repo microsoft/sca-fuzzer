@@ -68,7 +68,7 @@ def pretty_bitmap(bits: int, merged=False):
         s = f"{bits:064b}"
     else:
         s = f"{bits % MASK_64BIT:064b} [ns]\n" \
-            f"{(bits >> 64) % MASK_64BIT:064b} [s]\n"
+            f"{(bits >> 64) % MASK_64BIT:064b} [s]"
     s = s.replace("0", "_").replace("1", "^")
     return s
 

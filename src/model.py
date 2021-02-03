@@ -224,8 +224,7 @@ class X86UnicornModel(Model):
 
         # FLAGS
         random_value = ((random_value * 2891336453) % POW32 + 12345) % POW32
-        flags_value = (random_value & 2263) | 2
-        self.emulator.reg_write(UC_X86_REG_EFLAGS, flags_value)
+        self.emulator.reg_write(UC_X86_REG_EFLAGS, (random_value & 2263) | 2)
 
         self.emulator.reg_write(UC_X86_REG_RDI, random_value)
 
