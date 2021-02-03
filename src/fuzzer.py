@@ -140,6 +140,8 @@ class Fuzzer:
             target_id = violation.original_positions[priming_group_member]
             multiprimer = self.get_min_primer(executor, inputs, target_id,
                                               primer_htrace, len(primed_ids))
+            if not multiprimer:
+                return True
             primer_size = len(multiprimer) // len(primed_ids)
 
             # insert the tested inputs into their places
@@ -206,6 +208,7 @@ class Fuzzer:
                 continue
 
             # otherwise, we failed to find a primer
+            print("Failed to find a primer - max_primer_size reached")
             return []
 
     def store_test_case(self, require_retires: bool):
