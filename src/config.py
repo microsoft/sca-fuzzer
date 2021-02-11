@@ -60,6 +60,7 @@ class ConfCls:
     # Input Generator
     prng_seed: int = 10  # zero is a reserved value, do not use it
     avoid_data_dependencies: bool = True
+    input_mask: int = 0xffffffff
     # ==============================================================================================
     # Model
     model: str = 'x86-unicorn'  # options: 'x86-serializing', 'x86-unicorn'

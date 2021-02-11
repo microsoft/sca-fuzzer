@@ -41,6 +41,7 @@ class X86Intel(Executor):
             write_to_pseudo_file("F", "/sys/x86-executor/measurement_mode")
         elif CONF.attack_variant == 'P+P':
             write_to_pseudo_file("P", "/sys/x86-executor/measurement_mode")
+        write_to_pseudo_file(CONF.input_mask, '/sys/x86-executor/input_mask')
 
     def load_test_case(self, test_case_asm: str):
         assemble(test_case_asm, 'generated.o')

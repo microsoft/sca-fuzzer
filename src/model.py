@@ -215,12 +215,14 @@ class X86UnicornModel(Model):
         random_value = seed
         random_value = ((random_value * 2891336453) % POW32 + 12345) % POW32
         for i in range(0, 4096, 64):
-            self.emulator.mem_write(self.r14_init + i, random_value.to_bytes(8, byteorder='little'))
+            masked_rvalue = random_value & CONF.input_mask
+            self.emulator.mem_write(self.r14_init + i, masked_rvalue.to_bytes(8, byteorder='little'))
 
         # Values in registers
         for reg in [UC_X86_REG_RAX, UC_X86_REG_RBX, UC_X86_REG_RCX, UC_X86_REG_RDX]:
             random_value = ((random_value * 2891336453) % POW32 + 12345) % POW32
-            self.emulator.reg_write(reg, random_value)
+            masked_rvalue = random_value & CONF.input_mask
+            self.emulator.reg_write(reg, masked_rvalue)
 
         # FLAGS
         random_value = ((random_value * 2891336453) % POW32 + 12345) % POW32

@@ -11,8 +11,14 @@ supported_categories:
   - LOGICAL
   - POP
   - PUSH
-attacker_capability: l1d # ct, l1d
+attacker_capability: l1d
 contracts:
-  - seq
+#  - seq
 #  - cond
-#  - bpas
+  - bpas
+# max_nesting: 2
+# attack_variant: P+P
+enable_ssbp_patch: false
+enable_mds: false
+input_mask: 255
+#verbose: 999
