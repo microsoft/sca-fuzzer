@@ -1,6 +1,8 @@
 .intel_syntax noprefix
-MOV rcx, r14
 LFENCE
+
+# reduce the entropy of rax
+AND rax, 0b111111000000
 
 # delay the cond. jump
 LEA rbx, [rbx + rax + 1]
@@ -13,22 +15,13 @@ LEA rbx, [rbx + rax + 1]
 LEA rbx, [rbx + rax + 1]
 LEA rbx, [rbx + rax + 1]
 LEA rbx, [rbx + rax + 1]
-SHL rbx, 62
-SHR rbx, 62
 
-# speculative offset:
-# these shifts generate a random page offset, 64-bit aligned
-SHL rax, 58
-SHR rax, 52
+# reduce the entropy in rbx
+AND rbx, 0b1
 
-# speculation
 CMP rbx, 0
-JE .l1
+JBE .l1  # misprediction
     # rbx != 0
-    MOV qword ptr [rcx + rax], 42
-JMP .l2
+    MOV qword ptr [r14 + rax], 42
 .l1:
-    # rbx == 0
-    MOV qword ptr [rcx + 64], 42
-.l2:
 MFENCE

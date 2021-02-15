@@ -3,3 +3,4 @@ contracts:
   - bpas
 enable_ssbp_patch: false
 max_nesting: 2
+no_priming: true

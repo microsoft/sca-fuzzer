@@ -2,3 +2,4 @@ attacker_capability: ct
 contracts:
   - bpas
 enable_ssbp_patch: false
+no_priming: true

@@ -2,7 +2,6 @@
 LFENCE
 
 # delay the cond. jump
-mov rbx, [r14 + 64]
 LEA rbx, [rbx + rax + 1]
 LEA rbx, [rbx + rax + 1]
 LEA rbx, [rbx + rax + 1]
@@ -13,33 +12,23 @@ LEA rbx, [rbx + rax + 1]
 LEA rbx, [rbx + rax + 1]
 LEA rbx, [rbx + rax + 1]
 LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-SHL rbx, 62
-SHR rbx, 62
 
-# speculation
+# reduce the entropy in rbx
+AND rbx, 0b1
+
 CMP rbx, 0
-JE .l1
+JE .l1  # misprediction
     # rbx != 0
-    MOV rax, [r14 + 64]
+    MOV rax, [r14]
 JMP .l2
 .l1:
     # rbx == 0
-    MOV rax, [r14]
+    MOV rax, [r14 + 64]
+    LFENCE
 .l2:
 
-# speculative offset:
-# these shifts generate a random page offset, 64-bit aligned
-SHL rax, 58
-SHR rax, 52
-MOV rbx, [r14 + rax]
+SHL rax, 8
+AND rax, 0b111111000000
+MOV rax, [r14 + rax + 512] # leakage happens here
 
 MFENCE
