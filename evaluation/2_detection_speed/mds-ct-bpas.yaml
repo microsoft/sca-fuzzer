@@ -1,0 +1,25 @@
+supported_categories:
+  - NOP
+  - BINARY
+  - BITBYTE
+  - CMOV
+  - CONVERT
+  - DATAXFER
+  - FLAGOP
+  - SETCC
+  - LOGICAL
+  - POP
+  - PUSH
+attacker_capability: ct
+contracts:
+  - sbp
+
+test_case_size: 64
+max_mem_accesses: 32
+enable_mds: True
+
+# temporary
+#attacker_capability: l1d
+#model: x86-serializing
+#num_measurements: 50
+#max_outliers: 0

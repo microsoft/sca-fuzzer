@@ -1,0 +1,20 @@
+supported_categories:
+  - NOP
+  - BINARY
+  - BITBYTE
+  - COND_BR
+  - CMOV
+  - CONVERT
+  - DATAXFER
+  - FLAGOP
+  - SETCC
+  - LOGICAL
+  - POP
+  - PUSH
+attacker_capability: ct
+contracts:
+  - seq
+
+test_case_size: 64
+max_mem_accesses: 32
+enable_mds: False

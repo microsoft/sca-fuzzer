@@ -1,0 +1,5 @@
+attacker_capability: ct
+contracts:
+  - seq
+
+prng_seed: 246162404069475

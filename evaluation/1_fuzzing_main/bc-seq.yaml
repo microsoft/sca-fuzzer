@@ -1,0 +1,17 @@
+max_mem_accesses: 0
+supported_categories:
+  - NOP
+  - BINARY
+  - BITBYTE
+  - COND_BR
+  - CMOV
+  - CONVERT
+  - DATAXFER
+  - FLAGOP
+  - SETCC
+  - LOGICAL
+  - POP
+  - PUSH
+attacker_capability: ct
+contracts:
+  - seq

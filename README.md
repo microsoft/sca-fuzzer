@@ -1,14 +1,36 @@
 # Project
+This is a prototype implementation by Oleksii Oleksenko of the Model-based Relational Fuzzer described in ...
 
-> This repo has been populated by an initial template to help get you started. Please
-> make sure to update the content to build a great experience for community-building.
+## Interfaces and Architecture
 
-As the maintainer of this project, please make a few updates:
+![architecture](Arch.png)
 
-- Improving this README.MD file to provide a great experience
-- Updating SUPPORT.MD with content about this project's support experience
-- Understanding the security reporting process in SECURITY.MD
-- Remove this section from the README
+## Instruction Set Spec
+This XML file: https://www.uops.info/xml.html originating from Intel XED (https://intelxed.github.io/)
+
+Received from: `--instruction-set` (or `-s`) CLI argument.
+Passed down to: `Generator.__init__`
+
+
+## Generator Initializer
+None so far.
+
+In future, may include test case templates, grammar, etc.
+
+## Test Case
+An assembly file. Currently, in Intel syntax.
+
+Received from: `self.generator.create_test_case()` + `self.generator.materialize(filename)`
+Passed down to: `model.load_test_case` and `executor.load_test_case`
+
+
+## Inputs
+Currently, each input is a single 32-bit integer, used later as a PRNG seed inside the test case to initialize memory and registers.
+Inputs are generated in batches; that is, Input Generator returns `List[int]`.
+
+Received from: `input_gen.generate(...)`
+Passed down to: `model.trace_test_case(inputs)` and `executor.trace_test_case(inputs)`.
+
 
 ## Contributing
 

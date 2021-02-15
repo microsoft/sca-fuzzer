@@ -1,0 +1,18 @@
+supported_categories:
+  - NOP
+  - BINARY
+  - BITBYTE
+  - COND_BR
+  - CMOV
+  - CONVERT
+  - DATAXFER
+  - FLAGOP
+  - SETCC
+  - LOGICAL
+  - POP
+  - PUSH
+attacker_capability: l1d # ct, l1d
+contracts:
+  - seq
+#  - cb
+#  - sbp
