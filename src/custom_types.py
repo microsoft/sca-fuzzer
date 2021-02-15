@@ -30,7 +30,7 @@ class EquivalenceClass:
         self.original_positions = []
 
     def __str__(self):
-        s = ""
+        s = f"Size: {len(self.inputs)}\n"
         s += f"Ctrace:\n" \
              f"{self.ctrace % self.mod2p64:064b} [ns]\n" \
              f"{(self.ctrace >> 64) % self.mod2p64:064b} [s]\n"

@@ -17,12 +17,12 @@ class InputGenerator(ABC):
 
 
 class RandomInputGenerator(InputGenerator):
-    """ Simple 32-bit LCG with a=2891336453 and c=12345 """
+    """ Simple 32-bit LCG with a=2891336453 and c=54321 """
 
     def generate(self, seed, count):
         inputs = []
         value = seed
         for i in range(count):
             inputs.append(value)
-            value = ((value * 2891336453) % POW32 + 12345) % POW32
+            value = ((value * 2891336453) % POW32 + 54321) % POW32
         return inputs

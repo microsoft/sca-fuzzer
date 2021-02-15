@@ -79,9 +79,10 @@ class Fuzzer:
         executor.load_test_case(self.test_case)
         htraces: List[HTrace] = executor.trace_test_case(inputs)
 
-        if CONF.verbose == 999 and len(inputs) < 10:
+        if CONF.verbose == 999:
             print("")
-            for i, ctrace in enumerate(ctraces):
+            nprinted = 10 if len(ctraces) > 10 else len(ctraces)
+            for i in range(nprinted):
                 print("..............................................................")
                 print(pretty_bitmap(ctraces[i], True))
                 print(pretty_bitmap(htraces[i]))

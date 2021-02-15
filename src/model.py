@@ -116,6 +116,24 @@ class CTTracer(X86UnicornTracer):
         self.trace.append(address)
 
 
+class ArchTracer(X86UnicornTracer):
+    def reset_trace(self):
+        self.trace = [
+            model.emulator.reg_read(UC_X86_REG_RAX),
+            model.emulator.reg_read(UC_X86_REG_RBX),
+            model.emulator.reg_read(UC_X86_REG_RCX),
+            model.emulator.reg_read(UC_X86_REG_RDX),
+            model.emulator.reg_read(UC_X86_REG_EFLAGS),
+        ]
+
+    def trace_mem_access(self, address, size, value):
+        self.trace.append(value)
+        self.trace.append(address)
+
+    def trace_code(self, address: int, size: int):
+        self.trace.append(address)
+
+
 class X86UnicornModel(Model):
     """
     Base class for all Unicorn-based models.
@@ -180,9 +198,9 @@ class X86UnicornModel(Model):
     def trace_test_case(self, inputs: List[int]) -> List[CTrace]:
         traces = []
         for i, input_ in enumerate(inputs):
-            self.tracer.reset_trace()
             try:
                 self.reset_emulator(input_)
+                self.tracer.reset_trace()
                 self.emulator.emu_start(self.code_base, self.code_base + len(self.code),
                                         timeout=10000)
             except UcError as e:
@@ -213,15 +231,16 @@ class X86UnicornModel(Model):
 
         # Values in memory
         random_value = seed
-        random_value = ((random_value * 2891336453) % POW32 + 12345) % POW32
         for i in range(0, 4096, 64):
-            masked_rvalue = random_value & CONF.input_mask
-            self.emulator.mem_write(self.r14_init + i, masked_rvalue.to_bytes(8, byteorder='little'))
+            random_value = ((random_value * 2891336453) % POW32 + 12345) % POW32
+            masked_rvalue = (random_value ^ (random_value >> 16)) & CONF.input_mask
+            self.emulator.mem_write(self.r14_init + i,
+                                    masked_rvalue.to_bytes(8, byteorder='little'))
 
         # Values in registers
         for reg in [UC_X86_REG_RAX, UC_X86_REG_RBX, UC_X86_REG_RCX, UC_X86_REG_RDX]:
             random_value = ((random_value * 2891336453) % POW32 + 12345) % POW32
-            masked_rvalue = random_value & CONF.input_mask
+            masked_rvalue = (random_value ^ (random_value >> 16)) & CONF.input_mask
             self.emulator.reg_write(reg, masked_rvalue)
 
         # FLAGS
@@ -550,6 +569,8 @@ def get_model(bases) -> Model:
             model.tracer = MemoryTracer()
         elif CONF.attacker_capability == 'ct':
             model.tracer = CTTracer()
+        elif CONF.attacker_capability == 'arch':
+            model.tracer = ArchTracer()
         else:
             print("Error: unknown value of `attacker_capability` configuration option")
             exit(1)
