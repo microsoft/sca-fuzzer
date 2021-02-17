@@ -1,5 +1,5 @@
 # Project
-This is a prototype implementation by Oleksii Oleksenko of the Model-based Relational Fuzzer described in ...
+This is a research prototype of Model-based Relational Fuzzing for Speculative vulnerabilities. The code was written by Oleksii Oleksenko during an internship at Microsoft Research.
 
 ## Interfaces and Architecture
 
