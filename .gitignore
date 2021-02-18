@@ -1,1 +1,6 @@
+cmake-build-*/
 .idea/
+.lsync*
+venv/
+**/__pycache__/
+CMakeLists.txt
