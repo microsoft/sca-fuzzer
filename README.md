@@ -6,16 +6,76 @@ Instead of finding bugs in programs, SCA-Fuzzer searches for microarchitectural 
 What is a bug in a CPU?
 In the context of SCA-Fuzzer, a bug is a violation of out expectations about how the CPU should behave.
 The most prominent examples would be [Spectre](https://spectreattack.com/) and [Meltdown](https://meltdownattack.com/).
-It could also be a microarchitectural backdoor or an unknown optimization, although we yet to encounter one of those.
+It could also be a microarchitectural backdoor or an unknown optimization, although we are yet to encounter one of those.
 
 See our ~~[Technical Report]~~ (under construction) for details.
 
 
-**Origin**: This is an independently developed and much improved fork of [SCA-Fuzzer from Microsoft][https://github.com/microsoft/sca-fuzzer].
+**Origin**: This is an independently developed and much improved fork of [SCA-Fuzzer from Microsoft](https://github.com/microsoft/sca-fuzzer).
 
 # Getting Started
 
-**UNDER CONSTRUCTION**
+Below are quick-and-dirty instructions on how to use SCA-Fuzzer.
+More detailed instructions will be added some time later.
+
+**Warning**: SCA-Fuzzer executes randomly generated code in kernel space.
+As you can imagine, things can go wrong.
+Usually they don't, but sometimes they do.
+So, make sure you're not running these experiments on an important machine.
+
+0. Requirements: 
+   Python 3.7+ and Linux v5.6+. 
+   Tested on Linux v5.6.6-300 and v5.6.13-100; there is a good chance it will work on other versions as well, but it's not guaranteed.
+
+1. Get dependencies:
+
+```bash
+git submodule init
+git submodule update
+cp src/executor/x86/base.xml instruction_sets/x86
+```
+
+2. Install the x86 executor:
+
+```bash
+cd src/executor/x86 
+sudo rmmod x86-executor
+make clean
+make
+sudo insmod x86-executor.ko
+```
+
+3. Test it:
+
+```bash
+cd src/
+./tests/run.bats
+```
+
+If some of the "Detection" tests fail, it's fine, you might just have a slightly different microarchitecture. But if other tests fail - something is broken.
+
+4. Fuzz it:
+
+This one should not detect any violations and should take a few minutes to run:
+
+```bash
+cd src/
+./cli.py fuzz -s instruction_sets/x86/base.xml -i 1000 -n 10 -v -c ../evaluation/1_fuzzing_main/bm-bpas.yaml
+```
+
+5. Find your first Spectre!
+
+This one should not detect a violations within several minutes.
+The detected violation is most likely an instance of Spectre V1.
+
+```bash
+cd src/
+./cli.py fuzz -s instruction_sets/x86/base.xml -i 100 -n 1000 -v -c ../evaluation/fast-spectre-v1.yaml
+```
+
+You can find the test case that triggered this violation in `src/generated.asm`.
+
+
 
 # Interfaces and Architecture
 

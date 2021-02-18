@@ -4,3 +4,4 @@ cmake-build-*/
 venv/
 **/__pycache__/
 CMakeLists.txt
+src/instruction_sets/x86/base.xml
