@@ -3,6 +3,7 @@ File: All kinds of postprocessing actions performed after a violation has been d
 Currently, it's a stripped-down version of the main fuzzer, modified to find the minimal
 set of inputs that reproduce the vulnerability and to minimize the test case.
 
+Copyright (C) 2021 Oleksii Oleksenko
 Copyright (C) 2020 Microsoft Corporation
 SPDX-License-Identifier: MIT
 """

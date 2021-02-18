@@ -1,6 +1,7 @@
 """
 File: Various helper functions used by multiple parts of the project
 
+Copyright (C) 2021 Oleksii Oleksenko
 Copyright (C) 2020 Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
