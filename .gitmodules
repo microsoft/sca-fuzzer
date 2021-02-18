@@ -1,0 +1,3 @@
+[submodule "src/executor/x86"]
+	path = src/executor/x86
+	url = git@github.com:hw-sw-contracts/x86-executor.git
