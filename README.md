@@ -5,7 +5,7 @@ Instead of finding bugs in programs, SCA-Fuzzer searches for microarchitectural 
 
 What is a bug in a CPU?
 In the context of SCA-Fuzzer, a bug is a violation of out expectations about how the CPU should behave.
-The most prominent examples would be [Spectre] and [Meltdown].
+The most prominent examples would be [Spectre](https://spectreattack.com/) and [Meltdown](https://meltdownattack.com/).
 It could also be a microarchitectural backdoor or an unknown optimization, although we yet to encounter one of those.
 
 See our ~~[Technical Report]~~ (under construction) for details.
