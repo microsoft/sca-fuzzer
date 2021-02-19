@@ -341,7 +341,8 @@ class Fuzzer:
 
     def _log_priming(self, num_violations: int):
         if CONF.verbose:
-            print(self.msg + "Priming " + str(num_violations), end='', flush=True)
+            print(self.msg + "Priming " + str(num_violations) + "                 ", end='',
+                  flush=True)
 
     @staticmethod
     def _log_finish():
