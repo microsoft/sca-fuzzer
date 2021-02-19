@@ -11,7 +11,7 @@ It could also be a microarchitectural backdoor or an unknown optimization, altho
 See our ~~[Technical Report]~~ (under construction) for details.
 
 
-**Origin**: This is an independently developed and much improved fork of [SCA-Fuzzer from Microsoft](https://github.com/microsoft/sca-fuzzer).
+**Origin**: This is an independently developed and improved fork of [SCA-Fuzzer from Microsoft](https://github.com/microsoft/sca-fuzzer).
 
 # Getting Started
 
@@ -24,7 +24,7 @@ Usually they don't, but sometimes they do.
 So, make sure you're not running these experiments on an important machine.
 
 0. Requirements: 
-   Python 3.7+ and Linux v5.6+. 
+   Linux v5.6+, Python 3.7+, and [Unicorn 1.0.2+](https://www.unicorn-engine.org/docs/).
    Tested on Linux v5.6.6-300 and v5.6.13-100; there is a good chance it will work on other versions as well, but it's not guaranteed.
 
 1. Get dependencies:
