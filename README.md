@@ -23,10 +23,14 @@ As you can imagine, things can go wrong.
 Usually they don't, but sometimes they do.
 So, make sure you're not running these experiments on an important machine.
 
-0. Requirements: 
-   Linux v5.6+, Python 3.7+, and [Unicorn 1.0.2+](https://www.unicorn-engine.org/docs/).
-   Tested on Linux v5.6.6-300 and v5.6.13-100; there is a good chance it will work on other versions as well, but it's not guaranteed.
-
+0. Requirements:
+   * Linux v5.6+ (tested on Linux v5.6.6-300 and v5.6.13-100; there is a good chance it will work on other versions as well, but it's not guaranteed).
+   * Linux Kernel Headers
+   * Python 3.7+
+   * [Unicorn 1.0.2+](https://www.unicorn-engine.org/docs/)
+   * [PyYAML](https://pyyaml.org/wiki/PyYAMLDocumentation)
+   * For tests: [Bash Automated Testing System](https://bats-core.readthedocs.io/en/latest/index.html)
+    
 1. Get dependencies:
 
 ```bash
