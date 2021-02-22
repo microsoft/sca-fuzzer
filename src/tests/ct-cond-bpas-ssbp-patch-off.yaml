@@ -3,3 +3,4 @@ contracts:
   - cond
   - bpas
 enable_ssbp_patch: false
+no_priming: true

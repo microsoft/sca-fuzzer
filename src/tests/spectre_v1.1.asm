@@ -20,8 +20,10 @@ LEA rbx, [rbx + rax + 1]
 AND rbx, 0b1
 
 CMP rbx, 0
-JBE .l1  # misprediction
+JE .l1  # misprediction
     # rbx != 0
-    MOV qword ptr [r14 + rax], 42
+    MOV qword ptr [r14], rax
+    MOV rbx, [r14]
+    MOV rbx, [r14 + rbx]
 .l1:
 MFENCE

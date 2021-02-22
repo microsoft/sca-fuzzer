@@ -107,49 +107,49 @@ FAST_TEST=1
 }
 
 @test "Detection: Spectre V1 - BCB load - P" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v1.asm -i 11"
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v1.asm -i 20"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" = *"=== Violations detected ==="* ]]
 }
 
 @test "Detection: Spectre V1 - BCB load - N" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v1.asm -c tests/ct-cond.yaml -i 11"
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v1.asm -c tests/ct-cond.yaml -i 20"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" != *"=== Violations detected ==="* ]]
 }
 
 @test "Detection: Spectre V1.1 - BCB store" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v1.1.asm -i 11"
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v1.1.asm -i 20"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" = *"=== Violations detected ==="* ]]
 }
 
 @test "Detection: Spectre V2 - BTI - P" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v2.asm -i 10"
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v2.asm -i 20"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" = *"=== Violations detected ==="* ]]
 }
 
 @test "Detection: Spectre V4 - SSBP - P" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v4.asm -c tests/ct-seq-ssbp-patch-off.yaml -i 20"
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v4.asm -c tests/ct-seq-ssbp-patch-off.yaml -i 100"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" = *"=== Violations detected ==="* ]]
 }
 
 @test "Detection: Spectre V4 - SSBP - N (patch off)" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v4.asm -c tests/ct-bpas-ssbp-patch-off.yaml -i 20"
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v4.asm -c tests/ct-bpas-ssbp-patch-off.yaml -i 100"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" != *"=== Violations detected ==="* ]]
 }
 
 @test "Detection: Spectre V4 - SSBP - N (patch on)" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v4.asm -i 20"
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v4.asm -i 100"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" != *"=== Violations detected ==="* ]]
@@ -163,12 +163,12 @@ FAST_TEST=1
 }
 
 @test "Detection: Nested misprediction" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v4_n2.asm -i 20 -c tests/ct-bpas-ssbp-patch-off.yaml"
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v4_n2.asm -i 100 -c tests/ct-bpas-ssbp-patch-off.yaml"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" = *"=== Violations detected ==="* ]]
 
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v4_n2.asm -i 20 -c tests/ct-bpas-n2-ssbp-patch-off.yaml"
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v4_n2.asm -i 100 -c tests/ct-bpas-n2-ssbp-patch-off.yaml"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" != *"=== Violations detected ==="* ]]
