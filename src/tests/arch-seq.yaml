@@ -1,0 +1,5 @@
+contract_observation_mode: arch
+contract_execution_mode:
+  - seq
+input_mask: 1
+no_priming: true

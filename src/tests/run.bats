@@ -188,7 +188,7 @@ FAST_TEST=1
 
     for test_case in tests/generated-fp/* ; do
         echo "Testing $test_case"
-        run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t $test_case -i 10000 -c ./tests/ct-cond-bpas.yaml"
+        run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t $test_case -i 10000 -c tests/ct-cond-bpas.yaml"
         echo "$output"
         [ "$status" -eq 0 ]
         [[ "$output" != *"=== Violations detected ==="* ]]
@@ -197,9 +197,16 @@ FAST_TEST=1
 
 @test "Analyser: Priming" {
     skip
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_nested.asm -i 1000 -c ./tests/ct-cond.yaml"
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_nested.asm -i 1000 -c tests/ct-cond.yaml"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" = *"=== Priming ==="* ]]
     [[ "$output" != *"=== Violations detected ==="* ]]
+}
+
+@test "Model: ARCH-SEQ" {
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v1_arch.asm -i 1000 -c tests/arch-seq.yaml"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [[ "$output" = *"=== Violations detected ==="* ]]
 }
