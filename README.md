@@ -69,7 +69,7 @@ cd src/
 
 5. Find your first Spectre!
 
-This one should not detect a violations within several minutes.
+This one should detect a violations within several minutes.
 The detected violation is most likely an instance of Spectre V1.
 
 ```bash

@@ -174,6 +174,17 @@ FAST_TEST=1
     [[ "$output" != *"=== Violations detected ==="* ]]
 }
 
+@test "Detection: MDS-SB" {
+    if cat /proc/cpuinfo | grep "mds" ; then
+        run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/mds.asm -i 100 -c tests/mds.yaml"
+        echo "$output"
+        [ "$status" -eq 0 ]
+        [[ "$output" = *"=== Violations detected ==="* ]]
+    else
+        skip
+    fi
+}
+
 @test "False Positive: Input-independent branch misprediction" {
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v1_independent.asm -i $REPS_SPECTRE"
     echo "$output"

@@ -230,8 +230,15 @@ class X86UnicornModel(Model):
         self.emulator.reg_write(UC_X86_REG_RBP, self.rbp_init)
         self.emulator.reg_write(UC_X86_REG_R14, self.r14_init)
 
-        # Values in memory
+        # Values in assist page
         random_value = seed
+        for i in range(0, 4096, 64):
+            random_value = ((random_value * 2891336453) % POW32 + 12345) % POW32
+            masked_rvalue = (random_value ^ (random_value >> 16)) & CONF.input_mask
+            self.emulator.mem_write(self.r14_init + 4096 + i,
+                                    masked_rvalue.to_bytes(8, byteorder='little'))
+
+        # Values in sandbox memory
         for i in range(0, 4096, 64):
             random_value = ((random_value * 2891336453) % POW32 + 12345) % POW32
             masked_rvalue = (random_value ^ (random_value >> 16)) & CONF.input_mask
@@ -249,12 +256,6 @@ class X86UnicornModel(Model):
         self.emulator.reg_write(UC_X86_REG_EFLAGS, (random_value & 2263) | 2)
 
         self.emulator.reg_write(UC_X86_REG_RDI, random_value)
-
-        # MDS assist page
-        if CONF.enable_mds:
-            zero_bytes = (0).to_bytes(8, byteorder='little')
-            for i in range(0, 4096, 64):
-                self.emulator.mem_write(self.r14_init + 4096 + i, zero_bytes)
 
     @staticmethod
     def _print_state(emulator: Uc):
