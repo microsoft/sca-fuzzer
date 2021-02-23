@@ -117,7 +117,7 @@ class Postprocessor:
                 break
 
             # Preserve those instructions used for sandboxing
-            if "0b111111000000" in instructions[cursor] or ", R14" in instructions[cursor]:
+            if "0b111111" in instructions[cursor] or ", R14" in instructions[cursor]:
                 continue
 
             # Create a test case with one line missing
@@ -149,7 +149,6 @@ class Postprocessor:
         minimised = "/tmp/minimised.asm"
         cursor = len(instructions)
 
-        # Try removing instructions, one at a time
         while True:
             cursor -= 1
 

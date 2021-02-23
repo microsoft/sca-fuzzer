@@ -88,7 +88,7 @@ class Fuzzer:
                 print(pretty_bitmap(ctraces[i], True))
                 print(pretty_bitmap(htraces[i]))
 
-        if CONF.self_test_mode and CONF.attacker_capability == 'l1d':
+        if CONF.self_test_mode and CONF.contract_observation_mode == 'l1d':
             for i, ctrace in enumerate(ctraces):
                 if (ctrace % POW2_64) > htraces[i]:
                     print(f"\n> Broken measurement. Input id {i}; Input value: {inputs[i]}")

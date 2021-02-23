@@ -65,8 +65,8 @@ class ConfCls:
     # ==============================================================================================
     # Model
     model: str = 'x86-unicorn'  # options: 'x86-serializing', 'x86-unicorn'
-    contracts: List[str] = ["seq"]  # options: "seq", "cond", "bpas"
-    attacker_capability = 'ct'  # options: 'l1d', 'memory', 'ct'
+    contract_execution_mode: List[str] = ["seq"]  # options: "seq", "cond", "bpas"
+    contract_observation_mode: str = 'ct'  # options: 'l1d', 'memory', 'ct'
     max_nesting = 1
     # ==============================================================================================
     # Executor

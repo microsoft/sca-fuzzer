@@ -1,5 +1,5 @@
-attacker_capability: l1d
-contracts:
+contract_observation_mode: l1d
+contract_execution_mode:
   - seq
 enable_ssbp_patch: true
 self_test_mode: true

@@ -11,8 +11,8 @@ supported_categories:
   - LOGICAL
   - POP
   - PUSH
-attacker_capability: ct
-contracts:
+contract_observation_mode: ct
+contract_execution_mode:
   - bpas
 
 test_case_size: 64

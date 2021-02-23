@@ -1,5 +1,5 @@
-attacker_capability: ct
-contracts:
+contract_observation_mode: ct
+contract_execution_mode:
   - bpas
 enable_ssbp_patch: false
 no_priming: true

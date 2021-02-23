@@ -82,8 +82,8 @@ class L1DTracer(X86UnicornTracer):
         self.trace = [0, 0]
 
     def trace_mem_access(self, address, size, value):
-        page_offset = address & 4095
-        cache_set_index = 9223372036854775808 >> (page_offset >> 6)
+        page_offset = (address & 4032) >> 6  # 4032 = 0b111111000000
+        cache_set_index = 9223372036854775808 >> page_offset
         if model.checkpoints:
             self.trace[1] |= cache_set_index
         else:
@@ -551,29 +551,29 @@ def get_model(bases) -> Model:
     global model
     if CONF.model == 'x86-unicorn':
         # functional part of the contract
-        if "cond" in CONF.contracts and "bpas" in CONF.contracts:
+        if "cond" in CONF.contract_execution_mode and "bpas" in CONF.contract_execution_mode:
             model = X86UnicornCondBpas(bases[0], bases[1], bases[2])
-        elif "cond" in CONF.contracts:
+        elif "cond" in CONF.contract_execution_mode:
             model = X86UnicornCond(bases[0], bases[1], bases[2])
-        elif "bpas" in CONF.contracts:
+        elif "bpas" in CONF.contract_execution_mode:
             model = X86UnicornBpas(bases[0], bases[1], bases[2])
-        elif "seq" in CONF.contracts:
+        elif "seq" in CONF.contract_execution_mode:
             model = X86UnicornSeq(bases[0], bases[1], bases[2])
         else:
-            print("Error: unknown value of `contracts` configuration option")
+            print("Error: unknown value of `contract_execution_mode` configuration option")
             exit(1)
 
         # observational part of the contract
-        if CONF.attacker_capability == "l1d":
+        if CONF.contract_observation_mode == "l1d":
             model.tracer = L1DTracer()
-        elif CONF.attacker_capability == 'memory':
+        elif CONF.contract_observation_mode == 'memory':
             model.tracer = MemoryTracer()
-        elif CONF.attacker_capability == 'ct':
+        elif CONF.contract_observation_mode == 'ct':
             model.tracer = CTTracer()
-        elif CONF.attacker_capability == 'arch':
+        elif CONF.contract_observation_mode == 'arch':
             model.tracer = ArchTracer()
         else:
-            print("Error: unknown value of `attacker_capability` configuration option")
+            print("Error: unknown value of `contract_observation_mode` configuration option")
             exit(1)
 
         return model

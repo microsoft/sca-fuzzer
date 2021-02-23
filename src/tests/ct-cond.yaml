@@ -1,3 +1,3 @@
-attacker_capability: ct
-contracts:
+contract_observation_mode: ct
+contract_execution_mode:
   - cond
