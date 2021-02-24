@@ -34,6 +34,7 @@ class OperandSpec:
     masks: List[str]
     type: OT
     width: int
+    is_write: bool = False
 
     def __init__(self, choices: List[str], type_):
         self.choices = choices
@@ -51,6 +52,7 @@ class InstructionSpec:
     rnsae = False
     zeroing = False
     has_mem_operand = False
+    has_write = False
     control_flow = False
 
     def __init__(self):
@@ -90,14 +92,13 @@ class InstructionSet:
         assert op.attrib.get('VSIB', '0') == '0'  # asm += '[' + op.attrib.get('VSIB') + '0]'
         assert op.attrib.get('memory-suffix', '') == ''
 
-        if op.attrib.get('w', '0') == 0:
-            name = "READ"
-        else:
-            name = op.attrib.get('memory-prefix', '')
-            assert name != ''
+        name = op.attrib.get('memory-prefix', '')
+        assert name != ''
 
         spec = OperandSpec([name], OT.MEM)
         spec.width = width
+        if op.attrib.get('w', "0") == "1":
+            spec.is_write = True
         return spec
 
     @staticmethod
@@ -130,6 +131,8 @@ class InstructionSet:
                 elif op_type == 'mem':
                     parsed_op = self.parse_mem_operand(op_node)
                     self.instruction.has_mem_operand = True
+                    if parsed_op.is_write:
+                        self.instruction.has_write = True
                 elif op_type == 'agen':
                     op_node.text = instruction_node.attrib['agen']
                     parsed_op = self.parse_agen_operand(op_node)
@@ -214,6 +217,31 @@ class InstructionSet:
 
         for s in skip_list:
             self.all.remove(s)
+
+        # conditional_reg = 0
+        # uncond = 0
+        # store = 0
+        # load = 0
+        # reg = 0
+        # for s in self.all + self.control_flow:
+        #     if s.control_flow:
+        #         if "JMP" in s.name:
+        #             uncond += 1
+        #         else:
+        #             conditional_reg += 1
+        #     elif s.has_mem_operand:
+        #         if s.has_write:
+        #             store += 1
+        #         else:
+        #             load += 1
+        #     else:
+        #         reg += 1
+        # print(f"Unconditional: {uncond}")
+        # print(f"Conditional: {conditional_reg}")
+        # print(f"Store: {store}")
+        # print(f"Load: {load}")
+        # print(f"Misc: {reg}")
+
 
 
 # ===========================
@@ -725,8 +753,6 @@ class AddRandomInstructionsPass(Pass):
     def generate_mem_operand(self, spec: OperandSpec, parent: Instruction) -> Operand:
         assert len(spec.choices) == 1
         prefix = spec.choices[0]
-        if prefix == 'READ':
-            prefix = ""
 
         base = random.choice(self.gpr_decoding)[64]
         return MemoryOperand(prefix, base)
