@@ -20,6 +20,13 @@ FAST_TEST=1
     [[ "$output" == *"2305843009213693953"* ]]
 }
 
+@test "Executor: Hardware tracing with E+R" {
+    bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/evict_second_line.asm -c tests/ct-seq-er.yaml -i 3"
+    run cat measurement.txt
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"2305843009213693952"* ]]
+}
+
 @test "Model and Executor are initialized with the same register and memory values" {
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/model_match.asm -c tests/model_match.yaml -i 1000"
     echo "$output"

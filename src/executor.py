@@ -38,10 +38,7 @@ class X86Intel(Executor):
                              "/sys/x86-executor/enable_ssbp_patch")
         write_to_pseudo_file("1" if CONF.enable_ssbp_patch else "0",
                              "/sys/x86-executor/enable_pre_run_flush")
-        if CONF.attack_variant == 'F+R':
-            write_to_pseudo_file("F", "/sys/x86-executor/measurement_mode")
-        elif CONF.attack_variant == 'P+P':
-            write_to_pseudo_file("P", "/sys/x86-executor/measurement_mode")
+        write_to_pseudo_file(CONF.attack_variant, "/sys/x86-executor/measurement_mode")
         write_to_pseudo_file(CONF.input_mask, '/sys/x86-executor/input_mask')
 
     def load_test_case(self, test_case_asm: str):

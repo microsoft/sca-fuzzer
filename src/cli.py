@@ -23,8 +23,6 @@ def check_config():
     assert CONF.prng_seed != 0  # deprecated?
     if CONF.max_outliers > 20:
         print("Are you sure you want to ignore so many outliers?")
-    if CONF.attack_variant not in ["F+R", "P+P"]:
-        print("CONFIG: Unknown attack_variant")
 
 
 def ensure_reliable_environment():

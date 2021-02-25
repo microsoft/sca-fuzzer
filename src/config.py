@@ -75,7 +75,7 @@ class ConfCls:
     warmups: int = 1
     num_measurements: int = 40
     max_outliers = 3
-    attack_variant: str = 'P+P'  # options: 'F+R', 'P+P'
+    attack_variant: str = 'P+P'
     enable_ssbp_patch: bool = True
     enable_pre_run_flush: bool = True
     enable_mds: bool = False
@@ -92,6 +92,10 @@ class ConfCls:
     verbose: int = 0
 
     def set(self, name, value):
+        options = {
+            'attack_variant': ['P+P', 'F+R', 'E+R']
+        }
+
         if self.__getattribute__(name) is None:
             print(f"Error: Unknown configuration variable {name}.\n"
                   f"It's likely a typo in the configuration file.")
@@ -100,7 +104,13 @@ class ConfCls:
             print(f"Error: Wrong type of the configuration variable {name}.\n"
                   f"It's likely a typo in the configuration file.")
             exit(1)
-        # TODO: would be great to do some sanity checks before setting changing the value
+
+        # value checks
+        # TODO: would be great to have more of these
+        if options.get(name, '') != '' and value not in options[name]:
+            print(f"Error: Unknown value '{value}' of configuration variable '{name}'")
+            exit(1)
+
         self.__setattr__(name, value)
 
 
