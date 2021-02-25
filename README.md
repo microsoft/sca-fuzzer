@@ -85,31 +85,38 @@ You can find the test case that triggered this violation in `src/generated.asm`.
 
 ![architecture](Arch.png)
 
-**THE TEXT BELOW IS UNDER CONSTRUCTION. PROCEED WITH CAUTION**
+Under construction
+
+[comment]: <> (## Instruction Set Spec)
+
+[comment]: <> (This XML file: https://www.uops.info/xml.html originating from Intel XED &#40;https://intelxed.github.io/&#41;)
+
+[comment]: <> (Received from: `--instruction-set` &#40;or `-s`&#41; CLI argument.)
+
+[comment]: <> (Passed down to: `Generator.__init__`)
 
 
-## Instruction Set Spec
-This XML file: https://www.uops.info/xml.html originating from Intel XED (https://intelxed.github.io/)
+[comment]: <> (## Generator Initializer)
 
-Received from: `--instruction-set` (or `-s`) CLI argument.
-Passed down to: `Generator.__init__`
+[comment]: <> (None so far.)
 
+[comment]: <> (In future, may include test case templates, grammar, etc.)
 
-## Generator Initializer
-None so far.
+[comment]: <> (## Test Case)
 
-In future, may include test case templates, grammar, etc.
+[comment]: <> (An assembly file. Currently, in Intel syntax.)
 
-## Test Case
-An assembly file. Currently, in Intel syntax.
+[comment]: <> (Received from: `self.generator.create_test_case&#40;&#41;` + `self.generator.materialize&#40;filename&#41;`)
 
-Received from: `self.generator.create_test_case()` + `self.generator.materialize(filename)`
-Passed down to: `model.load_test_case` and `executor.load_test_case`
+[comment]: <> (Passed down to: `model.load_test_case` and `executor.load_test_case`)
 
 
-## Inputs
-Currently, each input is a single 32-bit integer, used later as a PRNG seed inside the test case to initialize memory and registers.
-Inputs are generated in batches; that is, Input Generator returns `List[int]`.
+[comment]: <> (## Inputs)
 
-Received from: `input_gen.generate(...)`
-Passed down to: `model.trace_test_case(inputs)` and `executor.trace_test_case(inputs)`.
+[comment]: <> (Currently, each input is a single 32-bit integer, used later as a PRNG seed inside the test case to initialize memory and registers.)
+
+[comment]: <> (Inputs are generated in batches; that is, Input Generator returns `List[int]`.)
+
+[comment]: <> (Received from: `input_gen.generate&#40;...&#41;`)
+
+[comment]: <> (Passed down to: `model.trace_test_case&#40;inputs&#41;` and `executor.trace_test_case&#40;inputs&#41;`.)

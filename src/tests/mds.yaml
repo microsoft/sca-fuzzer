@@ -1,5 +1,6 @@
 contract_observation_mode: ct
 contract_execution_mode:
   - seq
-input_mask: 511
+input_mask: 63
+attack_variant: 'F+R'
 no_priming: true
