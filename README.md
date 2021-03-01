@@ -1,10 +1,10 @@
-# SCA-Fuzzer
+# Revizor
 
-This is SCA-Fuzzer, a different kind of fuzzer.
-Instead of finding bugs in programs, SCA-Fuzzer searches for microarchitectural bugs in CPUs.
+This is Revizor, a different kind of fuzzer.
+Instead of finding bugs in programs, Revizor searches for microarchitectural bugs in CPUs.
 
 What is a bug in a CPU?
-In the context of SCA-Fuzzer, a bug is a violation of out expectations about how the CPU should behave.
+In the context of Revizor, a bug is a violation of out expectations about how the CPU should behave.
 The most prominent examples would be [Spectre](https://spectreattack.com/) and [Meltdown](https://meltdownattack.com/).
 It could also be a microarchitectural backdoor or an unknown optimization, although we are yet to encounter one of those.
 
@@ -15,10 +15,10 @@ See our ~~[Technical Report]~~ (under construction) for details.
 
 # Getting Started
 
-Below are quick-and-dirty instructions on how to use SCA-Fuzzer.
+Below are quick-and-dirty instructions on how to use Revizor.
 More detailed instructions will be added some time later.
 
-**Warning**: SCA-Fuzzer executes randomly generated code in kernel space.
+**Warning**: Revizor executes randomly generated code in kernel space.
 As you can imagine, things can go wrong.
 Usually they don't, but sometimes they do.
 So, make sure you're not running these experiments on an important machine.
