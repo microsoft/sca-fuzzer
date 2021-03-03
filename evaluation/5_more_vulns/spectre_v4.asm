@@ -1,46 +1,27 @@
 .intel_syntax noprefix
+
+AND rax, 0b111111000000  # keep the mem. access within the sandbox
+MOV qword ptr [r14], rax # put RAX into Store Buffer
 MOV rax, 0
-
-# the leaked value:
-# generate randomly
-IMUL edi, edi, 2891336453
-ADD edi, 12345
-MOV ecx, edi
-# construct a page offset from the random value
-SHL rcx, 58
-SHR rcx, 58
-SHL rcx, 6
-ADD rcx, 64
-
-# save some value into the test address
-MOV qword ptr [r14], rcx
 MFENCE
 
-# generate a random value + delay the store
-# the likelihood of the match must be relatively low, otherwise the predictor won't kick in
-# at least 1/8 runs
-IMUL edi, edi, 2891336453
-ADD edi, 12345
-MOV ebx, edi
+# delay the store
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
+LEA rbx, [rbx + rax + 1]
 
-# delay
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-# select the store address based on the random value
-SHL rbx, 61
-SHR rbx, 61
+
+AND rbx, 0b111  # reduce the range of values for rbx to 0--7
 SHL rbx, 3 # multiply by 8 to avoid collisions with the load
 
-# store and load, potentially matching
-MOV qword ptr  [r14 + rbx], 4096 - 64
-MOV rdx, [r14]  # misprediction happens here
-
-# dependent load
-MOV rdx, [r14 + rdx]
+MOV qword ptr  [r14 + rbx], 0 # store some new value
+MOV rdx, [r14]  # a load, potentially aliasing the previous store
+MOV rdx, [r14 + rdx] # dependent load
 MFENCE

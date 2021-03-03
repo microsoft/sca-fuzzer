@@ -1,38 +1,19 @@
 .intel_syntax noprefix
-MOV rcx, r14
-
-# eax = random
-IMUL edi, edi, 2891336453
-ADD edi, 12345
-MOV eax, edi
-# ebx = random
-IMUL edi, edi, 2891336453
-ADD edi, 12345
-MOV ebx, edi
 LFENCE
 
-# trun rax into a page offset
-SHL rax, 58
-SHR rax, 52
+AND rax, 0b111111000000  # keep the mem. access within the sandbox
+AND rbx, 0b1  # reduce the range of values for rbx to {0,1}
 
-# select a target based on the random value
+# prepare jump targets
 LEA rdx, [rip + .l1]
 LEA rsi, [rip + .l2]
-SHL rbx, 62
-SHR rbx, 62
+
 CMP rbx, 0
 CMOVE rsi, rdx
 
-# speculation
-JMP rsi
+CMP rbx, 0
+JMP rsi # misprediction
 .l1:
-    # rbx = 0
-    MOV rdx, [rcx]
-    JMP .l3
-
+    MOV rax, [r14 + rax]
 .l2:
-    # rbx != 0
-    MOV rdx, [rcx + rax]
-    JMP .l3
-.l3:
 MFENCE

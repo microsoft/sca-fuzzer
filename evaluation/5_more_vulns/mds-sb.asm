@@ -1,32 +1,37 @@
 .intel_syntax noprefix
-
-# write a page offset into Store Buffer
-IMUL edi, edi, 2891336453
-ADD edi, 12345
-MOV ecx, edi
+AND rax, 0b111111111111  # keep the mem. access within the sandbox
+#MOV rax, 62
+NOP
 MFENCE
 
-# put a value into store buffer
-MOV qword ptr [r14], rcx
-MOV rcx, qword ptr [r14]
-
-# delay to allow data reach SB
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
+# put a value into store buffer; repeated several times to make sure we get a hit
+MOV qword ptr [r14], rax
+SFENCE
+MOV qword ptr [r14], rax
+SFENCE
+MOV qword ptr [r14], rax
+SFENCE
+MOV qword ptr [r14], rax
+SFENCE
+MOV qword ptr [r14], rax
+SFENCE
+MOV qword ptr [r14], rax
+SFENCE
+MOV qword ptr [r14], rax
+SFENCE
+MOV qword ptr [r14], rax
+SFENCE
+MOV qword ptr [r14], rax
+SFENCE
 
 
 # Read from a non-accessed address thus triggerring microcode assist
-MOV rcx, qword ptr [r14+4096]
-AND rcx, 0b111111111111
+MOV rcx, [r14 + 4096]
+SHL rcx, 6
 
 # dependent load
+#LFENCE
+AND rcx, 0b111111000000
 MOV rdx, [r14 + rcx]
+
 MFENCE

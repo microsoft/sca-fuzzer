@@ -1,32 +1,11 @@
 .intel_syntax noprefix
-MOV rcx, r14
-
-# initialize eax and ebx with two random values
-IMUL edi, edi, 2891336453
-ADD edi, 12345
-MOV eax, edi
-IMUL edi, edi, 2891336453
-ADD edi, 12345
-MOV ebx, edi
 LFENCE
 
-# delay the cond. jump
-SHL rbx, 62
-SHR rbx, 62
+AND rax, 0b111111000000  # keep the mem. access within the sandbox
+AND rbx, 0b1  # reduce the range of values for rbx to {0,1}
 
-# speculative offset:
-# these shifts generate a random page offset, 64-bit aligned
-SHL rax, 58
-SHR rax, 52
-
-# speculation
 CMP rbx, 0
-JE .l1
-    # rbx != 0
-    MOV rax, [rcx + rax]
-JMP .l2
+JE .l1  # misprediction
+    MOV rax, [r14 + rax]
 .l1:
-    # rbx == 0
-    MOV rax, [rcx]
-.l2:
 MFENCE

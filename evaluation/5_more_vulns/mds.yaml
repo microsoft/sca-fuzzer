@@ -1,0 +1,7 @@
+contract_observation_mode: l1d
+contract_execution_mode:
+  - seq
+input_mask: 511
+attack_variant: E+R
+no_priming: true
+verbose: 999

@@ -1,5 +1,5 @@
-attacker_capability: ct
-contracts:
+contract_observation_mode: ct
+contract_execution_mode:
   - seq
 
 prng_seed: 344048350562792
