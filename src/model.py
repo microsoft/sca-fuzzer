@@ -100,6 +100,14 @@ class L1DTracer(X86UnicornTracer):
         return (self.trace[1] << 64) + self.trace[0]
 
 
+class PCTracer(X86UnicornTracer):
+    def trace_mem_access(self, address, size, value):
+        pass
+
+    def trace_code(self, address: int, size: int):
+        self.trace.append(address)
+
+
 class MemoryTracer(X86UnicornTracer):
     def trace_mem_access(self, address, size, value):
         self.trace.append(address)
@@ -567,6 +575,8 @@ def get_model(bases) -> Model:
         # observational part of the contract
         if CONF.contract_observation_mode == "l1d":
             model.tracer = L1DTracer()
+        elif CONF.contract_observation_mode == 'pc':
+            model.tracer = PCTracer()
         elif CONF.contract_observation_mode == 'memory':
             model.tracer = MemoryTracer()
         elif CONF.contract_observation_mode == 'ct':
