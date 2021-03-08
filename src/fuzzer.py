@@ -85,7 +85,7 @@ class Fuzzer:
             nprinted = 10 if len(ctraces) > 10 else len(ctraces)
             for i in range(nprinted):
                 print("..............................................................")
-                print(pretty_bitmap(ctraces[i], True))
+                print(pretty_bitmap(ctraces[i], ctraces[i] > pow(2, 64)))
                 print(pretty_bitmap(htraces[i]))
 
         if CONF.self_test_mode and CONF.contract_observation_mode == 'l1d':

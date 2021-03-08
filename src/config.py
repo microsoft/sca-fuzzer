@@ -24,6 +24,7 @@ class ConfCls:
     test_case_size = 64
     max_mem_accesses = 32
     single_function_test_case = True
+    avoid_data_dependencies: bool = True
     supported_categories = ["NOP"]
     instruction_blocklist = [
         # STI - enables interrupts, thus corrupting the measurements; CTI - just in case
@@ -60,7 +61,6 @@ class ConfCls:
     # ==============================================================================================
     # Input Generator
     prng_seed: int = 10  # zero is a reserved value, do not use it
-    avoid_data_dependencies: bool = True
     input_mask: int = 0xffffffff
     # ==============================================================================================
     # Model
