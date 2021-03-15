@@ -69,7 +69,7 @@ class X86UnicornTracer(ABC):
         return hash(tuple(self.trace))
 
     @abstractmethod
-    def trace_mem_access(self, address: int, size: int, value: int) -> None:
+    def trace_mem_access(self, access, address: int, size: int, value: int) -> None:
         pass
 
     @abstractmethod
@@ -81,7 +81,7 @@ class L1DTracer(X86UnicornTracer):
     def reset_trace(self):
         self.trace = [0, 0]
 
-    def trace_mem_access(self, address, size, value):
+    def trace_mem_access(self, access, address, size, value):
         page_offset = (address & 4032) >> 6  # 4032 = 0b111111000000
         cache_set_index = 9223372036854775808 >> page_offset
         if model.checkpoints:
@@ -101,7 +101,7 @@ class L1DTracer(X86UnicornTracer):
 
 
 class PCTracer(X86UnicornTracer):
-    def trace_mem_access(self, address, size, value):
+    def trace_mem_access(self, access, address, size, value):
         pass
 
     def trace_code(self, address: int, size: int):
@@ -109,7 +109,7 @@ class PCTracer(X86UnicornTracer):
 
 
 class MemoryTracer(X86UnicornTracer):
-    def trace_mem_access(self, address, size, value):
+    def trace_mem_access(self, access, address, size, value):
         self.trace.append(address)
 
     def trace_code(self, address: int, size: int):
@@ -118,8 +118,19 @@ class MemoryTracer(X86UnicornTracer):
 
 class CTTracer(X86UnicornTracer):
 
-    def trace_mem_access(self, address, size, value):
+    def trace_mem_access(self, access, address, size, value):
         self.trace.append(address)
+
+    def trace_code(self, address: int, size: int):
+        self.trace.append(address)
+
+
+class CTNonSpecStoreTracer(X86UnicornTracer):
+    def trace_mem_access(self, access, address, size, value):
+        if not model.checkpoints:  # all non-spec mem accesses
+            self.trace.append(address)
+        if access == UC_MEM_READ:  # and speculative loads
+            self.trace.append(address)
 
     def trace_code(self, address: int, size: int):
         self.trace.append(address)
@@ -135,7 +146,7 @@ class ArchTracer(X86UnicornTracer):
             model.emulator.reg_read(UC_X86_REG_EFLAGS),
         ]
 
-    def trace_mem_access(self, address, size, value):
+    def trace_mem_access(self, access, address, size, value):
         self.trace.append(value)
         self.trace.append(address)
 
@@ -309,7 +320,7 @@ class X86UnicornSeq(X86UnicornModel):
     @staticmethod
     def trace_mem_access(emulator, access, address: int, size, value, user_data):
         global model
-        model.tracer.trace_mem_access(address, size, value)
+        model.tracer.trace_mem_access(access, address, size, value)
 
     @staticmethod
     def trace_code(emulator: Uc, address, size, user_data):
@@ -581,6 +592,8 @@ def get_model(bases) -> Model:
             model.tracer = MemoryTracer()
         elif CONF.contract_observation_mode == 'ct':
             model.tracer = CTTracer()
+        elif CONF.contract_observation_mode == 'ct-nonspecstore':
+            model.tracer = CTNonSpecStoreTracer()
         elif CONF.contract_observation_mode == 'arch':
             model.tracer = ArchTracer()
         else:

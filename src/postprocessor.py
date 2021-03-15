@@ -120,6 +120,9 @@ class Postprocessor:
             if "0b111111" in instructions[cursor] or ", R14" in instructions[cursor]:
                 continue
 
+            if instructions[cursor] == "LFENCE\n":
+                break
+
             # Create a test case with one line missing
             run(f"touch {minimised}", shell=True, check=True)
             with open(minimised, "r+") as f:
