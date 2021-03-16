@@ -68,6 +68,7 @@ class ConfCls:
     contract_execution_mode: List[str] = ["seq"]  # options: "seq", "cond", "bpas"
     contract_observation_mode: str = 'ct'  # options: 'l1d', 'memory', 'ct'
     max_nesting = 1
+    max_speculation_window: int = 250
     # ==============================================================================================
     # Executor
     executor: str = 'x86-intel'

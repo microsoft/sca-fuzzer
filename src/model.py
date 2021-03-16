@@ -84,7 +84,7 @@ class L1DTracer(X86UnicornTracer):
     def trace_mem_access(self, access, address, size, value):
         page_offset = (address & 4032) >> 6  # 4032 = 0b111111000000
         cache_set_index = 9223372036854775808 >> page_offset
-        if model.checkpoints:
+        if model.in_speculation:
             self.trace[1] |= cache_set_index
         else:
             self.trace[0] |= cache_set_index
@@ -127,7 +127,7 @@ class CTTracer(X86UnicornTracer):
 
 class CTNonSpecStoreTracer(X86UnicornTracer):
     def trace_mem_access(self, access, address, size, value):
-        if not model.checkpoints:  # all non-spec mem accesses
+        if not model.in_speculation:  # all non-spec mem accesses
             self.trace.append(address)
         if access == UC_MEM_READ:  # and speculative loads
             self.trace.append(address)
@@ -161,6 +161,8 @@ class X86UnicornModel(Model):
     """
     code: bytes
     emulator: Uc
+    in_speculation: bool = False
+    speculation_window: int = 0
     checkpoints: List
     store_logs: List
     previous_store: Tuple[int, int, int, int]
@@ -224,7 +226,7 @@ class X86UnicornModel(Model):
                 self.emulator.emu_start(self.code_base, self.code_base + len(self.code),
                                         timeout=10000)
             except UcError as e:
-                if not self.checkpoints:
+                if not self.in_speculation:
                     self._print_state(self.emulator)
                     print("Model error [trace_test_case]: %s" % e)
                     raise e
@@ -232,7 +234,7 @@ class X86UnicornModel(Model):
             # if we use one of the SPEC contracts, we might have some residual simulations
             # that did not reach the spec. window by the end of simulation. Those need
             # to be rolled back
-            while self.checkpoints:
+            while self.in_speculation:
                 try:
                     self.rollback()
                 except UcError:
@@ -244,6 +246,8 @@ class X86UnicornModel(Model):
 
     def reset_emulator(self, seed):
         self.checkpoints = []
+        self.in_speculation = False
+        self.speculation_window = 0
 
         self.emulator.reg_write(UC_X86_REG_RSP, self.rsp_init)
         self.emulator.reg_write(UC_X86_REG_RBP, self.rbp_init)
@@ -349,11 +353,16 @@ class X86UnicornSpec(X86UnicornModel):
     @staticmethod
     def trace_code(emulator: Uc, address, size, user_data):
         global model
+        model.speculation_window += 1
 
-        if model.checkpoints:
+        if model.in_speculation:
             # rollback on a serializing instruction (lfence, sfence, mfence)
             if emulator.mem_read(address, size) in [b'\x0F\xAE\xE8', b'\x0F\xAE\xF8',
                                                     b'\x0F\xAE\xF0']:
+                emulator.emu_stop()
+
+            # and on expired speculation window
+            if model.speculation_window > CONF.max_speculation_window:
                 emulator.emu_stop()
 
         model.tracer.trace_code(address, size)
@@ -363,16 +372,22 @@ class X86UnicornSpec(X86UnicornModel):
         global model
         flags = emulator.reg_read(UC_X86_REG_EFLAGS)
         context = emulator.context_save()
-        model.checkpoints.append((context, next_instruction, flags))
+        spec_window = model.speculation_window
+        model.checkpoints.append((context, next_instruction, flags, spec_window))
         model.store_logs.append([])
+        model.in_speculation = True
 
     def rollback(self):
         global model
 
         # restore register values
-        state, next_instr, flags = model.checkpoints.pop()
-        self.emulator.context_restore(state)
+        state, next_instr, flags, spec_window = model.checkpoints.pop()
+        if not model.checkpoints:
+            model.in_speculation = False
+
         self.emulator.reg_write(UC_X86_REG_EFLAGS, flags)
+        self.emulator.context_restore(state)
+        model.speculation_window = spec_window
 
         # rollback memory changes
         mem_changes = model.store_logs.pop()

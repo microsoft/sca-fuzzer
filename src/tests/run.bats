@@ -228,3 +228,12 @@ FAST_TEST=1
     [ "$status" -eq 0 ]
     [[ "$output" = *"=== Violations detected ==="* ]]
 }
+
+@test "Model: Rollback on LFENCE and spec. window" {
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/rollback_fence_and_expire.asm -i 2 -c tests/rollback_fence_and_expire.yaml -v"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"__^_____________________________________________________________ [s]"* ]]
+    [[ "$output" != *"_^______________________________________________________________ [s]"* ]]
+    [[ "$output" != *"_^^_____________________________________________________________ [s]"* ]]
+}

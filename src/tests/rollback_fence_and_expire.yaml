@@ -1,0 +1,5 @@
+contract_observation_mode: l1d
+contract_execution_mode:
+  - cond
+verbose: 999
+prng_seed: 12
