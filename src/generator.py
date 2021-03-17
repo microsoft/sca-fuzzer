@@ -552,6 +552,7 @@ class Generator:
         # Define the maximum allowed number of successors for any BB
         max_successors = 2 if self.instruction_set.has_conditional_branch else 1
         max_successors = CONF.max_bb_successors if CONF.max_bb_successors else max_successors
+        min_successors = 2 if max_successors >= 2 else 1
 
         # Create basic blocks
         node_count = random.randint(CONF.min_bb_per_function, CONF.max_bb_per_function)
@@ -560,12 +561,23 @@ class Generator:
         # Connect BBs into a graph
         for i in range(node_count):
             current_bb = nodes[i]
-            successor_count = random.randint(1, max_successors)
+            successor_count = random.randint(min_successors, max_successors)
             if successor_count + i >= node_count:
                 successor_count = node_count - i - 1
 
-            for j in range(1, successor_count + 1):
-                current_bb.successors.append(nodes[i + j])
+            if successor_count <= 0:
+                continue
+
+            # one of the targets is always the next node - to avoid dead code
+            current_bb.successors.append(nodes[i + 1])
+
+            # all other successors are random, selected from next nodes
+            options = nodes[i + 2:]
+            for j in range(1, successor_count):
+                target = random.choice(options)
+                options.remove(target)
+                current_bb.successors.append(target)
+
         function.entry.successors = [nodes[0]]
         nodes[-1].successors = [function.exit]
 
