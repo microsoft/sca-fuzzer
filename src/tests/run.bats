@@ -237,3 +237,9 @@ FAST_TEST=1
     [[ "$output" != *"_^______________________________________________________________ [s]"* ]]
     [[ "$output" != *"_^^_____________________________________________________________ [s]"* ]]
 }
+
+@test "Generator: Self-test" {
+    run bash -c "./cli.py generator-test -s $INSTRUCTION_SET -c tests/all-instr.yaml"
+    [ "$status" -eq 0 ]
+    [[ "$output" == "" ]]
+}

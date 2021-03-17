@@ -98,6 +98,11 @@ def main():
         type=str,
         required=True
     )
+    parser_gen.add_argument(
+        "-c", "--config",
+        type=str,
+        required=False
+    )
 
     parser_mini = subparsers.add_parser('minimize')
     parser_mini.add_argument(
@@ -130,13 +135,6 @@ def main():
 
     args = parser.parse_args()
 
-    # Generator test
-    if args.subparser_name == "generator-test":
-        binary_generator = Generator(args.instruction_set)
-        binary_generator.create_test_case(test_mode=True)
-        binary_generator.materialize('generated.asm')
-        return
-
     # Update configuration
     if getattr(args, 'verbose', 0):
         CONF.set('verbose', 1)
@@ -146,6 +144,12 @@ def main():
         for var, value in config_update.items():
             CONF.set(var, value)
     check_config()
+
+    # Generator test
+    if args.subparser_name == "generator-test":
+        binary_generator = Generator(args.instruction_set)
+        binary_generator.create_test_case('generated.asm', test_mode=True)
+        return
 
     # Fuzzing
     if args.subparser_name == 'fuzz':
