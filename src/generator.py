@@ -9,10 +9,9 @@ from __future__ import annotations
 
 import random
 import abc
-import copy
 import xml.etree.ElementTree as ET
 from enum import Enum
-from custom_types import Optional, List
+from custom_types import Optional, List, Tuple
 
 from helpers import NotSupportedException
 from config import CONF
@@ -27,6 +26,7 @@ class OT(Enum):  # Operand Type
     IMM = 3
     LABEL = 4
     AGEN = 5  # memory address in LEA instructions
+    FLAGS = 6
 
 
 class OperandSpec:
@@ -34,11 +34,14 @@ class OperandSpec:
     masks: List[str]
     type: OT
     width: int
-    is_write: bool = False
+    src: bool
+    dest: bool
 
-    def __init__(self, choices: List[str], type_):
+    def __init__(self, choices: List[str], type_: OT, src: str, dest: str):
         self.choices = choices
         self.type = type_
+        self.src = True if src == "1" else False
+        self.dest = True if dest == "1" else False
 
     def __str__(self):
         return f"{self.choices}"
@@ -79,7 +82,9 @@ class InstructionSet:
             self.instruction.operands[-1].masks.append(registers)
             return
 
-        spec = OperandSpec(registers, OT.REG)
+        spec = OperandSpec(registers, OT.REG,
+                           op.attrib.get('r', "0"),
+                           op.attrib.get('w', "0"))
         spec.width = int(op.attrib.get('width', '0'))
         assert spec.width or registers != ['GPR']
         return spec
@@ -95,25 +100,31 @@ class InstructionSet:
         name = op.attrib.get('memory-prefix', '')
         assert name != ''
 
-        spec = OperandSpec([name], OT.MEM)
+        spec = OperandSpec([name], OT.MEM,
+                           op.attrib.get('r', "0"),
+                           op.attrib.get('w', "0"))
         spec.width = width
-        if op.attrib.get('w', "0") == "1":
-            spec.is_write = True
         return spec
 
     @staticmethod
     def parse_agen_operand(op):
-        return OperandSpec([], OT.AGEN)
+        return OperandSpec([], OT.AGEN, "1", "0")
 
     @staticmethod
     def parse_imm_operand(op):
-        spec = OperandSpec([], OT.IMM)
+        spec = OperandSpec([], OT.IMM, "1", "0")
         spec.width = int(op.attrib['width'])
         return spec
 
     @staticmethod
     def parse_label_operand(op):
-        return OperandSpec([], OT.LABEL)
+        return OperandSpec([], OT.LABEL, "1", "0")
+
+    @staticmethod
+    def parse_flags_operand(op):
+        return OperandSpec([], OT.FLAGS,
+                           op.attrib.get('r', "0"),
+                           op.attrib.get('w', "0"))
 
     def init_from_file(self, filename: str, include_categories=None):
         root = ET.parse(filename)
@@ -131,7 +142,7 @@ class InstructionSet:
                 elif op_type == 'mem':
                     parsed_op = self.parse_mem_operand(op_node)
                     self.instruction.has_mem_operand = True
-                    if parsed_op.is_write:
+                    if parsed_op.dest:
                         self.instruction.has_write = True
                 elif op_type == 'agen':
                     op_node.text = instruction_node.attrib['agen']
@@ -142,7 +153,7 @@ class InstructionSet:
                     parsed_op = self.parse_label_operand(op_node)
                     self.instruction.control_flow = True
                 elif op_type == 'flags':
-                    parsed_op = None
+                    parsed_op = self.parse_flags_operand(op_node)
                 else:
                     raise Exception("Unknown operand type " + op_type)
 
@@ -243,7 +254,6 @@ class InstructionSet:
         # print(f"Misc: {reg}")
 
 
-
 # ===========================
 # Test Case DAG
 # ===========================
@@ -251,6 +261,14 @@ class Operand(abc.ABC):
     value: str
     type: OT
     width: int = 0
+    src: bool
+    dest: bool
+
+    def __init__(self, value: str, type_, src: bool, dest: bool):
+        self.value = value
+        self.type = type_
+        self.src = src
+        self.dest = dest
 
     def __str__(self):
         return self.value
@@ -269,23 +287,22 @@ class RegisterOperand(Operand):
         "R10W": 16, "R11W": 16, "R12W": 16, "R13W": 16, "R14W": 16, "R15W": 16,
         "AL": 8, "BL": 8, "CL": 8, "DL": 8, "SIL": 8, "DIL": 8, "R8B": 8, "R9B": 8,
         "R10B": 8, "R11B": 8, "R12B": 8, "R13B": 8, "R14B": 8, "R15B": 8,
+        "AH": 8, "Bh": 8, "CH": 8, "DH": 8,
     }
 
-    def __init__(self, name: str):
-        self.value = name
-        self.type = OT.REG
-        self.width = self.reg_sizes[name]
+    def __init__(self, value: str, src: bool, dest: bool):
+        self.width = self.reg_sizes[value]
+        super().__init__(value, OT.REG, src, dest)
 
 
 class MemoryOperand(Operand):
     prefix_sizes = {"byte ptr": 8, "word ptr": 16, "dword ptr": 32, "qword ptr": 64}
 
-    def __init__(self, prefix: str, base: str):
-        self.value = base
-        self.type = OT.MEM
+    def __init__(self, prefix: str, base: str, src: bool, dest: bool):
         self.width = self.prefix_sizes[prefix]
         self.prefix: str = prefix
         self.base: str = base
+        super().__init__(base, OT.MEM, src, dest)
 
     def __str__(self):
         return f"{self.prefix} [{self.base}]"
@@ -293,27 +310,22 @@ class MemoryOperand(Operand):
 
 class ImmediateOperand(Operand):
     def __init__(self, value: str):
-        self.value = value
-        self.type = OT.IMM
-        # TODO: IMM width
+        super().__init__(value, OT.IMM, True, False)
 
 
 class LabelOperand(Operand):
-    def __init__(self, name: str):
-        self.value = name
-        self.type = OT.LABEL
+    def __init__(self, value: str):
+        super().__init__(value, OT.LABEL, True, False)
 
 
 class AgenOperand(Operand):
-    def __init__(self, name: str):
-        self.value = name
-        self.type = OT.AGEN
+    def __init__(self, value: str):
+        super().__init__(value, OT.AGEN, True, False)
 
 
-class ImplicitOperand(Operand):
-    def __init__(self, value: str, type_: OT):
-        self.value = value
-        self.type = type_
+class FlagsOperand(Operand):
+    def __init__(self, src: bool, dest: bool):
+        super().__init__("", OT.FLAGS, src, dest)
 
 
 class Instruction:
@@ -337,14 +349,14 @@ class Instruction:
         self.operands.append(op)
         return self
 
-    def add_reg(self, name: str):
-        return self.add_op(RegisterOperand(name))
+    def add_reg(self, name: str, src: bool, dest: bool):
+        return self.add_op(RegisterOperand(name, src, dest))
 
     def add_imm(self, value: str):
         return self.add_op(ImmediateOperand(value))
 
-    def add_mem(self, prefix, address):
-        return self.add_op(MemoryOperand(prefix, address))
+    def add_mem(self, prefix, address, src: bool, dest: bool):
+        return self.add_op(MemoryOperand(prefix, address, src, dest))
 
     def has_mem_operand(self, include_implicit: bool = False):
         for o in self.operands:
@@ -383,7 +395,6 @@ class InstructionList:
         count = 0
         if self.start:
             instr = self.start
-            new_instr = new.start
             while instr.next:
                 instr = instr.next
                 count += 1
@@ -711,8 +722,8 @@ class AddRandomInstructionsPass(Pass):
 
         # copy the implicit operands
         for operand_spec in instruction_spec.implicit_operands:
-            implicit_operand = ImplicitOperand(operand_spec.choices[0], operand_spec.type)
-            instruction.implicit_operands.append(implicit_operand)
+            operand = self.get_operand_from_spec(operand_spec, instruction)
+            instruction.implicit_operands.append(operand)
 
         return instruction
 
@@ -727,13 +738,13 @@ class AddRandomInstructionsPass(Pass):
 
         if not CONF.avoid_data_dependencies:
             reg = random.choice(choices)
-            return RegisterOperand(reg)
+            return RegisterOperand(reg, spec.src, spec.dest)
 
         if parent.latest_reg_operand and parent.latest_reg_operand.value in choices:
             return parent.latest_reg_operand
 
         reg = random.choice(choices)
-        op = RegisterOperand(reg)
+        op = RegisterOperand(reg, spec.src, spec.dest)
         parent.latest_reg_operand = op
         return op
 
@@ -742,7 +753,7 @@ class AddRandomInstructionsPass(Pass):
         prefix = spec.choices[0]
 
         base = random.choice(self.gpr_decoding)[64]
-        return MemoryOperand(prefix, base)
+        return MemoryOperand(prefix, base, spec.src, spec.dest)
 
     @staticmethod
     def generate_imm_operand(spec: OperandSpec, parent: Instruction) -> Operand:
@@ -753,12 +764,21 @@ class AddRandomInstructionsPass(Pass):
     def generate_label_operand(self, spec: OperandSpec, parent: Instruction) -> Operand:
         raise NotSupportedException()
 
+    def generate_agen_operand(self, spec: OperandSpec, parent: Instruction) -> Operand:
+        raise NotSupportedException()
+
+    @staticmethod
+    def generate_flags_operand(spec: OperandSpec, parent: Instruction) -> Operand:
+        return FlagsOperand(spec.src, spec.dest)
+
     def get_operand_from_spec(self, spec: OperandSpec, parent: Instruction) -> Operand:
         generators = {
             OT.REG: self.generate_reg_operand,
             OT.MEM: self.generate_mem_operand,
             OT.IMM: self.generate_imm_operand,
             OT.LABEL: self.generate_label_operand,
+            OT.AGEN: self.generate_agen_operand,
+            OT.FLAGS: self.generate_flags_operand,
         }
         return generators[spec.type](spec, parent)
 
@@ -766,28 +786,38 @@ class AddRandomInstructionsPass(Pass):
         for function in DAG.functions:
             for basic_block in function:
                 for instruction_spec in self.instruction_set.all:
+                    # fill up with random operand, following the spec
                     instruction = Instruction(instruction_spec.name)
-                    not_supported_operand = False
+
                     for operand_spec in instruction_spec.operands:
+                        # generate an operand
                         operand = self.get_operand_from_spec(operand_spec, instruction)
-                        if not operand:
-                            not_supported_operand = True
-                            break
                         instruction.operands.append(operand)
-                    if not_supported_operand:
-                        continue
+
+                    # copy the implicit operands
+                    for operand_spec in instruction_spec.implicit_operands:
+                        operand = self.get_operand_from_spec(operand_spec, instruction)
+                        instruction.implicit_operands.append(operand)
 
                     basic_block.append_non_terminator(instruction)
 
 
-class InputGenerationPass(Pass):
-    def __init__(self, use_rand: bool = True):
-        self.use_rand = use_rand
-
+class PatternCoveragePass(Pass):
     def run_on_dag(self, DAG: TestCaseDAG) -> None:
-        entry_block: BasicBlock = DAG.main.entry
-        fence = Instruction("LFENCE")
-        entry_block.append_non_terminator(fence)
+        # collect all instruction pairs
+        pairs: List[Tuple[Instruction, Instruction]] = []
+        for function in DAG.functions:
+            for BB in function:
+                for i, instr in enumerate(BB):
+                    if instr.next:
+                        pairs.append((instr, instr.next))
+
+        # filter pairs to those with (potential) data dependencies
+        dependent = []
+        for p in pairs:
+            # memory dependency?
+            if p[0].has_mem_operand() and p[1].has_mem_operand():
+                dependent.append(p)
 
 
 class LFENCEPass(Pass):
@@ -844,11 +874,11 @@ class SandboxPass(Pass):
         assert len(instr.get_mem_operands()) == 1
         mem_reg = instr.get_mem_operands()[0].base
         apply_mask = Instruction("AND") \
-            .add_op(RegisterOperand(mem_reg)) \
+            .add_op(RegisterOperand(mem_reg, True, True)) \
             .add_op(ImmediateOperand(self.sandbox_address_mask))
         align_to_r14 = Instruction("ADD") \
-            .add_op(RegisterOperand(mem_reg)) \
-            .add_op(RegisterOperand("R14"))
+            .add_op(RegisterOperand(mem_reg, True, True)) \
+            .add_op(RegisterOperand("R14", True, False))
 
         parent.insert_before(instr, apply_mask)
         parent.insert_before(instr, align_to_r14)
@@ -869,7 +899,7 @@ class SandboxPass(Pass):
             return
 
         zero_rdx = Instruction("MOV") \
-            .add_op(RegisterOperand("RDX")) \
+            .add_op(RegisterOperand("RDX", False, True)) \
             .add_imm('0')
         parent.insert_before(I, zero_rdx)
 
@@ -878,7 +908,7 @@ class SandboxPass(Pass):
         parent.insert_before(I, apply_divisor_mask)
 
         apply_ax_mask = Instruction("AND") \
-            .add_op(RegisterOperand("RAX")) \
+            .add_op(RegisterOperand("RAX", True, True)) \
             .add_imm('0xff')
         parent.insert_before(I, apply_ax_mask)
 

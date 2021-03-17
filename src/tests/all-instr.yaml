@@ -11,9 +11,3 @@ supported_categories:
   - LOGICAL
   - POP
   - PUSH
-contract_observation_mode: ct
-contract_execution_mode:
-  - cond
-  - bpas
-enable_ssbp_patch: false
-enable_mds: false
