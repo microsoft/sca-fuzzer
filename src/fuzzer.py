@@ -44,8 +44,7 @@ class Fuzzer:
             # Generate a test case, if necessary
             if self.enable_generation:
                 self.test_case = 'generated.asm'
-                self.generator.create_test_case()
-                self.generator.materialize(self.test_case)
+                self.generator.create_test_case(self.test_case)
 
             # Prepare inputs
             inputs: List[Input] = input_gen.generate(CONF.prng_seed, num_inputs)

@@ -329,6 +329,10 @@ class Instruction:
         self.operands = []
         self.implicit_operands = []
 
+    def __str__(self):
+        operands = ", ".join([str(op) for op in self.operands])
+        return f"{self.name} {operands}"
+
     def add_op(self, op: Operand):
         self.operands.append(op)
         return self
@@ -361,12 +365,6 @@ class Instruction:
                 res.append(o)
         return res
 
-    def __deepcopy__(self, memodict={}):
-        new = Instruction(self.name)
-        new.operands = copy.deepcopy(self.operands, memodict)
-        new.implicit_operands = copy.deepcopy(self.implicit_operands, memodict)
-        return new
-
 
 class InstructionList:
     """
@@ -381,21 +379,15 @@ class InstructionList:
             yield current_instruction
             current_instruction = current_instruction.next
 
-    def __deepcopy__(self, memodict={}):
-        new = InstructionList()
+    def __len__(self):
+        count = 0
         if self.start:
-            new.start = copy.deepcopy(self.start, memodict)
             instr = self.start
             new_instr = new.start
             while instr.next:
                 instr = instr.next
-                next_ = copy.deepcopy(instr, memodict)
-                new_instr.next = next_
-                next_.previous = new_instr
-                new_instr = next_
-
-            new.end = new_instr
-        return new
+                count += 1
+        return count
 
 
 class BasicBlock:
@@ -412,6 +404,9 @@ class BasicBlock:
 
     def __iter__(self):
         return self.__instructions.__iter__()
+
+    def __len__(self):
+        return len(self.__instructions)
 
     def append_non_terminator(self, I: Instruction):
         if not self.__instructions.start:
@@ -511,9 +506,10 @@ class Generator:
         instruction_set.reduce()
         self.instruction_set = instruction_set
 
-    def create_test_case(self, test_mode: bool = False):
+    def create_test_case(self, asm_file: str, test_mode: bool = False, serial_mode: bool = False):
         """
         Create a simple test case with a single BB
+        Run instrumentation passes and print the result into a file
         """
         self.test_case = TestCaseDAG()
 
@@ -523,21 +519,12 @@ class Generator:
         self.test_case.main = function
 
         # fill the test case with instructions
-        InputGenerationPass().run_on_dag(self.test_case)
         SetTerminatorsPass(self.instruction_set).run_on_dag(self.test_case)
         AddRandomInstructionsPass(self.instruction_set, CONF.test_case_size). \
             run_on_dag(self.test_case, test_mode=test_mode)
 
-        return self.test_case
-
-    def materialize(self, asm_file: str, serial_mode: bool = False):
-        """
-        Run instrumentation passes on a copy of the current test case
-        and print the result into a file
-        """
-        test_case = copy.deepcopy(self.test_case)
-
         passes = [
+            PatternCoveragePass(),
             SandboxPass()
         ]
         if serial_mode:
@@ -545,7 +532,7 @@ class Generator:
         passes.append(PrinterPass(asm_file))
 
         for p in passes:
-            p.run_on_dag(test_case)
+            p.run_on_dag(self.test_case)
 
     def _generate_random_function(self, name: str, shuffle: bool = False):
         """ Generates a random DAG of basic blocks within a function """
@@ -782,7 +769,7 @@ class AddRandomInstructionsPass(Pass):
                     instruction = Instruction(instruction_spec.name)
                     not_supported_operand = False
                     for operand_spec in instruction_spec.operands:
-                        operand = self.get_operand_from_spec(operand_spec)
+                        operand = self.get_operand_from_spec(operand_spec, instruction)
                         if not operand:
                             not_supported_operand = True
                             break
@@ -931,7 +918,8 @@ class PrinterPass(Pass):
 
     def run_on_dag(self, DAG: TestCaseDAG):
         with open(self.output_file, "w") as f:
-            f.write(".intel_syntax noprefix\n")
+            f.write(".intel_syntax noprefix\n"
+                    "MFENCE")
 
             if CONF.single_function_test_case:
                 f.write(".test_case_enter:\n")
@@ -957,5 +945,4 @@ class PrinterPass(Pass):
 
     @staticmethod
     def run_on_instruction(instruction: Instruction, file):
-        operands = ", ".join([str(op) for op in instruction.operands])
-        file.write(f"{instruction.name} {operands}\n")
+        file.write(str(instruction) + "\n")
