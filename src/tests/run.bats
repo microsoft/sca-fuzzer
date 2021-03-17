@@ -27,6 +27,33 @@ FAST_TEST=1
     [[ "$output" == *"2305843009213693952"* ]]
 }
 
+@test "Executor: Noise Level" {
+    # execute one dummy run to set Executor into the default config and to load the test case
+    bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/valid_loads_with_miss.asm -i 1"
+
+    nruns=10000
+    printf "" > inputs.bin
+    for i in $(seq 1 $nruns); do
+        echo -n -e '\x00\x00\x00\x00\x00\x00\x00\x01' >> inputs.bin
+    done
+
+    for mode in "F+R" "P+R" "E+R"; do
+        echo $mode
+        echo $mode > /sys/x86-executor/measurement_mode
+        echo "$nruns" > /sys/x86-executor/n_inputs
+        cat inputs.bin > /sys/x86-executor/inputs
+        run cat /sys/x86-executor/n_inputs
+        [[ "$output" != "0" ]]
+
+        cat /proc/x86-executor | sort | uniq | wc -l > tmp.txt
+        run cat tmp.txt
+        cat tmp.txt
+        [ $output -lt 20 ]
+    done
+#    [ 1 -eq 0 ]
+}
+
+
 @test "Model and Executor are initialized with the same register and memory values" {
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/model_match.asm -c tests/model_match.yaml -i 1000"
     echo "$output"
