@@ -948,14 +948,14 @@ class PrinterPass(Pass):
 
     def run_on_dag(self, DAG: TestCaseDAG):
         with open(self.output_file, "w") as f:
+            cache_line_offset = random.randint(0, 63) if CONF.randomized_mem_alignment else 0
             f.write(".intel_syntax noprefix\n"
-                    "MFENCE")
+                    ".test_case_enter:\n"
+                    "MFENCE\n"
+                    f"ADD R14, {cache_line_offset}\n")
 
-            if CONF.single_function_test_case:
-                f.write(".test_case_enter:\n")
-            else:
-                f.write(".test_case_enter:\n"
-                        "CALL test_case_main\n"
+            if not CONF.single_function_test_case:
+                f.write("CALL test_case_main\n"
                         "JMP .test_case_exit\n")
 
             for function in DAG.functions:
@@ -964,6 +964,7 @@ class PrinterPass(Pass):
                     self.run_on_basic_block(BB, f)
 
             f.write(".test_case_exit:\n"
+                    f"SUB R14, {cache_line_offset}\n"
                     "MFENCE\n")
 
     def run_on_basic_block(self, basic_block: BasicBlock, file):
