@@ -1,7 +1,7 @@
 contract_observation_mode: l1d
 contract_execution_mode:
   - seq
-input_mask: 511
+prng_entropy_bits: 9
 attack_variant: E+R
 no_priming: true
 verbose: 999

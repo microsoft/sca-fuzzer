@@ -61,12 +61,12 @@ class ConfCls:
     # ==============================================================================================
     # Input Generator
     prng_seed: int = 10  # zero is a reserved value, do not use it
-    input_mask: int = 0xffffffff
+    prng_entropy_bits: int = 32
     # ==============================================================================================
     # Model
-    model: str = 'x86-unicorn'  # options: 'x86-serializing', 'x86-unicorn'
+    model: str = 'x86-unicorn'
     contract_execution_mode: List[str] = ["seq"]  # options: "seq", "cond", "bpas"
-    contract_observation_mode: str = 'ct'  # options: 'l1d', 'memory', 'ct'
+    contract_observation_mode: str = 'ct'
     max_nesting = 1
     max_speculation_window: int = 250
     # ==============================================================================================
@@ -94,7 +94,9 @@ class ConfCls:
 
     def set(self, name, value):
         options = {
-            'attack_variant': ['P+P', 'F+R', 'E+R']
+            'attack_variant': ['P+P', 'F+R', 'E+R'],
+            'model': ['x86-serializing', 'x86-unicorn'],
+            'contract_observation_mode': ['l1d', 'memory', 'ct', 'pc', 'ct-nonspecstore', 'arch'],
         }
 
         if self.__getattribute__(name) is None:

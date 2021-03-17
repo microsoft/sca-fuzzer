@@ -254,24 +254,25 @@ class X86UnicornModel(Model):
         self.emulator.reg_write(UC_X86_REG_R14, self.r14_init)
 
         # Values in assist page
+        input_mask = pow(2, (CONF.prng_entropy_bits % 33)) - 1
         random_value = seed
         for i in range(0, 4096, 8):
             random_value = ((random_value * 2891336453) % POW32 + 12345) % POW32
-            masked_rvalue = (random_value ^ (random_value >> 16)) & CONF.input_mask
+            masked_rvalue = (random_value ^ (random_value >> 16)) & input_mask
             self.emulator.mem_write(self.r14_init + 4096 + i,
                                     masked_rvalue.to_bytes(8, byteorder='little'))
 
         # Values in sandbox memory
         for i in range(0, 4096, 8):
             random_value = ((random_value * 2891336453) % POW32 + 12345) % POW32
-            masked_rvalue = (random_value ^ (random_value >> 16)) & CONF.input_mask
+            masked_rvalue = (random_value ^ (random_value >> 16)) & input_mask
             self.emulator.mem_write(self.r14_init + i,
                                     masked_rvalue.to_bytes(8, byteorder='little'))
 
         # Values in registers
         for reg in [UC_X86_REG_RAX, UC_X86_REG_RBX, UC_X86_REG_RCX, UC_X86_REG_RDX]:
             random_value = ((random_value * 2891336453) % POW32 + 12345) % POW32
-            masked_rvalue = (random_value ^ (random_value >> 16)) & CONF.input_mask
+            masked_rvalue = (random_value ^ (random_value >> 16)) & input_mask
             self.emulator.reg_write(reg, masked_rvalue)
 
         # FLAGS
