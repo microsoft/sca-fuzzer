@@ -225,14 +225,11 @@ EXTENDED_TESTS=0
     [[ "$output" != *"=== Violations detected ==="* ]]
 }
 
-
-
 @test "Analyser: Priming" {
-    skip
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_nested.asm -i 1000 -c tests/ct-cond.yaml"
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/priming.asm -i 20 -c tests/priming.yaml -v"
     echo "$output"
     [ "$status" -eq 0 ]
-    [[ "$output" = *"=== Priming ==="* ]]
+    [[ "$output" == *"Priming"* ]]
     [[ "$output" != *"=== Violations detected ==="* ]]
 }
 
@@ -261,7 +258,7 @@ EXTENDED_TESTS=0
 # ==================================================================================================
 # Extended tests - take long time, but test deeper
 # ==================================================================================================
-@test "False Positive: Generated samples" {
+@test "Extended: False positives from generated samples" {
     if [ $EXTENDED_TESTS -eq 0 ]; then
         skip
     fi
