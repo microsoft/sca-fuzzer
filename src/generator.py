@@ -18,6 +18,60 @@ from config import CONF
 
 
 # ===========================
+# x86-specific
+# ===========================
+
+class X86Registers:
+    gpr_sizes = {
+        "RAX": 64, "RBX": 64, "RCX": 64, "RDX": 64, "RSI": 64, "RDI": 64, "RSP": 64, "RBP": 64,
+        "R8": 64, "R9": 64, "R10": 64, "R11": 64, "R12": 64, "R13": 64, "R14": 64, "R15": 64,
+        "EAX": 32, "EBX": 32, "ECX": 32, "EDX": 32, "ESI": 32, "EDI": 32, "R8D": 32, "R9D": 32,
+        "R10D": 32, "R11D": 32, "R12D": 32, "R13D": 32, "R14D": 32, "R15D": 32,
+        "AX": 16, "BX": 16, "CX": 16, "DX": 16, "SI": 16, "DI": 16, "R8W": 16, "R9W": 16,
+        "R10W": 16, "R11W": 16, "R12W": 16, "R13W": 16, "R14W": 16, "R15W": 16,
+        "AL": 8, "BL": 8, "CL": 8, "DL": 8, "SIL": 8, "DIL": 8, "R8B": 8, "R9B": 8,
+        "R10B": 8, "R11B": 8, "R12B": 8, "R13B": 8, "R14B": 8, "R15B": 8,
+        "AH": 8, "Bh": 8, "CH": 8, "DH": 8,
+    }
+    gpr_normalized = {
+        "RAX": "A", "EAX": "A", "AX": "A", "AL": "A", "AH": "A",
+        "RBX": "B", "EBX": "B", "BX": "B", "BL": "B", "BH": "B",
+        "RCX": "C", "ECX": "C", "CX": "C", "CL": "C", "CH": "C",
+        "RDX": "D", "EDX": "D", "DX": "D", "DL": "D", "DH": "D",
+        "RSI": "SI", "ESI": "SI", "SI": "SI", "SIL": "SI",
+        "RDI": "DI", "EDI": "DI", "DI": "DI", "DIL": "DI",
+        "R8": "8", "R8D": "8", "R8W": "8", "R8B": "8",
+        "R9": "9", "R9D": "9", "R9W": "9", "R9B": "9",
+        "R10": "10", "R10D": "10", "R10W": "10", "R10B": "10",
+        "R11": "11", "R11D": "11", "R11W": "11", "R11B": "11",
+        "R12": "12", "R12D": "12", "R12W": "12", "R12B": "12",
+        "R13": "13", "R13D": "13", "R13W": "13", "R13B": "13",
+        "FLAGS": "FLAGS"
+    }
+
+    # more sparse encoding for SIMD because the 'width' field is not always reliable
+    simd_decoding = {
+        'SIMD64-8': ['MM0', 'MM1', 'MM2', 'MM3', 'MM4', 'MM5', 'MM6', 'MM7'],
+        'SIMD128-32': ['XMM0', 'XMM1', 'XMM2', 'XMM3', 'XMM4', 'XMM5', 'XMM6', 'XMM7', 'XMM8',
+                       'XMM9', 'XMM10', 'XMM11', 'XMM12', 'XMM13', 'XMM14', 'XMM15', 'XMM16',
+                       'XMM17', 'XMM18', 'XMM19', 'XMM20', 'XMM21', 'XMM22', 'XMM23', 'XMM24',
+                       'XMM25', 'XMM26', 'XMM27', 'XMM28', 'XMM29', 'XMM30', 'XMM31'],
+        'SIMD128-16': ['XMM0', 'XMM1', 'XMM2', 'XMM3', 'XMM4', 'XMM5', 'XMM6', 'XMM7', 'XMM8',
+                       'XMM9', 'XMM10', 'XMM11', 'XMM12', 'XMM13', 'XMM14', 'XMM15'],
+        'SIMD256-32': ['YMM0', 'YMM1', 'YMM2', 'YMM3', 'YMM4', 'YMM5', 'YMM6', 'YMM7', 'YMM8',
+                       'YMM9', 'YMM10', 'YMM11', 'YMM12', 'YMM13', 'YMM14', 'YMM15', 'YMM16',
+                       'YMM17', 'YMM18', 'YMM19', 'YMM20', 'YMM21', 'YMM22', 'YMM23', 'YMM24',
+                       'YMM25', 'YMM26', 'YMM27', 'YMM28', 'YMM29', 'YMM30', 'YMM31'],
+        'SIMD256-16': ['YMM0', 'YMM1', 'YMM2', 'YMM3', 'YMM4', 'YMM5', 'YMM6', 'YMM7', 'YMM8',
+                       'YMM9', 'YMM10', 'YMM11', 'YMM12', 'YMM13', 'YMM14', 'YMM15'],
+        'SIMD512-32': ['ZMM0', 'ZMM1', 'ZMM2', 'ZMM3', 'ZMM4', 'ZMM5', 'ZMM6', 'ZMM7', 'ZMM8',
+                       'ZMM9', 'ZMM10', 'ZMM11', 'ZMM12', 'ZMM13', 'ZMM14', 'ZMM15', 'ZMM16',
+                       'ZMM17', 'ZMM18', 'ZMM19', 'ZMM20', 'ZMM21', 'ZMM22', 'ZMM23', 'ZMM24',
+                       'ZMM25', 'ZMM26', 'ZMM27', 'ZMM28', 'ZMM29', 'ZMM30', 'ZMM31'],
+    }
+
+
+# ===========================
 # Instruction Loader
 # ===========================
 class OT(Enum):  # Operand Type
@@ -291,7 +345,7 @@ class RegisterOperand(Operand):
     }
 
     def __init__(self, value: str, src: bool, dest: bool):
-        self.width = self.reg_sizes[value]
+        self.width = X86Registers.gpr_sizes[value]
         super().__init__(value, OT.REG, src, dest)
 
 
@@ -655,27 +709,6 @@ class AddRandomInstructionsPass(Pass):
     ]
     gprs_by_size = {64: [], 32: [], 16: [], 8: []}  # generated dynamically from grp_decoding
 
-    # more sparse encoding for SIMD because the 'width' field is not always reliable
-    simd_decoding = {
-        'SIMD64-8': ['MM0', 'MM1', 'MM2', 'MM3', 'MM4', 'MM5', 'MM6', 'MM7'],
-        'SIMD128-32': ['XMM0', 'XMM1', 'XMM2', 'XMM3', 'XMM4', 'XMM5', 'XMM6', 'XMM7', 'XMM8',
-                       'XMM9', 'XMM10', 'XMM11', 'XMM12', 'XMM13', 'XMM14', 'XMM15', 'XMM16',
-                       'XMM17', 'XMM18', 'XMM19', 'XMM20', 'XMM21', 'XMM22', 'XMM23', 'XMM24',
-                       'XMM25', 'XMM26', 'XMM27', 'XMM28', 'XMM29', 'XMM30', 'XMM31'],
-        'SIMD128-16': ['XMM0', 'XMM1', 'XMM2', 'XMM3', 'XMM4', 'XMM5', 'XMM6', 'XMM7', 'XMM8',
-                       'XMM9', 'XMM10', 'XMM11', 'XMM12', 'XMM13', 'XMM14', 'XMM15'],
-        'SIMD256-32': ['YMM0', 'YMM1', 'YMM2', 'YMM3', 'YMM4', 'YMM5', 'YMM6', 'YMM7', 'YMM8',
-                       'YMM9', 'YMM10', 'YMM11', 'YMM12', 'YMM13', 'YMM14', 'YMM15', 'YMM16',
-                       'YMM17', 'YMM18', 'YMM19', 'YMM20', 'YMM21', 'YMM22', 'YMM23', 'YMM24',
-                       'YMM25', 'YMM26', 'YMM27', 'YMM28', 'YMM29', 'YMM30', 'YMM31'],
-        'SIMD256-16': ['YMM0', 'YMM1', 'YMM2', 'YMM3', 'YMM4', 'YMM5', 'YMM6', 'YMM7', 'YMM8',
-                       'YMM9', 'YMM10', 'YMM11', 'YMM12', 'YMM13', 'YMM14', 'YMM15'],
-        'SIMD512-32': ['ZMM0', 'ZMM1', 'ZMM2', 'ZMM3', 'ZMM4', 'ZMM5', 'ZMM6', 'ZMM7', 'ZMM8',
-                       'ZMM9', 'ZMM10', 'ZMM11', 'ZMM12', 'ZMM13', 'ZMM14', 'ZMM15', 'ZMM16',
-                       'ZMM17', 'ZMM18', 'ZMM19', 'ZMM20', 'ZMM21', 'ZMM22', 'ZMM23', 'ZMM24',
-                       'ZMM25', 'ZMM26', 'ZMM27', 'ZMM28', 'ZMM29', 'ZMM30', 'ZMM31'],
-    }
-
     total_memory_accesses: int = 0
 
     def __init__(self, instruction_set: InstructionSet, max_length: int):
@@ -748,7 +781,7 @@ class AddRandomInstructionsPass(Pass):
         if reg_type == 'GPR':
             choices = self.gprs_by_size[spec.width]
         elif reg_type.startswith("SIMD"):
-            choices = self.simd_decoding[reg_type]
+            choices = X86Registers.simd_decoding[reg_type]
         else:
             choices = spec.choices
 
