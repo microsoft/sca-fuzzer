@@ -40,7 +40,7 @@ class Postprocessor:
             print("Could not reproduce the violation. Exiting...")
             return
 
-        print("Searching for a minimal input set...")
+        print(f"Found {len(violations)} violations\nSearching for a minimal input set...")
         min_inputs = []
         for violation in violations:
             for i in range(len(violation.inputs)):

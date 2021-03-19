@@ -142,7 +142,7 @@ class Fuzzer:
             multiprimer = self.get_min_primer(executor, inputs, target_id,
                                               primer_htrace, len(primed_ids))
             if not multiprimer:
-                return True
+                return False
             primer_size = len(multiprimer) // len(primed_ids)
 
             # insert the tested inputs into their places
