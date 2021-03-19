@@ -16,6 +16,8 @@ from config import CONF
 
 
 class Executor(ABC):
+    coverage = None
+
     @abstractmethod
     def load_test_case(self, test_case_asm: str):
         pass
@@ -27,6 +29,9 @@ class Executor(ABC):
     @abstractmethod
     def read_base_addresses(self) -> Tuple[int, int, int]:
         pass
+
+    def set_coverage(self, coverage):
+        self.coverage = coverage
 
 
 class X86Intel(Executor):

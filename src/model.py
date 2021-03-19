@@ -19,6 +19,7 @@ POW32 = pow(2, 32)
 
 
 class Model(ABC):
+    coverage = None
     RUNTIME_R_SIZE = 1024 * 1024
     CODE_SIZE = 4 * 1024
     RSP_OFFSET = RUNTIME_R_SIZE // 2
@@ -40,6 +41,9 @@ class Model(ABC):
     @abstractmethod
     def trace_test_case(self, inputs: List[int]) -> List[CTrace]:
         pass
+
+    def set_coverage(self, coverage):
+        self.coverage = coverage
 
 
 # =============================================================================

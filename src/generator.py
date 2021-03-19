@@ -510,12 +510,16 @@ class TestCaseDAG:
 
 class Generator:
     test_case: TestCaseDAG
+    coverage = None
 
     def __init__(self, instruction_set_spec: str):
         instruction_set = InstructionSet()
         instruction_set.init_from_file(instruction_set_spec, CONF.supported_categories)
         instruction_set.reduce()
         self.instruction_set = instruction_set
+
+    def set_coverage(self, coverage):
+        self.coverage = coverage
 
     def create_test_case(self, asm_file: str, test_mode: bool = False, serial_mode: bool = False):
         """

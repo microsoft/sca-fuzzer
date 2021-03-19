@@ -16,6 +16,7 @@ from model import Model, get_model
 from executor import Executor, get_executor
 from analyser import Analyser, get_analyser
 from input_generator import InputGenerator, RandomInputGenerator
+from coverage import Coverage
 from helpers import *
 from custom_types import Dict, CTrace, HTrace, EquivalenceClass, EquivalenceClassMap, Input
 from config import CONF
@@ -26,8 +27,7 @@ class Fuzzer:
         self.work_dir = work_dir
         self.test_case = existing_test_case
         self.enable_generation = True if not existing_test_case else False
-        if self.enable_generation:
-            self.generator = Generator(instruction_set_spec)
+        self.instruction_set_spec = instruction_set_spec
 
     def start(self, num_test_cases: int, num_inputs: int, timeout: int, nonstop: bool = False,
               verbose: bool = False):
@@ -35,16 +35,30 @@ class Fuzzer:
         self._log_init(num_test_cases, start_time, verbose)
         STAT.inputs_per_test_case = num_inputs
 
+        # create all main modules
         executor: Executor = get_executor()
         model: Model = get_model(executor.read_base_addresses())
         input_gen: InputGenerator = RandomInputGenerator()
         analyser: Analyser = get_analyser()
 
+        # connect them with coverage
+        coverage = Coverage()
+        executor.set_coverage(coverage)
+        model.set_coverage(coverage)
+        input_gen.set_coverage(coverage)
+        analyser.set_coverage(coverage)
+
+        # create a test case generator
+        if self.enable_generation:
+            generator = Generator(self.instruction_set_spec)
+            generator.set_coverage(coverage)
+
         for i in range(num_test_cases):
             # Generate a test case, if necessary
             if self.enable_generation:
                 self.test_case = 'generated.asm'
-                self.generator.create_test_case(self.test_case)
+                # noinspection PyUnboundLocalVariable
+                generator.create_test_case(self.test_case)
 
             # Prepare inputs
             inputs: List[Input] = input_gen.generate(CONF.prng_seed, num_inputs)

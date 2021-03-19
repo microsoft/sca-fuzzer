@@ -17,6 +17,8 @@ TWOS_COMPLEMENT_MASK_64 = pow(2, 64) - 1
 
 
 class Analyser(ABC):
+    coverage = None
+
     @abstractmethod
     def filter_violations(self, equivalence_classes: EquivalenceClassMap,
                           debug=False) -> List[EquivalenceClass]:
@@ -60,6 +62,9 @@ class Analyser(ABC):
             eq_cls.update_groups()
 
         return equivalence_classes
+
+    def set_coverage(self, coverage):
+        self.coverage = coverage
 
 
 class EquivalenceAnalyser(Analyser):

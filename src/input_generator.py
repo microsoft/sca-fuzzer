@@ -12,9 +12,14 @@ POW32 = pow(2, 32)
 
 
 class InputGenerator(ABC):
+    coverage = None
+
     @abstractmethod
     def generate(self, seed: int, count: int) -> List[int]:
         pass
+
+    def set_coverage(self, coverage):
+        self.coverage = coverage
 
 
 class RandomInputGenerator(InputGenerator):
