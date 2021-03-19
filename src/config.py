@@ -14,7 +14,7 @@ class ConfCls:
     # Fuzzer
     priming_retries: int = 6
     no_priming = False
-    min_primer_size: int = 50
+    min_primer_size: int = 10
     max_primer_size: int = 1000
     # ==============================================================================================
     # Generator

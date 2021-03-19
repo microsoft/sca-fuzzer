@@ -1,0 +1,13 @@
+contract_observation_mode: ct
+contract_execution_mode:
+  - cond
+
+attack_variant: P+P
+enable_ssbp_patch: true
+enable_mds: false
+
+prng_entropy_bits: 8
+warmups: 5
+
+no_priming: false
+max_nesting: 1

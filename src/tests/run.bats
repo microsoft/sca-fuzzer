@@ -1,10 +1,9 @@
 #!/usr/bin/env bats
 REPS=1000
-REPS_SPECTRE=100
 
 INSTRUCTION_SET='instruction_sets/x86/base.xml'
 
-FAST_TEST=1
+EXTENDED_TESTS=0
 
 @test "Executor: Hardware tracing with F+R" {
     bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/evict_second_line.asm -c tests/ct-seq-fr.yaml  -i 3"
@@ -220,25 +219,13 @@ FAST_TEST=1
 }
 
 @test "False Positive: Input-independent branch misprediction" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v1_independent.asm -i $REPS_SPECTRE"
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v1_independent.asm -i 100"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" != *"=== Violations detected ==="* ]]
 }
 
-@test "False Positive: Generated samples" {
-    if [ $FAST_TEST -eq 1 ]; then
-        skip
-    fi
 
-    for test_case in tests/generated-fp/* ; do
-        echo "Testing $test_case"
-        run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t $test_case -i 10000 -c tests/ct-cond-bpas.yaml"
-        echo "$output"
-        [ "$status" -eq 0 ]
-        [[ "$output" != *"=== Violations detected ==="* ]]
-    done
-}
 
 @test "Analyser: Priming" {
     skip
@@ -269,4 +256,32 @@ FAST_TEST=1
     run bash -c "./cli.py generator-test -s $INSTRUCTION_SET -c tests/all-instr.yaml"
     [ "$status" -eq 0 ]
     [[ "$output" == "" ]]
+}
+
+# ==================================================================================================
+# Extended tests - take long time, but test deeper
+# ==================================================================================================
+@test "False Positive: Generated samples" {
+    if [ $EXTENDED_TESTS -eq 0 ]; then
+        skip
+    fi
+
+    for test_case in tests/generated-fp/* ; do
+        echo "Testing $test_case"
+        run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t $test_case -i 10000 -c tests/ct-cond-bpas.yaml"
+        echo "$output"
+        [ "$status" -eq 0 ]
+        [[ "$output" != *"=== Violations detected ==="* ]]
+    done
+}
+
+@test "Priming: False Positive due to small min_primer_size" {
+    if [ $EXTENDED_TESTS -eq 0 ]; then
+        skip
+    fi
+
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/generated/priming-19-03-21.asm -i 500 -c tests/generated/priming-19-03-21.yaml"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"=== Violations detected ==="* ]]
 }
