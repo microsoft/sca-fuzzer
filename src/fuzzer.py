@@ -28,7 +28,7 @@ class Logger:
         self.progress = 0
         self.progress_percent = 0
         self.msg = ""
-        self.max_iterations = iterations
+        self.line_ending = '\n' if CONF.multiline_output else ''
         if CONF.verbose:
             print(start_time.strftime('Starting at %H:%M:%S'))
             print("Abbreviations: \n"
@@ -43,16 +43,19 @@ class Logger:
                 self.progress_percent += 1
             msg = f"\rP: {STAT.test_cases} [{self.progress_percent}%] | "
             msg += STAT.get_brief()
-            print(msg + "Normal execution            ", end='', flush=True)
+            print(msg + "Normal execution            ", end=self.line_ending, flush=True)
             self.msg = msg
 
     def success(self):
-        if CONF.verbose:
-            print(self.msg + "Normal execution                                 ", end='')
+        pass
+        # if CONF.verbose:
+        #     print(self.msg + "Normal execution                                 ",
+        #           end=self.line_ending)
 
     def priming(self, num_violations: int):
         if CONF.verbose:
-            print(self.msg + "Priming " + str(num_violations) + "                 ", end='',
+            print(self.msg + "Priming " + str(num_violations) + "                 ",
+                  end=self.line_ending,
                   flush=True)
 
     @staticmethod

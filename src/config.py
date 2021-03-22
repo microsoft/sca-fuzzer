@@ -93,6 +93,7 @@ class ConfCls:
     # ==============================================================================================
     # Output
     verbose: int = 0
+    multiline_output: bool = False
 
     def set(self, name, value):
         options = {
