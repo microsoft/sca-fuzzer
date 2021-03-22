@@ -67,15 +67,7 @@ EXTENDED_TESTS=0
     [ "$output" = "" ]
 }
 
-@test "Fuzzing: Empty test case [F+R]" {
-    skip
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/empty.asm -i 1000 -c tests/ct-seq-fr.yaml "
-    echo "$output"
-    [ "$status" -eq 0 ]
-    [ "$output" = "" ]
-}
-
-@test "Fuzzing: Empty test case [P+P]" {
+@test "Fuzzing: Empty test case" {
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/empty.asm -c tests/ct-seq-pp.yaml -i 1000"
     echo "$output"
     [ "$status" -eq 0 ]
@@ -97,14 +89,14 @@ EXTENDED_TESTS=0
 }
 
 
-@test "Fuzzing: A long measurement period" {
+@test "Fuzzing: A long in-reg test case" {
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/large_arithmetic.asm -i 1000"
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
 }
 
-@test "Fuzzing: A sequence of CALLs" {
+@test "Fuzzing: A sequence of calls" {
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/calls.asm -i $REPS"
     echo "$output"
     [ "$status" -eq 0 ]
