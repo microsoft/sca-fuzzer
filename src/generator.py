@@ -332,18 +332,6 @@ class Operand(abc.ABC):
 
 
 class RegisterOperand(Operand):
-    reg_sizes = {
-        "RAX": 64, "RBX": 64, "RCX": 64, "RDX": 64, "RSI": 64, "RDI": 64, "RSP": 64, "RBP": 64,
-        "R8": 64, "R9": 64, "R10": 64, "R11": 64, "R12": 64, "R13": 64, "R14": 64, "R15": 64,
-        "EAX": 32, "EBX": 32, "ECX": 32, "EDX": 32, "ESI": 32, "EDI": 32, "R8D": 32, "R9D": 32,
-        "R10D": 32, "R11D": 32, "R12D": 32, "R13D": 32, "R14D": 32, "R15D": 32,
-        "AX": 16, "BX": 16, "CX": 16, "DX": 16, "SI": 16, "DI": 16, "R8W": 16, "R9W": 16,
-        "R10W": 16, "R11W": 16, "R12W": 16, "R13W": 16, "R14W": 16, "R15W": 16,
-        "AL": 8, "BL": 8, "CL": 8, "DL": 8, "SIL": 8, "DIL": 8, "R8B": 8, "R9B": 8,
-        "R10B": 8, "R11B": 8, "R12B": 8, "R13B": 8, "R14B": 8, "R15B": 8,
-        "AH": 8, "Bh": 8, "CH": 8, "DH": 8,
-    }
-
     def __init__(self, value: str, src: bool, dest: bool):
         self.width = X86Registers.gpr_sizes[value]
         super().__init__(value, OT.REG, src, dest)
@@ -368,8 +356,11 @@ class ImmediateOperand(Operand):
 
 
 class LabelOperand(Operand):
-    def __init__(self, value: str):
-        super().__init__(value, OT.LABEL, True, False)
+    BB: BasicBlock
+
+    def __init__(self, BB):
+        self.BB = BB
+        super().__init__("." + BB.label, OT.LABEL, True, False)
 
 
 class AgenOperand(Operand):
@@ -379,7 +370,7 @@ class AgenOperand(Operand):
 
 class FlagsOperand(Operand):
     def __init__(self, src: bool, dest: bool):
-        super().__init__("", OT.FLAGS, src, dest)
+        super().__init__("FLAGS", OT.FLAGS, src, dest)
 
 
 class Instruction:
@@ -527,6 +518,9 @@ class BasicBlock:
         else:  # somewhere in the middle
             previous.next = next_
             next_.previous = previous
+
+    def get_first(self):
+        return self.__instructions.start
 
 
 class Function:
@@ -677,18 +671,18 @@ class SetTerminatorsPass(Pass):
                 elif len(BB.successors) == 1:
                     # Unconditional branch
                     terminator = Instruction("JMP")
-                    terminator.operands = [LabelOperand("." + BB.successors[0].label)]
+                    terminator.operands = [LabelOperand(BB.successors[0])]
                     BB.terminators.append(terminator)
 
                 elif len(BB.successors) == 2:
                     # Conditional branch
                     spec = random.choice(self.instruction_set.control_flow)
                     terminator = Instruction(spec.name)
-                    terminator.operands = [LabelOperand("." + BB.successors[0].label)]
+                    terminator.operands = [LabelOperand(BB.successors[0])]
                     BB.terminators.append(terminator)
 
                     terminator = Instruction("JMP")
-                    terminator.operands = [LabelOperand("." + BB.successors[1].label)]
+                    terminator.operands = [LabelOperand(BB.successors[1])]
                     BB.terminators.append(terminator)
                 else:
                     # Indirect jump
@@ -988,7 +982,7 @@ class PrinterPass(Pass):
             f.write(".intel_syntax noprefix\n"
                     ".test_case_enter:\n"
                     "MFENCE\n"
-                    f"ADD R14, {cache_line_offset}\n")
+                    f"LEA R14, [R14 + {cache_line_offset}]\n")
 
             if not CONF.single_function_test_case:
                 f.write("CALL test_case_main\n"
@@ -1000,7 +994,7 @@ class PrinterPass(Pass):
                     self.run_on_basic_block(BB, f)
 
             f.write(".test_case_exit:\n"
-                    f"SUB R14, {cache_line_offset}\n"
+                    f"LEA R14, [R14 - {cache_line_offset}]\n"
                     "MFENCE\n")
 
     def run_on_basic_block(self, basic_block: BasicBlock, file):
