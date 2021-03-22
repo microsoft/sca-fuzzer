@@ -412,7 +412,6 @@ class X86UnicornSpec(X86UnicornModel):
         if not model.checkpoints:
             model.in_speculation = False
 
-        self.emulator.reg_write(UC_X86_REG_EFLAGS, flags)
         self.emulator.context_restore(state)
         model.speculation_window = spec_window
 
@@ -424,6 +423,9 @@ class X86UnicornSpec(X86UnicornModel):
 
         # if there are any pending speculative store bypasses, cancel them
         model.previous_store = (0, 0, 0, 0)
+
+        # restore the flags last, to avoid corruption by other operations
+        self.emulator.reg_write(UC_X86_REG_EFLAGS, flags)
 
         # restart without misprediction
         self.emulator.emu_start(next_instr, self.code_base + len(self.code),
