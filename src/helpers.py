@@ -116,8 +116,7 @@ class StatisticsCls:
             effective_inputs = \
                 (self.test_cases * self.inputs_per_test_case - self.single_entry_eq_classes) \
                 // self.test_cases
-            s = f"Eff: {self.effective_eq_classes / (self.effective_eq_classes + self.single_entry_eq_classes):.1f} | " \
-                f"EEQ: {self.effective_eq_classes / self.test_cases:.1f} | " \
+            s = f"EC: {self.effective_eq_classes / self.test_cases:.1f} | " \
                 f"EI: {effective_inputs} | " \
                 f"CO: {self.cov_patterns} | " \
                 f"P: {self.required_priming} | " \

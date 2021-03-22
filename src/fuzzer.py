@@ -344,15 +344,19 @@ class Fuzzer:
         self.max_iterations = iterations
         if verbose:
             print(start_time.strftime('Starting at %H:%M:%S'))
+            print("Abbreviations: \n"
+                  " P-progress ; EC-effective input classes; EI-effective inputs; CO-coverage\n"
+                  " Pr-test cases required priming ; B-broken measurement ;"
+                  " V-violations\n")
 
     def _log_start(self):
         if CONF.verbose:
             if STAT.test_cases > self.progress:
                 self.progress += self.one_percent_progress
                 self.progress_percent += 1
-            msg = f"\rRounds: {STAT.test_cases}/{self.max_iterations} [{self.progress_percent}%] | "
+            msg = f"\rP: {STAT.test_cases} [{self.progress_percent}%] | "
             msg += STAT.get_brief()
-            print(msg + "Normal execution                                 ", end='', flush=True)
+            print(msg + "Normal execution            ", end='', flush=True)
             self.msg = msg
 
     def _log_success(self):
