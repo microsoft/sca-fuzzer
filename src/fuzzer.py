@@ -22,17 +22,60 @@ from custom_types import Dict, CTrace, HTrace, EquivalenceClass, EquivalenceClas
 from config import CONF
 
 
+class Logger:
+    def __init__(self, iterations: int, start_time):
+        self.one_percent_progress = iterations / 100
+        self.progress = 0
+        self.progress_percent = 0
+        self.msg = ""
+        self.max_iterations = iterations
+        if CONF.verbose:
+            print(start_time.strftime('Starting at %H:%M:%S'))
+            print("Abbreviations: \n"
+                  " P-progress ; EC-effective input classes; EI-effective inputs; CO-coverage\n"
+                  " Pr-test cases required priming ; B-broken measurement ;"
+                  " V-violations\n")
+
+    def start_round(self):
+        if CONF.verbose:
+            if STAT.test_cases > self.progress:
+                self.progress += self.one_percent_progress
+                self.progress_percent += 1
+            msg = f"\rP: {STAT.test_cases} [{self.progress_percent}%] | "
+            msg += STAT.get_brief()
+            print(msg + "Normal execution            ", end='', flush=True)
+            self.msg = msg
+
+    def success(self):
+        if CONF.verbose:
+            print(self.msg + "Normal execution                                 ", end='')
+
+    def priming(self, num_violations: int):
+        if CONF.verbose:
+            print(self.msg + "Priming " + str(num_violations) + "                 ", end='',
+                  flush=True)
+
+    @staticmethod
+    def finish():
+        # new line after the progress bar
+        if CONF.verbose:
+            print("")
+            print(STAT)
+            print(datetime.today().strftime('Finished at %H:%M:%S'))
+
+
 class Fuzzer:
     def __init__(self, instruction_set_spec: str, work_dir: str, existing_test_case: str = None):
         self.work_dir = work_dir
         self.test_case = existing_test_case
         self.enable_generation = True if not existing_test_case else False
         self.instruction_set_spec = instruction_set_spec
+        self.logger = None
 
     def start(self, num_test_cases: int, num_inputs: int, timeout: int, nonstop: bool = False,
               verbose: bool = False):
         start_time = datetime.today()
-        self._log_init(num_test_cases, start_time, verbose)
+        self.logger = Logger(num_test_cases, start_time)
         STAT.inputs_per_test_case = num_inputs
 
         # create all main modules
@@ -87,11 +130,11 @@ class Fuzzer:
                         print("\nTimeout expired")
                     break
 
-        self._log_finish()
+        self.logger.finish()
 
     def fuzzing_round(self, executor: Executor, model: Model, analyser: Analyser,
                       inputs: List[Input]) -> bool:
-        self._log_start()
+        self.logger.start_round()
 
         # Initial measurement
         model.load_test_case(self.test_case)
@@ -123,7 +166,7 @@ class Fuzzer:
         violations: List[EquivalenceClass] = analyser.filter_violations(all_eq_classes)
 
         if not violations:
-            self._log_success()
+            self.logger.success()
             return False
         if CONF.no_priming:
             self.report_violations(violations[0])
@@ -134,7 +177,7 @@ class Fuzzer:
 
         # Try priming the inputs that disagree with the other ones within the same eq. class
         while violations:
-            self._log_priming(len(violations))
+            self.logger.priming(len(violations))
             violation: EquivalenceClass = violations.pop()
             if self.verify_with_priming(violation, executor, inputs):
                 self.report_violations(violation)
@@ -333,45 +376,3 @@ class Fuzzer:
                 print(f"   Inputs {inputs[:4]} (+ {len(inputs) - 4} ):")
             print(f"    {pretty_bitmap(violation.htraces[group[0]])}")
         print("")
-
-    # Logging
-    #
-    def _log_init(self, iterations: int, start_time, verbose):
-        self.one_percent_progress = iterations / 100
-        self.progress = 0
-        self.progress_percent = 0
-        self.msg = ""
-        self.max_iterations = iterations
-        if verbose:
-            print(start_time.strftime('Starting at %H:%M:%S'))
-            print("Abbreviations: \n"
-                  " P-progress ; EC-effective input classes; EI-effective inputs; CO-coverage\n"
-                  " Pr-test cases required priming ; B-broken measurement ;"
-                  " V-violations\n")
-
-    def _log_start(self):
-        if CONF.verbose:
-            if STAT.test_cases > self.progress:
-                self.progress += self.one_percent_progress
-                self.progress_percent += 1
-            msg = f"\rP: {STAT.test_cases} [{self.progress_percent}%] | "
-            msg += STAT.get_brief()
-            print(msg + "Normal execution            ", end='', flush=True)
-            self.msg = msg
-
-    def _log_success(self):
-        if CONF.verbose:
-            print(self.msg + "Normal execution                                 ", end='')
-
-    def _log_priming(self, num_violations: int):
-        if CONF.verbose:
-            print(self.msg + "Priming " + str(num_violations) + "                 ", end='',
-                  flush=True)
-
-    @staticmethod
-    def _log_finish():
-        # new line after the progress bar
-        if CONF.verbose:
-            print("")
-            print(STAT)
-            print(datetime.today().strftime('Finished at %H:%M:%S'))
