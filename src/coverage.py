@@ -71,11 +71,16 @@ class PatternCoverage(Coverage):
     coverage_map: Set[str]
     current_patterns: List[Hazard]
     coverage_traces: List[List[Tuple[bool, int]]]
+    positions_to_names: Dict[int, str]
     max_cov: int = 0
 
     def __init__(self):
         self.current_patterns = []
         self.coverage_map = set()
+        self.positions_to_names = {}
+
+    def get(self) -> int:
+        return len(self.coverage_map)
 
     def update(self):
         if not self.coverage_traces:
@@ -83,30 +88,57 @@ class PatternCoverage(Coverage):
 
         base_address = self.coverage_traces[0][0][1]
 
-        covered_addresses = set()
+        covered_instr_addresses = set()
+        covered_with_matching_memory = set()
         for trace in self.coverage_traces:
+            combined_trace = []
+            latest_instruction = []
+
             for observation in trace:
-                if observation[0]:  # instruction
-                    address = observation[1] - base_address
-                    covered_addresses.add(address)
+                if observation[0]:  # instruction address
+                    if latest_instruction:
+                        combined_trace.append(latest_instruction)
+                    latest_instruction = [observation[1] - base_address]
+                else:  # address of the instruction's memory access
+                    if len(latest_instruction) != 1 and latest_instruction[1] == observation[1]:
+                        continue
+                    latest_instruction.append(observation[1])
+            combined_trace.append(latest_instruction)
+
+            # simple coverage
+            for instr in combined_trace:
+                covered_instr_addresses.add(instr[0])
+
+            # memory hazards
+            access_trace = [t for t in combined_trace if len(t) > 1]
+            for i in range(len(access_trace)):
+                # can this instruction be in a pair of mem. accesses?
+                if i == len(access_trace) - 1:
+                    continue
+
+                # does the address match the next instruction?
+                # FIXME: this code will be incorrect when the instruction
+                #  can access several different addresses
+                if access_trace[i][1] == access_trace[i + 1][1]:
+                    covered_with_matching_memory.add(access_trace[i][0])
 
         for pattern in self.current_patterns:
-            if pattern.dependency_type == DT.REG:
-                pattern.covered = pattern.addresses[0] in covered_addresses
-
             if pattern.dependency_type == DT.CONTROL:
-                pattern.covered = pattern.addresses[0] in covered_addresses \
-                                  and pattern.addresses[1] in covered_addresses
+                pattern.covered = pattern.addresses[0] in covered_instr_addresses \
+                                  and pattern.addresses[1] in covered_instr_addresses
 
-        for h in self.current_patterns:
-            if h.covered:
+            if pattern.dependency_type == DT.REG:
+                pattern.covered = pattern.addresses[0] in covered_instr_addresses
+
+            if pattern.dependency_type == DT.MEM:
+                pattern.covered = pattern.addresses[0] in covered_with_matching_memory
+
+        for p in self.current_patterns:
+            if p.covered:
                 self.coverage_map.add(
-                    f"{h.instructions[0]} {h.dependency_type} {h.instructions[1]}")
+                    f"{p.instructions[0]} {p.dependency_type} {p.instructions[1]}")
 
         self.current_patterns = []
-
-    def get(self) -> int:
-        return len(self.coverage_map)
 
     def generator_hook(self, DAG: TestCaseDAG, instruction_set: InstructionSet):
         # calculate max. coverage
@@ -206,16 +238,34 @@ class PatternCoverage(Coverage):
                     Hazard(pair, pair_ids, DT.REG))
 
     def load_test_case(self, asm_file: str):
+        # update positions of patterns in the test case
+        updated_positions = {}
+        with open(asm_file, "r") as f:
+            old_position = 0
+            new_position = 0
+            for line in f:
+                if line[0] == '.':  # ignore labels - they are not compiled in the binary
+                    continue
+                if "instrumentation" not in line:
+                    updated_positions[old_position] = new_position
+                    old_position += 1
+                new_position += 1
+
+        for pattern in self.current_patterns:
+            pattern.positions = (updated_positions[pattern.positions[0]],
+                                 updated_positions[pattern.positions[1]])
+
         assemble(asm_file, 'tmp.o')
         output = run('objdump -D tmp.o -b binary -m i386:x86-64', shell=True, check=True,
                      capture_output=True)
         lines = output.stdout.decode().split("\n")
         addresses = {}
-        counter = 0
+        counter = 0  # start from 2 because there are 2 instructions in the prologue
         for line in lines:
-            address = re.search(r" ([0-9a-f]+):", line)
-            if address:
-                addresses[counter] = int(address.group(1), 16)
+            match = re.search(r" ([0-9a-f]+):", line)
+            if match:
+                address = int(match.group(1), 16)
+                addresses[counter] = address
                 counter += 1
 
         for pattern in self.current_patterns:

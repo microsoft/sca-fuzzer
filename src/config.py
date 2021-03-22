@@ -91,7 +91,7 @@ class ConfCls:
     compare_only_same_size = True
     ignore_single_entry_classes = True
     # ==============================================================================================
-    # Internal
+    # Output
     verbose: int = 0
 
     def set(self, name, value):
