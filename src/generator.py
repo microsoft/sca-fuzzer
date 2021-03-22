@@ -380,15 +380,18 @@ class Instruction:
     next: Instruction = None
     previous: Instruction = None
     latest_reg_operand: RegisterOperand = None  # for avoiding dependencies
+    is_instrumentation: bool
 
-    def __init__(self, name: str):
+    def __init__(self, name: str, is_instrumentation=False):
         self.name = name
         self.operands = []
         self.implicit_operands = []
+        self.is_instrumentation = is_instrumentation
 
     def __str__(self):
         operands = ", ".join([str(op) for op in self.operands])
-        return f"{self.name} {operands}"
+        comment = "# instrumentation" if self.is_instrumentation else ""
+        return f"{self.name} {operands} {comment}"
 
     def add_op(self, op: Operand):
         self.operands.append(op)
@@ -883,7 +886,7 @@ class LFENCEPass(Pass):
                     insertion_points.append(instr)  # make a copy to avoid infinite insertions
 
                 for instr in insertion_points:
-                    BB.insert_after(instr, Instruction("LFENCE"))
+                    BB.insert_after(instr, Instruction("LFENCE", True))
 
 
 class SandboxPass(Pass):
@@ -927,10 +930,10 @@ class SandboxPass(Pass):
         """ Force the memory accesses into the page starting from R14 """
         assert len(instr.get_mem_operands()) == 1
         mem_reg = instr.get_mem_operands()[0].base
-        apply_mask = Instruction("AND") \
+        apply_mask = Instruction("AND", True) \
             .add_op(RegisterOperand(mem_reg, True, True)) \
             .add_op(ImmediateOperand(self.sandbox_address_mask))
-        align_to_r14 = Instruction("ADD") \
+        align_to_r14 = Instruction("ADD", True) \
             .add_op(RegisterOperand(mem_reg, True, True)) \
             .add_op(RegisterOperand("R14", True, False))
 
@@ -952,16 +955,16 @@ class SandboxPass(Pass):
             parent.delete(I)
             return
 
-        zero_rdx = Instruction("MOV") \
+        zero_rdx = Instruction("MOV", True) \
             .add_op(RegisterOperand("RDX", False, True)) \
             .add_imm('0')
         parent.insert_before(I, zero_rdx)
 
         divisor_mask = hex(random.randint(1, 255))
-        apply_divisor_mask = Instruction("OR").add_op(divisor).add_imm(divisor_mask)
+        apply_divisor_mask = Instruction("OR", True).add_op(divisor).add_imm(divisor_mask)
         parent.insert_before(I, apply_divisor_mask)
 
-        apply_ax_mask = Instruction("AND") \
+        apply_ax_mask = Instruction("AND", True) \
             .add_op(RegisterOperand("RAX", True, True)) \
             .add_imm('0xff')
         parent.insert_before(I, apply_ax_mask)
@@ -988,7 +991,7 @@ class SandboxPass(Pass):
         # The offset is in a register
         # Mask its upper bits to reduce the stored value to at most 7
         if address.value != offset.value:
-            apply_mask = Instruction("AND").add_op(offset).add_imm(self.mask_3bits)
+            apply_mask = Instruction("AND", True).add_op(offset).add_imm(self.mask_3bits)
             parent.insert_before(I, apply_mask)
 
         # Special case: offset and address use the same register
@@ -1005,21 +1008,21 @@ class PrinterPass(Pass):
             cache_line_offset = random.randint(0, 63) if CONF.randomized_mem_alignment else 0
             f.write(".intel_syntax noprefix\n"
                     ".test_case_enter:\n"
-                    "MFENCE\n"
-                    f"LEA R14, [R14 + {cache_line_offset}]\n")
+                    "MFENCE # instrumentation\n"
+                    f"LEA R14, [R14 + {cache_line_offset}] # instrumentation\n")
 
             if not CONF.single_function_test_case:
-                f.write("CALL test_case_main\n"
+                f.write("CALL .test_case_main\n"
                         "JMP .test_case_exit\n")
 
             for function in DAG.functions:
-                f.write(f"{function.name}:\n")
+                f.write(f".{function.name}:\n")
                 for BB in function.BBs:
                     self.run_on_basic_block(BB, f)
 
             f.write(".test_case_exit:\n"
-                    f"LEA R14, [R14 - {cache_line_offset}]\n"
-                    "MFENCE\n")
+                    f"LEA R14, [R14 - {cache_line_offset}] # instrumentation\n"
+                    "MFENCE # instrumentation\n")
 
     def run_on_basic_block(self, basic_block: BasicBlock, file):
         file.write(f".{basic_block.label}:\n")
