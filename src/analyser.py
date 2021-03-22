@@ -19,13 +19,15 @@ TWOS_COMPLEMENT_MASK_64 = pow(2, 64) - 1
 class Analyser(ABC):
     coverage = None
 
+    def set_coverage(self, coverage):
+        self.coverage = coverage
+
     @abstractmethod
     def filter_violations(self, equivalence_classes: EquivalenceClassMap,
                           debug=False) -> List[EquivalenceClass]:
         pass
 
-    @staticmethod
-    def build_equivalence_classes(inputs: List[Input], ctraces: List[CTrace],
+    def build_equivalence_classes(self, inputs: List[Input], ctraces: List[CTrace],
                                   htraces: List[HTrace], stats=False) -> EquivalenceClassMap:
         """
         Collect inputs into equivalence classes based on ctraces and group the inputs within
@@ -40,7 +42,7 @@ class Analyser(ABC):
             eq_cls.htraces.append(htraces[i])
 
         # Statistics:
-        # calculate who many classes were useless because they contained only one input
+        # calculate how many classes were useless because they contained only one input
         # and how many classes we had in total
         if stats:
             single_entry = 0
@@ -61,10 +63,10 @@ class Analyser(ABC):
         for eq_cls in equivalence_classes.values():
             eq_cls.update_groups()
 
-        return equivalence_classes
+        if self.coverage:
+            self.coverage.analyser_hook(equivalence_classes.values())
 
-    def set_coverage(self, coverage):
-        self.coverage = coverage
+        return equivalence_classes
 
 
 class EquivalenceAnalyser(Analyser):

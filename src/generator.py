@@ -589,11 +589,15 @@ class Generator:
 
         # fill the test case with instructions
         SetTerminatorsPass(self.instruction_set).run_on_dag(self.test_case)
-        AddRandomInstructionsPass(self.instruction_set, CONF.test_case_size). \
-            run_on_dag(self.test_case, test_mode=test_mode)
+        AddRandomInstructionsPass(self.instruction_set, CONF.test_case_size, test_mode=test_mode). \
+            run_on_dag(self.test_case)
 
+        # measure coverage, if applicable
+        if self.coverage:
+            self.coverage.generator_hook(self.test_case)
+
+        # process the test case
         passes = [
-            PatternCoveragePass(),
             SandboxPass()
         ]
         if serial_mode:
@@ -711,9 +715,10 @@ class AddRandomInstructionsPass(Pass):
 
     total_memory_accesses: int = 0
 
-    def __init__(self, instruction_set: InstructionSet, max_length: int):
+    def __init__(self, instruction_set: InstructionSet, max_length: int, test_mode: bool = False):
         self.instruction_set = instruction_set
         self.max_length = max_length
+        self.test_mode = test_mode
 
         # remove blocked regs.
         filtered = []
@@ -726,9 +731,9 @@ class AddRandomInstructionsPass(Pass):
                 self.gprs_by_size[8].append(reg[8])
         self.gpr_decoding = filtered
 
-    def run_on_dag(self, DAG: TestCaseDAG, test_mode: bool = False) -> None:
+    def run_on_dag(self, DAG: TestCaseDAG) -> None:
         # sometimes, we might want to generate all possible instructions, for testing
-        if test_mode:
+        if self.test_mode:
             self.generate_all_instructions(DAG)
             return
 
@@ -849,24 +854,6 @@ class AddRandomInstructionsPass(Pass):
                         instruction.implicit_operands.append(operand)
 
                     basic_block.append_non_terminator(instruction)
-
-
-class PatternCoveragePass(Pass):
-    def run_on_dag(self, DAG: TestCaseDAG) -> None:
-        # collect all instruction pairs
-        pairs: List[Tuple[Instruction, Instruction]] = []
-        for function in DAG.functions:
-            for BB in function:
-                for i, instr in enumerate(BB):
-                    if instr.next:
-                        pairs.append((instr, instr.next))
-
-        # filter pairs to those with (potential) data dependencies
-        dependent = []
-        for p in pairs:
-            # memory dependency?
-            if p[0].has_mem_operand() and p[1].has_mem_operand():
-                dependent.append(p)
 
 
 class LFENCEPass(Pass):

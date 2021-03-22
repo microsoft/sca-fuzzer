@@ -16,7 +16,7 @@ from model import Model, get_model
 from executor import Executor, get_executor
 from analyser import Analyser, get_analyser
 from input_generator import InputGenerator, RandomInputGenerator
-from coverage import Coverage
+from coverage import Coverage, get_coverage
 from helpers import *
 from custom_types import Dict, CTrace, HTrace, EquivalenceClass, EquivalenceClassMap, Input
 from config import CONF
@@ -42,7 +42,7 @@ class Fuzzer:
         analyser: Analyser = get_analyser()
 
         # connect them with coverage
-        coverage = Coverage()
+        coverage: Coverage = get_coverage()
         executor.set_coverage(coverage)
         model.set_coverage(coverage)
         input_gen.set_coverage(coverage)
@@ -60,12 +60,19 @@ class Fuzzer:
                 # noinspection PyUnboundLocalVariable
                 generator.create_test_case(self.test_case)
 
+            coverage.load_test_case(self.test_case)
+
             # Prepare inputs
             inputs: List[Input] = input_gen.generate(CONF.prng_seed, num_inputs)
 
             # Fuzz the test case
             has_violations = self.fuzzing_round(executor, model, analyser, inputs)
             STAT.test_cases += 1
+
+            coverage.update()
+            STAT.cov_patterns = coverage.get()
+
+            # violations?
             if has_violations:
                 self.store_test_case(False)
                 STAT.violations += 1

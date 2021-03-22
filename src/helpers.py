@@ -90,22 +90,20 @@ class StatisticsCls:
     required_priming = 0
     broken_measurements = 0
     violations = 0
+    cov_patterns = 0
 
     def __str__(self):
-        if self.effective_eq_classes != 0 or self.single_entry_eq_classes != 0:
-            total_clss = self.effective_eq_classes + self.single_entry_eq_classes
-            single_ratio = (self.single_entry_eq_classes / total_clss) * 100
-        else:
-            total_clss = 0
-            single_ratio = 0
+        total_clss = self.effective_eq_classes + self.single_entry_eq_classes
 
         s = "\n================================ Statistics ===================================\n"
         s += f"Test Cases: {self.test_cases}\n"
-        s += f"Equivalence Classes: \n"
-        s += f"  Total: {total_clss / self.test_cases:<5}\n"
-        s += f"  Effective: {self.effective_eq_classes / self.test_cases:<5}\n"
-        s += f"  Single-input: {self.single_entry_eq_classes // self.test_cases} [{single_ratio:03}%]\n"
-        s += f"Effective Inputs: {(self.test_cases * self.inputs_per_test_case - self.single_entry_eq_classes) // self.test_cases}\n"
+        s += f"Coverage:\n"
+        s += f"  Patterns: {self.cov_patterns}\n"
+        s += f"  Effectiveness: {self.effective_eq_classes / total_clss:.1f}\n"
+        s += f"Effectiveness: \n"
+        s += f"  Total Cls: {total_clss / self.test_cases:.1f}\n"
+        s += f"  Effective Cls: {self.effective_eq_classes / self.test_cases:.1f}\n"
+        s += f"  Effective Inputs: {(self.test_cases * self.inputs_per_test_case - self.single_entry_eq_classes) // self.test_cases}\n"
         s += f"Required priming: {self.required_priming}\n"
         s += f"Broken measurements: {self.broken_measurements}\n"
         s += f"Violations: {self.violations}\n"
@@ -113,14 +111,16 @@ class StatisticsCls:
 
     def get_brief(self):
         if self.test_cases == 0:
-            return "EEQ: 0 | EI: 0 | RP: 0 | BM: 0 | V: 0 | "
+            return ""
         else:
             effective_inputs = \
                 (self.test_cases * self.inputs_per_test_case - self.single_entry_eq_classes) \
                 // self.test_cases
-            s = f"EEQ: {self.effective_eq_classes // self.test_cases} | " \
+            s = f"Eff: {self.effective_eq_classes / (self.effective_eq_classes + self.single_entry_eq_classes):.1f} | " \
+                f"EEQ: {self.effective_eq_classes / self.test_cases:.1f} | " \
                 f"EI: {effective_inputs} | " \
-                f"RP: {self.required_priming} | " \
+                f"CO: {self.cov_patterns} | " \
+                f"P: {self.required_priming} | " \
                 f"BM: {self.broken_measurements} | " \
                 f"V: {self.violations} | "
             return s

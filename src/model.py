@@ -62,28 +62,34 @@ class X86UnicornTracer(ABC):
     A superclass that encodes the attacker capabilities
     """
     trace: List[int]
+    coverage_trace: List[Tuple[bool, int]]
 
     def __init__(self):
         self.trace = []
 
     def reset_trace(self) -> None:
         self.trace = []
+        self.coverage_trace = []
 
     def get_trace(self) -> CTrace:
         return hash(tuple(self.trace))
 
-    @abstractmethod
-    def trace_mem_access(self, access, address: int, size: int, value: int) -> None:
-        pass
+    def get_coverage_trace(self):
+        return self.coverage_trace
 
-    @abstractmethod
+    def trace_mem_access(self, access, address: int, size: int, value: int) -> None:
+        if not model.in_speculation:
+            self.coverage_trace.append((False, address))
+
     def trace_code(self, address: int, size: int) -> None:
-        pass
+        if not model.in_speculation:
+            self.coverage_trace.append((True, address))
 
 
 class L1DTracer(X86UnicornTracer):
     def reset_trace(self):
         self.trace = [0, 0]
+        self.coverage_trace = []
 
     def trace_mem_access(self, access, address, size, value):
         page_offset = (address & 4032) >> 6  # 4032 = 0b111111000000
@@ -93,9 +99,10 @@ class L1DTracer(X86UnicornTracer):
         else:
             self.trace[0] |= cache_set_index
         # print(f"{cache_set_index:064b}")
+        super(L1DTracer, self).trace_mem_access(access, address, size, value)
 
     def trace_code(self, address: int, size: int):
-        pass
+        super(L1DTracer, self).trace_code(address, size)
 
     def get_trace(self) -> CTrace:
         if CONF.ignore_first_cache_line:
@@ -106,27 +113,31 @@ class L1DTracer(X86UnicornTracer):
 
 class PCTracer(X86UnicornTracer):
     def trace_mem_access(self, access, address, size, value):
-        pass
+        super(PCTracer, self).trace_mem_access(access, address, size, value)
 
     def trace_code(self, address: int, size: int):
         self.trace.append(address)
+        super(PCTracer, self).trace_code(address, size)
 
 
 class MemoryTracer(X86UnicornTracer):
     def trace_mem_access(self, access, address, size, value):
         self.trace.append(address)
+        super(MemoryTracer, self).trace_mem_access(access, address, size, value)
 
     def trace_code(self, address: int, size: int):
-        pass
+        super(MemoryTracer, self).trace_code(address, size)
 
 
 class CTTracer(X86UnicornTracer):
 
     def trace_mem_access(self, access, address, size, value):
         self.trace.append(address)
+        super(CTTracer, self).trace_mem_access(access, address, size, value)
 
     def trace_code(self, address: int, size: int):
         self.trace.append(address)
+        super(CTTracer, self).trace_code(address, size)
 
 
 class CTNonSpecStoreTracer(X86UnicornTracer):
@@ -135,9 +146,11 @@ class CTNonSpecStoreTracer(X86UnicornTracer):
             self.trace.append(address)
         if access == UC_MEM_READ:  # and speculative loads
             self.trace.append(address)
+        super(CTNonSpecStoreTracer, self).trace_mem_access(access, address, size, value)
 
     def trace_code(self, address: int, size: int):
         self.trace.append(address)
+        super(CTNonSpecStoreTracer, self).trace_code(address, size)
 
 
 class ArchTracer(X86UnicornTracer):
@@ -149,13 +162,16 @@ class ArchTracer(X86UnicornTracer):
             model.emulator.reg_read(UC_X86_REG_RDX),
             model.emulator.reg_read(UC_X86_REG_EFLAGS),
         ]
+        self.coverage_trace = []
 
     def trace_mem_access(self, access, address, size, value):
         self.trace.append(value)
         self.trace.append(address)
+        super(ArchTracer, self).trace_mem_access(access, address, size, value)
 
     def trace_code(self, address: int, size: int):
         self.trace.append(address)
+        super(ArchTracer, self).trace_code(address, size)
 
 
 class X86UnicornModel(Model):
@@ -223,6 +239,7 @@ class X86UnicornModel(Model):
 
     def trace_test_case(self, inputs: List[int]) -> List[CTrace]:
         traces = []
+        coverage_traces = []
         for i, input_ in enumerate(inputs):
             try:
                 self.reset_emulator(input_)
@@ -246,6 +263,11 @@ class X86UnicornModel(Model):
 
             # store the results
             traces.append(self.tracer.get_trace())
+            coverage_traces.append(self.tracer.get_coverage_trace())
+
+        if self.coverage:
+            self.coverage.model_hook(coverage_traces)
+
         return traces
 
     def reset_emulator(self, seed):
