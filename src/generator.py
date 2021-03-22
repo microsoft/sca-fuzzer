@@ -415,6 +415,30 @@ class Instruction:
 
         return False
 
+    def has_src_operand(self, include_implicit: bool = False):
+        for o in self.operands:
+            if o.src:
+                return True
+
+        if include_implicit:
+            for o in self.implicit_operands:
+                if o.src:
+                    return True
+
+        return False
+
+    def has_dest_operand(self, include_implicit: bool = False):
+        for o in self.operands:
+            if o.dest:
+                return True
+
+        if include_implicit:
+            for o in self.implicit_operands:
+                if o.dest:
+                    return True
+
+        return False
+
     def get_mem_operands(self) -> List[MemoryOperand]:
         res = []
         for o in self.operands:
@@ -588,7 +612,7 @@ class Generator:
 
         # measure coverage, if applicable
         if self.coverage:
-            self.coverage.generator_hook(self.test_case)
+            self.coverage.generator_hook(self.test_case, self.instruction_set)
 
         # process the test case
         passes = [

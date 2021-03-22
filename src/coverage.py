@@ -8,7 +8,7 @@ import re
 from enum import Enum
 from abc import ABC, abstractmethod
 
-from generator import TestCaseDAG, Instruction, X86Registers, OT
+from generator import TestCaseDAG, Instruction, X86Registers, OT, InstructionSet
 from custom_types import *
 from helpers import *
 
@@ -47,7 +47,7 @@ class Coverage(ABC):
         pass
 
     @abstractmethod
-    def generator_hook(self, DAG: TestCaseDAG):
+    def generator_hook(self, DAG: TestCaseDAG, instruction_set: InstructionSet):
         pass
 
     @abstractmethod
@@ -71,6 +71,7 @@ class PatternCoverage(Coverage):
     coverage_map: Set[str]
     current_patterns: List[Hazard]
     coverage_traces: List[List[Tuple[bool, int]]]
+    max_cov: int = 0
 
     def __init__(self):
         self.current_patterns = []
@@ -107,7 +108,45 @@ class PatternCoverage(Coverage):
     def get(self) -> int:
         return len(self.coverage_map)
 
-    def generator_hook(self, DAG: TestCaseDAG):
+    def generator_hook(self, DAG: TestCaseDAG, instruction_set: InstructionSet):
+        # calculate max. coverage
+        if not self.max_cov:
+            reg_src = 0
+            reg_dest = 0
+            flags_src = 0
+            flags_dest = 0
+            mem = 0
+            control = 0
+
+            for instr in instruction_set.all + instruction_set.control_flow:
+                if instr.has_mem_operand:
+                    mem += 1
+
+                if instr.control_flow:
+                    control += 1
+
+                has_reg_src = False
+                has_reg_dest = False
+                has_flags_src = False
+                has_flags_dest = False
+                for op in instr.operands:
+                    has_reg_src |= op.type == OT.REG and op.src
+                    has_reg_dest |= op.type == OT.REG and op.dest
+                    has_flags_src |= op.type == OT.FLAGS and op.src
+                    has_flags_dest |= op.type == OT.FLAGS and op.dest
+                if has_reg_src:
+                    reg_src += 1
+                if has_reg_dest:
+                    reg_dest += 1
+                if has_flags_src:
+                    flags_src += 1
+                if has_flags_dest:
+                    flags_dest += 1
+
+            self.max_cov = control * (reg_dest + flags_dest + mem) + \
+                reg_src * reg_dest + flags_src * flags_dest + mem * mem
+            print(f"Max coverage: {self.max_cov}")
+
         # collect instruction positions
         counter = 0
         positions = {}
@@ -126,11 +165,14 @@ class PatternCoverage(Coverage):
                 for t in BB.terminators:
                     for target in t.operands:
                         target_instruction = target.BB.get_first()
-                        if target_instruction:
-                            pair = (t.name, target_instruction.name)
-                            pair_ids = (positions[t], positions[target_instruction])
-                            self.current_patterns.append(
-                                Hazard(pair, pair_ids, DT.CONTROL))
+                        if not target_instruction:
+                            continue
+                        if not target_instruction.has_dest_operand(True):
+                            continue
+                        pair = (t.name, target_instruction.name)
+                        pair_ids = (positions[t], positions[target_instruction])
+                        self.current_patterns.append(
+                            Hazard(pair, pair_ids, DT.CONTROL))
 
         # collect all instruction pairs
         pairs: List[Tuple[Instruction, Instruction]] = []
@@ -143,7 +185,7 @@ class PatternCoverage(Coverage):
         # filter pairs to those with potential data dependencies
         for p in pairs:
             # memory dependency?
-            if p[0].has_mem_operand() and p[1].has_mem_operand():
+            if p[0].has_mem_operand() and p[1].has_mem_operand() and p[1].has_dest_operand(True):
                 pair = (p[0].name, p[1].name)
                 pair_ids = (positions[p[0]], positions[p[1]])
                 self.current_patterns.append(
@@ -157,7 +199,7 @@ class PatternCoverage(Coverage):
                        for op in p[1].operands + p[1].implicit_operands if
                        op.src and op.type in [OT.REG, OT.FLAGS]]
             dependencies = [op for op in sources if op in destinations]
-            if dependencies:
+            if dependencies and p[1].has_dest_operand(True):
                 pair = (p[0].name, p[1].name)
                 pair_ids = (positions[p[0]], positions[p[1]])
                 self.current_patterns.append(
