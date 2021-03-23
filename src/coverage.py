@@ -68,7 +68,9 @@ class Coverage(ABC):
 
 
 class PatternCoverage(Coverage):
-    coverage_map: Set[str]
+    coverage_map_cont: Set[str]
+    coverage_map_mem: Set[str]
+    coverage_map_reg: Set[str]
     current_patterns: List[Hazard]
     coverage_traces: List[List[Tuple[bool, int]]]
     positions_to_names: Dict[int, str]
@@ -76,14 +78,20 @@ class PatternCoverage(Coverage):
 
     def __init__(self):
         self.current_patterns = []
-        self.coverage_map = set()
+        self.coverage_map_cont = set()
+        self.coverage_map_mem = set()
+        self.coverage_map_reg = set()
         self.positions_to_names = {}
 
     def get(self) -> int:
-        return len(self.coverage_map)
+        return len(self.coverage_map_cont) + len(self.coverage_map_mem) + len(self.coverage_map_reg)
+
+    def get_detailed(self) -> Tuple[int, int, int]:
+        return len(self.coverage_map_cont), len(self.coverage_map_mem), len(self.coverage_map_reg)
 
     def update(self):
         if not self.coverage_traces:
+            self.current_patterns = []
             return
 
         base_address = self.coverage_traces[0][0][1]
@@ -135,8 +143,17 @@ class PatternCoverage(Coverage):
 
         for p in self.current_patterns:
             if p.covered:
-                self.coverage_map.add(
-                    f"{p.instructions[0]} {p.dependency_type} {p.instructions[1]}")
+                name = f"{p.instructions[0]} {p.dependency_type} {p.instructions[1]}"
+                if p.dependency_type == DT.CONTROL:
+                    self.coverage_map_cont.add(name)
+                elif p.dependency_type == DT.REG:
+                    self.coverage_map_reg.add(name)
+                elif p.dependency_type == DT.MEM:
+                    self.coverage_map_mem.add(name)
+
+        STAT.cov_patterns_cont = len(self.coverage_map_cont)
+        STAT.cov_patterns_mem = len(self.coverage_map_mem)
+        STAT.cov_patterns_reg = len(self.coverage_map_reg)
 
         self.current_patterns = []
 

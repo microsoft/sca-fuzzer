@@ -94,6 +94,7 @@ class ConfCls:
     # Output
     verbose: int = 0
     multiline_output: bool = False
+    detailed_coverage: bool = True
 
     def set(self, name, value):
         options = {
