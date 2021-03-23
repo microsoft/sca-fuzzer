@@ -18,7 +18,7 @@ contract_execution_mode:
 test_case_size: 16
 min_bb_per_function: 5
 max_bb_per_function: 5
-max_mem_accesses: 4
+avg_mem_accesses: 4
 prng_entropy_bits: 9
 
 enable_ssbp_patch: true

@@ -7,3 +7,4 @@ CMakeLists.txt
 src/instruction_sets/x86/base.xml
 tmp.pdf
 evaluation/resuts/
+evaluation/bugs/

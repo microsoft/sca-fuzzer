@@ -280,6 +280,7 @@ class InstructionSet:
             if skip_pending:
                 skip_list.append(s)
 
+        # remove the unsupported
         for s in skip_list:
             self.all.remove(s)
 
@@ -734,8 +735,6 @@ class AddRandomInstructionsPass(Pass):
     ]
     gprs_by_size = {64: [], 32: [], 16: [], 8: []}  # generated dynamically from grp_decoding
 
-    total_memory_accesses: int = 0
-
     def __init__(self, instruction_set: InstructionSet, max_length: int, test_mode: bool = False):
         self.instruction_set = instruction_set
         self.max_length = max_length
@@ -770,23 +769,18 @@ class AddRandomInstructionsPass(Pass):
                     basic_block.append_non_terminator(instruction)
 
     def generate_instruction(self) -> Instruction:
-        # select a random instruction spec for generation,
-        # but limit the total mem. accesses and evenly spread them
         instruction_spec: InstructionSpec
-        r = random.random()
+
+        # ensure the requested avg. number of mem. accesses
+        is_memory_access = False
+        if random.random() < CONF.avg_mem_accesses / CONF.test_case_size:
+            is_memory_access = True
+
+        # select a random instruction spec for generation
         while True:
             instruction_spec = random.choice(self.instruction_set.all)
-            if not instruction_spec.has_mem_operand:
+            if instruction_spec.has_mem_operand == is_memory_access:
                 break
-
-            if self.total_memory_accesses > CONF.max_mem_accesses:
-                continue
-
-            if r > CONF.max_mem_accesses / CONF.test_case_size:
-                continue
-
-            self.total_memory_accesses += 1
-            break
 
         # fill up with random operand, following the spec
         instruction = Instruction(instruction_spec.name)

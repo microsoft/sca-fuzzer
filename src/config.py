@@ -23,7 +23,7 @@ class ConfCls:
     max_bb_per_function = 5
     max_bb_successors = 0  # zero -> automatically set based on the available instructions
     test_case_size = 64
-    max_mem_accesses = 32
+    avg_mem_accesses = 32
     single_function_test_case = True
     avoid_data_dependencies: bool = True
     supported_categories = ["NOP"]

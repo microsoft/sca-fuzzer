@@ -1,4 +1,4 @@
-max_mem_accesses: 0
+avg_mem_accesses: 0
 supported_categories:
   - NOP
   - BINARY
