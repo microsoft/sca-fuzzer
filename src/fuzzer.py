@@ -116,7 +116,6 @@ class Fuzzer:
             STAT.test_cases += 1
 
             coverage.update()
-            STAT.cov_patterns = coverage.get()
 
             # violations?
             if has_violations:

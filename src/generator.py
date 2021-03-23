@@ -613,10 +613,6 @@ class Generator:
         AddRandomInstructionsPass(self.instruction_set, CONF.test_case_size, test_mode=test_mode). \
             run_on_dag(self.test_case)
 
-        # measure coverage, if applicable
-        if self.coverage:
-            self.coverage.generator_hook(self.test_case, self.instruction_set)
-
         # process the test case
         passes = [
             SandboxPass()
@@ -627,6 +623,10 @@ class Generator:
 
         for p in passes:
             p.run_on_dag(self.test_case)
+
+        # measure coverage, if applicable
+        if self.coverage:
+            self.coverage.generator_hook(self.test_case, self.instruction_set)
 
     def _generate_random_function(self, name: str, shuffle: bool = False):
         """ Generates a random DAG of basic blocks within a function """

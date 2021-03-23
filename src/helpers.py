@@ -90,7 +90,9 @@ class StatisticsCls:
     required_priming = 0
     broken_measurements = 0
     violations = 0
-    cov_patterns = 0
+    cov_patterns_cont = 0
+    cov_patterns_mem = 0
+    cov_patterns_reg = 0
 
     def __str__(self):
         total_clss = self.effective_eq_classes + self.single_entry_eq_classes
@@ -98,7 +100,9 @@ class StatisticsCls:
         s = "\n================================ Statistics ===================================\n"
         s += f"Test Cases: {self.test_cases}\n"
         s += f"Coverage:\n"
-        s += f"  Patterns: {self.cov_patterns}\n"
+        s += f"  Patterns-Control: {self.cov_patterns_cont}\n"
+        s += f"  Patterns-Memory: {self.cov_patterns_mem}\n"
+        s += f"  Patterns-Register: {self.cov_patterns_reg}\n"
         s += f"  Effectiveness: {self.effective_eq_classes / total_clss:.1f}\n"
         s += f"Effectiveness: \n"
         s += f"  Total Cls: {total_clss / self.test_cases:.1f}\n"
@@ -117,11 +121,18 @@ class StatisticsCls:
                 (self.test_cases * self.inputs_per_test_case - self.single_entry_eq_classes) \
                 // self.test_cases
             s = f"EC: {self.effective_eq_classes / self.test_cases:.1f} | " \
-                f"EI: {effective_inputs} | " \
-                f"CO: {self.cov_patterns} | " \
-                f"P: {self.required_priming} | " \
-                f"BM: {self.broken_measurements} | " \
-                f"V: {self.violations} | "
+                f"EI: {effective_inputs} | "
+
+            if CONF.detailed_coverage:
+                s += f"CC: {self.cov_patterns_cont} | " \
+                     f"CM: {self.cov_patterns_mem} | " \
+                     f"CR: {self.cov_patterns_reg} | "
+            else:
+                s += f"CO: {self.cov_patterns_cont + self.cov_patterns_mem + self.cov_patterns_reg} | "
+
+            s += f"P: {self.required_priming} | " \
+                 f"BM: {self.broken_measurements} | " \
+                 f"V: {self.violations} | "
             return s
 
 

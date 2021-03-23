@@ -197,7 +197,7 @@ class PatternCoverage(Coverage):
             print(f"Max coverage: {self.max_cov}")
 
         # collect instruction positions
-        counter = 0
+        counter = 2  # function prologue is 2 instructions long
         positions = {}
         for function in DAG.functions:
             for BB in function:
@@ -216,6 +216,11 @@ class PatternCoverage(Coverage):
                         target_instruction = target.BB.get_first()
                         if not target_instruction:
                             continue
+
+                        # skip instrumentation
+                        while target_instruction.is_instrumentation:
+                            target_instruction = target_instruction.next
+
                         if not target_instruction.has_dest_operand(True):
                             continue
                         pair = (t.name, target_instruction.name)
@@ -229,7 +234,14 @@ class PatternCoverage(Coverage):
             for BB in function:
                 for instr in BB:
                     if instr.next:
-                        pairs.append((instr, instr.next))
+                        # skip instrumentation
+                        next_instr = instr.next
+                        while next_instr and next_instr.is_instrumentation:
+                            next_instr = next_instr.next
+                        if not next_instr:
+                            continue
+
+                        pairs.append((instr, next_instr))
 
         # filter pairs to those with potential data dependencies
         for p in pairs:
@@ -255,29 +267,13 @@ class PatternCoverage(Coverage):
                     Hazard(pair, pair_ids, DT.REG))
 
     def load_test_case(self, asm_file: str):
-        # update positions of patterns in the test case
-        updated_positions = {}
-        with open(asm_file, "r") as f:
-            old_position = 0
-            new_position = 0
-            for line in f:
-                if line[0] == '.':  # ignore labels - they are not compiled in the binary
-                    continue
-                if "instrumentation" not in line:
-                    updated_positions[old_position] = new_position
-                    old_position += 1
-                new_position += 1
-
-        for pattern in self.current_patterns:
-            pattern.positions = (updated_positions[pattern.positions[0]],
-                                 updated_positions[pattern.positions[1]])
-
         assemble(asm_file, 'tmp.o')
-        output = run('objdump -D tmp.o -b binary -m i386:x86-64', shell=True, check=True,
+        output = run('objdump -D tmp.o -b binary --no-show-raw-insn -m i386:x86-64', shell=True,
+                     check=True,
                      capture_output=True)
         lines = output.stdout.decode().split("\n")
         addresses = {}
-        counter = 0  # start from 2 because there are 2 instructions in the prologue
+        counter = 0
         for line in lines:
             match = re.search(r" ([0-9a-f]+):", line)
             if match:
