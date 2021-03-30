@@ -58,9 +58,10 @@ class Postprocessor:
         else:
             print(f"Reduced to {len(min_inputs)} inputs")
 
-        print("Minimizing the test case...")
         with open(test_case, "r") as f:
             instructions = f.readlines()
+
+        print("Minimizing the test case...")
         min_instructions = self.minimize_test_case(instructions, model, executor, analyser, fuzzer,
                                                    min_inputs)
 
@@ -68,6 +69,12 @@ class Postprocessor:
             print("Trying to add fences...")
             min_instructions = self.add_fences(instructions, model, executor, analyser,
                                                fuzzer, min_inputs)
+
+        add_nops = True
+        if add_nops:
+            print("Trying to replace with NOPs...")
+            min_instructions = self.replace_with_nops(instructions, model, executor, analyser,
+                                                      fuzzer, min_inputs)
 
         print("Storing the results")
         with open(outfile, "w") as f:
@@ -117,11 +124,11 @@ class Postprocessor:
                 break
 
             # Preserve those instructions used for sandboxing
-            if "0b111111" in instructions[cursor] or ", R14" in instructions[cursor]:
+            if "instrumentation" in instructions[cursor]:
                 continue
 
             if instructions[cursor] == "LFENCE\n":
-                break
+                continue
 
             # Create a test case with one line missing
             run(f"touch {minimised}", shell=True, check=True)
@@ -141,9 +148,6 @@ class Postprocessor:
                 del instructions[cursor]
             else:
                 print("-", end="", flush=True)
-                # skip instrumentation
-                if "DIV" in instructions[cursor]:
-                    cursor -= 3
 
         return instructions
 
@@ -177,5 +181,51 @@ class Postprocessor:
                 instructions = instructions[:cursor] + ["LFENCE\n"] + instructions[cursor:]
             else:
                 print("-", end="", flush=True)
+
+        return instructions
+
+    def replace_with_nops(self, instructions, model: Model, executor: Executor, analyser: Analyser,
+                          fuzzer: Fuzzer, inputs: List[Input]) -> List:
+        minimised = "/tmp/minimised.asm"
+
+        for num_nops in range(1, 9):
+
+            # Try removing instructions, one at a time
+            cursor = len(instructions)
+            while True:
+                cursor -= 1
+
+                # Did we reach the header?
+                if instructions[cursor] == ".bb0:\n":
+                    break
+
+                # Preserve those instructions used for sandboxing
+                if "instrumentation" in instructions[cursor]:
+                    continue
+
+                if instructions[cursor] == "LFENCE\n":
+                    continue
+                if instructions[cursor] == "NOP\n":
+                    continue
+
+                # Create a test case with one line replaced with nops
+                run(f"touch {minimised}", shell=True, check=True)
+                with open(minimised, "r+") as f:
+                    f.seek(0)
+                    for i, line in enumerate(instructions):
+                        if i == cursor:
+                            f.write("NOP\n" * num_nops)
+                        else:
+                            f.write(line)
+                    f.truncate()
+
+                # Run and check if the vuln. is still there
+                violations = self.get_all_violations(minimised, model, executor, analyser, fuzzer,
+                                                     inputs)
+                if violations:
+                    print(".", end="", flush=True)
+                    instructions[cursor] = "NOP\n" * num_nops
+                else:
+                    print("-", end="", flush=True)
 
         return instructions
