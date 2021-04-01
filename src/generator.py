@@ -443,6 +443,12 @@ class Instruction:
 
         return False
 
+    def is_store(self):
+        for o in self.operands:
+            if isinstance(o, MemoryOperand) and o.dest:
+                return True
+        return False
+
     def get_mem_operands(self) -> List[MemoryOperand]:
         res = []
         for o in self.operands:
