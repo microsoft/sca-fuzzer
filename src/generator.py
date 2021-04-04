@@ -651,25 +651,30 @@ class Generator:
         # Connect BBs into a graph
         for i in range(node_count):
             current_bb = nodes[i]
-            successor_count = random.randint(min_successors, max_successors)
-            if successor_count + i >= node_count:
-                successor_count = node_count - i - 1
 
-            if successor_count <= 0:
-                continue
+            # the last node has only one successor - exit
+            if i == node_count - 1:
+                current_bb.successors = [function.exit]
+                break
+
+            # the rest of the node have a random number of successors
+            successor_count = random.randint(min_successors, max_successors)
+            if successor_count + i > node_count:
+                # the number is adjusted to the position when close to the end
+                successor_count = node_count - i - 1
 
             # one of the targets is always the next node - to avoid dead code
             current_bb.successors.append(nodes[i + 1])
 
             # all other successors are random, selected from next nodes
             options = nodes[i + 2:]
+            options.append(function.exit)
             for j in range(1, successor_count):
                 target = random.choice(options)
                 options.remove(target)
                 current_bb.successors.append(target)
 
         function.entry.successors = [nodes[0]]
-        nodes[-1].successors = [function.exit]
 
         if not shuffle:
             function.BBs = [function.entry] + nodes + [function.exit]
