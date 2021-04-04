@@ -73,6 +73,10 @@ class Coverage(ABC):
     def get(self) -> int:
         pass
 
+    @abstractmethod
+    def is_stuck(self) -> bool:
+        pass
+
 
 class PatternCoverage(Coverage):
     coverage: Dict[int, Set[Tuple[int]]]
@@ -281,6 +285,10 @@ class PatternCoverage(Coverage):
                 factorial(n + r - 1) / factorial(r) / factorial(n - 1)
 
         self.current_patterns = []
+
+    def is_stuck(self) -> bool:
+        bar = 10 * pow(self.combination_length, 2)
+        return self.rounds_without_change >= bar and self.rounds_without_change % bar == 0
 
 
 def get_coverage() -> Coverage:

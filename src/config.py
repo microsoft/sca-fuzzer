@@ -17,6 +17,7 @@ class ConfCls:
     min_primer_size: int = 10
     max_primer_size: int = 1000
     coverage_type: str = 'dependencies'
+    reconfigure_on_plateau: bool = False
     # ==============================================================================================
     # Generator
     min_bb_per_function = 2
