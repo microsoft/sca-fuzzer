@@ -83,8 +83,8 @@ def bit_count(n):
 
 
 class StatisticsCls:
-    inputs_per_test_case = 0
     test_cases = 0
+    num_inputs = 0
     effective_eq_classes = 0
     single_entry_eq_classes = 0
     required_priming = 0
@@ -97,13 +97,13 @@ class StatisticsCls:
 
         s = "\n================================ Statistics ===================================\n"
         s += f"Test Cases: {self.test_cases}\n"
+        s += f"Inputs per test case: {self.num_inputs}\n"
         s += f"Coverage:\n"
         s += f"  Patterns: {self.coverage}\n"
         s += f"  Effectiveness: {self.effective_eq_classes / total_clss:.1f}\n"
         s += f"Effectiveness: \n"
         s += f"  Total Cls: {total_clss / self.test_cases:.1f}\n"
         s += f"  Effective Cls: {self.effective_eq_classes / self.test_cases:.1f}\n"
-        s += f"  Effective Inputs: {(self.test_cases * self.inputs_per_test_case - self.single_entry_eq_classes) // self.test_cases}\n"
         s += f"Required priming: {self.required_priming}\n"
         s += f"Broken measurements: {self.broken_measurements}\n"
         s += f"Violations: {self.violations}\n"
@@ -113,13 +113,9 @@ class StatisticsCls:
         if self.test_cases == 0:
             return ""
         else:
-            effective_inputs = \
-                (self.test_cases * self.inputs_per_test_case - self.single_entry_eq_classes) \
-                // self.test_cases
-            s = f"EC: {self.effective_eq_classes / self.test_cases:.1f} | " \
-                f"EI: {effective_inputs} | "
+            s = f"EC: {self.effective_eq_classes / self.test_cases:.1f} | "
             s += f"C: {self.coverage} | "
-
+            s += f"I: {self.num_inputs} | "
             s += f"P: {self.required_priming} | " \
                  f"BM: {self.broken_measurements} | " \
                  f"V: {self.violations} | "

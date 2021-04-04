@@ -64,6 +64,14 @@ def main():
         help="Number of inputs per test case.",
     )
     parser_fuzz.add_argument(
+        "-e", "--num-equivalence-classes",
+        type=int,
+        default=0,
+        help="Target number of equivalence classes. \n"
+             "When set, the number of inputs is changed dynamically, \n"
+             "to reach this number, but not more than --num-inputs",
+    )
+    parser_fuzz.add_argument(
         '-w', '--working-directory',
         type=str,
         default='',
@@ -164,9 +172,9 @@ def main():
         fuzzer.start(
             args.num_test_cases,
             args.num_inputs,
+            args.num_equivalence_classes,
             args.timeout,
             args.nonstop,
-            args.verbose,
         )
         return
 

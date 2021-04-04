@@ -75,11 +75,12 @@ class Fuzzer:
         self.instruction_set_spec = instruction_set_spec
         self.logger = None
 
-    def start(self, num_test_cases: int, num_inputs: int, timeout: int, nonstop: bool = False,
-              verbose: bool = False):
+    def start(self, num_test_cases: int, num_inputs_max: int, num_eq_classes: int, timeout: int,
+              nonstop: bool = False):
         start_time = datetime.today()
         self.logger = Logger(num_test_cases, start_time)
-        STAT.inputs_per_test_case = num_inputs
+        num_inputs = num_inputs_max if not num_eq_classes else 50
+        STAT.num_inputs = num_inputs
 
         # create all main modules
         executor: Executor = get_executor()
@@ -128,9 +129,16 @@ class Fuzzer:
             if timeout:
                 now = datetime.today()
                 if (now - start_time).total_seconds() > timeout:
-                    if verbose:
+                    if CONF.verbose:
                         print("\nTimeout expired")
                     break
+
+            if num_inputs < num_inputs_max and \
+                    (STAT.effective_eq_classes // (i + 1)) < num_eq_classes and \
+                    STAT.single_entry_eq_classes > STAT.effective_eq_classes:
+                num_inputs = int(num_inputs * 1.2)
+                STAT.num_inputs = num_inputs
+                continue
 
         self.logger.finish()
 
