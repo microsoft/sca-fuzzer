@@ -91,6 +91,7 @@ class StatisticsCls:
     broken_measurements = 0
     violations = 0
     coverage = 0
+    fully_covered: int = 0
 
     def __str__(self):
         total_clss = self.effective_eq_classes + self.single_entry_eq_classes
@@ -100,6 +101,7 @@ class StatisticsCls:
         s += f"Inputs per test case: {self.num_inputs}\n"
         s += f"Coverage:\n"
         s += f"  Patterns: {self.coverage}\n"
+        s += f"  Fully covered: {self.fully_covered}\n"
         s += f"  Effectiveness: {self.effective_eq_classes / total_clss:.1f}\n"
         s += f"Effectiveness: \n"
         s += f"  Total Cls: {total_clss / self.test_cases:.1f}\n"

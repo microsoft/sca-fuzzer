@@ -7,7 +7,7 @@ SPDX-License-Identifier: MIT
 import re
 from enum import IntEnum
 from abc import ABC, abstractmethod
-from itertools import combinations
+from collections import defaultdict
 from math import factorial
 
 from generator import TestCaseDAG, Instruction, X86Registers, OT, InstructionSet
@@ -75,7 +75,7 @@ class Coverage(ABC):
 
 
 class PatternCoverage(Coverage):
-    coverage: Set[Tuple[int]]
+    coverage: Dict[int, Set[Tuple[int]]]
     current_patterns: List[PatternInstance]
     coverage_traces: List[List[Tuple[bool, int]]]
     positions_to_names: Dict[int, str]
@@ -83,14 +83,16 @@ class PatternCoverage(Coverage):
     combination_length: int = 1
     num_patterns: int = 8
     max_combinations_of_current_length: int = 8
+    rounds_without_change: int = 0
+    previous_target_coverage: int = 0
 
     def __init__(self):
         self.current_patterns = []
-        self.coverage = set()
+        self.coverage = defaultdict(set)
         self.positions_to_names = {}
 
     def get(self) -> int:
-        return len(self.coverage)
+        return sum([len(c) for c in self.coverage.values()])
 
     def generator_hook(self, DAG: TestCaseDAG, instruction_set: InstructionSet):
         # collect instruction positions
@@ -167,7 +169,7 @@ class PatternCoverage(Coverage):
     def load_test_case(self, asm_file: str):
         assemble(asm_file, 'tmp.o')
         output = run('objdump -D tmp.o -b binary --no-show-raw-insn -m i386:x86-64', shell=True,
-                     check=True,
+                     check=False,
                      capture_output=True)
         lines = output.stdout.decode().split("\n")
         addresses = {}
@@ -201,7 +203,8 @@ class PatternCoverage(Coverage):
         self.coverage_traces = effective_traces
 
     def update(self):
-        if not self.coverage_traces:
+        if not self.coverage_traces or not self.coverage_traces[0]:
+            self.rounds_without_change += 1
             self.current_patterns = []
             return
 
@@ -241,6 +244,7 @@ class PatternCoverage(Coverage):
                 if access_trace[i][1] == access_trace[i + 1][1]:
                     covered_with_matching_memory.add(access_trace[i][0])
 
+        # which of the patterns got covered
         for pattern in self.current_patterns:
             if pattern.dependency_type in [DT.CONTROL_COND, DT.CONTROL_DIRECT]:
                 pattern.covered = pattern.addresses[0] in covered_instr_addresses \
@@ -252,14 +256,24 @@ class PatternCoverage(Coverage):
             if pattern.dependency_type in [DT.MEM_LL, DT.MEM_SL, DT.MEM_LS, DT.MEM_SS]:
                 pattern.covered = pattern.addresses[0] in covered_with_matching_memory
 
+        # collect covered combinations
         covered_patterns = [int(p.dependency_type) for p in self.current_patterns if p.covered]
         covered_patterns = sorted(covered_patterns)
-        for c in combinations(covered_patterns, self.combination_length):
-            self.coverage.add(tuple(c))
-        STAT.coverage = len(self.coverage)
+        self.coverage[len(covered_patterns)].add(tuple(covered_patterns))
+
+        # save the result
+        new_target_coverage = len(self.coverage[self.combination_length])
+        if new_target_coverage == self.previous_target_coverage:
+            self.rounds_without_change += 1
+        else:
+            self.rounds_without_change = 0
+        self.previous_target_coverage = new_target_coverage
+        STAT.coverage = sum([len(c) for c in self.coverage.values()])
 
         # increase the combination length?
         if len(self.coverage) == self.max_combinations_of_current_length:
+            STAT.fully_covered = self.combination_length
+            print(f"\nCOV: Fully covered length {self.combination_length}")
             self.combination_length += 1
             n = self.num_patterns
             r = self.combination_length
