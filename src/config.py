@@ -27,6 +27,7 @@ class ConfCls:
     avg_mem_accesses = 32
     single_function_test_case = True
     avoid_data_dependencies: bool = True
+    memory_access_zeroed_bits: int = 6
     supported_categories = ["NOP"]
     instruction_blocklist = [
         # STI - enables interrupts, thus corrupting the measurements; CTI - just in case

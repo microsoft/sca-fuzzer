@@ -895,12 +895,17 @@ class LFENCEPass(Pass):
 
 
 class SandboxPass(Pass):
-    sandbox_address_mask = "0b" + "1" * 6 + "0" * 6
     mask_3bits = "0b111"
 
     def __init__(self):
         if CONF.enable_mds:
-            self.sandbox_address_mask = "0b" + "1" * 7 + "0" * 6
+            self.sandbox_address_mask = "0b1" + \
+                                        "1" * (12 - CONF.memory_access_zeroed_bits) + \
+                                        "0" * CONF.memory_access_zeroed_bits
+        else:
+            self.sandbox_address_mask = "0b0" + \
+                                        "1" * (12 - CONF.memory_access_zeroed_bits) + \
+                                        "0" * CONF.memory_access_zeroed_bits
 
     def run_on_dag(self, DAG: TestCaseDAG) -> None:
         for function in DAG.functions:
