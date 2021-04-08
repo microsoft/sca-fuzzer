@@ -76,7 +76,7 @@ class ConfCls:
     # Executor
     executor: str = 'x86-intel'
     measurement_cpu: int = 0
-    warmups: int = 1
+    warmups: int = 3
     num_measurements: int = 40
     max_outliers = 3
     attack_variant: str = 'P+P'
