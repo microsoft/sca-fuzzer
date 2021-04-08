@@ -29,6 +29,7 @@ class Logger:
         self.progress_percent = 0
         self.msg = ""
         self.line_ending = '\n' if CONF.multiline_output else ''
+        self.start_time = start_time
         if CONF.verbose:
             print(start_time.strftime('Starting at %H:%M:%S'))
             print("Abbreviations: \n"
@@ -58,12 +59,13 @@ class Logger:
                   end=self.line_ending,
                   flush=True)
 
-    @staticmethod
-    def finish():
+    def finish(self):
         # new line after the progress bar
         if CONF.verbose:
+            now = datetime.today()
             print("")
             print(STAT)
+            print(f"Duration: {(now - self.start_time).total_seconds():.1f}")
             print(datetime.today().strftime('Finished at %H:%M:%S'))
 
 
