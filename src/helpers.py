@@ -118,6 +118,7 @@ class StatisticsCls:
             s = f"EC: {self.effective_eq_classes / self.test_cases:.1f} | "
             s += f"C: {self.coverage} | "
             s += f"I: {self.num_inputs} | "
+            s += f"E: {self.effective_eq_classes / (self.effective_eq_classes + self.single_entry_eq_classes):.1f} | "
             s += f"P: {self.required_priming} | " \
                  f"BM: {self.broken_measurements} | " \
                  f"V: {self.violations} | "
