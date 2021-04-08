@@ -26,6 +26,7 @@ class ConfCls:
     test_case_size = 64
     avg_mem_accesses = 32
     single_function_test_case = True
+    generate_memory_accesses_in_pairs: bool = True
     avoid_data_dependencies: bool = True
     memory_access_zeroed_bits: int = 6
     supported_categories = ["NOP"]

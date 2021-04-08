@@ -749,6 +749,7 @@ class AddRandomInstructionsPass(Pass):
         {64: "R13", 32: "R13D", 16: "R13W", 8: "R13B"},
     ]
     gprs_by_size = {64: [], 32: [], 16: [], 8: []}  # generated dynamically from grp_decoding
+    had_recent_memory_access: bool = False
 
     def __init__(self, instruction_set: InstructionSet, max_length: int, test_mode: bool = False):
         self.instruction_set = instruction_set
@@ -787,14 +788,20 @@ class AddRandomInstructionsPass(Pass):
         instruction_spec: InstructionSpec
 
         # ensure the requested avg. number of mem. accesses
-        is_memory_access = False
-        if random.random() < CONF.avg_mem_accesses / CONF.test_case_size:
-            is_memory_access = True
+        search_for_memory_access = False
+        memory_access_probability = CONF.avg_mem_accesses / CONF.test_case_size
+        if CONF.generate_memory_accesses_in_pairs:
+            memory_access_probability = 1 if self.had_recent_memory_access else \
+                (CONF.avg_mem_accesses / 2) / (CONF.test_case_size - CONF.avg_mem_accesses / 2)
+
+        if random.random() < memory_access_probability:
+            search_for_memory_access = True
+            self.had_recent_memory_access = not self.had_recent_memory_access
 
         # select a random instruction spec for generation
         while True:
             instruction_spec = random.choice(self.instruction_set.all)
-            if instruction_spec.has_mem_operand == is_memory_access:
+            if instruction_spec.has_mem_operand == search_for_memory_access:
                 break
 
         # fill up with random operand, following the spec
