@@ -296,7 +296,8 @@ class X86UnicornModel(Model):
                                     masked_rvalue.to_bytes(8, byteorder='little'))
 
         # Values in registers
-        for reg in [UC_X86_REG_RAX, UC_X86_REG_RBX, UC_X86_REG_RCX, UC_X86_REG_RDX]:
+        for reg in [UC_X86_REG_RAX, UC_X86_REG_RBX, UC_X86_REG_RCX, UC_X86_REG_RDX, UC_X86_REG_R8,
+                    UC_X86_REG_R9, UC_X86_REG_R10]:
             random_value = ((random_value * 2891336453) % POW32 + 12345) % POW32
             masked_rvalue = (random_value ^ (random_value >> 16)) & input_mask
             self.emulator.reg_write(reg, masked_rvalue)
