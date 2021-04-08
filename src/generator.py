@@ -642,7 +642,7 @@ class Generator:
         # Define the maximum allowed number of successors for any BB
         max_successors = 2 if self.instruction_set.has_conditional_branch else 1
         max_successors = CONF.max_bb_successors if CONF.max_bb_successors else max_successors
-        min_successors = 2 if max_successors >= 2 else 1
+        min_successors = 1  # 2 if max_successors >= 2 else 1
 
         # Create basic blocks
         node_count = random.randint(CONF.min_bb_per_function, CONF.max_bb_per_function)
@@ -661,7 +661,7 @@ class Generator:
             successor_count = random.randint(min_successors, max_successors)
             if successor_count + i > node_count:
                 # the number is adjusted to the position when close to the end
-                successor_count = node_count - i - 1
+                successor_count = node_count - i
 
             # one of the targets is always the next node - to avoid dead code
             current_bb.successors.append(nodes[i + 1])
@@ -708,6 +708,10 @@ class SetTerminatorsPass(Pass):
                     continue
 
                 elif len(BB.successors) == 1:
+                    # the fist and the last basic blocks simply fall through
+                    if BB == function.entry or BB.successors[0] == function.exit:
+                        continue
+
                     # Unconditional branch
                     terminator = Instruction("JMP")
                     terminator.operands = [LabelOperand(BB.successors[0])]
