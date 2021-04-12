@@ -285,6 +285,7 @@ class X86UnicornModel(Model):
         for i in range(0, 4096, 8):
             random_value = ((random_value * 2891336453) % POW32 + 12345) % POW32
             masked_rvalue = (random_value ^ (random_value >> 16)) & input_mask
+            masked_rvalue = masked_rvalue << 6
             self.emulator.mem_write(self.r14_init + 4096 + i,
                                     masked_rvalue.to_bytes(8, byteorder='little'))
 
@@ -292,6 +293,7 @@ class X86UnicornModel(Model):
         for i in range(0, 4096, 8):
             random_value = ((random_value * 2891336453) % POW32 + 12345) % POW32
             masked_rvalue = (random_value ^ (random_value >> 16)) & input_mask
+            masked_rvalue = masked_rvalue << 6
             self.emulator.mem_write(self.r14_init + i,
                                     masked_rvalue.to_bytes(8, byteorder='little'))
 
@@ -300,6 +302,7 @@ class X86UnicornModel(Model):
                     UC_X86_REG_R9, UC_X86_REG_R10]:
             random_value = ((random_value * 2891336453) % POW32 + 12345) % POW32
             masked_rvalue = (random_value ^ (random_value >> 16)) & input_mask
+            masked_rvalue = masked_rvalue << 6
             self.emulator.reg_write(reg, masked_rvalue)
 
         # FLAGS
