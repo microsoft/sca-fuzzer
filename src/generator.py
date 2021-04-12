@@ -1031,6 +1031,24 @@ class PrinterPass(Pass):
                     ".test_case_enter:\n"
                     "MFENCE # instrumentation\n"
                     f"LEA R14, [R14 + {cache_line_offset}] # instrumentation\n")
+            if CONF.delay_on_rax:
+                f.write(f"MOV r15, 0 # instrumentation\n"
+                        f"LEA rax, [rax + r15 + 1] # instrumentation\n"
+                        f"LEA rax, [rax + r15 - 1] # instrumentation\n"
+                        f"LEA rax, [rax + r15 + 1] # instrumentation\n"
+                        f"LEA rax, [rax + r15 - 1] # instrumentation\n"
+                        f"LEA rax, [rax + r15 + 1] # instrumentation\n"
+                        f"LEA rax, [rax + r15 - 1] # instrumentation\n"
+                        f"LEA rax, [rax + r15 + 1] # instrumentation\n"
+                        f"LEA rax, [rax + r15 - 1] # instrumentation\n"
+                        f"LEA rax, [rax + r15 + 1] # instrumentation\n"
+                        f"LEA rax, [rax + r15 - 1] # instrumentation\n"
+                        f"LEA rax, [rax + r15 + 1] # instrumentation\n"
+                        f"LEA rax, [rax + r15 - 1] # instrumentation\n"
+                        f"LEA rax, [rax + r15 + 1] # instrumentation\n"
+                        f"LEA rax, [rax + r15 - 1] # instrumentation\n"
+                        f"LEA rax, [rax + r15 + 1] # instrumentation\n"
+                        f"LEA rax, [rax + r15 - 1] # instrumentation\n")
 
             if not CONF.single_function_test_case:
                 f.write("CALL .test_case_main\n"

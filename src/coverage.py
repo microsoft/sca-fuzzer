@@ -99,8 +99,11 @@ class PatternCoverage(Coverage):
         return sum([len(c) for c in self.coverage.values()])
 
     def generator_hook(self, DAG: TestCaseDAG, instruction_set: InstructionSet):
-        # collect instruction positions
         counter = 2  # function prologue is 2 instructions long
+        if CONF.delay_on_rax:
+            counter += 17
+
+        # collect instruction positions
         positions = {}
         for function in DAG.functions:
             for BB in function:

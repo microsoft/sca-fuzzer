@@ -83,7 +83,7 @@ class Fuzzer:
               nonstop: bool = False):
         start_time = datetime.today()
         self.logger = Logger(num_test_cases, start_time)
-        num_inputs = num_inputs_max if not num_eq_classes else 50
+        num_inputs = num_inputs_max if not num_eq_classes else 500
         STAT.num_inputs = num_inputs
 
         # create all main modules

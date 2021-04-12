@@ -16,8 +16,6 @@ class ConfCls:
     no_priming = False
     min_primer_size: int = 10
     max_primer_size: int = 1000
-    coverage_type: str = 'dependencies'
-    reconfigure_on_plateau: bool = False
     # ==============================================================================================
     # Generator
     min_bb_per_function = 2
@@ -26,9 +24,10 @@ class ConfCls:
     test_case_size = 64
     avg_mem_accesses = 32
     single_function_test_case = True
-    generate_memory_accesses_in_pairs: bool = True
     avoid_data_dependencies: bool = True
+    generate_memory_accesses_in_pairs: bool = True
     memory_access_zeroed_bits: int = 6
+    delay_on_rax: bool = True
     supported_categories = ["NOP"]
     instruction_blocklist = [
         # STI - enables interrupts, thus corrupting the measurements; CTI - just in case
@@ -55,10 +54,10 @@ class ConfCls:
     # same for CR* and DR*
     gpr_blocklist = [
         # free - rax, rbx, rcx, rdx, r8, r9, r10
-        'R10', 'R11', 'R12', 'R13', 'R14', 'R15', 'RSP', 'RBP', 'RDI', 'RSI',
-        'R10D', 'R11D', 'R12D', 'R13D', 'R14D', 'R15D', 'ESP', 'EBP', 'EDI', 'ESI',
-        'R10W', 'R11W', 'R12W', 'R13W', 'R14W', 'R15W', 'SP', 'BP', 'DI', 'SI',
-        'R10B', 'R11B', 'R12B', 'R13B', 'R14B', 'R15B', 'SPL', 'BPL', 'DL', 'SL',
+        'R11', 'R12', 'R13', 'R14', 'R15', 'RSP', 'RBP', 'RDI', 'RSI',
+        'R11D', 'R12D', 'R13D', 'R14D', 'R15D', 'ESP', 'EBP', 'EDI', 'ESI',
+        'R11W', 'R12W', 'R13W', 'R14W', 'R15W', 'SP', 'BP', 'DI', 'SI',
+        'R11B', 'R12B', 'R13B', 'R14B', 'R15B', 'SPL', 'BPL', 'DL', 'SL',
         'ES', 'CS', 'SS', 'DS', 'FS', 'GS',
         'CR0', 'CR2', 'CR3', 'CR4', 'CR8',
         'DR0', 'DR1', 'DR2', 'DR3', 'DR4', 'DR5', 'DR6', 'DR7'
@@ -94,6 +93,11 @@ class ConfCls:
     dominant_traces = True
     compare_only_same_size = True
     ignore_single_entry_classes = True
+    # ==============================================================================================
+    # Coverage
+    coverage_type: str = 'dependencies'
+    feedback_driven_generator: bool = False
+    combination_length_min: int = 1
     # ==============================================================================================
     # Output
     verbose: int = 0
