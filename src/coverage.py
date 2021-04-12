@@ -219,10 +219,9 @@ class PatternCoverage(Coverage):
             self.current_patterns = []
             return
 
+        # transform traces into a more usable form
         base_address = self.coverage_traces[0][0][1]
-
-        covered_instr_addresses = set()
-        covered_with_matching_memory = set()
+        combined_traces = []
         for trace in self.coverage_traces:
             combined_trace = []
             latest_instruction = []
@@ -237,13 +236,19 @@ class PatternCoverage(Coverage):
                         continue
                     latest_instruction.append(observation[1])
             combined_trace.append(latest_instruction)
+            combined_traces.append(combined_trace)
+
+        # collect patterns per trace
+        for trace in combined_traces:
+            covered_instr_addresses = []
+            covered_with_matching_memory = []
 
             # simple coverage
-            for instr in combined_trace:
-                covered_instr_addresses.add(instr[0])
+            for instr in trace:
+                covered_instr_addresses.append(instr[0])
 
             # memory hazards
-            access_trace = [t for t in combined_trace if len(t) > 1]
+            access_trace = [t for t in trace if len(t) > 1]
             for i in range(len(access_trace)):
                 # can this instruction be in a pair of mem. accesses?
                 if i == len(access_trace) - 1:
@@ -253,24 +258,28 @@ class PatternCoverage(Coverage):
                 # FIXME: this code will be incorrect when the instruction
                 #  can access several different addresses
                 if access_trace[i][1] == access_trace[i + 1][1]:
-                    covered_with_matching_memory.add(access_trace[i][0])
+                    covered_with_matching_memory.append(access_trace[i][0])
 
-        # which of the patterns got covered
-        for pattern in self.current_patterns:
-            if pattern.dependency_type in [DT.CONTROL_COND, DT.CONTROL_DIRECT]:
-                pattern.covered = pattern.addresses[0] in covered_instr_addresses \
-                                  and pattern.addresses[1] in covered_instr_addresses
+            # which of the patterns got covered
+            covered_patterns = []
+            for pattern in self.current_patterns:
+                if pattern.dependency_type in [DT.REG_GPR] \
+                        and pattern.addresses[0] in covered_instr_addresses:
+                    covered_patterns.append(int(pattern.dependency_type))
+                    continue
 
-            if pattern.dependency_type in [DT.REG_FLAGS, DT.REG_GPR]:
-                pattern.covered = pattern.addresses[0] in covered_instr_addresses
+                if pattern.dependency_type in [DT.CONTROL_COND, DT.CONTROL_DIRECT] \
+                        and pattern.addresses[0] in covered_instr_addresses \
+                        and pattern.addresses[1] in covered_instr_addresses:
+                    covered_patterns.append(int(pattern.dependency_type))
+                    continue
 
-            if pattern.dependency_type in [DT.MEM_LL, DT.MEM_SL, DT.MEM_LS, DT.MEM_SS]:
-                pattern.covered = pattern.addresses[0] in covered_with_matching_memory
-
-        # collect covered combinations
-        covered_patterns = [int(p.dependency_type) for p in self.current_patterns if p.covered]
-        covered_patterns = sorted(covered_patterns)
-        self.coverage[len(covered_patterns)].add(tuple(covered_patterns))
+                if pattern.dependency_type in [DT.MEM_LL, DT.MEM_SL, DT.MEM_LS, DT.MEM_SS] \
+                        and pattern.addresses[0] in covered_with_matching_memory:
+                    covered_patterns.append(int(pattern.dependency_type))
+                    continue
+            simplified_patterns = tuple(sorted(covered_patterns))
+            self.coverage[len(simplified_patterns)].add(simplified_patterns)
 
         # save the result
         STAT.coverage = sum([len(c) for c in self.coverage.values()])
