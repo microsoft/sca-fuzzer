@@ -5,6 +5,6 @@ attack_variant: P+P
 enable_ssbp_patch: true
 enable_mds: false
 
-prng_entropy_bits: 8
+prng_entropy_bits: 2
 warmups: 5
 no_priming: false

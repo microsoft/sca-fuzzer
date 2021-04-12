@@ -34,7 +34,7 @@ MOV rax, qword ptr [r14]
 
 # Read from a non-accessed address thus triggerring microcode assist
 ADD rcx, [r14 + 4096]
-SHL rcx, 6
+#SHL rcx, 6
 
 # dependent load
 #LFENCE

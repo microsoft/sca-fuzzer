@@ -17,7 +17,7 @@ LEA rbx, [rbx + rax + 1]
 LEA rbx, [rbx + rax + 1]
 
 # reduce the entropy in rbx
-AND rbx, 0b1
+AND rbx, 0b1000000
 
 CMP rbx, 0
 JE .l1  # misprediction

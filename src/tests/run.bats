@@ -146,7 +146,7 @@ EXTENDED_TESTS=0
 }
 
 @test "Detection: Spectre V1.1 - BCB store" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v1.1.asm -i 20"
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v1.1.asm -i 50"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" = *"=== Violations detected ==="* ]]
@@ -218,7 +218,7 @@ EXTENDED_TESTS=0
 }
 
 @test "Analyser: Priming" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/priming.asm -i 20 -c tests/priming.yaml -v"
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/priming.asm -i 100 -c tests/priming.yaml -v"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" == *"Priming"* ]]

@@ -82,9 +82,6 @@ class Fuzzer:
         start_time = datetime.today()
         self.logger = Logger(num_test_cases, start_time)
 
-        input_ratio = num_inputs // (CONF.max_bb_per_function * CONF.avg_mem_accesses)
-        STAT.num_inputs = num_inputs
-
         # create all main modules
         executor: Executor = get_executor()
         model: Model = get_model(executor.read_base_addresses())
@@ -98,6 +95,10 @@ class Fuzzer:
         input_gen.set_coverage(coverage)
         analyser.set_coverage(coverage)
 
+        # preserve the original ration of inputs to the test case size
+        input_ratio = num_inputs / (CONF.max_bb_per_function * CONF.avg_mem_accesses)
+        STAT.num_inputs = num_inputs
+
         # create a test case generator
         if self.enable_generation:
             generator = Generator(self.instruction_set_spec)
@@ -105,9 +106,9 @@ class Fuzzer:
 
         for i in range(num_test_cases):
             # update the number of inputs if the test case configuration has changed
-            if num_inputs // (CONF.max_bb_per_function * CONF.avg_mem_accesses) != input_ratio:
+            if num_inputs / (CONF.max_bb_per_function * CONF.avg_mem_accesses) != input_ratio:
                 STAT.num_inputs = num_inputs
-                num_inputs = input_ratio * (CONF.max_bb_per_function * CONF.avg_mem_accesses)
+                num_inputs = int(input_ratio * CONF.max_bb_per_function * CONF.avg_mem_accesses)
 
             # Generate a test case, if necessary
             if self.enable_generation:

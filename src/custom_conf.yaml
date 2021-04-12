@@ -13,12 +13,22 @@ supported_categories:
   - PUSH
 contract_observation_mode: ct
 contract_execution_mode:
-#  - seq
-#  - cond
-  - bpas
-# max_nesting: 2
-# attack_variant: P+P
+  - seq
+
+attack_variant: P+P
 enable_ssbp_patch: false
 enable_mds: false
-input_mask: 255
-#verbose: 999
+
+feedback_driven_generator: true
+prng_entropy_bits: 3
+#combination_length_min: 2
+#memory_access_zeroed_bits: 9
+randomized_mem_alignment: false
+#avoid_data_dependencies: false
+
+verbose: 999
+#multiline_output: true
+
+#no_priming: true
+max_nesting: 1
+#enable_pre_run_flush: false

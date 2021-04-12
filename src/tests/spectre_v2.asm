@@ -21,7 +21,7 @@ LEA rbx, [rbx + rax + 1]
 LEA rbx, [rbx + rax + 1]
 
 # reduce the entropy in rbx
-AND rbx, 0b1
+AND rbx, 0b1000000
 
 # select a target based on the random value in rbx
 CMP rbx, 0

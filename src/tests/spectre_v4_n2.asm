@@ -3,9 +3,7 @@ MOV rax, 0
 
 # the leaked value - rcx
 # construct a page offset from the random value
-SHL rcx, 58
-SHR rcx, 58
-SHL rcx, 6
+AND rcx, 0b111111000000
 ADD rcx, 64
 
 # save some value into the test address
@@ -43,9 +41,8 @@ LEA rbx, [rbx + rax + 1]
 # select the store address based on the random value
 # the likelihood of the match must be relatively low, otherwise the predictor won't kick in
 # at least 1/8 runs
-SHL rbx, 61
-SHR rbx, 61
-SHL rbx, 3 # multiply by 8 to avoid collisions with the load
+AND rbx, 0b111000000
+SHR rbx, 3
 
 # store and load, potentially matching
 MOV qword ptr  [r14 + rbx], 4096 - 64
