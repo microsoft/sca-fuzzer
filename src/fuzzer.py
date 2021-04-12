@@ -144,19 +144,6 @@ class Fuzzer:
                 STAT.num_inputs = num_inputs
                 continue
 
-        # bump one of the configuration parameters if the coverage haven't changed for a while
-        if CONF.reconfigure_on_plateau and coverage.is_stuck():
-            if self.reconfiguration_round <= 1:
-                CONF.test_case_size += 2
-                print(f"\nFUZZER: increasing size: {CONF.test_case_size}")
-            elif self.reconfiguration_round <= 3:
-                CONF.avg_mem_accesses += 1
-                print(f"\nFUZZER: increasing memory: {CONF.avg_mem_accesses}")
-            elif self.reconfiguration_round == 4:
-                CONF.max_bb_per_function += 1
-                print(f"\nFUZZER: increasing BBs: {CONF.max_bb_per_function}")
-            self.reconfiguration_round = (self.reconfiguration_round + 1) % 5
-
         self.logger.finish()
 
     def fuzzing_round(self, executor: Executor, model: Model, analyser: Analyser,

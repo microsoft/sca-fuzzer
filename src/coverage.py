@@ -73,10 +73,6 @@ class Coverage(ABC):
     def get(self) -> int:
         pass
 
-    @abstractmethod
-    def is_stuck(self) -> bool:
-        pass
-
 
 class PatternCoverage(Coverage):
     coverage: Dict[int, Set[Tuple[int]]]
@@ -85,15 +81,23 @@ class PatternCoverage(Coverage):
     positions_to_names: Dict[int, str]
     max_cov: int = 0
     combination_length: int = 1
-    num_patterns: int = 8
-    max_combinations_of_current_length: int = 8
-    rounds_without_change: int = 0
+    num_patterns: int = 7
     previous_target_coverage: int = 0
 
     def __init__(self):
         self.current_patterns = []
         self.coverage = defaultdict(set)
         self.positions_to_names = {}
+
+        self.combination_length = CONF.combination_length_min
+        self.max_combinations_of_current_length = \
+            self.calculate_max_combinations(self.num_patterns, CONF.combination_length_min)
+
+        if CONF.feedback_driven_generator:
+            CONF.min_bb_per_function = 1
+            CONF.max_bb_per_function = 1 + CONF.combination_length_min
+            CONF.test_case_size = 6 * CONF.combination_length_min
+            CONF.avg_mem_accesses = 2 * CONF.combination_length_min
 
     def get(self) -> int:
         return sum([len(c) for c in self.coverage.values()])
@@ -137,7 +141,7 @@ class PatternCoverage(Coverage):
         for function in DAG.functions:
             for BB in function:
                 for instr in BB:
-                    if instr.next:
+                    if not instr.is_instrumentation and instr.next:
                         # skip instrumentation
                         next_instr = instr.next
                         while next_instr and next_instr.is_instrumentation:
@@ -158,6 +162,7 @@ class PatternCoverage(Coverage):
                 else:
                     type_ = DT.MEM_LS if p[1].is_store() else DT.MEM_LL
                 self.current_patterns.append(PatternInstance(pair, pair_ids, type_))
+                continue
 
             # flags or register dependency?
             destinations = [X86Registers.gpr_normalized[op.value]
@@ -211,7 +216,6 @@ class PatternCoverage(Coverage):
 
     def update(self):
         if not self.coverage_traces or not self.coverage_traces[0]:
-            self.rounds_without_change += 1
             self.current_patterns = []
             return
 
@@ -269,29 +273,36 @@ class PatternCoverage(Coverage):
         self.coverage[len(covered_patterns)].add(tuple(covered_patterns))
 
         # save the result
-        new_target_coverage = len(self.coverage[self.combination_length])
-        if new_target_coverage == self.previous_target_coverage:
-            self.rounds_without_change += 1
-        else:
-            self.rounds_without_change = 0
-        self.previous_target_coverage = new_target_coverage
         STAT.coverage = sum([len(c) for c in self.coverage.values()])
 
         # increase the combination length?
-        if len(self.coverage) == self.max_combinations_of_current_length:
-            STAT.fully_covered = self.combination_length
-            print(f"\nCOV: Fully covered length {self.combination_length}")
-            self.combination_length += 1
-            n = self.num_patterns
-            r = self.combination_length
-            self.max_combinations_of_current_length += \
-                factorial(n + r - 1) / factorial(r) / factorial(n - 1)
+        if len(self.coverage[self.combination_length]) == self.max_combinations_of_current_length:
+            self.length_covered()
 
         self.current_patterns = []
 
-    def is_stuck(self) -> bool:
-        bar = 10 * pow(self.combination_length, 2)
-        return self.rounds_without_change >= bar and self.rounds_without_change % bar == 0
+    def length_covered(self):
+        # store and notify about the progress
+        STAT.fully_covered = self.combination_length
+        print(f"\nCOVERAGE: Fully covered length {self.combination_length}")
+
+        # update coverage parameters
+        self.combination_length += 1
+        self.max_combinations_of_current_length = \
+            self.calculate_max_combinations(self.num_patterns, self.combination_length)
+
+        # update test case size
+        if CONF.feedback_driven_generator:
+            CONF.max_bb_per_function += 1
+            CONF.avg_mem_accesses += 2
+            CONF.test_case_size += 6
+            print(f"GENERATOR: increasing BBs to {CONF.max_bb_per_function}")
+            print(f"GENERATOR: increasing memory: {CONF.avg_mem_accesses}")
+            print(f"GENERATOR: increasing size: {CONF.test_case_size}")
+
+    @staticmethod
+    def calculate_max_combinations(n, r):
+        return int(factorial(n + r - 1) / factorial(r) / factorial(n - 1))
 
 
 def get_coverage() -> Coverage:
