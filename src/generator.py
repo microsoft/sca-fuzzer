@@ -1026,7 +1026,8 @@ class PrinterPass(Pass):
 
     def run_on_dag(self, DAG: TestCaseDAG):
         with open(self.output_file, "w") as f:
-            cache_line_offset = random.randint(0, 63) if CONF.randomized_mem_alignment else 0
+            cache_line_offset = random.randint(0, 15) if CONF.randomized_mem_alignment else 0
+            cache_line_offset *= 4  # the memory slots are 4-bytes wide
             f.write(".intel_syntax noprefix\n"
                     ".test_case_enter:\n"
                     "MFENCE # instrumentation\n"

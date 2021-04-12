@@ -282,7 +282,7 @@ class X86UnicornModel(Model):
         # Values in assist page
         input_mask = pow(2, (CONF.prng_entropy_bits % 33)) - 1
         random_value = seed
-        for i in range(0, 4096, 8):
+        for i in range(0, 4096, 4):
             random_value = ((random_value * 2891336453) % POW32 + 12345) % POW32
             masked_rvalue = (random_value ^ (random_value >> 16)) & input_mask
             masked_rvalue = masked_rvalue << 6
@@ -290,7 +290,7 @@ class X86UnicornModel(Model):
                                     masked_rvalue.to_bytes(8, byteorder='little'))
 
         # Values in sandbox memory
-        for i in range(0, 4096, 8):
+        for i in range(0, 4096, 4):
             random_value = ((random_value * 2891336453) % POW32 + 12345) % POW32
             masked_rvalue = (random_value ^ (random_value >> 16)) & input_mask
             masked_rvalue = masked_rvalue << 6
