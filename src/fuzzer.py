@@ -70,8 +70,6 @@ class Logger:
 
 
 class Fuzzer:
-    reconfiguration_round: int = 0
-
     def __init__(self, instruction_set_spec: str, work_dir: str, existing_test_case: str = None):
         self.work_dir = work_dir
         self.test_case = existing_test_case
@@ -79,11 +77,12 @@ class Fuzzer:
         self.instruction_set_spec = instruction_set_spec
         self.logger = None
 
-    def start(self, num_test_cases: int, num_inputs_max: int, num_eq_classes: int, timeout: int,
+    def start(self, num_test_cases: int, num_inputs: int, timeout: int,
               nonstop: bool = False):
         start_time = datetime.today()
         self.logger = Logger(num_test_cases, start_time)
-        num_inputs = num_inputs_max if not num_eq_classes else 500
+
+        input_ratio = num_inputs // (CONF.max_bb_per_function * CONF.avg_mem_accesses)
         STAT.num_inputs = num_inputs
 
         # create all main modules
@@ -105,6 +104,11 @@ class Fuzzer:
             generator.set_coverage(coverage)
 
         for i in range(num_test_cases):
+            # update the number of inputs if the test case configuration has changed
+            if num_inputs // (CONF.max_bb_per_function * CONF.avg_mem_accesses) != input_ratio:
+                STAT.num_inputs = num_inputs
+                num_inputs = input_ratio * (CONF.max_bb_per_function * CONF.avg_mem_accesses)
+
             # Generate a test case, if necessary
             if self.enable_generation:
                 self.test_case = 'generated.asm'
@@ -136,13 +140,6 @@ class Fuzzer:
                     if CONF.verbose:
                         print("\nTimeout expired")
                     break
-
-            if num_inputs < num_inputs_max and \
-                    (STAT.effective_eq_classes // (i + 1)) < num_eq_classes and \
-                    STAT.single_entry_eq_classes > STAT.effective_eq_classes:
-                num_inputs = int(num_inputs * 1.2)
-                STAT.num_inputs = num_inputs
-                continue
 
         self.logger.finish()
 
