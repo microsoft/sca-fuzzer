@@ -104,8 +104,8 @@ class PatternCoverage(Coverage):
         if CONF.feedback_driven_generator:
             CONF.min_bb_per_function = 1
             CONF.max_bb_per_function = 1 + CONF.combination_length_min
+            CONF.avg_mem_accesses = 1 + CONF.combination_length_min
             CONF.test_case_size = 6 * CONF.combination_length_min
-            CONF.avg_mem_accesses = 2 * CONF.combination_length_min
 
     def get(self) -> int:
         return sum([len(c) for c in self.coverage.values()])
@@ -308,7 +308,7 @@ class PatternCoverage(Coverage):
         # update test case size
         if CONF.feedback_driven_generator:
             CONF.max_bb_per_function += 1
-            CONF.avg_mem_accesses += 2
+            CONF.avg_mem_accesses += 1
             CONF.test_case_size += 6
             print(f"GENERATOR: increasing BBs to {CONF.max_bb_per_function}")
             print(f"GENERATOR: increasing memory: {CONF.avg_mem_accesses}")
