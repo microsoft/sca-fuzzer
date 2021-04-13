@@ -188,12 +188,12 @@ EXTENDED_TESTS=0
 }
 
 @test "Detection: Nested misprediction" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v4_n2.asm -i 100 -c tests/ct-bpas-ssbp-patch-off.yaml"
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v4_n2.asm -i 100 -c tests/ct-bpas-n1-ssbp-patch-off.yaml"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" = *"=== Violations detected ==="* ]]
 
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v4_n2.asm -i 100 -c tests/ct-bpas-n2-ssbp-patch-off.yaml"
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v4_n2.asm -i 100 -c tests/ct-bpas-ssbp-patch-off.yaml"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" != *"=== Violations detected ==="* ]]

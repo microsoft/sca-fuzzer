@@ -2,5 +2,5 @@ contract_observation_mode: ct
 contract_execution_mode:
   - bpas
 enable_ssbp_patch: false
-max_nesting: 2
+max_nesting: 1
 no_priming: true

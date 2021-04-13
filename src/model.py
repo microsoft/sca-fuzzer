@@ -39,7 +39,7 @@ class Model(ABC):
         pass
 
     @abstractmethod
-    def trace_test_case(self, inputs: List[int]) -> List[CTrace]:
+    def trace_test_case(self, inputs: List[int], nesting: int) -> List[CTrace]:
         pass
 
     def set_coverage(self, coverage):
@@ -187,6 +187,7 @@ class X86UnicornModel(Model):
     store_logs: List
     previous_store: Tuple[int, int, int, int]
     tracer: X86UnicornTracer
+    nesting: int = 0
 
     def load_test_case(self, test_case_asm: str) -> None:
         # create a binary
@@ -237,7 +238,9 @@ class X86UnicornModel(Model):
             print("Model error [load_test_case]: %s" % e)
             raise e
 
-    def trace_test_case(self, inputs: List[int]) -> List[CTrace]:
+    def trace_test_case(self, inputs: List[int], nesting) -> List[CTrace]:
+        self.nesting = nesting
+
         traces = []
         coverage_traces = []
         for i, input_ in enumerate(inputs):
@@ -495,7 +498,7 @@ class X86UnicornCond(X86UnicornSpec):
         X86UnicornSpec.trace_code(emulator, address, size, user_data)
 
         # reached max spec. window? skip
-        if len(model.checkpoints) >= CONF.max_nesting:
+        if len(model.checkpoints) >= model.nesting:
             return True
 
         # decode the instruction
@@ -556,7 +559,7 @@ class X86UnicornBpas(X86UnicornSpec):
         X86UnicornSpec.trace_code(emulator, address, size, user_data)
 
         # reached max spec. window? skip
-        if len(model.checkpoints) >= CONF.max_nesting:
+        if len(model.checkpoints) >= model.nesting:
             return True
 
         if model.previous_store[0]:
@@ -605,7 +608,7 @@ class X86SerializingModel(Model):
         self.executor.load_test_case('serial.asm')
         os.remove('serial.asm')
 
-    def trace_test_case(self, inputs: List[int]) -> List[CTrace]:
+    def trace_test_case(self, inputs: List[int], nesting) -> List[CTrace]:
         traces = self.executor.trace_test_case(inputs, num_measurements=1, max_outliers=0)
         return traces
 

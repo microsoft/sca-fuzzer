@@ -18,7 +18,8 @@ from analyser import Analyser, get_analyser
 from input_generator import InputGenerator, RandomInputGenerator
 from coverage import Coverage, get_coverage
 from helpers import *
-from custom_types import Dict, CTrace, HTrace, EquivalenceClass, EquivalenceClassMap, Input
+from custom_types import Dict, CTrace, HTrace, EquivalenceClass, EquivalenceClassMap, Input, \
+    Optional
 from config import CONF
 
 
@@ -47,15 +48,15 @@ class Logger:
             print(msg + "Normal execution            ", end=self.line_ending, flush=True)
             self.msg = msg
 
-    def success(self):
-        pass
-        # if CONF.verbose:
-        #     print(self.msg + "Normal execution                                 ",
-        #           end=self.line_ending)
-
     def priming(self, num_violations: int):
         if CONF.verbose:
-            print(self.msg + "Priming " + str(num_violations) + "                 ",
+            print(self.msg + "Priming " + str(num_violations) + "       ",
+                  end=self.line_ending,
+                  flush=True)
+
+    def higher_nesting(self):
+        if CONF.verbose:
+            print(self.msg + "Max nesting: " + str(CONF.max_nesting) + "         ",
                   end=self.line_ending,
                   flush=True)
 
@@ -143,56 +144,68 @@ class Fuzzer:
     def fuzzing_round(self, executor: Executor, model: Model, analyser: Analyser,
                       inputs: List[Input]) -> bool:
         self.logger.start_round()
+        model.load_test_case(self.test_case)
+        executor.load_test_case(self.test_case)
 
         # Initial measurement
-        model.load_test_case(self.test_case)
-        ctraces: List[CTrace] = model.trace_test_case(inputs)
-
-        executor.load_test_case(self.test_case)
         htraces: List[HTrace] = executor.trace_test_case(inputs)
 
-        if CONF.verbose == 999:
-            print("")
-            nprinted = 10 if len(ctraces) > 10 else len(ctraces)
-            for i in range(nprinted):
-                print("..............................................................")
-                print(pretty_bitmap(ctraces[i], ctraces[i] > pow(2, 64)))
-                print(pretty_bitmap(htraces[i]))
+        # by default, we test without nested misprediction,
+        # but retry with nesting upon a violation
+        violation: Optional[EquivalenceClass] = None
+        for nesting in [1, CONF.max_nesting]:
+            ctraces: List[CTrace] = model.trace_test_case(inputs, nesting)
 
-        if CONF.self_test_mode and CONF.contract_observation_mode == 'l1d':
-            for i, ctrace in enumerate(ctraces):
-                if (ctrace % POW2_64) > htraces[i]:
-                    print(f"\n> Broken measurement. Input id {i}; Input value: {inputs[i]}")
-                    print(pretty_bitmap(ctraces[i], True))
+            # for debugging
+            if CONF.verbose == 999:
+                print("")
+                nprinted = 10 if len(ctraces) > 10 else len(ctraces)
+                for i in range(nprinted):
+                    print("..............................................................")
+                    print(pretty_bitmap(ctraces[i], ctraces[i] > pow(2, 64)))
                     print(pretty_bitmap(htraces[i]))
-                    return False
 
-        # Check for violations
-        all_eq_classes: EquivalenceClassMap = analyser.build_equivalence_classes(inputs, ctraces,
-                                                                                 htraces,
-                                                                                 stats=True)
-        violations: List[EquivalenceClass] = analyser.filter_violations(all_eq_classes)
+            # Check for violations
+            all_eq_classes: EquivalenceClassMap = analyser.build_equivalence_classes(inputs,
+                                                                                     ctraces,
+                                                                                     htraces,
+                                                                                     stats=True)
+            violations: List[EquivalenceClass] = analyser.filter_violations(all_eq_classes)
 
-        if not violations:
-            self.logger.success()
-            return False
-        if CONF.no_priming:
-            self.report_violations(violations[0])
-            return True
+            if not violations:
+                return False
+            if CONF.no_priming:
+                if nesting == CONF.max_nesting or 'seq' in CONF.contract_execution_mode:
+                    violation = violations[-1]
+                    break
+                else:
+                    self.logger.higher_nesting()
+                    continue
 
-        if violations:
-            STAT.required_priming += 1
+            # Count priming statistics, but avoid double-counting
+            if violations and nesting == 1:
+                STAT.required_priming += 1
 
-        # Try priming the inputs that disagree with the other ones within the same eq. class
-        while violations:
-            self.logger.priming(len(violations))
-            violation: EquivalenceClass = violations.pop()
-            if self.verify_with_priming(violation, executor, inputs):
-                self.report_violations(violation)
-                return True
+            # Try priming the inputs that disagree with the other ones within the same eq. class
+            while violations:
+                self.logger.priming(len(violations))
+                violation: EquivalenceClass = violations.pop()
+                if self.verify_with_priming(violation, executor, inputs):
+                    break
+            else:
+                # all violations were cleaned. all good
+                return False
 
-        # all violations were cleaned. all good
-        return False
+            # Violation survived priming.
+            # Report it if higher nesting is not permitted or does not make sense
+            if nesting == CONF.max_nesting or 'seq' in CONF.contract_execution_mode:
+                break
+            else:  # otherwise, try higher nesting
+                self.logger.higher_nesting()
+                continue
+
+        self.report_violations(violation)
+        return True
 
     def verify_with_priming(self, violation: EquivalenceClass, executor: Executor,
                             inputs: List[Input]) -> bool:

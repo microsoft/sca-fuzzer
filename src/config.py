@@ -72,7 +72,7 @@ class ConfCls:
     model: str = 'x86-unicorn'
     contract_execution_mode: List[str] = ["seq"]  # options: "seq", "cond", "bpas"
     contract_observation_mode: str = 'ct'
-    max_nesting = 1
+    max_nesting = 5
     max_speculation_window: int = 250
     # ==============================================================================================
     # Executor
