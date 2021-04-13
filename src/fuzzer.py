@@ -87,33 +87,29 @@ class Fuzzer:
         model: Model = get_model(executor.read_base_addresses())
         input_gen: InputGenerator = RandomInputGenerator()
         analyser: Analyser = get_analyser()
+        generator = Generator(self.instruction_set_spec)
 
         # connect them with coverage
-        coverage: Coverage = get_coverage()
+        coverage: Coverage = get_coverage(generator.instruction_set)
         executor.set_coverage(coverage)
         model.set_coverage(coverage)
         input_gen.set_coverage(coverage)
         analyser.set_coverage(coverage)
+        generator.set_coverage(coverage)
 
         # preserve the original ration of inputs to the test case size
-        input_ratio = num_inputs / (CONF.max_bb_per_function * CONF.avg_mem_accesses)
+        input_ratio = num_inputs / CONF.test_case_size
         STAT.num_inputs = num_inputs
-
-        # create a test case generator
-        if self.enable_generation:
-            generator = Generator(self.instruction_set_spec)
-            generator.set_coverage(coverage)
 
         for i in range(num_test_cases):
             # update the number of inputs if the test case configuration has changed
-            if num_inputs / (CONF.max_bb_per_function * CONF.avg_mem_accesses) != input_ratio:
+            if num_inputs / CONF.test_case_size != input_ratio:
+                num_inputs = int(input_ratio * CONF.test_case_size)
                 STAT.num_inputs = num_inputs
-                num_inputs = int(input_ratio * CONF.max_bb_per_function * CONF.avg_mem_accesses)
 
             # Generate a test case, if necessary
             if self.enable_generation:
                 self.test_case = 'generated.asm'
-                # noinspection PyUnboundLocalVariable
                 generator.create_test_case(self.test_case)
 
             coverage.load_test_case(self.test_case)

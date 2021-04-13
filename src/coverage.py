@@ -79,15 +79,23 @@ class PatternCoverage(Coverage):
     current_patterns: List[PatternInstance]
     coverage_traces: List[List[Tuple[bool, int]]]
     positions_to_names: Dict[int, str]
-    max_cov: int = 0
     combination_length: int = 1
-    num_patterns: int = 7
+    num_patterns: int = 0
     previous_target_coverage: int = 0
 
-    def __init__(self):
+    def __init__(self, instruction_set: InstructionSet):
         self.current_patterns = []
         self.coverage = defaultdict(set)
         self.positions_to_names = {}
+
+        self.memory_patterns = [DT.MEM_LL, DT.MEM_SL, DT.MEM_SS, DT.MEM_LL]
+        self.register_patters = [DT.REG_GPR]
+        if instruction_set.has_conditional_branch:
+            self.control_patterns = [DT.CONTROL_COND, DT.CONTROL_DIRECT]
+        else:
+            self.control_patterns = [DT.CONTROL_DIRECT]
+        self.num_patterns = \
+            len(self.memory_patterns) + len(self.register_patters) + len(self.control_patterns)
 
         self.combination_length = CONF.combination_length_min
         self.max_combinations_of_current_length = \
@@ -103,11 +111,8 @@ class PatternCoverage(Coverage):
         return sum([len(c) for c in self.coverage.values()])
 
     def generator_hook(self, DAG: TestCaseDAG, instruction_set: InstructionSet):
-        counter = 2  # function prologue is 2 instructions long
-        if CONF.delay_on_rax:
-            counter += 17
-
         # collect instruction positions
+        counter = 2 if not CONF.delay_on_rax else 19  # account for the test case prologue
         positions = {}
         for function in DAG.functions:
             for BB in function:
@@ -263,18 +268,18 @@ class PatternCoverage(Coverage):
             # which of the patterns got covered
             covered_patterns = []
             for pattern in self.current_patterns:
-                if pattern.dependency_type in [DT.REG_GPR] \
+                if pattern.dependency_type in self.register_patters \
                         and pattern.addresses[0] in covered_instr_addresses:
                     covered_patterns.append(int(pattern.dependency_type))
                     continue
 
-                if pattern.dependency_type in [DT.CONTROL_COND, DT.CONTROL_DIRECT] \
+                if pattern.dependency_type in self.control_patterns \
                         and pattern.addresses[0] in covered_instr_addresses \
                         and pattern.addresses[1] in covered_instr_addresses:
                     covered_patterns.append(int(pattern.dependency_type))
                     continue
 
-                if pattern.dependency_type in [DT.MEM_LL, DT.MEM_SL, DT.MEM_LS, DT.MEM_SS] \
+                if pattern.dependency_type in self.memory_patterns \
                         and pattern.addresses[0] in covered_with_matching_memory:
                     covered_patterns.append(int(pattern.dependency_type))
                     continue
@@ -314,9 +319,9 @@ class PatternCoverage(Coverage):
         return int(factorial(n + r - 1) / factorial(r) / factorial(n - 1))
 
 
-def get_coverage() -> Coverage:
+def get_coverage(instruction_set: InstructionSet) -> Coverage:
     if CONF.coverage_type == 'dependencies':
-        return PatternCoverage()
+        return PatternCoverage(instruction_set)
     else:
         print("Error: unknown value of `coverage_type` configuration option")
         exit(1)

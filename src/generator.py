@@ -127,8 +127,11 @@ class InstructionSet:
     all: List[InstructionSpec] = []
     control_flow: List[InstructionSpec] = []
     instruction: InstructionSpec
+    has_unconditional_branch: bool = False
     has_conditional_branch: bool = False
     has_indirect_branch: bool = False
+    has_reads: bool = False
+    has_writes: bool = False
 
     def parse_reg_operand(self, op):
         registers = op.text.split(',')
@@ -259,7 +262,6 @@ class InstructionSet:
 
             # Control-flow instructions go into a separate category
             if s.control_flow:
-                self.has_conditional_branch = True
                 skip_list.append(s)
                 self.control_flow.append(s)
 
@@ -283,6 +285,19 @@ class InstructionSet:
         # remove the unsupported
         for s in skip_list:
             self.all.remove(s)
+
+        # set parameters
+        for instruction in self.all + self.control_flow:
+            if instruction.control_flow:
+                if "JMP" in instruction.name:
+                    self.has_unconditional_branch = True
+                else:
+                    self.has_conditional_branch = True
+            elif instruction.has_mem_operand:
+                if instruction.has_write:
+                    self.has_writes = True
+                else:
+                    self.has_reads = True
 
         # conditional_reg = 0
         # uncond = 0
