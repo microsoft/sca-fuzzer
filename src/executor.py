@@ -46,8 +46,6 @@ class X86Intel(Executor):
         write_to_pseudo_file("1" if CONF.enable_mds else "0",
                              "/sys/x86-executor/enable_mds")
         write_to_pseudo_file(CONF.attack_variant, "/sys/x86-executor/measurement_mode")
-        input_mask = pow(2, (CONF.prng_entropy_bits % 33)) - 1
-        write_to_pseudo_file(input_mask, '/sys/x86-executor/input_mask')
 
     def load_test_case(self, test_case_asm: str):
         assemble(test_case_asm, 'generated.o')
@@ -63,6 +61,10 @@ class X86Intel(Executor):
             num_measurements = CONF.num_measurements
         if max_outliers == 0:
             max_outliers = CONF.max_outliers
+
+        # set entropy
+        input_mask = pow(2, (CONF.prng_entropy_bits % 33)) - 1
+        write_to_pseudo_file(input_mask, '/sys/x86-executor/input_mask')
 
         # convert the inputs into a byte sequence
         qword_inputs = [i.to_bytes(8, byteorder='little') for i in inputs]

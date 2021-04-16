@@ -40,8 +40,8 @@ class PatternInstance:
 
     def __str__(self):
         return f"[{self.covered}] {self.instructions[0]} -> {self.dependency_type} -> {self.instructions[1]} at " \
-               f"[{self.positions[0]}, {self.addresses[0]}], " \
-               f"[{self.positions[1]}, {self.addresses[1]}]"
+               f"[{self.positions[0]}, {hex(self.addresses[0])}], " \
+               f"[{self.positions[1]}, {hex(self.addresses[1])}]"
 
 
 class Coverage(ABC):

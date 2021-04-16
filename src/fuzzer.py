@@ -103,11 +103,6 @@ class Fuzzer:
         STAT.num_inputs = num_inputs
 
         for i in range(num_test_cases):
-            # update the number of inputs if the test case configuration has changed
-            if num_inputs / CONF.test_case_size != input_ratio:
-                num_inputs = int(input_ratio * CONF.test_case_size)
-                STAT.num_inputs = num_inputs
-
             # Generate a test case, if necessary
             if self.enable_generation:
                 self.test_case = 'generated.asm'
@@ -138,6 +133,16 @@ class Fuzzer:
                     if CONF.verbose:
                         print("\nTimeout expired")
                     break
+
+            # if the configuration has changed, update num inputs and entropy
+            if CONF.avg_mem_accesses >= pow(2, CONF.prng_entropy_bits):
+                input_ratio *= 1.5
+                CONF.prng_entropy_bits += 1
+                print(f"FUZZER: increasing entropy: {CONF.prng_entropy_bits}")
+
+            if num_inputs / CONF.test_case_size != input_ratio:
+                num_inputs = int(input_ratio * CONF.test_case_size)
+                STAT.num_inputs = num_inputs
 
         self.logger.finish()
 
