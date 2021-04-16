@@ -813,11 +813,18 @@ class AddRandomInstructionsPass(Pass):
             search_for_memory_access = True
             self.had_recent_memory_access = not self.had_recent_memory_access
 
+        search_for_store = random.random() < 0.5  # 50% probability of stores
+
         # select a random instruction spec for generation
         while True:
             instruction_spec = random.choice(self.instruction_set.all)
-            if instruction_spec.has_mem_operand == search_for_memory_access:
-                break
+            if search_for_memory_access:
+                if instruction_spec.has_mem_operand and \
+                        instruction_spec.has_write == search_for_store:
+                    break
+            else:
+                if not instruction_spec.has_mem_operand:
+                    break
 
         # fill up with random operand, following the spec
         instruction = Instruction(instruction_spec.name)
