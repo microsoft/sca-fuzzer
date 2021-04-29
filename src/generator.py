@@ -359,11 +359,10 @@ class MemoryOperand(Operand):
     def __init__(self, prefix: str, base: str, src: bool, dest: bool):
         self.width = self.prefix_sizes[prefix]
         self.prefix: str = prefix
-        self.base: str = base
         super().__init__(base, OT.MEM, src, dest)
 
     def __str__(self):
-        return f"{self.prefix} [{self.base}]"
+        return f"{self.prefix} [{self.value}]"
 
 
 class ImmediateOperand(Operand):
@@ -723,8 +722,8 @@ class SetTerminatorsPass(Pass):
                     continue
 
                 elif len(BB.successors) == 1:
-                    # the fist and the last basic blocks simply fall through
-                    if BB == function.entry or BB.successors[0] == function.exit:
+                    # the last basic block simply falls through
+                    if BB.successors[0] == function.exit:
                         continue
 
                     # Unconditional branch
@@ -790,14 +789,11 @@ class AddRandomInstructionsPass(Pass):
 
         # otherwise, fill the DAG with random instructions
         for function in DAG.functions:
-            max_per_bb = self.max_length // (len(function.BBs) - 2)
-            for basic_block in function.BBs:
-                if basic_block == function.entry or basic_block == function.exit:
-                    continue
-
-                for _ in range(max_per_bb):
-                    instruction = self.generate_instruction()
-                    basic_block.append_non_terminator(instruction)
+            basic_blocks_to_fill = function.BBs[1:-1]
+            for _ in range(0, self.max_length):
+                basic_block = random.choice(basic_blocks_to_fill)
+                instruction = self.generate_instruction()
+                basic_block.append_non_terminator(instruction)
 
     def generate_instruction(self) -> Instruction:
         instruction_spec: InstructionSpec
