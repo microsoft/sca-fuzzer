@@ -14,5 +14,5 @@ contract_observation_mode: ct
 contract_execution_mode:
   - bpas
 
-test_case_size: 64
-avg_mem_accesses: 32
+enable_ssbp_patch: false
+enable_mds: false

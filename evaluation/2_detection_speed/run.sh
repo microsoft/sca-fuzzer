@@ -30,15 +30,18 @@ function time_to_violation() {
     local full_log=$5
     local result=$6
     local name=$7
+    local wd=$8
 
-    ./cli.py fuzz -s $inst -c $conf -n $max_rounds -i $inputs -v  > tmp.txt
+    ./cli.py fuzz -s $inst -c $conf -n $max_rounds -i $inputs -v -w $wd  | tee tmp.txt
     cat tmp.txt >> $full_log
-    cat tmp.txt | awk '/Test Cases:/{c=$3} /Patterns:/{p=$2} /Duration:/{d=$2} END{printf "%s, %d, %d, %s\n", name, c, p, d}' name=$name >> $result
+    cat tmp.txt | awk '/Test Cases:/{tc=$3} /Patterns:/{p=$2} /Fully covered:/{fc=$3} /Longest uncovered:/{lu=$3} /Duration:/{dur=$2} /Finished/{printf "%s, %d, %d, %d, %d, %d\n", name, tc, p, fc, lu, dur}' name=$name >> $result
 
     popd > /dev/null
 }
 
-for name in v4-ct-seq v1-ct-seq mds-ct-seq v1-ct-cond v4-ct-cond v1-ct-bpas mds-ct-bpas mds-ct-cond v1-arch-seq v4-ct-bpas ; do
+#for name in v4-ct-seq v4-ct-cond v1-ct-seq v1-ct-bpas mds-ct-seq mds-ct-bpas mds-ct-cond ; do
+for name in v1-ct-seq v1-ct-bpas mds-ct-seq mds-ct-bpas mds-ct-cond v4-ct-cond v4-ct-seq ; do
+    # v1-ct-cond v4-ct-bpas v1-arch-seq
     echo "--------------------------------------------------------------------"
     echo "Running $name" 2>&1 | tee -a "$log"
     exp_dir="$WORK_DIR/$timestamp/$name"
@@ -53,8 +56,8 @@ feedback_driven_generator: true" >> $conf
     mkdir -p "$exp_dir"
 
     for i in $(seq 0 9); do
-        time_to_violation $instructions $conf $NUM_TESTS 250 $log $result "$name,$i"
+        time_to_violation $instructions $conf $NUM_TESTS 50 $log $result "$name,$i" $exp_dir
     done
 done
 
-# datamash -t, --headers  groupby 1  mean 5 < tmp.txt | awk 'FS="," //{print $1, $2 / 60}'
+# datamash -t, --headers  groupby 1  mean 7 < result.txt | awk 'BEGIN{FS=","} //{print $1, $2 / 60, $2 % 60}'
