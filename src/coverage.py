@@ -8,7 +8,8 @@ import re
 from enum import IntEnum
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from math import factorial
+from itertools import combinations, product
+from datetime import datetime
 
 from generator import TestCaseDAG, Instruction, X86Registers, OT, InstructionSet
 from custom_types import *
@@ -101,7 +102,7 @@ class PatternCoverage(Coverage):
             len(self.memory_patterns) + len(self.register_patters) + len(self.control_patterns)
 
         self.combination_length = CONF.combination_length_min
-        self.max_combinations_of_current_length = \
+        self.current_max_combinations = \
             self.calculate_max_combinations(self.num_patterns, CONF.combination_length_min)
 
         if CONF.feedback_driven_generator:
@@ -207,6 +208,8 @@ class PatternCoverage(Coverage):
                 addresses[pattern.positions[1]]
             )
 
+        self.current_patterns = list(sorted(self.current_patterns, key=lambda x: x.positions[0]))
+
     def model_hook(self, coverage_traces):
         self.coverage_traces = coverage_traces
 
@@ -247,6 +250,8 @@ class PatternCoverage(Coverage):
             combined_traces.append(combined_trace)
 
         # collect patterns per trace
+        # start = datetime.now()
+        combined_covered_patterns = set()
         for trace in combined_traces:
             covered_instr_addresses = []
             covered_with_matching_memory = []
@@ -286,15 +291,37 @@ class PatternCoverage(Coverage):
                         and pattern.addresses[0] in covered_with_matching_memory:
                     covered_patterns.append(int(pattern.dependency_type))
                     continue
-            simplified_patterns = tuple(sorted(covered_patterns))
-            self.coverage[len(simplified_patterns)].add(simplified_patterns)
+            combined_covered_patterns.add(tuple(covered_patterns))
+
+        # print(combined_covered_patterns)
+        for covered_patterns in combined_covered_patterns:
+            for i in range(self.combination_length - 1, len(covered_patterns)):
+                for comb in combinations(covered_patterns, i):
+                    self.coverage[i].add(comb)
+
+        # Below is debugging code. Commented out intentionally
+        # duration = (datetime.now() - start).microseconds // 1000
+        # if duration > 500:
+        #     print(f"duration: {duration}")
+        # if STAT.test_cases % 10 == 0:
+        #     all_patterns = self.memory_patterns + self.control_patterns + self.register_patters
+        #     all_patterns = [int(i) for i in all_patterns]
+        #     all_combinations = set(product(all_patterns,
+        #                                    repeat=self.combination_length))
+        #     all_combinations = set([tuple(comb) for comb in all_combinations])
+        #     remaining_combinations = all_combinations - self.coverage[self.combination_length]
+        #     previous_remaining = \
+        #         self.previous_max_combinations - len(self.coverage[self.combination_length - 1])
+        #     print(f"\nremaining coverage - previous: {previous_remaining}")
+        #     print(f"remaining coverage - current: {len(remaining_combinations)}")
+        #     # print(sorted(remaining_combinations))
 
         # save the result
         STAT.coverage = sum([len(c) for c in self.coverage.values()])
         STAT.coverage_longest_uncovered = len(self.coverage[self.combination_length])
 
         # increase the combination length?
-        if len(self.coverage[self.combination_length]) >= self.max_combinations_of_current_length - 1:
+        if len(self.coverage[self.combination_length]) >= 0.98 * self.current_max_combinations:
             self.length_covered()
 
         self.current_patterns = []
@@ -306,7 +333,7 @@ class PatternCoverage(Coverage):
 
         # update coverage parameters
         self.combination_length += 1
-        self.max_combinations_of_current_length = \
+        self.current_max_combinations = \
             self.calculate_max_combinations(self.num_patterns, self.combination_length)
 
         # update test case size
@@ -320,7 +347,7 @@ class PatternCoverage(Coverage):
 
     @staticmethod
     def calculate_max_combinations(n, r):
-        return int(factorial(n + r - 1) / factorial(r) / factorial(n - 1))
+        return pow(n, r)
 
 
 def get_coverage(instruction_set: InstructionSet) -> Coverage:
