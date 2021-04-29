@@ -827,6 +827,18 @@ class AddRandomInstructionsPass(Pass):
         for operand_spec in instruction_spec.operands:
             # generate an operand
             operand = self.get_operand_from_spec(operand_spec, instruction)
+
+            # dirty hack
+            if instruction.name in ["DIV", "REX DIV"]:
+                if operand.value in ["RDX", "RAX"]:
+                    operand.value = "RBX"
+                elif operand.value == "EDX":
+                    operand.value = "EBX"
+                elif operand.value == "DX":
+                    operand.value = "BX"
+                elif operand.value in ["DH", "DL"]:
+                    operand.value = "BL"
+
             instruction.operands.append(operand)
 
         # copy the implicit operands
@@ -968,7 +980,7 @@ class SandboxPass(Pass):
     def sandbox_memory_access(self, instr: Instruction, parent: BasicBlock):
         """ Force the memory accesses into the page starting from R14 """
         assert len(instr.get_mem_operands()) == 1
-        mem_reg = instr.get_mem_operands()[0].base
+        mem_reg = instr.get_mem_operands()[0].value
         apply_mask = Instruction("AND", True) \
             .add_op(RegisterOperand(mem_reg, True, True)) \
             .add_op(ImmediateOperand(self.sandbox_address_mask))
