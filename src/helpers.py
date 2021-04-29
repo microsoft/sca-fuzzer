@@ -91,6 +91,7 @@ class StatisticsCls:
     broken_measurements = 0
     violations = 0
     coverage = 0
+    coverage_longest_uncovered = 0
     fully_covered: int = 0
 
     def __str__(self):
@@ -102,6 +103,7 @@ class StatisticsCls:
         s += f"Coverage:\n"
         s += f"  Patterns: {self.coverage}\n"
         s += f"  Fully covered: {self.fully_covered}\n"
+        s += f"  Longest uncovered: {self.coverage_longest_uncovered}\n"
         s += f"  Effectiveness: {self.effective_eq_classes / total_clss:.1f}\n"
         s += f"Effectiveness: \n"
         s += f"  Total Cls: {total_clss / self.test_cases:.1f}\n"

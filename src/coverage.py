@@ -291,6 +291,7 @@ class PatternCoverage(Coverage):
 
         # save the result
         STAT.coverage = sum([len(c) for c in self.coverage.values()])
+        STAT.coverage_longest_uncovered = len(self.coverage[self.combination_length])
 
         # increase the combination length?
         if len(self.coverage[self.combination_length]) >= self.max_combinations_of_current_length - 1:
