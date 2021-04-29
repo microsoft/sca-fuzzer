@@ -93,7 +93,7 @@ class PatternCoverage(Coverage):
             self.memory_patterns = [DT.MEM_LL, DT.MEM_SL, DT.MEM_SS, DT.MEM_LS]
         else:
             self.memory_patterns = []
-        self.register_patters = [DT.REG_GPR]
+        self.register_patters = [DT.REG_GPR, DT.REG_FLAGS]
         if instruction_set.has_conditional_branch:
             self.control_patterns = [DT.CONTROL_COND, DT.CONTROL_DIRECT]
         else:
@@ -104,6 +104,7 @@ class PatternCoverage(Coverage):
         self.combination_length = CONF.combination_length_min
         self.current_max_combinations = \
             self.calculate_max_combinations(self.num_patterns, CONF.combination_length_min)
+        self.previous_max_combinations = 0
 
         if CONF.feedback_driven_generator:
             CONF.min_bb_per_function = 1
@@ -332,6 +333,7 @@ class PatternCoverage(Coverage):
         print(f"\nCOVERAGE: Fully covered length {self.combination_length}")
 
         # update coverage parameters
+        self.previous_max_combinations = self.current_max_combinations
         self.combination_length += 1
         self.current_max_combinations = \
             self.calculate_max_combinations(self.num_patterns, self.combination_length)
