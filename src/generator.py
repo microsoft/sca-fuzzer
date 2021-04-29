@@ -1052,8 +1052,9 @@ class PrinterPass(Pass):
             cache_line_offset *= 4  # the memory slots are 4-bytes wide
             f.write(".intel_syntax noprefix\n"
                     ".test_case_enter:\n"
+                    f"LEA R14, [R14 + {cache_line_offset}] # instrumentation\n"
                     "MFENCE # instrumentation\n"
-                    f"LEA R14, [R14 + {cache_line_offset}] # instrumentation\n")
+                    )
             if CONF.delay_on_rax:
                 f.write(f"MOV r15, 0 # instrumentation\n"
                         f"LEA rax, [rax + r15 + 1] # instrumentation\n"
