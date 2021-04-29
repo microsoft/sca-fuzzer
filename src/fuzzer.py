@@ -134,8 +134,13 @@ class Fuzzer:
                         print("\nTimeout expired")
                     break
 
+            if STAT.test_cases % 100 == 0:
+                print(f"\nFUZZER: current duration: "
+                      f"{(datetime.today() - start_time).total_seconds()}")
+
             # if the configuration has changed, update num inputs and entropy
-            if CONF.avg_mem_accesses >= pow(2, CONF.prng_entropy_bits):
+            if CONF.feedback_driven_generator and \
+                    CONF.avg_mem_accesses >= pow(2, CONF.prng_entropy_bits):
                 input_ratio *= 1.5
                 CONF.prng_entropy_bits += 1
                 print(f"FUZZER: increasing entropy: {CONF.prng_entropy_bits}")

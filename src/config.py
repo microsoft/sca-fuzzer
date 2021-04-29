@@ -27,7 +27,7 @@ class ConfCls:
     avoid_data_dependencies: bool = True
     generate_memory_accesses_in_pairs: bool = True
     memory_access_zeroed_bits: int = 6
-    delay_on_rax: bool = True
+    delay_on_rax: bool = False
     supported_categories = ["NOP"]
     instruction_blocklist = [
         # STI - enables interrupts, thus corrupting the measurements; CTI - just in case
@@ -54,10 +54,10 @@ class ConfCls:
     # same for CR* and DR*
     gpr_blocklist = [
         # free - rax, rbx, rcx, rdx, r8, r9, r10
-        'R10', 'R11', 'R12', 'R13', 'R14', 'R15', 'RSP', 'RBP', 'RDI', 'RSI',
-        'R10D', 'R11D', 'R12D', 'R13D', 'R14D', 'R15D', 'ESP', 'EBP', 'EDI', 'ESI',
-        'R10W', 'R11W', 'R12W', 'R13W', 'R14W', 'R15W', 'SP', 'BP', 'DI', 'SI',
-        'R10B', 'R11B', 'R12B', 'R13B', 'R14B', 'R15B', 'SPL', 'BPL', 'DL', 'SL',
+        'R8', 'R9', 'R10', 'R11', 'R12', 'R13', 'R14', 'R15', 'RSP', 'RBP', 'RDI', 'RSI',
+        'R8D', 'R9D', 'R10D', 'R11D', 'R12D', 'R13D', 'R14D', 'R15D', 'ESP', 'EBP', 'EDI', 'ESI',
+        'R8W', 'R9W', 'R10W', 'R11W', 'R12W', 'R13W', 'R14W', 'R15W', 'SP', 'BP', 'DI', 'SI',
+        'R8B', 'R9B', 'R10B', 'R11B', 'R12B', 'R13B', 'R14B', 'R15B', 'SPL', 'BPL', 'DL', 'SL',
         'ES', 'CS', 'SS', 'DS', 'FS', 'GS',
         'CR0', 'CR2', 'CR3', 'CR4', 'CR8',
         'DR0', 'DR1', 'DR2', 'DR3', 'DR4', 'DR5', 'DR6', 'DR7'
