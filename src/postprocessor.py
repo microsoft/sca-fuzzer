@@ -70,12 +70,6 @@ class Postprocessor:
             min_instructions = self.add_fences(instructions, model, executor, analyser,
                                                fuzzer, min_inputs)
 
-        add_nops = True
-        if add_nops:
-            print("Trying to replace with NOPs...")
-            min_instructions = self.replace_with_nops(instructions, model, executor, analyser,
-                                                      fuzzer, min_inputs)
-
         print("Storing the results")
         with open(outfile, "w") as f:
             for line in min_instructions:
@@ -85,7 +79,7 @@ class Postprocessor:
                            fuzzer: Fuzzer, inputs: List[Input]) -> List[EquivalenceClass]:
         # Initial measurement
         model.load_test_case(test_case)
-        ctraces: List[CTrace] = model.trace_test_case(inputs)
+        ctraces: List[CTrace] = model.trace_test_case(inputs, CONF.max_nesting)
 
         executor.load_test_case(test_case)
         htraces: List[HTrace] = executor.trace_test_case(inputs)
