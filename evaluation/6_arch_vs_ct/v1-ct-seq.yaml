@@ -15,6 +15,6 @@ contract_observation_mode: ct
 contract_execution_mode:
   - seq
 
-test_case_size: 64
-avg_mem_accesses: 32
-enable_mds: False
+enable_ssbp_patch: true
+enable_mds: false
+prng_entropy_bits: 2

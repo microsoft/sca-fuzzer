@@ -2,6 +2,7 @@ supported_categories:
   - NOP
   - BINARY
   - BITBYTE
+  - COND_BR
   - CMOV
   - CONVERT
   - DATAXFER
@@ -10,9 +11,10 @@ supported_categories:
   - LOGICAL
   - POP
   - PUSH
-contract_observation_mode: ct
+contract_observation_mode: ctr
 contract_execution_mode:
   - seq
 
-test_case_size: 64
-avg_mem_accesses: 32
+enable_ssbp_patch: true
+enable_mds: false
+prng_entropy_bits: 2
