@@ -15,20 +15,12 @@ contract_observation_mode: ct
 contract_execution_mode:
   - seq
 
-attack_variant: P+P
-enable_ssbp_patch: false
+enable_ssbp_patch: true
 enable_mds: false
 
 feedback_driven_generator: true
 prng_entropy_bits: 3
-#combination_length_min: 2
-#memory_access_zeroed_bits: 9
-randomized_mem_alignment: false
-#avoid_data_dependencies: false
 
-verbose: 999
 #multiline_output: true
-
+#verbose: 999
 #no_priming: true
-max_nesting: 1
-#enable_pre_run_flush: false
