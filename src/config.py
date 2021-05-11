@@ -65,7 +65,7 @@ class ConfCls:
     # ==============================================================================================
     # Input Generator
     prng_seed: int = 10  # zero is a reserved value, do not use it
-    prng_entropy_bits: int = 2
+    prng_entropy_bits: int = 3
     randomized_mem_alignment: bool = True
     # ==============================================================================================
     # Model
