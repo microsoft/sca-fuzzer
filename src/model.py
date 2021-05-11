@@ -165,7 +165,9 @@ class ArchTracer(X86UnicornTracer):
         self.coverage_trace = []
 
     def trace_mem_access(self, access, address, size, value):
-        self.trace.append(value)
+        if access == UC_MEM_READ:
+            val = int.from_bytes(model.emulator.mem_read(address, size), byteorder='little')
+            self.trace.append(val)
         self.trace.append(address)
         super(ArchTracer, self).trace_mem_access(access, address, size, value)
 
