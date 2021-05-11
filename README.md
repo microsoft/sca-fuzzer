@@ -1,12 +1,12 @@
 # Revizor
 
-This is Revizor, a different kind of fuzzer.
-Instead of finding bugs in programs, Revizor searches for microarchitectural bugs in CPUs.
+This is Revizor, a microarchitectural fuzzer.
+It is an rather unconventional fuzzer as, instead of finding bugs in programs, Revizor searches for microarchitectural bugs in CPUs.
 
-What is a bug in a CPU?
-In the context of Revizor, a bug is a violation of out expectations about how the CPU should behave.
+What is a microarchitectural bug?
+In the context of Revizor, a bug is a violation of out expectations about the CPU behaviour.
 The most prominent examples would be [Spectre](https://spectreattack.com/) and [Meltdown](https://meltdownattack.com/).
-It could also be a microarchitectural backdoor or an unknown optimization, although we are yet to encounter one of those.
+Alternatively, a "bug" could also be in a form of a microarchitectural backdoor or an unknown optimization, although we are yet to encounter one of those.
 
 See our ~~[Technical Report]~~ (under construction) for details.
 
@@ -17,6 +17,9 @@ See our ~~[Technical Report]~~ (under construction) for details.
 
 Below are quick-and-dirty instructions on how to use Revizor.
 More detailed instructions will be added some time later.
+
+If you find missing explanations or a bug in Revizor, don't hesitate to open an issue.
+
 
 **Warning**: Revizor executes randomly generated code in kernel space.
 As you can imagine, things can go wrong.
@@ -74,7 +77,7 @@ The detected violation is most likely an instance of Spectre V1.
 
 ```bash
 cd src/
-./cli.py fuzz -s instruction_sets/x86/base.xml -i 100 -n 1000 -v -c ../evaluation/fast-spectre-v1.yaml
+./cli.py fuzz -s instruction_sets/x86/base.xml -i 50 -n 1000 -v -c ../evaluation/fast-spectre-v1.yaml
 ```
 
 You can find the test case that triggered this violation in `src/generated.asm`.
@@ -85,7 +88,7 @@ You can find the test case that triggered this violation in `src/generated.asm`.
 
 ![architecture](Arch.png)
 
-Under construction
+**Under construction**
 
 [comment]: <> (## Instruction Set Spec)
 
