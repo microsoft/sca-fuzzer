@@ -39,8 +39,7 @@ function time_to_violation() {
     popd > /dev/null
 }
 
-#for name in v4-ct-seq v4-ct-cond v1-ct-seq v1-ct-bpas mds-ct-seq mds-ct-bpas mds-ct-cond ; do
-for name in v1-ct-seq v1-ct-bpas mds-ct-seq mds-ct-bpas mds-ct-cond v4-ct-cond v4-ct-seq ; do
+for name in v4-ct-cond v4-ct-seq mds-ct-seq mds-ct-bpas mds-ct-cond v1-ct-seq v1-ct-bpas  ; do
     # v1-ct-cond v4-ct-bpas v1-arch-seq
     echo "--------------------------------------------------------------------"
     echo "Running $name" 2>&1 | tee -a "$log"
