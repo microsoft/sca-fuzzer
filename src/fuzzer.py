@@ -145,9 +145,13 @@ class Fuzzer:
                 CONF.prng_entropy_bits += 1
                 print(f"FUZZER: increasing entropy: {CONF.prng_entropy_bits}")
 
-            if num_inputs / CONF.test_case_size != input_ratio:
-                num_inputs = int(input_ratio * CONF.test_case_size)
+            if STAT.effective_eq_classes / STAT.test_cases < 1:
+                input_ratio *= 1.2
+
+            if num_inputs / CONF.test_case_size < input_ratio:
+                num_inputs = int(input_ratio * CONF.test_case_size) + 1
                 STAT.num_inputs = num_inputs
+                print(f"FUZZER: increasing the number of inputs: {num_inputs}")
 
         self.logger.finish()
 
