@@ -8,7 +8,7 @@ In the context of Revizor, a bug is a violation of out expectations about the CP
 The most prominent examples would be [Spectre](https://spectreattack.com/) and [Meltdown](https://meltdownattack.com/).
 Alternatively, a "bug" could also be in a form of a microarchitectural backdoor or an unknown optimization, although we are yet to encounter one of those.
 
-See our ~~[Technical Report]~~ (under construction) for details.
+See our [Technical Report](https://arxiv.org/abs/2105.06872) for details.
 
 
 **Origin**: This is an independently developed and improved fork of [SCA-Fuzzer from Microsoft](https://github.com/microsoft/sca-fuzzer).
