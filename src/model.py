@@ -39,7 +39,7 @@ class Model(ABC):
         pass
 
     @abstractmethod
-    def trace_test_case(self, inputs: List[int], nesting: int) -> List[CTrace]:
+    def trace_test_case(self, inputs: List[int], nesting: int, debug: bool = False) -> List[CTrace]:
         pass
 
     def set_coverage(self, coverage):
@@ -79,11 +79,20 @@ class X86UnicornTracer(ABC):
 
     def trace_mem_access(self, access, address: int, size: int, value: int) -> None:
         if not model.in_speculation:
-            self.coverage_trace.append((False, address))
+            self.coverage_trace.append((False, address - model.r14_init))
+            if model.debug:
+                if access == UC_MEM_READ:
+                    val = int.from_bytes(model.emulator.mem_read(address, size), byteorder='little')
+                    print(f"  > read: +0x{address - model.r14_init:x} = 0x{val:x}")
+                else:
+                    print(f"  > write: +0x{address - model.r14_init:x} = 0x{value:x}")
 
     def trace_code(self, address: int, size: int) -> None:
         if not model.in_speculation:
-            self.coverage_trace.append((True, address))
+            self.coverage_trace.append((True, address - model.code_base))
+            if model.debug:
+                print(f"{address - model.code_base:2x}: ", end="")
+                model.print_state(oneline=True)
 
 
 class L1DTracer(X86UnicornTracer):
@@ -190,6 +199,7 @@ class X86UnicornModel(Model):
     previous_store: Tuple[int, int, int, int]
     tracer: X86UnicornTracer
     nesting: int = 0
+    debug: bool = False
 
     def load_test_case(self, test_case_asm: str) -> None:
         # create a binary
@@ -240,8 +250,9 @@ class X86UnicornModel(Model):
             print("Model error [load_test_case]: %s" % e)
             raise e
 
-    def trace_test_case(self, inputs: List[int], nesting) -> List[CTrace]:
+    def trace_test_case(self, inputs: List[int], nesting, debug: bool = False) -> List[CTrace]:
         self.nesting = nesting
+        self.debug = debug
 
         traces = []
         coverage_traces = []
@@ -253,7 +264,7 @@ class X86UnicornModel(Model):
                                         timeout=10000)
             except UcError as e:
                 if not self.in_speculation:
-                    self._print_state(self.emulator)
+                    self.print_state(self.emulator)
                     print("Model error [trace_test_case]: %s" % e)
                     raise e
 
@@ -316,15 +327,31 @@ class X86UnicornModel(Model):
 
         self.emulator.reg_write(UC_X86_REG_RDI, random_value)
 
-    @staticmethod
-    def _print_state(emulator: Uc):
-        print("\n\nRegisters:")
-        print(f"RAX: {emulator.reg_read(UC_X86_REG_RAX)}")
-        print(f"RBX: {emulator.reg_read(UC_X86_REG_RBX)}")
-        print(f"RCX: {emulator.reg_read(UC_X86_REG_RCX)}")
-        print(f"RDX: {emulator.reg_read(UC_X86_REG_RDX)}")
-        print(f"RSI: {emulator.reg_read(UC_X86_REG_RSI)}")
-        print(f"RDI: {emulator.reg_read(UC_X86_REG_RDI)}")
+    def print_state(self, oneline: bool = False):
+        def compressed(val: str):
+            return f"0x{val:<8x}" if val < self.r14_init else f"+0x{val - self.r14_init:<7x}"
+
+        emulator = self.emulator
+        rax = compressed(emulator.reg_read(UC_X86_REG_RAX))
+        rbx = compressed(emulator.reg_read(UC_X86_REG_RBX))
+        rcx = compressed(emulator.reg_read(UC_X86_REG_RCX))
+        rdx = compressed(emulator.reg_read(UC_X86_REG_RDX))
+        rsi = compressed(emulator.reg_read(UC_X86_REG_RSI))
+        rdi = compressed(emulator.reg_read(UC_X86_REG_RDI))
+
+        if not oneline:
+            print("\n\nRegisters:")
+            print(f"RAX: {rax}")
+            print(f"RBX: {rbx}")
+            print(f"RCX: {rcx}")
+            print(f"RDX: {rdx}")
+            print(f"RSI: {rsi}")
+            print(f"RDI: {rdi}")
+        else:
+            print(f"rax={rax},"
+                  f"rbx={rbx},"
+                  f"rcx={rcx},"
+                  f"rdx={rdx}")
 
     @staticmethod
     def trace_mem_access(emulator, access, address, size, value, user_data):
@@ -610,7 +637,7 @@ class X86SerializingModel(Model):
         self.executor.load_test_case('serial.asm')
         os.remove('serial.asm')
 
-    def trace_test_case(self, inputs: List[int], nesting) -> List[CTrace]:
+    def trace_test_case(self, inputs: List[int], nesting, debug: bool = False) -> List[CTrace]:
         traces = self.executor.trace_test_case(inputs, num_measurements=1, max_outliers=0)
         return traces
 

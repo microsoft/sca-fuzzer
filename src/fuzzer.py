@@ -114,13 +114,12 @@ class Fuzzer:
             inputs: List[Input] = input_gen.generate(CONF.prng_seed, num_inputs)
 
             # Fuzz the test case
-            has_violations = self.fuzzing_round(executor, model, analyser, inputs)
+            violation = self.fuzzing_round(executor, model, analyser, inputs)
             STAT.test_cases += 1
-
             coverage.update()
 
-            # violations?
-            if has_violations:
+            if violation:
+                self.report_violations(violation, model)
                 self.store_test_case(False)
                 STAT.violations += 1
                 if not nonstop:
@@ -156,7 +155,7 @@ class Fuzzer:
         self.logger.finish()
 
     def fuzzing_round(self, executor: Executor, model: Model, analyser: Analyser,
-                      inputs: List[Input]) -> bool:
+                      inputs: List[Input]) -> Optional[EquivalenceClass]:
         self.logger.start_round()
         model.load_test_case(self.test_case)
         executor.load_test_case(self.test_case)
@@ -187,7 +186,7 @@ class Fuzzer:
             violations: List[EquivalenceClass] = analyser.filter_violations(all_eq_classes)
 
             if not violations:
-                return False
+                return None
             if CONF.no_priming:
                 if nesting == CONF.max_nesting or 'seq' in CONF.contract_execution_mode:
                     violation = violations[-1]
@@ -208,7 +207,7 @@ class Fuzzer:
                     break
             else:
                 # all violations were cleaned. all good
-                return False
+                return None
 
             # Violation survived priming.
             # Report it if higher nesting is not permitted or does not make sense
@@ -218,8 +217,7 @@ class Fuzzer:
                 self.logger.higher_nesting()
                 continue
 
-        self.report_violations(violation)
-        return True
+        return violation
 
     def verify_with_priming(self, violation: EquivalenceClass, executor: Executor,
                             inputs: List[Input]) -> bool:
@@ -394,7 +392,7 @@ class Fuzzer:
         return new_inputs, new_ctraces, new_htraces
 
     @staticmethod
-    def report_violations(violation: EquivalenceClass):
+    def report_violations(violation: EquivalenceClass, model: Model):
         print("\n\n================================ Violations detected ==========================")
         print(f"  Contract trace (hash):\n")
         if violation.ctrace <= pow(2, 64):
@@ -411,3 +409,12 @@ class Fuzzer:
                 print(f"   Inputs {inputs[:4]} (+ {len(inputs) - 4} ):")
             print(f"    {pretty_bitmap(violation.htraces[group[0]])}")
         print("")
+
+        if CONF.verbose < 2:
+            return
+
+        # print details
+        for group in violation.htrace_groups.values():
+            print(f"===========================================")
+            print(f"Input: {violation.inputs[group[0]]}, {violation.original_positions[group[0]]}")
+            model.trace_test_case([violation.inputs[group[0]]], 1, True)
