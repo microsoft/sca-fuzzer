@@ -292,7 +292,7 @@ class X86UnicornModel(Model):
             masked_rvalue = (random_value ^ (random_value >> 16)) & input_mask
             masked_rvalue = masked_rvalue << 6
             self.emulator.mem_write(self.r14_init + 4096 + i,
-                                    masked_rvalue.to_bytes(8, byteorder='little'))
+                                    masked_rvalue.to_bytes(4, byteorder='little'))
 
         # Values in sandbox memory
         for i in range(0, 4096, 4):
@@ -300,7 +300,7 @@ class X86UnicornModel(Model):
             masked_rvalue = (random_value ^ (random_value >> 16)) & input_mask
             masked_rvalue = masked_rvalue << 6
             self.emulator.mem_write(self.r14_init + i,
-                                    masked_rvalue.to_bytes(8, byteorder='little'))
+                                    masked_rvalue.to_bytes(4, byteorder='little'))
 
         # Values in registers
         for reg in [UC_X86_REG_RAX, UC_X86_REG_RBX, UC_X86_REG_RCX, UC_X86_REG_RDX, UC_X86_REG_R8,

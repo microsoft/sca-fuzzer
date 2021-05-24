@@ -79,7 +79,6 @@ class PatternCoverage(Coverage):
     coverage: Dict[int, Set[Tuple[int]]]
     current_patterns: List[PatternInstance]
     coverage_traces: List[List[Tuple[bool, int]]]
-    positions_to_names: Dict[int, str]
     combination_length: int = 1
     num_patterns: int = 0
     previous_target_coverage: int = 0
@@ -87,7 +86,6 @@ class PatternCoverage(Coverage):
     def __init__(self, instruction_set: InstructionSet):
         self.current_patterns = []
         self.coverage = defaultdict(set)
-        self.positions_to_names = {}
 
         if CONF.avg_mem_accesses:
             self.memory_patterns = [DT.MEM_LL, DT.MEM_SL, DT.MEM_SS, DT.MEM_LS]

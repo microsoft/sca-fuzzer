@@ -98,7 +98,7 @@ class Fuzzer:
         analyser.set_coverage(coverage)
         generator.set_coverage(coverage)
 
-        # preserve the original ration of inputs to the test case size
+        # preserve the original ratio of inputs to the test case size
         input_ratio = num_inputs / CONF.test_case_size
         STAT.num_inputs = num_inputs
 
