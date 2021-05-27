@@ -707,7 +707,8 @@ class Generator:
 
         # process the test case
         passes = [
-            SandboxPass()
+            SandboxPass(),
+            PatchUndefinedFlagsPass(self.instruction_set),
         ]
         if serial_mode:
             passes.append(LFENCEPass())
@@ -1124,6 +1125,120 @@ class SandboxPass(Pass):
         # Special case: offset and address use the same register
         # Sandboxing is impossible. Give up
         parent.delete(I)
+
+    @staticmethod
+    def requires_sandbox(I: Instruction):
+        if I.has_mem_operand():
+            return True
+        if I.name in ["DIV", "REX DIV"]:
+            return True
+        if I.name in ["BT", "BTC", "BTR", "BTS", "LOCK BT", "LOCK BTC", "LOCK BTR", "LOCK BTS"]:
+            return True
+        return False
+
+
+class PatchUndefinedFlagsPass(Pass):
+    """
+    Some instructions have undefined effect on FLAGS (e.g., SHL may or may not overwrite OF).
+    This causes a mismatch between Model execution and Executor, if the undefined behavior
+    is implemented differently. It leads to false positives.
+    To prevent them, we analyse the test cases in search for the cases where an instruction
+    with undefined flags is followed by an instruction that uses this flag. We then
+    insert another random instruction in-between, such that this
+    instruction overwrites the undefined flag.
+
+    I.e., we replace
+        SHL eax, eax  // undefined OF
+        JNO .label  // uses OF
+    with
+        SHL eax, eax
+        ADD ebx, ecx  // random instruction that overwrites OF
+        JNO .label
+    """
+
+    def __init__(self, instruction_set: InstructionSet):
+        super().__init__()
+        self.instruction_set = instruction_set
+        self.instruction_generator = SingleInstructionGenerator()
+
+    def run_on_dag(self, DAG: TestCaseDAG) -> None:
+        for function_ in DAG.functions:
+            for BB in function_.BBs:
+                # get a list of all instructions in the BB
+                all_instructions = []
+                for I in BB:
+                    all_instructions.append(I)
+                if len(BB.terminators) == 2:  # include conditional terminators
+                    all_instructions.append(BB.terminators[0])
+
+                # keep track of the FLAGS dependencies as we iterate over instructions
+                flags_to_set = set()
+
+                # walk the list in inverse order
+                while all_instructions:
+                    instruction = all_instructions.pop()
+                    flags: FlagsOperand = instruction.get_flags_operand()
+                    if not flags:
+                        continue
+
+                    # fix undefined flags by adding another instruction in-between
+                    undef_flags = [i for i in flags.get_undef_flags() if i in flags_to_set]
+                    if undef_flags:
+                        patch = self.find_flags_patch(undef_flags, flags_to_set)
+                        BB.insert_after(instruction, patch)
+                        patch.is_instrumentation = True
+                        # remove the flags overwritten by the patch
+                        for f in patch.get_flags_operand().get_write_flags():
+                            flags_to_set.discard(f)
+
+                    # remove the flags overwritten by the instruction
+                    for f in flags.get_write_flags():
+                        flags_to_set.discard(f)
+
+                    # add new flag dependencies
+                    if flags.src:
+                        for f in flags.get_read_flags():
+                            flags_to_set.add(f)
+
+                # make sure that we do not have undefined flags when we enter the BB
+                if flags_to_set:
+                    patch = self.find_flags_patch(list(flags_to_set), flags_to_set)
+                    BB.insert_before(BB.get_first(), patch)
+                    patch.is_instrumentation = True
+
+    def find_flags_patch(self, undef_flags, flags_to_set):
+        """
+        Find an instruction that would overwrite the undefined flags
+
+        FIXME: the implementation uses random sampling from the instruction set, which is
+        suboptimal performance-wise. A better implementation would be to pre-collect a list of
+        instructions useful for patching, and then just pick a correct instruction when necessary
+        """
+
+        attempts = 100  # 100 is an arbitrary number
+        for _ in range(attempts):  # try to sample for a patch instruction several times
+
+            # pick a random instruction
+            instruction_spec = random.choice(self.instruction_set.all)
+            patch = self.instruction_generator.generate_from_spec(instruction_spec)
+
+            # check if the instruction is safe to use on its own
+            if SandboxPass.requires_sandbox(patch):
+                continue
+
+            # check if it overwrites the undefined flags,
+            # and does not create new undefined dependencies
+            patch_flags = patch.get_flags_operand()
+            if not patch_flags or patch_flags.src:
+                continue
+            new_undef_flags = [i for i in patch_flags.get_undef_flags() if i in flags_to_set]
+            not_patched_flags = [i for i in undef_flags if i not in patch_flags.get_write_flags()]
+
+            if not new_undef_flags and not not_patched_flags:
+                return patch
+
+        # unreachable under normal conditions - should always find within 100 attempts
+        raise Exception("ERROR: Could not generate a test case from the given instruction set")
 
 
 class PrinterPass(Pass):
