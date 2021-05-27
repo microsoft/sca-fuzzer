@@ -582,6 +582,11 @@ class BasicBlock:
         self.__instructions.end = I
 
     def insert_after(self, position: Instruction, I: Instruction):
+        if not position and not self.__instructions.start:
+            self.__instructions.start = I
+            self.__instructions.end = I
+            return
+
         next_ = position.next
         position.next = I
         I.previous = position
@@ -592,6 +597,11 @@ class BasicBlock:
             self.__instructions.end = I
 
     def insert_before(self, position: Instruction, I: Instruction):
+        if not position and not self.__instructions.start:
+            self.__instructions.start = I
+            self.__instructions.end = I
+            return
+
         previous = position.previous
         position.previous = I
         I.next = position
@@ -627,6 +637,9 @@ class BasicBlock:
 
     def get_first(self):
         return self.__instructions.start
+
+    def get_last(self):
+        return self.__instructions.end
 
 
 class Function:
