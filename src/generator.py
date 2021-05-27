@@ -84,21 +84,21 @@ class OT(Enum):  # Operand Type
 
 
 class OperandSpec:
-    choices: List[str]
+    values: List[str]
     masks: List[str]
     type: OT
     width: int
     src: bool
     dest: bool
 
-    def __init__(self, choices: List[str], type_: OT, src: str, dest: str):
-        self.choices = choices
+    def __init__(self, values: List[str], type_: OT, src: str, dest: str):
+        self.values = values
         self.type = type_
         self.src = True if src == "1" else False
         self.dest = True if dest == "1" else False
 
     def __str__(self):
-        return f"{self.choices}"
+        return f"{self.values}"
 
 
 class InstructionSpec:
@@ -169,7 +169,11 @@ class InstructionSet:
 
     @staticmethod
     def parse_imm_operand(op):
-        spec = OperandSpec([], OT.IMM, "1", "0")
+        if op.attrib.get('implicit', '0') == '1':
+            value = [op.text]
+        else:
+            value = []
+        spec = OperandSpec(value, OT.IMM, "1", "0")
         spec.width = int(op.attrib['width'])
         return spec
 
