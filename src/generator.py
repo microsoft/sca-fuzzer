@@ -775,49 +775,7 @@ class Generator:
         return function
 
 
-class Pass(abc.ABC):
-    @abc.abstractmethod
-    def run_on_dag(self, DAG: TestCaseDAG) -> None:
-        pass
-
-
-class SetTerminatorsPass(Pass):
-    def __init__(self, instruction_set: InstructionSet):
-        self.instruction_set = instruction_set
-
-    def run_on_dag(self, DAG: TestCaseDAG):
-        for function in DAG.functions:
-            for BB in function.BBs:
-                if len(BB.successors) == 0:
-                    # Return instruction
-                    continue
-
-                elif len(BB.successors) == 1:
-                    # the last basic block simply falls through
-                    if BB.successors[0] == function.exit:
-                        continue
-
-                    # Unconditional branch
-                    terminator = Instruction("JMP")
-                    terminator.operands = [LabelOperand(BB.successors[0])]
-                    BB.terminators.append(terminator)
-
-                elif len(BB.successors) == 2:
-                    # Conditional branch
-                    spec = random.choice(self.instruction_set.control_flow)
-                    terminator = Instruction(spec.name)
-                    terminator.operands = [LabelOperand(BB.successors[0])]
-                    BB.terminators.append(terminator)
-
-                    terminator = Instruction("JMP")
-                    terminator.operands = [LabelOperand(BB.successors[1])]
-                    BB.terminators.append(terminator)
-                else:
-                    # Indirect jump
-                    raise NotSupportedException()
-
-
-class AddRandomInstructionsPass(Pass):
+class SingleInstructionGenerator:
     # dense register encoding for GPRs
     gpr_decoding = [
         {64: "RAX", 32: "EAX", 16: "AX", 8: "AL"},
@@ -834,13 +792,8 @@ class AddRandomInstructionsPass(Pass):
         {64: "R13", 32: "R13D", 16: "R13W", 8: "R13B"},
     ]
     gprs_by_size = {64: [], 32: [], 16: [], 8: []}  # generated dynamically from grp_decoding
-    had_recent_memory_access: bool = False
 
-    def __init__(self, instruction_set: InstructionSet, max_length: int, test_mode: bool = False):
-        self.instruction_set = instruction_set
-        self.max_length = max_length
-        self.test_mode = test_mode
-
+    def __init__(self):
         # remove blocked regs.
         filtered = []
         for reg in self.gpr_decoding:
@@ -852,54 +805,14 @@ class AddRandomInstructionsPass(Pass):
                 self.gprs_by_size[8].append(reg[8])
         self.gpr_decoding = filtered
 
-    def run_on_dag(self, DAG: TestCaseDAG) -> None:
-        # sometimes, we might want to generate all possible instructions, for testing
-        if self.test_mode:
-            self.generate_all_instructions(DAG)
-            return
-
-        # otherwise, fill the DAG with random instructions
-        for function in DAG.functions:
-            basic_blocks_to_fill = function.BBs[1:-1]
-            for _ in range(0, self.max_length):
-                basic_block = random.choice(basic_blocks_to_fill)
-                instruction = self.generate_instruction()
-                basic_block.append_non_terminator(instruction)
-
-    def generate_instruction(self) -> Instruction:
-        instruction_spec: InstructionSpec
-
-        # ensure the requested avg. number of mem. accesses
-        search_for_memory_access = False
-        memory_access_probability = CONF.avg_mem_accesses / CONF.test_case_size
-        if CONF.generate_memory_accesses_in_pairs:
-            memory_access_probability = 1 if self.had_recent_memory_access else \
-                (CONF.avg_mem_accesses / 2) / (CONF.test_case_size - CONF.avg_mem_accesses / 2)
-
-        if random.random() < memory_access_probability:
-            search_for_memory_access = True
-            self.had_recent_memory_access = not self.had_recent_memory_access
-
-        search_for_store = random.random() < 0.5  # 50% probability of stores
-
-        # select a random instruction spec for generation
-        while True:
-            instruction_spec = random.choice(self.instruction_set.all)
-            if search_for_memory_access:
-                if instruction_spec.has_mem_operand and \
-                        instruction_spec.has_write == search_for_store:
-                    break
-            else:
-                if not instruction_spec.has_mem_operand:
-                    break
-
+    def generate_from_spec(self, spec: InstructionSpec):
         # fill up with random operand, following the spec
-        instruction = Instruction(instruction_spec.name)
-        for operand_spec in instruction_spec.operands:
+        instruction = Instruction(spec.name)
+        for operand_spec in spec.operands:
             # generate an operand
             operand = self.get_operand_from_spec(operand_spec, instruction)
 
-            # dirty hack
+            # FIXME: dirty hack
             if instruction.name in ["DIV", "REX DIV"]:
                 if operand.value in ["RDX", "RAX"]:
                     operand.value = "RBX"
@@ -913,7 +826,7 @@ class AddRandomInstructionsPass(Pass):
             instruction.operands.append(operand)
 
         # copy the implicit operands
-        for operand_spec in instruction_spec.implicit_operands:
+        for operand_spec in spec.implicit_operands:
             operand = self.get_operand_from_spec(operand_spec, instruction)
             instruction.implicit_operands.append(operand)
 
@@ -976,23 +889,112 @@ class AddRandomInstructionsPass(Pass):
         }
         return generators[spec.type](spec, parent)
 
-    def generate_all_instructions(self, DAG: TestCaseDAG):
+
+class Pass(abc.ABC):
+    @abc.abstractmethod
+    def run_on_dag(self, DAG: TestCaseDAG) -> None:
+        pass
+
+
+class SetTerminatorsPass(Pass):
+    def __init__(self, instruction_set: InstructionSet):
+        self.instruction_set = instruction_set
+
+    def run_on_dag(self, DAG: TestCaseDAG):
         for function in DAG.functions:
-            for basic_block in function:
+            for BB in function.BBs:
+                if len(BB.successors) == 0:
+                    # Return instruction
+                    continue
+
+                elif len(BB.successors) == 1:
+                    # the last basic block simply falls through
+                    if BB.successors[0] == function.exit:
+                        continue
+
+                    # Unconditional branch
+                    terminator = Instruction("JMP")
+                    terminator.operands = [LabelOperand(BB.successors[0])]
+                    BB.terminators.append(terminator)
+
+                elif len(BB.successors) == 2:
+                    # Conditional branch
+                    spec = random.choice(self.instruction_set.control_flow)
+                    terminator = Instruction(spec.name)
+                    terminator.operands = [LabelOperand(BB.successors[0])]
+                    for op in spec.implicit_operands:
+                        if op.type == OT.FLAGS:
+                            terminator.implicit_operands = \
+                                [FlagsOperand(op.values, op.src, op.dest)]
+                            break
+                    BB.terminators.append(terminator)
+
+                    terminator = Instruction("JMP")
+                    terminator.operands = [LabelOperand(BB.successors[1])]
+                    BB.terminators.append(terminator)
+                else:
+                    # Indirect jump
+                    raise NotSupportedException()
+
+
+class AddRandomInstructionsPass(Pass):
+    had_recent_memory_access: bool = False
+
+    def __init__(self, instruction_set: InstructionSet, max_length: int, test_mode: bool = False):
+        self.instruction_set = instruction_set
+        self.max_length = max_length
+        self.test_mode = test_mode
+        self.instruction_generator = SingleInstructionGenerator()
+
+    def run_on_dag(self, DAG: TestCaseDAG) -> None:
+        # sometimes, we might want to generate all possible instructions, for testing
+        if self.test_mode:
+            self.generate_all_instructions(DAG)
+            return
+
+        # otherwise, fill the DAG with random instructions
+        for function in DAG.functions:
+            basic_blocks_to_fill = function.BBs[1:-1]
+            for _ in range(0, self.max_length):
+                basic_block = random.choice(basic_blocks_to_fill)
+                instruction = self.generate_instruction()
+                basic_block.append_non_terminator(instruction)
+
+    def generate_instruction(self) -> Instruction:
+        instruction_spec: InstructionSpec
+
+        # ensure the requested avg. number of mem. accesses
+        search_for_memory_access = False
+        memory_access_probability = CONF.avg_mem_accesses / CONF.test_case_size
+        if CONF.generate_memory_accesses_in_pairs:
+            memory_access_probability = 1 if self.had_recent_memory_access else \
+                (CONF.avg_mem_accesses / 2) / (CONF.test_case_size - CONF.avg_mem_accesses / 2)
+
+        if random.random() < memory_access_probability:
+            search_for_memory_access = True
+            self.had_recent_memory_access = not self.had_recent_memory_access
+
+        search_for_store = random.random() < 0.5  # 50% probability of stores
+
+        # select a random instruction spec for generation
+        while True:
+            instruction_spec = random.choice(self.instruction_set.all)
+            if search_for_memory_access:
+                if instruction_spec.has_mem_operand and \
+                        instruction_spec.has_write == search_for_store:
+                    break
+            else:
+                if not instruction_spec.has_mem_operand:
+                    break
+
+        return self.instruction_generator.generate_from_spec(instruction_spec)
+
+    def generate_all_instructions(self, DAG: TestCaseDAG):
+        for function_ in DAG.functions:
+            for basic_block in function_:
                 for instruction_spec in self.instruction_set.all:
                     # fill up with random operand, following the spec
-                    instruction = Instruction(instruction_spec.name)
-
-                    for operand_spec in instruction_spec.operands:
-                        # generate an operand
-                        operand = self.get_operand_from_spec(operand_spec, instruction)
-                        instruction.operands.append(operand)
-
-                    # copy the implicit operands
-                    for operand_spec in instruction_spec.implicit_operands:
-                        operand = self.get_operand_from_spec(operand_spec, instruction)
-                        instruction.implicit_operands.append(operand)
-
+                    instruction = self.instruction_generator.generate_from_spec(instruction_spec)
                     basic_block.append_non_terminator(instruction)
 
 
