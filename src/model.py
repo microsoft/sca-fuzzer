@@ -264,7 +264,7 @@ class X86UnicornModel(Model):
                                         timeout=10000)
             except UcError as e:
                 if not self.in_speculation:
-                    self.print_state(self.emulator)
+                    self.print_state()
                     print("Model error [trace_test_case]: %s" % e)
                     raise e
 
@@ -329,7 +329,7 @@ class X86UnicornModel(Model):
 
     def print_state(self, oneline: bool = False):
         def compressed(val: str):
-            return f"0x{val:<8x}" if val < self.r14_init else f"+0x{val - self.r14_init:<7x}"
+            return f"0x{val:<16x}" if val < self.r14_init else f"+0x{val - self.r14_init:<15x}"
 
         emulator = self.emulator
         rax = compressed(emulator.reg_read(UC_X86_REG_RAX))
@@ -348,10 +348,11 @@ class X86UnicornModel(Model):
             print(f"RSI: {rsi}")
             print(f"RDI: {rdi}")
         else:
-            print(f"rax={rax},"
-                  f"rbx={rbx},"
-                  f"rcx={rcx},"
-                  f"rdx={rdx}")
+            print(f"rax={rax} "
+                  f"rbx={rbx} "
+                  f"rcx={rcx} "
+                  f"rdx={rdx} "
+                  f"flags={emulator.reg_read(UC_X86_REG_EFLAGS):012b}")
 
     @staticmethod
     def trace_mem_access(emulator, access, address, size, value, user_data):
