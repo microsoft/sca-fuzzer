@@ -252,8 +252,8 @@ class InstructionSet:
                     return False
 
                 if implicit_operand.type == OT.REG and \
-                        implicit_operand.choices[0] in CONF.gpr_blocklist:
-                    assert len(implicit_operand.choices) == 1
+                        implicit_operand.values[0] in CONF.gpr_blocklist:
+                    assert len(implicit_operand.values) == 1
                     return False
             return True
 
@@ -272,16 +272,16 @@ class InstructionSet:
             skip_pending = False
             for op in s.operands:
                 if op.type == OT.REG:
-                    choices = list(set(op.choices) - set(CONF.gpr_blocklist))
+                    choices = list(set(op.values) - set(CONF.gpr_blocklist))
                     if not choices:
                         skip_pending = True
                         break
-                    op.choices = choices
+                    op.values = choices
 
                     # temporary disable generation of higher reg. bytes
-                    for i, reg in enumerate(op.choices):
+                    for i, reg in enumerate(op.values):
                         if reg[-1] == 'H':
-                            op.choices[i] = reg.replace('H', 'L', )
+                            op.values[i] = reg.replace('H', 'L', )
 
             if skip_pending:
                 skip_list.append(s)
@@ -343,6 +343,7 @@ class Operand(abc.ABC):
         self.type = type_
         self.src = src
         self.dest = dest
+        super(Operand, self).__init__()
 
     def __str__(self):
         return self.value
@@ -853,13 +854,13 @@ class AddRandomInstructionsPass(Pass):
         return instruction
 
     def generate_reg_operand(self, spec: OperandSpec, parent: Instruction) -> Operand:
-        reg_type = spec.choices[0]
+        reg_type = spec.values[0]
         if reg_type == 'GPR':
             choices = self.gprs_by_size[spec.width]
         elif reg_type.startswith("SIMD"):
             choices = X86Registers.simd_decoding[reg_type]
         else:
-            choices = spec.choices
+            choices = spec.values
 
         if not CONF.avoid_data_dependencies:
             reg = random.choice(choices)
@@ -874,17 +875,19 @@ class AddRandomInstructionsPass(Pass):
         return op
 
     def generate_mem_operand(self, spec: OperandSpec, parent: Instruction) -> Operand:
-        assert len(spec.choices) == 1
-        prefix = spec.choices[0]
+        assert len(spec.values) == 1
+        prefix = spec.values[0]
 
         base = random.choice(self.gpr_decoding)[64]
         return MemoryOperand(prefix, base, spec.src, spec.dest)
 
     @staticmethod
     def generate_imm_operand(spec: OperandSpec, parent: Instruction) -> Operand:
-        assert len(spec.choices) == 0
-        random_value = random.randint(pow(2, spec.width - 1) * -1, pow(2, spec.width - 1) - 1)
-        return ImmediateOperand(str(random_value))
+        if spec.values:
+            value = spec.values[0]
+        else:
+            value = random.randint(pow(2, spec.width - 1) * -1, pow(2, spec.width - 1) - 1)
+        return ImmediateOperand(str(value))
 
     def generate_label_operand(self, spec: OperandSpec, parent: Instruction) -> Operand:
         raise NotSupportedException()
@@ -943,6 +946,7 @@ class SandboxPass(Pass):
     mask_3bits = "0b111"
 
     def __init__(self):
+        super().__init__()
         if CONF.enable_mds:
             self.sandbox_address_mask = "0b1" + \
                                         "1" * (12 - CONF.memory_access_zeroed_bits) + \
@@ -1057,6 +1061,7 @@ class SandboxPass(Pass):
 class PrinterPass(Pass):
     def __init__(self, output_file: str):
         self.output_file = output_file
+        super().__init__()
 
     def run_on_dag(self, DAG: TestCaseDAG):
         with open(self.output_file, "w") as f:
