@@ -183,7 +183,14 @@ class InstructionSet:
 
     @staticmethod
     def parse_flags_operand(op):
-        return OperandSpec([], OT.FLAGS,
+        flags = [
+            op.attrib.get("flag_CF", "none"),
+            op.attrib.get("flag_PF", "none"),
+            op.attrib.get("flag_ZF", "none"),
+            op.attrib.get("flag_SF", "none"),
+            op.attrib.get("flag_OF", "none"),
+        ]
+        return OperandSpec(flags, OT.FLAGS,
                            op.attrib.get('r', "0"),
                            op.attrib.get('w', "0"))
 
@@ -389,8 +396,45 @@ class AgenOperand(Operand):
 
 
 class FlagsOperand(Operand):
-    def __init__(self, src: bool, dest: bool):
+    CF: str = "none"
+    PF: str = "none"
+    ZF: str = "none"
+    SF: str = "none"
+    OF: str = "none"
+
+    def __init__(self, value, src: bool, dest: bool):
+        self.CF = value[0]
+        self.PF = value[1]
+        self.ZF = value[2]
+        self.SF = value[3]
+        self.OF = value[4]
         super().__init__("FLAGS", OT.FLAGS, src, dest)
+
+    def __str__(self):
+        return f"FLAGS: CF={self.CF}, PF={self.PF}, ZF={self.ZF}, SF={self.SF}, OF={self.OF}"
+
+    def _get_flag_list(self, types):
+        flags = []
+        if self.CF in types:
+            flags.append('CF')
+        if self.PF in types:
+            flags.append('PF')
+        if self.ZF in types:
+            flags.append('ZF')
+        if self.SF in types:
+            flags.append('SF')
+        if self.OF in types:
+            flags.append('OF')
+        return flags
+
+    def get_read_flags(self):
+        return self._get_flag_list(['r', 'r/w', 'r/cw'])
+
+    def get_write_flags(self):
+        return self._get_flag_list(['w', 'r/w', 'r/cw'])
+
+    def get_undef_flags(self):
+        return self._get_flag_list(['undef'])
 
 
 class Instruction:
@@ -474,6 +518,15 @@ class Instruction:
             if isinstance(o, MemoryOperand):
                 res.append(o)
         return res
+
+    def get_flags_operand(self) -> FlagsOperand:
+        for op in self.implicit_operands:
+            if isinstance(op, FlagsOperand):
+                return op
+
+        for op in self.operands:
+            if isinstance(op, FlagsOperand):
+                return op
 
 
 class InstructionList:
@@ -897,7 +950,7 @@ class AddRandomInstructionsPass(Pass):
 
     @staticmethod
     def generate_flags_operand(spec: OperandSpec, parent: Instruction) -> Operand:
-        return FlagsOperand(spec.src, spec.dest)
+        return FlagsOperand(spec.values, spec.src, spec.dest)
 
     def get_operand_from_spec(self, spec: OperandSpec, parent: Instruction) -> Operand:
         generators = {
