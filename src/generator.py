@@ -1061,12 +1061,9 @@ class SandboxPass(Pass):
         apply_mask = Instruction("AND", True) \
             .add_op(RegisterOperand(mem_reg, True, True)) \
             .add_op(ImmediateOperand(self.sandbox_address_mask))
-        align_to_r14 = Instruction("ADD", True) \
-            .add_op(RegisterOperand(mem_reg, True, True)) \
-            .add_op(RegisterOperand("R14", True, False))
 
         parent.insert_before(instr, apply_mask)
-        parent.insert_before(instr, align_to_r14)
+        instr.get_mem_operands()[0].value = "R14 + " + mem_reg
 
     @staticmethod
     def sandbox_division(I: Instruction, parent: BasicBlock):
@@ -1150,7 +1147,7 @@ class PatchUndefinedFlagsPass(Pass):
 
     I.e., we replace
         SHL eax, eax  // undefined OF
-        JNO .label  // uses OF
+        JNO .label    // uses OF
     with
         SHL eax, eax
         ADD ebx, ecx  // random instruction that overwrites OF
