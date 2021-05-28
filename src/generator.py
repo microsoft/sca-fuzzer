@@ -1121,6 +1121,7 @@ class SandboxPass(Pass):
         if address.value != offset.value:
             apply_mask = Instruction("AND", True).add_op(offset).add_imm(self.mask_3bits)
             parent.insert_before(I, apply_mask)
+            return
 
         # Special case: offset and address use the same register
         # Sandboxing is impossible. Give up
