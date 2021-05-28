@@ -27,26 +27,52 @@ class ConfCls:
     avoid_data_dependencies: bool = True
     generate_memory_accesses_in_pairs: bool = True
     memory_access_zeroed_bits: int = 6
-    supported_categories = ["NOP"]
+    supported_categories = [
+        "BINARY",
+        "BITBYTE",
+        "CMOV",
+        "COND_BR",
+        "CONVERT",
+        "DATAXFER",
+        "FLAGOP",
+        "LOGICAL",
+        "MISC",
+        "NOP",
+        "POP",
+        "PUSH",
+        "SEMAPHORE",
+        "SETCC",
+        # "ROTATE",     # TBD: under construction
+        # "SHIFT",      # TBD: under construction
+        # "STRINGOP",   # TBD: under construction
+        # "UNCOND_BR",   # Not supported: Complex control flow
+        # "CALL",        # Not supported: Complex control flow
+        # "RET",         # Not supported: Complex control flow
+        # "SEGOP",       # Not supported: System instructions
+        # "INTERRUPT",   # Not supported: System instructions
+        # "IO",          # Not supported: System instructions
+        # "IOSTRINGOP",  # Not supported: System instructions
+        # "SYSCALL",     # Not supported: System instructions
+        # "SYSRET",      # Not supported: System instructions
+        # "SYSTEM",      # Not supported: System instructions
+    ]
     instruction_blocklist = [
-        # STI - enables interrupts, thus corrupting the measurements; CTI - just in case
+        # Hard to fix:
+        # STI - enables interrupts, thus corrupting the measurements; CLI - just in case
         "STI", "CLI",
-        # Muls - mismatch in Unicorn
-        "{load} IMUL", "{store} IMUL", "IMUL", "MUL", "REX MUL", "REX IMUL",
-        # Bit count - mismatch in Unicorn; undefined flags
-        "BSF", "BSR", "TZCNT", "LZCNT",
-        # BT - also mismatch
-        "BT", "BTC", "BTR", "BTS", "LOCK BT", "LOCK BTC", "LOCK BTR", "LOCK BTS",
-        # IDIV - preventing overflows for signed division is tricky
-        # I haven't figured it yet
-        "IDIV", "REX IDIV",
-        # Categories: "SHIFT", "ROTATE", -> again, flags
-        # Bug in Unicorn? UP: I think I fixed it, but will keep it blocked just in case, for now
-        "XOR",
+        # CMPXCHG - Unicorn doesn't always execute the mem. access hook
+        "CMPXCHG", "REX CMPXCHG", "CMPXCHG8B", "LOCK CMPXCHG", "LOCK REX CMPXCHG", "LOCK CMPXCHG8B",
+        # Undefined instructions are, well, undefined
+        "UD", "UD2",
+        # Incorrect emulation
+        "CPUID",
 
-        # Fixable:
-        # CX-based conditional jumps and loops -> decoding not yet supported
+        # Fixable: under construction
+        "LEA",
         "JRCXZ", "JECXZ", "JCXZ", "LOOP", "LOOPE", "LOOPNE",
+        "IDIV", "REX IDIV",
+        "ENTERW", "ENTER", "LEAVEW", "LEAVE",
+        "XLAT", "XLATB",
     ]
     # x86 executor internally uses R15, R14, RSP, RBP and, thus, they are excluded
     # segment registers are also excluded as we don't support their handling so far
