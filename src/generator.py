@@ -11,7 +11,7 @@ import random
 import abc
 import xml.etree.ElementTree as ET
 from enum import Enum
-from custom_types import Optional, List, Tuple
+from custom_types import Optional, List
 
 from helpers import NotSupportedException
 from config import CONF
@@ -164,7 +164,7 @@ class InstructionSet:
         return spec
 
     @staticmethod
-    def parse_agen_operand(op):
+    def parse_agen_operand(_):
         return OperandSpec([], OT.AGEN, "1", "0")
 
     @staticmethod
@@ -178,7 +178,7 @@ class InstructionSet:
         return spec
 
     @staticmethod
-    def parse_label_operand(op):
+    def parse_label_operand(_):
         return OperandSpec([], OT.LABEL, "1", "0")
 
     @staticmethod
@@ -298,27 +298,27 @@ class InstructionSet:
             self.all.remove(s)
 
         # set parameters
-        for instruction in self.all + self.control_flow:
-            if instruction.control_flow:
-                if "JMP" in instruction.name:
+        for inst in self.all + self.control_flow:
+            if inst.control_flow:
+                if "JMP" in inst.name:
                     self.has_unconditional_branch = True
                 else:
                     self.has_conditional_branch = True
-            elif instruction.has_mem_operand:
-                if instruction.has_write:
+            elif inst.has_mem_operand:
+                if inst.has_write:
                     self.has_writes = True
                 else:
                     self.has_reads = True
 
         # conditional_reg = 0
-        # uncond = 0
+        # unconditional = 0
         # store = 0
         # load = 0
         # reg = 0
         # for s in self.all + self.control_flow:
         #     if s.control_flow:
         #         if "JMP" in s.name:
-        #             uncond += 1
+        #             unconditional += 1
         #         else:
         #             conditional_reg += 1
         #     elif s.has_mem_operand:
@@ -328,7 +328,7 @@ class InstructionSet:
         #             load += 1
         #     else:
         #         reg += 1
-        # print(f"Unconditional: {uncond}")
+        # print(f"Unconditional: {unconditional}")
         # print(f"Conditional: {conditional_reg}")
         # print(f"Store: {store}")
         # print(f"Load: {load}")
@@ -383,11 +383,11 @@ class ImmediateOperand(Operand):
 
 
 class LabelOperand(Operand):
-    BB: BasicBlock
+    bb: BasicBlock
 
-    def __init__(self, BB):
-        self.BB = BB
-        super().__init__("." + BB.label, OT.LABEL, True, False)
+    def __init__(self, bb):
+        self.bb = bb
+        super().__init__("." + bb.label, OT.LABEL, True, False)
 
 
 class AgenOperand(Operand):
@@ -570,51 +570,51 @@ class BasicBlock:
     def __len__(self):
         return len(self.__instructions)
 
-    def append_non_terminator(self, I: Instruction):
+    def append_non_terminator(self, inst: Instruction):
         if not self.__instructions.start:
             # first instructions
-            self.__instructions.start = I
-            self.__instructions.end = I
+            self.__instructions.start = inst
+            self.__instructions.end = inst
             return
 
-        self.__instructions.end.next = I
-        I.previous = self.__instructions.end
-        self.__instructions.end = I
+        self.__instructions.end.next = inst
+        inst.previous = self.__instructions.end
+        self.__instructions.end = inst
 
-    def insert_after(self, position: Instruction, I: Instruction):
+    def insert_after(self, position: Instruction, inst: Instruction):
         if not position and not self.__instructions.start:
-            self.__instructions.start = I
-            self.__instructions.end = I
+            self.__instructions.start = inst
+            self.__instructions.end = inst
             return
 
         next_ = position.next
-        position.next = I
-        I.previous = position
+        position.next = inst
+        inst.previous = position
         if next_:
-            I.next = next_
-            next_.previous = I
+            inst.next = next_
+            next_.previous = inst
         else:
-            self.__instructions.end = I
+            self.__instructions.end = inst
 
-    def insert_before(self, position: Instruction, I: Instruction):
+    def insert_before(self, position: Instruction, inst: Instruction):
         if not position and not self.__instructions.start:
-            self.__instructions.start = I
-            self.__instructions.end = I
+            self.__instructions.start = inst
+            self.__instructions.end = inst
             return
 
         previous = position.previous
-        position.previous = I
-        I.next = position
+        position.previous = inst
+        inst.next = position
         if previous:
-            I.previous = previous
-            previous.next = I
+            inst.previous = previous
+            previous.next = inst
         else:
-            self.__instructions.start = I
+            self.__instructions.start = inst
 
     def delete(self, target: Instruction):
         # verify that this instruction indeed belongs to this BB
-        for I in self.__instructions:
-            if I == target:
+        for inst in self.__instructions:
+            if inst == target:
                 break
         else:
             raise Exception("Error deleting an instruction from a BB")
@@ -644,7 +644,7 @@ class BasicBlock:
 
 class Function:
     name: str
-    BBs: List[BasicBlock]
+    all_bb: List[BasicBlock]
     entry: BasicBlock
     exit: BasicBlock
 
@@ -656,11 +656,11 @@ class Function:
         self.exit = BasicBlock(f"{self.name}.exit")
         if not CONF.single_function_test_case:
             self.exit.terminators = [Instruction("RET")]
-        self.BBs = [self.entry, self.exit]
+        self.all_bb = [self.entry, self.exit]
 
     def __iter__(self):
-        for BB in self.BBs:
-            yield BB
+        for bb in self.all_bb:
+            yield bb
 
 
 class TestCaseDAG:
@@ -696,9 +696,9 @@ class Generator:
         self.test_case = TestCaseDAG()
 
         # create a test function and add to the test case
-        function = self._generate_random_function("test_case_main", shuffle=False)
-        self.test_case.functions.append(function)
-        self.test_case.main = function
+        func = self._generate_random_function("test_case_main", shuffle=False)
+        self.test_case.functions.append(func)
+        self.test_case.main = func
 
         # fill the test case with instructions
         SetTerminatorsPass(self.instruction_set).run_on_dag(self.test_case)
@@ -723,7 +723,7 @@ class Generator:
 
     def _generate_random_function(self, name: str, shuffle: bool = False):
         """ Generates a random DAG of basic blocks within a function """
-        function = Function(name)
+        func = Function(name)
 
         # Define the maximum allowed number of successors for any BB
         max_successors = 2 if self.instruction_set.has_conditional_branch else 1
@@ -740,7 +740,7 @@ class Generator:
 
             # the last node has only one successor - exit
             if i == node_count - 1:
-                current_bb.successors = [function.exit]
+                current_bb.successors = [func.exit]
                 break
 
             # the rest of the node have a random number of successors
@@ -754,26 +754,26 @@ class Generator:
 
             # all other successors are random, selected from next nodes
             options = nodes[i + 2:]
-            options.append(function.exit)
+            options.append(func.exit)
             for j in range(1, successor_count):
                 target = random.choice(options)
                 options.remove(target)
                 current_bb.successors.append(target)
 
-        function.entry.successors = [nodes[0]]
+        func.entry.successors = [nodes[0]]
 
         if not shuffle:
-            function.BBs = [function.entry] + nodes + [function.exit]
-            return function
+            func.all_bb = [func.entry] + nodes + [func.exit]
+            return func
 
         # Shuffle them to make the function less straight-line + add entry and exit nodes
-        function.BBs = [function.entry]
+        func.all_bb = [func.entry]
         while nodes:
             current_bb = random.choice(nodes)
             nodes.remove(current_bb)
-            function.BBs.append(current_bb)
-        function.BBs.append(function.exit)
-        return function
+            func.all_bb.append(current_bb)
+        func.all_bb.append(func.exit)
+        return func
 
 
 class SingleInstructionGenerator:
@@ -808,13 +808,13 @@ class SingleInstructionGenerator:
 
     def generate_from_spec(self, spec: InstructionSpec):
         # fill up with random operand, following the spec
-        instruction = Instruction(spec.name)
+        inst = Instruction(spec.name)
         for operand_spec in spec.operands:
             # generate an operand
-            operand = self.get_operand_from_spec(operand_spec, instruction)
+            operand = self.get_operand_from_spec(operand_spec, inst)
 
             # FIXME: dirty hack
-            if instruction.name in ["DIV", "REX DIV"]:
+            if inst.name in ["DIV", "REX DIV"]:
                 if operand.value in ["RDX", "RAX"]:
                     operand.value = "RBX"
                 elif operand.value == "EDX":
@@ -824,14 +824,14 @@ class SingleInstructionGenerator:
                 elif operand.value in ["DH", "DL"]:
                     operand.value = "BL"
 
-            instruction.operands.append(operand)
+            inst.operands.append(operand)
 
         # copy the implicit operands
         for operand_spec in spec.implicit_operands:
-            operand = self.get_operand_from_spec(operand_spec, instruction)
-            instruction.implicit_operands.append(operand)
+            operand = self.get_operand_from_spec(operand_spec, inst)
+            inst.implicit_operands.append(operand)
 
-        return instruction
+        return inst
 
     def generate_reg_operand(self, spec: OperandSpec, parent: Instruction) -> Operand:
         reg_type = spec.values[0]
@@ -854,7 +854,7 @@ class SingleInstructionGenerator:
         parent.latest_reg_operand = op
         return op
 
-    def generate_mem_operand(self, spec: OperandSpec, parent: Instruction) -> Operand:
+    def generate_mem_operand(self, spec: OperandSpec, _: Instruction) -> Operand:
         assert len(spec.values) == 1
         prefix = spec.values[0]
 
@@ -862,7 +862,7 @@ class SingleInstructionGenerator:
         return MemoryOperand(prefix, base, spec.src, spec.dest)
 
     @staticmethod
-    def generate_imm_operand(spec: OperandSpec, parent: Instruction) -> Operand:
+    def generate_imm_operand(spec: OperandSpec, _: Instruction) -> Operand:
         if spec.values:
             value = spec.values[0]
         else:
@@ -876,7 +876,7 @@ class SingleInstructionGenerator:
         raise NotSupportedException()
 
     @staticmethod
-    def generate_flags_operand(spec: OperandSpec, parent: Instruction) -> Operand:
+    def generate_flags_operand(spec: OperandSpec, _: Instruction) -> Operand:
         return FlagsOperand(spec.values, spec.src, spec.dest)
 
     def get_operand_from_spec(self, spec: OperandSpec, parent: Instruction) -> Operand:
@@ -899,40 +899,41 @@ class Pass(abc.ABC):
 
 class SetTerminatorsPass(Pass):
     def __init__(self, instruction_set: InstructionSet):
+        super().__init__()
         self.instruction_set = instruction_set
 
     def run_on_dag(self, DAG: TestCaseDAG):
-        for function in DAG.functions:
-            for BB in function.BBs:
-                if len(BB.successors) == 0:
+        for func in DAG.functions:
+            for bb in func.all_bb:
+                if len(bb.successors) == 0:
                     # Return instruction
                     continue
 
-                elif len(BB.successors) == 1:
+                elif len(bb.successors) == 1:
                     # the last basic block simply falls through
-                    if BB.successors[0] == function.exit:
+                    if bb.successors[0] == func.exit:
                         continue
 
                     # Unconditional branch
                     terminator = Instruction("JMP")
-                    terminator.operands = [LabelOperand(BB.successors[0])]
-                    BB.terminators.append(terminator)
+                    terminator.operands = [LabelOperand(bb.successors[0])]
+                    bb.terminators.append(terminator)
 
-                elif len(BB.successors) == 2:
+                elif len(bb.successors) == 2:
                     # Conditional branch
                     spec = random.choice(self.instruction_set.control_flow)
                     terminator = Instruction(spec.name)
-                    terminator.operands = [LabelOperand(BB.successors[0])]
+                    terminator.operands = [LabelOperand(bb.successors[0])]
                     for op in spec.implicit_operands:
                         if op.type == OT.FLAGS:
                             terminator.implicit_operands = \
                                 [FlagsOperand(op.values, op.src, op.dest)]
                             break
-                    BB.terminators.append(terminator)
+                    bb.terminators.append(terminator)
 
                     terminator = Instruction("JMP")
-                    terminator.operands = [LabelOperand(BB.successors[1])]
-                    BB.terminators.append(terminator)
+                    terminator.operands = [LabelOperand(bb.successors[1])]
+                    bb.terminators.append(terminator)
                 else:
                     # Indirect jump
                     raise NotSupportedException()
@@ -942,6 +943,7 @@ class AddRandomInstructionsPass(Pass):
     had_recent_memory_access: bool = False
 
     def __init__(self, instruction_set: InstructionSet, max_length: int, test_mode: bool = False):
+        super().__init__()
         self.instruction_set = instruction_set
         self.max_length = max_length
         self.test_mode = test_mode
@@ -954,12 +956,12 @@ class AddRandomInstructionsPass(Pass):
             return
 
         # otherwise, fill the DAG with random instructions
-        for function in DAG.functions:
-            basic_blocks_to_fill = function.BBs[1:-1]
+        for func in DAG.functions:
+            basic_blocks_to_fill = func.all_bb[1:-1]
             for _ in range(0, self.max_length):
-                basic_block = random.choice(basic_blocks_to_fill)
-                instruction = self.generate_instruction()
-                basic_block.append_non_terminator(instruction)
+                bb = random.choice(basic_blocks_to_fill)
+                inst = self.generate_instruction()
+                bb.append_non_terminator(inst)
 
     def generate_instruction(self) -> Instruction:
         instruction_spec: InstructionSpec
@@ -995,20 +997,20 @@ class AddRandomInstructionsPass(Pass):
             for basic_block in function_:
                 for instruction_spec in self.instruction_set.all:
                     # fill up with random operand, following the spec
-                    instruction = self.instruction_generator.generate_from_spec(instruction_spec)
-                    basic_block.append_non_terminator(instruction)
+                    inst = self.instruction_generator.generate_from_spec(instruction_spec)
+                    basic_block.append_non_terminator(inst)
 
 
 class LFENCEPass(Pass):
     def run_on_dag(self, DAG: TestCaseDAG) -> None:
-        for function in DAG.functions:
-            for BB in function:
+        for func in DAG.functions:
+            for bb in func:
                 insertion_points = []
-                for instr in BB:
+                for instr in bb:
                     insertion_points.append(instr)  # make a copy to avoid infinite insertions
 
                 for instr in insertion_points:
-                    BB.insert_after(instr, Instruction("LFENCE", True))
+                    bb.insert_after(instr, Instruction("LFENCE", True))
 
 
 class SandboxPass(Pass):
@@ -1026,33 +1028,33 @@ class SandboxPass(Pass):
                                         "0" * CONF.memory_access_zeroed_bits
 
     def run_on_dag(self, DAG: TestCaseDAG) -> None:
-        for function in DAG.functions:
-            for BB in function.BBs:
-                if BB == function.entry:
+        for func in DAG.functions:
+            for bb in func.all_bb:
+                if bb == func.entry:
                     continue
 
                 # collect all instructions that require sandboxing
                 memory_instructions = []
                 divisions = []
                 bit_tests = []
-                for I in BB:
-                    if I.has_mem_operand():
-                        memory_instructions.append(I)
-                    if I.name in ["DIV", "REX DIV"]:
-                        divisions.append(I)
-                    elif I.name in ["BT", "BTC", "BTR", "BTS", "LOCK BT", "LOCK BTC", "LOCK BTR",
-                                    "LOCK BTS"]:
-                        bit_tests.append(I)
+                for inst in bb:
+                    if inst.has_mem_operand():
+                        memory_instructions.append(inst)
+                    if inst.name in ["DIV", "REX DIV"]:
+                        divisions.append(inst)
+                    elif inst.name in ["BT", "BTC", "BTR", "BTS", "LOCK BT", "LOCK BTC", "LOCK BTR",
+                                       "LOCK BTS"]:
+                        bit_tests.append(inst)
 
                 # sandbox them
-                for I in memory_instructions:
-                    self.sandbox_memory_access(I, BB)
+                for inst in memory_instructions:
+                    self.sandbox_memory_access(inst, bb)
 
-                for I in divisions:  # must be after memory accesses
-                    self.sandbox_division(I, BB)
+                for inst in divisions:  # must be after memory accesses
+                    self.sandbox_division(inst, bb)
 
-                for I in bit_tests:
-                    self.sandbox_bit_test(I, BB)
+                for inst in bit_tests:
+                    self.sandbox_bit_test(inst, bb)
 
     def sandbox_memory_access(self, instr: Instruction, parent: BasicBlock):
         """ Force the memory accesses into the page starting from R14 """
@@ -1066,47 +1068,47 @@ class SandboxPass(Pass):
         instr.get_mem_operands()[0].value = "R14 + " + mem_reg
 
     @staticmethod
-    def sandbox_division(I: Instruction, parent: BasicBlock):
+    def sandbox_division(inst: Instruction, parent: BasicBlock):
         """
         1. Ensure that the divisor is never zero by ORing it with a random value.
         OR - because it guarantees that the result is not zero.
         Random value - to test various modes of operations in DIV.
         2. Truncate the source register pair RDX:RAX to prevent overflows in division.
         """
-        divisor = I.operands[0]
+        divisor = inst.operands[0]
 
         if divisor.value in ["RDX", "EDX", "DX", "DH", "DL", "RAX"]:
             # sandboxing is too complex, give up
-            parent.delete(I)
+            parent.delete(inst)
             return
 
         zero_rdx = Instruction("MOV", True) \
             .add_op(RegisterOperand("RDX", False, True)) \
             .add_imm('0')
-        parent.insert_before(I, zero_rdx)
+        parent.insert_before(inst, zero_rdx)
 
         divisor_mask = hex(random.randint(1, 255))
         apply_divisor_mask = Instruction("OR", True).add_op(divisor).add_imm(divisor_mask)
-        parent.insert_before(I, apply_divisor_mask)
+        parent.insert_before(inst, apply_divisor_mask)
 
         apply_ax_mask = Instruction("AND", True) \
             .add_op(RegisterOperand("RAX", True, True)) \
             .add_imm('0xff')
-        parent.insert_before(I, apply_ax_mask)
+        parent.insert_before(inst, apply_ax_mask)
 
-    def sandbox_bit_test(self, I: Instruction, parent: BasicBlock):
+    def sandbox_bit_test(self, inst: Instruction, parent: BasicBlock):
         """
         The address accessed by a BT* instruction is based on both of its operands.
         `sandbox_memory_access` take care of the first operand.
         This function ensures that the offset is always within a byte.
         """
-        address = I.operands[0]
+        address = inst.operands[0]
         if isinstance(address, RegisterOperand):
             # this is a version that does not access memory
             # no need for sandboxing
             return
 
-        offset = I.operands[1]
+        offset = inst.operands[1]
         if isinstance(offset, ImmediateOperand):
             # The offset is an immediate
             # Simply replace it with a smaller value
@@ -1117,20 +1119,20 @@ class SandboxPass(Pass):
         # Mask its upper bits to reduce the stored value to at most 7
         if address.value != offset.value:
             apply_mask = Instruction("AND", True).add_op(offset).add_imm(self.mask_3bits)
-            parent.insert_before(I, apply_mask)
+            parent.insert_before(inst, apply_mask)
             return
 
         # Special case: offset and address use the same register
         # Sandboxing is impossible. Give up
-        parent.delete(I)
+        parent.delete(inst)
 
     @staticmethod
-    def requires_sandbox(I: Instruction):
-        if I.has_mem_operand():
+    def requires_sandbox(inst: Instruction):
+        if inst.has_mem_operand():
             return True
-        if I.name in ["DIV", "REX DIV"]:
+        if inst.name in ["DIV", "REX DIV"]:
             return True
-        if I.name in ["BT", "BTC", "BTR", "BTS", "LOCK BT", "LOCK BTC", "LOCK BTR", "LOCK BTS"]:
+        if inst.name in ["BT", "BTC", "BTR", "BTS", "LOCK BT", "LOCK BTC", "LOCK BTR", "LOCK BTS"]:
             return True
         return False
 
@@ -1161,21 +1163,21 @@ class PatchUndefinedFlagsPass(Pass):
 
     def run_on_dag(self, DAG: TestCaseDAG) -> None:
         for function_ in DAG.functions:
-            for BB in function_.BBs:
+            for bb in function_.all_bb:
                 # get a list of all instructions in the BB
                 all_instructions = []
-                for I in BB:
-                    all_instructions.append(I)
-                if len(BB.terminators) == 2:  # include conditional terminators
-                    all_instructions.append(BB.terminators[0])
+                for inst in bb:
+                    all_instructions.append(inst)
+                if len(bb.terminators) == 2:  # include conditional terminators
+                    all_instructions.append(bb.terminators[0])
 
                 # keep track of the FLAGS dependencies as we iterate over instructions
                 flags_to_set = set()
 
                 # walk the list in inverse order
                 while all_instructions:
-                    instruction = all_instructions.pop()
-                    flags: FlagsOperand = instruction.get_flags_operand()
+                    inst = all_instructions.pop()
+                    flags: FlagsOperand = inst.get_flags_operand()
                     if not flags:
                         continue
 
@@ -1183,7 +1185,7 @@ class PatchUndefinedFlagsPass(Pass):
                     undef_flags = [i for i in flags.get_undef_flags() if i in flags_to_set]
                     if undef_flags:
                         patch = self.find_flags_patch(undef_flags, flags_to_set)
-                        BB.insert_after(instruction, patch)
+                        bb.insert_after(inst, patch)
                         patch.is_instrumentation = True
                         # remove the flags overwritten by the patch
                         for f in patch.get_flags_operand().get_write_flags():
@@ -1201,7 +1203,7 @@ class PatchUndefinedFlagsPass(Pass):
                 # make sure that we do not have undefined flags when we enter the BB
                 if flags_to_set:
                     patch = self.find_flags_patch(list(flags_to_set), flags_to_set)
-                    BB.insert_before(BB.get_first(), patch)
+                    bb.insert_before(bb.get_first(), patch)
                     patch.is_instrumentation = True
 
     def find_flags_patch(self, undef_flags, flags_to_set):
@@ -1258,10 +1260,10 @@ class PrinterPass(Pass):
                 f.write("CALL .test_case_main\n"
                         "JMP .test_case_exit\n")
 
-            for function in DAG.functions:
-                f.write(f".{function.name}:\n")
-                for BB in function.BBs:
-                    self.run_on_basic_block(BB, f)
+            for func in DAG.functions:
+                f.write(f".{func.name}:\n")
+                for bb in func.all_bb:
+                    self.run_on_basic_block(bb, f)
 
             f.write(".test_case_exit:\n"
                     f"LEA R14, [R14 - {cache_line_offset}] # instrumentation\n"
@@ -1275,5 +1277,5 @@ class PrinterPass(Pass):
             self.run_on_instruction(i, file)
 
     @staticmethod
-    def run_on_instruction(instruction: Instruction, file):
-        file.write(str(instruction) + "\n")
+    def run_on_instruction(inst: Instruction, file):
+        file.write(str(inst) + "\n")

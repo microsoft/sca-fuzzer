@@ -84,6 +84,7 @@ class PatternCoverage(Coverage):
     previous_target_coverage: int = 0
 
     def __init__(self, instruction_set: InstructionSet):
+        super().__init__()
         self.current_patterns = []
         self.coverage = defaultdict(set)
 
@@ -117,21 +118,21 @@ class PatternCoverage(Coverage):
         # collect instruction positions
         counter = 2  # account for the test case prologue
         positions = {}
-        for function in DAG.functions:
-            for BB in function:
-                for instr in BB:
+        for func in DAG.functions:
+            for bb in func:
+                for instr in bb:
                     positions[instr] = counter
                     counter += 1
-                for t in BB.terminators:
+                for t in bb.terminators:
                     positions[t] = counter
                     counter += 1
 
         # collect control hazards
-        for function in DAG.functions:
-            for BB in function:
-                for t in BB.terminators:
+        for func in DAG.functions:
+            for bb in func:
+                for t in bb.terminators:
                     for target in t.operands:
-                        target_instruction = target.BB.get_first()
+                        target_instruction = target.bb.get_first()
 
                         # skip instrumentation
                         while target_instruction and target_instruction.is_instrumentation:
@@ -146,9 +147,9 @@ class PatternCoverage(Coverage):
 
         # collect all instruction pairs
         pairs: List[Tuple[Instruction, Instruction]] = []
-        for function in DAG.functions:
-            for BB in function:
-                for instr in BB:
+        for func in DAG.functions:
+            for bb in func:
+                for instr in bb:
                     if not instr.is_instrumentation and instr.next:
                         # skip instrumentation
                         next_instr = instr.next
