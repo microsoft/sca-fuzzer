@@ -27,7 +27,6 @@ class ConfCls:
     avoid_data_dependencies: bool = True
     generate_memory_accesses_in_pairs: bool = True
     memory_access_zeroed_bits: int = 6
-    delay_on_rax: bool = False
     supported_categories = ["NOP"]
     instruction_blocklist = [
         # STI - enables interrupts, thus corrupting the measurements; CTI - just in case

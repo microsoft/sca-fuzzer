@@ -115,7 +115,7 @@ class PatternCoverage(Coverage):
 
     def generator_hook(self, DAG: TestCaseDAG, instruction_set: InstructionSet):
         # collect instruction positions
-        counter = 2 if not CONF.delay_on_rax else 19  # account for the test case prologue
+        counter = 2  # account for the test case prologue
         positions = {}
         for function in DAG.functions:
             for BB in function:
