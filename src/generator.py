@@ -394,6 +394,9 @@ class AgenOperand(Operand):
     def __init__(self, value: str):
         super().__init__(value, OT.AGEN, True, False)
 
+    def __str__(self):
+        return f"[{self.value}]"
+
 
 class FlagsOperand(Operand):
     CF: str = "none"
@@ -861,8 +864,18 @@ class SingleInstructionGenerator:
     def generate_label_operand(self, spec: OperandSpec, parent: Instruction) -> Operand:
         raise NotSupportedException()
 
-    def generate_agen_operand(self, spec: OperandSpec, parent: Instruction) -> Operand:
-        raise NotSupportedException()
+    def generate_agen_operand(self, _: OperandSpec, __: Instruction) -> Operand:
+        n_operands = random.randint(1, 3)
+        reg1 = random.choice(self.gpr_decoding)[64]
+        if n_operands == 1:
+            return AgenOperand(reg1)
+
+        reg2 = random.choice(self.gpr_decoding)[64]
+        if n_operands == 2:
+            return AgenOperand(reg1 + " + " + reg2)
+
+        imm = str(random.randint(0, pow(2, 16) - 1))
+        return AgenOperand(reg1 + " + " + reg2 + " + " + imm)
 
     @staticmethod
     def generate_flags_operand(spec: OperandSpec, _: Instruction) -> Operand:

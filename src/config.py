@@ -68,7 +68,6 @@ class ConfCls:
         "CPUID",
 
         # Fixable: under construction
-        "LEA",
         "JRCXZ", "JECXZ", "JCXZ", "LOOP", "LOOPE", "LOOPNE",
         "IDIV", "REX IDIV",
         "ENTERW", "ENTER", "LEAVEW", "LEAVE",
