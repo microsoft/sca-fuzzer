@@ -570,17 +570,6 @@ class BasicBlock:
     def __len__(self):
         return len(self.__instructions)
 
-    def append_non_terminator(self, inst: Instruction):
-        if not self.__instructions.start:
-            # first instructions
-            self.__instructions.start = inst
-            self.__instructions.end = inst
-            return
-
-        self.__instructions.end.next = inst
-        inst.previous = self.__instructions.end
-        self.__instructions.end = inst
-
     def insert_after(self, position: Instruction, inst: Instruction):
         if not position and not self.__instructions.start:
             self.__instructions.start = inst
@@ -961,7 +950,7 @@ class AddRandomInstructionsPass(Pass):
             for _ in range(0, self.max_length):
                 bb = random.choice(basic_blocks_to_fill)
                 inst = self.generate_instruction()
-                bb.append_non_terminator(inst)
+                bb.insert_after(bb.get_last(), inst)
 
     def generate_instruction(self) -> Instruction:
         instruction_spec: InstructionSpec
@@ -993,12 +982,12 @@ class AddRandomInstructionsPass(Pass):
         return self.instruction_generator.generate_from_spec(instruction_spec)
 
     def generate_all_instructions(self, DAG: TestCaseDAG):
-        for function_ in DAG.functions:
-            for basic_block in function_:
+        for func in DAG.functions:
+            for bb in func:
                 for instruction_spec in self.instruction_set.all:
                     # fill up with random operand, following the spec
                     inst = self.instruction_generator.generate_from_spec(instruction_spec)
-                    basic_block.append_non_terminator(inst)
+                    bb.insert_after(bb.get_last(), inst)
 
 
 class LFENCEPass(Pass):
@@ -1162,8 +1151,8 @@ class PatchUndefinedFlagsPass(Pass):
         self.instruction_generator = SingleInstructionGenerator()
 
     def run_on_dag(self, DAG: TestCaseDAG) -> None:
-        for function_ in DAG.functions:
-            for bb in function_.all_bb:
+        for func in DAG.functions:
+            for bb in func.all_bb:
                 # get a list of all instructions in the BB
                 all_instructions = []
                 for inst in bb:
@@ -1269,12 +1258,12 @@ class PrinterPass(Pass):
                     f"LEA R14, [R14 - {cache_line_offset}] # instrumentation\n"
                     "MFENCE # instrumentation\n")
 
-    def run_on_basic_block(self, basic_block: BasicBlock, file):
-        file.write(f".{basic_block.label}:\n")
-        for i in basic_block:
-            self.run_on_instruction(i, file)
-        for i in basic_block.terminators:
-            self.run_on_instruction(i, file)
+    def run_on_basic_block(self, bb: BasicBlock, file):
+        file.write(f".{bb.label}:\n")
+        for inst in bb:
+            self.run_on_instruction(inst, file)
+        for inst in bb.terminators:
+            self.run_on_instruction(inst, file)
 
     @staticmethod
     def run_on_instruction(inst: Instruction, file):
