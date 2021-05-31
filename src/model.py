@@ -27,6 +27,7 @@ class Model(ABC):
     R14_OFFSET = RUNTIME_R_SIZE // 2
 
     def __init__(self, sandbox_base, stack_base, code_base):
+        super().__init__()
         self.sandbox_base: int = sandbox_base
         self.stack_base: int = stack_base
         self.code_base: int = code_base
@@ -65,9 +66,10 @@ class X86UnicornTracer(ABC):
     coverage_trace: List[Tuple[bool, int]]
 
     def __init__(self):
+        super().__init__()
         self.trace = []
 
-    def reset_trace(self) -> None:
+    def reset_trace(self, emulator) -> None:
         self.trace = []
         self.coverage_trace = []
 
@@ -77,7 +79,7 @@ class X86UnicornTracer(ABC):
     def get_coverage_trace(self):
         return self.coverage_trace
 
-    def trace_mem_access(self, access, address: int, size: int, value: int) -> None:
+    def observe_mem_access(self, access, address: int, size: int, value: int, model) -> None:
         if not model.in_speculation:
             self.coverage_trace.append((False, address - model.r14_init))
             if model.debug:
@@ -87,7 +89,7 @@ class X86UnicornTracer(ABC):
                 else:
                     print(f"  > write: +0x{address - model.r14_init:x} = 0x{value:x}")
 
-    def trace_code(self, address: int, size: int) -> None:
+    def observe_instruction(self, address: int, size: int, model) -> None:
         if not model.in_speculation:
             self.coverage_trace.append((True, address - model.code_base))
             if model.debug:
@@ -96,11 +98,11 @@ class X86UnicornTracer(ABC):
 
 
 class L1DTracer(X86UnicornTracer):
-    def reset_trace(self):
+    def reset_trace(self, emulator):
         self.trace = [0, 0]
         self.coverage_trace = []
 
-    def trace_mem_access(self, access, address, size, value):
+    def observe_mem_access(self, access, address, size, value, model):
         page_offset = (address & 4032) >> 6  # 4032 = 0b111111000000
         cache_set_index = 9223372036854775808 >> page_offset
         if model.in_speculation:
@@ -108,10 +110,10 @@ class L1DTracer(X86UnicornTracer):
         else:
             self.trace[0] |= cache_set_index
         # print(f"{cache_set_index:064b}")
-        super(L1DTracer, self).trace_mem_access(access, address, size, value)
+        super(L1DTracer, self).observe_mem_access(access, address, size, value, model)
 
-    def trace_code(self, address: int, size: int):
-        super(L1DTracer, self).trace_code(address, size)
+    def observe_instruction(self, address: int, size: int, model):
+        super(L1DTracer, self).observe_instruction(address, size, model)
 
     def get_trace(self) -> CTrace:
         if CONF.ignore_first_cache_line:
@@ -121,68 +123,68 @@ class L1DTracer(X86UnicornTracer):
 
 
 class PCTracer(X86UnicornTracer):
-    def trace_mem_access(self, access, address, size, value):
-        super(PCTracer, self).trace_mem_access(access, address, size, value)
+    def observe_mem_access(self, access, address, size, value, model):
+        super(PCTracer, self).observe_mem_access(access, address, size, value, model)
 
-    def trace_code(self, address: int, size: int):
+    def observe_instruction(self, address: int, size: int, model):
         self.trace.append(address)
-        super(PCTracer, self).trace_code(address, size)
+        super(PCTracer, self).observe_instruction(address, size, model)
 
 
 class MemoryTracer(X86UnicornTracer):
-    def trace_mem_access(self, access, address, size, value):
+    def observe_mem_access(self, access, address, size, value, model):
         self.trace.append(address)
-        super(MemoryTracer, self).trace_mem_access(access, address, size, value)
+        super(MemoryTracer, self).observe_mem_access(access, address, size, value, model)
 
-    def trace_code(self, address: int, size: int):
-        super(MemoryTracer, self).trace_code(address, size)
+    def observe_instruction(self, address: int, size: int, model):
+        super(MemoryTracer, self).observe_instruction(address, size, model)
 
 
 class CTTracer(X86UnicornTracer):
 
-    def trace_mem_access(self, access, address, size, value):
+    def observe_mem_access(self, access, address, size, value, model):
         self.trace.append(address)
-        super(CTTracer, self).trace_mem_access(access, address, size, value)
+        super(CTTracer, self).observe_mem_access(access, address, size, value, model)
 
-    def trace_code(self, address: int, size: int):
+    def observe_instruction(self, address: int, size: int, model):
         self.trace.append(address)
-        super(CTTracer, self).trace_code(address, size)
+        super(CTTracer, self).observe_instruction(address, size, model)
 
 
 class CTNonSpecStoreTracer(X86UnicornTracer):
-    def trace_mem_access(self, access, address, size, value):
+    def observe_mem_access(self, access, address, size, value, model):
         if not model.in_speculation:  # all non-spec mem accesses
             self.trace.append(address)
         if access == UC_MEM_READ:  # and speculative loads
             self.trace.append(address)
-        super(CTNonSpecStoreTracer, self).trace_mem_access(access, address, size, value)
+        super(CTNonSpecStoreTracer, self).observe_mem_access(access, address, size, value, model)
 
-    def trace_code(self, address: int, size: int):
+    def observe_instruction(self, address: int, size: int, model):
         self.trace.append(address)
-        super(CTNonSpecStoreTracer, self).trace_code(address, size)
+        super(CTNonSpecStoreTracer, self).observe_instruction(address, size, model)
 
 
 class ArchTracer(X86UnicornTracer):
-    def reset_trace(self):
+    def reset_trace(self, emulator):
         self.trace = [
-            model.emulator.reg_read(UC_X86_REG_RAX),
-            model.emulator.reg_read(UC_X86_REG_RBX),
-            model.emulator.reg_read(UC_X86_REG_RCX),
-            model.emulator.reg_read(UC_X86_REG_RDX),
-            model.emulator.reg_read(UC_X86_REG_EFLAGS),
+            emulator.reg_read(UC_X86_REG_RAX),
+            emulator.reg_read(UC_X86_REG_RBX),
+            emulator.reg_read(UC_X86_REG_RCX),
+            emulator.reg_read(UC_X86_REG_RDX),
+            emulator.reg_read(UC_X86_REG_EFLAGS),
         ]
         self.coverage_trace = []
 
-    def trace_mem_access(self, access, address, size, value):
+    def observe_mem_access(self, access, address, size, value, model):
         if access == UC_MEM_READ:
             val = int.from_bytes(model.emulator.mem_read(address, size), byteorder='little')
             self.trace.append(val)
         self.trace.append(address)
-        super(ArchTracer, self).trace_mem_access(access, address, size, value)
+        super(ArchTracer, self).observe_mem_access(access, address, size, value, model)
 
-    def trace_code(self, address: int, size: int):
+    def observe_instruction(self, address: int, size: int, model):
         self.trace.append(address)
-        super(ArchTracer, self).trace_code(address, size)
+        super(ArchTracer, self).observe_instruction(address, size, model)
 
 
 class X86UnicornModel(Model):
@@ -241,8 +243,8 @@ class X86UnicornModel(Model):
             emulator.reg_write(UC_X86_REG_R13, 0x0)
             emulator.reg_write(UC_X86_REG_R15, 0x0)
 
-            emulator.hook_add(UC_HOOK_MEM_READ | UC_HOOK_MEM_WRITE, self.trace_mem_access)
-            emulator.hook_add(UC_HOOK_CODE, self.trace_code)
+            emulator.hook_add(UC_HOOK_MEM_READ | UC_HOOK_MEM_WRITE, self.trace_mem_access, self)
+            emulator.hook_add(UC_HOOK_CODE, self.trace_code, self)
 
             self.emulator = emulator
 
@@ -259,7 +261,7 @@ class X86UnicornModel(Model):
         for i, input_ in enumerate(inputs):
             try:
                 self.reset_emulator(input_)
-                self.tracer.reset_trace()
+                self.tracer.reset_trace(self.emulator)
                 self.emulator.emu_start(self.code_base, self.code_base + len(self.code),
                                         timeout=10000)
             except UcError as e:
@@ -355,11 +357,11 @@ class X86UnicornModel(Model):
                   f"flags={emulator.reg_read(UC_X86_REG_EFLAGS):012b}")
 
     @staticmethod
-    def trace_mem_access(emulator, access, address, size, value, user_data):
+    def trace_mem_access(emulator, access, address, size, value, model):
         pass  # Implemented by subclasses
 
     @staticmethod
-    def trace_code(emulator: Uc, address, size, user_data) -> None:
+    def trace_code(emulator: Uc, address, size, model) -> None:
         pass  # Implemented by subclasses
 
     @staticmethod
@@ -370,11 +372,6 @@ class X86UnicornModel(Model):
         pass  # Implemented by subclasses
 
 
-# Note: unfortunately, Unicorn does not have an object-oriented API.
-# We instead have to replace `self` with a global variable `model`.
-model: X86UnicornModel
-
-
 class X86UnicornSeq(X86UnicornModel):
     """
     A simple, in-order contract.
@@ -383,14 +380,12 @@ class X86UnicornSeq(X86UnicornModel):
     """
 
     @staticmethod
-    def trace_mem_access(emulator, access, address: int, size, value, user_data):
-        global model
-        model.tracer.trace_mem_access(access, address, size, value)
+    def trace_mem_access(emulator, access, address: int, size, value, model):
+        model.tracer.observe_mem_access(access, address, size, value, model)
 
     @staticmethod
-    def trace_code(emulator: Uc, address, size, user_data):
-        global model
-        model.tracer.trace_code(address, size)
+    def trace_code(emulator: Uc, address, size, model):
+        model.tracer.observe_instruction(address, size, model)
 
 
 class X86UnicornSpec(X86UnicornModel):
@@ -406,17 +401,15 @@ class X86UnicornSpec(X86UnicornModel):
         super(X86UnicornSpec, self).__init__(*args)
 
     @staticmethod
-    def trace_mem_access(emulator, access, address, size, value, user_data):
+    def trace_mem_access(emulator, access, address, size, value, model):
         # when in speculation, log all changes to memory
-        global model
         if access == UC_MEM_WRITE and model.store_logs:
             model.store_logs[-1].append((address, emulator.mem_read(address, 8)))
 
-        model.tracer.trace_mem_access(access, address, size, value)
+        model.tracer.observe_mem_access(access, address, size, value, model)
 
     @staticmethod
-    def trace_code(emulator: Uc, address, size, user_data):
-        global model
+    def trace_code(emulator: Uc, address, size, model):
         model.speculation_window += 1
 
         if model.in_speculation:
@@ -429,44 +422,39 @@ class X86UnicornSpec(X86UnicornModel):
             if model.speculation_window > CONF.max_speculation_window:
                 emulator.emu_stop()
 
-        model.tracer.trace_code(address, size)
+        model.tracer.observe_instruction(address, size, model)
 
-    @staticmethod
-    def checkpoint(emulator, next_instruction):
-        global model
+    def checkpoint(self, emulator, next_instruction):
         flags = emulator.reg_read(UC_X86_REG_EFLAGS)
         context = emulator.context_save()
-        spec_window = model.speculation_window
-        model.checkpoints.append((context, next_instruction, flags, spec_window))
-        model.store_logs.append([])
-        model.in_speculation = True
+        spec_window = self.speculation_window
+        self.checkpoints.append((context, next_instruction, flags, spec_window))
+        self.store_logs.append([])
+        self.in_speculation = True
 
     def rollback(self):
-        global model
-
         # restore register values
-        state, next_instr, flags, spec_window = model.checkpoints.pop()
-        if not model.checkpoints:
-            model.in_speculation = False
+        state, next_instr, flags, spec_window = self.checkpoints.pop()
+        if not self.checkpoints:
+            self.in_speculation = False
 
         self.emulator.context_restore(state)
-        model.speculation_window = spec_window
+        self.speculation_window = spec_window
 
         # rollback memory changes
-        mem_changes = model.store_logs.pop()
+        mem_changes = self.store_logs.pop()
         while mem_changes:
             addr, val = mem_changes.pop()
             self.emulator.mem_write(addr, bytes(val))
 
         # if there are any pending speculative store bypasses, cancel them
-        model.previous_store = (0, 0, 0, 0)
+        self.previous_store = (0, 0, 0, 0)
 
         # restore the flags last, to avoid corruption by other operations
         self.emulator.reg_write(UC_X86_REG_EFLAGS, flags)
 
         # restart without misprediction
-        self.emulator.emu_start(next_instr, self.code_base + len(self.code),
-                                timeout=10000)
+        self.emulator.emu_start(next_instr, self.code_base + len(self.code), timeout=10000)
 
 
 class X86UnicornCond(X86UnicornSpec):
@@ -523,9 +511,8 @@ class X86UnicornCond(X86UnicornSpec):
     }
 
     @staticmethod
-    def trace_code(emulator: Uc, address, size, user_data):
-        global model
-        X86UnicornSpec.trace_code(emulator, address, size, user_data)
+    def trace_code(emulator: Uc, address, size, model):
+        X86UnicornSpec.trace_code(emulator, address, size, model)
 
         # reached max spec. window? skip
         if len(model.checkpoints) >= model.nesting:
@@ -567,26 +554,24 @@ class X86UnicornCond(X86UnicornSpec):
 
 class X86UnicornBpas(X86UnicornSpec):
     @staticmethod
-    def trace_mem_access(emulator, access, address, size, value, user_data):
+    def trace_mem_access(emulator, access, address, size, value, model):
         """
         Since Unicorn does not have post-instruction hooks,
         I have to implement it in a dirty way:
         Save the information about the write here, but execute the all the
-        contract logic in a hook before the next instruction (see trace_code)
+        contract logic in a hook before the next instruction (see observe_instruction)
         """
-        global model
         if access == UC_MEM_WRITE:
             rip = emulator.reg_read(UC_X86_REG_RIP)
             opcode = emulator.mem_read(rip, 1)[0]
             if opcode not in [0xE8, 0xFF, 0x9A]:  # ignore CALL instructions
                 model.previous_store = (address, size, emulator.mem_read(address, size), value)
 
-        X86UnicornSpec.trace_mem_access(emulator, access, address, size, value, user_data)
+        X86UnicornSpec.trace_mem_access(emulator, access, address, size, value, model)
 
     @staticmethod
-    def trace_code(emulator: Uc, address, size, user_data):
-        global model
-        X86UnicornSpec.trace_code(emulator, address, size, user_data)
+    def trace_code(emulator: Uc, address, size, model):
+        X86UnicornSpec.trace_code(emulator, address, size, model)
 
         # reached max spec. window? skip
         if len(model.checkpoints) >= model.nesting:
@@ -611,13 +596,13 @@ class X86UnicornBpas(X86UnicornSpec):
 
 class X86UnicornCondBpas(X86UnicornSpec):
     @staticmethod
-    def trace_mem_access(emulator, access, address, size, value, user_data):
-        X86UnicornBpas.trace_mem_access(emulator, access, address, size, value, user_data)
+    def trace_mem_access(emulator, access, address, size, value, model):
+        X86UnicornBpas.trace_mem_access(emulator, access, address, size, value, model)
 
     @staticmethod
-    def trace_code(emulator: Uc, address, size, user_data):
-        X86UnicornCond.trace_code(emulator, address, size, user_data)
-        X86UnicornBpas.trace_code(emulator, address, size, user_data)
+    def trace_code(emulator: Uc, address, size, model):
+        X86UnicornCond.trace_code(emulator, address, size, model)
+        X86UnicornBpas.trace_code(emulator, address, size, model)
 
 
 # =============================================================================
@@ -644,7 +629,6 @@ class X86SerializingModel(Model):
 
 
 def get_model(bases) -> Model:
-    global model
     if CONF.model == 'x86-unicorn':
         # functional part of the contract
         if "cond" in CONF.contract_execution_mode and "bpas" in CONF.contract_execution_mode:
