@@ -131,7 +131,7 @@ class ConfCls:
     def set(self, name, value):
         options = {
             'attack_variant': ['P+P', 'F+R', 'E+R'],
-            'model': ['x86-serializing', 'x86-unicorn'],
+            'model': ['x86-unicorn'],
             'contract_observation_mode': ['l1d', 'memory', 'ct', 'pc', 'ct-nonspecstore', 'arch'],
         }
 

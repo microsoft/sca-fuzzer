@@ -605,29 +605,6 @@ class X86UnicornCondBpas(X86UnicornSpec):
         X86UnicornBpas.trace_code(emulator, address, size, model)
 
 
-# =============================================================================
-# Serialization-based predictors
-# =============================================================================
-class X86SerializingModel(Model):
-    def __init__(self, *args):
-        self.executor = X86Intel()
-        super(X86SerializingModel, self).__init__(*args)
-
-    def load_test_case(self, test_case_asm: str):
-        """ Add an LFENCE after every instruction in the test case """
-        with open(test_case_asm, 'r') as f:
-            with open('serial.asm', 'w') as serial:
-                for line in f:
-                    if line:
-                        serial.write(line + "LFENCE\n")
-        self.executor.load_test_case('serial.asm')
-        os.remove('serial.asm')
-
-    def trace_test_case(self, inputs: List[int], nesting, debug: bool = False) -> List[CTrace]:
-        traces = self.executor.trace_test_case(inputs, num_measurements=1, max_outliers=0)
-        return traces
-
-
 def get_model(bases) -> Model:
     if CONF.model == 'x86-unicorn':
         # functional part of the contract
@@ -661,8 +638,6 @@ def get_model(bases) -> Model:
             exit(1)
 
         return model
-    elif CONF.model == 'x86-serializing':
-        return X86SerializingModel(bases[0], bases[1], bases[2])
     else:
         print("Error: unknown value of `model` configuration option")
         exit(1)
