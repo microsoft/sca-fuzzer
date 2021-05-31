@@ -19,7 +19,7 @@ POW32 = pow(2, 32)
 
 
 class Model(ABC):
-    coverage = None
+    coverage_tracker = None
     RUNTIME_R_SIZE = 1024 * 1024
     CODE_SIZE = 4 * 1024
     RSP_OFFSET = RUNTIME_R_SIZE // 2
@@ -43,8 +43,8 @@ class Model(ABC):
     def trace_test_case(self, inputs: List[int], nesting: int, debug: bool = False) -> List[CTrace]:
         pass
 
-    def set_coverage(self, coverage):
-        self.coverage = coverage
+    def set_coverage(self, coverage_tracker):
+        self.coverage_tracker = coverage_tracker
 
 
 # =============================================================================
@@ -63,7 +63,7 @@ class X86UnicornTracer(ABC):
     A superclass that encodes the attacker capabilities
     """
     trace: List[int]
-    coverage_trace: List[Tuple[bool, int]]
+    full_execution_trace: List[Tuple[bool, int]]
 
     def __init__(self):
         super().__init__()
@@ -71,17 +71,17 @@ class X86UnicornTracer(ABC):
 
     def reset_trace(self, emulator) -> None:
         self.trace = []
-        self.coverage_trace = []
+        self.full_execution_trace = []
 
     def get_trace(self) -> CTrace:
         return hash(tuple(self.trace))
 
-    def get_coverage_trace(self):
-        return self.coverage_trace
+    def get_full_execution_trace(self):
+        return self.full_execution_trace
 
     def observe_mem_access(self, access, address: int, size: int, value: int, model) -> None:
         if not model.in_speculation:
-            self.coverage_trace.append((False, address - model.r14_init))
+            self.full_execution_trace.append((False, address - model.r14_init))
             if model.debug:
                 if access == UC_MEM_READ:
                     val = int.from_bytes(model.emulator.mem_read(address, size), byteorder='little')
@@ -91,7 +91,7 @@ class X86UnicornTracer(ABC):
 
     def observe_instruction(self, address: int, size: int, model) -> None:
         if not model.in_speculation:
-            self.coverage_trace.append((True, address - model.code_base))
+            self.full_execution_trace.append((True, address - model.code_base))
             if model.debug:
                 print(f"{address - model.code_base:2x}: ", end="")
                 model.print_state(oneline=True)
@@ -100,7 +100,7 @@ class X86UnicornTracer(ABC):
 class L1DTracer(X86UnicornTracer):
     def reset_trace(self, emulator):
         self.trace = [0, 0]
-        self.coverage_trace = []
+        self.full_execution_trace = []
 
     def observe_mem_access(self, access, address, size, value, model):
         page_offset = (address & 4032) >> 6  # 4032 = 0b111111000000
@@ -158,7 +158,7 @@ class CTRTracer(CTTracer):
             emulator.reg_read(UC_X86_REG_RDX),
             emulator.reg_read(UC_X86_REG_EFLAGS),
         ]
-        self.coverage_trace = []
+        self.full_execution_trace = []
 
 
 class ArchTracer(CTRTracer):
@@ -240,7 +240,7 @@ class X86UnicornModel(Model):
         self.debug = debug
 
         traces = []
-        coverage_traces = []
+        full_execution_traces = []
         for i, input_ in enumerate(inputs):
             try:
                 self.reset_emulator(input_)
@@ -264,10 +264,10 @@ class X86UnicornModel(Model):
 
             # store the results
             traces.append(self.tracer.get_trace())
-            coverage_traces.append(self.tracer.get_coverage_trace())
+            full_execution_traces.append(self.tracer.get_full_execution_trace())
 
-        if self.coverage:
-            self.coverage.model_hook(coverage_traces)
+        if self.coverage_tracker:
+            self.coverage_tracker.model_hook(full_execution_traces)
 
         return traces
 

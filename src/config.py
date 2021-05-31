@@ -132,8 +132,8 @@ class ConfCls:
         options = {
             'attack_variant': ['P+P', 'F+R', 'E+R'],
             'model': ['x86-unicorn'],
-            'contract_observation_mode': ['l1d', 'memory', 'ct', 'pc', 'ct-nonspecstore', 'ctr',
-                                          'arch'],
+            'contract_observation_mode':
+                ['l1d', 'memory', 'ct', 'pc', 'ct-nonspecstore', 'ctr', 'arch'],
         }
 
         if self.__getattribute__(name) is None:
