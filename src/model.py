@@ -123,9 +123,6 @@ class L1DTracer(X86UnicornTracer):
 
 
 class PCTracer(X86UnicornTracer):
-    def observe_mem_access(self, access, address, size, value, model):
-        super(PCTracer, self).observe_mem_access(access, address, size, value, model)
-
     def observe_instruction(self, address: int, size: int, model):
         self.trace.append(address)
         super(PCTracer, self).observe_instruction(address, size, model)
@@ -136,22 +133,14 @@ class MemoryTracer(X86UnicornTracer):
         self.trace.append(address)
         super(MemoryTracer, self).observe_mem_access(access, address, size, value, model)
 
-    def observe_instruction(self, address: int, size: int, model):
-        super(MemoryTracer, self).observe_instruction(address, size, model)
 
-
-class CTTracer(X86UnicornTracer):
-
-    def observe_mem_access(self, access, address, size, value, model):
-        self.trace.append(address)
-        super(CTTracer, self).observe_mem_access(access, address, size, value, model)
-
+class CTTracer(MemoryTracer):
     def observe_instruction(self, address: int, size: int, model):
         self.trace.append(address)
         super(CTTracer, self).observe_instruction(address, size, model)
 
 
-class CTNonSpecStoreTracer(X86UnicornTracer):
+class CTNonSpecStoreTracer(CTTracer):
     def observe_mem_access(self, access, address, size, value, model):
         if not model.in_speculation:  # all non-spec mem accesses
             self.trace.append(address)
@@ -159,9 +148,6 @@ class CTNonSpecStoreTracer(X86UnicornTracer):
             self.trace.append(address)
         super(CTNonSpecStoreTracer, self).observe_mem_access(access, address, size, value, model)
 
-    def observe_instruction(self, address: int, size: int, model):
-        self.trace.append(address)
-        super(CTNonSpecStoreTracer, self).observe_instruction(address, size, model)
 
 class CTRTracer(CTTracer):
     def reset_trace(self, emulator):
@@ -182,10 +168,6 @@ class ArchTracer(CTRTracer):
             self.trace.append(val)
         self.trace.append(address)
         super(ArchTracer, self).observe_mem_access(access, address, size, value, model)
-
-    def observe_instruction(self, address: int, size: int, model):
-        self.trace.append(address)
-        super(ArchTracer, self).observe_instruction(address, size, model)
 
 
 class X86UnicornModel(Model):
@@ -632,6 +614,8 @@ def get_model(bases) -> Model:
             model.tracer = CTTracer()
         elif CONF.contract_observation_mode == 'ct-nonspecstore':
             model.tracer = CTNonSpecStoreTracer()
+        elif CONF.contract_observation_mode == 'ctr':
+            model.tracer = CTRTracer()
         elif CONF.contract_observation_mode == 'arch':
             model.tracer = ArchTracer()
         else:
