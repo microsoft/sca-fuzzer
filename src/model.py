@@ -163,8 +163,7 @@ class CTNonSpecStoreTracer(X86UnicornTracer):
         self.trace.append(address)
         super(CTNonSpecStoreTracer, self).observe_instruction(address, size, model)
 
-
-class ArchTracer(X86UnicornTracer):
+class CTRTracer(CTTracer):
     def reset_trace(self, emulator):
         self.trace = [
             emulator.reg_read(UC_X86_REG_RAX),
@@ -175,6 +174,8 @@ class ArchTracer(X86UnicornTracer):
         ]
         self.coverage_trace = []
 
+
+class ArchTracer(CTRTracer):
     def observe_mem_access(self, access, address, size, value, model):
         if access == UC_MEM_READ:
             val = int.from_bytes(model.emulator.mem_read(address, size), byteorder='little')
