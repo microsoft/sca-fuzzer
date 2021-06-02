@@ -165,7 +165,6 @@ class Fuzzer:
 
         # by default, we test without nested misprediction,
         # but retry with nesting upon a violation
-        violation: Optional[EquivalenceClass] = None
         for nesting in [1, CONF.max_nesting]:
             ctraces: List[CTrace] = model.trace_test_case(inputs, nesting)
 
@@ -185,38 +184,29 @@ class Fuzzer:
                                                                                      stats=True)
             violations: List[EquivalenceClass] = analyser.filter_violations(all_eq_classes)
 
+            # nothing detected? -> we are done here, move to next test case
             if not violations:
                 return None
-            if CONF.no_priming:
-                if nesting == CONF.max_nesting or 'seq' in CONF.contract_execution_mode:
-                    violation = violations[-1]
-                    break
-                else:
-                    self.logger.higher_nesting()
-                    continue
 
-            # Count priming statistics, but avoid double-counting
-            if violations and nesting == 1:
-                STAT.required_priming += 1
-
-            # Try priming the inputs that disagree with the other ones within the same eq. class
-            while violations:
-                self.logger.priming(len(violations))
-                violation: EquivalenceClass = violations.pop()
-                if self.verify_with_priming(violation, executor, inputs):
-                    break
-            else:
-                # all violations were cleaned. all good
-                return None
-
-            # Violation survived priming.
-            # Report it if higher nesting is not permitted or does not make sense
-            if nesting == CONF.max_nesting or 'seq' in CONF.contract_execution_mode:
-                break
-            else:  # otherwise, try higher nesting
+            # otherwise, try higher nesting
+            if nesting == 1:
                 self.logger.higher_nesting()
-                continue
 
+        if CONF.no_priming:
+            return violations[-1]
+
+        # Try priming the inputs that disagree with the other ones within the same eq. class
+        STAT.required_priming += 1
+        while violations:
+            self.logger.priming(len(violations))
+            violation: EquivalenceClass = violations.pop()
+            if self.verify_with_priming(violation, executor, inputs):
+                break
+        else:
+            # all violations were cleaned. all good
+            return None
+
+        # Violation survived priming. Report it
         return violation
 
     def verify_with_priming(self, violation: EquivalenceClass, executor: Executor,
