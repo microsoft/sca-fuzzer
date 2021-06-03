@@ -60,15 +60,15 @@ class ConfCls:
         # Hard to fix:
         # STI - enables interrupts, thus corrupting the measurements; CLI - just in case
         "STI", "CLI",
-        # CMPXCHG - Unicorn doesn't always execute the mem. access hook
-        "CMPXCHG", "REX CMPXCHG", "CMPXCHG8B", "LOCK CMPXCHG", "LOCK REX CMPXCHG", "LOCK CMPXCHG8B",
+        # CMPXCHG8B - Unicorn doesn't execute the mem. access hook
+        # bug: https://github.com/unicorn-engine/unicorn/issues/990
+        "CMPXCHG8B", "LOCK CMPXCHG8B",
         # Undefined instructions are, well, undefined
         "UD", "UD2",
         # Incorrect emulation
         "CPUID",
 
         # Fixable: under construction
-        "JRCXZ", "JECXZ", "JCXZ", "LOOP", "LOOPE", "LOOPNE",
         "IDIV", "REX IDIV",
         "ENTERW", "ENTER", "LEAVEW", "LEAVE",
         "XLAT", "XLATB",
