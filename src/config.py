@@ -119,7 +119,7 @@ class ConfCls:
     ignore_single_entry_classes = True
     # ==============================================================================================
     # Coverage
-    coverage_type: str = 'dependencies'
+    coverage_type: str = 'none'
     feedback_driven_generator: bool = True
     combination_length_min: int = 1
     # ==============================================================================================
@@ -133,6 +133,7 @@ class ConfCls:
             'model': ['x86-unicorn'],
             'contract_observation_mode':
                 ['l1d', 'memory', 'ct', 'pc', 'ct-nonspecstore', 'ctr', 'arch'],
+            'coverage_type': ['dependencies', 'none']
         }
 
         if self.__getattribute__(name) is None:

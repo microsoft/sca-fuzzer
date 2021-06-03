@@ -75,6 +75,34 @@ class Coverage(ABC):
         pass
 
 
+class NoCoverage(Coverage):
+    """
+    A dummy class with empty functions.
+    Used when fuzzing without coverage
+    """
+
+    def load_test_case(self, asm_file):
+        pass
+
+    def update(self):
+        pass
+
+    def generator_hook(self, DAG: TestCaseDAG, instruction_set: InstructionSet):
+        pass
+
+    def model_hook(self, coverage_traces):
+        pass
+
+    def executor_hook(self):
+        pass
+
+    def analyser_hook(self, input_classes):
+        pass
+
+    def get(self) -> int:
+        return 0
+
+
 class PatternCoverage(Coverage):
     coverage: Dict[int, Set[Tuple[int]]]
     current_patterns: List[PatternInstance]
@@ -354,6 +382,8 @@ class PatternCoverage(Coverage):
 def get_coverage(instruction_set: InstructionSet) -> Coverage:
     if CONF.coverage_type == 'dependencies':
         return PatternCoverage(instruction_set)
+    elif CONF.coverage_type == 'none':
+        return NoCoverage()
     else:
         print("Error: unknown value of `coverage_type` configuration option")
         exit(1)
