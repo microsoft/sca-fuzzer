@@ -22,7 +22,7 @@ class ConfCls:
     max_bb_per_function = 5
     max_bb_successors = 0  # zero -> automatically set based on the available instructions
     test_case_size = 64
-    avg_mem_accesses = 32
+    avg_mem_accesses = 24
     single_function_test_case = True
     avoid_data_dependencies: bool = True
     generate_memory_accesses_in_pairs: bool = True
@@ -58,20 +58,21 @@ class ConfCls:
     ]
     instruction_blocklist = [
         # Hard to fix:
-        # STI - enables interrupts, thus corrupting the measurements; CLI - just in case
+        # - STI - enables interrupts, thus corrupting the measurements; CLI - just in case
         "STI", "CLI",
-        # CMPXCHG8B - Unicorn doesn't execute the mem. access hook
-        # bug: https://github.com/unicorn-engine/unicorn/issues/990
+        # - CMPXCHG8B - Unicorn doesn't execute the mem. access hook
+        #   bug: https://github.com/unicorn-engine/unicorn/issues/990
         "CMPXCHG8B", "LOCK CMPXCHG8B",
-        # Undefined instructions are, well, undefined
+        # - Undefined instructions are, well, undefined
         "UD", "UD2",
-        # Incorrect emulation
+        # - Incorrect emulation
         "CPUID",
-
-        # Fixable: under construction
-        "IDIV", "REX IDIV",
-        "ENTERW", "ENTER", "LEAVEW", "LEAVE",
+        # - Requires support of segment registers
         "XLAT", "XLATB",
+        # - Requires special instrumentation to avoid #DE faults
+        "IDIV", "REX IDIV",
+        # - Requires complex instrumentation
+        "ENTERW", "ENTER", "LEAVEW", "LEAVE",
     ]
     # x86 executor internally uses R15, R14, RSP, RBP and, thus, they are excluded
     # segment registers are also excluded as we don't support their handling so far
