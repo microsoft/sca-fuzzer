@@ -137,6 +137,10 @@ class Fuzzer:
                 print(f"\nFUZZER: current duration: "
                       f"{(datetime.today() - start_time).total_seconds()}")
 
+            # if we fuzz a fixed test case, no re-configuration will be necessary
+            if not self.enable_generation:
+                continue
+
             # if the configuration has changed, update num inputs and entropy
             if CONF.feedback_driven_generator and \
                     CONF.avg_mem_accesses >= pow(2, CONF.prng_entropy_bits):
