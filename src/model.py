@@ -50,12 +50,12 @@ class Model(ABC):
 # =============================================================================
 # Unicorn-based predictors
 # =============================================================================
-UC_FLAGS_CF = 0b000000000001
-UC_FLAGS_PF = 0b000000000100
-UC_FLAGS_AF = 0b000000010000
-UC_FLAGS_ZF = 0b000001000000
-UC_FLAGS_SF = 0b000010000000
-UC_FLAGS_OF = 0b100000000000
+FLAGS_CF = 0b000000000001
+FLAGS_PF = 0b000000000100
+FLAGS_AF = 0b000000010000
+FLAGS_ZF = 0b000001000000
+FLAGS_SF = 0b000010000000
+FLAGS_OF = 0b100000000000
 
 
 class X86UnicornTracer(ABC):
@@ -449,51 +449,51 @@ class X86UnicornCond(X86UnicornSpec):
     jumps = {
         # c - the byte code of the instruction
         # f - the value of EFLAGS
-        0x70: lambda c, f, r: (c[1:], f & UC_FLAGS_OF != 0),  # JO
-        0x71: lambda c, f, r: (c[1:], f & UC_FLAGS_OF == 0),  # JNO
-        0x72: lambda c, f, r: (c[1:], f & UC_FLAGS_CF != 0),  # JB
-        0x73: lambda c, f, r: (c[1:], f & UC_FLAGS_CF == 0),  # JAE
-        0x74: lambda c, f, r: (c[1:], f & UC_FLAGS_ZF != 0),  # JZ
-        0x75: lambda c, f, r: (c[1:], f & UC_FLAGS_ZF == 0),  # JNZ
-        0x76: lambda c, f, r: (c[1:], f & UC_FLAGS_CF != 0 or f & UC_FLAGS_ZF != 0),  # JNA
-        0x77: lambda c, f, r: (c[1:], f & UC_FLAGS_CF == 0 and f & UC_FLAGS_ZF == 0),  # JNBE
-        0x78: lambda c, f, r: (c[1:], f & UC_FLAGS_SF != 0),  # JS
-        0x79: lambda c, f, r: (c[1:], f & UC_FLAGS_SF == 0),  # JNS
-        0x7A: lambda c, f, r: (c[1:], f & UC_FLAGS_PF != 0),  # JP
-        0x7B: lambda c, f, r: (c[1:], f & UC_FLAGS_PF == 0),  # JPO
-        0x7C: lambda c, f, r: (c[1:], (f & UC_FLAGS_SF == 0) != (f & UC_FLAGS_OF == 0)),  # JNGE
-        0x7D: lambda c, f, r: (c[1:], (f & UC_FLAGS_SF == 0) == (f & UC_FLAGS_OF == 0)),  # JNL
+        0x70: lambda c, f, r: (c[1:], f & FLAGS_OF != 0, False),  # JO
+        0x71: lambda c, f, r: (c[1:], f & FLAGS_OF == 0, False),  # JNO
+        0x72: lambda c, f, r: (c[1:], f & FLAGS_CF != 0, False),  # JB
+        0x73: lambda c, f, r: (c[1:], f & FLAGS_CF == 0, False),  # JAE
+        0x74: lambda c, f, r: (c[1:], f & FLAGS_ZF != 0, False),  # JZ
+        0x75: lambda c, f, r: (c[1:], f & FLAGS_ZF == 0, False),  # JNZ
+        0x76: lambda c, f, r: (c[1:], f & FLAGS_CF != 0 or f & FLAGS_ZF != 0, False),  # JNA
+        0x77: lambda c, f, r: (c[1:], f & FLAGS_CF == 0 and f & FLAGS_ZF == 0, False),  # JNBE
+        0x78: lambda c, f, r: (c[1:], f & FLAGS_SF != 0, False),  # JS
+        0x79: lambda c, f, r: (c[1:], f & FLAGS_SF == 0, False),  # JNS
+        0x7A: lambda c, f, r: (c[1:], f & FLAGS_PF != 0, False),  # JP
+        0x7B: lambda c, f, r: (c[1:], f & FLAGS_PF == 0, False),  # JPO
+        0x7C: lambda c, f, r: (c[1:], (f & FLAGS_SF == 0) != (f & FLAGS_OF == 0), False),  # JNGE
+        0x7D: lambda c, f, r: (c[1:], (f & FLAGS_SF == 0) == (f & FLAGS_OF == 0), False),  # JNL
         0x7E: lambda c, f, r:
-        (c[1:], f & UC_FLAGS_ZF != 0 or (f & UC_FLAGS_SF == 0) != (f & UC_FLAGS_OF == 0)),
+        (c[1:], f & FLAGS_ZF != 0 or (f & FLAGS_SF == 0) != (f & FLAGS_OF == 0), False),
         0x7F: lambda c, f, r:
-        (c[1:], f & UC_FLAGS_ZF == 0 and (f & UC_FLAGS_SF == 0) == (f & UC_FLAGS_OF == 0)),
-        0xE0: lambda c, f, r: (c[1:], r != 1 and (f & UC_FLAGS_ZF == 0)),  # LOOPNE
-        0xE1: lambda c, f, r: (c[1:], r != 1 and (f & UC_FLAGS_ZF == 1)),  # LOOPE
-        0xE2: lambda c, f, r: (c[1:], r != 1),  # LOOP
-        0xE3: lambda c, f, r: (c[1:], r == 0),  # J*CXZ
+        (c[1:], f & FLAGS_ZF == 0 and (f & FLAGS_SF == 0) == (f & FLAGS_OF == 0), False),
+        0xE0: lambda c, f, r: (c[1:], r != 1 and (f & FLAGS_ZF == 0), True),  # LOOPNE
+        0xE1: lambda c, f, r: (c[1:], r != 1 and (f & FLAGS_ZF != 0), True),  # LOOPE
+        0xE2: lambda c, f, r: (c[1:], r != 1, True),  # LOOP
+        0xE3: lambda c, f, r: (c[1:], r == 0, False),  # J*CXZ
         0x0F: lambda c, f, r:
-        X86UnicornCond.multibyte_jmp.get(c[1], (lambda _, __, ___: ([0], False)))(c, f, r)
+        X86UnicornCond.multibyte_jmp.get(c[1], (lambda _, __, ___: ([0], False, False)))(c, f, r)
     }
 
     multibyte_jmp = {
-        0x80: lambda c, f, r: (c[2:], f & UC_FLAGS_OF != 0),  # JO
-        0x81: lambda c, f, r: (c[2:], f & UC_FLAGS_OF == 0),  # JNO
-        0x82: lambda c, f, r: (c[2:], f & UC_FLAGS_CF != 0),  # JB
-        0x83: lambda c, f, r: (c[2:], f & UC_FLAGS_CF == 0),  # JAE
-        0x84: lambda c, f, r: (c[2:], f & UC_FLAGS_ZF != 0),  # JE
-        0x85: lambda c, f, r: (c[2:], f & UC_FLAGS_ZF == 0),  # JNE
-        0x86: lambda c, f, r: (c[2:], f & UC_FLAGS_CF != 0 or f & UC_FLAGS_ZF != 0),  # JBE
-        0x87: lambda c, f, r: (c[2:], f & UC_FLAGS_CF == 0 and f & UC_FLAGS_ZF == 0),  # JA
-        0x88: lambda c, f, r: (c[2:], f & UC_FLAGS_SF != 0),  # JS
-        0x89: lambda c, f, r: (c[2:], f & UC_FLAGS_SF == 0),  # JNS
-        0x8A: lambda c, f, r: (c[2:], f & UC_FLAGS_PF != 0),  # JP
-        0x8B: lambda c, f, r: (c[2:], f & UC_FLAGS_PF == 0),  # JPO
-        0x8C: lambda c, f, r: (c[2:], (f & UC_FLAGS_SF == 0) != (f & UC_FLAGS_OF == 0)),  # JNGE
-        0x8D: lambda c, f, r: (c[2:], (f & UC_FLAGS_SF == 0) == (f & UC_FLAGS_OF == 0)),  # JNL
+        0x80: lambda c, f, r: (c[2:], f & FLAGS_OF != 0, False),  # JO
+        0x81: lambda c, f, r: (c[2:], f & FLAGS_OF == 0, False),  # JNO
+        0x82: lambda c, f, r: (c[2:], f & FLAGS_CF != 0, False),  # JB
+        0x83: lambda c, f, r: (c[2:], f & FLAGS_CF == 0, False),  # JAE
+        0x84: lambda c, f, r: (c[2:], f & FLAGS_ZF != 0, False),  # JE
+        0x85: lambda c, f, r: (c[2:], f & FLAGS_ZF == 0, False),  # JNE
+        0x86: lambda c, f, r: (c[2:], f & FLAGS_CF != 0 or f & FLAGS_ZF != 0, False),  # JBE
+        0x87: lambda c, f, r: (c[2:], f & FLAGS_CF == 0 and f & FLAGS_ZF == 0, False),  # JA
+        0x88: lambda c, f, r: (c[2:], f & FLAGS_SF != 0, False),  # JS
+        0x89: lambda c, f, r: (c[2:], f & FLAGS_SF == 0, False),  # JNS
+        0x8A: lambda c, f, r: (c[2:], f & FLAGS_PF != 0, False),  # JP
+        0x8B: lambda c, f, r: (c[2:], f & FLAGS_PF == 0, False),  # JPO
+        0x8C: lambda c, f, r: (c[2:], (f & FLAGS_SF == 0) != (f & FLAGS_OF == 0), False),  # JNGE
+        0x8D: lambda c, f, r: (c[2:], (f & FLAGS_SF == 0) == (f & FLAGS_OF == 0), False),  # JNL
         0x8E: lambda c, f, r:
-        (c[2:], f & UC_FLAGS_ZF != 0 or (f & UC_FLAGS_SF == 0) != (f & UC_FLAGS_OF == 0)),
+        (c[2:], f & FLAGS_ZF != 0 or (f & FLAGS_SF == 0) != (f & FLAGS_OF == 0), False),
         0x8F: lambda c, f, r:
-        (c[2:], f & UC_FLAGS_ZF == 0 and (f & UC_FLAGS_SF == 0) == (f & UC_FLAGS_OF == 0)),
+        (c[2:], f & FLAGS_ZF == 0 and (f & FLAGS_SF == 0) == (f & FLAGS_OF == 0), False),
     }
 
     @staticmethod
@@ -508,11 +508,15 @@ class X86UnicornCond(X86UnicornSpec):
         code = emulator.mem_read(address, size)
         flags = emulator.reg_read(UC_X86_REG_EFLAGS)
         rcx = emulator.reg_read(UC_X86_REG_RCX)
-        target, will_jump = X86UnicornCond.decode(code, flags, rcx)
+        target, will_jump, is_loop = X86UnicornCond.decode(code, flags, rcx)
 
         # not a a cond. jump? ignore
         if not target:
             return True
+
+        # LOOP instructions must also decrement RCX
+        if is_loop:
+            emulator.reg_write(UC_X86_REG_RCX, rcx - 1)
 
         # Take a checkpoint
         next_instr = address + size + target if will_jump else address + size
@@ -526,17 +530,18 @@ class X86UnicornCond(X86UnicornSpec):
         return True
 
     @staticmethod
-    def decode(code: bytearray, flags: int, rcx: int) -> (int, bool):
+    def decode(code: bytearray, flags: int, rcx: int) -> (int, bool, bool):
         """
         Decodes the instruction encoded in `code` and, if it's a conditional jump,
-        returns its expected target and whether it will jump to the target, based
-        on the `flags` value.
+        returns its expected target, whether it will jump to the target (based
+        on the `flags` value), and whether it is a LOOP instruction
         """
-        calculate_target = X86UnicornCond.jumps.get(code[0], (lambda _, __, ___: ([0], False)))
-        target, will_jump = calculate_target(code, flags, rcx)
+        calculate_target = X86UnicornCond.jumps.get(code[0],
+                                                    (lambda _, __, ___: ([0], False, False)))
+        target, will_jump, is_loop = calculate_target(code, flags, rcx)
         if len(target) == 1:
-            return target[0], will_jump
-        return int.from_bytes(target, byteorder='little'), will_jump
+            return target[0], will_jump, is_loop
+        return int.from_bytes(target, byteorder='little'), will_jump, is_loop
 
 
 class X86UnicornBpas(X86UnicornSpec):
