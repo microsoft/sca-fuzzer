@@ -21,8 +21,8 @@ class ConfCls:
     min_bb_per_function = 1
     max_bb_per_function = 5
     max_bb_successors = 0  # zero -> automatically set based on the available instructions
-    test_case_size = 64
-    avg_mem_accesses = 24
+    test_case_size = 32
+    avg_mem_accesses = 12
     single_function_test_case = True
     avoid_data_dependencies: bool = True
     generate_memory_accesses_in_pairs: bool = True
@@ -42,9 +42,9 @@ class ConfCls:
         "PUSH",
         "SEMAPHORE",
         "SETCC",
+        "STRINGOP",
         # "ROTATE",     # TBD: under construction
         # "SHIFT",      # TBD: under construction
-        # "STRINGOP",   # TBD: under construction
         # "UNCOND_BR",   # Not supported: Complex control flow
         # "CALL",        # Not supported: Complex control flow
         # "RET",         # Not supported: Complex control flow
@@ -73,6 +73,22 @@ class ConfCls:
         "IDIV", "REX IDIV",
         # - Requires complex instrumentation
         "ENTERW", "ENTER", "LEAVEW", "LEAVE",
+
+        # Stringops - under construction
+        "CMPSB", "CMPSD", "CMPSW",
+        "MOVSB", "MOVSD", "MOVSW",
+
+        "REPE CMPSB", "REPE CMPSD", "REPE CMPSW",
+        "REPE LODSB", "REPE LODSD", "REPE LODSW",
+        "REPE MOVSB", "REPE MOVSD", "REPE MOVSW",
+        "REPE SCASB", "REPE SCASD", "REPE SCASW",
+        "REPE STOSB", "REPE STOSD", "REPE STOSW",
+
+        "REPNE CMPSB", "REPNE CMPSD", "REPNE CMPSW",
+        "REPNE LODSB", "REPNE LODSD", "REPNE LODSW",
+        "REPNE MOVSB", "REPNE MOVSD", "REPNE MOVSW",
+        "REPNE SCASB", "REPNE SCASD", "REPNE SCASW",
+        "REPNE STOSB", "REPNE STOSD", "REPNE STOSW"
     ]
     # x86 executor internally uses R15, R14, RSP, RBP and, thus, they are excluded
     # segment registers are also excluded as we don't support their handling so far
