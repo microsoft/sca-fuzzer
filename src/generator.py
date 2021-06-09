@@ -701,6 +701,7 @@ class Generator:
         passes = [
             SandboxPass(),
             PatchUndefinedFlagsPass(self.instruction_set),
+            PatchUndefinedResultPass(),
         ]
         if serial_mode:
             passes.append(LFENCEPass())
@@ -1241,6 +1242,42 @@ class PatchUndefinedFlagsPass(Pass):
 
         # unreachable under normal conditions - should always find within 100 attempts
         raise Exception("ERROR: Could not generate a test case from the given instruction set")
+
+
+class PatchUndefinedResultPass(Pass):
+    def run_on_dag(self, DAG: TestCaseDAG) -> None:
+        for func in DAG.functions:
+            for bb in func.all_bb:
+                if bb == func.entry:
+                    continue
+
+                # collect all instructions that require patching
+                bit_scan = []
+                for inst in bb:
+                    if inst.name in ["BSF", "BSR"]:
+                        bit_scan.append(inst)
+
+                # patch them
+                for inst in bit_scan:
+                    self.patch_bit_scan(inst, bb)
+
+    @staticmethod
+    def patch_bit_scan(inst: Instruction, parent: BasicBlock):
+        """
+        Bit Scan instructions give an undefined result when the source operand is zero.
+        To avoid it, set the most significant bit.
+        :param inst:
+        :param parent:
+        :return:
+        """
+        source = inst.operands[1]
+        mask = bin(1 << (source.width - 1))
+        if source.width in [64, 32]:
+            mask = "0b1000000000000000000000000000000"
+        apply_mask = Instruction("OR", True) \
+            .add_op(source) \
+            .add_op(ImmediateOperand(mask))
+        parent.insert_before(inst, apply_mask)
 
 
 class PrinterPass(Pass):
