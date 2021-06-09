@@ -121,7 +121,14 @@ class Postprocessor:
             if "instrumentation" in instructions[cursor]:
                 continue
 
+            # Preserve labels
+            if instructions[cursor][0] == '.' and instructions[cursor][-2] == ':':
+                continue
+
             if instructions[cursor] == "LFENCE\n":
+                continue
+
+            if instructions[cursor] == "\n":
                 continue
 
             # Create a test case with one line missing
