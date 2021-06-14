@@ -13,7 +13,6 @@ import yaml
 from typing import Dict
 from argparse import ArgumentParser
 from fuzzer import Fuzzer
-from generator import Generator
 from postprocessor import Postprocessor
 from config import CONF
 
@@ -90,20 +89,6 @@ def main():
         action='store_true',
     )
 
-    parser_gen = subparsers.add_parser(
-        'generator-test',
-        help="Generate all instructions in the instruction set and do not start fuzzing")
-    parser_gen.add_argument(
-        "-s", "--instruction-set",
-        type=str,
-        required=True
-    )
-    parser_gen.add_argument(
-        "-c", "--config",
-        type=str,
-        required=False
-    )
-
     parser_mini = subparsers.add_parser('minimize')
     parser_mini.add_argument(
         '--infile', '-i',
@@ -144,12 +129,6 @@ def main():
         for var, value in config_update.items():
             CONF.set(var, value)
     check_config()
-
-    # Generator test
-    if args.subparser_name == "generator-test":
-        binary_generator = Generator(args.instruction_set)
-        binary_generator.create_test_case('generated.asm', test_mode=True)
-        return
 
     # Fuzzing
     if args.subparser_name == 'fuzz':

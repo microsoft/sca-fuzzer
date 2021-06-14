@@ -53,7 +53,7 @@ EXTENDED_TESTS=0
 }
 
 
-@test "Model and Executor are initialized with the same register and memory values" {
+@test "Model and Executor are initialized with the same values" {
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/model_match.asm -c tests/model_match.yaml -i 1000"
     echo "$output"
     [ "$status" -eq 0 ]
@@ -239,12 +239,6 @@ EXTENDED_TESTS=0
     [[ "$output" != *"__^_____________________________________________________________ [s]"* ]]
     [[ "$output" != *"_^______________________________________________________________ [s]"* ]]
     [[ "$output" != *"_^^_____________________________________________________________ [s]"* ]]
-}
-
-@test "Generator: Self-test" {
-    run bash -c "./cli.py generator-test -s $INSTRUCTION_SET -c tests/all-instr.yaml"
-    [ "$status" -eq 0 ]
-    [[ "$output" == "" ]]
 }
 
 # ==================================================================================================

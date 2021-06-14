@@ -55,8 +55,8 @@ sudo insmod x86-executor.ko
 3. Test it:
 
 ```bash
-cd src/
-./tests/run.bats
+cd src/tests
+./runtests.sh
 ```
 
 If some of the "Detection" tests fail, it's fine, you might just have a slightly different microarchitecture. But if other tests fail - something is broken.

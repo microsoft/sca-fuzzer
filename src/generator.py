@@ -11,69 +11,15 @@ import random
 import abc
 import xml.etree.ElementTree as ET
 from enum import Enum
-from custom_types import Optional, List
+from custom_types import Optional, List, Dict
 
 from helpers import NotSupportedException
 from config import CONF
 
 
-# ===========================
-# x86-specific
-# ===========================
-
-class X86Registers:
-    gpr_sizes = {
-        "RAX": 64, "RBX": 64, "RCX": 64, "RDX": 64, "RSI": 64, "RDI": 64, "RSP": 64, "RBP": 64,
-        "R8": 64, "R9": 64, "R10": 64, "R11": 64, "R12": 64, "R13": 64, "R14": 64, "R15": 64,
-        "EAX": 32, "EBX": 32, "ECX": 32, "EDX": 32, "ESI": 32, "EDI": 32, "R8D": 32, "R9D": 32,
-        "R10D": 32, "R11D": 32, "R12D": 32, "R13D": 32, "R14D": 32, "R15D": 32,
-        "AX": 16, "BX": 16, "CX": 16, "DX": 16, "SI": 16, "DI": 16, "R8W": 16, "R9W": 16,
-        "R10W": 16, "R11W": 16, "R12W": 16, "R13W": 16, "R14W": 16, "R15W": 16,
-        "AL": 8, "BL": 8, "CL": 8, "DL": 8, "SIL": 8, "DIL": 8, "R8B": 8, "R9B": 8,
-        "R10B": 8, "R11B": 8, "R12B": 8, "R13B": 8, "R14B": 8, "R15B": 8,
-        "AH": 8, "Bh": 8, "CH": 8, "DH": 8,
-    }
-    gpr_normalized = {
-        "RAX": "A", "EAX": "A", "AX": "A", "AL": "A", "AH": "A",
-        "RBX": "B", "EBX": "B", "BX": "B", "BL": "B", "BH": "B",
-        "RCX": "C", "ECX": "C", "CX": "C", "CL": "C", "CH": "C",
-        "RDX": "D", "EDX": "D", "DX": "D", "DL": "D", "DH": "D",
-        "RSI": "SI", "ESI": "SI", "SI": "SI", "SIL": "SI",
-        "RDI": "DI", "EDI": "DI", "DI": "DI", "DIL": "DI",
-        "R8": "8", "R8D": "8", "R8W": "8", "R8B": "8",
-        "R9": "9", "R9D": "9", "R9W": "9", "R9B": "9",
-        "R10": "10", "R10D": "10", "R10W": "10", "R10B": "10",
-        "R11": "11", "R11D": "11", "R11W": "11", "R11B": "11",
-        "R12": "12", "R12D": "12", "R12W": "12", "R12B": "12",
-        "R13": "13", "R13D": "13", "R13W": "13", "R13B": "13",
-        "FLAGS": "FLAGS"
-    }
-
-    # more sparse encoding for SIMD because the 'width' field is not always reliable
-    simd_decoding = {
-        'SIMD64-8': ['MM0', 'MM1', 'MM2', 'MM3', 'MM4', 'MM5', 'MM6', 'MM7'],
-        'SIMD128-32': ['XMM0', 'XMM1', 'XMM2', 'XMM3', 'XMM4', 'XMM5', 'XMM6', 'XMM7', 'XMM8',
-                       'XMM9', 'XMM10', 'XMM11', 'XMM12', 'XMM13', 'XMM14', 'XMM15', 'XMM16',
-                       'XMM17', 'XMM18', 'XMM19', 'XMM20', 'XMM21', 'XMM22', 'XMM23', 'XMM24',
-                       'XMM25', 'XMM26', 'XMM27', 'XMM28', 'XMM29', 'XMM30', 'XMM31'],
-        'SIMD128-16': ['XMM0', 'XMM1', 'XMM2', 'XMM3', 'XMM4', 'XMM5', 'XMM6', 'XMM7', 'XMM8',
-                       'XMM9', 'XMM10', 'XMM11', 'XMM12', 'XMM13', 'XMM14', 'XMM15'],
-        'SIMD256-32': ['YMM0', 'YMM1', 'YMM2', 'YMM3', 'YMM4', 'YMM5', 'YMM6', 'YMM7', 'YMM8',
-                       'YMM9', 'YMM10', 'YMM11', 'YMM12', 'YMM13', 'YMM14', 'YMM15', 'YMM16',
-                       'YMM17', 'YMM18', 'YMM19', 'YMM20', 'YMM21', 'YMM22', 'YMM23', 'YMM24',
-                       'YMM25', 'YMM26', 'YMM27', 'YMM28', 'YMM29', 'YMM30', 'YMM31'],
-        'SIMD256-16': ['YMM0', 'YMM1', 'YMM2', 'YMM3', 'YMM4', 'YMM5', 'YMM6', 'YMM7', 'YMM8',
-                       'YMM9', 'YMM10', 'YMM11', 'YMM12', 'YMM13', 'YMM14', 'YMM15'],
-        'SIMD512-32': ['ZMM0', 'ZMM1', 'ZMM2', 'ZMM3', 'ZMM4', 'ZMM5', 'ZMM6', 'ZMM7', 'ZMM8',
-                       'ZMM9', 'ZMM10', 'ZMM11', 'ZMM12', 'ZMM13', 'ZMM14', 'ZMM15', 'ZMM16',
-                       'ZMM17', 'ZMM18', 'ZMM19', 'ZMM20', 'ZMM21', 'ZMM22', 'ZMM23', 'ZMM24',
-                       'ZMM25', 'ZMM26', 'ZMM27', 'ZMM28', 'ZMM29', 'ZMM30', 'ZMM31'],
-    }
-
-
-# ===========================
-# Instruction Loader
-# ===========================
+# ==================================================================================================
+# Parser of instruction specs
+# ==================================================================================================
 class OT(Enum):  # Operand Type
     REG = 1
     MEM = 2
@@ -105,6 +51,7 @@ class InstructionSpec:
     name: str
     operands: List[OperandSpec]
     implicit_operands: List[OperandSpec]
+    category: str
     sae = False
     rnsae = False
     zeroing = False
@@ -142,22 +89,18 @@ class InstructionSet:
         spec = OperandSpec(registers, OT.REG,
                            op.attrib.get('r', "0"),
                            op.attrib.get('w', "0"))
-        spec.width = int(op.attrib.get('width', '0'))
-        assert spec.width or registers != ['GPR']
+        spec.width = int(op.attrib.get('width'))
         return spec
 
     @staticmethod
     def parse_mem_operand(op):
-        width = op.attrib['width']
+        width = int(op.attrib['width'])
 
         # asserts are for unsupported instructions
         assert op.attrib.get('VSIB', '0') == '0'  # asm += '[' + op.attrib.get('VSIB') + '0]'
         assert op.attrib.get('memory-suffix', '') == ''
 
-        name = op.attrib.get('memory-prefix', '')
-        assert name != ''
-
-        spec = OperandSpec([name], OT.MEM,
+        spec = OperandSpec([], OT.MEM,
                            op.attrib.get('r', "0"),
                            op.attrib.get('w', "0"))
         spec.width = width
@@ -183,6 +126,7 @@ class InstructionSet:
 
     @staticmethod
     def parse_flags_operand(op):
+        # TODO: this is x86-specific. Has to be decoupled from the generic data types
         flags = [
             op.attrib.get("flag_CF", "none"),
             op.attrib.get("flag_PF", "none"),
@@ -202,6 +146,7 @@ class InstructionSet:
 
             self.instruction = InstructionSpec()
             self.instruction.name = instruction_node.attrib['asm']
+            self.instruction.category = instruction_node.attrib['category']
 
             for op_node in instruction_node.iter('op'):
                 op_type = op_node.attrib['type']
@@ -285,7 +230,7 @@ class InstructionSet:
                         break
                     op.values = choices
 
-                    # temporary disable generation of higher reg. bytes
+                    # FIXME: temporary disabled generation of higher reg. bytes
                     for i, reg in enumerate(op.values):
                         if reg[-1] == 'H':
                             op.values[i] = reg.replace('H', 'L', )
@@ -300,7 +245,7 @@ class InstructionSet:
         # set parameters
         for inst in self.all + self.control_flow:
             if inst.control_flow:
-                if "JMP" in inst.name:
+                if inst.category == "UNCOND_BR":
                     self.has_unconditional_branch = True
                 else:
                     self.has_conditional_branch = True
@@ -310,34 +255,10 @@ class InstructionSet:
                 else:
                     self.has_reads = True
 
-        # conditional_reg = 0
-        # unconditional = 0
-        # store = 0
-        # load = 0
-        # reg = 0
-        # for s in self.all + self.control_flow:
-        #     if s.control_flow:
-        #         if "JMP" in s.name:
-        #             unconditional += 1
-        #         else:
-        #             conditional_reg += 1
-        #     elif s.has_mem_operand:
-        #         if s.has_write:
-        #             store += 1
-        #         else:
-        #             load += 1
-        #     else:
-        #         reg += 1
-        # print(f"Unconditional: {unconditional}")
-        # print(f"Conditional: {conditional_reg}")
-        # print(f"Store: {store}")
-        # print(f"Load: {load}")
-        # print(f"Misc: {reg}")
 
-
-# ===========================
-# Test Case DAG
-# ===========================
+# ==================================================================================================
+# Test case DAG and its nodes
+# ==================================================================================================
 class Operand(abc.ABC):
     value: str
     type: OT
@@ -352,29 +273,20 @@ class Operand(abc.ABC):
         self.dest = dest
         super(Operand, self).__init__()
 
-    def __str__(self):
-        return self.value
-
     def get_width(self) -> int:
         return self.width
 
 
 class RegisterOperand(Operand):
-    def __init__(self, value: str, src: bool, dest: bool):
-        self.width = X86Registers.gpr_sizes[value]
+    def __init__(self, value: str, width: int, src: bool, dest: bool):
+        self.width = width
         super().__init__(value, OT.REG, src, dest)
 
 
 class MemoryOperand(Operand):
-    prefix_sizes = {"byte ptr": 8, "word ptr": 16, "dword ptr": 32, "qword ptr": 64}
-
-    def __init__(self, prefix: str, base: str, src: bool, dest: bool):
-        self.width = self.prefix_sizes[prefix]
-        self.prefix: str = prefix
-        super().__init__(base, OT.MEM, src, dest)
-
-    def __str__(self):
-        return f"{self.prefix} [{self.value}]"
+    def __init__(self, address: str, width: int, src: bool, dest: bool):
+        self.width = width
+        super().__init__(address, OT.MEM, src, dest)
 
 
 class ImmediateOperand(Operand):
@@ -393,9 +305,6 @@ class LabelOperand(Operand):
 class AgenOperand(Operand):
     def __init__(self, value: str):
         super().__init__(value, OT.AGEN, True, False)
-
-    def __str__(self):
-        return f"[{self.value}]"
 
 
 class FlagsOperand(Operand):
@@ -455,23 +364,12 @@ class Instruction:
         self.implicit_operands = []
         self.is_instrumentation = is_instrumentation
 
-    def __str__(self):
-        operands = ", ".join([str(op) for op in self.operands])
-        comment = "# instrumentation" if self.is_instrumentation else ""
-        return f"{self.name} {operands} {comment}"
-
     def add_op(self, op: Operand):
         self.operands.append(op)
         return self
 
-    def add_reg(self, name: str, src: bool, dest: bool):
-        return self.add_op(RegisterOperand(name, src, dest))
-
     def add_imm(self, value: str):
         return self.add_op(ImmediateOperand(value))
-
-    def add_mem(self, prefix, address, src: bool, dest: bool):
-        return self.add_op(MemoryOperand(prefix, address, src, dest))
 
     def has_mem_operand(self, include_implicit: bool = False):
         for o in self.operands:
@@ -646,8 +544,6 @@ class Function:
         # create entry and exit points for the function
         self.entry = BasicBlock(f"{self.name}.entry")
         self.exit = BasicBlock(f"{self.name}.exit")
-        if not CONF.single_function_test_case:
-            self.exit.terminators = [Instruction("RET")]
         self.all_bb = [self.entry, self.exit]
 
     def __iter__(self):
@@ -663,65 +559,148 @@ class TestCaseDAG:
         self.functions = []
 
 
-# ===========================
-# Generator and passes
-# ===========================
+# ==================================================================================================
+# Generator Interface
+# ==================================================================================================
+class Pass(abc.ABC):
+    @abc.abstractmethod
+    def run_on_dag(self, DAG: TestCaseDAG) -> None:
+        pass
 
-class Generator:
+
+class Printer(abc.ABC):
+    @abc.abstractmethod
+    def print(self, DAG: TestCaseDAG, outfile: str) -> None:
+        pass
+
+
+class RegisterSet(abc.ABC):
+    register_sizes: Dict[str, int]
+
+    # FIXME: GPR and SIMD decoding have different data structures; should be unified
+    registers: Dict[int, List[str]]
+    simd_decoding: Dict[str, List[str]]
+
+
+class Generator(abc.ABC):
+    """
+    The interface description for Generator classes.
+    """
+
     test_case: TestCaseDAG
     coverage = None
+    passes: List[Pass]  # set by subclasses
+    printer: Printer  # set by subclasses
+    register_set: RegisterSet  # set by subclasses
 
     def __init__(self, instruction_set_spec: str):
+        super().__init__()
         instruction_set = InstructionSet()
         instruction_set.init_from_file(instruction_set_spec, CONF.supported_categories)
         instruction_set.reduce()
         self.instruction_set = instruction_set
 
+    @abc.abstractmethod
+    def generate_function(self, name: str, shuffle: bool = False):
+        pass
+
     def set_coverage(self, coverage):
         self.coverage = coverage
 
-    def create_test_case(self, asm_file: str, test_mode: bool = False, serial_mode: bool = False):
+    def create_test_case(self, asm_file: str):
         """
         Create a simple test case with a single BB
         Run instrumentation passes and print the result into a file
         """
         self.test_case = TestCaseDAG()
 
-        # create a test function and add to the test case
-        func = self._generate_random_function("test_case_main", shuffle=False)
+        # create the main function
+        func = self.generate_function("test_case_main", shuffle=False)
+
+        # fill the function with instructions
+        self.add_terminators_in_function(func)
+        self.add_instructions_in_function(func)
+
+        # add it to the test case
         self.test_case.functions.append(func)
         self.test_case.main = func
 
-        # fill the test case with instructions
-        SetTerminatorsPass(self.instruction_set).run_on_dag(self.test_case)
-        AddRandomInstructionsPass(self.instruction_set, CONF.test_case_size, test_mode=test_mode). \
-            run_on_dag(self.test_case)
-
         # process the test case
-        passes = [
-            SandboxPass(),
-            PatchUndefinedFlagsPass(self.instruction_set),
-            PatchUndefinedResultPass(),
-        ]
-        if serial_mode:
-            passes.append(LFENCEPass())
-        passes.append(PrinterPass(asm_file))
-
-        for p in passes:
+        for p in self.passes:
             p.run_on_dag(self.test_case)
+
+        self.printer.print(self.test_case, asm_file)
 
         # measure coverage, if applicable
         if self.coverage:
             self.coverage.generator_hook(self.test_case, self.instruction_set)
 
-    def _generate_random_function(self, name: str, shuffle: bool = False):
+    def generate_operand(self, spec: OperandSpec, parent: Instruction) -> Operand:
+        generators = {
+            OT.REG: self.generate_reg_operand,
+            OT.MEM: self.generate_mem_operand,
+            OT.IMM: self.generate_imm_operand,
+            OT.LABEL: self.generate_label_operand,
+            OT.AGEN: self.generate_agen_operand,
+            OT.FLAGS: self.generate_flags_operand,
+        }
+        return generators[spec.type](spec, parent)
+
+    @abc.abstractmethod
+    def generate_instruction(self, spec: InstructionSpec):
+        pass
+
+    @abc.abstractmethod
+    def generate_reg_operand(self, spec: OperandSpec, parent: Instruction) -> Operand:
+        pass
+
+    @abc.abstractmethod
+    def generate_mem_operand(self, spec: OperandSpec, _: Instruction) -> Operand:
+        pass
+
+    @abc.abstractmethod
+    def generate_imm_operand(self, spec: OperandSpec, _: Instruction) -> Operand:
+        pass
+
+    @abc.abstractmethod
+    def generate_label_operand(self, spec: OperandSpec, parent: Instruction) -> Operand:
+        pass
+
+    @abc.abstractmethod
+    def generate_agen_operand(self, _: OperandSpec, __: Instruction) -> Operand:
+        pass
+
+    @abc.abstractmethod
+    def generate_flags_operand(self, spec: OperandSpec, _: Instruction) -> Operand:
+        pass
+
+    @abc.abstractmethod
+    def add_terminators_in_function(self, func: Function):
+        pass
+
+    @abc.abstractmethod
+    def add_instructions_in_function(self, func: Function):
+        pass
+
+
+# ==================================================================================================
+# ISA-independent Generators
+# ==================================================================================================
+class RandomGenerator(Generator, abc.ABC):
+    """
+    Implements an ISA-independent logic of random test case generation.
+    Subclasses are responsible for the ISA-specific parts.
+    """
+    had_recent_memory_access: bool = False
+
+    def generate_function(self, name: str, shuffle: bool = False):
         """ Generates a random DAG of basic blocks within a function """
         func = Function(name)
 
         # Define the maximum allowed number of successors for any BB
         max_successors = 2 if self.instruction_set.has_conditional_branch else 1
         max_successors = CONF.max_bb_successors if CONF.max_bb_successors else max_successors
-        min_successors = 1  # 2 if max_successors >= 2 else 1
+        min_successors = 1
 
         # Create basic blocks
         node_count = random.randint(CONF.min_bb_per_function, CONF.max_bb_per_function)
@@ -755,11 +734,16 @@ class Generator:
 
         func.entry.successors = [nodes[0]]
 
+        # Function return
+        if not CONF.single_function_test_case:
+            func.exit.terminators = [self.get_return_instruction()]
+
+        # Finalize the function
         if not shuffle:
             func.all_bb = [func.entry] + nodes + [func.exit]
             return func
 
-        # Shuffle them to make the function less straight-line + add entry and exit nodes
+        # Shuffle BBs to make the function less straight-line + add entry and exit nodes
         func.all_bb = [func.entry]
         while nodes:
             current_bb = random.choice(nodes)
@@ -768,45 +752,14 @@ class Generator:
         func.all_bb.append(func.exit)
         return func
 
-
-class SingleInstructionGenerator:
-    # dense register encoding for GPRs
-    gpr_decoding = [
-        {64: "RAX", 32: "EAX", 16: "AX", 8: "AL"},
-        {64: "RBX", 32: "EBX", 16: "BX", 8: "BL"},
-        {64: "RCX", 32: "ECX", 16: "CX", 8: "CL"},
-        {64: "RDX", 32: "EDX", 16: "DX", 8: "DL"},
-        {64: "RSI", 32: "ESI", 16: "SI", 8: "SIL"},
-        {64: "RDI", 32: "EDI", 16: "DI", 8: "DIL"},
-        {64: "R8", 32: "R8D", 16: "R8W", 8: "R8B"},
-        {64: "R9", 32: "R9D", 16: "R9W", 8: "R9B"},
-        {64: "R10", 32: "R10D", 16: "R10W", 8: "R10B"},
-        {64: "R11", 32: "R11D", 16: "R11W", 8: "R11B"},
-        {64: "R12", 32: "R12D", 16: "R12W", 8: "R12B"},
-        {64: "R13", 32: "R13D", 16: "R13W", 8: "R13B"},
-    ]
-    gprs_by_size = {64: [], 32: [], 16: [], 8: []}  # generated dynamically from grp_decoding
-
-    def __init__(self):
-        # remove blocked regs.
-        filtered = []
-        for reg in self.gpr_decoding:
-            if reg[64] not in CONF.gpr_blocklist:
-                filtered.append(reg)
-                self.gprs_by_size[64].append(reg[64])
-                self.gprs_by_size[32].append(reg[32])
-                self.gprs_by_size[16].append(reg[16])
-                self.gprs_by_size[8].append(reg[8])
-        self.gpr_decoding = filtered
-
-    def generate_from_spec(self, spec: InstructionSpec):
+    def generate_instruction(self, spec: InstructionSpec):
         # fill up with random operand, following the spec
         inst = Instruction(spec.name)
         for operand_spec in spec.operands:
             # generate an operand
-            operand = self.get_operand_from_spec(operand_spec, inst)
+            operand = self.generate_operand(operand_spec, inst)
 
-            # FIXME: dirty hack
+            # FIXME: dirty hack + x86 specific
             if inst.name in ["DIV", "REX DIV"]:
                 if operand.value in ["RDX", "RAX"]:
                     operand.value = "RBX"
@@ -821,41 +774,48 @@ class SingleInstructionGenerator:
 
         # copy the implicit operands
         for operand_spec in spec.implicit_operands:
-            operand = self.get_operand_from_spec(operand_spec, inst)
+            operand = self.generate_operand(operand_spec, inst)
             inst.implicit_operands.append(operand)
 
         return inst
 
+    def generate_operand(self, spec: OperandSpec, parent: Instruction) -> Operand:
+        generators = {
+            OT.REG: self.generate_reg_operand,
+            OT.MEM: self.generate_mem_operand,
+            OT.IMM: self.generate_imm_operand,
+            OT.LABEL: self.generate_label_operand,
+            OT.AGEN: self.generate_agen_operand,
+            OT.FLAGS: self.generate_flags_operand,
+        }
+        return generators[spec.type](spec, parent)
+
     def generate_reg_operand(self, spec: OperandSpec, parent: Instruction) -> Operand:
         reg_type = spec.values[0]
         if reg_type == 'GPR':
-            choices = self.gprs_by_size[spec.width]
+            choices = self.register_set.registers[spec.width]
         elif reg_type.startswith("SIMD"):
-            choices = X86Registers.simd_decoding[reg_type]
+            choices = self.register_set.simd_decoding[reg_type]
         else:
             choices = spec.values
 
         if not CONF.avoid_data_dependencies:
             reg = random.choice(choices)
-            return RegisterOperand(reg, spec.src, spec.dest)
+            return RegisterOperand(reg, spec.width, spec.src, spec.dest)
 
         if parent.latest_reg_operand and parent.latest_reg_operand.value in choices:
             return parent.latest_reg_operand
 
         reg = random.choice(choices)
-        op = RegisterOperand(reg, spec.src, spec.dest)
+        op = RegisterOperand(reg, spec.width, spec.src, spec.dest)
         parent.latest_reg_operand = op
         return op
 
     def generate_mem_operand(self, spec: OperandSpec, _: Instruction) -> Operand:
-        assert len(spec.values) == 1
-        prefix = spec.values[0]
+        address_reg = random.choice(self.register_set.registers[64])
+        return MemoryOperand(address_reg, spec.width, spec.src, spec.dest)
 
-        base = random.choice(self.gpr_decoding)[64]
-        return MemoryOperand(prefix, base, spec.src, spec.dest)
-
-    @staticmethod
-    def generate_imm_operand(spec: OperandSpec, _: Instruction) -> Operand:
+    def generate_imm_operand(self, spec: OperandSpec, _: Instruction) -> Operand:
         if spec.values:
             value = spec.values[0]
         else:
@@ -867,106 +827,65 @@ class SingleInstructionGenerator:
 
     def generate_agen_operand(self, _: OperandSpec, __: Instruction) -> Operand:
         n_operands = random.randint(1, 3)
-        reg1 = random.choice(self.gpr_decoding)[64]
+        reg1 = random.choice(self.register_set.registers[64])
         if n_operands == 1:
             return AgenOperand(reg1)
 
-        reg2 = random.choice(self.gpr_decoding)[64]
+        reg2 = random.choice(self.register_set.registers[64])
         if n_operands == 2:
             return AgenOperand(reg1 + " + " + reg2)
 
         imm = str(random.randint(0, pow(2, 16) - 1))
         return AgenOperand(reg1 + " + " + reg2 + " + " + imm)
 
-    @staticmethod
-    def generate_flags_operand(spec: OperandSpec, _: Instruction) -> Operand:
+    def generate_flags_operand(self, spec: OperandSpec, _: Instruction) -> Operand:
         return FlagsOperand(spec.values, spec.src, spec.dest)
 
-    def get_operand_from_spec(self, spec: OperandSpec, parent: Instruction) -> Operand:
-        generators = {
-            OT.REG: self.generate_reg_operand,
-            OT.MEM: self.generate_mem_operand,
-            OT.IMM: self.generate_imm_operand,
-            OT.LABEL: self.generate_label_operand,
-            OT.AGEN: self.generate_agen_operand,
-            OT.FLAGS: self.generate_flags_operand,
-        }
-        return generators[spec.type](spec, parent)
+    def add_terminators_in_function(self, func: Function):
+        for bb in func.all_bb:
+            if len(bb.successors) == 0:
+                # Return instruction
+                continue
 
-
-class Pass(abc.ABC):
-    @abc.abstractmethod
-    def run_on_dag(self, DAG: TestCaseDAG) -> None:
-        pass
-
-
-class SetTerminatorsPass(Pass):
-    def __init__(self, instruction_set: InstructionSet):
-        super().__init__()
-        self.instruction_set = instruction_set
-
-    def run_on_dag(self, DAG: TestCaseDAG):
-        for func in DAG.functions:
-            for bb in func.all_bb:
-                if len(bb.successors) == 0:
-                    # Return instruction
+            elif len(bb.successors) == 1:
+                # the last basic block simply falls through
+                if bb.successors[0] == func.exit:
                     continue
 
-                elif len(bb.successors) == 1:
-                    # the last basic block simply falls through
-                    if bb.successors[0] == func.exit:
-                        continue
+                # Unconditional branch
+                terminator = self.get_unconditional_jump_instruction()
+                terminator.operands = [LabelOperand(bb.successors[0])]
+                bb.terminators.append(terminator)
 
-                    # Unconditional branch
-                    terminator = Instruction("JMP")
-                    terminator.operands = [LabelOperand(bb.successors[0])]
-                    bb.terminators.append(terminator)
+            elif len(bb.successors) == 2:
+                # Conditional branch
+                spec = random.choice(self.instruction_set.control_flow)
+                terminator = Instruction(spec.name)
+                terminator.operands = [LabelOperand(bb.successors[0])]
+                for op in spec.implicit_operands:
+                    if op.type == OT.FLAGS:
+                        terminator.implicit_operands = \
+                            [FlagsOperand(op.values, op.src, op.dest)]
+                        break
+                bb.terminators.append(terminator)
 
-                elif len(bb.successors) == 2:
-                    # Conditional branch
-                    spec = random.choice(self.instruction_set.control_flow)
-                    terminator = Instruction(spec.name)
-                    terminator.operands = [LabelOperand(bb.successors[0])]
-                    for op in spec.implicit_operands:
-                        if op.type == OT.FLAGS:
-                            terminator.implicit_operands = \
-                                [FlagsOperand(op.values, op.src, op.dest)]
-                            break
-                    bb.terminators.append(terminator)
+                terminator = self.get_unconditional_jump_instruction()
+                terminator.operands = [LabelOperand(bb.successors[1])]
+                bb.terminators.append(terminator)
+            else:
+                # Indirect jump
+                raise NotSupportedException()
 
-                    terminator = Instruction("JMP")
-                    terminator.operands = [LabelOperand(bb.successors[1])]
-                    bb.terminators.append(terminator)
-                else:
-                    # Indirect jump
-                    raise NotSupportedException()
+    def add_instructions_in_function(self, func: Function):
+        # evenly fill all BBs with random instructions
+        basic_blocks_to_fill = func.all_bb[1:-1]
+        for _ in range(0, CONF.test_case_size):
+            bb = random.choice(basic_blocks_to_fill)
+            spec = self._pick_random_instruction_spec()
+            inst = self.generate_instruction(spec)
+            bb.insert_after(bb.get_last(), inst)
 
-
-class AddRandomInstructionsPass(Pass):
-    had_recent_memory_access: bool = False
-
-    def __init__(self, instruction_set: InstructionSet, max_length: int, test_mode: bool = False):
-        super().__init__()
-        self.instruction_set = instruction_set
-        self.max_length = max_length
-        self.test_mode = test_mode
-        self.instruction_generator = SingleInstructionGenerator()
-
-    def run_on_dag(self, DAG: TestCaseDAG) -> None:
-        # sometimes, we might want to generate all possible instructions, for testing
-        if self.test_mode:
-            self.generate_all_instructions(DAG)
-            return
-
-        # otherwise, fill the DAG with random instructions
-        for func in DAG.functions:
-            basic_blocks_to_fill = func.all_bb[1:-1]
-            for _ in range(0, self.max_length):
-                bb = random.choice(basic_blocks_to_fill)
-                inst = self.generate_instruction()
-                bb.insert_after(bb.get_last(), inst)
-
-    def generate_instruction(self) -> Instruction:
+    def _pick_random_instruction_spec(self) -> InstructionSpec:
         instruction_spec: InstructionSpec
 
         # ensure the requested avg. number of mem. accesses
@@ -993,18 +912,108 @@ class AddRandomInstructionsPass(Pass):
                 if not instruction_spec.has_mem_operand:
                     break
 
-        return self.instruction_generator.generate_from_spec(instruction_spec)
+        return instruction_spec
 
-    def generate_all_instructions(self, DAG: TestCaseDAG):
-        for func in DAG.functions:
-            for bb in func:
-                for instruction_spec in self.instruction_set.all:
-                    # fill up with random operand, following the spec
-                    inst = self.instruction_generator.generate_from_spec(instruction_spec)
-                    bb.insert_after(bb.get_last(), inst)
+    @abc.abstractmethod
+    def get_return_instruction(self) -> Instruction:
+        pass
+
+    @abc.abstractmethod
+    def get_unconditional_jump_instruction(self) -> Instruction:
+        pass
 
 
-class LFENCEPass(Pass):
+# ==================================================================================================
+# x86 Generators
+# ==================================================================================================
+class X86Registers(RegisterSet):
+    register_sizes = {
+        "RAX": 64, "RBX": 64, "RCX": 64, "RDX": 64, "RSI": 64, "RDI": 64, "RSP": 64, "RBP": 64,
+        "R8": 64, "R9": 64, "R10": 64, "R11": 64, "R12": 64, "R13": 64, "R14": 64, "R15": 64,
+        "EAX": 32, "EBX": 32, "ECX": 32, "EDX": 32, "ESI": 32, "EDI": 32, "R8D": 32, "R9D": 32,
+        "R10D": 32, "R11D": 32, "R12D": 32, "R13D": 32, "R14D": 32, "R15D": 32,
+        "AX": 16, "BX": 16, "CX": 16, "DX": 16, "SI": 16, "DI": 16, "R8W": 16, "R9W": 16,
+        "R10W": 16, "R11W": 16, "R12W": 16, "R13W": 16, "R14W": 16, "R15W": 16,
+        "AL": 8, "BL": 8, "CL": 8, "DL": 8, "SIL": 8, "DIL": 8, "R8B": 8, "R9B": 8,
+        "R10B": 8, "R11B": 8, "R12B": 8, "R13B": 8, "R14B": 8, "R15B": 8,
+        "AH": 8, "Bh": 8, "CH": 8, "DH": 8,
+    }
+    gpr_normalized = {
+        "RAX": "A", "EAX": "A", "AX": "A", "AL": "A", "AH": "A",
+        "RBX": "B", "EBX": "B", "BX": "B", "BL": "B", "BH": "B",
+        "RCX": "C", "ECX": "C", "CX": "C", "CL": "C", "CH": "C",
+        "RDX": "D", "EDX": "D", "DX": "D", "DL": "D", "DH": "D",
+        "RSI": "SI", "ESI": "SI", "SI": "SI", "SIL": "SI",
+        "RDI": "DI", "EDI": "DI", "DI": "DI", "DIL": "DI",
+        "R8": "8", "R8D": "8", "R8W": "8", "R8B": "8",
+        "R9": "9", "R9D": "9", "R9W": "9", "R9B": "9",
+        "R10": "10", "R10D": "10", "R10W": "10", "R10B": "10",
+        "R11": "11", "R11D": "11", "R11W": "11", "R11B": "11",
+        "R12": "12", "R12D": "12", "R12W": "12", "R12B": "12",
+        "R13": "13", "R13D": "13", "R13W": "13", "R13B": "13",
+        "FLAGS": "FLAGS"
+    }
+
+    registers = {
+        64: ["RAX", "RBX", "RCX", "RDX", "RSI", "RDI", "R8", "R9", "R10", "R11", "R12", "R13"],
+        32: ["EAX", "EBX", "ECX", "EDX", "ESI", "EDI", "R8D", "R9D", "R10D", "R11D", "R12D",
+             "R13D"],
+        16: ["AX", "BX", "CX", "DX", "SI", "DI", "R8W", "R9W", "R10W", "R11W", "R12W", "R13W"],
+        8: ["AL", "BL", "CL", "DL", "SIL", "DIL", "R8B", "R9B", "R10B", "R11B", "R12B", "R13B"]
+    }
+
+    # more sparse encoding for SIMD because the 'width' field is not always reliable
+    simd_decoding = {
+        'SIMD64-8': ['MM0', 'MM1', 'MM2', 'MM3', 'MM4', 'MM5', 'MM6', 'MM7'],
+        'SIMD128-32': ['XMM0', 'XMM1', 'XMM2', 'XMM3', 'XMM4', 'XMM5', 'XMM6', 'XMM7', 'XMM8',
+                       'XMM9', 'XMM10', 'XMM11', 'XMM12', 'XMM13', 'XMM14', 'XMM15', 'XMM16',
+                       'XMM17', 'XMM18', 'XMM19', 'XMM20', 'XMM21', 'XMM22', 'XMM23', 'XMM24',
+                       'XMM25', 'XMM26', 'XMM27', 'XMM28', 'XMM29', 'XMM30', 'XMM31'],
+        'SIMD128-16': ['XMM0', 'XMM1', 'XMM2', 'XMM3', 'XMM4', 'XMM5', 'XMM6', 'XMM7', 'XMM8',
+                       'XMM9', 'XMM10', 'XMM11', 'XMM12', 'XMM13', 'XMM14', 'XMM15'],
+        'SIMD256-32': ['YMM0', 'YMM1', 'YMM2', 'YMM3', 'YMM4', 'YMM5', 'YMM6', 'YMM7', 'YMM8',
+                       'YMM9', 'YMM10', 'YMM11', 'YMM12', 'YMM13', 'YMM14', 'YMM15', 'YMM16',
+                       'YMM17', 'YMM18', 'YMM19', 'YMM20', 'YMM21', 'YMM22', 'YMM23', 'YMM24',
+                       'YMM25', 'YMM26', 'YMM27', 'YMM28', 'YMM29', 'YMM30', 'YMM31'],
+        'SIMD256-16': ['YMM0', 'YMM1', 'YMM2', 'YMM3', 'YMM4', 'YMM5', 'YMM6', 'YMM7', 'YMM8',
+                       'YMM9', 'YMM10', 'YMM11', 'YMM12', 'YMM13', 'YMM14', 'YMM15'],
+        'SIMD512-32': ['ZMM0', 'ZMM1', 'ZMM2', 'ZMM3', 'ZMM4', 'ZMM5', 'ZMM6', 'ZMM7', 'ZMM8',
+                       'ZMM9', 'ZMM10', 'ZMM11', 'ZMM12', 'ZMM13', 'ZMM14', 'ZMM15', 'ZMM16',
+                       'ZMM17', 'ZMM18', 'ZMM19', 'ZMM20', 'ZMM21', 'ZMM22', 'ZMM23', 'ZMM24',
+                       'ZMM25', 'ZMM26', 'ZMM27', 'ZMM28', 'ZMM29', 'ZMM30', 'ZMM31'],
+    }
+
+    def __init__(self):
+        super().__init__()
+        # remove blocked registers
+        filtered_decoding = {}
+        for size, registers in self.registers.items():
+            filtered_decoding[size] = []
+            for register in registers:
+                if register not in CONF.gpr_blocklist:
+                    filtered_decoding[size].append(register)
+        self.registers = filtered_decoding
+
+
+class X86RandomGenerator(RandomGenerator):
+    def __init__(self, instruction_set_spec: str):
+        super(X86RandomGenerator, self).__init__(instruction_set_spec)
+        self.passes = [
+            X86SandboxPass(),
+            X86PatchUndefinedFlagsPass(self.instruction_set, self),
+            X86PatchUndefinedResultPass(),
+        ]
+        self.printer = X86Printer()
+        self.register_set = X86Registers()
+
+    def get_return_instruction(self) -> Instruction:
+        return Instruction("RET")
+
+    def get_unconditional_jump_instruction(self) -> Instruction:
+        return Instruction("JMP")
+
+
+class X86LFENCEPass(Pass):
     def run_on_dag(self, DAG: TestCaseDAG) -> None:
         for func in DAG.functions:
             for bb in func:
@@ -1016,7 +1025,7 @@ class LFENCEPass(Pass):
                     bb.insert_after(instr, Instruction("LFENCE", True))
 
 
-class SandboxPass(Pass):
+class X86SandboxPass(Pass):
     mask_3bits = "0b111"
 
     def __init__(self):
@@ -1062,13 +1071,14 @@ class SandboxPass(Pass):
     def sandbox_memory_access(self, instr: Instruction, parent: BasicBlock):
         """ Force the memory accesses into the page starting from R14 """
         assert len(instr.get_mem_operands()) == 1
-        mem_reg = instr.get_mem_operands()[0].value
+        mem_operand: MemoryOperand = instr.get_mem_operands()[0]
+        address_reg = mem_operand.value
         apply_mask = Instruction("AND", True) \
-            .add_op(RegisterOperand(mem_reg, True, True)) \
+            .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
             .add_op(ImmediateOperand(self.sandbox_address_mask))
 
         parent.insert_before(instr, apply_mask)
-        instr.get_mem_operands()[0].value = "R14 + " + mem_reg
+        instr.get_mem_operands()[0].value = "R14 + " + address_reg
 
     @staticmethod
     def sandbox_division(inst: Instruction, parent: BasicBlock):
@@ -1086,7 +1096,7 @@ class SandboxPass(Pass):
             return
 
         zero_rdx = Instruction("MOV", True) \
-            .add_op(RegisterOperand("RDX", False, True)) \
+            .add_op(RegisterOperand("RDX", 64, False, True)) \
             .add_imm('0')
         parent.insert_before(inst, zero_rdx)
 
@@ -1095,7 +1105,7 @@ class SandboxPass(Pass):
         parent.insert_before(inst, apply_divisor_mask)
 
         apply_ax_mask = Instruction("AND", True) \
-            .add_op(RegisterOperand("RAX", True, True)) \
+            .add_op(RegisterOperand("RAX", 64, True, True)) \
             .add_imm('0xff')
         parent.insert_before(inst, apply_ax_mask)
 
@@ -1140,7 +1150,7 @@ class SandboxPass(Pass):
         return False
 
 
-class PatchUndefinedFlagsPass(Pass):
+class X86PatchUndefinedFlagsPass(Pass):
     """
     Some instructions have undefined effect on FLAGS (e.g., SHL may or may not overwrite OF).
     This causes a mismatch between Model execution and Executor, if the undefined behavior
@@ -1159,10 +1169,10 @@ class PatchUndefinedFlagsPass(Pass):
         JNO .label
     """
 
-    def __init__(self, instruction_set: InstructionSet):
+    def __init__(self, instruction_set: InstructionSet, generator: Generator):
         super().__init__()
         self.instruction_set = instruction_set
-        self.instruction_generator = SingleInstructionGenerator()
+        self.generator = generator
 
     def run_on_dag(self, DAG: TestCaseDAG) -> None:
         for func in DAG.functions:
@@ -1223,10 +1233,10 @@ class PatchUndefinedFlagsPass(Pass):
 
             # pick a random instruction
             instruction_spec = random.choice(self.instruction_set.all)
-            patch = self.instruction_generator.generate_from_spec(instruction_spec)
+            patch = self.generator.generate_instruction(instruction_spec)
 
             # check if the instruction is safe to use on its own
-            if SandboxPass.requires_sandbox(patch):
+            if X86SandboxPass.requires_sandbox(patch):
                 continue
 
             # check if it overwrites the undefined flags,
@@ -1244,7 +1254,7 @@ class PatchUndefinedFlagsPass(Pass):
         raise Exception("ERROR: Could not generate a test case from the given instruction set")
 
 
-class PatchUndefinedResultPass(Pass):
+class X86PatchUndefinedResultPass(Pass):
     def run_on_dag(self, DAG: TestCaseDAG) -> None:
         for func in DAG.functions:
             for bb in func.all_bb:
@@ -1266,9 +1276,6 @@ class PatchUndefinedResultPass(Pass):
         """
         Bit Scan instructions give an undefined result when the source operand is zero.
         To avoid it, set the most significant bit.
-        :param inst:
-        :param parent:
-        :return:
         """
         source = inst.operands[1]
         mask = bin(1 << (source.width - 1))
@@ -1280,13 +1287,14 @@ class PatchUndefinedResultPass(Pass):
         parent.insert_before(inst, apply_mask)
 
 
-class PrinterPass(Pass):
-    def __init__(self, output_file: str):
-        self.output_file = output_file
+class X86Printer(Printer):
+    memory_prefixes = {8: "byte ptr", 16: "word ptr", 32: "dword ptr", 64: "qword ptr"}
+
+    def __init__(self):
         super().__init__()
 
-    def run_on_dag(self, DAG: TestCaseDAG):
-        with open(self.output_file, "w") as f:
+    def print(self, DAG: TestCaseDAG, outfile: str) -> None:
+        with open(outfile, "w") as f:
             cache_line_offset = random.randint(0, 15) if CONF.randomized_mem_alignment else 0
             cache_line_offset *= 4  # the memory slots are 4-bytes wide
             f.write(".intel_syntax noprefix\n"
@@ -1302,19 +1310,37 @@ class PrinterPass(Pass):
             for func in DAG.functions:
                 f.write(f".{func.name}:\n")
                 for bb in func.all_bb:
-                    self.run_on_basic_block(bb, f)
+                    self.print_basic_block(bb, f)
 
             f.write(".test_case_exit:\n"
                     f"LEA R14, [R14 - {cache_line_offset}] # instrumentation\n"
                     "MFENCE # instrumentation\n")
 
-    def run_on_basic_block(self, bb: BasicBlock, file):
+    def print_basic_block(self, bb: BasicBlock, file):
         file.write(f".{bb.label}:\n")
         for inst in bb:
-            self.run_on_instruction(inst, file)
+            file.write(self.instruction_to_str(inst) + "\n")
         for inst in bb.terminators:
-            self.run_on_instruction(inst, file)
+            file.write(self.instruction_to_str(inst) + "\n")
 
-    @staticmethod
-    def run_on_instruction(inst: Instruction, file):
-        file.write(str(inst) + "\n")
+    def instruction_to_str(self, inst: Instruction):
+        operands = ", ".join([self.operand_to_str(op) for op in inst.operands])
+        comment = "# instrumentation" if inst.is_instrumentation else ""
+        return f"{inst.name} {operands} {comment}"
+
+    def operand_to_str(self, op: Operand) -> str:
+        if isinstance(op, MemoryOperand):
+            prefix = self.memory_prefixes[op.width]
+            return f"{prefix} [{op.value}]"
+        elif isinstance(op, AgenOperand):
+            return f"[{op.value}]"
+
+        return op.value
+
+
+def get_generator(instruction_set_spec: str) -> Generator:
+    if CONF.instruction_set == 'x86-64':
+        return X86RandomGenerator(instruction_set_spec)
+    else:
+        print("Error: unknown value of `instruction_set` configuration option")
+        exit(1)

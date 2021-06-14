@@ -11,7 +11,7 @@ from collections import defaultdict
 from pathlib import Path
 from datetime import datetime
 
-from generator import Generator
+from generator import Generator, get_generator
 from model import Model, get_model
 from executor import Executor, get_executor
 from analyser import Analyser, get_analyser
@@ -88,7 +88,7 @@ class Fuzzer:
         model: Model = get_model(executor.read_base_addresses())
         input_gen: InputGenerator = RandomInputGenerator()
         analyser: Analyser = get_analyser()
-        generator = Generator(self.instruction_set_spec)
+        generator: Generator = get_generator(self.instruction_set_spec)
 
         # connect them with coverage
         coverage: Coverage = get_coverage(generator.instruction_set)

@@ -1,26 +1,14 @@
-supported_categories:
-  - NOP
-  - BINARY
-  - BITBYTE
-  - COND_BR
-  - CMOV
-  - CONVERT
-  - DATAXFER
-  - FLAGOP
-  - SETCC
-  - LOGICAL
-  - POP
-  - PUSH
 contract_observation_mode: ct
 contract_execution_mode:
-  - seq
+  - cond
 
 enable_ssbp_patch: true
 enable_mds: false
 
-feedback_driven_generator: true
+feedback_driven_generator: false
+combination_length_min: 4
 prng_entropy_bits: 3
 
-#multiline_output: true
-#verbose: 999
-#no_priming: true
+verbose: 1
+no_priming: true
+#prng_seed: 3726696359
