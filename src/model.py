@@ -13,7 +13,6 @@ from unicorn.x86_const import *
 from config import CONF
 from custom_types import List, Tuple, CTrace
 from helpers import assemble, pretty_bitmap
-from executor import X86Intel
 
 POW32 = pow(2, 32)
 
@@ -243,6 +242,7 @@ class X86UnicornModel(Model):
         full_execution_traces = []
         for i, input_ in enumerate(inputs):
             try:
+                self.reset_model()
                 self.reset_emulator(input_)
                 self.tracer.reset_trace(self.emulator)
                 self.emulator.emu_start(self.code_base, self.code_base + len(self.code),
@@ -354,6 +354,9 @@ class X86UnicornModel(Model):
     def rollback(self):
         pass  # Implemented by subclasses
 
+    def reset_model(self):
+        pass  # Implemented by subclasses
+
 
 class X86UnicornSeq(X86UnicornModel):
     """
@@ -367,7 +370,7 @@ class X86UnicornSeq(X86UnicornModel):
         model.tracer.observe_mem_access(access, address, size, value, model)
 
     @staticmethod
-    def trace_code(emulator: Uc, address, size, model):
+    def trace_code(emulator: Uc, address, size, model) -> None:
         model.tracer.observe_instruction(address, size, model)
 
 
@@ -381,6 +384,7 @@ class X86UnicornSpec(X86UnicornModel):
         self.checkpoints = []
         self.store_logs = []
         self.previous_store = (0, 0, 0, 0)
+        self.latest_rollback_address = 0
         super(X86UnicornSpec, self).__init__(*args)
 
     @staticmethod
@@ -392,7 +396,7 @@ class X86UnicornSpec(X86UnicornModel):
         model.tracer.observe_mem_access(access, address, size, value, model)
 
     @staticmethod
-    def trace_code(emulator: Uc, address, size, model):
+    def trace_code(emulator: Uc, address, size, model) -> None:
         model.speculation_window += 1
 
         if model.in_speculation:
@@ -421,6 +425,9 @@ class X86UnicornSpec(X86UnicornModel):
         if not self.checkpoints:
             self.in_speculation = False
 
+        self.latest_rollback_address = next_instr
+
+        # restore the speculation state
         self.emulator.context_restore(state)
         self.speculation_window = spec_window
 
@@ -438,6 +445,9 @@ class X86UnicornSpec(X86UnicornModel):
 
         # restart without misprediction
         self.emulator.emu_start(next_instr, self.code_base + len(self.code), timeout=10000)
+
+    def reset_model(self):
+        self.latest_rollback_address = 0
 
 
 class X86UnicornCond(X86UnicornSpec):
@@ -497,12 +507,12 @@ class X86UnicornCond(X86UnicornSpec):
     }
 
     @staticmethod
-    def trace_code(emulator: Uc, address, size, model):
+    def trace_code(emulator: Uc, address, size, model) -> None:
         X86UnicornSpec.trace_code(emulator, address, size, model)
 
         # reached max spec. window? skip
         if len(model.checkpoints) >= model.nesting:
-            return True
+            return
 
         # decode the instruction
         code = emulator.mem_read(address, size)
@@ -512,7 +522,7 @@ class X86UnicornCond(X86UnicornSpec):
 
         # not a a cond. jump? ignore
         if not target:
-            return True
+            return
 
         # LOOP instructions must also decrement RCX
         if is_loop:
@@ -527,7 +537,6 @@ class X86UnicornCond(X86UnicornSpec):
             emulator.reg_write(UC_X86_REG_RIP, address + size)
         else:
             emulator.reg_write(UC_X86_REG_RIP, address + size + target)
-        return True
 
     @staticmethod
     def decode(code: bytearray, flags: int, rcx: int) -> (int, bool, bool):
@@ -550,8 +559,8 @@ class X86UnicornBpas(X86UnicornSpec):
         """
         Since Unicorn does not have post-instruction hooks,
         I have to implement it in a dirty way:
-        Save the information about the write here, but execute the all the
-        contract logic in a hook before the next instruction (see observe_instruction)
+        Save the information about the store here, but execute all the
+        contract logic in a hook before the next instruction (see trace_code)
         """
         if access == UC_MEM_WRITE:
             rip = emulator.reg_read(UC_X86_REG_RIP)
@@ -562,12 +571,12 @@ class X86UnicornBpas(X86UnicornSpec):
         X86UnicornSpec.trace_mem_access(emulator, access, address, size, value, model)
 
     @staticmethod
-    def trace_code(emulator: Uc, address, size, model):
+    def trace_code(emulator: Uc, address, size, model) -> None:
         X86UnicornSpec.trace_code(emulator, address, size, model)
 
         # reached max spec. window? skip
         if len(model.checkpoints) >= model.nesting:
-            return True
+            return
 
         if model.previous_store[0]:
             store_addr = model.previous_store[0]
@@ -583,7 +592,39 @@ class X86UnicornBpas(X86UnicornSpec):
             emulator.mem_write(store_addr, old_value)
             model.store_logs[-1].append((store_addr, new_value))
         model.previous_store = (0, 0, 0, 0)
-        return True
+
+
+class X86UnicornNull(X86UnicornSpec):
+    instruction_address: int
+
+    @staticmethod
+    def trace_mem_access(emulator, access, address, size, value, model):
+        X86UnicornSpec.trace_mem_access(emulator, access, address, size, value, model)
+
+        # reached max spec. window? skip
+        if len(model.checkpoints) >= model.nesting:
+            return
+
+        # applicable only to loads
+        if access == UC_MEM_WRITE:
+            return
+
+        # make sure we do not repeat the same injection all over again
+        if model.instruction_address == model.latest_rollback_address:
+            return
+
+        # store a checkpoint
+        model.checkpoint(emulator, model.instruction_address)
+        model.store_logs[-1].append((address, emulator.mem_read(address, 8)))
+
+        # emulate zero-injection by writing zero to the target address of the load
+        zero_value = bytes([0 for _ in range(size)])
+        emulator.mem_write(address, zero_value)
+
+    @staticmethod
+    def trace_code(emulator: Uc, address, size, model) -> None:
+        X86UnicornSpec.trace_code(emulator, address, size, model)
+        model.instruction_address = address
 
 
 class X86UnicornCondBpas(X86UnicornSpec):
@@ -606,6 +647,8 @@ def get_model(bases) -> Model:
             model = X86UnicornCond(bases[0], bases[1], bases[2])
         elif "bpas" in CONF.contract_execution_mode:
             model = X86UnicornBpas(bases[0], bases[1], bases[2])
+        elif "null-injection" in CONF.contract_execution_mode:
+            model = X86UnicornNull(bases[0], bases[1], bases[2])
         elif "seq" in CONF.contract_execution_mode:
             model = X86UnicornSeq(bases[0], bases[1], bases[2])
         else:
