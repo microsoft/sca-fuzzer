@@ -601,7 +601,7 @@ class Generator(abc.ABC):
         self.instruction_set = instruction_set
 
     @abc.abstractmethod
-    def generate_function(self, name: str, shuffle: bool = False):
+    def generate_function(self, name: str):
         pass
 
     def set_coverage(self, coverage):
@@ -615,7 +615,7 @@ class Generator(abc.ABC):
         self.test_case = TestCaseDAG()
 
         # create the main function
-        func = self.generate_function("test_case_main", shuffle=False)
+        func = self.generate_function("test_case_main")
 
         # fill the function with instructions
         self.add_terminators_in_function(func)
@@ -693,7 +693,7 @@ class RandomGenerator(Generator, abc.ABC):
     """
     had_recent_memory_access: bool = False
 
-    def generate_function(self, name: str, shuffle: bool = False):
+    def generate_function(self, name: str):
         """ Generates a random DAG of basic blocks within a function """
         func = Function(name)
 
@@ -739,17 +739,7 @@ class RandomGenerator(Generator, abc.ABC):
             func.exit.terminators = [self.get_return_instruction()]
 
         # Finalize the function
-        if not shuffle:
-            func.all_bb = [func.entry] + nodes + [func.exit]
-            return func
-
-        # Shuffle BBs to make the function less straight-line + add entry and exit nodes
-        func.all_bb = [func.entry]
-        while nodes:
-            current_bb = random.choice(nodes)
-            nodes.remove(current_bb)
-            func.all_bb.append(current_bb)
-        func.all_bb.append(func.exit)
+        func.all_bb = [func.entry] + nodes + [func.exit]
         return func
 
     def generate_instruction(self, spec: InstructionSpec):

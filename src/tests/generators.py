@@ -15,7 +15,7 @@ from generator import X86RandomGenerator, X86Printer
 class X86RandomGeneratorTest(unittest.TestCase):
     def test_x86_all_instructions(self):
         generator = X86RandomGenerator('../instruction_sets/x86/base.xml')
-        func = generator.generate_function("test_case_main", shuffle=False)
+        func = generator.generate_function("test_case_main")
         printer = X86Printer()
         all_instructions = ''
         for bb in func:
