@@ -44,7 +44,7 @@ EXTENDED_TESTS=0
         run cat /sys/x86-executor/n_inputs
         [[ "$output" != "0" ]]
 
-        cat /proc/x86-executor | sort | uniq | wc -l > tmp.txt
+        cat /proc/x86-executor | awk '//{print $1}' | sort | uniq | wc -l > tmp.txt
         run cat tmp.txt
         cat tmp.txt
         [ $output -lt 20 ]

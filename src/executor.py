@@ -23,7 +23,8 @@ class Executor(ABC):
         pass
 
     @abstractmethod
-    def trace_test_case(self, inputs: List[int], num_measurements: int = 0) -> List[CombinedHTrace]:
+    def trace_test_case(self, inputs: List[int], num_measurements: int = 0) \
+            -> List[CombinedHTrace]:
         pass
 
     @abstractmethod
@@ -38,6 +39,7 @@ class X86Intel(Executor):
     previous_num_inputs: int = 0
 
     def __init__(self):
+        super().__init__()
         write_to_pseudo_file(CONF.warmups, '/sys/x86-executor/warmups')
         write_to_pseudo_file("1" if CONF.enable_ssbp_patch else "0",
                              "/sys/x86-executor/enable_ssbp_patch")
@@ -51,8 +53,8 @@ class X86Intel(Executor):
         assemble(test_case_asm, 'generated.o')
         write_to_pseudo_file("generated.o", "/sys/x86-executor/code")
 
-    def trace_test_case(self, inputs: List[int], num_measurements: int = 0,
-                        max_outliers: int = 0) -> List[CombinedHTrace]:
+    def trace_test_case(self, inputs: List[int], num_measurements: int = 0) \
+            -> List[CombinedHTrace]:
         # make sure it's not a dummy call
         if not inputs:
             return []
@@ -63,8 +65,6 @@ class X86Intel(Executor):
 
         if num_measurements == 0:
             num_measurements = CONF.num_measurements
-        if max_outliers == 0:
-            max_outliers = CONF.max_outliers
 
         # set entropy
         input_mask = pow(2, (CONF.prng_entropy_bits % 33)) - 1
@@ -86,14 +86,26 @@ class X86Intel(Executor):
                 raise Exception()
 
         traces = [[] for _ in inputs]
+        pfc_readings = [[0, 0, 0] for _ in inputs]
         for _ in range(num_measurements):
             # measure
             subprocess.run(f"taskset -c {CONF.measurement_cpu} cat /proc/x86-executor "
                            "| sudo tee measurement.txt >/dev/null",
                            shell=True, check=True)
             # fetch the results
-            for i, trace in enumerate(load_measurement('measurement.txt')):
-                traces[i].append(trace)
+            for i, measurement in enumerate(load_measurement('measurement.txt')):
+                traces[i].append(measurement[0])
+                pfc_readings[i][0] += measurement[1]
+                pfc_readings[i][1] += measurement[2]
+                pfc_readings[i][2] += measurement[3]
+
+        # average the PFC readings
+        for i in range(len(inputs)):
+            pfc_readings[i][0] /= num_measurements
+            pfc_readings[i][1] /= num_measurements
+            pfc_readings[i][2] /= num_measurements
+
+        self.coverage.executor_hook(pfc_readings)
 
         if num_measurements == 1:
             return [t[0] for t in traces]
@@ -105,11 +117,11 @@ class X86Intel(Executor):
             for trace in trace_list:
                 num_occurrences[trace] += 1
                 # print(pretty_bitmap(trace))
-                if num_occurrences[trace] <= max_outliers:
+                if num_occurrences[trace] <= CONF.max_outliers:
                     # if we see too few occurrences of this specific htrace,
                     # it might be noise, ignore it for now
                     continue
-                elif num_occurrences[trace] == max_outliers + 1:
+                elif num_occurrences[trace] == CONF.max_outliers + 1:
                     # otherwise, merge it
                     merged_traces[i] |= trace
 

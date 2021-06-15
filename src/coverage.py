@@ -59,15 +59,15 @@ class Coverage(ABC):
         pass
 
     @abstractmethod
-    def model_hook(self, coverage_traces):
+    def model_hook(self, feedback):
         pass
 
     @abstractmethod
-    def executor_hook(self):
+    def executor_hook(self, feedback):
         pass
 
     @abstractmethod
-    def analyser_hook(self, input_classes):
+    def analyser_hook(self, feedback):
         pass
 
     @abstractmethod
@@ -90,13 +90,13 @@ class NoCoverage(Coverage):
     def generator_hook(self, DAG: TestCaseDAG, instruction_set: InstructionSet):
         pass
 
-    def model_hook(self, coverage_traces):
+    def model_hook(self, feedback):
         pass
 
-    def executor_hook(self):
+    def executor_hook(self, feedback):
         pass
 
-    def analyser_hook(self, input_classes):
+    def analyser_hook(self, feedback):
         pass
 
     def get(self) -> int:
@@ -241,7 +241,7 @@ class PatternCoverage(Coverage):
     def model_hook(self, coverage_traces):
         self.coverage_traces = coverage_traces
 
-    def executor_hook(self):
+    def executor_hook(self, feedback):
         pass
 
     def analyser_hook(self, classes: List[EquivalenceClass]):

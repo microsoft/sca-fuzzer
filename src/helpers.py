@@ -23,19 +23,19 @@ def assemble(infile, outfile):
     run(f"objcopy {outfile} -O binary {outfile}", shell=True, check=True)
 
 
-def load_measurement(measurement_file: str) -> List[HTrace]:
+def load_measurement(measurement_file: str) -> List[List]:
     with open(measurement_file, "r") as f:
         reader = csv.DictReader(f)
         assert 'CACHE_MAP' in reader.fieldnames
 
         # collect the measured cache state
-        htraces = []
+        measurements = []
         for i, row in enumerate(reader):
             trace = int(row['CACHE_MAP'])
             if CONF.ignore_first_cache_line:
                 trace &= 9223372036854775807
-            htraces.append(trace)
-        return htraces
+            measurements.append([trace, int(row['pfc1']), int(row['pfc2']), int(row['pfc3'])])
+        return measurements
 
 
 def get_prng_state_after_iterations(seed: int, num_iterations: int) -> int:
