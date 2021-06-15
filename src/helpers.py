@@ -96,6 +96,9 @@ class StatisticsCls:
 
     def __str__(self):
         total_clss = self.effective_eq_classes + self.single_entry_eq_classes
+        effectiveness = self.effective_eq_classes / total_clss if total_clss else 0
+        total_clss_per_test_case = total_clss / self.test_cases if self.test_cases else 0
+        effective_clss = self.effective_eq_classes / self.test_cases if self.test_cases else 0
 
         s = "\n================================ Statistics ===================================\n"
         s += f"Test Cases: {self.test_cases}\n"
@@ -104,10 +107,10 @@ class StatisticsCls:
         s += f"  Patterns: {self.coverage}\n"
         s += f"  Fully covered: {self.fully_covered}\n"
         s += f"  Longest uncovered: {self.coverage_longest_uncovered}\n"
-        s += f"  Effectiveness: {self.effective_eq_classes / total_clss:.1f}\n"
+        s += f"  Effectiveness: {effectiveness:.1f}\n"
         s += f"Effectiveness: \n"
-        s += f"  Total Cls: {total_clss / self.test_cases:.1f}\n"
-        s += f"  Effective Cls: {self.effective_eq_classes / self.test_cases:.1f}\n"
+        s += f"  Total Cls: {total_clss_per_test_case:.1f}\n"
+        s += f"  Effective Cls: {effective_clss:.1f}\n"
         s += f"Required priming: {self.required_priming}\n"
         s += f"Broken measurements: {self.broken_measurements}\n"
         s += f"Violations: {self.violations}\n"

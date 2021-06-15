@@ -53,6 +53,10 @@ class X86Intel(Executor):
 
     def trace_test_case(self, inputs: List[int], num_measurements: int = 0,
                         max_outliers: int = 0) -> List[CombinedHTrace]:
+        # make sure it's not a dummy call
+        if not inputs:
+            return []
+
         # is kernel module ready?
         if not os.path.isfile("/proc/x86-executor"):
             print("Error: x86 Intel Executor: kernel module not loaded")
