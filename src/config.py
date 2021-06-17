@@ -19,6 +19,7 @@ class ConfCls:
     # ==============================================================================================
     # Generator
     instruction_set = "x86-64"
+    generator = "random"
     min_bb_per_function = 1
     max_bb_per_function = 5
     max_bb_successors = 0  # zero -> automatically set based on the available instructions

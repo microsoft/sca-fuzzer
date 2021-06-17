@@ -28,6 +28,9 @@ class OT(Enum):  # Operand Type
     AGEN = 5  # memory address in LEA instructions
     FLAGS = 6
 
+    def __str__(self):
+        return str(self._name_)
+
 
 class OperandSpec:
     values: List[str]
@@ -42,6 +45,7 @@ class OperandSpec:
         self.type = type_
         self.src = True if src == "1" else False
         self.dest = True if dest == "1" else False
+        self.width = 0
 
     def __str__(self):
         return f"{self.values}"
@@ -290,7 +294,8 @@ class MemoryOperand(Operand):
 
 
 class ImmediateOperand(Operand):
-    def __init__(self, value: str):
+    def __init__(self, value: str, width: int):
+        self.width = width
         super().__init__(value, OT.IMM, True, False)
 
 
@@ -367,9 +372,6 @@ class Instruction:
     def add_op(self, op: Operand):
         self.operands.append(op)
         return self
-
-    def add_imm(self, value: str):
-        return self.add_op(ImmediateOperand(value))
 
     def has_mem_operand(self, include_implicit: bool = False):
         for o in self.operands:
@@ -600,10 +602,6 @@ class Generator(abc.ABC):
         instruction_set.reduce()
         self.instruction_set = instruction_set
 
-    @abc.abstractmethod
-    def generate_function(self, name: str):
-        pass
-
     def set_coverage(self, coverage):
         self.coverage = coverage
 
@@ -635,6 +633,14 @@ class Generator(abc.ABC):
         if self.coverage:
             self.coverage.generator_hook(self.test_case, self.instruction_set)
 
+    @abc.abstractmethod
+    def generate_function(self, name: str):
+        pass
+
+    @abc.abstractmethod
+    def generate_instruction(self, spec: InstructionSpec):
+        pass
+
     def generate_operand(self, spec: OperandSpec, parent: Instruction) -> Operand:
         generators = {
             OT.REG: self.generate_reg_operand,
@@ -645,10 +651,6 @@ class Generator(abc.ABC):
             OT.FLAGS: self.generate_flags_operand,
         }
         return generators[spec.type](spec, parent)
-
-    @abc.abstractmethod
-    def generate_instruction(self, spec: InstructionSpec):
-        pass
 
     @abc.abstractmethod
     def generate_reg_operand(self, spec: OperandSpec, parent: Instruction) -> Operand:
@@ -810,7 +812,7 @@ class RandomGenerator(Generator, abc.ABC):
             value = spec.values[0]
         else:
             value = random.randint(pow(2, spec.width - 1) * -1, pow(2, spec.width - 1) - 1)
-        return ImmediateOperand(str(value))
+        return ImmediateOperand(str(value), spec.width)
 
     def generate_label_operand(self, spec: OperandSpec, parent: Instruction) -> Operand:
         raise NotSupportedException()
@@ -1063,10 +1065,10 @@ class X86SandboxPass(Pass):
         assert len(instr.get_mem_operands()) == 1
         mem_operand: MemoryOperand = instr.get_mem_operands()[0]
         address_reg = mem_operand.value
+        imm_width = mem_operand.width if mem_operand.width <= 32 else 32
         apply_mask = Instruction("AND", True) \
             .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
-            .add_op(ImmediateOperand(self.sandbox_address_mask))
-
+            .add_op(ImmediateOperand(self.sandbox_address_mask, imm_width))
         parent.insert_before(instr, apply_mask)
         instr.get_mem_operands()[0].value = "R14 + " + address_reg
 
@@ -1087,16 +1089,18 @@ class X86SandboxPass(Pass):
 
         zero_rdx = Instruction("MOV", True) \
             .add_op(RegisterOperand("RDX", 64, False, True)) \
-            .add_imm('0')
+            .add_op(ImmediateOperand('0', 32))
         parent.insert_before(inst, zero_rdx)
 
-        divisor_mask = hex(random.randint(1, 255))
-        apply_divisor_mask = Instruction("OR", True).add_op(divisor).add_imm(divisor_mask)
+        divisor_mask = ImmediateOperand(
+            hex(random.randint(1, 255)),
+            divisor.width if divisor.width <= 32 else 32)
+        apply_divisor_mask = Instruction("OR", True).add_op(divisor).add_op(divisor_mask)
         parent.insert_before(inst, apply_divisor_mask)
 
         apply_ax_mask = Instruction("AND", True) \
             .add_op(RegisterOperand("RAX", 64, True, True)) \
-            .add_imm('0xff')
+            .add_op(ImmediateOperand('0xff', 8))
         parent.insert_before(inst, apply_ax_mask)
 
     def sandbox_bit_test(self, inst: Instruction, parent: BasicBlock):
@@ -1121,7 +1125,9 @@ class X86SandboxPass(Pass):
         # The offset is in a register
         # Mask its upper bits to reduce the stored value to at most 7
         if address.value != offset.value:
-            apply_mask = Instruction("AND", True).add_op(offset).add_imm(self.mask_3bits)
+            apply_mask = Instruction("AND", True) \
+                .add_op(offset) \
+                .add_op(ImmediateOperand(self.mask_3bits, 8))
             parent.insert_before(inst, apply_mask)
             return
 
@@ -1269,11 +1275,13 @@ class X86PatchUndefinedResultPass(Pass):
         """
         source = inst.operands[1]
         mask = bin(1 << (source.width - 1))
+        mask_size = source.width
         if source.width in [64, 32]:
             mask = "0b1000000000000000000000000000000"
+            mask_size = 32
         apply_mask = Instruction("OR", True) \
             .add_op(source) \
-            .add_op(ImmediateOperand(mask))
+            .add_op(ImmediateOperand(mask, mask_size))
         parent.insert_before(inst, apply_mask)
 
 
