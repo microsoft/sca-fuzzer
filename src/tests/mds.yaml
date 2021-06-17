@@ -1,6 +1,6 @@
 contract_observation_mode: ct
 contract_execution_mode:
   - seq
-prng_entropy_bits: 6
-attack_variant: 'F+R'
+prng_entropy_bits: 3
 no_priming: true
+enable_mds: true

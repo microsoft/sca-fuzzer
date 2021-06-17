@@ -2,7 +2,6 @@
 MFENCE
 NOP
 NOP
-NOP
 ADD R14, 40
 JMP .bb0
 .bb0:
