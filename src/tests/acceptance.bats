@@ -58,12 +58,16 @@ EXTENDED_TESTS=0
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
+    run bash -c "awk '//{if (\$1 == 0) {print \$0}}' measurement.txt"
+    [ "$output" = "" ]
 }
 
 @test "Model and Executor are initialized with the same FLAGS value" {
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/model_flags_match.asm -c tests/model_match.yaml -i 1000"
     echo "$output"
     [ "$status" -eq 0 ]
+    [ "$output" = "" ]
+    run bash -c "awk '//{if (\$1 == 0) {print \$0}}' measurement.txt"
     [ "$output" = "" ]
 }
 

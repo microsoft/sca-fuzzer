@@ -119,10 +119,6 @@ class X86Intel(Executor):
                     # otherwise, merge it
                     merged_traces[i] |= trace
 
-            if CONF.self_test_mode:  # deprecated?
-                if merged_traces[i] == 0:
-                    print(f"Useless HW traces: {trace_list}")
-
         # same for PFC readings, except select max. values instead of merging
         filtered_pfc_readings = [[0, 0, 0] for _ in inputs]
         for i, reading_lists in enumerate(pfc_readings):

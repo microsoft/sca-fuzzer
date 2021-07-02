@@ -9,7 +9,6 @@ from typing import List
 
 
 class ConfCls:
-    self_test_mode: bool = False
     # ==============================================================================================
     # Fuzzer
     priming_retries: int = 6
@@ -96,7 +95,7 @@ class ConfCls:
     # segment registers are also excluded as we don't support their handling so far
     # same for CR* and DR*
     gpr_blocklist = [
-        # free - rax, rbx, rcx, rdx, r8, r9, r10
+        # free - rax, rbx, rcx, rdx
         'R8', 'R9', 'R10', 'R11', 'R12', 'R13', 'R14', 'R15', 'RSP', 'RBP', 'RDI', 'RSI',
         'R8D', 'R9D', 'R10D', 'R11D', 'R12D', 'R13D', 'R14D', 'R15D', 'ESP', 'EBP', 'EDI', 'ESI',
         'R8W', 'R9W', 'R10W', 'R11W', 'R12W', 'R13W', 'R14W', 'R15W', 'SP', 'BP', 'DI', 'SI',
