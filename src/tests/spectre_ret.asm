@@ -1,14 +1,8 @@
 .intel_syntax noprefix
 
-# random input - rax
-IMUL edi, edi, 2891336453
-ADD edi, 12345
-MOV eax, edi
-
 # speculative offset:
 # these shifts generate a random page offset, 64-bit aligned
-SHL rax, 58
-SHR rax, 52
+AND rax, 0b111111000000
 LFENCE
 
 MOV rcx, r14

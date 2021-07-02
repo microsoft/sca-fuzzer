@@ -1,36 +1,35 @@
 .intel_syntax noprefix
 
 # test register values
-SHL rax, 58
-SHR rax, 52
+AND rax, 0b111111000000
 MOV rax, [r14 + rax]
 
-SHL rbx, 58
-SHR rbx, 52
+AND rbx, 0b111111000000
 MOV rbx, [r14 + rbx]
 
-SHL rcx, 58
-SHR rcx, 52
+AND rcx, 0b111111000000
 MOV rcx, [r14 + rcx]
 
-SHL rdx, 58
-SHR rdx, 52
+AND rdx, 0b111111000000
 MOV rdx, [r14 + rdx]
 
-MOV rax, rdi
-SHL rax, 58
-SHR rax, 52
+AND rsi, 0b111111000000
+MOV rsi, [r14 + rsi]
+
+AND rdi, 0b111111000000
+MOV rdi, [r14 + rdi]
+
+MOV rax, r13
+AND rax, 0b111111000000
 MOV rax, [r14 + rax]
 
 # test values in memory
 MOV rax, [r14 + 1024]  # grab some from the "heap"
-SHL rax, 58
-SHR rax, 52
+AND rax, 0b111111000000
 MOV rax, [r14 + rax]
 
 MOV rax, [rsp + 1024]  # grab some from the "stack"
-SHL rax, 58
-SHR rax, 52
+AND rax, 0b111111000000
 MOV rax, [r14 + rax]
 
 MFENCE

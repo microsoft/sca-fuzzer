@@ -299,7 +299,8 @@ class X86UnicornModel(Model):
                                     masked_rvalue.to_bytes(4, byteorder='little'))
 
         # Values in registers
-        for reg in [UC_X86_REG_RAX, UC_X86_REG_RBX, UC_X86_REG_RCX, UC_X86_REG_RDX]:
+        for reg in [UC_X86_REG_RAX, UC_X86_REG_RBX, UC_X86_REG_RCX, UC_X86_REG_RDX,
+                    UC_X86_REG_RSI, UC_X86_REG_RDI]:
             random_value = ((random_value * 2891336453) % POW32 + 12345) % POW32
             masked_rvalue = (random_value ^ (random_value >> 16)) & input_mask
             masked_rvalue = masked_rvalue << 6
@@ -309,7 +310,7 @@ class X86UnicornModel(Model):
         random_value = ((random_value * 2891336453) % POW32 + 12345) % POW32
         self.emulator.reg_write(UC_X86_REG_EFLAGS, (random_value & 2263) | 2)
 
-        self.emulator.reg_write(UC_X86_REG_RDI, random_value)
+        self.emulator.reg_write(UC_X86_REG_R13, random_value)
 
     def print_state(self, oneline: bool = False):
         def compressed(val: str):
