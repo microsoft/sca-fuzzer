@@ -105,7 +105,11 @@ class InstructionSet:
         assert op.attrib.get('VSIB', '0') == '0'  # asm += '[' + op.attrib.get('VSIB') + '0]'
         assert op.attrib.get('memory-suffix', '') == ''
 
-        spec = OperandSpec([], OT.MEM,
+        choices = []
+        if op.attrib.get('base', ''):
+            choices = [op.attrib.get('base', '')]
+
+        spec = OperandSpec(choices, OT.MEM,
                            op.attrib.get('r', "0"),
                            op.attrib.get('w', "0"))
         spec.width = width
@@ -203,9 +207,15 @@ class InstructionSet:
             if spec.name in CONF.instruction_blocklist:
                 return False
 
+            for operand in spec.operands:
+                if operand.type == OT.MEM and operand.values \
+                        and operand.values[0] in CONF.gpr_blocklist:
+                    return False
+
             for implicit_operand in spec.implicit_operands:
                 assert implicit_operand.type != OT.LABEL  # I know no such instructions
-                if implicit_operand.type == OT.MEM:
+                if implicit_operand.type == OT.MEM and \
+                        implicit_operand.values[0] in CONF.gpr_blocklist:
                     return False
 
                 if implicit_operand.type == OT.REG and \
@@ -419,6 +429,13 @@ class Instruction:
     def get_mem_operands(self) -> List[MemoryOperand]:
         res = []
         for o in self.operands:
+            if isinstance(o, MemoryOperand):
+                res.append(o)
+        return res
+
+    def get_implicit_mem_operands(self):
+        res = []
+        for o in self.implicit_operands:
             if isinstance(o, MemoryOperand):
                 res.append(o)
         return res
@@ -776,17 +793,6 @@ class RandomGenerator(Generator, abc.ABC):
 
         return inst
 
-    def generate_operand(self, spec: OperandSpec, parent: Instruction) -> Operand:
-        generators = {
-            OT.REG: self.generate_reg_operand,
-            OT.MEM: self.generate_mem_operand,
-            OT.IMM: self.generate_imm_operand,
-            OT.LABEL: self.generate_label_operand,
-            OT.AGEN: self.generate_agen_operand,
-            OT.FLAGS: self.generate_flags_operand,
-        }
-        return generators[spec.type](spec, parent)
-
     def generate_reg_operand(self, spec: OperandSpec, parent: Instruction) -> Operand:
         reg_type = spec.values[0]
         if reg_type == 'GPR':
@@ -809,7 +815,10 @@ class RandomGenerator(Generator, abc.ABC):
         return op
 
     def generate_mem_operand(self, spec: OperandSpec, _: Instruction) -> Operand:
-        address_reg = random.choice(self.register_set.registers[64])
+        if spec.values:
+            address_reg = random.choice(spec.values)
+        else:
+            address_reg = random.choice(self.register_set.registers[64])
         return MemoryOperand(address_reg, spec.width, spec.src, spec.dest)
 
     def generate_imm_operand(self, spec: OperandSpec, _: Instruction) -> Operand:
@@ -1047,7 +1056,7 @@ class X86SandboxPass(Pass):
                 divisions = []
                 bit_tests = []
                 for inst in bb:
-                    if inst.has_mem_operand():
+                    if inst.has_mem_operand(True):
                         memory_instructions.append(inst)
                     if inst.name in ["DIV", "REX DIV"]:
                         divisions.append(inst)
@@ -1067,15 +1076,38 @@ class X86SandboxPass(Pass):
 
     def sandbox_memory_access(self, instr: Instruction, parent: BasicBlock):
         """ Force the memory accesses into the page starting from R14 """
-        assert len(instr.get_mem_operands()) == 1
-        mem_operand: MemoryOperand = instr.get_mem_operands()[0]
-        address_reg = mem_operand.value
-        imm_width = mem_operand.width if mem_operand.width <= 32 else 32
-        apply_mask = Instruction("AND", True) \
-            .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
-            .add_op(ImmediateOperand(self.sandbox_address_mask, imm_width))
-        parent.insert_before(instr, apply_mask)
-        instr.get_mem_operands()[0].value = "R14 + " + address_reg
+        mem_operands = instr.get_mem_operands()
+        if mem_operands:
+            assert len(mem_operands) == 1
+            assert len(instr.get_implicit_mem_operands()) == 0
+            mem_operand: MemoryOperand = mem_operands[0]
+            address_reg = mem_operand.value
+            imm_width = mem_operand.width if mem_operand.width <= 32 else 32
+            apply_mask = Instruction("AND", True) \
+                .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
+                .add_op(ImmediateOperand(self.sandbox_address_mask, imm_width))
+            parent.insert_before(instr, apply_mask)
+            instr.get_mem_operands()[0].value = "R14 + " + address_reg
+            return
+
+        mem_operands = instr.get_implicit_mem_operands()
+        if mem_operands:
+            assert len(mem_operands) == 1
+            mem_operand: MemoryOperand = mem_operands[0]
+            address_reg = mem_operand.value
+            imm_width = mem_operand.width if mem_operand.width <= 32 else 32
+            apply_mask = Instruction("AND", True) \
+                .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
+                .add_op(ImmediateOperand(self.sandbox_address_mask, imm_width))
+            add_base = Instruction("ADD", True) \
+                .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
+                .add_op(RegisterOperand("R14", 64, True, False))
+            parent.insert_before(instr, apply_mask)
+            parent.insert_before(instr, add_base)
+            return
+
+        # print(X86Printer().instruction_to_str(instr))
+        raise Exception("Attempt to sandbox an instruction without memory operands")
 
     @staticmethod
     def sandbox_division(inst: Instruction, parent: BasicBlock):
@@ -1142,7 +1174,7 @@ class X86SandboxPass(Pass):
 
     @staticmethod
     def requires_sandbox(inst: Instruction):
-        if inst.has_mem_operand():
+        if inst.has_mem_operand(True):
             return True
         if inst.name in ["DIV", "REX DIV"]:
             return True
