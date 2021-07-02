@@ -11,7 +11,8 @@ import random
 import abc
 import xml.etree.ElementTree as ET
 from enum import Enum
-from custom_types import Optional, List, Dict
+from collections import OrderedDict
+from custom_types import Optional, List, Dict, Tuple
 
 from helpers import NotSupportedException
 from config import CONF
@@ -605,11 +606,15 @@ class Generator(abc.ABC):
     def set_coverage(self, coverage):
         self.coverage = coverage
 
+    def reset_generator(self):
+        pass
+
     def create_test_case(self, asm_file: str):
         """
         Create a simple test case with a single BB
         Run instrumentation passes and print the result into a file
         """
+        self.reset_generator()
         self.test_case = TestCaseDAG()
 
         # create the main function
@@ -987,9 +992,9 @@ class X86Registers(RegisterSet):
         self.registers = filtered_decoding
 
 
-class X86RandomGenerator(RandomGenerator):
+class X86Generator(Generator, abc.ABC):
     def __init__(self, instruction_set_spec: str):
-        super(X86RandomGenerator, self).__init__(instruction_set_spec)
+        super(X86Generator, self).__init__(instruction_set_spec)
         self.passes = [
             X86SandboxPass(),
             X86PatchUndefinedFlagsPass(self.instruction_set, self),
@@ -1336,9 +1341,18 @@ class X86Printer(Printer):
         return op.value
 
 
+# ==================================================================================================
+# Concrete generators
+# ==================================================================================================
+class X86RandomGenerator(X86Generator, RandomGenerator):
+    def __init__(self, instruction_set_spec: str):
+        super().__init__(instruction_set_spec)
+
+
 def get_generator(instruction_set_spec: str) -> Generator:
     if CONF.instruction_set == 'x86-64':
-        return X86RandomGenerator(instruction_set_spec)
+        if CONF.generator == 'random':
+            return X86RandomGenerator(instruction_set_spec)
     else:
         print("Error: unknown value of `instruction_set` configuration option")
         exit(1)
