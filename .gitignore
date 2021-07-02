@@ -8,3 +8,5 @@ src/instruction_sets/x86/base.xml
 tmp.pdf
 evaluation/results/
 evaluation/bugs/
+src/min.asm
+src/tmp.asm

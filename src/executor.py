@@ -86,7 +86,7 @@ class X86Intel(Executor):
                 raise Exception()
 
         traces = [[] for _ in inputs]
-        pfc_readings = [[0, 0, 0] for _ in inputs]
+        pfc_readings = [[[], [], []] for _ in inputs]
         for _ in range(num_measurements):
             # measure
             subprocess.run(f"taskset -c {CONF.measurement_cpu} cat /proc/x86-executor "
@@ -95,19 +95,13 @@ class X86Intel(Executor):
             # fetch the results
             for i, measurement in enumerate(load_measurement('measurement.txt')):
                 traces[i].append(measurement[0])
-                pfc_readings[i][0] += measurement[1]
-                pfc_readings[i][1] += measurement[2]
-                pfc_readings[i][2] += measurement[3]
-
-        # average the PFC readings
-        for i in range(len(inputs)):
-            pfc_readings[i][0] /= num_measurements
-            pfc_readings[i][1] /= num_measurements
-            pfc_readings[i][2] /= num_measurements
-
-        self.coverage.executor_hook(pfc_readings)
+                pfc_readings[i][0].append(measurement[1])
+                pfc_readings[i][1].append(measurement[2])
+                pfc_readings[i][2].append(measurement[3])
 
         if num_measurements == 1:
+            if self.coverage:
+                self.coverage.executor_hook([[r[0][0], r[1][0], r[2][0]] for r in pfc_readings])
             return [t[0] for t in traces]
 
         # remove outliers and merge
@@ -125,9 +119,27 @@ class X86Intel(Executor):
                     # otherwise, merge it
                     merged_traces[i] |= trace
 
-            if CONF.self_test_mode:
+            if CONF.self_test_mode:  # deprecated?
                 if merged_traces[i] == 0:
                     print(f"Useless HW traces: {trace_list}")
+
+        # same for PFC readings, except select max. values instead of merging
+        filtered_pfc_readings = [[0, 0, 0] for _ in inputs]
+        for i, reading_lists in enumerate(pfc_readings):
+            num_occurrences = Counter()
+
+            for reading in reading_lists[0]:
+                num_occurrences[reading] += 1
+                if num_occurrences[reading] <= CONF.max_outliers * 2:
+                    # if we see too few occurrences of this specific htrace,
+                    # it might be noise, ignore it for now
+                    continue
+                elif num_occurrences[reading] == CONF.max_outliers * 2 + 1:
+                    # otherwise, update max
+                    filtered_pfc_readings[i][0] = max(filtered_pfc_readings[i][0], reading)
+
+        if self.coverage:
+            self.coverage.executor_hook(filtered_pfc_readings)
 
         return merged_traces
 
