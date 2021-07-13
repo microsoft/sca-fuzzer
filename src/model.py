@@ -246,7 +246,7 @@ class X86UnicornModel(Model):
                 self.reset_emulator(input_)
                 self.tracer.reset_trace(self.emulator)
                 self.emulator.emu_start(self.code_base, self.code_base + len(self.code),
-                                        timeout=10000)
+                                        timeout=10 * UC_SECOND_SCALE)
             except UcError as e:
                 if not self.in_speculation:
                     self.print_state()
@@ -444,7 +444,8 @@ class X86UnicornSpec(X86UnicornModel):
         self.emulator.reg_write(UC_X86_REG_EFLAGS, flags)
 
         # restart without misprediction
-        self.emulator.emu_start(next_instr, self.code_base + len(self.code), timeout=10000)
+        self.emulator.emu_start(next_instr, self.code_base + len(self.code),
+                                timeout=10 * UC_SECOND_SCALE)
 
     def reset_model(self):
         self.latest_rollback_address = 0
