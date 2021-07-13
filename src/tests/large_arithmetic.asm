@@ -1,5 +1,5 @@
 .intel_syntax noprefix
-MOV rbx, 10000
+MOV rbx, 1000
 .l1:
 LFENCE
 LEA rax, [rax + rax + 8]

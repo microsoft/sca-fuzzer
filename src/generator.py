@@ -1055,6 +1055,7 @@ class X86SandboxPass(Pass):
                 memory_instructions = []
                 divisions = []
                 bit_tests = []
+                repeated_instructions = []
                 for inst in bb:
                     if inst.has_mem_operand(True):
                         memory_instructions.append(inst)
@@ -1063,6 +1064,8 @@ class X86SandboxPass(Pass):
                     elif inst.name in ["BT", "BTC", "BTR", "BTS", "LOCK BT", "LOCK BTC", "LOCK BTR",
                                        "LOCK BTS"]:
                         bit_tests.append(inst)
+                    elif "REP" in inst.name:
+                        repeated_instructions.append(inst)
 
                 # sandbox them
                 for inst in memory_instructions:
@@ -1073,6 +1076,9 @@ class X86SandboxPass(Pass):
 
                 for inst in bit_tests:
                     self.sandbox_bit_test(inst, bb)
+
+                for inst in repeated_instructions:
+                    self.sandbox_repeated_instruction(inst, bb)
 
     def sandbox_memory_access(self, instr: Instruction, parent: BasicBlock):
         """ Force the memory accesses into the page starting from R14 """
@@ -1171,6 +1177,16 @@ class X86SandboxPass(Pass):
         # Special case: offset and address use the same register
         # Sandboxing is impossible. Give up
         parent.delete(inst)
+
+    def sandbox_repeated_instruction(self, inst: Instruction, parent: BasicBlock):
+        apply_mask = Instruction("AND", True) \
+            .add_op(RegisterOperand("RCX", 64, True, True)) \
+            .add_op(ImmediateOperand("0xff", 8))
+        add_base = Instruction("ADD", True) \
+            .add_op(RegisterOperand("RCX", 64, True, True)) \
+            .add_op(ImmediateOperand("1", 1))
+        parent.insert_before(inst, apply_mask)
+        parent.insert_before(inst, add_base)
 
     @staticmethod
     def requires_sandbox(inst: Instruction):

@@ -79,17 +79,17 @@ class ConfCls:
         "CMPSB", "CMPSD", "CMPSW",
         "MOVSB", "MOVSD", "MOVSW",
 
+        # "REPE LODSB", "REPE LODSD", "REPE LODSW",
+        # "REPE SCASB", "REPE SCASD", "REPE SCASW",
+        # "REPE STOSB", "REPE STOSD", "REPE STOSW",
         "REPE CMPSB", "REPE CMPSD", "REPE CMPSW",
-        "REPE LODSB", "REPE LODSD", "REPE LODSW",
         "REPE MOVSB", "REPE MOVSD", "REPE MOVSW",
-        "REPE SCASB", "REPE SCASD", "REPE SCASW",
-        "REPE STOSB", "REPE STOSD", "REPE STOSW",
 
+        # "REPNE LODSB", "REPNE LODSD", "REPNE LODSW",
+        # "REPNE SCASB", "REPNE SCASD", "REPNE SCASW",
+        # "REPNE STOSB", "REPNE STOSD", "REPNE STOSW"
         "REPNE CMPSB", "REPNE CMPSD", "REPNE CMPSW",
-        "REPNE LODSB", "REPNE LODSD", "REPNE LODSW",
         "REPNE MOVSB", "REPNE MOVSD", "REPNE MOVSW",
-        "REPNE SCASB", "REPNE SCASD", "REPNE SCASW",
-        "REPNE STOSB", "REPNE STOSD", "REPNE STOSW"
     ]
     # x86 executor internally uses R15, R14, RSP, RBP and, thus, they are excluded
     # segment registers are also excluded as we don't support their handling so far
