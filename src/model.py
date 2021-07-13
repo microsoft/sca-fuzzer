@@ -280,25 +280,17 @@ class X86UnicornModel(Model):
         self.emulator.reg_write(UC_X86_REG_RBP, self.rbp_init)
         self.emulator.reg_write(UC_X86_REG_R14, self.r14_init)
 
-        # Values in assist page + 4 bytes after it (for overflows)
+        # Set memory: sandbox page, assist page, and two pages around them (for overflows)
         input_mask = pow(2, (CONF.prng_entropy_bits % 33)) - 1
         random_value = seed
-        for i in range(0, 4096 + 4, 4):
+        for i in range(0, 4096 * 4, 4):
             random_value = ((random_value * 2891336453) % POW32 + 12345) % POW32
             masked_rvalue = (random_value ^ (random_value >> 16)) & input_mask
             masked_rvalue = masked_rvalue << 6
-            self.emulator.mem_write(self.r14_init + 4096 + i,
+            self.emulator.mem_write(self.r14_init - 4096 + i,
                                     masked_rvalue.to_bytes(4, byteorder='little'))
 
-        # Values in sandbox memory
-        for i in range(0, 4096, 4):
-            random_value = ((random_value * 2891336453) % POW32 + 12345) % POW32
-            masked_rvalue = (random_value ^ (random_value >> 16)) & input_mask
-            masked_rvalue = masked_rvalue << 6
-            self.emulator.mem_write(self.r14_init + i,
-                                    masked_rvalue.to_bytes(4, byteorder='little'))
-
-        # Values in registers
+        # Set values in registers
         for reg in [UC_X86_REG_RAX, UC_X86_REG_RBX, UC_X86_REG_RCX, UC_X86_REG_RDX,
                     UC_X86_REG_RSI, UC_X86_REG_RDI]:
             random_value = ((random_value * 2891336453) % POW32 + 12345) % POW32
