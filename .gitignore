@@ -8,5 +8,6 @@ src/instruction_sets/x86/base.xml
 tmp.pdf
 evaluation/results/
 evaluation/bugs/
+evaluation/bigfuzz/
 src/min.asm
 src/tmp.asm
