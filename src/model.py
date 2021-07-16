@@ -329,7 +329,9 @@ class X86UnicornModel(Model):
                   f"rbx={rbx} "
                   f"rcx={rcx} "
                   f"rdx={rdx} "
-                  f"flags={emulator.reg_read(UC_X86_REG_EFLAGS):012b}")
+                  f"rsi={rsi} "
+                  f"rdi={rdi} "
+                  f"fl={emulator.reg_read(UC_X86_REG_EFLAGS):012b}")
 
     @staticmethod
     def trace_mem_access(emulator, access, address, size, value, model):
@@ -389,9 +391,8 @@ class X86UnicornSpec(X86UnicornModel):
 
     @staticmethod
     def trace_code(emulator: Uc, address, size, model) -> None:
-        model.speculation_window += 1
-
         if model.in_speculation:
+            model.speculation_window += 1
             # rollback on a serializing instruction (lfence, sfence, mfence)
             if emulator.mem_read(address, size) in [b'\x0F\xAE\xE8', b'\x0F\xAE\xF8',
                                                     b'\x0F\xAE\xF0']:
