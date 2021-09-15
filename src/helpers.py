@@ -20,6 +20,7 @@ def assemble(infile, outfile):
     Assemble the test case into a form understandable by nanoBench
     """
     run(f"as {infile} -o {outfile}", shell=True, check=True)
+    run(f"strip --remove-section=.note.gnu.property {outfile}", shell=True, check=True)
     run(f"objcopy {outfile} -O binary {outfile}", shell=True, check=True)
 
 
