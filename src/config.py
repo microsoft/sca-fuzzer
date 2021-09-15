@@ -139,6 +139,7 @@ class ConfCls:
     # Coverage
     coverage_type: str = 'none'
     feedback_driven_generator: bool = True
+    adaptive_input_number: bool = True
     combination_length_min: int = 1
     # ==============================================================================================
     # Output

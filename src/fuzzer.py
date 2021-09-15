@@ -151,7 +151,8 @@ class Fuzzer:
             if STAT.effective_eq_classes / STAT.test_cases < 1:
                 input_ratio *= 1.2
 
-            if num_inputs / CONF.test_case_size < input_ratio:
+            if CONF.adaptive_input_number and \
+                    num_inputs / CONF.test_case_size < input_ratio:
                 num_inputs = int(input_ratio * CONF.test_case_size) + 1
                 STAT.num_inputs = num_inputs
                 print(f"FUZZER: increasing the number of inputs: {num_inputs}")
