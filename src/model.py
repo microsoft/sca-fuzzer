@@ -6,7 +6,6 @@ Copyright (C) 2020 Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 from abc import ABC, abstractmethod
-import os
 from unicorn import *
 from unicorn.x86_const import *
 
@@ -19,20 +18,18 @@ POW32 = pow(2, 32)
 
 class Model(ABC):
     coverage_tracker = None
-    RUNTIME_R_SIZE = 1024 * 1024
     CODE_SIZE = 4 * 1024
-    RSP_OFFSET = RUNTIME_R_SIZE // 2
-    RBP_OFFSET = RUNTIME_R_SIZE // 2
-    R14_OFFSET = RUNTIME_R_SIZE // 2
+    WORKING_MEMORY_SIZE = 1024 * 1024
+    MAIN_REGION_SIZE = 4096
+    ASSIST_REGION_SIZE = 4096
+    EVICT_REGION_SIZE = 8 * 4096
+    OVERFLOW_REGION_SIZE = 4096
 
-    def __init__(self, sandbox_base, stack_base, code_base):
+    def __init__(self, sandbox_base, code_base):
         super().__init__()
-        self.sandbox_base: int = sandbox_base
-        self.stack_base: int = stack_base
         self.code_base: int = code_base
-        self.rsp_init = stack_base + self.RSP_OFFSET
-        self.rbp_init = stack_base + self.RBP_OFFSET
-        self.r14_init = sandbox_base + self.R14_OFFSET
+        self.sandbox_base: int = sandbox_base
+        self.stack_base = sandbox_base + self.MAIN_REGION_SIZE - 8
 
     @abstractmethod
     def load_test_case(self, test_case_asm: str) -> None:
@@ -80,13 +77,13 @@ class X86UnicornTracer(ABC):
 
     def observe_mem_access(self, access, address: int, size: int, value: int, model) -> None:
         if not model.in_speculation:
-            self.full_execution_trace.append((False, address - model.r14_init))
+            self.full_execution_trace.append((False, address - model.sandbox_base))
             if model.debug:
                 if access == UC_MEM_READ:
                     val = int.from_bytes(model.emulator.mem_read(address, size), byteorder='little')
-                    print(f"  > read: +0x{address - model.r14_init:x} = 0x{val:x}")
+                    print(f"  > read: +0x{address - model.sandbox_base:x} = 0x{val:x}")
                 else:
-                    print(f"  > write: +0x{address - model.r14_init:x} = 0x{value:x}")
+                    print(f"  > write: +0x{address - model.sandbox_base:x} = 0x{value:x}")
 
     def observe_instruction(self, address: int, size: int, model) -> None:
         if not model.in_speculation:
@@ -197,16 +194,10 @@ class X86UnicornModel(Model):
         emulator = Uc(UC_ARCH_X86, UC_MODE_64)
 
         try:
-            # map 3 memory regions for this emulation, 1 MB each
-            # it is in line with the nanoBench memory layout
-            emulator.mem_map(self.stack_base, self.RUNTIME_R_SIZE)
-            emulator.mem_map(self.sandbox_base, self.RUNTIME_R_SIZE)
+            # allocate memory
             emulator.mem_map(self.code_base, self.CODE_SIZE)
-
-            # point our utility regs into it the middle of the corresponding regions
-            emulator.reg_write(UC_X86_REG_RBP, self.rbp_init)
-            emulator.reg_write(UC_X86_REG_RSP, self.rsp_init)
-            emulator.reg_write(UC_X86_REG_R14, self.r14_init)
+            emulator.mem_map(self.sandbox_base - self.WORKING_MEMORY_SIZE // 2,
+                             self.WORKING_MEMORY_SIZE)
 
             # write machine code to be emulated to memory
             emulator.mem_write(self.code_base, self.code)
@@ -276,18 +267,22 @@ class X86UnicornModel(Model):
         self.in_speculation = False
         self.speculation_window = 0
 
-        self.emulator.reg_write(UC_X86_REG_RSP, self.rsp_init)
-        self.emulator.reg_write(UC_X86_REG_RBP, self.rbp_init)
-        self.emulator.reg_write(UC_X86_REG_R14, self.r14_init)
+        # Set memory:
+        # - initialize overflows with zeroes
+        lower_overflow_base = self.sandbox_base - self.OVERFLOW_REGION_SIZE
+        upper_overflow_base = self.sandbox_base + self.MAIN_REGION_SIZE + self.ASSIST_REGION_SIZE
+        for i in range(0, self.OVERFLOW_REGION_SIZE, 8):
+            self.emulator.mem_write(lower_overflow_base + i, b'\x00\x00\x00\x00\x00\x00\x00\x00')
+            self.emulator.mem_write(upper_overflow_base + i, b'\x00\x00\x00\x00\x00\x00\x00\x00')
 
-        # Set memory: sandbox page, assist page, and two pages around them (for overflows)
+        # - sandbox pages
         input_mask = pow(2, (CONF.prng_entropy_bits % 33)) - 1
         random_value = seed
-        for i in range(0, 4096 * 4, 4):
+        for i in range(0, self.MAIN_REGION_SIZE + self.ASSIST_REGION_SIZE, 4):
             random_value = ((random_value * 2891336453) % POW32 + 12345) % POW32
             masked_rvalue = (random_value ^ (random_value >> 16)) & input_mask
             masked_rvalue = masked_rvalue << 6
-            self.emulator.mem_write(self.r14_init - 4096 + i,
+            self.emulator.mem_write(self.sandbox_base + i,
                                     masked_rvalue.to_bytes(4, byteorder='little'))
 
         # Set values in registers
@@ -298,6 +293,10 @@ class X86UnicornModel(Model):
             masked_rvalue = masked_rvalue << 6
             self.emulator.reg_write(reg, masked_rvalue)
 
+        self.emulator.reg_write(UC_X86_REG_RBP, self.stack_base)
+        self.emulator.reg_write(UC_X86_REG_RSP, self.stack_base)
+        self.emulator.reg_write(UC_X86_REG_R14, self.sandbox_base)
+
         # FLAGS
         random_value = ((random_value * 2891336453) % POW32 + 12345) % POW32
         self.emulator.reg_write(UC_X86_REG_EFLAGS, (random_value & 2263) | 2)
@@ -306,7 +305,8 @@ class X86UnicornModel(Model):
 
     def print_state(self, oneline: bool = False):
         def compressed(val: str):
-            return f"0x{val:<16x}" if val < self.r14_init else f"+0x{val - self.r14_init:<15x}"
+            return f"0x{val:<16x}" if val < self.sandbox_base else \
+                f"+0x{val - self.sandbox_base:<15x}"
 
         emulator = self.emulator
         rax = compressed(emulator.reg_read(UC_X86_REG_RAX))
@@ -632,19 +632,19 @@ class X86UnicornCondBpas(X86UnicornSpec):
         X86UnicornBpas.trace_code(emulator, address, size, model)
 
 
-def get_model(bases) -> Model:
+def get_model(bases: Tuple[int, int]) -> Model:
     if CONF.model == 'x86-unicorn':
         # functional part of the contract
         if "cond" in CONF.contract_execution_mode and "bpas" in CONF.contract_execution_mode:
-            model = X86UnicornCondBpas(bases[0], bases[1], bases[2])
+            model = X86UnicornCondBpas(bases[0], bases[1])
         elif "cond" in CONF.contract_execution_mode:
-            model = X86UnicornCond(bases[0], bases[1], bases[2])
+            model = X86UnicornCond(bases[0], bases[1])
         elif "bpas" in CONF.contract_execution_mode:
-            model = X86UnicornBpas(bases[0], bases[1], bases[2])
+            model = X86UnicornBpas(bases[0], bases[1])
         elif "null-injection" in CONF.contract_execution_mode:
-            model = X86UnicornNull(bases[0], bases[1], bases[2])
+            model = X86UnicornNull(bases[0], bases[1])
         elif "seq" in CONF.contract_execution_mode:
-            model = X86UnicornSeq(bases[0], bases[1], bases[2])
+            model = X86UnicornSeq(bases[0], bases[1])
         else:
             print("Error: unknown value of `contract_execution_mode` configuration option")
             exit(1)

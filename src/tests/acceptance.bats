@@ -32,7 +32,7 @@ EXTENDED_TESTS=0
 
     nruns=10000
     printf "" > inputs.bin
-    for i in $(seq 1 $nruns); do
+    for _ in $(seq 1 $nruns); do
         echo -n -e '\x00\x00\x00\x00\x00\x00\x00\x01' >> inputs.bin
     done
 

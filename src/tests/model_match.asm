@@ -19,16 +19,20 @@ MOV rsi, [r14 + rsi]
 AND rdi, 0b111111000000
 MOV rdi, [r14 + rdi]
 
-MOV rax, r13
+MOV rax, rsp
 AND rax, 0b111111000000
 MOV rax, [r14 + rax]
 
 # test values in memory
-MOV rax, [r14 + 1024]  # grab some from the "heap"
+MOV rax, [r14]
 AND rax, 0b111111000000
 MOV rax, [r14 + rax]
 
-MOV rax, [rsp + 1024]  # grab some from the "stack"
+MOV rax, [r14 + 1024]
+AND rax, 0b111111000000
+MOV rax, [r14 + rax]
+
+MOV rax, [r14 + 4096 - 8]
 AND rax, 0b111111000000
 MOV rax, [r14 + rax]
 

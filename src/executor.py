@@ -28,7 +28,7 @@ class Executor(ABC):
         pass
 
     @abstractmethod
-    def read_base_addresses(self) -> Tuple[int, int, int]:
+    def read_base_addresses(self) -> Tuple[int, int]:
         pass
 
     def set_coverage(self, coverage):
@@ -142,11 +142,9 @@ class X86Intel(Executor):
     def read_base_addresses(self):
         with open('/sys/x86-executor/print_sandbox_base', 'r') as f:
             sandbox_base = f.readline()
-        with open('/sys/x86-executor/print_stack_base', 'r') as f:
-            stack_base = f.readline()
         with open('/sys/x86-executor/print_code_base', 'r') as f:
             code_base = f.readline()
-        return int(sandbox_base, 16), int(stack_base, 16), int(code_base, 16)
+        return int(sandbox_base, 16), int(code_base, 16)
 
 
 def get_executor() -> Executor:
