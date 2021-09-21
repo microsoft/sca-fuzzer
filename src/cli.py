@@ -19,7 +19,6 @@ from config import CONF
 
 def check_config():
     # TODO: make this a part of CONF class
-    assert CONF.prng_seed != 0  # deprecated?
     if CONF.max_outliers > 20:
         print("Are you sure you want to ignore so many outliers?")
 

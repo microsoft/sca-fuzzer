@@ -7,13 +7,39 @@ SPDX-License-Identifier: MIT
 """
 from typing import List, Dict, Set, Tuple, Optional
 from collections import defaultdict
+from config import CONF
+
+import numpy as np
 
 CTrace = int
 HTrace = int
-Input = int
 InputID = int
 CombinedHTrace = int
-InputList = List[int]
+
+
+class Input(np.ndarray):
+    seed: int = 0
+
+    def __new__(cls):
+        size = CONF.input_main_region_size + \
+               CONF.input_assist_region_size + \
+               CONF.input_register_region_size
+        obj = super().__new__(cls, (size,), np.uint64, None, 0, None, None)
+        return obj
+
+    def __array_finalize__(self, obj):
+        if obj is None:
+            return
+        pass  # placeholder
+
+    def get_registers(self):
+        return self[-CONF.input_register_region_size:-1]
+
+    def __str__(self):
+        return str(self.seed)
+
+    def __repr__(self):
+        return str(self.seed)
 
 
 class EquivalenceClass:

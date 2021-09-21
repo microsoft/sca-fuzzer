@@ -150,7 +150,7 @@ EXTENDED_TESTS=0
 }
 
 @test "Detection: Spectre V1.1 - BCB store" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v1.1.asm -i 50"
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v1.1.asm -i 20"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" = *"=== Violations detected ==="* ]]

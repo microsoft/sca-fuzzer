@@ -1,6 +1,6 @@
 contract_observation_mode: ct
 contract_execution_mode:
-  - cond
+  - seq
 
 enable_ssbp_patch: true
 enable_mds: false

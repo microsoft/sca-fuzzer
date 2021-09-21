@@ -6,11 +6,13 @@ Copyright (C) 2020 Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 from abc import ABC, abstractmethod
+
+import numpy as np
 from unicorn import *
 from unicorn.x86_const import *
 
 from config import CONF
-from custom_types import List, Tuple, CTrace
+from custom_types import List, Tuple, CTrace, Input
 from helpers import assemble, pretty_bitmap
 
 POW32 = pow(2, 32)
@@ -30,13 +32,14 @@ class Model(ABC):
         self.code_base: int = code_base
         self.sandbox_base: int = sandbox_base
         self.stack_base = sandbox_base + self.MAIN_REGION_SIZE - 8
+        self.overflow_region_values = bytes(self.OVERFLOW_REGION_SIZE)
 
     @abstractmethod
     def load_test_case(self, test_case_asm: str) -> None:
         pass
 
     @abstractmethod
-    def trace_test_case(self, inputs: List[int], nesting: int, debug: bool = False) -> List[CTrace]:
+    def trace_test_case(self, inputs: List[Input], nesting: int, dbg: bool = False) -> List[CTrace]:
         pass
 
     def set_coverage(self, coverage_tracker):
@@ -225,7 +228,7 @@ class X86UnicornModel(Model):
             print("Model error [load_test_case]: %s" % e)
             raise e
 
-    def trace_test_case(self, inputs: List[int], nesting, debug: bool = False) -> List[CTrace]:
+    def trace_test_case(self, inputs: List[Input], nesting, debug: bool = False) -> List[CTrace]:
         self.nesting = nesting
         self.debug = debug
 
@@ -262,7 +265,7 @@ class X86UnicornModel(Model):
 
         return traces
 
-    def reset_emulator(self, seed):
+    def reset_emulator(self, input_: Input):
         self.checkpoints = []
         self.in_speculation = False
         self.speculation_window = 0
@@ -271,37 +274,23 @@ class X86UnicornModel(Model):
         # - initialize overflows with zeroes
         lower_overflow_base = self.sandbox_base - self.OVERFLOW_REGION_SIZE
         upper_overflow_base = self.sandbox_base + self.MAIN_REGION_SIZE + self.ASSIST_REGION_SIZE
-        for i in range(0, self.OVERFLOW_REGION_SIZE, 8):
-            self.emulator.mem_write(lower_overflow_base + i, b'\x00\x00\x00\x00\x00\x00\x00\x00')
-            self.emulator.mem_write(upper_overflow_base + i, b'\x00\x00\x00\x00\x00\x00\x00\x00')
+        self.emulator.mem_write(lower_overflow_base, self.overflow_region_values)
+        self.emulator.mem_write(upper_overflow_base, self.overflow_region_values)
 
         # - sandbox pages
-        input_mask = pow(2, (CONF.prng_entropy_bits % 33)) - 1
-        random_value = seed
-        for i in range(0, self.MAIN_REGION_SIZE + self.ASSIST_REGION_SIZE, 4):
-            random_value = ((random_value * 2891336453) % POW32 + 12345) % POW32
-            masked_rvalue = (random_value ^ (random_value >> 16)) & input_mask
-            masked_rvalue = masked_rvalue << 6
-            self.emulator.mem_write(self.sandbox_base + i,
-                                    masked_rvalue.to_bytes(4, byteorder='little'))
+        self.emulator.mem_write(self.sandbox_base, input_.tobytes())
 
         # Set values in registers
-        for reg in [UC_X86_REG_RAX, UC_X86_REG_RBX, UC_X86_REG_RCX, UC_X86_REG_RDX,
-                    UC_X86_REG_RSI, UC_X86_REG_RDI]:
-            random_value = ((random_value * 2891336453) % POW32 + 12345) % POW32
-            masked_rvalue = (random_value ^ (random_value >> 16)) & input_mask
-            masked_rvalue = masked_rvalue << 6
-            self.emulator.reg_write(reg, masked_rvalue)
+        registers = [UC_X86_REG_RAX, UC_X86_REG_RBX, UC_X86_REG_RCX, UC_X86_REG_RDX,
+                     UC_X86_REG_RSI, UC_X86_REG_RDI, UC_X86_REG_EFLAGS]
+        for i, value in enumerate(input_.get_registers()):
+            if registers[i] == UC_X86_REG_EFLAGS:
+                value = (value & np.uint64(2263)) | np.uint64(2)
+            self.emulator.reg_write(registers[i], value)
 
-        self.emulator.reg_write(UC_X86_REG_RBP, self.stack_base)
         self.emulator.reg_write(UC_X86_REG_RSP, self.stack_base)
+        self.emulator.reg_write(UC_X86_REG_RBP, self.stack_base)
         self.emulator.reg_write(UC_X86_REG_R14, self.sandbox_base)
-
-        # FLAGS
-        random_value = ((random_value * 2891336453) % POW32 + 12345) % POW32
-        self.emulator.reg_write(UC_X86_REG_EFLAGS, (random_value & 2263) | 2)
-
-        self.emulator.reg_write(UC_X86_REG_R13, random_value)
 
     def print_state(self, oneline: bool = False):
         def compressed(val: str):

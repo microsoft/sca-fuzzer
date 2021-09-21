@@ -106,9 +106,13 @@ class ConfCls:
     ]
     # ==============================================================================================
     # Input Generator
-    prng_seed: int = 10  # zero is a reserved value, do not use it
+    input_generator: str = 'random'
+    input_generator_seed: int = 10  # zero is a reserved value, do not use it
     prng_entropy_bits: int = 3
     randomized_mem_alignment: bool = True
+    input_main_region_size: int = 4096 // 8
+    input_assist_region_size: int = (4096 - 64) // 8
+    input_register_region_size: int = 64 // 8
     # ==============================================================================================
     # Model
     model: str = 'x86-unicorn'
@@ -152,10 +156,10 @@ class ConfCls:
             'model': ['x86-unicorn'],
             'contract_observation_mode':
                 ['l1d', 'memory', 'ct', 'pc', 'ct-nonspecstore', 'ctr', 'arch'],
-            'coverage_type': ['dependencies', 'none']
+            'coverage_type': ['dependencies', 'none'],
         }
 
-        if self.__getattribute__(name) is None:
+        if getattr(self, name, None) is None:
             print(f"Error: Unknown configuration variable {name}.\n"
                   f"It's likely a typo in the configuration file.")
             exit(1)

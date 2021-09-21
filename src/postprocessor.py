@@ -12,7 +12,7 @@ from fuzzer import Fuzzer
 from model import Model, get_model
 from executor import Executor, get_executor
 from analyser import Analyser, get_analyser
-from input_generator import InputGenerator, RandomInputGenerator
+from input_generator import InputGenerator, get_input_generator
 from custom_types import List, CTrace, HTrace, EquivalenceClass, EquivalenceClassMap, Input
 from config import CONF
 
@@ -25,11 +25,11 @@ class Postprocessor:
         fuzzer: Fuzzer = Fuzzer("", "", test_case)
         executor: Executor = get_executor()
         model: Model = get_model(executor.read_base_addresses())
-        input_gen: InputGenerator = RandomInputGenerator()
+        input_gen: InputGenerator = get_input_generator()
         analyser: Analyser = get_analyser()
 
         # Prepare initial inputs
-        inputs: List[Input] = input_gen.generate(CONF.prng_seed, num_inputs)
+        inputs: List[Input] = input_gen.generate(CONF.input_generator_seed, num_inputs)
 
         # Check if we can reproduce a violation with the given configuration
         print("Trying to reproduce...")

@@ -11,7 +11,7 @@ import subprocess
 import os.path
 
 from helpers import assemble, load_measurement, write_to_pseudo_file, write_to_pseudo_file_bytes
-from custom_types import List, Tuple, CombinedHTrace
+from custom_types import List, Tuple, CombinedHTrace, Input
 from config import CONF
 
 
@@ -23,7 +23,7 @@ class Executor(ABC):
         pass
 
     @abstractmethod
-    def trace_test_case(self, inputs: List[int], num_measurements: int = 0) \
+    def trace_test_case(self, inputs: List[Input], num_measurements: int = 0) \
             -> List[CombinedHTrace]:
         pass
 
@@ -53,7 +53,7 @@ class X86Intel(Executor):
         assemble(test_case_asm, 'generated.o')
         write_to_pseudo_file("generated.o", "/sys/x86-executor/code")
 
-    def trace_test_case(self, inputs: List[int], num_measurements: int = 0) \
+    def trace_test_case(self, inputs: List[Input], num_measurements: int = 0) \
             -> List[CombinedHTrace]:
         # make sure it's not a dummy call
         if not inputs:
@@ -71,8 +71,8 @@ class X86Intel(Executor):
         write_to_pseudo_file(input_mask, '/sys/x86-executor/input_mask')
 
         # convert the inputs into a byte sequence
-        qword_inputs = [i.to_bytes(8, byteorder='little') for i in inputs]
-        byte_inputs = bytes().join(qword_inputs)
+        byte_inputs = [i.tobytes() for i in inputs]
+        byte_inputs = bytes().join(byte_inputs)
 
         # protocol of loading inputs (must be in this order):
         # 1) Announce the number of inputs

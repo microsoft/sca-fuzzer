@@ -6,8 +6,6 @@ Copyright (C) 2020 Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 import shutil
-import random
-from collections import defaultdict
 from pathlib import Path
 from datetime import datetime
 
@@ -15,11 +13,10 @@ from generator import Generator, get_generator
 from model import Model, get_model
 from executor import Executor, get_executor
 from analyser import Analyser, get_analyser
-from input_generator import InputGenerator, RandomInputGenerator
+from input_generator import InputGenerator, get_input_generator
 from coverage import Coverage, get_coverage
 from helpers import *
-from custom_types import Dict, CTrace, HTrace, EquivalenceClass, EquivalenceClassMap, Input, \
-    Optional
+from custom_types import CTrace, HTrace, EquivalenceClass, EquivalenceClassMap, Input, Optional
 from config import CONF
 
 
@@ -86,7 +83,7 @@ class Fuzzer:
         # create all main modules
         executor: Executor = get_executor()
         model: Model = get_model(executor.read_base_addresses())
-        input_gen: InputGenerator = RandomInputGenerator()
+        input_gen: InputGenerator = get_input_generator()
         analyser: Analyser = get_analyser()
         generator: Generator = get_generator(self.instruction_set_spec)
 
@@ -111,7 +108,7 @@ class Fuzzer:
             coverage.load_test_case(self.test_case)
 
             # Prepare inputs
-            inputs: List[Input] = input_gen.generate(CONF.prng_seed, num_inputs)
+            inputs: List[Input] = input_gen.generate(CONF.input_generator_seed, num_inputs)
 
             # Fuzz the test case
             violation = self.fuzzing_round(executor, model, analyser, inputs)
@@ -193,6 +190,10 @@ class Fuzzer:
             if not violations:
                 return None
 
+            # sequential contract? -> no point in trying higher nesting
+            if 'seq' in CONF.contract_execution_mode:
+                break
+
             # otherwise, try higher nesting
             if nesting == 1:
                 self.logger.higher_nesting()
@@ -259,7 +260,7 @@ class Fuzzer:
 
         return False
 
-    def get_min_primer(self, executor, inputs, target_id,
+    def get_min_primer(self, executor, inputs: List[Input], target_id,
                        expected_htrace, num_primed_inputs) -> List[Input]:
         # first size to be tested
         primer_size = CONF.min_primer_size % len(inputs) + 1
@@ -315,7 +316,7 @@ class Fuzzer:
         shutil.copy2(self.test_case, self.work_dir + "/" + name)
 
     @staticmethod
-    def check_multiprimer(executor: Executor, inputs: List[int], primer_size: int,
+    def check_multiprimer(executor: Executor, inputs: List[Input], primer_size: int,
                           expected_htrace: HTrace, retries: int) -> bool:
         num_inputs = len(inputs) // primer_size
         num_measurements: int = CONF.num_measurements
@@ -346,45 +347,6 @@ class Fuzzer:
             if not mismatch:
                 return True
         return False
-
-    @staticmethod
-    def _shuffle(ids_to_shuffle: List[int], inputs: List[int], ctraces: List[CTrace],
-                 htraces: List[HTrace]):
-        """
-        DEPRECATED
-        Randomly shuffles inputs, but ensures that swapping happens only between inputs within
-         one equivalence classes
-        """
-        trace_map = list(zip(inputs, ctraces, htraces))
-
-        # build equivalence classes
-        equivalence_classes: Dict[CTrace, List[int]] = defaultdict(list)
-        for id_, ctrace in enumerate(ctraces):
-            equivalence_classes[ctrace].append(id_)
-
-        while ids_to_shuffle:
-            # get the next id to swap
-            violation_id: int = ids_to_shuffle.pop()
-            eq_class = equivalence_classes[ctraces[violation_id]]
-            eq_class.remove(violation_id)
-
-            # find a swap candidate within the same eq. class
-            options = []
-            dominant = max(htraces[violation_id])
-            for id_ in eq_class:
-                if max(htraces[id_]) != dominant:
-                    options.append(id_)
-            if not options:
-                continue
-            id_to_swap = random.choice(options)
-
-            # swap
-            violation_map_entry = trace_map[violation_id]
-            trace_map[violation_id] = trace_map[id_to_swap]
-            trace_map[id_to_swap] = violation_map_entry
-
-        new_inputs, new_ctraces, new_htraces = zip(*trace_map)
-        return new_inputs, new_ctraces, new_htraces
 
     @staticmethod
     def report_violations(violation: EquivalenceClass, model: Model):
