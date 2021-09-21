@@ -10,7 +10,7 @@ from abc import ABC
 import numpy as np
 from unicorn import *  # type: ignore
 from unicorn.x86_const import *  # type: ignore
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 from interfaces import CTrace, Input, TestCase, Model
 from config import CONF
@@ -448,7 +448,7 @@ class X86UnicornCond(X86UnicornSpec):
         X86UnicornCond.multibyte_jmp.get(c[1], (lambda _, __, ___: ([0], False, False)))(c, f, r)
     }
 
-    multibyte_jmp = {
+    multibyte_jmp: Dict = {
         0x80: lambda c, f, r: (c[2:], f & FLAGS_OF != 0, False),  # JO
         0x81: lambda c, f, r: (c[2:], f & FLAGS_OF == 0, False),  # JNO
         0x82: lambda c, f, r: (c[2:], f & FLAGS_CF != 0, False),  # JB
@@ -502,7 +502,7 @@ class X86UnicornCond(X86UnicornSpec):
             emulator.reg_write(UC_X86_REG_RIP, address + size + target)
 
     @staticmethod
-    def decode(code: bytearray, flags: int, rcx: int) -> (int, bool, bool):
+    def decode(code: bytearray, flags: int, rcx: int) -> Tuple[int, bool, bool]:
         """
         Decodes the instruction encoded in `code` and, if it's a conditional jump,
         returns its expected target, whether it will jump to the target (based
@@ -603,6 +603,8 @@ class X86UnicornCondBpas(X86UnicornSpec):
 
 def get_model(bases: Tuple[int, int]) -> Model:
     if CONF.model == 'x86-unicorn':
+        model: Model
+
         # functional part of the contract
         if "cond" in CONF.contract_execution_mode and "bpas" in CONF.contract_execution_mode:
             model = X86UnicornCondBpas(bases[0], bases[1])

@@ -23,7 +23,14 @@ from config import CONF
 
 
 class Logger:
-    def __init__(self, iterations: int, start_time):
+    one_percent_progress: float = 0.0
+    progress: int = 0
+    progress_percent: int = 0
+    msg: str = ""
+    line_ending: str = ""
+    start_time: int = 0
+
+    def start_fuzzing(self, iterations: int, start_time):
         self.one_percent_progress = iterations / 100
         self.progress = 0
         self.progress_percent = 0
@@ -74,15 +81,18 @@ class Fuzzer:
 
     def __init__(self, instruction_set_spec: str, work_dir: str, existing_test_case: str = None):
         self.work_dir = work_dir
-        self.test_case = TestCase(existing_test_case)
-        self.enable_generation = True if not existing_test_case else False
+        if existing_test_case:
+            self.test_case = TestCase(existing_test_case)
+            self.enable_generation = False
+        else:
+            self.enable_generation = True
         self.instruction_set_spec = instruction_set_spec
-        self.logger = None
+        self.logger = Logger()
 
     def start(self, num_test_cases: int, num_inputs: int, timeout: int,
               nonstop: bool = False):
         start_time = datetime.today()
-        self.logger = Logger(num_test_cases, start_time)
+        self.logger.start_fuzzing(num_test_cases, start_time)
 
         # create all main modules
         executor: Executor = get_executor()
@@ -313,7 +323,7 @@ class Fuzzer:
         timestamp = datetime.today().strftime('%H%M%S-%d-%m-%y')
         name = type_ + timestamp + ".asm"
         Path(self.work_dir).mkdir(exist_ok=True)
-        shutil.copy2(self.test_case, self.work_dir + "/" + name)
+        shutil.copy2(self.test_case.asm_path, self.work_dir + "/" + name)
 
     @staticmethod
     def check_multiprimer(executor: Executor, inputs: List[Input], primer_size: int,

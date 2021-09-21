@@ -8,10 +8,11 @@ import re
 from enum import IntEnum
 from collections import defaultdict
 from itertools import combinations
-from typing import Tuple, Dict, Set
+from typing import Tuple, Dict, Set, List
 
 from generator import TestCaseDAG, Instruction, X86Registers, OT, InstructionSet
 from interfaces import Coverage, EquivalenceClass, TestCase
+from config import CONF
 from helpers import *
 
 
@@ -126,12 +127,12 @@ class PatternCoverage(Coverage):
             self.process_instruction_set(feedback['instruction_set'])
             self.instruction_set_processed = True
 
-        DAG = feedback['DAG']
+        dag: TestCaseDAG = feedback['DAG']
 
         # collect instruction positions
         counter = 2  # account for the test case prologue
         positions = {}
-        for func in DAG.functions:
+        for func in dag.functions:
             for bb in func:
                 for instr in bb:
                     positions[instr] = counter
@@ -141,7 +142,7 @@ class PatternCoverage(Coverage):
                     counter += 1
 
         # collect control hazards
-        for func in DAG.functions:
+        for func in dag.functions:
             for bb in func:
                 for t in bb.terminators:
                     for target in t.operands:
@@ -160,7 +161,7 @@ class PatternCoverage(Coverage):
 
         # collect all instruction pairs
         pairs: List[Tuple[Instruction, Instruction]] = []
-        for func in DAG.functions:
+        for func in dag.functions:
             for bb in func:
                 for instr in bb:
                     if not instr.is_instrumentation and instr.next:

@@ -5,14 +5,17 @@ Copyright (C) 2021 Oleksii Oleksenko
 Copyright (C) 2020 Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
-from collections import Counter
 import subprocess
 import os.path
+import csv
+from collections import Counter
 from typing import List
-from interfaces import CombinedHTrace, Input, TestCase, Executor
+from interfaces import CombinedHTrace, HTrace, Input, TestCase, Executor
 
-from helpers import load_measurement, write_to_pseudo_file, write_to_pseudo_file_bytes
+from helpers import write_to_pseudo_file, write_to_pseudo_file_bytes
 from config import CONF
+
+PFCReading = int
 
 
 class X86Intel(Executor):
@@ -47,32 +50,42 @@ class X86Intel(Executor):
 
         # convert the inputs into a byte sequence
         byte_inputs = [i.tobytes() for i in inputs]
-        byte_inputs = bytes().join(byte_inputs)
+        byte_inputs_merged = bytes().join(byte_inputs)
 
         # protocol of loading inputs (must be in this order):
         # 1) Announce the number of inputs
         write_to_pseudo_file(str(len(inputs)), "/sys/x86-executor/n_inputs")
         # 2) Load the inputs
-        write_to_pseudo_file_bytes(byte_inputs, "/sys/x86-executor/inputs")
+        write_to_pseudo_file_bytes(byte_inputs_merged, "/sys/x86-executor/inputs")
         # 3) Check that the load was successful
         with open('/sys/x86-executor/n_inputs', 'r') as f:
             if f.readline() == '0\n':
                 print("Failure loading inputs!")
                 raise Exception()
 
-        traces = [[] for _ in inputs]
-        pfc_readings = [[[], [], []] for _ in inputs]
+        traces: List[List] = [[] for _ in inputs]
+        pfc_readings: List[List] = [[[], [], []] for _ in inputs]
         for _ in range(num_measurements):
             # measure
             subprocess.run(f"taskset -c {CONF.measurement_cpu} cat /proc/x86-executor "
                            "| sudo tee measurement.txt >/dev/null",
                            shell=True, check=True)
+
             # fetch the results
-            for i, measurement in enumerate(load_measurement('measurement.txt')):
-                traces[i].append(measurement[0])
-                pfc_readings[i][0].append(measurement[1])
-                pfc_readings[i][1].append(measurement[2])
-                pfc_readings[i][2].append(measurement[3])
+            with open('measurement.txt', "r") as f:
+                reader = csv.DictReader(f)
+                if not reader.fieldnames or 'CACHE_MAP' not in reader.fieldnames:
+                    raise Exception("Error: Hardware Trace was not produced.")
+
+                for i, row in enumerate(reader):
+                    trace = int(row['CACHE_MAP'])
+                    if CONF.ignore_first_cache_line:
+                        trace &= 9223372036854775807
+                    traces[i].append(trace)
+
+                    pfc_readings[i][0].append(int(row['pfc1']))
+                    pfc_readings[i][1].append(int(row['pfc2']))
+                    pfc_readings[i][2].append(int(row['pfc3']))
 
         if num_measurements == 1:
             if self.coverage:
@@ -82,7 +95,7 @@ class X86Intel(Executor):
         # remove outliers and merge
         merged_traces = [0 for _ in inputs]
         for i, trace_list in enumerate(traces):
-            num_occurrences = Counter()
+            num_occurrences: Counter = Counter()
             for trace in trace_list:
                 num_occurrences[trace] += 1
                 # print(pretty_bitmap(trace))

@@ -11,7 +11,7 @@ import random
 import abc
 import xml.etree.ElementTree as ET
 from enum import Enum
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Set
 
 from interfaces import Generator, TestCase
 from helpers import NotSupportedException
@@ -341,7 +341,7 @@ class FlagsOperand(Operand):
     def __str__(self):
         return f"FLAGS: CF={self.CF}, PF={self.PF}, ZF={self.ZF}, SF={self.SF}, OF={self.OF}"
 
-    def _get_flag_list(self, types):
+    def _get_flag_list(self, types) -> List[str]:
         flags = []
         if self.CF in types:
             flags.append('CF')
@@ -355,7 +355,7 @@ class FlagsOperand(Operand):
             flags.append('OF')
         return flags
 
-    def get_read_flags(self):
+    def get_read_flags(self) -> List[str]:
         return self._get_flag_list(['r', 'r/w', 'r/cw'])
 
     def get_write_flags(self):
@@ -369,9 +369,9 @@ class Instruction:
     name: str
     operands: List[Operand]
     implicit_operands: List[Operand]
-    next: Instruction = None
-    previous: Instruction = None
-    latest_reg_operand: RegisterOperand = None  # for avoiding dependencies
+    next: Optional[Instruction] = None
+    previous: Optional[Instruction] = None
+    latest_reg_operand: Optional[RegisterOperand] = None  # for avoiding dependencies
     is_instrumentation: bool
 
     def __init__(self, name: str, is_instrumentation=False):
@@ -440,7 +440,7 @@ class Instruction:
                 res.append(o)
         return res
 
-    def get_flags_operand(self) -> FlagsOperand:
+    def get_flags_operand(self) -> Optional[FlagsOperand]:
         for op in self.implicit_operands:
             if isinstance(op, FlagsOperand):
                 return op
@@ -448,6 +448,7 @@ class Instruction:
         for op in self.operands:
             if isinstance(op, FlagsOperand):
                 return op
+        return None
 
 
 class InstructionList:
@@ -532,13 +533,13 @@ class BasicBlock:
         # patch the linked list
         previous = target.previous
         next_ = target.next
-        if not previous and not next_:  # the only instruction in BB
+        if previous is None and next_ is None:  # the only instruction in BB
             self.__instructions.end = None
             self.__instructions.start = None
-        elif not previous:  # the first instruction
-            next_.previous = None
+        elif previous is None:  # the first instruction
+            next_.previous = None  # type: ignore
             self.__instructions.start = next_
-        elif not next_:  # the last instruction
+        elif next_ is None:  # the last instruction
             previous.next = None
             self.__instructions.end = previous
         else:  # somewhere in the middle
@@ -608,7 +609,6 @@ class ConfigurableGenerator(Generator, abc.ABC):
     """
 
     test_case: TestCaseDAG
-    coverage = None
     passes: List[Pass]  # set by subclasses
     printer: Printer  # set by subclasses
     register_set: RegisterSet  # set by subclasses
@@ -831,8 +831,8 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         if spec.values:
             value = spec.values[0]
         else:
-            value = random.randint(pow(2, spec.width - 1) * -1, pow(2, spec.width - 1) - 1)
-        return ImmediateOperand(str(value), spec.width)
+            value = str(random.randint(pow(2, spec.width - 1) * -1, pow(2, spec.width - 1) - 1))
+        return ImmediateOperand(value, spec.width)
 
     def generate_label_operand(self, spec: OperandSpec, parent: Instruction) -> Operand:
         raise NotSupportedException()
@@ -1105,7 +1105,7 @@ class X86SandboxPass(Pass):
         mem_operands = instr.get_implicit_mem_operands()
         if mem_operands:
             assert len(mem_operands) == 1
-            mem_operand: MemoryOperand = mem_operands[0]
+            mem_operand = mem_operands[0]
             address_reg = mem_operand.value
             imm_width = mem_operand.width if mem_operand.width <= 32 else 32
             apply_mask = Instruction("AND", True) \
@@ -1240,7 +1240,7 @@ class X86PatchUndefinedFlagsPass(Pass):
                     all_instructions.append(bb.terminators[0])
 
                 # keep track of the FLAGS dependencies as we iterate over instructions
-                flags_to_set = set()
+                flags_to_set: Set[str] = set()
 
                 # walk the list in inverse order
                 while all_instructions:
@@ -1407,6 +1407,6 @@ def get_generator(instruction_set_spec: str) -> Generator:
     if CONF.instruction_set == 'x86-64':
         if CONF.generator == 'random':
             return X86RandomGenerator(instruction_set_spec)
-    else:
-        print("Error: unknown value of `instruction_set` configuration option")
-        exit(1)
+
+    print("Error: unknown value of `instruction_set` configuration option")
+    exit(1)

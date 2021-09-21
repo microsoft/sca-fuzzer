@@ -2,6 +2,14 @@
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
+echo ""
+echo "===== Types Checking with mypy ====="
+echo ""
+cd $SCRIPT_DIR/.. || exit
+python3 -m mypy cli.py
+cd - > /dev/null || exit
+
+echo ""
 echo "===== Unit Tests ====="
 echo ""
 cd $SCRIPT_DIR || exit
