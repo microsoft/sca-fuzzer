@@ -11,9 +11,9 @@ import random
 import abc
 import xml.etree.ElementTree as ET
 from enum import Enum
-from collections import OrderedDict
-from custom_types import Optional, List, Dict, Tuple
+from typing import List, Dict, Optional
 
+from interfaces import Generator, TestCase
 from helpers import NotSupportedException
 from config import CONF
 
@@ -602,7 +602,7 @@ class RegisterSet(abc.ABC):
     simd_decoding: Dict[str, List[str]]
 
 
-class Generator(abc.ABC):
+class ConfigurableGenerator(Generator, abc.ABC):
     """
     The interface description for Generator classes.
     """
@@ -614,19 +614,16 @@ class Generator(abc.ABC):
     register_set: RegisterSet  # set by subclasses
 
     def __init__(self, instruction_set_spec: str):
-        super().__init__()
+        super().__init__(instruction_set_spec)
         instruction_set = InstructionSet()
         instruction_set.init_from_file(instruction_set_spec, CONF.supported_categories)
         instruction_set.reduce()
         self.instruction_set = instruction_set
 
-    def set_coverage(self, coverage):
-        self.coverage = coverage
-
     def reset_generator(self):
         pass
 
-    def create_test_case(self, asm_file: str):
+    def create_test_case(self, asm_file: str) -> TestCase:
         """
         Create a simple test case with a single BB
         Run instrumentation passes and print the result into a file
@@ -653,7 +650,16 @@ class Generator(abc.ABC):
 
         # measure coverage, if applicable
         if self.coverage:
-            self.coverage.generator_hook(self.test_case, self.instruction_set)
+            feedback = None
+            if type(self.coverage).__name__ == 'PatternCoverage':
+                feedback = {
+                    'DAG': self.test_case,
+                    'instruction_set': self.instruction_set
+                }
+
+            self.coverage.generator_hook(feedback)
+
+        return TestCase(asm_file)
 
     @abc.abstractmethod
     def generate_function(self, name: str):
@@ -710,7 +716,7 @@ class Generator(abc.ABC):
 # ==================================================================================================
 # ISA-independent Generators
 # ==================================================================================================
-class RandomGenerator(Generator, abc.ABC):
+class RandomGenerator(ConfigurableGenerator, abc.ABC):
     """
     Implements an ISA-independent logic of random test case generation.
     Subclasses are responsible for the ISA-specific parts.
@@ -1001,7 +1007,7 @@ class X86Registers(RegisterSet):
         self.registers = filtered_decoding
 
 
-class X86Generator(Generator, abc.ABC):
+class X86Generator(ConfigurableGenerator, abc.ABC):
     def __init__(self, instruction_set_spec: str):
         super(X86Generator, self).__init__(instruction_set_spec)
         self.passes = [
@@ -1218,7 +1224,7 @@ class X86PatchUndefinedFlagsPass(Pass):
         JNO .label
     """
 
-    def __init__(self, instruction_set: InstructionSet, generator: Generator):
+    def __init__(self, instruction_set: InstructionSet, generator: ConfigurableGenerator):
         super().__init__()
         self.instruction_set = instruction_set
         self.generator = generator

@@ -13,7 +13,8 @@ from model import Model, get_model
 from executor import Executor, get_executor
 from analyser import Analyser, get_analyser
 from input_generator import InputGenerator, get_input_generator
-from custom_types import List, CTrace, HTrace, EquivalenceClass, EquivalenceClassMap, Input
+from typing import List
+from interfaces import CTrace, HTrace, EquivalenceClass, Input
 from config import CONF
 
 
@@ -85,11 +86,8 @@ class Postprocessor:
         htraces: List[HTrace] = executor.trace_test_case(inputs)
 
         # Check for violations
-        all_eq_classes: EquivalenceClassMap = analyser.build_equivalence_classes(inputs, ctraces,
-                                                                                 htraces,
-                                                                                 stats=True)
-        violations: List[EquivalenceClass] = analyser.filter_violations(all_eq_classes)
-
+        violations: List[EquivalenceClass] = analyser.filter_violations(inputs, ctraces,
+                                                                        htraces, stats=True)
         if not violations:
             return []
         if CONF.no_priming:

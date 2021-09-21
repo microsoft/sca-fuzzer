@@ -5,22 +5,11 @@ Copyright (C) 2021 Oleksii Oleksenko
 Copyright (C) 2020 Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
-from abc import ABC, abstractmethod
-from custom_types import List, Input
+from typing import List
+from interfaces import Input, InputGenerator
 from config import CONF
 
 POW32 = pow(2, 32)
-
-
-class InputGenerator(ABC):
-    coverage = None
-
-    @abstractmethod
-    def generate(self, seed: int, count: int) -> List[Input]:
-        pass
-
-    def set_coverage(self, coverage):
-        self.coverage = coverage
 
 
 class RandomInputGenerator(InputGenerator):

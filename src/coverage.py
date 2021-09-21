@@ -6,16 +6,49 @@ SPDX-License-Identifier: MIT
 """
 import re
 from enum import IntEnum
-from abc import ABC, abstractmethod
 from collections import defaultdict
-from itertools import combinations, product
-from datetime import datetime
+from itertools import combinations
+from typing import Tuple, Dict, Set
 
 from generator import TestCaseDAG, Instruction, X86Registers, OT, InstructionSet
-from custom_types import *
+from interfaces import Coverage, EquivalenceClass, TestCase
 from helpers import *
 
 
+# ==================================================================================================
+# Coverage Disabled
+# ==================================================================================================
+class NoCoverage(Coverage):
+    """
+    A dummy class with empty functions.
+    Used when fuzzing without coverage
+    """
+
+    def load_test_case(self, asm_file):
+        pass
+
+    def update(self):
+        pass
+
+    def generator_hook(self, feedback):
+        pass
+
+    def model_hook(self, feedback):
+        pass
+
+    def executor_hook(self, feedback):
+        pass
+
+    def analyser_hook(self, feedback):
+        pass
+
+    def get(self) -> int:
+        return 0
+
+
+# ==================================================================================================
+# Pattern Coverage
+# ==================================================================================================
 class DT(IntEnum):  # Dependency Type
     REG_GPR = 1
     REG_FLAGS = 2
@@ -45,64 +78,6 @@ class PatternInstance:
                f"[{self.positions[1]}, {hex(self.addresses[1])}]"
 
 
-class Coverage(ABC):
-    @abstractmethod
-    def load_test_case(self, asm_file):
-        pass
-
-    @abstractmethod
-    def update(self):
-        pass
-
-    @abstractmethod
-    def generator_hook(self, DAG: TestCaseDAG, instruction_set: InstructionSet):
-        pass
-
-    @abstractmethod
-    def model_hook(self, feedback):
-        pass
-
-    @abstractmethod
-    def executor_hook(self, feedback):
-        pass
-
-    @abstractmethod
-    def analyser_hook(self, feedback):
-        pass
-
-    @abstractmethod
-    def get(self) -> int:
-        pass
-
-
-class NoCoverage(Coverage):
-    """
-    A dummy class with empty functions.
-    Used when fuzzing without coverage
-    """
-
-    def load_test_case(self, asm_file):
-        pass
-
-    def update(self):
-        pass
-
-    def generator_hook(self, DAG: TestCaseDAG, instruction_set: InstructionSet):
-        pass
-
-    def model_hook(self, feedback):
-        pass
-
-    def executor_hook(self, feedback):
-        pass
-
-    def analyser_hook(self, feedback):
-        pass
-
-    def get(self) -> int:
-        return 0
-
-
 class PatternCoverage(Coverage):
     coverage: Dict[int, Set[Tuple[int]]]
     current_patterns: List[PatternInstance]
@@ -110,8 +85,11 @@ class PatternCoverage(Coverage):
     combination_length: int = 1
     num_patterns: int = 0
     previous_target_coverage: int = 0
+    current_max_combinations: int = 1
+    previous_max_combinations: int = 0
+    instruction_set_processed: bool = False
 
-    def __init__(self, instruction_set: InstructionSet):
+    def __init__(self):
         super().__init__()
         self.current_patterns = []
         self.coverage = defaultdict(set)
@@ -121,17 +99,18 @@ class PatternCoverage(Coverage):
         else:
             self.memory_patterns = []
         self.register_patters = [DT.REG_GPR, DT.REG_FLAGS]
+        self.control_patterns = [DT.CONTROL_DIRECT]
+
+    def process_instruction_set(self, instruction_set: InstructionSet):
         if instruction_set.has_conditional_branch:
             self.control_patterns = [DT.CONTROL_COND, DT.CONTROL_DIRECT]
-        else:
-            self.control_patterns = [DT.CONTROL_DIRECT]
+
         self.num_patterns = \
             len(self.memory_patterns) + len(self.register_patters) + len(self.control_patterns)
 
         self.combination_length = CONF.combination_length_min
         self.current_max_combinations = \
             self.calculate_max_combinations(self.num_patterns, CONF.combination_length_min)
-        self.previous_max_combinations = 0
 
         if CONF.feedback_driven_generator:
             CONF.min_bb_per_function = 1
@@ -142,7 +121,13 @@ class PatternCoverage(Coverage):
     def get(self) -> int:
         return sum([len(c) for c in self.coverage.values()])
 
-    def generator_hook(self, DAG: TestCaseDAG, instruction_set: InstructionSet):
+    def generator_hook(self, feedback: Dict):
+        if not self.instruction_set_processed:
+            self.process_instruction_set(feedback['instruction_set'])
+            self.instruction_set_processed = True
+
+        DAG = feedback['DAG']
+
         # collect instruction positions
         counter = 2  # account for the test case prologue
         positions = {}
@@ -215,9 +200,10 @@ class PatternCoverage(Coverage):
                 type_ = DT.REG_FLAGS if dependencies[0] == "FLAGS" else DT.REG_GPR
                 self.current_patterns.append(PatternInstance(pair, pair_ids, type_))
 
-    def load_test_case(self, asm_file: str):
-        assemble(asm_file, 'tmp.o')
-        output = run('objdump -D tmp.o -b binary --no-show-raw-insn -m i386:x86-64', shell=True,
+    def load_test_case(self, test_case: TestCase):
+        obj_file = test_case.to_binary()
+        output = run(f'objdump -D {obj_file} -b binary --no-show-raw-insn -m i386:x86-64',
+                     shell=True,
                      check=False,
                      capture_output=True)
         lines = output.stdout.decode().split("\n")
@@ -379,9 +365,9 @@ class PatternCoverage(Coverage):
         return pow(n, r)
 
 
-def get_coverage(instruction_set: InstructionSet) -> Coverage:
+def get_coverage() -> Coverage:
     if CONF.coverage_type == 'dependencies':
-        return PatternCoverage(instruction_set)
+        return PatternCoverage()
     elif CONF.coverage_type == 'none':
         return NoCoverage()
     else:

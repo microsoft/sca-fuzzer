@@ -8,15 +8,17 @@ SPDX-License-Identifier: MIT
 import shutil
 from pathlib import Path
 from datetime import datetime
+from typing import Optional, List
 
-from generator import Generator, get_generator
-from model import Model, get_model
-from executor import Executor, get_executor
-from analyser import Analyser, get_analyser
-from input_generator import InputGenerator, get_input_generator
-from coverage import Coverage, get_coverage
-from helpers import *
-from custom_types import CTrace, HTrace, EquivalenceClass, EquivalenceClassMap, Input, Optional
+from interfaces import CTrace, HTrace, Input, EquivalenceClass, TestCase, \
+    Generator, InputGenerator, Model, Executor, Analyser, Coverage
+from generator import get_generator
+from input_generator import get_input_generator
+from model import get_model
+from executor import get_executor
+from analyser import get_analyser
+from coverage import get_coverage
+from helpers import STAT, pretty_bitmap, bit_count, TWOS_COMPLEMENT_MASK_64
 from config import CONF
 
 
@@ -68,9 +70,11 @@ class Logger:
 
 
 class Fuzzer:
+    test_case: TestCase
+
     def __init__(self, instruction_set_spec: str, work_dir: str, existing_test_case: str = None):
         self.work_dir = work_dir
-        self.test_case = existing_test_case
+        self.test_case = TestCase(existing_test_case)
         self.enable_generation = True if not existing_test_case else False
         self.instruction_set_spec = instruction_set_spec
         self.logger = None
@@ -88,7 +92,7 @@ class Fuzzer:
         generator: Generator = get_generator(self.instruction_set_spec)
 
         # connect them with coverage
-        coverage: Coverage = get_coverage(generator.instruction_set)
+        coverage: Coverage = get_coverage()
         executor.set_coverage(coverage)
         model.set_coverage(coverage)
         input_gen.set_coverage(coverage)
@@ -102,8 +106,7 @@ class Fuzzer:
         for i in range(num_test_cases):
             # Generate a test case, if necessary
             if self.enable_generation:
-                self.test_case = 'generated.asm'
-                generator.create_test_case(self.test_case)
+                self.test_case = generator.create_test_case('generated.asm')
 
             coverage.load_test_case(self.test_case)
 
@@ -180,11 +183,8 @@ class Fuzzer:
                     print(pretty_bitmap(htraces[i]))
 
             # Check for violations
-            all_eq_classes: EquivalenceClassMap = analyser.build_equivalence_classes(inputs,
-                                                                                     ctraces,
-                                                                                     htraces,
-                                                                                     stats=True)
-            violations: List[EquivalenceClass] = analyser.filter_violations(all_eq_classes)
+            violations: List[EquivalenceClass] = analyser.filter_violations(inputs, ctraces,
+                                                                            htraces, stats=True)
 
             # nothing detected? -> we are done here, move to next test case
             if not violations:

@@ -26,7 +26,7 @@ def check_config():
 def ensure_reliable_environment():
     # SMT disabled?
     if os.path.isfile('/sys/devices/system/cpu/cpu4/online'):
-        print("WARNING: Hyperthreading is enabled! You may have false positives due to system noise.")
+        print("WARNING: Hyperthreading is enabled! You may have false positives due to noise.")
 
     # Disable prefetching
     subprocess.run('sudo modprobe msr', shell=True, check=True)

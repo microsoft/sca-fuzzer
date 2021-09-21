@@ -5,34 +5,14 @@ Copyright (C) 2021 Oleksii Oleksenko
 Copyright (C) 2020 Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
-from abc import ABC, abstractmethod
 from collections import Counter
 import subprocess
 import os.path
+from typing import List
+from interfaces import CombinedHTrace, Input, TestCase, Executor
 
-from helpers import assemble, load_measurement, write_to_pseudo_file, write_to_pseudo_file_bytes
-from custom_types import List, Tuple, CombinedHTrace, Input
+from helpers import load_measurement, write_to_pseudo_file, write_to_pseudo_file_bytes
 from config import CONF
-
-
-class Executor(ABC):
-    coverage = None
-
-    @abstractmethod
-    def load_test_case(self, test_case_asm: str):
-        pass
-
-    @abstractmethod
-    def trace_test_case(self, inputs: List[Input], num_measurements: int = 0) \
-            -> List[CombinedHTrace]:
-        pass
-
-    @abstractmethod
-    def read_base_addresses(self) -> Tuple[int, int]:
-        pass
-
-    def set_coverage(self, coverage):
-        self.coverage = coverage
 
 
 class X86Intel(Executor):
@@ -49,9 +29,8 @@ class X86Intel(Executor):
                              "/sys/x86-executor/enable_mds")
         write_to_pseudo_file(CONF.attack_variant, "/sys/x86-executor/measurement_mode")
 
-    def load_test_case(self, test_case_asm: str):
-        assemble(test_case_asm, 'generated.o')
-        write_to_pseudo_file("generated.o", "/sys/x86-executor/code")
+    def load_test_case(self, test_case: TestCase):
+        write_to_pseudo_file(test_case.to_binary(), "/sys/x86-executor/code")
 
     def trace_test_case(self, inputs: List[Input], num_measurements: int = 0) \
             -> List[CombinedHTrace]:
@@ -65,10 +44,6 @@ class X86Intel(Executor):
 
         if num_measurements == 0:
             num_measurements = CONF.num_measurements
-
-        # set entropy
-        input_mask = pow(2, (CONF.prng_entropy_bits % 33)) - 1
-        write_to_pseudo_file(input_mask, '/sys/x86-executor/input_mask')
 
         # convert the inputs into a byte sequence
         byte_inputs = [i.tobytes() for i in inputs]

@@ -8,26 +8,18 @@ SPDX-License-Identifier: MIT
 from subprocess import run
 import csv
 from config import CONF
-from custom_types import List, HTrace
+from typing import List
 
 
 class NotSupportedException(Exception):
     pass
 
 
-def assemble(infile, outfile):
-    """
-    Assemble the test case into a form understandable by nanoBench
-    """
-    run(f"as {infile} -o {outfile}", shell=True, check=True)
-    run(f"strip --remove-section=.note.gnu.property {outfile}", shell=True, check=True)
-    run(f"objcopy {outfile} -O binary {outfile}", shell=True, check=True)
-
-
 def load_measurement(measurement_file: str) -> List[List]:
     with open(measurement_file, "r") as f:
         reader = csv.DictReader(f)
-        assert 'CACHE_MAP' in reader.fieldnames
+        if not reader.fieldnames or 'CACHE_MAP' not in reader.fieldnames:
+            raise Exception("Error: Hardware Trace was not produced.")
 
         # collect the measured cache state
         measurements = []

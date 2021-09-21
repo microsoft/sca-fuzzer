@@ -5,46 +5,15 @@ Copyright (C) 2021 Oleksii Oleksenko
 Copyright (C) 2020 Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
-from abc import ABC, abstractmethod
+from abc import ABC
 
 import numpy as np
-from unicorn import *
-from unicorn.x86_const import *
+from unicorn import *  # type: ignore
+from unicorn.x86_const import *  # type: ignore
+from typing import List, Tuple
 
+from interfaces import CTrace, Input, TestCase, Model
 from config import CONF
-from custom_types import List, Tuple, CTrace, Input
-from helpers import assemble, pretty_bitmap
-
-POW32 = pow(2, 32)
-
-
-class Model(ABC):
-    coverage_tracker = None
-    CODE_SIZE = 4 * 1024
-    WORKING_MEMORY_SIZE = 1024 * 1024
-    MAIN_REGION_SIZE = 4096
-    ASSIST_REGION_SIZE = 4096
-    EVICT_REGION_SIZE = 8 * 4096
-    OVERFLOW_REGION_SIZE = 4096
-
-    def __init__(self, sandbox_base, code_base):
-        super().__init__()
-        self.code_base: int = code_base
-        self.sandbox_base: int = sandbox_base
-        self.stack_base = sandbox_base + self.MAIN_REGION_SIZE - 8
-        self.overflow_region_values = bytes(self.OVERFLOW_REGION_SIZE)
-
-    @abstractmethod
-    def load_test_case(self, test_case_asm: str) -> None:
-        pass
-
-    @abstractmethod
-    def trace_test_case(self, inputs: List[Input], nesting: int, dbg: bool = False) -> List[CTrace]:
-        pass
-
-    def set_coverage(self, coverage_tracker):
-        self.coverage_tracker = coverage_tracker
-
 
 # =============================================================================
 # Unicorn-based predictors
@@ -174,6 +143,13 @@ class X86UnicornModel(Model):
     Base class for all Unicorn-based models.
     Serves as an adapter between Unicorn and our fuzzer.
     """
+    CODE_SIZE = 4 * 1024
+    WORKING_MEMORY_SIZE = 1024 * 1024
+    MAIN_REGION_SIZE = 4096
+    ASSIST_REGION_SIZE = 4096
+    EVICT_REGION_SIZE = 8 * 4096
+    OVERFLOW_REGION_SIZE = 4096
+
     code: bytes
     emulator: Uc
     in_speculation: bool = False
@@ -185,12 +161,16 @@ class X86UnicornModel(Model):
     nesting: int = 0
     debug: bool = False
 
-    def load_test_case(self, test_case_asm: str) -> None:
-        # create a binary
-        assemble(test_case_asm, 'tmp.o')
+    def __init__(self, sandbox_base, code_base):
+        super().__init__(sandbox_base, code_base)
+        self.code_base: int = code_base
+        self.sandbox_base: int = sandbox_base
+        self.stack_base = sandbox_base + self.MAIN_REGION_SIZE - 8
+        self.overflow_region_values = bytes(self.OVERFLOW_REGION_SIZE)
 
-        # read the binary
-        with open('tmp.o', 'rb') as f:
+    def load_test_case(self, test_case: TestCase) -> None:
+        # create and read a binary
+        with open(test_case.to_binary(), 'rb') as f:
             self.code = f.read()
 
         # initialize emulator in x86-64 mode
@@ -228,9 +208,9 @@ class X86UnicornModel(Model):
             print("Model error [load_test_case]: %s" % e)
             raise e
 
-    def trace_test_case(self, inputs: List[Input], nesting, debug: bool = False) -> List[CTrace]:
+    def trace_test_case(self, inputs: List[Input], nesting, dbg: bool = False) -> List[CTrace]:
         self.nesting = nesting
-        self.debug = debug
+        self.debug = dbg
 
         traces = []
         full_execution_traces = []
@@ -260,8 +240,8 @@ class X86UnicornModel(Model):
             traces.append(self.tracer.get_trace())
             full_execution_traces.append(self.tracer.get_full_execution_trace())
 
-        if self.coverage_tracker:
-            self.coverage_tracker.model_hook(full_execution_traces)
+        if self.coverage:
+            self.coverage.model_hook(full_execution_traces)
 
         return traces
 
@@ -293,7 +273,7 @@ class X86UnicornModel(Model):
         self.emulator.reg_write(UC_X86_REG_R14, self.sandbox_base)
 
     def print_state(self, oneline: bool = False):
-        def compressed(val: str):
+        def compressed(val: int):
             return f"0x{val:<16x}" if val < self.sandbox_base else \
                 f"+0x{val - self.sandbox_base:<15x}"
 
