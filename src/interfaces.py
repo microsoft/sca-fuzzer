@@ -40,6 +40,25 @@ class TestCase:
 
 
 class Input(np.ndarray):
+    """
+    A class representing a single input to a test case.
+    It is a fixed-size array of 64-bit unsigned integers, with a few addition
+    methods for convenience.
+    The array is used to initialize the sandbox memory and the CPU registers.
+    The array layout is:
+
+    +----------------------+
+    |   Register Values    | Conf.input_register_region_size
+    +----------------------+
+    |                      |
+    |                      | Conf.input_assist_region_size
+    | Assist Region Values |
+    +----------------------+
+    |                      |
+    |                      | Conf.input_main_region_size
+    |  Main Region Values  |
+    +----------------------+
+    """
     seed: int = 0
 
     def __new__(cls):
@@ -62,6 +81,22 @@ class Input(np.ndarray):
 
     def __repr__(self):
         return str(self.seed)
+
+
+class InputTaint(np.ndarray):
+    """
+    An array that represents which input elements influence contract traces.
+    The number of elements in InputTaint is identical to Input class.
+    Each element is an boolean value: When it is True, the corresponding element
+    of the input impacts the contract trace.
+    """
+
+    def __new__(cls):
+        size = CONF.input_main_region_size + \
+               CONF.input_assist_region_size + \
+               CONF.input_register_region_size
+        obj = super().__new__(cls, (size,), np.bool, None, 0, None, None)
+        return obj
 
 
 class EquivalenceClass:
@@ -150,6 +185,12 @@ class InputGenerator(ABC):
 
     @abstractmethod
     def generate(self, seed: int, count: int) -> List[Input]:
+        pass
+
+    @abstractmethod
+    def extend_equivalence_classes(self,
+                                   inputs: List[Input],
+                                   taints: List[InputTaint]) -> List[Input]:
         pass
 
     def set_coverage(self, coverage: Coverage):
