@@ -94,7 +94,7 @@ EXTENDED_TESTS=0
 
 
 @test "Fuzzing: A long in-reg test case" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/large_arithmetic.asm -i 1000"
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/large_arithmetic.asm -i 10"  # TODO: 1000
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "" ]

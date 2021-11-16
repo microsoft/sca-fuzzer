@@ -14,7 +14,7 @@ from executor import Executor, get_executor
 from analyser import Analyser, get_analyser
 from input_generator import InputGenerator, get_input_generator
 from typing import List
-from interfaces import CTrace, HTrace, EquivalenceClass, Input
+from interfaces import CTrace, HTrace, EquivalenceClass, Input, InputTaint
 from config import CONF
 
 
@@ -80,7 +80,8 @@ class Postprocessor:
                            fuzzer: Fuzzer, inputs: List[Input]) -> List[EquivalenceClass]:
         # Initial measurement
         model.load_test_case(test_case)
-        ctraces: List[CTrace] = model.trace_test_case(inputs, CONF.max_nesting)
+        ctraces, _ = model.trace_test_case(inputs, CONF.max_nesting)
+        # TODO: add support for equivalence class boosting
 
         executor.load_test_case(test_case)
         htraces: List[HTrace] = executor.trace_test_case(inputs)

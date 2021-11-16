@@ -10,7 +10,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import Optional, List
 
-from interfaces import CTrace, HTrace, Input, EquivalenceClass, TestCase, \
+from interfaces import CTrace, HTrace, Input, InputTaint, EquivalenceClass, TestCase, \
     Generator, InputGenerator, Model, Executor, Analyser, Coverage
 from generator import get_generator
 from input_generator import get_input_generator
@@ -124,7 +124,7 @@ class Fuzzer:
             inputs: List[Input] = input_gen.generate(CONF.input_generator_seed, num_inputs)
 
             # Fuzz the test case
-            violation = self.fuzzing_round(executor, model, analyser, inputs)
+            violation = self.fuzzing_round(executor, model, analyser, input_gen, inputs)
             STAT.test_cases += 1
             coverage.update()
 
@@ -170,18 +170,37 @@ class Fuzzer:
         self.logger.finish()
 
     def fuzzing_round(self, executor: Executor, model: Model, analyser: Analyser,
-                      inputs: List[Input]) -> Optional[EquivalenceClass]:
+                      input_gen: InputGenerator, inputs: List[Input]) -> Optional[EquivalenceClass]:
         self.logger.start_round()
         model.load_test_case(self.test_case)
         executor.load_test_case(self.test_case)
 
-        # Initial measurement
-        htraces: List[HTrace] = executor.trace_test_case(inputs)
-
         # by default, we test without nested misprediction,
         # but retry with nesting upon a violation
         for nesting in [1, CONF.max_nesting]:
-            ctraces: List[CTrace] = model.trace_test_case(inputs, nesting)
+            ctraces: List[CTrace]
+            taints: List[InputTaint]
+            ctraces, taints = model.trace_test_case(inputs, nesting)
+            # ensure that we have many inputs in each input classes
+            if CONF.inputs_per_class > 1:
+                new_inputs: List[Input] = inputs
+                orig_ctraces: List[CTrace] = list(ctraces)  # list - to make a copy instead of ref
+                orig_taints: List[InputTaint] = list(taints)
+                for i in range(CONF.inputs_per_class - 1):
+                    new_inputs = input_gen.extend_equivalence_classes(new_inputs, orig_taints)
+                    # TODO: ignore the comment below. Tainting is so far imperfect,
+                    #  so we do need to retrace the inputs
+                    #
+                    # The dependency tracking ensures that the new inputs generate
+                    # (1) the same traces and (2) the same taints as the original ones
+                    # So, no need to rerun model!
+                    inputs += new_inputs
+                    # taints += orig_taints
+                    # ctraces += orig_ctraces
+            ctraces, _ = model.trace_test_case(inputs, nesting)
+
+            # Hw measurement
+            htraces: List[HTrace] = executor.trace_test_case(inputs)
 
             # for debugging
             if CONF.verbose == 999:

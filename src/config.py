@@ -113,6 +113,7 @@ class ConfCls:
     input_main_region_size: int = 4096 // 8
     input_assist_region_size: int = (4096 - 64) // 8
     input_register_region_size: int = 64 // 8
+    inputs_per_class: int = 3
     # ==============================================================================================
     # Model
     model: str = 'x86-unicorn'
@@ -120,6 +121,7 @@ class ConfCls:
     contract_observation_mode: str = 'ct'
     max_nesting = 5
     max_speculation_window: int = 250
+    dependency_tracking: bool = False
     # ==============================================================================================
     # Executor
     executor: str = 'x86-intel'
@@ -149,6 +151,10 @@ class ConfCls:
     # Output
     verbose: int = 0
     multiline_output: bool = False
+
+    def __init__(self):
+        if not self.dependency_tracking:
+            self.inputs_per_class = 1
 
     def set(self, name, value):
         options = {

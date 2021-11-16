@@ -24,13 +24,14 @@ def check_config():
 
 
 def ensure_reliable_environment():
-    # SMT disabled?
-    if os.path.isfile('/sys/devices/system/cpu/cpu4/online'):
-        print("WARNING: Hyperthreading is enabled! You may have false positives due to noise.")
+    if CONF.executor == "x86-intel":
+        # SMT disabled?
+        if os.path.isfile('/sys/devices/system/cpu/cpu4/online'):
+            print("WARNING: Hyperthreading is enabled! You may have false positives due to noise.")
 
-    # Disable prefetching
-    subprocess.run('sudo modprobe msr', shell=True, check=True)
-    subprocess.run('sudo wrmsr -a 0x1a4 15', shell=True, check=True)
+        # Disable prefetching
+        subprocess.run('sudo modprobe msr', shell=True, check=True)
+        subprocess.run('sudo wrmsr -a 0x1a4 15', shell=True, check=True)
 
 
 def main():

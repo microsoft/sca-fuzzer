@@ -48,8 +48,7 @@ class RandomInputGenerator(InputGenerator):
                     new_input[j] = input_[j]
             new_inputs.append(new_input)
 
-        inputs.extend(new_inputs)
-        return inputs
+        return new_inputs
 
     def _generate_one(self, seed: int) -> Tuple[Input, int]:
         input_ = Input()
