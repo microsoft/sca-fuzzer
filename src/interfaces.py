@@ -74,7 +74,7 @@ class Input(np.ndarray):
         pass
 
     def get_registers(self):
-        return self[-CONF.input_register_region_size:-1]
+        return list(self[-CONF.input_register_region_size:-1])
 
     def __str__(self):
         return str(self.seed)

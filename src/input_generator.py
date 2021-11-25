@@ -56,10 +56,20 @@ class RandomInputGenerator(InputGenerator):
 
         randint = seed
         for i, _ in enumerate(input_):
+            # this weird implementation is a legacy of our old PRNG.
+            # basically, it's a 32-bit PRNG, assigned to 4-byte chucks of memory
+            # TODO: replace it with a more sane implementation after the artifact is done
             randint = ((randint * 2891336453) % POW32 + 54321) % POW32
             masked_rvalue = (randint ^ (randint >> 16)) & self.input_mask
             masked_rvalue = masked_rvalue << 6
-            input_[i] = masked_rvalue
+            input_[i] = masked_rvalue << 32
+
+            randint = ((randint * 2891336453) % POW32 + 54321) % POW32
+            masked_rvalue = (randint ^ (randint >> 16)) & self.input_mask
+            masked_rvalue = masked_rvalue << 6
+            input_[i] += masked_rvalue
+
+        # print(input_.get_registers())
         return input_, randint
 
 
