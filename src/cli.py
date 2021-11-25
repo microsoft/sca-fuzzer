@@ -26,8 +26,10 @@ def check_config():
 def ensure_reliable_environment():
     if CONF.executor == "x86-intel":
         # SMT disabled?
-        if os.path.isfile('/sys/devices/system/cpu/cpu4/online'):
-            print("WARNING: Hyperthreading is enabled! You may have false positives due to noise.")
+        if os.path.isfile('/sys/devices/system/cpu/smt/control'):
+            with open('/sys/devices/system/cpu/smt/control', 'r') as f:
+                if f.readline() == 'on\n':
+                    print("WARNING: Hyperthreading is on! You may experience false positives.")
 
         # Disable prefetching
         subprocess.run('sudo modprobe msr', shell=True, check=True)
