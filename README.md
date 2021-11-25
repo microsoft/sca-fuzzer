@@ -1,7 +1,7 @@
 # Revizor
 
 This is Revizor, a microarchitectural fuzzer.
-It is an rather unconventional fuzzer as, instead of finding bugs in programs, Revizor searches for microarchitectural bugs in CPUs.
+It is a rather unconventional fuzzer as, instead of finding bugs in programs, Revizor searches for microarchitectural bugs in CPUs.
 
 What is a microarchitectural bug?
 In the context of Revizor, a bug is a violation of out expectations about the CPU behaviour.
@@ -29,10 +29,13 @@ So, make sure you're not running these experiments on an important machine.
 0. Requirements:
    * Linux v5.6+ (tested on Linux v5.6.6-300 and v5.6.13-100; there is a good chance it will work on other versions as well, but it's not guaranteed).
    * Linux Kernel Headers
-   * Python 3.7+
    * [Unicorn 1.0.2+](https://www.unicorn-engine.org/docs/)
-   * [PyYAML](https://pyyaml.org/wiki/PyYAMLDocumentation)
-   * For tests: [Bash Automated Testing System](https://bats-core.readthedocs.io/en/latest/index.html)
+   * Python 3.7+
+   * Python packages `pyyaml`, `types-pyyaml`, `numpy`, `iced-x86`:
+```shell
+pip3 install --user pyyaml types-pyyaml numpy iced-x86
+```
+For tests, also [Bash Automated Testing System](https://bats-core.readthedocs.io/en/latest/index.html) and [mypy](https://mypy.readthedocs.io/en/latest/getting_started.html#installing-and-running-mypy)
     
 1. Get dependencies:
 
