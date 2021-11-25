@@ -1,5 +1,0 @@
-contract_observation_mode: ct
-contract_execution_mode:
-  - seq
-
-prng_seed: 756396718358125

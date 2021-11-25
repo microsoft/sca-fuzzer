@@ -1,8 +1,0 @@
-contract_observation_mode: ct
-contract_execution_mode:
-  - seq
-no_priming: true
-enable_ssbp_patch: false
-
-
-prng_seed: 797930760141215
