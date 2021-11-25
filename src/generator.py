@@ -1042,14 +1042,12 @@ class X86SandboxPass(Pass):
 
     def __init__(self):
         super().__init__()
-        if CONF.enable_mds:
-            self.sandbox_address_mask = "0b1" + \
-                                        "1" * (12 - CONF.memory_access_zeroed_bits) + \
-                                        "0" * CONF.memory_access_zeroed_bits
+        if CONF.enable_assist_page:
+            self.sandbox_address_mask = "0b1"
         else:
-            self.sandbox_address_mask = "0b0" + \
-                                        "1" * (12 - CONF.memory_access_zeroed_bits) + \
-                                        "0" * CONF.memory_access_zeroed_bits
+            self.sandbox_address_mask = "0b0"
+        self.sandbox_address_mask += "1" * (12 - CONF.memory_access_zeroed_bits) + \
+                                     "0" * CONF.memory_access_zeroed_bits
 
     def run_on_dag(self, DAG: TestCaseDAG) -> None:
         for func in DAG.functions:
