@@ -16,4 +16,4 @@ contract_execution_mode:
   - seq
 
 enable_ssbp_patch: true
-enable_mds: false
+enable_assist_page: false

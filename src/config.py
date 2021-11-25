@@ -132,7 +132,7 @@ class ConfCls:
     attack_variant: str = 'P+P'
     enable_ssbp_patch: bool = True
     enable_pre_run_flush: bool = True
-    enable_mds: bool = False
+    enable_assist_page: bool = False
     # ==============================================================================================
     # Analyser
     analyser: str = 'equivalence-classes'

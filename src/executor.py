@@ -28,7 +28,7 @@ class X86Intel(Executor):
                              "/sys/x86-executor/enable_ssbp_patch")
         write_to_pseudo_file("1" if CONF.enable_pre_run_flush else "0",
                              "/sys/x86-executor/enable_pre_run_flush")
-        write_to_pseudo_file("1" if CONF.enable_mds else "0",
+        write_to_pseudo_file("1" if CONF.enable_assist_page else "0",
                              "/sys/x86-executor/enable_mds")
         write_to_pseudo_file(CONF.attack_variant, "/sys/x86-executor/measurement_mode")
 

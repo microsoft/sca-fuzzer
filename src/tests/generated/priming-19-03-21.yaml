@@ -4,7 +4,7 @@ contract_execution_mode:
 
 attack_variant: P+P
 enable_ssbp_patch: true
-enable_mds: false
+enable_assist_page: false
 
 prng_entropy_bits: 8
 warmups: 5

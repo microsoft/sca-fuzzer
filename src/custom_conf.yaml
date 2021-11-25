@@ -3,7 +3,7 @@ contract_execution_mode:
   - seq
 
 enable_ssbp_patch: true
-enable_mds: false
+enable_assist_page: false
 
 feedback_driven_generator: false
 combination_length_min: 4

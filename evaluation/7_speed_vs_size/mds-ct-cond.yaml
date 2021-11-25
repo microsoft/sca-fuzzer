@@ -16,4 +16,4 @@ contract_execution_mode:
   - cond
 
 enable_ssbp_patch: false
-enable_mds: true
+enable_assist_page: true
