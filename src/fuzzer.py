@@ -184,7 +184,7 @@ class Fuzzer:
             taints: List[InputTaint]
             ctraces, taints = model.trace_test_case(inputs, nesting)
             # ensure that we have many inputs in each input classes
-            if CONF.inputs_per_class > 1:
+            if CONF.dependency_tracking and CONF.inputs_per_class > 1:
                 new_inputs: List[Input] = inputs
                 orig_ctraces: List[CTrace] = list(ctraces)  # list - to make a copy instead of ref
                 orig_taints: List[InputTaint] = list(taints)
