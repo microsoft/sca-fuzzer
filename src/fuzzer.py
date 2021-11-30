@@ -143,7 +143,7 @@ class Fuzzer:
                         print("\nTimeout expired")
                     break
 
-            if STAT.test_cases % 100 == 0:
+            if STAT.test_cases % 100 == 0 and CONF.verbose >= 2:
                 print(f"\nFUZZER: current duration: "
                       f"{(datetime.today() - start_time).total_seconds()}")
 
@@ -156,7 +156,8 @@ class Fuzzer:
                     CONF.avg_mem_accesses >= pow(2, CONF.prng_entropy_bits):
                 input_ratio *= 1.5
                 CONF.prng_entropy_bits += 1
-                print(f"FUZZER: increasing entropy: {CONF.prng_entropy_bits}")
+                if CONF.verbose >= 2:
+                    print(f"FUZZER: increasing entropy: {CONF.prng_entropy_bits}")
 
             if STAT.effective_eq_classes / STAT.test_cases < 1:
                 input_ratio *= 1.2
@@ -165,7 +166,8 @@ class Fuzzer:
                     num_inputs / CONF.test_case_size < input_ratio:
                 num_inputs = int(input_ratio * CONF.test_case_size) + 1
                 STAT.num_inputs = num_inputs
-                print(f"FUZZER: increasing the number of inputs: {num_inputs}")
+                if CONF.verbose >= 2:
+                    print(f"FUZZER: increasing the number of inputs: {num_inputs}")
 
         self.logger.finish()
 
