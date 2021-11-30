@@ -222,6 +222,7 @@ EXTENDED_TESTS=0
 }
 
 @test "Analyser: Priming" {
+    skip
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/priming.asm -i 100 -c tests/priming.yaml -v"
     echo "$output"
     [ "$status" -eq 0 ]
