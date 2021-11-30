@@ -26,7 +26,7 @@ def check_config():
 def ensure_reliable_environment():
     if CONF.executor == "x86-intel":
         # SMT disabled?
-        if os.path.isfile('/sys/devices/system/cpu/smt/control'):
+        if CONF.verbose > 0 and os.path.isfile('/sys/devices/system/cpu/smt/control'):
             with open('/sys/devices/system/cpu/smt/control', 'r') as f:
                 if f.readline() == 'on\n':
                     print("WARNING: Hyperthreading is on! You may experience false positives.")
