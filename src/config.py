@@ -91,6 +91,7 @@ class ConfCls:
         "REPNE CMPSB", "REPNE CMPSD", "REPNE CMPSW",
         "REPNE MOVSB", "REPNE MOVSD", "REPNE MOVSW",
     ]
+    extended_instruction_blocklist = []
     # x86 executor internally uses R15, R14, RSP, RBP and, thus, they are excluded
     # segment registers are also excluded as we don't support their handling so far
     # same for CR* and DR*
@@ -179,6 +180,10 @@ class ConfCls:
         if options.get(name, '') != '' and value not in options[name]:
             print(f"Error: Unknown value '{value}' of configuration variable '{name}'")
             exit(1)
+
+        # special handling
+        if name == "extended_instruction_blocklist":
+            self.instruction_blocklist.extend(value)
 
         self.__setattr__(name, value)
 
