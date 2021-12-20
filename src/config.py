@@ -91,7 +91,7 @@ class ConfCls:
         "REPNE CMPSB", "REPNE CMPSD", "REPNE CMPSW",
         "REPNE MOVSB", "REPNE MOVSD", "REPNE MOVSW",
     ]
-    extended_instruction_blocklist = []
+    extended_instruction_blocklist: List[str] = []
     # x86 executor internally uses R15, R14, RSP, RBP and, thus, they are excluded
     # segment registers are also excluded as we don't support their handling so far
     # same for CR* and DR*

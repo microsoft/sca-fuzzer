@@ -69,6 +69,11 @@ class RandomInputGenerator(InputGenerator):
             masked_rvalue = masked_rvalue << 6
             input_[i] += masked_rvalue
 
+        # again, to emulate the legacy (and kinda broken) input generator,
+        # initialize only the first 32 bits of registers
+        for i in range(CONF.input_register_region_size):
+            input_[-i - 1] = input_[-i - 1] % POW32
+
         # print(input_.get_registers())
         return input_, randint
 
