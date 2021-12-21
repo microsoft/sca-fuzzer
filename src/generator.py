@@ -597,10 +597,8 @@ class Printer(abc.ABC):
 
 class RegisterSet(abc.ABC):
     register_sizes: Dict[str, int]
-
-    # FIXME: GPR and SIMD decoding have different data structures; should be unified
     registers: Dict[int, List[str]]
-    simd_decoding: Dict[str, List[str]]
+    simd_registers: Dict[int, List[str]]
 
 
 class ConfigurableGenerator(Generator, abc.ABC):
@@ -803,8 +801,8 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         reg_type = spec.values[0]
         if reg_type == 'GPR':
             choices = self.register_set.registers[spec.width]
-        elif reg_type.startswith("SIMD"):
-            choices = self.register_set.simd_decoding[reg_type]
+        elif reg_type == "SIMD":
+            choices = self.register_set.simd_registers[spec.width]
         else:
             choices = spec.values
 
@@ -965,34 +963,17 @@ class X86Registers(RegisterSet):
         "R13": "13", "R13D": "13", "R13W": "13", "R13B": "13",
         "FLAGS": "FLAGS"
     }
-
     registers = {
-        64: ["RAX", "RBX", "RCX", "RDX", "RSI", "RDI", "R8", "R9", "R10", "R11", "R12", "R13"],
-        32: ["EAX", "EBX", "ECX", "EDX", "ESI", "EDI", "R8D", "R9D", "R10D", "R11D", "R12D",
-             "R13D"],
+        8: ["AL", "BL", "CL", "DL", "SIL", "DIL", "R8B", "R9B", "R10B", "R11B", "R12B", "R13B"],
         16: ["AX", "BX", "CX", "DX", "SI", "DI", "R8W", "R9W", "R10W", "R11W", "R12W", "R13W"],
-        8: ["AL", "BL", "CL", "DL", "SIL", "DIL", "R8B", "R9B", "R10B", "R11B", "R12B", "R13B"]
+        32: ["EAX", "EBX", "ECX", "EDX", "ESI", "EDI", "R8D", "R9D", "R10D", "R11D", "R12D", "R13D"],
+        64: ["RAX", "RBX", "RCX", "RDX", "RSI", "RDI", "R8", "R9", "R10", "R11", "R12", "R13"],
     }
-
-    # more sparse encoding for SIMD because the 'width' field is not always reliable
-    simd_decoding = {
-        'SIMD64-8': ['MM0', 'MM1', 'MM2', 'MM3', 'MM4', 'MM5', 'MM6', 'MM7'],
-        'SIMD128-32': ['XMM0', 'XMM1', 'XMM2', 'XMM3', 'XMM4', 'XMM5', 'XMM6', 'XMM7', 'XMM8',
-                       'XMM9', 'XMM10', 'XMM11', 'XMM12', 'XMM13', 'XMM14', 'XMM15', 'XMM16',
-                       'XMM17', 'XMM18', 'XMM19', 'XMM20', 'XMM21', 'XMM22', 'XMM23', 'XMM24',
-                       'XMM25', 'XMM26', 'XMM27', 'XMM28', 'XMM29', 'XMM30', 'XMM31'],
-        'SIMD128-16': ['XMM0', 'XMM1', 'XMM2', 'XMM3', 'XMM4', 'XMM5', 'XMM6', 'XMM7', 'XMM8',
-                       'XMM9', 'XMM10', 'XMM11', 'XMM12', 'XMM13', 'XMM14', 'XMM15'],
-        'SIMD256-32': ['YMM0', 'YMM1', 'YMM2', 'YMM3', 'YMM4', 'YMM5', 'YMM6', 'YMM7', 'YMM8',
-                       'YMM9', 'YMM10', 'YMM11', 'YMM12', 'YMM13', 'YMM14', 'YMM15', 'YMM16',
-                       'YMM17', 'YMM18', 'YMM19', 'YMM20', 'YMM21', 'YMM22', 'YMM23', 'YMM24',
-                       'YMM25', 'YMM26', 'YMM27', 'YMM28', 'YMM29', 'YMM30', 'YMM31'],
-        'SIMD256-16': ['YMM0', 'YMM1', 'YMM2', 'YMM3', 'YMM4', 'YMM5', 'YMM6', 'YMM7', 'YMM8',
-                       'YMM9', 'YMM10', 'YMM11', 'YMM12', 'YMM13', 'YMM14', 'YMM15'],
-        'SIMD512-32': ['ZMM0', 'ZMM1', 'ZMM2', 'ZMM3', 'ZMM4', 'ZMM5', 'ZMM6', 'ZMM7', 'ZMM8',
-                       'ZMM9', 'ZMM10', 'ZMM11', 'ZMM12', 'ZMM13', 'ZMM14', 'ZMM15', 'ZMM16',
-                       'ZMM17', 'ZMM18', 'ZMM19', 'ZMM20', 'ZMM21', 'ZMM22', 'ZMM23', 'ZMM24',
-                       'ZMM25', 'ZMM26', 'ZMM27', 'ZMM28', 'ZMM29', 'ZMM30', 'ZMM31'],
+    simd_registers = {
+        64: [f"MM{i}" for i in range(0, 8)],
+        128: [f"XMM{i}" for i in range(0, 32)],
+        256: [f"YMM{i}" for i in range(0, 32)],
+        512: [f"ZMM{i}" for i in range(0, 32)],
     }
 
     def __init__(self):
