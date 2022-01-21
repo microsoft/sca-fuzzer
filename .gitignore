@@ -1,4 +1,5 @@
 cmake-build-*/
+build/
 .idea/
 .lsync*
 venv/
@@ -9,3 +10,4 @@ tmp.pdf
 src/min.asm
 src/tmp.asm
 experiments/
+*.code-workspace

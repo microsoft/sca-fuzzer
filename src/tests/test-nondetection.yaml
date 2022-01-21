@@ -1,0 +1,25 @@
+supported_categories:
+  - NOP
+  - BINARY
+  - BITBYTE
+  - COND_BR
+  - CMOV
+  - CONVERT
+  - DATAXFER
+  - FLAGOP
+  - SETCC
+  - LOGICAL
+  - POP
+  - PUSH
+contract_observation_mode: ct
+contract_execution_mode:
+  - cond
+
+test_case_size: 16
+min_bb_per_function: 5
+max_bb_per_function: 5
+avg_mem_accesses: 4
+prng_entropy_bits: 3
+
+enable_ssbp_patch: true
+enable_assist_page: false
