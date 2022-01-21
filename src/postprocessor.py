@@ -7,14 +7,15 @@ Copyright (C) 2021 Oleksii Oleksenko
 Copyright (C) 2020 Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
-from subprocess import run, PIPE
+from subprocess import run
 from fuzzer import Fuzzer
 from model import Model, get_model
 from executor import Executor, get_executor
 from analyser import Analyser, get_analyser
 from input_generator import InputGenerator, get_input_generator
+from coverage import get_coverage, Coverage
 from typing import List
-from interfaces import CTrace, HTrace, EquivalenceClass, Input, InputTaint
+from interfaces import HTrace, EquivalenceClass, Input, TestCase
 from config import CONF
 
 
@@ -29,13 +30,20 @@ class Postprocessor:
         input_gen: InputGenerator = get_input_generator()
         analyser: Analyser = get_analyser()
 
+        # connect them with coverage
+        coverage: Coverage = get_coverage()
+        executor.set_coverage(coverage)
+        model.set_coverage(coverage)
+        input_gen.set_coverage(coverage)
+        analyser.set_coverage(coverage)
+
         # Prepare initial inputs
         inputs: List[Input] = input_gen.generate(CONF.input_generator_seed, num_inputs)
 
         # Check if we can reproduce a violation with the given configuration
         print("Trying to reproduce...")
 
-        violations: List[EquivalenceClass] = self.get_all_violations(test_case, model, executor,
+        violations: List[EquivalenceClass] = self.get_all_violations(TestCase(test_case), model, executor,
                                                                      analyser, fuzzer, inputs)
         if not violations:
             print("Could not reproduce the violation. Exiting...")
@@ -51,7 +59,7 @@ class Postprocessor:
                 min_inputs.extend(primer)
 
         # Make sure these inputs indeed reproduce
-        violations = self.get_all_violations(test_case, model, executor, analyser, fuzzer,
+        violations = self.get_all_violations(TestCase(test_case), model, executor, analyser, fuzzer,
                                              min_inputs)
         if not violations or len(min_inputs) > len(inputs):
             print("Failed to build a minimal input sequence. Falling back to using all inputs...")
@@ -141,7 +149,7 @@ class Postprocessor:
                 f.truncate()
 
             # Run and check if the vuln. is still there
-            violations = self.get_all_violations(minimised, model, executor, analyser, fuzzer,
+            violations = self.get_all_violations(TestCase(minimised), model, executor, analyser, fuzzer,
                                                  inputs)
             if violations:
                 print(".", end="", flush=True)
@@ -174,7 +182,7 @@ class Postprocessor:
                 f.truncate()
 
             # Run and check if the vuln. is still there
-            violations = self.get_all_violations(minimised, model, executor, analyser, fuzzer,
+            violations = self.get_all_violations(TestCase(minimised), model, executor, analyser, fuzzer,
                                                  inputs)
             if violations:
                 print(".", end="", flush=True)
@@ -220,7 +228,7 @@ class Postprocessor:
                     f.truncate()
 
                 # Run and check if the vuln. is still there
-                violations = self.get_all_violations(minimised, model, executor, analyser, fuzzer,
+                violations = self.get_all_violations(TestCase(minimised), model, executor, analyser, fuzzer,
                                                      inputs)
                 if violations:
                     print(".", end="", flush=True)
