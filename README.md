@@ -15,12 +15,12 @@ See our [Technical Report](https://arxiv.org/abs/2105.06872) for details.
 
 # Getting Started
 
-## Requirements & Dependencies
-
 **Warning**: Revizor executes randomly generated code in kernel space.
 As you can imagine, things could go wrong.
 We did our best to avoid it and to make Revizor stable, but still, no software is perfect.
 Make sure you're not running these experiments on an important machine.
+
+## Requirements & Dependencies
 
 1. Hardware Requirements
 

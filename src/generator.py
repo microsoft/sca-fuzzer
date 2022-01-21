@@ -771,26 +771,15 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         return func
 
     def generate_instruction(self, spec: InstructionSpec):
-        # fill up with random operand, following the spec
+        # fill up with random operands, following the spec
         inst = Instruction(spec.name)
+
+        # generate explicit operands
         for operand_spec in spec.operands:
-            # generate an operand
             operand = self.generate_operand(operand_spec, inst)
-
-            # FIXME: dirty hack + x86 specific
-            if inst.name in ["DIV", "REX DIV"]:
-                if operand.value in ["RDX", "RAX"]:
-                    operand.value = "RBX"
-                elif operand.value == "EDX":
-                    operand.value = "EBX"
-                elif operand.value == "DX":
-                    operand.value = "BX"
-                elif operand.value in ["DH", "DL"]:
-                    operand.value = "BL"
-
             inst.operands.append(operand)
 
-        # copy the implicit operands
+        # generate implicit operands
         for operand_spec in spec.implicit_operands:
             operand = self.generate_operand(operand_spec, inst)
             inst.implicit_operands.append(operand)
@@ -1012,7 +1001,8 @@ class X86LFENCEPass(Pass):
             for bb in func:
                 insertion_points = []
                 for instr in bb:
-                    insertion_points.append(instr)  # make a copy to avoid infinite insertions
+                    # make a copy to avoid infinite insertions
+                    insertion_points.append(instr)
 
                 for instr in insertion_points:
                     bb.insert_after(instr, Instruction("LFENCE", True))
@@ -1100,36 +1090,59 @@ class X86SandboxPass(Pass):
         # print(X86Printer().instruction_to_str(instr))
         raise Exception("Attempt to sandbox an instruction without memory operands")
 
-    @staticmethod
-    def sandbox_division(inst: Instruction, parent: BasicBlock):
+    def sandbox_division(self, inst: Instruction, parent: BasicBlock):
         """
-        1. Ensure that the divisor is never zero by ORing it with a random value.
-        OR - because it guarantees that the result is not zero.
-        Random value - to test various modes of operations in DIV.
-        2. Truncate the source register pair RDX:RAX to prevent overflows in division.
+        We do not support handling of division faults so far, so we have to prevent them.
+        Specifically, we need to prevent two types of faults:
+        - division by zero
+        - division overflow (i.e., quotient is larger than the destination register)
+        For this, we ensure that the *D register (upper half of the dividend) is always
+        less than the divisor with a bit trick like this ( D & divisor >> 1).
+
+        The first corner case when it won't work is when the divisor is D. This case 
+        is impossible to resolve, as far as I can tell. We just give up.
+
+        The second corner case is 8-bit division, when the divisor is the AX register alone.
+        Here the instrumentation become too complicated, and we simply set AX to 1.
         """
         divisor = inst.operands[0]
 
-        if divisor.value in ["RDX", "EDX", "DX", "DH", "DL", "RAX"]:
-            # sandboxing is too complex, give up
+        # make sure the divisor is not zero
+        instrumentation = Instruction("OR", True).\
+            add_op(divisor).\
+            add_op(ImmediateOperand("1", 8))
+        parent.insert_before(inst, instrumentation)
+
+        # dividend in AX?
+        if divisor.width == 8:
+            if "RAX" not in divisor.value:
+                instrumentation = Instruction("MOV", True).\
+                    add_op(RegisterOperand("AX", 16, False, True)).\
+                    add_op(ImmediateOperand("1", 16))
+                parent.insert_before(inst, instrumentation)
+                return
+            else:
+                # AX is both the dividend and the offset in memory.
+                # Too complex (impossible?). Giving up
+                parent.delete(inst)
+                return
+
+        # divisor in D or in memory with RDX offset? Impossible case, give up
+        if divisor.value in ["RDX", "EDX", "DX", "DH", "DL"] or "RDX" in divisor.value:
             parent.delete(inst)
             return
 
-        zero_rdx = Instruction("MOV", True) \
-            .add_op(RegisterOperand("RDX", 64, False, True)) \
-            .add_op(ImmediateOperand('0', 32))
-        parent.insert_before(inst, zero_rdx)
-
-        divisor_mask = ImmediateOperand(
-            hex(random.randint(1, 255)),
-            divisor.width if divisor.width <= 32 else 32)
-        apply_divisor_mask = Instruction("OR", True).add_op(divisor).add_op(divisor_mask)
-        parent.insert_before(inst, apply_divisor_mask)
-
-        apply_ax_mask = Instruction("AND", True) \
-            .add_op(RegisterOperand("RAX", 64, True, True)) \
-            .add_op(ImmediateOperand('0xff', 8))
-        parent.insert_before(inst, apply_ax_mask)
+        # Normal case
+        # D = (D & divisor) >> 1
+        d_register = {64: "RDX", 32: "EDX", 16: "DX"}[divisor.width]
+        instrumentation = Instruction("AND", True).\
+            add_op(RegisterOperand(d_register, divisor.width, False, True)).\
+            add_op(divisor)
+        parent.insert_before(inst, instrumentation)
+        instrumentation = Instruction("SHR", True).\
+            add_op(RegisterOperand(d_register, divisor.width, False, True)).\
+            add_op(ImmediateOperand("1", 8))
+        parent.insert_before(inst, instrumentation)
 
     def sandbox_bit_test(self, inst: Instruction, parent: BasicBlock):
         """
