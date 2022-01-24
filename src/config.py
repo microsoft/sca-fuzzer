@@ -122,7 +122,7 @@ class ConfCls:
     contract_observation_mode: str = 'ct'
     max_nesting = 5
     max_speculation_window: int = 250
-    dependency_tracking: bool = False
+    dependency_tracking: bool = True
     # ==============================================================================================
     # Executor
     executor: str = 'x86-intel'
