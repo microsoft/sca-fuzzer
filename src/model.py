@@ -183,6 +183,8 @@ class X86UnicornModel(Model):
         super().__init__(sandbox_base, code_base)
         self.code_base: int = code_base
         self.sandbox_base: int = sandbox_base
+        self.lower_overflow_base = self.sandbox_base - self.OVERFLOW_REGION_SIZE
+        self.upper_overflow_base = self.sandbox_base + self.MAIN_REGION_SIZE + self.ASSIST_REGION_SIZE
         self.stack_base = sandbox_base + self.MAIN_REGION_SIZE - 8
         self.overflow_region_values = bytes(self.OVERFLOW_REGION_SIZE)
 
@@ -369,10 +371,8 @@ class X86UnicornModel(Model):
 
         # Set memory:
         # - initialize overflows with zeroes
-        lower_overflow_base = self.sandbox_base - self.OVERFLOW_REGION_SIZE
-        upper_overflow_base = self.sandbox_base + self.MAIN_REGION_SIZE + self.ASSIST_REGION_SIZE
-        self.emulator.mem_write(lower_overflow_base, self.overflow_region_values)
-        self.emulator.mem_write(upper_overflow_base, self.overflow_region_values)
+        self.emulator.mem_write(self.lower_overflow_base, self.overflow_region_values)
+        self.emulator.mem_write(self.upper_overflow_base, self.overflow_region_values)
 
         # - sandbox pages
         self.emulator.mem_write(self.sandbox_base, input_.tobytes())
@@ -391,8 +391,14 @@ class X86UnicornModel(Model):
 
     def print_state(self, oneline: bool = False):
         def compressed(val: int):
-            return f"0x{val:<16x}" if val < self.sandbox_base else \
-                f"+0x{val - self.sandbox_base:<15x}"
+            if val < self.lower_overflow_base or \
+                val > self.upper_overflow_base + self.OVERFLOW_REGION_SIZE:
+                return f"0x{val:<16x}"
+            elif val >= self.sandbox_base:
+                return f"+0x{val - self.sandbox_base:<15x}"
+            else:
+                return f"-0x{self.sandbox_base - val:<15x}"
+
 
         emulator = self.emulator
         rax = compressed(emulator.reg_read(UC_X86_REG_RAX))

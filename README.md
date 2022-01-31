@@ -20,6 +20,8 @@ As you can imagine, things could go wrong.
 We did our best to avoid it and to make Revizor stable, but still, no software is perfect.
 Make sure you're not running these experiments on an important machine.
 
+**Note:** If you find missing or confusing explanations, or a bug in Revizor, don't hesitate to open an issue.
+
 ## Requirements & Dependencies
 
 1. Hardware Requirements
@@ -54,8 +56,6 @@ If you do not disable hyperthreading, you will see a warning every time you invo
 Optionally (and it *really* is optional), you can boot the kernel on a single core by adding `-maxcpus=1` to the boot parameters ([how to add a boot parameter](https://wiki.ubuntu.com/Kernel/KernelBootParameters)). 
 
 In addition, you might want to stop any other actively-running software on the tested machine. We never encountered issues with it, but it might be useful.
-
-**Note:** If you find missing or confusing explanations, or a bug in Revizor, don't hesitate to open an issue.
 
 ## Installation
 
