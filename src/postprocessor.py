@@ -15,7 +15,7 @@ from analyser import Analyser, get_analyser
 from input_generator import InputGenerator, get_input_generator
 from coverage import get_coverage, Coverage
 from typing import List
-from interfaces import HTrace, EquivalenceClass, Input, TestCase
+from interfaces import HTrace, EquivalenceClass, Input, InputTaint, TestCase
 from config import CONF
 
 
@@ -39,6 +39,18 @@ class Postprocessor:
 
         # Prepare initial inputs
         inputs: List[Input] = input_gen.generate(CONF.input_generator_seed, num_inputs)
+
+        # ensure that we have many inputs in each input classes
+        model.load_test_case(TestCase(test_case))
+        taints: List[InputTaint]
+        _, taints = model.trace_test_case(inputs, CONF.max_nesting)
+        if CONF.dependency_tracking and CONF.inputs_per_class > 1:
+            new_inputs: List[Input] = inputs
+            orig_taints: List[InputTaint] = list(taints)
+            for i in range(CONF.inputs_per_class - 1):
+                new_inputs = input_gen.extend_equivalence_classes(new_inputs, orig_taints)
+                inputs += new_inputs
+
 
         # Check if we can reproduce a violation with the given configuration
         print("Trying to reproduce...")
@@ -89,7 +101,6 @@ class Postprocessor:
         # Initial measurement
         model.load_test_case(test_case)
         ctraces, _ = model.trace_test_case(inputs, CONF.max_nesting)
-        # TODO: add support for equivalence class boosting
 
         executor.load_test_case(test_case)
         htraces: List[HTrace] = executor.trace_test_case(inputs)
