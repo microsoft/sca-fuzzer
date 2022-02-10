@@ -43,7 +43,7 @@ class RandomInputGenerator(InputGenerator):
         for i, input_ in enumerate(inputs):
             taint = taints[i]
             new_input, seed = self._generate_one(seed)
-            for j, _ in enumerate(input_):
+            for j in range(input_.data_size):
                 if taint[j]:
                     new_input[j] = input_[j]
             new_inputs.append(new_input)
@@ -55,7 +55,7 @@ class RandomInputGenerator(InputGenerator):
         input_.seed = seed
 
         randint = seed
-        for i, _ in enumerate(input_):
+        for i in range(input_.data_size):
             # this weird implementation is a legacy of our old PRNG.
             # basically, it's a 32-bit PRNG, assigned to 4-byte chucks of memory
             # TODO: replace it with a more sane implementation after the artifact is done

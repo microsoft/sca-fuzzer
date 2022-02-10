@@ -16,7 +16,7 @@ EXTENDED_TESTS=0
     bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/evict_second_line.asm -c tests/ct-seq-pp.yaml -i 3"
     run cat measurement.txt
     [ "$status" -eq 0 ]
-    [[ "$output" == *"2305843009213693953"* ]]
+    [[ "$output" == *"11529215046068469760"* ]]
 }
 
 @test "Executor: Hardware tracing with E+R" {

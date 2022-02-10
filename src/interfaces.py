@@ -60,12 +60,15 @@ class Input(np.ndarray):
     +----------------------+
     """
     seed: int = 0
+    data_size: int = 0
 
     def __new__(cls):
-        size = CONF.input_main_region_size + \
+        data_size = CONF.input_main_region_size + \
                CONF.input_assist_region_size + \
                CONF.input_register_region_size
-        obj = super().__new__(cls, (size,), np.uint64, None, 0, None, None)
+        aligned_size = data_size + (4096 // 8 - CONF.input_register_region_size)
+        obj = super().__new__(cls, (aligned_size,), np.uint64, None, 0, None, None)
+        obj.data_size = data_size
         return obj
 
     def __array_finalize__(self, obj):
@@ -74,7 +77,7 @@ class Input(np.ndarray):
         pass
 
     def get_registers(self):
-        return list(self[-CONF.input_register_region_size:-1])
+        return list(self[self.data_size-CONF.input_register_region_size:self.data_size-1])
 
     def __str__(self):
         return str(self.seed)
