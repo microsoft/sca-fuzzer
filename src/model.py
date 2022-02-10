@@ -122,7 +122,7 @@ class MemoryTracer(X86UnicornTracer):
 class CTTracer(PCTracer):
     def observe_mem_access(self, access, address, size, value, model):
         self.add_mem_address_to_trace(address, model)
-        super(CTTracer, self).observe_instruction(address, size, model)
+        super(CTTracer, self).observe_mem_access(access, address, size, value, model)
 
 
 class CTNonSpecStoreTracer(PCTracer):
