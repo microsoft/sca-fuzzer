@@ -9,6 +9,7 @@ from typing import List
 
 
 class ConfCls:
+    config_path: str = ""
     # ==============================================================================================
     # Fuzzer
     priming_retries: int = 6
@@ -112,7 +113,7 @@ class ConfCls:
     prng_entropy_bits: int = 3
     randomized_mem_alignment: bool = True
     input_main_region_size: int = 4096 // 8
-    input_assist_region_size: int = (4096 - 64) // 8
+    input_assist_region_size: int = 4096 // 8
     input_register_region_size: int = 64 // 8
     inputs_per_class: int = 3
     # ==============================================================================================
@@ -139,7 +140,6 @@ class ConfCls:
     analyser: str = 'equivalence-classes'
     max_subsets = 100
     ignore_first_cache_line = False
-    dominant_traces = True
     compare_only_same_size = True
     ignore_single_entry_classes = True
     # ==============================================================================================

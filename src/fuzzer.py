@@ -346,6 +346,9 @@ class Fuzzer:
         Path(self.work_dir).mkdir(exist_ok=True)
         shutil.copy2(self.test_case.asm_path, self.work_dir + "/" + name)
 
+        if not Path(self.work_dir + "/config.yaml").exists:
+            shutil.copy2(CONF.config_path, self.work_dir + "/config.yaml")
+
     @staticmethod
     def check_multiprimer(executor: Executor, inputs: List[Input], primer_size: int,
                           expected_htrace: HTrace, retries: int) -> bool:

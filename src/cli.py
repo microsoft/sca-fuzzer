@@ -126,6 +126,7 @@ def main():
     if getattr(args, 'verbose', 0):
         CONF.set('verbose', 1)
     if args.config:
+        CONF.config_path = args.config
         with open(args.config, "r") as f:
             config_update: Dict = yaml.safe_load(f)
         for var, value in config_update.items():
