@@ -39,10 +39,6 @@ class Logger:
         self.start_time = start_time
         if CONF.verbose:
             print(start_time.strftime('Starting at %H:%M:%S'))
-            print("Abbreviations: \n"
-                  " P-progress ; EC-effective input classes; EI-effective inputs; CO-coverage\n"
-                  " Pr-test cases required priming ; B-broken measurement ;"
-                  " V-violations\n")
 
     def start_round(self):
         if CONF.verbose:

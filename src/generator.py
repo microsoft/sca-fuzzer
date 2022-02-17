@@ -617,6 +617,8 @@ class ConfigurableGenerator(Generator, abc.ABC):
         instruction_set.init_from_file(instruction_set_spec, CONF.supported_categories)
         instruction_set.reduce()
         self.instruction_set = instruction_set
+        if CONF.test_case_generator_seed:
+            random.seed(CONF.test_case_generator_seed)
 
     def reset_generator(self):
         pass
