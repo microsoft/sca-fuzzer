@@ -10,10 +10,13 @@ from collections import defaultdict
 from itertools import combinations
 from typing import Tuple, Dict, Set, List
 
-from generator import TestCaseDAG, Instruction, X86Registers, OT, InstructionSet
-from interfaces import Coverage, EquivalenceClass, TestCase
+from instruction_set import OT, InstructionSet
+from generator import Instruction, X86Registers
+from interfaces import Coverage, EquivalenceClass, TestCase, Executor, Model, Analyser
+from helpers import run
+
 from config import CONF
-from helpers import *
+from service import STAT
 
 
 # ==================================================================================================
@@ -74,7 +77,8 @@ class PatternInstance:
         self.dependency_type = type_
 
     def __str__(self):
-        return f"[{self.covered}] {self.instructions[0]} -> {self.dependency_type} -> {self.instructions[1]} at " \
+        return f"[{self.covered}] {self.instructions[0]} -> "\
+               f"{self.dependency_type} -> {self.instructions[1]} at " \
                f"[{self.positions[0]}, {hex(self.addresses[0])}], " \
                f"[{self.positions[1]}, {hex(self.addresses[1])}]"
 
@@ -90,8 +94,12 @@ class PatternCoverage(Coverage):
     previous_max_combinations: int = 0
     instruction_set_processed: bool = False
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self,
+                 instruction_set: InstructionSet,
+                 executor: Executor,
+                 model: Model,
+                 analyser: Analyser):
+        super().__init__(instruction_set, executor, model, analyser)
         self.current_patterns = []
         self.coverage = defaultdict(set)
 
@@ -127,7 +135,7 @@ class PatternCoverage(Coverage):
             self.process_instruction_set(feedback['instruction_set'])
             self.instruction_set_processed = True
 
-        dag: TestCaseDAG = feedback['DAG']
+        dag: TestCase = feedback['DAG']
 
         # collect instruction positions
         counter = 2  # account for the test case prologue
@@ -366,11 +374,14 @@ class PatternCoverage(Coverage):
         return pow(n, r)
 
 
-def get_coverage() -> Coverage:
+def get_coverage(instruction_set: InstructionSet,
+                 executor: Executor,
+                 model: Model,
+                 analyser: Analyser) -> Coverage:
     if CONF.coverage_type == 'dependencies':
-        return PatternCoverage()
+        return PatternCoverage(instruction_set, executor, model, analyser)
     elif CONF.coverage_type == 'none':
-        return NoCoverage()
+        return NoCoverage(instruction_set, executor, model, analyser)
     else:
         print("Error: unknown value of `coverage_type` configuration option")
         exit(1)

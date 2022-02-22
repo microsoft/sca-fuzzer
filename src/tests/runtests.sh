@@ -6,7 +6,7 @@ echo ""
 echo "===== Type Checking with mypy ====="
 echo ""
 cd $SCRIPT_DIR/.. || exit
-python3 -m mypy cli.py
+python3 -m mypy cli.py --ignore-missing-imports 
 cd - > /dev/null || exit
 
 echo ""

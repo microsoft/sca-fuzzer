@@ -63,7 +63,7 @@ class X86Intel(Executor):
                 print("Failure loading inputs!")
                 raise Exception()
 
-        traces: List[List] = [[] for _ in inputs]
+        traces: List[List[HTrace]] = [[] for _ in inputs]
         pfc_readings: List[List] = [[[], [], []] for _ in inputs]
         for _ in range(num_measurements):
             # measure
@@ -78,7 +78,7 @@ class X86Intel(Executor):
                     raise Exception("Error: Hardware Trace was not produced.")
 
                 for i, row in enumerate(reader):
-                    trace = int(row['CACHE_MAP'])
+                    trace: HTrace = int(row['CACHE_MAP'])
                     if CONF.ignore_first_cache_line:
                         trace &= 9223372036854775807
                     traces[i].append(trace)

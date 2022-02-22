@@ -8,8 +8,13 @@ SPDX-License-Identifier: MIT
 from abc import ABC
 
 import numpy as np
-from unicorn import *  # type: ignore
-from unicorn.x86_const import *  # type: ignore
+import unicorn as uni
+from unicorn import Uc, UcError, UC_MEM_WRITE
+from unicorn.x86_const import UC_X86_REG_RSP, UC_X86_REG_RBP, \
+    UC_X86_REG_RIP, \
+    UC_X86_REG_EFLAGS, UC_X86_REG_RAX, UC_X86_REG_RBX, UC_X86_REG_RCX, UC_X86_REG_RDX, \
+    UC_X86_REG_RSI, UC_X86_REG_RDI, UC_X86_REG_R8, UC_X86_REG_R9, UC_X86_REG_R10, UC_X86_REG_R11, \
+    UC_X86_REG_R12, UC_X86_REG_R13, UC_X86_REG_R14, UC_X86_REG_R15
 from typing import List, Tuple, Dict, Optional
 
 from interfaces import CTrace, Input, TestCase, Model, InputTaint
@@ -63,7 +68,7 @@ class X86UnicornTracer(ABC):
         if not model.in_speculation:
             self.full_execution_trace.append((False, address - model.sandbox_base))
             if model.debug:
-                if access == UC_MEM_READ:
+                if access == uni.UC_MEM_READ:
                     val = int.from_bytes(model.emulator.mem_read(address, size), byteorder='little')
                     print(f"  > read: +0x{address - model.sandbox_base:x} = 0x{val:x}")
                 else:
@@ -128,7 +133,7 @@ class CTTracer(PCTracer):
 class CTNonSpecStoreTracer(PCTracer):
     def observe_mem_access(self, access, address, size, value, model):
         # trace all non-spec mem accesses and speculative loads
-        if not model.in_speculation or access == UC_MEM_READ:
+        if not model.in_speculation or access == uni.UC_MEM_READ:
             self.add_mem_address_to_trace(address, model)
         super(CTNonSpecStoreTracer, self).observe_mem_access(access, address, size, value, model)
 
@@ -147,7 +152,7 @@ class CTRTracer(CTTracer):
 
 class ArchTracer(CTRTracer):
     def observe_mem_access(self, access, address, size, value, model):
-        if access == UC_MEM_READ:
+        if access == uni.UC_MEM_READ:
             val = int.from_bytes(model.emulator.mem_read(address, size), byteorder='little')
             self.trace.append(val)
             if model.dependency_tracker is not None:
@@ -184,7 +189,8 @@ class X86UnicornModel(Model):
         self.code_base: int = code_base
         self.sandbox_base: int = sandbox_base
         self.lower_overflow_base = self.sandbox_base - self.OVERFLOW_REGION_SIZE
-        self.upper_overflow_base = self.sandbox_base + self.MAIN_REGION_SIZE + self.ASSIST_REGION_SIZE
+        self.upper_overflow_base = \
+            self.sandbox_base + self.MAIN_REGION_SIZE + self.ASSIST_REGION_SIZE
         self.stack_base = sandbox_base + self.MAIN_REGION_SIZE - 8
         self.overflow_region_values = bytes(self.OVERFLOW_REGION_SIZE)
 
@@ -194,7 +200,7 @@ class X86UnicornModel(Model):
             self.code = f.read()
 
         # initialize emulator in x86-64 mode
-        emulator = Uc(UC_ARCH_X86, UC_MODE_64)
+        emulator = Uc(uni.UC_ARCH_X86, uni.UC_MODE_64)
 
         try:
             # allocate memory
@@ -219,8 +225,9 @@ class X86UnicornModel(Model):
             emulator.reg_write(UC_X86_REG_R13, 0x0)
             emulator.reg_write(UC_X86_REG_R15, 0x0)
 
-            emulator.hook_add(UC_HOOK_MEM_READ | UC_HOOK_MEM_WRITE, self.trace_mem_access, self)
-            emulator.hook_add(UC_HOOK_CODE, self.trace_instruction, self)
+            emulator.hook_add(uni.UC_HOOK_MEM_READ | uni.UC_HOOK_MEM_WRITE,
+                              self.trace_mem_access, self)
+            emulator.hook_add(uni.UC_HOOK_CODE, self.trace_instruction, self)
 
             self.emulator = emulator
 
@@ -244,7 +251,7 @@ class X86UnicornModel(Model):
                 if self.dependency_tracker is not None:
                     self.dependency_tracker.reset()
                 self.emulator.emu_start(self.code_base, self.code_base + len(self.code),
-                                        timeout=10 * UC_SECOND_SCALE)
+                                        timeout=10 * uni.UC_SECOND_SCALE)
             except UcError as e:
                 if not self.in_speculation:
                     self.print_state()
@@ -257,7 +264,7 @@ class X86UnicornModel(Model):
             while self.in_speculation:
                 try:
                     self.rollback()
-                except UcError:
+                except uni.UcError:
                     continue
 
             # store the results
@@ -343,8 +350,9 @@ class X86UnicornModel(Model):
                 pos = (d - self.sandbox_base) // 8
             elif type(d) is str:
                 # flag register
-                registers = [UC_X86_REG_RAX, UC_X86_REG_RBX, UC_X86_REG_RCX, UC_X86_REG_RDX,
-                             UC_X86_REG_RSI, UC_X86_REG_RDI, UC_X86_REG_EFLAGS]
+                registers = [UC_X86_REG_RAX, UC_X86_REG_RBX, UC_X86_REG_RCX,
+                             UC_X86_REG_RDX, UC_X86_REG_RSI, UC_X86_REG_RDI,
+                             UC_X86_REG_EFLAGS]
                 reg = get_register(d)
                 if reg in registers:
                     pos = CONF.input_main_region_size + \
@@ -378,11 +386,12 @@ class X86UnicornModel(Model):
         self.emulator.mem_write(self.sandbox_base, input_.tobytes())
 
         # Set values in registers
-        registers = [UC_X86_REG_RAX, UC_X86_REG_RBX, UC_X86_REG_RCX, UC_X86_REG_RDX,
-                     UC_X86_REG_RSI, UC_X86_REG_RDI, UC_X86_REG_EFLAGS]
+        registers = [UC_X86_REG_RAX, UC_X86_REG_RBX, UC_X86_REG_RCX,
+                     UC_X86_REG_RDX, UC_X86_REG_RSI, UC_X86_REG_RDI,
+                     UC_X86_REG_EFLAGS]
         for i, value in enumerate(input_.get_registers()):
             if registers[i] == UC_X86_REG_EFLAGS:
-                value = (value & np.uint64(2263)) | np.uint64(2)
+                value = (value & np.uint64(2263)) | np.uint64(2)  # type: ignore
             self.emulator.reg_write(registers[i], value)
 
         self.emulator.reg_write(UC_X86_REG_RSP, self.stack_base)
@@ -392,13 +401,12 @@ class X86UnicornModel(Model):
     def print_state(self, oneline: bool = False):
         def compressed(val: int):
             if val < self.lower_overflow_base or \
-                val > self.upper_overflow_base + self.OVERFLOW_REGION_SIZE:
+                 val > self.upper_overflow_base + self.OVERFLOW_REGION_SIZE:
                 return f"0x{val:<16x}"
             elif val >= self.sandbox_base:
                 return f"+0x{val - self.sandbox_base:<15x}"
             else:
                 return f"-0x{self.sandbox_base - val:<15x}"
-
 
         emulator = self.emulator
         rax = compressed(emulator.reg_read(UC_X86_REG_RAX))
@@ -557,7 +565,7 @@ class X86UnicornSpec(X86UnicornModel):
 
         # restart without misprediction
         self.emulator.emu_start(next_instr, self.code_base + len(self.code),
-                                timeout=10 * UC_SECOND_SCALE)
+                                timeout=10 * uni.UC_SECOND_SCALE)
 
     def reset_model(self):
         self.latest_rollback_address = 0

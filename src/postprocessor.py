@@ -13,7 +13,6 @@ from model import Model, get_model
 from executor import Executor, get_executor
 from analyser import Analyser, get_analyser
 from input_generator import InputGenerator, get_input_generator
-from coverage import get_coverage, Coverage
 from typing import List
 from interfaces import HTrace, EquivalenceClass, Input, InputTaint, TestCase
 from config import CONF
@@ -30,13 +29,6 @@ class Postprocessor:
         input_gen: InputGenerator = get_input_generator()
         analyser: Analyser = get_analyser()
 
-        # connect them with coverage
-        coverage: Coverage = get_coverage()
-        executor.set_coverage(coverage)
-        model.set_coverage(coverage)
-        input_gen.set_coverage(coverage)
-        analyser.set_coverage(coverage)
-
         # Prepare initial inputs
         inputs: List[Input] = input_gen.generate(CONF.input_generator_seed, num_inputs)
 
@@ -51,12 +43,12 @@ class Postprocessor:
                 new_inputs = input_gen.extend_equivalence_classes(new_inputs, orig_taints)
                 inputs += new_inputs
 
-
         # Check if we can reproduce a violation with the given configuration
         print("Trying to reproduce...")
 
-        violations: List[EquivalenceClass] = self.get_all_violations(TestCase(test_case), model, executor,
-                                                                     analyser, fuzzer, inputs)
+        violations: List[EquivalenceClass] = self.get_all_violations(TestCase(test_case), model,
+                                                                     executor, analyser, fuzzer,
+                                                                     inputs)
         if not violations:
             print("Could not reproduce the violation. Exiting...")
             return
@@ -160,8 +152,8 @@ class Postprocessor:
                 f.truncate()
 
             # Run and check if the vuln. is still there
-            violations = self.get_all_violations(TestCase(minimised), model, executor, analyser, fuzzer,
-                                                 inputs)
+            violations = self.get_all_violations(TestCase(minimised), model, executor, analyser,
+                                                 fuzzer, inputs)
             if violations:
                 print(".", end="", flush=True)
                 del instructions[cursor]
@@ -193,8 +185,8 @@ class Postprocessor:
                 f.truncate()
 
             # Run and check if the vuln. is still there
-            violations = self.get_all_violations(TestCase(minimised), model, executor, analyser, fuzzer,
-                                                 inputs)
+            violations = self.get_all_violations(TestCase(minimised), model, executor, analyser,
+                                                 fuzzer, inputs)
             if violations:
                 print(".", end="", flush=True)
                 instructions = instructions[:cursor] + ["LFENCE\n"] + instructions[cursor:]
@@ -239,8 +231,8 @@ class Postprocessor:
                     f.truncate()
 
                 # Run and check if the vuln. is still there
-                violations = self.get_all_violations(TestCase(minimised), model, executor, analyser, fuzzer,
-                                                     inputs)
+                violations = self.get_all_violations(TestCase(minimised), model, executor,
+                                                     analyser, fuzzer, inputs)
                 if violations:
                     print(".", end="", flush=True)
                     instructions[cursor] = "NOP\n" * num_nops

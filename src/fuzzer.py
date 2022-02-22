@@ -10,100 +10,50 @@ from pathlib import Path
 from datetime import datetime
 from typing import Optional, List
 
-from interfaces import CTrace, HTrace, Input, InputTaint, EquivalenceClass, TestCase, \
-    Generator, InputGenerator, Model, Executor, Analyser, Coverage
+from interfaces import CTrace, HTrace, Input, InputTaint, EquivalenceClass, TestCase, Generator, \
+    InputGenerator, Model, Executor, Analyser, Coverage
 from generator import get_generator
 from input_generator import get_input_generator
 from model import get_model
 from executor import get_executor
 from analyser import get_analyser
 from coverage import get_coverage
-from helpers import STAT, pretty_bitmap, bit_count, TWOS_COMPLEMENT_MASK_64
+from instruction_set import InstructionSet
+
 from config import CONF
-
-
-class Logger:
-    one_percent_progress: float = 0.0
-    progress: int = 0
-    progress_percent: int = 0
-    msg: str = ""
-    line_ending: str = ""
-    start_time: int = 0
-
-    def start_fuzzing(self, iterations: int, start_time):
-        self.one_percent_progress = iterations / 100
-        self.progress = 0
-        self.progress_percent = 0
-        self.msg = ""
-        self.line_ending = '\n' if CONF.multiline_output else ''
-        self.start_time = start_time
-        if CONF.verbose:
-            print(start_time.strftime('Starting at %H:%M:%S'))
-
-    def start_round(self):
-        if CONF.verbose:
-            if STAT.test_cases > self.progress:
-                self.progress += self.one_percent_progress
-                self.progress_percent += 1
-            msg = f"\rP: {STAT.test_cases} [{self.progress_percent}%] | "
-            msg += STAT.get_brief()
-            print(msg + "Normal execution            ", end=self.line_ending, flush=True)
-            self.msg = msg
-
-    def priming(self, num_violations: int):
-        if CONF.verbose:
-            print(self.msg + "Priming " + str(num_violations) + "       ",
-                  end=self.line_ending,
-                  flush=True)
-
-    def higher_nesting(self):
-        if CONF.verbose:
-            print(self.msg + "Max nesting: " + str(CONF.max_nesting) + "         ",
-                  end=self.line_ending,
-                  flush=True)
-
-    def finish(self):
-        # new line after the progress bar
-        if CONF.verbose:
-            now = datetime.today()
-            print("")
-            print(STAT)
-            print(f"Duration: {(now - self.start_time).total_seconds():.1f}")
-            print(datetime.today().strftime('Finished at %H:%M:%S'))
+from service import STAT, LOGGER
+from helpers import pretty_bitmap, bit_count, TWOS_COMPLEMENT_MASK_64
 
 
 class Fuzzer:
+    instruction_set: InstructionSet
     test_case: TestCase
 
     def __init__(self, instruction_set_spec: str, work_dir: str, existing_test_case: str = None):
+        self.instruction_set = InstructionSet(instruction_set_spec, CONF.supported_categories)
         self.work_dir = work_dir
+
         if existing_test_case:
             self.test_case = TestCase(existing_test_case)
             self.enable_generation = False
         else:
             self.enable_generation = True
-        self.instruction_set_spec = instruction_set_spec
-        self.logger = Logger()
 
-    def start(self, num_test_cases: int, num_inputs: int, timeout: int,
+    def start(self,
+              num_test_cases: int,
+              num_inputs: int,
+              timeout: int,
               nonstop: bool = False):
         start_time = datetime.today()
-        self.logger.start_fuzzing(num_test_cases, start_time)
+        LOGGER.start_fuzzing(num_test_cases, start_time)
 
         # create all main modules
+        generator: Generator = get_generator(self.instruction_set)
+        input_gen: InputGenerator = get_input_generator()
         executor: Executor = get_executor()
         model: Model = get_model(executor.read_base_addresses())
-        input_gen: InputGenerator = get_input_generator()
         analyser: Analyser = get_analyser()
-        generator: Generator = get_generator(self.instruction_set_spec)
-
-        # connect them with coverage
-        coverage: Coverage = get_coverage()
-        executor.set_coverage(coverage)
-        model.set_coverage(coverage)
-        input_gen.set_coverage(coverage)
-        analyser.set_coverage(coverage)
-        generator.set_coverage(coverage)
+        coverage: Coverage = get_coverage(self.instruction_set, executor, model, analyser)
 
         # preserve the original ratio of inputs to the test case size
         input_ratio = num_inputs / CONF.test_case_size
@@ -113,8 +63,6 @@ class Fuzzer:
             # Generate a test case, if necessary
             if self.enable_generation:
                 self.test_case = generator.create_test_case('generated.asm')
-
-            coverage.load_test_case(self.test_case)
 
             # Prepare inputs
             inputs: List[Input] = input_gen.generate(CONF.input_generator_seed, num_inputs)
@@ -165,11 +113,11 @@ class Fuzzer:
                 if CONF.verbose >= 2:
                     print(f"FUZZER: increasing the number of inputs: {num_inputs}")
 
-        self.logger.finish()
+        LOGGER.finish()
 
     def fuzzing_round(self, executor: Executor, model: Model, analyser: Analyser,
                       input_gen: InputGenerator, inputs: List[Input]) -> Optional[EquivalenceClass]:
-        self.logger.start_round()
+        LOGGER.start_round()
         model.load_test_case(self.test_case)
         executor.load_test_case(self.test_case)
 
@@ -182,7 +130,7 @@ class Fuzzer:
             # ensure that we have many inputs in each input classes
             if CONF.dependency_tracking and CONF.inputs_per_class > 1:
                 new_inputs: List[Input] = inputs
-                orig_ctraces: List[CTrace] = list(ctraces)  # list - to make a copy instead of ref
+                # orig_ctraces: List[CTrace] = list(ctraces)  # list - to make a copy instead of ref
                 orig_taints: List[InputTaint] = list(taints)
                 for i in range(CONF.inputs_per_class - 1):
                     new_inputs = input_gen.extend_equivalence_classes(new_inputs, orig_taints)
@@ -223,7 +171,7 @@ class Fuzzer:
 
             # otherwise, try higher nesting
             if nesting == 1:
-                self.logger.higher_nesting()
+                LOGGER.higher_nesting()
 
         if CONF.no_priming:
             return violations[-1]
@@ -231,7 +179,7 @@ class Fuzzer:
         # Try priming the inputs that disagree with the other ones within the same eq. class
         STAT.required_priming += 1
         while violations:
-            self.logger.priming(len(violations))
+            LOGGER.priming(len(violations))
             violation: EquivalenceClass = violations.pop()
             if self.verify_with_priming(violation, executor, inputs):
                 break
@@ -381,13 +329,13 @@ class Fuzzer:
     @staticmethod
     def report_violations(violation: EquivalenceClass, model: Model):
         print("\n\n================================ Violations detected ==========================")
-        print(f"  Contract trace (hash):\n")
+        print("  Contract trace (hash):\n")
         if violation.ctrace <= pow(2, 64):
             print(f"    {violation.ctrace:064b}")
         else:
             print(f"    {violation.ctrace % violation.mod2p64:064b} [ns]\n"
                   f"    {(violation.ctrace >> 64) % violation.mod2p64:064b} [s]\n")
-        print(f"  Hardware traces:")
+        print("  Hardware traces:")
         for group in violation.htrace_groups.values():
             inputs = [violation.inputs[i] for i in group]
             if len(inputs) < 4:
@@ -402,6 +350,6 @@ class Fuzzer:
 
         # print details
         for group in violation.htrace_groups.values():
-            print(f"===========================================")
+            print("===========================================")
             print(f"Input: {violation.inputs[group[0]]}, {violation.original_positions[group[0]]}")
             model.trace_test_case([violation.inputs[group[0]]], 1, True)

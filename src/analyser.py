@@ -1,16 +1,16 @@
 """
 File: various ways to compare ctraces with htraces
 
-Copyright (C) 2021 Oleksii Oleksenko
-Copyright (C) 2020 Microsoft Corporation
+Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 from collections import defaultdict
 from typing import List, Tuple, Set, Dict
 
 from interfaces import HTrace, CTrace, Input, EquivalenceClass, Analyser
-from helpers import pretty_bitmap, bit_count, STAT, TWOS_COMPLEMENT_MASK_64
+from helpers import pretty_bitmap, bit_count, TWOS_COMPLEMENT_MASK_64
 from config import CONF
+from service import STAT
 
 EquivalenceClassMap = Dict[CTrace, EquivalenceClass]
 

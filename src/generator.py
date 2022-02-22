@@ -1,583 +1,20 @@
 """
 File: Test Case Generation
 
-Copyright (C) 2021 Oleksii Oleksenko
-Copyright (C) 2020 Microsoft Corporation
+Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 from __future__ import annotations
 
 import random
 import abc
-import xml.etree.ElementTree as ET
-from enum import Enum
-from typing import List, Dict, Optional, Set
+from typing import List, Dict, Set
 
-from interfaces import Generator, TestCase
+from instruction_set import OperandSpec, InstructionSpec, InstructionSet
+from interfaces import Generator, TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
+    ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, Function
 from helpers import NotSupportedException
 from config import CONF
-
-
-# ==================================================================================================
-# Parser of instruction specs
-# ==================================================================================================
-class OT(Enum):  # Operand Type
-    REG = 1
-    MEM = 2
-    IMM = 3
-    LABEL = 4
-    AGEN = 5  # memory address in LEA instructions
-    FLAGS = 6
-
-    def __str__(self):
-        return str(self._name_)
-
-
-class OperandSpec:
-    values: List[str]
-    masks: List[str]
-    type: OT
-    width: int
-    src: bool
-    dest: bool
-
-    def __init__(self, values: List[str], type_: OT, src: str, dest: str):
-        self.values = values
-        self.type = type_
-        self.src = True if src == "1" else False
-        self.dest = True if dest == "1" else False
-        self.width = 0
-
-    def __str__(self):
-        return f"{self.values}"
-
-
-class InstructionSpec:
-    name: str
-    operands: List[OperandSpec]
-    implicit_operands: List[OperandSpec]
-    category: str
-    sae = False
-    rnsae = False
-    zeroing = False
-    has_mem_operand = False
-    has_write = False
-    control_flow = False
-
-    def __init__(self):
-        self.operands = []
-        self.implicit_operands = []
-
-    def __str__(self):
-        ops = ""
-        for o in self.operands:
-            ops += str(o) + " "
-        return f"{self.name} {ops}"
-
-
-class InstructionSet:
-    all: List[InstructionSpec] = []
-    control_flow: List[InstructionSpec] = []
-    instruction: InstructionSpec
-    has_unconditional_branch: bool = False
-    has_conditional_branch: bool = False
-    has_indirect_branch: bool = False
-    has_reads: bool = False
-    has_writes: bool = False
-
-    def parse_reg_operand(self, op):
-        registers = op.text.split(',')
-        if op.attrib.get('opmask', '') == '1':
-            self.instruction.operands[-1].masks.append(registers)
-            return
-
-        spec = OperandSpec(registers, OT.REG,
-                           op.attrib.get('r', "0"),
-                           op.attrib.get('w', "0"))
-        spec.width = int(op.attrib.get('width'))
-        return spec
-
-    @staticmethod
-    def parse_mem_operand(op):
-        width = int(op.attrib['width'])
-
-        # asserts are for unsupported instructions
-        assert op.attrib.get('VSIB', '0') == '0'  # asm += '[' + op.attrib.get('VSIB') + '0]'
-        assert op.attrib.get('memory-suffix', '') == ''
-
-        choices = []
-        if op.attrib.get('base', ''):
-            choices = [op.attrib.get('base', '')]
-
-        spec = OperandSpec(choices, OT.MEM,
-                           op.attrib.get('r', "0"),
-                           op.attrib.get('w', "0"))
-        spec.width = width
-        return spec
-
-    @staticmethod
-    def parse_agen_operand(_):
-        return OperandSpec([], OT.AGEN, "1", "0")
-
-    @staticmethod
-    def parse_imm_operand(op):
-        if op.attrib.get('implicit', '0') == '1':
-            value = [op.text]
-        else:
-            value = []
-        spec = OperandSpec(value, OT.IMM, "1", "0")
-        spec.width = int(op.attrib['width'])
-        return spec
-
-    @staticmethod
-    def parse_label_operand(_):
-        return OperandSpec([], OT.LABEL, "1", "0")
-
-    @staticmethod
-    def parse_flags_operand(op):
-        # TODO: this is x86-specific. Has to be decoupled from the generic data types
-        flags = [
-            op.attrib.get("flag_CF", "none"),
-            op.attrib.get("flag_PF", "none"),
-            op.attrib.get("flag_ZF", "none"),
-            op.attrib.get("flag_SF", "none"),
-            op.attrib.get("flag_OF", "none"),
-        ]
-        return OperandSpec(flags, OT.FLAGS,
-                           op.attrib.get('r', "0"),
-                           op.attrib.get('w', "0"))
-
-    def init_from_file(self, filename: str, include_categories=None):
-        root = ET.parse(filename)
-        for instruction_node in root.iter('instruction'):
-            if include_categories and instruction_node.attrib['category'] not in include_categories:
-                continue
-
-            self.instruction = InstructionSpec()
-            self.instruction.name = instruction_node.attrib['asm']
-            self.instruction.category = instruction_node.attrib['category']
-
-            for op_node in instruction_node.iter('op'):
-                op_type = op_node.attrib['type']
-                if op_type == 'reg':
-                    parsed_op = self.parse_reg_operand(op_node)
-                elif op_type == 'mem':
-                    parsed_op = self.parse_mem_operand(op_node)
-                    self.instruction.has_mem_operand = True
-                    if parsed_op.dest:
-                        self.instruction.has_write = True
-                elif op_type == 'agen':
-                    op_node.text = instruction_node.attrib['agen']
-                    parsed_op = self.parse_agen_operand(op_node)
-                elif op_type == 'imm':
-                    parsed_op = self.parse_imm_operand(op_node)
-                elif op_type == 'relbr':
-                    parsed_op = self.parse_label_operand(op_node)
-                    self.instruction.control_flow = True
-                elif op_type == 'flags':
-                    parsed_op = self.parse_flags_operand(op_node)
-                else:
-                    raise Exception("Unknown operand type " + op_type)
-
-                if not parsed_op:
-                    continue
-
-                if op_node.attrib.get('suppressed', '0') == '1':
-                    self.instruction.implicit_operands.append(parsed_op)
-                else:
-                    self.instruction.operands.append(parsed_op)
-
-            if instruction_node.attrib.get('zeroing', '') == '1':
-                self.instruction.zeroing = True
-
-            if instruction_node.attrib.get('roundc', '') == '1':
-                self.instruction.rnsae = True
-            elif instruction_node.attrib.get('sae', '') == '1':
-                self.instruction.sae = True
-
-            self.all.append(self.instruction)
-
-    def reduce(self):
-        """ Remove unsupported instructions and operand choices """
-
-        def is_supported(spec: InstructionSpec):
-            if spec.sae or spec.rnsae or spec.zeroing:
-                return False
-
-            if spec.name in CONF.instruction_blocklist:
-                return False
-
-            for operand in spec.operands:
-                if operand.type == OT.MEM and operand.values \
-                        and operand.values[0] in CONF.gpr_blocklist:
-                    return False
-
-            for implicit_operand in spec.implicit_operands:
-                assert implicit_operand.type != OT.LABEL  # I know no such instructions
-                if implicit_operand.type == OT.MEM and \
-                        implicit_operand.values[0] in CONF.gpr_blocklist:
-                    return False
-
-                if implicit_operand.type == OT.REG and \
-                        implicit_operand.values[0] in CONF.gpr_blocklist:
-                    assert len(implicit_operand.values) == 1
-                    return False
-            return True
-
-        skip_list = []
-        for s in self.all:
-            # Unsupported instructions
-            if not is_supported(s):
-                skip_list.append(s)
-                continue
-
-            # Control-flow instructions go into a separate category
-            if s.control_flow:
-                skip_list.append(s)
-                self.control_flow.append(s)
-
-            skip_pending = False
-            for op in s.operands:
-                if op.type == OT.REG:
-                    choices = list(set(op.values) - set(CONF.gpr_blocklist))
-                    if not choices:
-                        skip_pending = True
-                        break
-                    op.values = choices
-
-                    # FIXME: temporary disabled generation of higher reg. bytes
-                    for i, reg in enumerate(op.values):
-                        if reg[-1] == 'H':
-                            op.values[i] = reg.replace('H', 'L', )
-
-            if skip_pending:
-                skip_list.append(s)
-
-        # remove the unsupported
-        for s in skip_list:
-            self.all.remove(s)
-
-        # set parameters
-        for inst in self.all + self.control_flow:
-            if inst.control_flow:
-                if inst.category == "UNCOND_BR":
-                    self.has_unconditional_branch = True
-                else:
-                    self.has_conditional_branch = True
-            elif inst.has_mem_operand:
-                if inst.has_write:
-                    self.has_writes = True
-                else:
-                    self.has_reads = True
-
-
-# ==================================================================================================
-# Test case DAG and its nodes
-# ==================================================================================================
-class Operand(abc.ABC):
-    value: str
-    type: OT
-    width: int = 0
-    src: bool
-    dest: bool
-
-    def __init__(self, value: str, type_, src: bool, dest: bool):
-        self.value = value
-        self.type = type_
-        self.src = src
-        self.dest = dest
-        super(Operand, self).__init__()
-
-    def get_width(self) -> int:
-        return self.width
-
-
-class RegisterOperand(Operand):
-    def __init__(self, value: str, width: int, src: bool, dest: bool):
-        self.width = width
-        super().__init__(value, OT.REG, src, dest)
-
-
-class MemoryOperand(Operand):
-    def __init__(self, address: str, width: int, src: bool, dest: bool):
-        self.width = width
-        super().__init__(address, OT.MEM, src, dest)
-
-
-class ImmediateOperand(Operand):
-    def __init__(self, value: str, width: int):
-        self.width = width
-        super().__init__(value, OT.IMM, True, False)
-
-
-class LabelOperand(Operand):
-    bb: BasicBlock
-
-    def __init__(self, bb):
-        self.bb = bb
-        super().__init__("." + bb.label, OT.LABEL, True, False)
-
-
-class AgenOperand(Operand):
-    def __init__(self, value: str):
-        super().__init__(value, OT.AGEN, True, False)
-
-
-class FlagsOperand(Operand):
-    CF: str = "none"
-    PF: str = "none"
-    ZF: str = "none"
-    SF: str = "none"
-    OF: str = "none"
-
-    def __init__(self, value, src: bool, dest: bool):
-        self.CF = value[0]
-        self.PF = value[1]
-        self.ZF = value[2]
-        self.SF = value[3]
-        self.OF = value[4]
-        super().__init__("FLAGS", OT.FLAGS, src, dest)
-
-    def __str__(self):
-        return f"FLAGS: CF={self.CF}, PF={self.PF}, ZF={self.ZF}, SF={self.SF}, OF={self.OF}"
-
-    def _get_flag_list(self, types) -> List[str]:
-        flags = []
-        if self.CF in types:
-            flags.append('CF')
-        if self.PF in types:
-            flags.append('PF')
-        if self.ZF in types:
-            flags.append('ZF')
-        if self.SF in types:
-            flags.append('SF')
-        if self.OF in types:
-            flags.append('OF')
-        return flags
-
-    def get_read_flags(self) -> List[str]:
-        return self._get_flag_list(['r', 'r/w', 'r/cw'])
-
-    def get_write_flags(self):
-        return self._get_flag_list(['w', 'r/w', 'r/cw'])
-
-    def get_undef_flags(self):
-        return self._get_flag_list(['undef'])
-
-
-class Instruction:
-    name: str
-    operands: List[Operand]
-    implicit_operands: List[Operand]
-    next: Optional[Instruction] = None
-    previous: Optional[Instruction] = None
-    latest_reg_operand: Optional[RegisterOperand] = None  # for avoiding dependencies
-    is_instrumentation: bool
-
-    def __init__(self, name: str, is_instrumentation=False):
-        self.name = name
-        self.operands = []
-        self.implicit_operands = []
-        self.is_instrumentation = is_instrumentation
-
-    def add_op(self, op: Operand):
-        self.operands.append(op)
-        return self
-
-    def has_mem_operand(self, include_implicit: bool = False):
-        for o in self.operands:
-            if o.type == OT.MEM:
-                return True
-
-        if include_implicit:
-            for o in self.implicit_operands:
-                if o.type == OT.MEM:
-                    return True
-
-        return False
-
-    def has_src_operand(self, include_implicit: bool = False):
-        for o in self.operands:
-            if o.src:
-                return True
-
-        if include_implicit:
-            for o in self.implicit_operands:
-                if o.src:
-                    return True
-
-        return False
-
-    def has_dest_operand(self, include_implicit: bool = False):
-        for o in self.operands:
-            if o.dest:
-                return True
-
-        if include_implicit:
-            for o in self.implicit_operands:
-                if o.dest:
-                    return True
-
-        return False
-
-    def is_store(self):
-        for o in self.operands:
-            if isinstance(o, MemoryOperand) and o.dest:
-                return True
-        return False
-
-    def get_mem_operands(self) -> List[MemoryOperand]:
-        res = []
-        for o in self.operands:
-            if isinstance(o, MemoryOperand):
-                res.append(o)
-        return res
-
-    def get_implicit_mem_operands(self):
-        res = []
-        for o in self.implicit_operands:
-            if isinstance(o, MemoryOperand):
-                res.append(o)
-        return res
-
-    def get_flags_operand(self) -> Optional[FlagsOperand]:
-        for op in self.implicit_operands:
-            if isinstance(op, FlagsOperand):
-                return op
-
-        for op in self.operands:
-            if isinstance(op, FlagsOperand):
-                return op
-        return None
-
-
-class InstructionList:
-    """
-    A linked list of instructions
-    """
-    start: Optional[Instruction] = None
-    end: Optional[Instruction] = None
-
-    def __iter__(self):
-        current_instruction = self.start
-        while current_instruction:
-            yield current_instruction
-            current_instruction = current_instruction.next
-
-    def __len__(self):
-        count = 0
-        if self.start:
-            instr = self.start
-            while instr.next:
-                instr = instr.next
-                count += 1
-        return count
-
-
-class BasicBlock:
-    label: str
-    successors: List[BasicBlock]
-    terminators: List[Instruction]
-    __instructions: InstructionList
-
-    def __init__(self, label: str):
-        self.label = label
-        self.__instructions = InstructionList()
-        self.successors = []
-        self.terminators = []
-
-    def __iter__(self):
-        return self.__instructions.__iter__()
-
-    def __len__(self):
-        return len(self.__instructions)
-
-    def insert_after(self, position: Instruction, inst: Instruction):
-        if not position and not self.__instructions.start:
-            self.__instructions.start = inst
-            self.__instructions.end = inst
-            return
-
-        next_ = position.next
-        position.next = inst
-        inst.previous = position
-        if next_:
-            inst.next = next_
-            next_.previous = inst
-        else:
-            self.__instructions.end = inst
-
-    def insert_before(self, position: Instruction, inst: Instruction):
-        if not position and not self.__instructions.start:
-            self.__instructions.start = inst
-            self.__instructions.end = inst
-            return
-
-        previous = position.previous
-        position.previous = inst
-        inst.next = position
-        if previous:
-            inst.previous = previous
-            previous.next = inst
-        else:
-            self.__instructions.start = inst
-
-    def delete(self, target: Instruction):
-        # verify that this instruction indeed belongs to this BB
-        for inst in self.__instructions:
-            if inst == target:
-                break
-        else:
-            raise Exception("Error deleting an instruction from a BB")
-
-        # patch the linked list
-        previous = target.previous
-        next_ = target.next
-        if previous is None and next_ is None:  # the only instruction in BB
-            self.__instructions.end = None
-            self.__instructions.start = None
-        elif previous is None:  # the first instruction
-            next_.previous = None  # type: ignore
-            self.__instructions.start = next_
-        elif next_ is None:  # the last instruction
-            previous.next = None
-            self.__instructions.end = previous
-        else:  # somewhere in the middle
-            previous.next = next_
-            next_.previous = previous
-
-    def get_first(self):
-        return self.__instructions.start
-
-    def get_last(self):
-        return self.__instructions.end
-
-
-class Function:
-    name: str
-    all_bb: List[BasicBlock]
-    entry: BasicBlock
-    exit: BasicBlock
-
-    def __init__(self, name):
-        self.name = name
-
-        # create entry and exit points for the function
-        self.entry = BasicBlock(f"{self.name}.entry")
-        self.exit = BasicBlock(f"{self.name}.exit")
-        self.all_bb = [self.entry, self.exit]
-
-    def __iter__(self):
-        for bb in self.all_bb:
-            yield bb
-
-
-class TestCaseDAG:
-    main: Function
-    functions: List[Function]
-
-    def __init__(self):
-        self.functions = []
 
 
 # ==================================================================================================
@@ -585,13 +22,13 @@ class TestCaseDAG:
 # ==================================================================================================
 class Pass(abc.ABC):
     @abc.abstractmethod
-    def run_on_dag(self, DAG: TestCaseDAG) -> None:
+    def run_on_test_case(self, test_case: TestCase) -> None:
         pass
 
 
 class Printer(abc.ABC):
     @abc.abstractmethod
-    def print(self, DAG: TestCaseDAG, outfile: str) -> None:
+    def print(self, test_case: TestCase, outfile: str) -> None:
         pass
 
 
@@ -602,21 +39,18 @@ class RegisterSet(abc.ABC):
 
 
 class ConfigurableGenerator(Generator, abc.ABC):
+    instruction_set: InstructionSet
+
     """
     The interface description for Generator classes.
     """
-
-    test_case: TestCaseDAG
+    test_case: TestCase
     passes: List[Pass]  # set by subclasses
     printer: Printer  # set by subclasses
     register_set: RegisterSet  # set by subclasses
 
-    def __init__(self, instruction_set_spec: str):
-        super().__init__(instruction_set_spec)
-        instruction_set = InstructionSet()
-        instruction_set.init_from_file(instruction_set_spec, CONF.supported_categories)
-        instruction_set.reduce()
-        self.instruction_set = instruction_set
+    def __init__(self, instruction_set: InstructionSet):
+        super().__init__(instruction_set)
         if CONF.test_case_generator_seed:
             random.seed(CONF.test_case_generator_seed)
 
@@ -629,7 +63,7 @@ class ConfigurableGenerator(Generator, abc.ABC):
         Run instrumentation passes and print the result into a file
         """
         self.reset_generator()
-        self.test_case = TestCaseDAG()
+        self.test_case = TestCase(asm_file)
 
         # create the main function
         func = self.generate_function("test_case_main")
@@ -644,29 +78,18 @@ class ConfigurableGenerator(Generator, abc.ABC):
 
         # process the test case
         for p in self.passes:
-            p.run_on_dag(self.test_case)
+            p.run_on_test_case(self.test_case)
 
         self.printer.print(self.test_case, asm_file)
 
-        # measure coverage, if applicable
-        if self.coverage:
-            feedback = None
-            if type(self.coverage).__name__ == 'PatternCoverage':
-                feedback = {
-                    'DAG': self.test_case,
-                    'instruction_set': self.instruction_set
-                }
-
-            self.coverage.generator_hook(feedback)
-
-        return TestCase(asm_file)
+        return self.test_case
 
     @abc.abstractmethod
-    def generate_function(self, name: str):
+    def generate_function(self, name: str) -> Function:
         pass
 
     @abc.abstractmethod
-    def generate_instruction(self, spec: InstructionSpec):
+    def generate_instruction(self, spec: InstructionSpec) -> Instruction:
         pass
 
     def generate_operand(self, spec: OperandSpec, parent: Instruction) -> Operand:
@@ -957,7 +380,8 @@ class X86Registers(RegisterSet):
     registers = {
         8: ["AL", "BL", "CL", "DL", "SIL", "DIL", "R8B", "R9B", "R10B", "R11B", "R12B", "R13B"],
         16: ["AX", "BX", "CX", "DX", "SI", "DI", "R8W", "R9W", "R10W", "R11W", "R12W", "R13W"],
-        32: ["EAX", "EBX", "ECX", "EDX", "ESI", "EDI", "R8D", "R9D", "R10D", "R11D", "R12D", "R13D"],
+        32: ["EAX", "EBX", "ECX", "EDX", "ESI", "EDI", "R8D", "R9D", "R10D", "R11D", "R12D",
+             "R13D"],
         64: ["RAX", "RBX", "RCX", "RDX", "RSI", "RDI", "R8", "R9", "R10", "R11", "R12", "R13"],
     }
     simd_registers = {
@@ -980,8 +404,8 @@ class X86Registers(RegisterSet):
 
 
 class X86Generator(ConfigurableGenerator, abc.ABC):
-    def __init__(self, instruction_set_spec: str):
-        super(X86Generator, self).__init__(instruction_set_spec)
+    def __init__(self, instruction_set: InstructionSet):
+        super(X86Generator, self).__init__(instruction_set)
         self.passes = [
             X86SandboxPass(),
             X86PatchUndefinedFlagsPass(self.instruction_set, self),
@@ -998,8 +422,8 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
 
 
 class X86LFENCEPass(Pass):
-    def run_on_dag(self, DAG: TestCaseDAG) -> None:
-        for func in DAG.functions:
+    def run_on_test_case(self, test_case: TestCase) -> None:
+        for func in test_case.functions:
             for bb in func:
                 insertion_points = []
                 for instr in bb:
@@ -1022,8 +446,8 @@ class X86SandboxPass(Pass):
         self.sandbox_address_mask += "1" * (12 - CONF.memory_access_zeroed_bits) + \
                                      "0" * CONF.memory_access_zeroed_bits
 
-    def run_on_dag(self, DAG: TestCaseDAG) -> None:
-        for func in DAG.functions:
+    def run_on_test_case(self, test_case: TestCase) -> None:
+        for func in test_case.functions:
             for bb in func.all_bb:
                 if bb == func.entry:
                     continue
@@ -1063,7 +487,7 @@ class X86SandboxPass(Pass):
         if mem_operands:
             assert len(mem_operands) == 1
             assert len(instr.get_implicit_mem_operands()) == 0
-            mem_operand: MemoryOperand = mem_operands[0]
+            mem_operand: Operand = mem_operands[0]
             address_reg = mem_operand.value
             imm_width = mem_operand.width if mem_operand.width <= 32 else 32
             apply_mask = Instruction("AND", True) \
@@ -1075,7 +499,10 @@ class X86SandboxPass(Pass):
 
         mem_operands = instr.get_implicit_mem_operands()
         if mem_operands:
+            if len(mem_operands) != 1:
+                print(instr.name)
             assert len(mem_operands) == 1
+
             mem_operand = mem_operands[0]
             address_reg = mem_operand.value
             imm_width = mem_operand.width if mem_operand.width <= 32 else 32
@@ -1101,7 +528,7 @@ class X86SandboxPass(Pass):
         For this, we ensure that the *D register (upper half of the dividend) is always
         less than the divisor with a bit trick like this ( D & divisor >> 1).
 
-        The first corner case when it won't work is when the divisor is D. This case 
+        The first corner case when it won't work is when the divisor is D. This case
         is impossible to resolve, as far as I can tell. We just give up.
 
         The second corner case is 8-bit division, when the divisor is the AX register alone.
@@ -1128,6 +555,11 @@ class X86SandboxPass(Pass):
                 # Too complex (impossible?). Giving up
                 parent.delete(inst)
                 return
+
+        # TODO: remove me
+        if divisor.width == 64:
+            parent.delete(inst)
+            return
 
         # divisor in D or in memory with RDX offset? Impossible case, give up
         if divisor.value in ["RDX", "EDX", "DX", "DH", "DL"] or "RDX" in divisor.value:
@@ -1223,8 +655,8 @@ class X86PatchUndefinedFlagsPass(Pass):
         self.instruction_set = instruction_set
         self.generator = generator
 
-    def run_on_dag(self, DAG: TestCaseDAG) -> None:
-        for func in DAG.functions:
+    def run_on_test_case(self, test_case: TestCase) -> None:
+        for func in test_case.functions:
             for bb in func.all_bb:
                 # get a list of all instructions in the BB
                 all_instructions = []
@@ -1250,7 +682,7 @@ class X86PatchUndefinedFlagsPass(Pass):
                         bb.insert_after(inst, patch)
                         patch.is_instrumentation = True
                         # remove the flags overwritten by the patch
-                        for f in patch.get_flags_operand().get_write_flags():
+                        for f in patch.get_flags_operand().get_write_flags():  # type: ignore
                             flags_to_set.discard(f)
 
                     # remove the flags overwritten by the instruction
@@ -1268,7 +700,7 @@ class X86PatchUndefinedFlagsPass(Pass):
                     bb.insert_before(bb.get_first(), patch)
                     patch.is_instrumentation = True
 
-    def find_flags_patch(self, undef_flags, flags_to_set):
+    def find_flags_patch(self, undef_flags, flags_to_set) -> Instruction:
         """
         Find an instruction that would overwrite the undefined flags
 
@@ -1304,8 +736,8 @@ class X86PatchUndefinedFlagsPass(Pass):
 
 
 class X86PatchUndefinedResultPass(Pass):
-    def run_on_dag(self, DAG: TestCaseDAG) -> None:
-        for func in DAG.functions:
+    def run_on_test_case(self, test_case: TestCase) -> None:
+        for func in test_case.functions:
             for bb in func.all_bb:
                 if bb == func.entry:
                     continue
@@ -1344,7 +776,7 @@ class X86Printer(Printer):
     def __init__(self):
         super().__init__()
 
-    def print(self, DAG: TestCaseDAG, outfile: str) -> None:
+    def print(self, test_case: TestCase, outfile: str) -> None:
         with open(outfile, "w") as f:
             cache_line_offset = random.randint(0, 15) if CONF.randomized_mem_alignment else 0
             cache_line_offset *= 4  # the memory slots are 4-bytes wide
@@ -1358,7 +790,7 @@ class X86Printer(Printer):
                 f.write("CALL .test_case_main\n"
                         "JMP .test_case_exit\n")
 
-            for func in DAG.functions:
+            for func in test_case.functions:
                 f.write(f".{func.name}:\n")
                 for bb in func.all_bb:
                     self.print_basic_block(bb, f)
@@ -1393,14 +825,14 @@ class X86Printer(Printer):
 # Concrete generators
 # ==================================================================================================
 class X86RandomGenerator(X86Generator, RandomGenerator):
-    def __init__(self, instruction_set_spec: str):
-        super().__init__(instruction_set_spec)
+    def __init__(self, instruction_set: InstructionSet):
+        super().__init__(instruction_set)
 
 
-def get_generator(instruction_set_spec: str) -> Generator:
+def get_generator(instruction_set: InstructionSet) -> Generator:
     if CONF.instruction_set == 'x86-64':
         if CONF.generator == 'random':
-            return X86RandomGenerator(instruction_set_spec)
+            return X86RandomGenerator(instruction_set)
 
     print("Error: unknown value of `instruction_set` configuration option")
     exit(1)
