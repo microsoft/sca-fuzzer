@@ -28,7 +28,7 @@ Make sure you're not running these experiments on an important machine.
 
 So far, Revizor supports only Intel CPU. It was tested on Intel Core i7-6700 and i7-9700, but it should work on any other Intel CPU just as well.
 
-2. Software Requirements
+1. Software Requirements
 
 * Linux v5.6+ (tested on Linux v5.6.6-300 and v5.6.13-100; there is a good chance it will work on other versions as well, but it's not guaranteed).
 * Linux Kernel Headers
@@ -46,9 +46,18 @@ sudo make install
 ```shell
 pip3 install --user pyyaml types-pyyaml numpy iced-x86
 ```
-For tests, also [Bash Automated Testing System](https://bats-core.readthedocs.io/en/latest/index.html), [mypy](https://mypy.readthedocs.io/en/latest/getting_started.html#installing-and-running-mypy), and `GNU datamash`.
 
-3. (Optional) System Configuration
+1. Software Requirements for Revizor Development
+
+Tests: 
+* [Bash Automated Testing System](https://bats-core.readthedocs.io/en/latest/index.html)
+* [mypy](https://mypy.readthedocs.io/en/latest/getting_started.html#installing-and-running-mypy)
+* `GNU datamash`
+
+Documentation:
+* [pdoc3](https://pypi.org/project/pdoc3/)
+
+1. (Optional) System Configuration
 
 For more stable results, disable hyperthreading (there's usually a BIOS option for it).
 If you do not disable hyperthreading, you will see a warning every time you invoke Revizor; you can ignore it.
@@ -134,4 +143,4 @@ The fuzzer is controlled via a single command line interface `cli.py` (located i
 
 # Documentation
 
-For more details, see `docs/` (Under construction!).
+For more details, see [docs/_main.md](docs/_main.md).
