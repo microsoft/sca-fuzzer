@@ -54,16 +54,17 @@ class InstructionSpec:
 
 
 class InstructionSet(InstructionSetAbstract):
-    all: List[InstructionSpec] = []
-    control_flow: List[InstructionSpec] = []
+    all: List[InstructionSpec]
+    control_flow: List[InstructionSpec]
 
     def __init__(self, filename: str, include_categories=None):
-        self.init_from_file(filename, include_categories)
-        self.reduce()
+        self.all = []
+        self.control_flow = []
+        self.dedup()
         super().__init__(filename, include_categories)
 
-    def init_from_file(self, filename: str, include_categories=None):
-        root = ET.parse(filename)
+        parser = ET.ElementTree()
+        root = parser.parse(filename)
         for instruction_node in root.iter('instruction'):
             if include_categories and instruction_node.attrib['category'] not in include_categories:
                 continue
@@ -97,7 +98,7 @@ class InstructionSet(InstructionSetAbstract):
                 if not parsed_op:
                     continue
 
-                if op_node.attrib.get('suppressed', '0') == '1':
+                if op_node.attrib.get('suppressed', '0') == '1' or op_node.attrib.get('implicit', '0') == '1':
                     self.instruction.implicit_operands.append(parsed_op)
                 else:
                     self.instruction.operands.append(parsed_op)
@@ -184,6 +185,42 @@ class InstructionSet(InstructionSetAbstract):
                     self.has_writes = True
                 else:
                     self.has_reads = True
+
+    def dedup(self):
+        """
+        Instruction set spec may contain several copies of the same instruction.
+        Remove them.
+        """
+        skip_list = set()
+        for i in range(len(self.all)):
+            for j in range(i + 1, len(self.all)):
+                inst1 = self.all[i]
+                inst2 = self.all[j]
+                if inst1.name == inst2.name and len(inst1.operands) == len(inst2.operands):
+                    match = True
+                    for k, op1 in enumerate(inst1.operands):
+                        op2 = inst2.operands[k]
+
+                        if op1.type != op2.type:
+                            match = False
+                            continue
+
+                        if op1.values != op2.values:
+                            match = False
+                            continue
+
+                        if op1.width != op2.width and op1.type != OT.IMM:
+                            match = False
+                            continue
+
+                        # assert op1.src == op2.src
+                        # assert op1.dest == op2.dest
+
+                    if match:
+                        skip_list.add(inst1)
+
+        for s in skip_list:
+            self.all.remove(s)
 
     def parse_reg_operand(self, op):
         registers = op.text.split(',')

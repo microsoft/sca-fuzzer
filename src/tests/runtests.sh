@@ -13,7 +13,7 @@ echo ""
 echo "===== Unit Tests ====="
 echo ""
 cd $SCRIPT_DIR || exit
-python3 -m unittest -v generators.py
+python3 -m unittest discover unittests -p "unit_*.py"
 cd - > /dev/null || exit
 
 

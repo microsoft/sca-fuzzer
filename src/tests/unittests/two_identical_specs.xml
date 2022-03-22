@@ -1,0 +1,14 @@
+<root >
+    <extension ex="BASE">
+        <instruction asm="ADC" category="BINARY" cpl="3" extension="BASE">
+            <op idx="1" r="1" type="mem" w="1" width="8"/>
+            <op idx="2" r="1" type="imm" width="8"/>
+            <op flag_AF="w" flag_CF="r/w" flag_OF="w" flag_PF="w" flag_SF="w" flag_ZF="w" idx="3" r="1" suppressed="1" type="flags" w="1"/>
+        </instruction>
+        <instruction asm="ADC" category="BINARY" cpl="3" extension="BASE">
+            <op idx="1" r="1" type="mem" w="1" width="8"/>
+            <op idx="2" r="1" type="imm" width="8"/>
+            <op flag_AF="w" flag_CF="r/w" flag_OF="w" flag_PF="w" flag_SF="w" flag_ZF="w" idx="3" r="1" suppressed="1" type="flags" w="1"/>
+        </instruction>
+    </extension>
+</root>

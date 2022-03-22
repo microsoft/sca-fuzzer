@@ -1,6 +1,4 @@
 """
-File: Unit tests for all generators
-
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
