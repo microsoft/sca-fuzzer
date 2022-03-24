@@ -28,6 +28,16 @@ class Pass(abc.ABC):
 
 
 class Printer(abc.ABC):
+    prologue_template: List[str]
+    epilogue_template: List[str]
+    prologue_size: int
+    epilogue_size: int
+
+    def __init__(self) -> None:
+        self.prologue_size = len(self.prologue_template)
+        self.epilogue_size = len(self.epilogue_template)
+        super().__init__()
+
     @abc.abstractmethod
     def print(self, test_case: TestCase, outfile: str) -> None:
         pass
@@ -809,32 +819,44 @@ class X86PatchUndefinedResultPass(Pass):
 
 class X86Printer(Printer):
     memory_prefixes = {8: "byte ptr", 16: "word ptr", 32: "dword ptr", 64: "qword ptr"}
+    prologue_template = [
+        ".intel_syntax noprefix\n",
+        "LEA R14, [R14 + {cache_line_offset}] # instrumentation\n",
+        "MFENCE # instrumentation\n",
+        ".test_case_enter:\n"]
+    epilogue_template = [
+        ".test_case_exit:\n",
+        "MFENCE # instrumentation\n",
+        "LEA R14, [R14 - {cache_line_offset}] # instrumentation\n",
+    ]
 
     def __init__(self):
+        if not CONF.single_function_test_case:
+            self.prologue_template.append("CALL .test_case_main\n")
+            self.prologue_template.append("JMP .test_case_exit\n")
         super().__init__()
 
     def print(self, test_case: TestCase, outfile: str) -> None:
         with open(outfile, "w") as f:
+            # print prologue
             cache_line_offset = random.randint(0, 15) if CONF.randomized_mem_alignment else 0
             cache_line_offset *= 4  # the memory slots are 4-bytes wide
-            f.write(".intel_syntax noprefix\n"
-                    ".test_case_enter:\n"
-                    f"LEA R14, [R14 + {cache_line_offset}] # instrumentation\n"
-                    "MFENCE # instrumentation\n"
+            for line in self.prologue_template:
+                f.write(
+                    line.format(cache_line_offset=cache_line_offset)
                     )
 
-            if not CONF.single_function_test_case:
-                f.write("CALL .test_case_main\n"
-                        "JMP .test_case_exit\n")
-
+            # print the test case
             for func in test_case.functions:
                 f.write(f".{func.name}:\n")
-                for bb in func.all_bb:
+                for bb in func:
                     self.print_basic_block(bb, f)
 
-            f.write(".test_case_exit:\n"
-                    f"LEA R14, [R14 - {cache_line_offset}] # instrumentation\n"
-                    "MFENCE # instrumentation\n")
+            # print epilogue
+            for line in self.epilogue_template:
+                f.write(
+                    line.format(cache_line_offset=cache_line_offset)
+                )
 
     def print_basic_block(self, bb: BasicBlock, file):
         file.write(f".{bb.label}:\n")
