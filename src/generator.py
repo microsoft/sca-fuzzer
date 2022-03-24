@@ -217,7 +217,7 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
             func.exit.terminators = [self.get_return_instruction()]
 
         # Finalize the function
-        func.all_bb = [func.entry] + nodes + [func.exit]
+        func.insert_multiple(nodes)
         return func
 
     def generate_instruction(self, spec: InstructionSpec):
@@ -291,7 +291,7 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         return FlagsOperand(spec.values, spec.src, spec.dest)
 
     def add_terminators_in_function(self, func: Function):
-        for bb in func.all_bb:
+        for bb in func:
             if len(bb.successors) == 0:
                 # Return instruction
                 continue
@@ -327,7 +327,7 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
 
     def add_instructions_in_function(self, func: Function):
         # evenly fill all BBs with random instructions
-        basic_blocks_to_fill = func.all_bb[1:-1]
+        basic_blocks_to_fill = func.get_all()[1:-1]
         for _ in range(0, CONF.test_case_size):
             bb = random.choice(basic_blocks_to_fill)
             spec = self._pick_random_instruction_spec()
@@ -495,7 +495,7 @@ class X86SandboxPass(Pass):
 
     def run_on_test_case(self, test_case: TestCase) -> None:
         for func in test_case.functions:
-            for bb in func.all_bb:
+            for bb in func:
                 if bb == func.entry:
                     continue
 
@@ -704,7 +704,7 @@ class X86PatchUndefinedFlagsPass(Pass):
 
     def run_on_test_case(self, test_case: TestCase) -> None:
         for func in test_case.functions:
-            for bb in func.all_bb:
+            for bb in func:
                 # get a list of all instructions in the BB
                 all_instructions = []
                 for inst in bb:
@@ -785,7 +785,7 @@ class X86PatchUndefinedFlagsPass(Pass):
 class X86PatchUndefinedResultPass(Pass):
     def run_on_test_case(self, test_case: TestCase) -> None:
         for func in test_case.functions:
-            for bb in func.all_bb:
+            for bb in func:
                 if bb == func.entry:
                     continue
 

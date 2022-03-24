@@ -188,10 +188,10 @@ class PatternCoverage(Coverage):
             if p[0].has_mem_operand() and p[1].has_mem_operand() and p[1].has_dest_operand(True):
                 pair = (p[0].name, p[1].name)
                 pair_ids = (positions[p[0]], positions[p[1]])
-                if p[0].is_store():
-                    type_ = DT.MEM_SS if p[1].is_store() else DT.MEM_SL
+                if p[0].has_write():
+                    type_ = DT.MEM_SS if p[1].has_write() else DT.MEM_SL
                 else:
-                    type_ = DT.MEM_LS if p[1].is_store() else DT.MEM_LL
+                    type_ = DT.MEM_LS if p[1].has_write() else DT.MEM_LL
                 self.current_patterns.append(PatternInstance(pair, pair_ids, type_))
                 continue
 

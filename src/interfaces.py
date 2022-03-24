@@ -319,7 +319,7 @@ class BasicBlock:
 
 class Function:
     name: str
-    all_bb: List[BasicBlock]
+    _all_bb: List[BasicBlock]
     entry: BasicBlock
     exit: BasicBlock
 
@@ -327,13 +327,27 @@ class Function:
         self.name = name
 
         # create entry and exit points for the function
-        self.entry = BasicBlock(f"{self.name}.entry")
-        self.exit = BasicBlock(f"{self.name}.exit")
-        self.all_bb = [self.entry, self.exit]
+        self._all_bb = [self.entry, self.exit]
+
+    def __len__(self):
+        return len(self._all_bb)
 
     def __iter__(self):
-        for bb in self.all_bb:
+        for bb in self._all_bb:
             yield bb
+
+    def insert(self, bb: BasicBlock):
+        self._all_bb = self._all_bb[0: -1]
+        self._all_bb.append(bb)
+        self._all_bb.append(self.exit)
+
+    def insert_multiple(self, bb_list: List[BasicBlock]):
+        self._all_bb = self._all_bb[0: -1]
+        self._all_bb += bb_list
+        self._all_bb.append(self.exit)
+
+    def get_all(self):
+        return self._all_bb
 
 
 class TestCase:
