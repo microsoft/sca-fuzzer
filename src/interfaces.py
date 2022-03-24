@@ -13,7 +13,6 @@ import numpy as np
 from enum import Enum
 
 from config import CONF
-from helpers import run
 
 
 # ==================================================================================================
@@ -325,22 +324,17 @@ class Function:
 
 class TestCase:
     asm_path: str = ''
+    bin_path: str = ''
     main: Function
     functions: List[Function]
+    address_map: Dict[int, Instruction]
 
-    def __init__(self, path: str):
+    def __init__(self):
         self.functions = []
-        self.asm_path = path
 
-    def to_binary(self) -> str:
-        """
-        Assemble the test case into a stripped binary
-        """
-        outfile = self.asm_path[:-4] + ".o"
-        run(f"as {self.asm_path} -o {outfile}", shell=True, check=True)
-        run(f"strip --remove-section=.note.gnu.property {outfile}", shell=True, check=True)
-        run(f"objcopy {outfile} -O binary {outfile}", shell=True, check=True)
-        return outfile
+    def __iter__(self):
+        for func in self.functions:
+            yield func
 
 
 # ==================================================================================================
@@ -479,6 +473,18 @@ class Generator(ABC):
 
     @abstractmethod
     def create_test_case(self, path: str) -> TestCase:
+        """
+        Create a simple test case with a single BB
+        Run instrumentation passes and print the result into a file
+        """
+        pass
+
+    @abstractmethod
+    def parse_existing_test_case(self, asm_file: str) -> TestCase:
+        """
+        Read a test case from a file and create a complete TestCase object based on it.
+        Used instead of create_test_case when Revizor works with a user-provided test case.
+        """
         pass
 
 

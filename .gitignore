@@ -1,6 +1,5 @@
 cmake-build-*/
 build/
-.idea/
 .vscode/
 .lsync*
 venv/

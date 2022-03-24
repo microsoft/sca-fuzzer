@@ -33,7 +33,7 @@ class X86Intel(Executor):
         write_to_pseudo_file(CONF.attack_variant, "/sys/x86-executor/measurement_mode")
 
     def load_test_case(self, test_case: TestCase):
-        write_to_pseudo_file(test_case.to_binary(), "/sys/x86-executor/code")
+        write_to_pseudo_file(test_case.bin_path, "/sys/x86-executor/code")
 
     def trace_test_case(self, inputs: List[Input], num_measurements: int = 0) \
             -> List[CombinedHTrace]:

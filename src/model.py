@@ -196,7 +196,7 @@ class X86UnicornModel(Model):
 
     def load_test_case(self, test_case: TestCase) -> None:
         # create and read a binary
-        with open(test_case.to_binary(), 'rb') as f:
+        with open(test_case.bin_path, 'rb') as f:
             self.code = f.read()
 
         # initialize emulator in x86-64 mode

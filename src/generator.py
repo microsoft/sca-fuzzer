@@ -8,12 +8,13 @@ from __future__ import annotations
 
 import random
 import abc
+import iced_x86
 from typing import List, Dict, Set
 
 from instruction_set import OperandSpec, InstructionSpec, InstructionSet
 from interfaces import Generator, TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
     ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, Function
-from helpers import NotSupportedException
+from helpers import NotSupportedException, run
 from config import CONF
 
 
@@ -58,12 +59,8 @@ class ConfigurableGenerator(Generator, abc.ABC):
         pass
 
     def create_test_case(self, asm_file: str) -> TestCase:
-        """
-        Create a simple test case with a single BB
-        Run instrumentation passes and print the result into a file
-        """
         self.reset_generator()
-        self.test_case = TestCase(asm_file)
+        self.test_case = TestCase()
 
         # create the main function
         func = self.generate_function("test_case_main")
@@ -81,8 +78,26 @@ class ConfigurableGenerator(Generator, abc.ABC):
             p.run_on_test_case(self.test_case)
 
         self.printer.print(self.test_case, asm_file)
+        self.test_case.asm_path = asm_file
+
+        bin_file = asm_file[:-4] + ".o"
+        self.assemble(asm_file, bin_file)
+        self.test_case.bin_path = bin_file
+
+        self.map_addresses(self.test_case, bin_file)
 
         return self.test_case
+
+    @staticmethod
+    def assemble(asm_file: str, bin_file: str) -> None:
+        """Assemble the test case into a stripped binary"""
+        run(f"as {asm_file} -o {bin_file}", shell=True, check=True)
+        run(f"strip --remove-section=.note.gnu.property {bin_file}", shell=True, check=True)
+        run(f"objcopy {bin_file} -O binary {bin_file}", shell=True, check=True)
+
+    @abc.abstractmethod
+    def map_addresses(self, test_case: TestCase, bin_file: str) -> None:
+        pass
 
     @abc.abstractmethod
     def generate_function(self, name: str) -> Function:
@@ -413,6 +428,28 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
         ]
         self.printer = X86Printer()
         self.register_set = X86Registers()
+
+    def map_addresses(self, test_case: TestCase, bin_file: str) -> None:
+        with open(bin_file, "rb") as f:
+            bin_file_contents = f.read()
+
+        # get a list of relative instruction addresses
+        decoder = iced_x86.Decoder(64, bin_file_contents)
+        address_list: List[int] = []
+        for instruction in decoder:
+            address_list.append(instruction.ip)
+
+        # connect them with instructions in the test case
+        address_map: Dict[int, Instruction] = {}
+        counter = self.printer.prologue_size
+        for func in test_case.functions:
+            for bb in func:
+                for inst in bb:
+                    address = address_list[counter]
+                    address_map[address] = inst
+                    counter += 1
+
+        test_case.address_map = address_map
 
     def get_return_instruction(self) -> Instruction:
         return Instruction("RET")

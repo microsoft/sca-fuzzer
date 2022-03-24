@@ -210,7 +210,7 @@ class PatternCoverage(Coverage):
                 self.current_patterns.append(PatternInstance(pair, pair_ids, type_))
 
     def load_test_case(self, test_case: TestCase):
-        obj_file = test_case.to_binary()
+        obj_file = test_case.bin_path
         output = run(f'objdump -D {obj_file} -b binary --no-show-raw-insn -m i386:x86-64',
                      shell=True,
                      check=False,
