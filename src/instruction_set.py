@@ -61,15 +61,15 @@ class InstructionSet(InstructionSetAbstract):
     def __init__(self, filename: str, include_categories=None):
         self.all = []
         self.control_flow = []
+        self.init_from_file(filename)
+        self.reduce(include_categories)
         self.dedup()
         super().__init__(filename, include_categories)
 
+    def init_from_file(self, filename: str):
         parser = ET.ElementTree()
         root = parser.parse(filename)
         for instruction_node in root.iter('instruction'):
-            if include_categories and instruction_node.attrib['category'] not in include_categories:
-                continue
-
             self.instruction = InstructionSpec()
             self.instruction.name = instruction_node.attrib['asm']
             self.instruction.category = instruction_node.attrib['category']
@@ -112,10 +112,14 @@ class InstructionSet(InstructionSetAbstract):
 
             self.all.append(self.instruction)
 
-    def reduce(self):
+    def reduce(self, include_categories):
         """ Remove unsupported instructions and operand choices """
 
         def is_supported(spec: InstructionSpec):
+
+            if include_categories and spec.category not in include_categories:
+                return False
+
             if spec.sae or spec.rnsae or spec.zeroing:
                 return False
 
