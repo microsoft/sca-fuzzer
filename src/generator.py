@@ -8,13 +8,15 @@ from __future__ import annotations
 
 import random
 import abc
+import re
 import iced_x86
 from typing import List, Dict, Set
+from subprocess import CalledProcessError, run
 
 from instruction_set import OperandSpec, InstructionSpec, InstructionSet
 from interfaces import Generator, TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
     ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, Function
-from helpers import NotSupportedException, run
+from helpers import NotSupportedException
 from config import CONF
 
 
@@ -73,7 +75,7 @@ class ConfigurableGenerator(Generator, abc.ABC):
         self.test_case = TestCase()
 
         # create the main function
-        func = self.generate_function("test_case_main")
+        func = self.generate_function("function_main")
 
         # fill the function with instructions
         self.add_terminators_in_function(func)
@@ -101,7 +103,27 @@ class ConfigurableGenerator(Generator, abc.ABC):
     @staticmethod
     def assemble(asm_file: str, bin_file: str) -> None:
         """Assemble the test case into a stripped binary"""
-        run(f"as {asm_file} -o {bin_file}", shell=True, check=True)
+        try:
+            run(f"as {asm_file} -o {bin_file}", shell=True, check=True, capture_output=True)
+        except CalledProcessError as e:
+            error_msg = e.stderr.decode()
+            if "Assembler messages:" not in error_msg:
+                print(error_msg)
+                raise(e)
+
+            with open(asm_file, "r") as f:
+                lines = f.read().split("\n")
+
+            for msg in error_msg.split("\n"):
+                msg = msg.removeprefix(asm_file + ":")
+                line_num_str = re.search(r"(\d+):", msg)
+                if not line_num_str:
+                    print(msg)
+                else:
+                    line = lines[int(line_num_str.group(1))]
+                    print(msg + " -> " + line)
+            raise(e)
+
         run(f"strip --remove-section=.note.gnu.property {bin_file}", shell=True, check=True)
         run(f"objcopy {bin_file} -O binary {bin_file}", shell=True, check=True)
 

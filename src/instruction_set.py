@@ -18,6 +18,10 @@ class OperandSpec:
     src: bool
     dest: bool
 
+    # certain operand values have special handling (e.g., separate opcode when RAX is a destination)
+    # magic_value attribute indicates a specification for this special value
+    magic_value: bool = False
+
     def __init__(self, values: List[str], type_: OT, src: str, dest: str):
         self.values = values
         self.type = type_
@@ -102,10 +106,9 @@ class InstructionSet(InstructionSetAbstract):
                 else:
                     raise Exception("Unknown operand type " + op_type)
 
-                if not parsed_op:
-                    continue
+                parsed_op.magic_value = op_node.attrib.get('implicit', '0') == '1'
 
-                if op_node.attrib.get('suppressed', '0') == '1' or op_node.attrib.get('implicit', '0') == '1':
+                if op_node.attrib.get('suppressed', '0') == '1':
                     self.instruction.implicit_operands.append(parsed_op)
                 else:
                     self.instruction.operands.append(parsed_op)
