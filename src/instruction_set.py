@@ -13,7 +13,6 @@ from config import CONF
 
 class OperandSpec:
     values: List[str]
-    masks: List[str]
     type: OT
     width: int
     src: bool
@@ -35,12 +34,14 @@ class InstructionSpec:
     operands: List[OperandSpec]
     implicit_operands: List[OperandSpec]
     category: str
-    sae = False
-    rnsae = False
+    control_flow = False
+
     zeroing = False
+    rnsae = False
+    sae = False
+
     has_mem_operand = False
     has_write = False
-    control_flow = False
 
     def __init__(self):
         self.operands = []
@@ -73,10 +74,16 @@ class InstructionSet(InstructionSetAbstract):
             self.instruction.name = instruction_node.attrib['asm']
             self.instruction.category = instruction_node.attrib['category']
 
+            self.instruction.zeroing = instruction_node.attrib.get('zeroing', '') == '1'
+            self.instruction.rnsae = instruction_node.attrib.get('roundc', '') == '1'
+            self.instruction.sae = instruction_node.attrib.get('sae', '') == '1'
+
             for op_node in instruction_node.iter('op'):
                 op_type = op_node.attrib['type']
                 if op_type == 'reg':
                     parsed_op = self.parse_reg_operand(op_node)
+                    if op_node.text == "RIP":  # FIXME: x86-specific
+                        self.instruction.control_flow = True
                 elif op_type == 'mem':
                     parsed_op = self.parse_mem_operand(op_node)
                     self.instruction.has_mem_operand = True
@@ -102,14 +109,6 @@ class InstructionSet(InstructionSetAbstract):
                     self.instruction.implicit_operands.append(parsed_op)
                 else:
                     self.instruction.operands.append(parsed_op)
-
-            if instruction_node.attrib.get('zeroing', '') == '1':
-                self.instruction.zeroing = True
-
-            if instruction_node.attrib.get('roundc', '') == '1':
-                self.instruction.rnsae = True
-            elif instruction_node.attrib.get('sae', '') == '1':
-                self.instruction.sae = True
 
             self.all.append(self.instruction)
 
@@ -224,10 +223,6 @@ class InstructionSet(InstructionSetAbstract):
 
     def parse_reg_operand(self, op):
         registers = op.text.split(',')
-        if op.attrib.get('opmask', '') == '1':
-            self.instruction.operands[-1].masks.append(registers)
-            return
-
         spec = OperandSpec(registers, OT.REG,
                            op.attrib.get('r', "0"),
                            op.attrib.get('w', "0"))

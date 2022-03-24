@@ -859,7 +859,7 @@ class X86Printer(Printer):
                 )
 
     def print_basic_block(self, bb: BasicBlock, file):
-        file.write(f".{bb.label}:\n")
+        file.write(f".{bb.name}:\n")
         for inst in bb:
             file.write(self.instruction_to_str(inst) + "\n")
         for inst in bb.terminators:

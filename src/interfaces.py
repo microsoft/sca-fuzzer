@@ -72,7 +72,7 @@ class LabelOperand(Operand):
 
     def __init__(self, bb):
         self.bb = bb
-        super().__init__("." + bb.label, OT.LABEL, True, False)
+        super().__init__("." + bb.name, OT.LABEL, True, False)
 
 
 class AgenOperand(Operand):
@@ -126,17 +126,31 @@ class Instruction:
     name: str
     operands: List[Operand]
     implicit_operands: List[Operand]
+    category: str
+    control_flow = False
+
+    zeroing: bool = False
+    rnsae: bool = False
+    sae: bool = False
+
     next: Optional[Instruction] = None
     previous: Optional[Instruction] = None
     is_instrumentation: bool
+
     # TODO: remove latest_reg_operand from this class. It belongs in the generator
     latest_reg_operand: Optional[Operand] = None  # for avoiding dependencies
 
-    def __init__(self, name: str, is_instrumentation=False):
+    def __init__(self, name: str, is_instrumentation=False, category="", control_flow=False):
         self.name = name
         self.operands = []
         self.implicit_operands = []
         self.is_instrumentation = is_instrumentation
+        self.category = category
+        self.control_flow = control_flow
+
+    def __str__(self) -> str:
+        operands = ', '.join([o.value for o in self.operands])
+        return f"{self.name} {operands}"
 
     def add_op(self, op: Operand):
         self.operands.append(op)
@@ -152,6 +166,12 @@ class Instruction:
                 if o.type == OT.MEM:
                     return True
 
+        return False
+
+    def has_write(self):
+        for o in self.operands:
+            if o.type == OT.MEM and o.dest:
+                return True
         return False
 
     def has_src_operand(self, include_implicit: bool = False):
@@ -176,12 +196,6 @@ class Instruction:
                 if o.dest:
                     return True
 
-        return False
-
-    def is_store(self):
-        for o in self.operands:
-            if o.type == OT.MEM and o.dest:
-                return True
         return False
 
     def get_mem_operands(self) -> List[MemoryOperand]:
@@ -210,14 +224,14 @@ class Instruction:
 
 
 class BasicBlock:
-    label: str
+    name: str
     successors: List[BasicBlock]
     terminators: List[Instruction]
     start: Optional[Instruction] = None
     end: Optional[Instruction] = None
 
-    def __init__(self, label: str):
-        self.label = label
+    def __init__(self, name: str):
+        self.name = name
         self.successors = []
         self.terminators = []
 
