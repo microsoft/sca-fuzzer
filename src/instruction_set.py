@@ -46,6 +46,7 @@ class InstructionSpec:
 
     has_mem_operand = False
     has_write = False
+    has_magic_value: bool = False
 
     def __init__(self):
         self.operands = []
@@ -106,7 +107,9 @@ class InstructionSet(InstructionSetAbstract):
                 else:
                     raise Exception("Unknown operand type " + op_type)
 
-                parsed_op.magic_value = op_node.attrib.get('implicit', '0') == '1'
+                if op_node.attrib.get('implicit', '0') == '1':
+                    parsed_op.magic_value = True
+                    self.instruction.has_magic_value = True
 
                 if op_node.attrib.get('suppressed', '0') == '1':
                     self.instruction.implicit_operands.append(parsed_op)
@@ -119,6 +122,9 @@ class InstructionSet(InstructionSetAbstract):
         """ Remove unsupported instructions and operand choices """
 
         def is_supported(spec: InstructionSpec):
+            if CONF._no_generation:
+                # if we use an existing test case, then instruction filterring is irrelevant
+                return True
 
             if include_categories and spec.category not in include_categories:
                 return False
@@ -255,8 +261,10 @@ class InstructionSet(InstructionSetAbstract):
         return spec
 
     @staticmethod
-    def parse_agen_operand(_):
-        return OperandSpec([], OT.AGEN, "1", "0")
+    def parse_agen_operand(op):
+        spec = OperandSpec([], OT.AGEN, "1", "0")
+        spec.width = int(op.attrib.get('width'))
+        return spec
 
     @staticmethod
     def parse_imm_operand(op):

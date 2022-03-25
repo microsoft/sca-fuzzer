@@ -28,16 +28,17 @@ from helpers import pretty_bitmap, bit_count, TWOS_COMPLEMENT_MASK_64
 class Fuzzer:
     instruction_set: InstructionSet
     test_case: TestCase
+    existing_test_case: str
 
-    def __init__(self, instruction_set_spec: str, work_dir: str, existing_test_case: str = None):
+    def __init__(self, instruction_set_spec: str, work_dir: str, existing_test_case: str = ""):
+        self.existing_test_case = existing_test_case
+        if existing_test_case:
+            CONF._no_generation = True
+            CONF.gpr_blocklist = []
+            CONF.instruction_blocklist = []
+
         self.instruction_set = InstructionSet(instruction_set_spec, CONF.supported_categories)
         self.work_dir = work_dir
-
-        if existing_test_case:
-            self.test_case = TestCase(existing_test_case)
-            self.enable_generation = False
-        else:
-            self.enable_generation = True
 
     def start(self,
               num_test_cases: int,
@@ -60,9 +61,11 @@ class Fuzzer:
         STAT.num_inputs = num_inputs
 
         for i in range(num_test_cases):
-            # Generate a test case, if necessary
-            if self.enable_generation:
+            # Generate a test case
+            if not self.existing_test_case:
                 self.test_case = generator.create_test_case('generated.asm')
+            else:
+                self.test_case = generator.parse_existing_test_case(self.existing_test_case)
 
             # Prepare inputs
             inputs: List[Input] = input_gen.generate(CONF.input_generator_seed, num_inputs)
@@ -92,7 +95,7 @@ class Fuzzer:
                       f"{(datetime.today() - start_time).total_seconds()}")
 
             # if we fuzz a fixed test case, no re-configuration will be necessary
-            if not self.enable_generation:
+            if self.existing_test_case:
                 continue
 
             # if the configuration has changed, update num inputs and entropy

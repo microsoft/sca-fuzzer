@@ -1,24 +1,25 @@
 .intel_syntax noprefix
 LFENCE
+.test_case_enter:
 
 # reduce the entropy of rax
 AND rax, 0b111111000000
 
 # prepare jump targets
-LEA rdx, [rip + .l1]
-LEA rsi, [rip + .l2]
+LEA rdx, qword ptr [rip + .l1]
+LEA rsi, qword ptr [rip + .l2]
 
 # delay the jump
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
-LEA rbx, [rbx + rax + 1]
+LEA rbx, qword ptr [rbx + rax + 1]
+LEA rbx, qword ptr [rbx + rax + 1]
+LEA rbx, qword ptr [rbx + rax + 1]
+LEA rbx, qword ptr [rbx + rax + 1]
+LEA rbx, qword ptr [rbx + rax + 1]
+LEA rbx, qword ptr [rbx + rax + 1]
+LEA rbx, qword ptr [rbx + rax + 1]
+LEA rbx, qword ptr [rbx + rax + 1]
+LEA rbx, qword ptr [rbx + rax + 1]
+LEA rbx, qword ptr [rbx + rax + 1]
 
 # reduce the entropy in rbx
 AND rbx, 0b1000000
@@ -30,6 +31,6 @@ CMOVE rsi, rdx
 JMP rsi   # misprediction
 .l1:
     # rbx = 0
-    MOV rdx, [r14 + rax]
+    MOV rdx, qword ptr [r14 + rax]
 .l2:
 MFENCE

@@ -1,4 +1,5 @@
 .intel_syntax noprefix
+.test_case_enter:
 
 MOV rax, 0
 
@@ -277,4 +278,4 @@ JE .l1
     MOV rax, 128
 
 .fin:
-MOV rax, [r14 + rax]
+MOV rax, qword ptr [r14 + rax]

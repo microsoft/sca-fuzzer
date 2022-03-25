@@ -106,6 +106,7 @@ class ConfCls:
         'CR0', 'CR2', 'CR3', 'CR4', 'CR8',
         'DR0', 'DR1', 'DR2', 'DR3', 'DR4', 'DR5', 'DR6', 'DR7'
     ]
+    _no_generation: bool = False
     # ==============================================================================================
     # Input Generator
     input_generator: str = 'random'
@@ -166,6 +167,9 @@ class ConfCls:
             'coverage_type': ['dependencies', 'none'],
         }
 
+        if name[0] == "_":
+            print(f"Error: Attempting to set an internal configuration variable {name}.\n")
+            exit(1)
         if getattr(self, name, None) is None:
             print(f"Error: Unknown configuration variable {name}.\n"
                   f"It's likely a typo in the configuration file.")

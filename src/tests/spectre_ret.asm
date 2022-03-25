@@ -1,4 +1,5 @@
 .intel_syntax noprefix
+.test_case_enter:
 
 # speculative offset:
 # these shifts generate a random page offset, 64-bit aligned
@@ -8,19 +9,19 @@ LFENCE
 MOV rcx, r14
 ADD rsp, 8  # ensure that the CALL and RET use the first cache set
 
-CALL f1
+CALL .function_1
 
-unreachable:
+.unreachable:
 // LFENCE  # if you uncomment this line, the speculation will stop
 AND rax, 0b110000000  # reduce the number of possibilities
-MOV rax, [rcx + rax]  # speculative access
+MOV rax, qword ptr [rcx + rax]  # speculative access
 LFENCE
 
-f1:
-LEA rdx, [rip + f2]
-MOV [rsp], rdx
+.function_1:
+LEA rdx, qword ptr [rip + .function_2]
+MOV qword ptr [rsp], rdx
 RET
 
-f2:
-MOV rdx, [rcx + 64]
+.function_2:
+MOV rdx, qword ptr [rcx + 64]
 MFENCE

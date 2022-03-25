@@ -11,10 +11,12 @@ import os
 sys.path.insert(0, '..')
 from generator import X86RandomGenerator, X86Printer
 from instruction_set import InstructionSet
+from interfaces import TestCase
 from config import CONF
 
 
 class X86RandomGeneratorTest(unittest.TestCase):
+
     def test_x86_all_instructions(self):
         instruction_set = InstructionSet('../instruction_sets/x86/base.xml',
                                          CONF.supported_categories)
@@ -55,7 +57,28 @@ class X86RandomGeneratorTest(unittest.TestCase):
         if assembly_failed:
             self.fail("Generated invalid instruction(s)")
 
-        self.assertTrue(all_instructions, 'No instructions were generated.')
+    def test_x86_asm_parsing_basic(self):
+        CONF.gpr_blocklist = []
+        CONF.instruction_blocklist = []
+
+        instruction_set = InstructionSet('../instruction_sets/x86/base.xml')
+        generator = X86RandomGenerator(instruction_set)
+        tc: TestCase = generator.parse_existing_test_case("unittests/asm_basic.asm")
+        self.assertEqual(len(tc.functions), 1)
+
+        main = tc.functions[0]
+        self.assertEqual(main.name, ".function_main")
+        self.assertEqual(len(main), 4)
+        main_iter = iter(main)
+
+        entry = next(main_iter)
+        bb0 = next(main_iter)
+        bb1 = next(main_iter)
+        exit_ = next(main_iter)
+
+        self.assertEqual(entry.successors[0], bb0)
+        self.assertEqual(bb0.successors[0], bb1)
+        self.assertEqual(bb1.successors[0], exit_)
 
 
 if __name__ == '__main__':

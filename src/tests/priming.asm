@@ -1,4 +1,5 @@
 .intel_syntax noprefix
+.test_case_enter:
 MFENCE
 NOP
 NOP
@@ -13,7 +14,7 @@ AND RCX, 0b111111000000
 ADD RCX, R14
 CMOVZ ECX, dword ptr [RCX]
 LAHF
-{store} ADC RAX, RAX
+ADC RAX, RAX
 AND RDX, 0b111111000000
 ADD RDX, R14
 SETNZ byte ptr [RDX]
@@ -26,11 +27,11 @@ JMP .bb2
 .bb1:
 MOVZX EDX, CX
 DEC AL
-{store} ADC RBX, RBX
+ADC RBX, RBX
 CMOVBE EAX, EAX
-{load} OR DL, DL
+OR DL, DL
 SETB BL
-{disp32} JS .bb2
+JS .bb2
 JMP .bb3
 .bb2:
 AND RDX, 0b111111000000

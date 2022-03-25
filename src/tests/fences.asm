@@ -1,4 +1,5 @@
 .intel_syntax noprefix
+.test_case_enter:
 LFENCE
 LFENCE
 LFENCE

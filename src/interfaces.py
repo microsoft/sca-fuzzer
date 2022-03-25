@@ -38,6 +38,10 @@ class Operand(ABC):
     src: bool
     dest: bool
 
+    # certain operand values have special handling (e.g., separate opcode when RAX is a destination)
+    # magic_value attribute indicates a specification for this special value
+    magic_value: bool = False
+
     def __init__(self, value: str, type_, src: bool, dest: bool):
         self.value = value
         self.type = type_
@@ -50,33 +54,36 @@ class Operand(ABC):
 
 
 class RegisterOperand(Operand):
+
     def __init__(self, value: str, width: int, src: bool, dest: bool):
         self.width = width
         super().__init__(value, OT.REG, src, dest)
 
 
 class MemoryOperand(Operand):
+
     def __init__(self, address: str, width: int, src: bool, dest: bool):
         self.width = width
         super().__init__(address, OT.MEM, src, dest)
 
 
 class ImmediateOperand(Operand):
+
     def __init__(self, value: str, width: int):
         self.width = width
         super().__init__(value, OT.IMM, True, False)
 
 
 class LabelOperand(Operand):
-    bb: BasicBlock
 
-    def __init__(self, bb):
-        self.bb = bb
-        super().__init__("." + bb.name, OT.LABEL, True, False)
+    def __init__(self, value):
+        super().__init__(value, OT.LABEL, True, False)
 
 
 class AgenOperand(Operand):
-    def __init__(self, value: str):
+
+    def __init__(self, value: str, width: int):
+        self.width = width
         super().__init__(value, OT.AGEN, True, False)
 
 
@@ -310,6 +317,9 @@ class BasicBlock:
             previous.next = next_
             next_.previous = previous
 
+    def insert_terminator(self, terminator: Instruction):
+        self.terminators.append(terminator)
+
     def get_first(self):
         return self.start
 
@@ -327,6 +337,9 @@ class Function:
         self.name = name
 
         # create entry and exit points for the function
+        stripped_name = name.lstrip(".function_")
+        self.entry = BasicBlock(f".bb_{stripped_name}.entry")
+        self.exit = BasicBlock(f".bb_{stripped_name}.exit")
         self._all_bb = [self.entry, self.exit]
 
     def __len__(self):
@@ -337,12 +350,12 @@ class Function:
             yield bb
 
     def insert(self, bb: BasicBlock):
-        self._all_bb = self._all_bb[0: -1]
+        self._all_bb = self._all_bb[0:-1]
         self._all_bb.append(bb)
         self._all_bb.append(self.exit)
 
     def insert_multiple(self, bb_list: List[BasicBlock]):
-        self._all_bb = self._all_bb[0: -1]
+        self._all_bb = self._all_bb[0:-1]
         self._all_bb += bb_list
         self._all_bb.append(self.exit)
 
@@ -356,6 +369,7 @@ class TestCase:
     main: Function
     functions: List[Function]
     address_map: Dict[int, Instruction]
+    num_prologue_instructions: int = 0
 
     def __init__(self):
         self.functions = []
@@ -415,7 +429,7 @@ class Input(np.ndarray):
         pass
 
     def get_registers(self):
-        return list(self[self.data_size-CONF.input_register_region_size:self.data_size-1])
+        return list(self[self.data_size - CONF.input_register_region_size:self.data_size - 1])
 
     def __str__(self):
         return str(self.seed)
@@ -431,6 +445,7 @@ class InputTaint(np.ndarray):
     Each element is an boolean value: When it is True, the corresponding element
     of the input impacts the contract trace.
     """
+
     def __init__(self) -> None:
         pass  # unreachable; defined only for type checking
 
@@ -438,7 +453,7 @@ class InputTaint(np.ndarray):
         size = CONF.input_main_region_size + \
                CONF.input_assist_region_size + \
                CONF.input_register_region_size
-        obj = super().__new__(cls, (size,), np.bool, None, 0, None, None)    # type: ignore
+        obj = super().__new__(cls, (size,), np.bool, None, 0, None, None)  # type: ignore
         return obj
 
 
@@ -517,13 +532,13 @@ class Generator(ABC):
 
 
 class InputGenerator(ABC):
+
     @abstractmethod
     def generate(self, seed: int, count: int) -> List[Input]:
         pass
 
     @abstractmethod
-    def extend_equivalence_classes(self,
-                                   inputs: List[Input],
+    def extend_equivalence_classes(self, inputs: List[Input],
                                    taints: List[InputTaint]) -> List[Input]:
         pass
 
@@ -531,10 +546,7 @@ class InputGenerator(ABC):
 class Coverage(ABC):
     instruction_set: InstructionSetAbstract
 
-    def __init__(self,
-                 instruction_set: InstructionSetAbstract,
-                 executor: Executor,
-                 model: Model,
+    def __init__(self, instruction_set: InstructionSetAbstract, executor: Executor, model: Model,
                  analyser: Analyser):
         self.instruction_set = instruction_set
         executor.set_coverage(self)
@@ -611,8 +623,11 @@ class Analyser(ABC):
     coverage: Coverage
 
     @abstractmethod
-    def filter_violations(self, inputs: List[Input], ctraces: List[CTrace],
-                          htraces: List[HTrace], stats=False) -> List[EquivalenceClass]:
+    def filter_violations(self,
+                          inputs: List[Input],
+                          ctraces: List[CTrace],
+                          htraces: List[HTrace],
+                          stats=False) -> List[EquivalenceClass]:
         pass
 
     def set_coverage(self, coverage: Coverage):

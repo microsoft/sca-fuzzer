@@ -8,20 +8,6 @@ indent_style = space
 insert_final_newline = false
 max_line_length = 100
 tab_width = 4
-ij_continuation_indent_size = 8
-ij_formatter_off_tag = @formatter:off
-ij_formatter_on_tag = @formatter:on
-ij_formatter_tags_enabled = false
-ij_smart_tabs = false
-ij_wrap_on_typing = false
-
-[*.sail]
-tab_width = 2
-indent_size = 2
-
-[*.csv]
-max_line_length = 2147483647
-ij_csv_wrap_long_lines = false
 
 [*.json]
 indent_size = 2
@@ -413,11 +399,6 @@ spaces_within_method_parentheses = false
 use_continuation_indent_for_arguments = false
 use_continuation_indent_for_collection_and_comprehensions = false
 wrap_long_lines = false
-
-[{*.xslt,*.xul,*.ant,*.rng,*.xsl,*.tld,*.jhm,*.qrc,*.xml,*.xsd,*.fxml,*.wsdl,*.jrxml,*.jnlp}]
-block_comment_at_first_column = true
-keep_indents_on_empty_lines = false
-line_comment_at_first_column = true
 
 [{.clang-format,.clang-tidy,_clang-format,*.yml,*.yaml}]
 indent_size = 2

@@ -71,13 +71,6 @@ EXTENDED_TESTS=0
     [ "$output" = "" ]
 }
 
-@test "Fuzzing: Empty test case" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/empty.asm -c tests/ct-seq-pp.yaml -i 1000"
-    echo "$output"
-    [ "$status" -eq 0 ]
-    [ "$output" = "" ]
-}
-
 @test "Fuzzing: A sequence of NOPs" {
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/nops.asm -i 1000"
     echo "$output"

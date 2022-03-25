@@ -67,9 +67,11 @@ class X86Intel(Executor):
         pfc_readings: List[List] = [[[], [], []] for _ in inputs]
         for _ in range(num_measurements):
             # measure
-            subprocess.run(f"taskset -c {CONF.measurement_cpu} cat /proc/x86-executor "
-                           "| sudo tee measurement.txt >/dev/null",
-                           shell=True, check=True)
+            subprocess.run(
+                f"taskset -c {CONF.measurement_cpu} cat /proc/x86-executor "
+                "| sudo tee measurement.txt >/dev/null",
+                shell=True,
+                check=True)
 
             # fetch the results
             with open('measurement.txt', "r") as f:

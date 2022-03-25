@@ -1,102 +1,103 @@
 .intel_syntax noprefix
-CLFLUSH [r14]
+.test_case_enter:
+CLFLUSH qword ptr [r14]
 LFENCE
-MOV [r14], rbx
+MOV qword ptr [r14], rbx
 MFENCE
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
-MOV [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
+MOV qword ptr [r14], rbx
 MFENCE

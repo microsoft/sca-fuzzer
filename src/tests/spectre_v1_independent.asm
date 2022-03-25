@@ -2,6 +2,7 @@
 # is input-independent. Therefore, this test case must not be flagged.
 
 .intel_syntax noprefix
+.test_case_enter:
 MOV rcx, r14
 
 # input: ebx - a random value, eax - fixed value
@@ -16,10 +17,10 @@ SHR rbx, 63
 CMP rbx, 0
 JE .l1
     # rbx != 0
-    MOV rcx, [rcx + rax]
+    MOV rcx, qword ptr [rcx + rax]
 JMP .l2
 .l1:
     # rbx == 0
-    MOV rcx, [rcx]
+    MOV rcx, qword ptr [rcx]
 .l2:
 MFENCE
