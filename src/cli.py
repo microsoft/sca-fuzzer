@@ -2,38 +2,17 @@
 """
 File: Command Line Interface
 
-Copyright (C) 2021 Oleksii Oleksenko
-Copyright (C) 2020 Microsoft Corporation
+Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 
 import os
-import subprocess
 import yaml
 from typing import Dict
 from argparse import ArgumentParser
 from fuzzer import Fuzzer
 from postprocessor import Postprocessor
 from config import CONF
-
-
-def check_config():
-    # TODO: make this a part of CONF class
-    if CONF.max_outliers > 20:
-        print("Are you sure you want to ignore so many outliers?")
-
-
-def ensure_reliable_environment():
-    if CONF.executor == "x86-intel":
-        # SMT disabled?
-        if CONF.verbose > 0 and os.path.isfile('/sys/devices/system/cpu/smt/control'):
-            with open('/sys/devices/system/cpu/smt/control', 'r') as f:
-                if f.readline() == 'on\n':
-                    print("WARNING: Hyperthreading is on! You may experience false positives.")
-
-        # Disable prefetching
-        subprocess.run('sudo modprobe msr', shell=True, check=True)
-        subprocess.run('sudo wrmsr -a 0x1a4 15', shell=True, check=True)
 
 
 def main():
@@ -131,12 +110,11 @@ def main():
             config_update: Dict = yaml.safe_load(f)
         for var, value in config_update.items():
             CONF.set(var, value)
-    check_config()
+    CONF.sanity_check()
 
     # Fuzzing
     if args.subparser_name == 'fuzz':
         # Make sure we're ready for fuzzing
-        ensure_reliable_environment()
         if args.working_directory and not os.path.isdir(args.working_directory):
             print("The working directory does not exist")
             exit(1)

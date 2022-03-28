@@ -1,8 +1,7 @@
 """
 File: Fuzzing Orchestration
 
-Copyright (C) 2021 Oleksii Oleksenko
-Copyright (C) 2020 Microsoft Corporation
+Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 import shutil
@@ -40,11 +39,7 @@ class Fuzzer:
         self.instruction_set = InstructionSet(instruction_set_spec, CONF.supported_categories)
         self.work_dir = work_dir
 
-    def start(self,
-              num_test_cases: int,
-              num_inputs: int,
-              timeout: int,
-              nonstop: bool = False):
+    def start(self, num_test_cases: int, num_inputs: int, timeout: int, nonstop: bool = False):
         start_time = datetime.today()
         LOGGER.start_fuzzing(num_test_cases, start_time)
 
@@ -161,8 +156,8 @@ class Fuzzer:
                     print(pretty_bitmap(htraces[i]))
 
             # Check for violations
-            violations: List[EquivalenceClass] = analyser.filter_violations(inputs, ctraces,
-                                                                            htraces, stats=True)
+            violations: List[EquivalenceClass] = analyser.filter_violations(
+                inputs, ctraces, htraces, stats=True)
 
             # nothing detected? -> we are done here, move to next test case
             if not violations:
@@ -195,9 +190,8 @@ class Fuzzer:
 
     def verify_with_priming(self, violation: EquivalenceClass, executor: Executor,
                             inputs: List[Input]) -> bool:
-        ordered_htraces = sorted(violation.htrace_groups.keys(),
-                                 key=lambda x: bit_count(x),
-                                 reverse=False)
+        ordered_htraces = sorted(
+            violation.htrace_groups.keys(), key=lambda x: bit_count(x), reverse=False)
         original_groups = violation.htrace_groups
 
         for primer_htrace in ordered_htraces:
@@ -210,8 +204,8 @@ class Fuzzer:
             # create a multiprimer based on the last element in the group
             priming_group_member = original_groups[primer_htrace][-1]
             target_id = violation.original_positions[priming_group_member]
-            multiprimer = self.get_min_primer(executor, inputs, target_id,
-                                              primer_htrace, len(primed_ids))
+            multiprimer = self.get_min_primer(executor, inputs, target_id, primer_htrace,
+                                              len(primed_ids))
             if not multiprimer:
                 return False
             primer_size = len(multiprimer) // len(primed_ids)
@@ -221,10 +215,7 @@ class Fuzzer:
                 multiprimer[(i + 1) * primer_size - 1] = violation.inputs[id_]
 
             # try swapping
-            reproduced = self.check_multiprimer(executor,
-                                                multiprimer,
-                                                primer_size,
-                                                primer_htrace,
+            reproduced = self.check_multiprimer(executor, multiprimer, primer_size, primer_htrace,
                                                 CONF.priming_retries)
             if not reproduced:
                 return True
@@ -238,8 +229,8 @@ class Fuzzer:
 
         return False
 
-    def get_min_primer(self, executor, inputs: List[Input], target_id,
-                       expected_htrace, num_primed_inputs) -> List[Input]:
+    def get_min_primer(self, executor, inputs: List[Input], target_id, expected_htrace,
+                       num_primed_inputs) -> List[Input]:
         # first size to be tested
         primer_size = CONF.min_primer_size % len(inputs) + 1
 
@@ -256,8 +247,8 @@ class Fuzzer:
 
             # check if the hardware trace of the target_id matches
             # the hardware trace received with the primer
-            primer_found = self.check_multiprimer(executor, multiprimer,
-                                                  primer_size, expected_htrace, 1)
+            primer_found = self.check_multiprimer(executor, multiprimer, primer_size,
+                                                  expected_htrace, 1)
 
             if primer_found:
                 return multiprimer
@@ -266,8 +257,7 @@ class Fuzzer:
             if primer_size >= len(inputs):
                 # maybe, we have too few executions; try with more
                 primer_found = self.check_multiprimer(executor, multiprimer, primer_size,
-                                                      expected_htrace,
-                                                      CONF.priming_retries)
+                                                      expected_htrace, CONF.priming_retries)
                 if not primer_found:
                     print("Could not reproduce previous results with priming.")
                     STAT.broken_measurements += 1

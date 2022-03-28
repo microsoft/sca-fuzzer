@@ -191,5 +191,9 @@ class ConfCls:
 
         self.__setattr__(name, value)
 
+    def sanity_check(self):
+        if self.max_outliers > 20:
+            print("Are you sure you want to ignore so many outliers?")
+
 
 CONF = ConfCls()

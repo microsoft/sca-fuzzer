@@ -1,8 +1,7 @@
 """
 File: Executor Interface
 
-Copyright (C) 2021 Oleksii Oleksenko
-Copyright (C) 2020 Microsoft Corporation
+Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 import subprocess
@@ -10,7 +9,7 @@ import os.path
 import csv
 from collections import Counter
 from typing import List
-from interfaces import CombinedHTrace, HTrace, Input, TestCase, Executor
+from interfaces import CombinedHTrace, HTrace, Input, TestCase, Executor, Optional
 
 from helpers import write_to_pseudo_file, write_to_pseudo_file_bytes
 from config import CONF
@@ -23,6 +22,32 @@ class X86Intel(Executor):
 
     def __init__(self):
         super().__init__()
+        # check the execution environment:
+        # SMT disabled?
+        try:
+            out = subprocess.run("lscpu", shell=True, check=True, capture_output=True)
+        except subprocess.CalledProcessError:
+            print("ERROR: Could not check if hyperthreading is enabled.\n"
+                  "       Is lscpu installed?")
+            exit(1)
+
+        smt_on: Optional[bool] = None
+        for line in out.stdout.decode().split("\n"):
+            if line.startswith("Thread(s) per core:"):
+                if line[-1] == "1":
+                    smt_on = False
+                else:
+                    smt_on = True
+        if smt_on is None:
+            print("WARNING: Could not check if SMT is on.")
+        if smt_on:
+            print("WARNING: SMT is on! You may experience false positives.")
+
+        # disable prefetching
+        subprocess.run('sudo modprobe msr', shell=True, check=True)
+        subprocess.run('sudo wrmsr -a 0x1a4 15', shell=True, check=True)
+
+        # initialize the kernel module
         write_to_pseudo_file(CONF.warmups, '/sys/x86-executor/warmups')
         write_to_pseudo_file("1" if CONF.enable_ssbp_patch else "0",
                              "/sys/x86-executor/enable_ssbp_patch")

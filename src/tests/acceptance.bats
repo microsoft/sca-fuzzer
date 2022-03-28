@@ -121,13 +121,6 @@ EXTENDED_TESTS=0
     [ "$output" = "" ]
 }
 
-@test "Fuzzing: An empty test case template" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/empty_template.asm -i $REPS"
-    echo "$output"
-    [ "$status" -eq 0 ]
-    [ "$output" = "" ]
-}
-
 @test "Detection: Spectre V1 - BCB load - P" {
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v1.asm -i 20"
     echo "$output"
