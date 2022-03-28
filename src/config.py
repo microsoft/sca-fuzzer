@@ -91,7 +91,7 @@ class ConfCls:
         # "REPNE STOSB", "REPNE STOSD", "REPNE STOSW"
         "REPNE CMPSB", "REPNE CMPSD", "REPNE CMPSW",
         "REPNE MOVSB", "REPNE MOVSD", "REPNE MOVSW",
-    ]
+    ]  # yapf: disable
     extended_instruction_blocklist: List[str] = []
     # x86 executor internally uses R15, R14, RSP, RBP and, thus, they are excluded
     # segment registers are also excluded as we don't support their handling so far
@@ -105,7 +105,7 @@ class ConfCls:
         'ES', 'CS', 'SS', 'DS', 'FS', 'GS',
         'CR0', 'CR2', 'CR3', 'CR4', 'CR8',
         'DR0', 'DR1', 'DR2', 'DR3', 'DR4', 'DR5', 'DR6', 'DR7'
-    ]
+    ]  # yapf: disable
     _no_generation: bool = False
     # ==============================================================================================
     # Input Generator
@@ -162,8 +162,9 @@ class ConfCls:
         options = {
             'attack_variant': ['P+P', 'F+R', 'E+R'],
             'model': ['x86-unicorn'],
-            'contract_observation_mode':
-                ['l1d', 'memory', 'ct', 'pc', 'ct-nonspecstore', 'ctr', 'arch'],
+            'contract_observation_mode': [
+                'l1d', 'memory', 'ct', 'pc', 'ct-nonspecstore', 'ctr', 'arch'
+            ],
             'coverage_type': ['dependencies', 'none'],
         }
 
@@ -193,7 +194,10 @@ class ConfCls:
 
     def sanity_check(self):
         if self.max_outliers > 20:
-            print("Are you sure you want to ignore so many outliers?")
+            print(f"WARNING: Configuration: Are you sure you want to"
+                  f" ignore {self.max_outliers} outliers?")
+        if self.coverage_type == "none":
+            self.feedback_driven_generator = False
 
 
 CONF = ConfCls()
