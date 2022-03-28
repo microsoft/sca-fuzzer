@@ -25,7 +25,6 @@ class ConfCls:
     max_bb_successors = 0  # zero -> automatically set based on the available instructions
     test_case_size = 32
     avg_mem_accesses = 12
-    single_function_test_case = True
     avoid_data_dependencies: bool = True
     generate_memory_accesses_in_pairs: bool = True
     memory_access_zeroed_bits: int = 6
@@ -120,9 +119,9 @@ class ConfCls:
     # ==============================================================================================
     # Model
     model: str = 'x86-unicorn'
-    contract_execution_mode: List[str] = ["seq"]  # options: "seq", "cond", "bpas"
-    contract_observation_mode: str = 'ct'
-    max_nesting = 5
+    contract_execution_clause: List[str] = ["seq"]  # options: "seq", "cond", "bpas"
+    contract_observation_clause: str = 'ct'
+    max_nesting: int = 5
     max_speculation_window: int = 250
     dependency_tracking: bool = True
     # ==============================================================================================
@@ -139,10 +138,10 @@ class ConfCls:
     # ==============================================================================================
     # Analyser
     analyser: str = 'equivalence-classes'
-    max_subsets = 100
-    ignore_first_cache_line = False
-    compare_only_same_size = True
-    ignore_single_entry_classes = True
+    max_subsets: int = 100
+    ignore_first_cache_line: bool = False
+    compare_only_same_size: bool = True
+    ignore_single_entry_classes: bool = True
     # ==============================================================================================
     # Coverage
     coverage_type: str = 'none'
@@ -160,9 +159,13 @@ class ConfCls:
 
     def set(self, name, value):
         options = {
-            'attack_variant': ['P+P', 'F+R', 'E+R'],
+            'instruction_set': ["x86-64"],
+            'generator': ["random"],
+            'input_generator': ["random"],
             'model': ['x86-unicorn'],
-            'contract_observation_mode': [
+            'executor': ['x86-intel'],
+            'attack_variant': ['P+P', 'F+R', 'E+R'],
+            'contract_observation_clause': [
                 'l1d', 'memory', 'ct', 'pc', 'ct-nonspecstore', 'ctr', 'arch'
             ],
             'coverage_type': ['dependencies', 'none'],

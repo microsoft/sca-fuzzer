@@ -1,3 +1,3 @@
-contract_observation_mode: ct
-contract_execution_mode:
+contract_observation_clause: ct
+contract_execution_clause:
   - cond

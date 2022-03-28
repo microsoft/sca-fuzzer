@@ -242,7 +242,7 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         func.entry.successors = [nodes[0]]
 
         # Function return
-        if not CONF.single_function_test_case:
+        if label != ".function_main":
             func.exit.terminators = [self.get_return_instruction()]
 
         # Finalize the function

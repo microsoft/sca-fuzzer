@@ -757,42 +757,42 @@ def get_model(bases: Tuple[int, int]) -> Model:
         model: Model
 
         # functional part of the contract
-        if "cond" in CONF.contract_execution_mode and "bpas" in CONF.contract_execution_mode:
+        if "cond" in CONF.contract_execution_clause and "bpas" in CONF.contract_execution_clause:
             model = X86UnicornCondBpas(bases[0], bases[1])
-        elif "cond" in CONF.contract_execution_mode:
+        elif "cond" in CONF.contract_execution_clause:
             model = X86UnicornCond(bases[0], bases[1])
-        elif "bpas" in CONF.contract_execution_mode:
+        elif "bpas" in CONF.contract_execution_clause:
             model = X86UnicornBpas(bases[0], bases[1])
-        elif "null-injection" in CONF.contract_execution_mode:
+        elif "null-injection" in CONF.contract_execution_clause:
             model = X86UnicornNull(bases[0], bases[1])
-        elif "seq" in CONF.contract_execution_mode:
+        elif "seq" in CONF.contract_execution_clause:
             model = X86UnicornSeq(bases[0], bases[1])
         else:
-            print("Error: unknown value of `contract_execution_mode` configuration option")
+            print("Error: unknown value of `contract_execution_clause` configuration option")
             exit(1)
 
         # observational part of the contract
-        if CONF.contract_observation_mode == "l1d":
+        if CONF.contract_observation_clause == "l1d":
             model.tracer = L1DTracer()
-        elif CONF.contract_observation_mode == 'pc':
+        elif CONF.contract_observation_clause == 'pc':
             model.tracer = PCTracer()
-        elif CONF.contract_observation_mode == 'memory':
+        elif CONF.contract_observation_clause == 'memory':
             model.tracer = MemoryTracer()
-        elif CONF.contract_observation_mode == 'ct':
+        elif CONF.contract_observation_clause == 'ct':
             model.tracer = CTTracer()
-        elif CONF.contract_observation_mode == 'ct-nonspecstore':
+        elif CONF.contract_observation_clause == 'ct-nonspecstore':
             model.tracer = CTNonSpecStoreTracer()
-        elif CONF.contract_observation_mode == 'ctr':
+        elif CONF.contract_observation_clause == 'ctr':
             model.tracer = CTRTracer()
-        elif CONF.contract_observation_mode == 'arch':
+        elif CONF.contract_observation_clause == 'arch':
             model.tracer = ArchTracer()
         else:
-            print("Error: unknown value of `contract_observation_mode` configuration option")
+            print("Error: unknown value of `contract_observation_clause` configuration option")
             exit(1)
 
         if CONF.dependency_tracking:
             # 64-bits only
-            if CONF.contract_observation_mode == 'ctr' or CONF.contract_observation_mode == 'arch':
+            if CONF.contract_observation_clause == 'ctr' or CONF.contract_observation_clause == 'arch':
                 initial_observations = ["RAX", "RBX", "RCX", "RDX", "CF", "PF", "AF", "ZF", "SF",
                                         "TF", "IF",
                                         "DF", "OF", "AC"]

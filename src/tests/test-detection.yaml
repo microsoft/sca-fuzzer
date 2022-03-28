@@ -11,8 +11,8 @@ supported_categories:
   - LOGICAL
   - POP
   - PUSH
-contract_observation_mode: ct
-contract_execution_mode:
+contract_observation_clause: ct
+contract_execution_clause:
   - seq
 
 test_case_size: 16

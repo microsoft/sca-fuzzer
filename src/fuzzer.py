@@ -164,7 +164,7 @@ class Fuzzer:
                 return None
 
             # sequential contract? -> no point in trying higher nesting
-            if 'seq' in CONF.contract_execution_mode:
+            if 'seq' in CONF.contract_execution_clause:
                 break
 
             # otherwise, try higher nesting
