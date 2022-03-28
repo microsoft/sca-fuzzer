@@ -145,6 +145,8 @@ class CTRTracer(CTTracer):
             emulator.reg_read(UC_X86_REG_RBX),
             emulator.reg_read(UC_X86_REG_RCX),
             emulator.reg_read(UC_X86_REG_RDX),
+            emulator.reg_read(UC_X86_REG_RSI),
+            emulator.reg_read(UC_X86_REG_RDI),
             emulator.reg_read(UC_X86_REG_EFLAGS),
         ]
         self.full_execution_trace = []
