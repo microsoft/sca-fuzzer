@@ -75,31 +75,6 @@ def used_mem_to_string(mem_info: UsedMemory) -> str:
     return sb
 
 
-def decode_rflags_bits(rf: int) -> list:
-    sb = []
-    if (rf & RflagsBits.OF) != 0:
-        sb.append("OF")
-    if (rf & RflagsBits.SF) != 0:
-        sb.append("SF")
-    if (rf & RflagsBits.ZF) != 0:
-        sb.append("ZF")
-    if (rf & RflagsBits.AF) != 0:
-        sb.append("AF")
-    if (rf & RflagsBits.CF) != 0:
-        sb.append("CF")
-    if (rf & RflagsBits.PF) != 0:
-        sb.append("PF")
-    if (rf & RflagsBits.DF) != 0:
-        sb.append("DF")
-    if (rf & RflagsBits.IF) != 0:
-        sb.append("IF")
-    if (rf & RflagsBits.AC) != 0:
-        sb.append("AC")
-    if (rf & RflagsBits.UIF) != 0:
-        sb.append("UIF")
-    return sb
-
-
 def get_register_label(reg_tracking, register_name: str) -> set:
     if register_name not in reg_tracking.keys():
         return {register_name}
@@ -202,59 +177,24 @@ class DependencyTracker:
         self.dest_flags = []
         self.dest_mems = []
 
-        decoder = Decoder(self.code_biteness, instruction)
-        formatter = FastFormatter(FormatterSyntax.NASM)  # Formatter(FormatterSyntax.NASM)
-        info_factory = InstructionInfoFactory()
-        index = 0
-        for instr in decoder:
-            info = info_factory.info(instr)
+    def initialize(self, instruction: Instruction):
+        """ Collect source and target registers/flags """
+        self.finalize_tracking()  # finalize the previous instruction
+        self.reset_instruction_tracking()
 
-            if self.debug:
-                print(f"{instr}")
-                for reg_info in info.used_registers():
-                    print(f"    Used reg: {used_reg_to_string(reg_info)}")
-                for mem_info in info.used_memory():
-                    print(f"    Used mem: {used_mem_to_string(mem_info)}")
-                if instr.rflags_read != RflagsBits.NONE:
-                    print(f"    RFLAGS Read: {decode_rflags_bits(instr.rflags_read)}")
-                if instr.rflags_written != RflagsBits.NONE:
-                    print(f"    RFLAGS Written: {decode_rflags_bits(instr.rflags_written)}")
-                if instr.rflags_cleared != RflagsBits.NONE:
-                    print(f"    RFLAGS Cleared: {decode_rflags_bits(instr.rflags_cleared)}")
-                if instr.rflags_set != RflagsBits.NONE:
-                    print(f"    RFLAGS Set: {decode_rflags_bits(instr.rflags_set)}")
-                if instr.rflags_undefined != RflagsBits.NONE:
-                    print(f"    RFLAGS Undefined: {decode_rflags_bits(instr.rflags_undefined)}")
-                if instr.rflags_modified != RflagsBits.NONE:
-                    print(f"    RFLAGS Modified: {decode_rflags_bits(instr.rflags_modified)}")
-                print(f"    FlowControl: {flow_control_to_string(instr.flow_control)}")
-
-            for reg_info in info.used_registers():
-                if op_access_to_string(reg_info.access) in ["READ", "READ_WRITE", "COND_READ"]:
-                    self.src_regs.add(register_to_string(reg_info.register))
-                if op_access_to_string(reg_info.access) in ["WRITE", "READ_WRITE", "COND_WRITE"]:
-                    self.trg_regs.add(register_to_string(reg_info.register))
-            if flow_control_to_string(instr.flow_control) != "NEXT":
-                self.trg_regs.add("PC")
-
-            self.src_flags = set(decode_rflags_bits(instr.rflags_read))
-            if self.strict_undefined:
-                self.src_flags = self.src_flags.union(
-                    set(decode_rflags_bits(instr.rflags_undefined)))
-            self.trg_flags = set(decode_rflags_bits(instr.rflags_modified))
-
-            if self.debug:
-                print(f"    Source Registers: {self.src_regs}")
-                print(f"    Target Registers: {self.trg_regs}")
-                print(f"    Source Flags: {self.src_flags}")
-                print(f"    Target Flags: {self.trg_flags}")
-
-            index = index + 1
-            assert (index <= 1)
-
-    def track_memory_access(self, address, size, mode):
-        if self.debug:
-            print(f"Track Memory Access {address} {size} {mode}")
+        for op in instruction.operands + instruction.implicit_operands:
+            if isinstance(op, RegisterOperand):
+                if op.src:
+                    self.src_regs.append(op.value)
+                if op.dest:
+                    self.dest_regs.append(op.value)
+            if instruction.control_flow:
+                self.dest_regs.append("RIP")
+            if isinstance(op, FlagsOperand):
+                self.src_flags = op.get_read_flags()
+                if self.strict_undefined:
+                    self.src_flags.extend(op.get_undef_flags())
+                self.dest_flags = op.get_write_flags()
 
     def track_memory_access(self, address, size, is_write: bool):
         """ Tracking concrete memory accesses """
