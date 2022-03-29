@@ -2,21 +2,20 @@ from __future__ import annotations
 
 from typing import Dict, List
 from interfaces import Instruction, RegisterOperand, FlagsOperand, MemoryOperand
+from generator import X86Registers
 import copy
 
 
-def get_register_label(reg_tracking, register_name: str) -> set:
-    if register_name not in reg_tracking.keys():
-        return {register_name}
+def get_register_label(reg_tracking, reg: str) -> set:
+    if reg not in reg_tracking.keys():
+        return {reg}
     else:
         label = set()
-        for reg in register_deps(register_name):
-            if reg not in reg_tracking.keys():
-                label.add(reg)
-            else:
-                label = label.union(reg_tracking[reg])
+        if reg not in reg_tracking.keys():
+            label.add(reg)
+        else:
+            label = label.union(reg_tracking[reg])
         return label
-        # return regTracking[register_name]
 
 
 def get_flag_label(flag_tracking, flag_name: str) -> set:
@@ -33,45 +32,6 @@ def get_mem_label(mem_tracking, address: int) -> set:
         return mem_tracking[address]
 
 
-def register_deps(reg: str) -> set:
-    if reg == "RIP":
-        return {reg}
-    for i in {"A", "B", "C", "D"}:
-        if reg == f"R{i}X":
-            return {f"{i}L", f"{i}H", f"{i}X", f"E{i}X", f"R{i}X"}
-        elif reg == f"E{i}X":
-            return {f"{i}L", f"{i}H", f"{i}X", f"E{i}X"}
-        elif reg == f"{i}X":
-            return {f"{i}L", f"{i}H", f"{i}X"}
-        elif reg == f"{i}L":
-            return {f"{i}L"}
-        elif reg == f"{i}H":
-            return {f"{i}H"}
-
-    for i in {"BP", "SI", "DI", "SP", "IP"}:
-        if reg == f"R{i}":
-            return {f"{i}L", f"{i}", f"E{i}", f"R{i}"}
-        elif reg == f"E{i}":
-            return {f"{i}L", f"{i}", f"E{i}"}
-        elif reg == f"{i}":
-            return {f"{i}L", f"{i}"}
-        elif reg == f"{i}L":
-            return {f"{i}L"}
-
-    for j in range(8, 16):
-        if reg == f"R{j}":
-            return {f"R{j}B", f"R{j}W", f"R{j}D", f"R{j}"}
-        elif reg == f"R{j}D":
-            return {f"R{j}B", f"R{j}W", f"R{j}D"}
-        elif reg == f"R{j}W":
-            return {f"R{j}B", f"R{j}W"}
-        elif reg == f"R{j}B":
-            return {f"R{j}B"}
-
-    print(f"Unsupported register {reg}")
-    exit(1)
-
-
 class DependencyTracker:
     strict_undefined: bool = True
 
@@ -86,7 +46,6 @@ class DependencyTracker:
         if initial_observations is None:
             initial_observations = []
         self.initial_observations = initial_observations
-        self.debug = False
         self.code_biteness = code_biteness
 
         self.reset()
@@ -114,10 +73,11 @@ class DependencyTracker:
 
         for op in instruction.operands + instruction.implicit_operands:
             if isinstance(op, RegisterOperand):
+                value = X86Registers.gpr_normalized[op.value]
                 if op.src:
-                    self.src_regs.append(op.value)
+                    self.src_regs.append(value)
                 if op.dest:
-                    self.dest_regs.append(op.value)
+                    self.dest_regs.append(value)
             if instruction.control_flow:
                 self.dest_regs.append("RIP")
             if isinstance(op, FlagsOperand):
@@ -154,8 +114,6 @@ class DependencyTracker:
             self.mem_tracking[mem] = list(src_label)
 
     def observe_instruction(self, mode):
-        if self.debug:
-            print(f"ObservedLabels: {self.observed_labels}")
         if mode == "PC":
             # Add regLabel(PC) to the set of observed labels
             self.observed_labels = \
@@ -169,8 +127,6 @@ class DependencyTracker:
         else:
             print(f"Invalid mode {mode}")
             exit(1)
-        if self.debug:
-            print(f"ObserveInstruction {mode} : {self.observed_labels}")
 
     def observe_memory_address(self, address: int, size: int):
         # Add memLabel(address) to the set of observed labels
@@ -181,8 +137,6 @@ class DependencyTracker:
                 self.observed_labels.union(get_mem_label(self.mem_tracking, address + i))
         if self.debug:
             print(f"ObserveMemoryAddress {address} {size} : {self.observed_labels}")
-
-    def save_state(self):
         # return a copy of the tracker state!
         return copy.deepcopy(self.flag_tracking), \
                copy.deepcopy(self.reg_tracking), \

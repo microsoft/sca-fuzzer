@@ -430,7 +430,8 @@ class X86Registers(RegisterSet):
         "R13": "13", "R13D": "13", "R13W": "13", "R13B": "13",
         "R14": "14", "R14D": "14", "R14W": "14", "R14B": "14",
         "R15": "15", "R15D": "15", "R15W": "15", "R15B": "15",
-        "FLAGS": "FLAGS"
+        "FLAGS": "FLAGS",
+        "RIP:": "RIP",
     }  # yapf: disable
     registers = {
         8: ["AL", "BL", "CL", "DL", "SIL", "DIL", "R8B", "R9B", "R10B", "R11B", "R12B", "R13B",
