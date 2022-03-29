@@ -57,21 +57,21 @@ class RegisterOperand(Operand):
 
     def __init__(self, value: str, width: int, src: bool, dest: bool):
         self.width = width
-        super().__init__(value, OT.REG, src, dest)
+        super().__init__(value.upper(), OT.REG, src, dest)
 
 
 class MemoryOperand(Operand):
 
     def __init__(self, address: str, width: int, src: bool, dest: bool):
         self.width = width
-        super().__init__(address, OT.MEM, src, dest)
+        super().__init__(address.upper(), OT.MEM, src, dest)
 
 
 class ImmediateOperand(Operand):
 
     def __init__(self, value: str, width: int):
         self.width = width
-        super().__init__(value, OT.IMM, True, False)
+        super().__init__(value.lower(), OT.IMM, True, False)
 
 
 class LabelOperand(Operand):
@@ -84,7 +84,7 @@ class AgenOperand(Operand):
 
     def __init__(self, value: str, width: int):
         self.width = width
-        super().__init__(value, OT.AGEN, True, False)
+        super().__init__(value.upper(), OT.AGEN, True, False)
 
 
 class FlagsOperand(Operand):
