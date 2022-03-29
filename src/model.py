@@ -9,6 +9,7 @@ from abc import ABC
 
 import numpy as np
 import unicorn as uni
+import copy
 from unicorn import Uc, UcError, UC_MEM_WRITE
 from unicorn.x86_const import UC_X86_REG_RSP, UC_X86_REG_RBP, \
     UC_X86_REG_RIP, \
@@ -17,9 +18,10 @@ from unicorn.x86_const import UC_X86_REG_RSP, UC_X86_REG_RBP, \
     UC_X86_REG_R12, UC_X86_REG_R13, UC_X86_REG_R14, UC_X86_REG_R15
 from typing import List, Tuple, Dict, Optional
 
-from interfaces import CTrace, Input, TestCase, Model, InputTaint, Instruction
+from interfaces import CTrace, Input, TestCase, Model, InputTaint, Instruction, RegisterOperand, \
+    FlagsOperand
+from generator import X86Registers
 from config import CONF
-from dependency_tracking import DependencyTracker
 
 FLAGS_CF = 0b000000000001
 FLAGS_PF = 0b000000000100
@@ -50,13 +52,13 @@ class X86UnicornTracer(ABC):
     def get_full_execution_trace(self):
         return self.full_execution_trace
 
-    def add_mem_address_to_trace(self, address, model):
+    def add_mem_address_to_trace(self, address: int, model):
         self.trace.append(address)
-        model.dependency_tracker.observe_instruction("OPS")
+        model.taint_tracker.taint_operands()
 
     def add_pc_to_trace(self, address, model):
         self.trace.append(address)
-        model.dependency_tracker.observe_instruction("PC")
+        model.taint_tracker.taint_pc()
 
     def observe_mem_access(self, access, address: int, size: int, value: int, model) -> None:
         if not model.in_speculation:
@@ -98,7 +100,7 @@ class X86UnicornModel(Model):
     tracer: X86UnicornTracer
     nesting: int = 0
     debug: bool = False
-    dependency_tracker: DependencyTracker
+    taint_tracker: TaintTracker
     current_instruction: Instruction
 
     def __init__(self, sandbox_base, code_base):
@@ -110,6 +112,14 @@ class X86UnicornModel(Model):
             self.sandbox_base + self.MAIN_REGION_SIZE + self.ASSIST_REGION_SIZE
         self.stack_base = sandbox_base + self.MAIN_REGION_SIZE - 8
         self.overflow_region_values = bytes(self.OVERFLOW_REGION_SIZE)
+
+        if CONF.contract_observation_clause == 'ctr' or CONF.contract_observation_clause == 'arch':
+            self.initial_taints = [
+                "RAX", "RBX", "RCX", "RDX", "RSI", "RDI", "CF", "PF", "AF", "ZF", "SF", "TF", "IF",
+                "DF", "OF", "AC"
+            ]
+        else:
+            self.initial_taints = []
 
     def load_test_case(self, test_case: TestCase) -> None:
         self.test_case = test_case
@@ -150,8 +160,8 @@ class X86UnicornModel(Model):
         full_execution_traces = []
         taints = []
         for input_ in inputs:
+            self.reset_model()
             try:
-                self.reset_model()
                 self._load_input(input_)
                 self.emulator.emu_start(
                     self.code_base,
@@ -175,9 +185,7 @@ class X86UnicornModel(Model):
             # store the results
             traces.append(self.tracer.get_trace())
             full_execution_traces.append(self.tracer.get_full_execution_trace())
-
-            dependencies = self.dependency_tracker.get_observed_dependencies()
-            taints.append(self.get_taint(dependencies))
+            taints.append(self.taint_tracker.get_taint(self.sandbox_base))
 
         if self.coverage:
             self.coverage.model_hook(full_execution_traces)
@@ -189,7 +197,7 @@ class X86UnicornModel(Model):
         self.in_speculation = False
         self.speculation_window = 0
         self.tracer.reset_trace(self.emulator)
-        self.dependency_tracker.reset()
+        self.taint_tracker = TaintTracker(64, self.initial_taints)
 
     def _load_input(self, input_: Input):
         # Set memory:
@@ -213,100 +221,6 @@ class X86UnicornModel(Model):
         self.emulator.reg_write(UC_X86_REG_RSP, self.stack_base)
         self.emulator.reg_write(UC_X86_REG_RBP, self.stack_base)
         self.emulator.reg_write(UC_X86_REG_R14, self.sandbox_base)
-
-    def get_taint(self, dependencies) -> InputTaint:
-
-        def get_register(reg_):
-            reg_dict = {
-                "RAX": UC_X86_REG_RAX,
-                "RBX": UC_X86_REG_RBX,
-                "RCX": UC_X86_REG_RCX,
-                "RDX": UC_X86_REG_RDX,
-                "RDI": UC_X86_REG_RDI,
-                "RSI": UC_X86_REG_RSI,
-                "RSP": UC_X86_REG_RSP,
-                "RBP": UC_X86_REG_RBP,
-                "R8": UC_X86_REG_R8,
-                "R9": UC_X86_REG_R9,
-                "R10": UC_X86_REG_R10,
-                "R11": UC_X86_REG_R11,
-                "R12": UC_X86_REG_R12,
-                "R13": UC_X86_REG_R13,
-                "R14": UC_X86_REG_R14,
-                "R15": UC_X86_REG_R15,
-            }
-
-            if reg_ in {"CF", "PF", "AF", "ZF", "SF", "TF", "IF", "DF", "OF", "AC"}:
-                return UC_X86_REG_EFLAGS
-            elif reg_ == "RIP":
-                return -1
-            else:
-                for j in {"A", "B", "C", "D"}:
-                    if reg_ == f"R{j}X":
-                        return reg_dict[f"R{j}X"]
-                    elif reg_ == f"E{j}X":
-                        return reg_dict[f"R{j}X"]
-                    elif reg_ == f"{j}X":
-                        return reg_dict[f"R{j}X"]
-                    elif reg_ == f"{j}L":
-                        return reg_dict[f"R{j}X"]
-                    elif reg_ == f"{j}H":
-                        return reg_dict[f"R{j}X"]
-
-                for j in {"BP", "SI", "DI", "SP", "IP"}:
-                    if reg_ == f"R{j}":
-                        return reg_dict[f"R{j}"]
-                    elif reg_ == f"E{j}":
-                        return reg_dict[f"R{j}"]
-                    elif reg_ == f"{j}":
-                        return reg_dict[f"R{j}"]
-                    elif reg_ == f"{j}L":
-                        return reg_dict[f"R{j}"]
-
-                for j in range(8, 16):
-                    if reg_ == f"R{j}":
-                        return reg_dict[f"R{j}"]
-                    elif reg_ == f"R{j}D":
-                        return reg_dict[f"R{j}"]
-                    elif reg_ == f"R{j}W":
-                        return reg_dict[f"R{j}"]
-                    elif reg_ == f"R{j}B":
-                        return reg_dict[f"R{j}"]
-
-                print(f"Unsupported identifier {reg_}")
-                exit(1)
-
-        taint = InputTaint()
-        tainted_positions = []
-        for d in dependencies:
-            pos = -1
-            if type(d) is int:
-                # memory address
-                # we taint the 64-bits block that contains the address
-                pos = (d - self.sandbox_base) // 8
-            elif type(d) is str:
-                # flag register
-                registers = [
-                    UC_X86_REG_RAX, UC_X86_REG_RBX, UC_X86_REG_RCX, UC_X86_REG_RDX, UC_X86_REG_RSI,
-                    UC_X86_REG_RDI, UC_X86_REG_EFLAGS
-                ]
-                reg = get_register(d)
-                if reg in registers:
-                    pos = CONF.input_main_region_size + \
-                          CONF.input_assist_region_size + \
-                          registers.index(get_register(d))
-            if pos != -1:
-                tainted_positions.append(pos)
-
-        tainted_positions = list(dict.fromkeys(tainted_positions))
-        tainted_positions.sort()
-        for i in range(CONF.input_main_region_size + CONF.input_assist_region_size +
-                       CONF.input_register_region_size):
-            if i in tainted_positions:
-                taint[i] = True
-            else:
-                taint[i] = False
-        return taint
 
     def print_state(self, oneline: bool = False):
 
@@ -375,6 +289,187 @@ class X86UnicornModel(Model):
 
 
 # ==================================================================================================
+# Tainting
+# ==================================================================================================
+class TaintTracker:
+    strict_undefined: bool = True
+
+    src_regs: List[str]
+    src_flags: List[str]
+    src_mems: List[str]
+    dest_regs: List[str]
+    dest_flags: List[str]
+    dest_mems: List[str]
+    instruction: Optional[Instruction] = None
+
+    def __init__(self, code_biteness, initial_observations):
+        self.initial_observations = initial_observations
+        self.code_biteness = code_biteness
+
+        self.flag_tracking: Dict[str, set] = {}
+        self.reg_tracking: Dict[str, set] = {}
+        self.mem_tracking: Dict[int, set] = {}
+        self.observed_labels = set(self.initial_observations)
+        self.checkpoints = []
+
+    def initialize(self, instruction: Instruction):
+        """ Collect source and target registers/flags """
+        if self.instruction:
+            self.finalize_tracking()  # finalize the previous instruction
+        
+        self.instruction = instruction
+        self.src_regs = []
+        self.src_flags = []
+        self.src_mems = []
+        self.dest_regs = []
+        self.dest_flags = []
+        self.dest_mems = []
+
+        for op in instruction.operands + instruction.implicit_operands:
+            if isinstance(op, RegisterOperand):
+                value = X86Registers.gpr_normalized[op.value]
+                if op.src:
+                    self.src_regs.append(value)
+                if op.dest:
+                    self.dest_regs.append(value)
+            if instruction.control_flow:
+                self.dest_regs.append("RIP")
+            if isinstance(op, FlagsOperand):
+                self.src_flags = op.get_read_flags()
+                if self.strict_undefined:
+                    self.src_flags.extend(op.get_undef_flags())
+                self.dest_flags = op.get_write_flags()
+
+    def finalize_tracking(self):
+        # Compute source label
+        src_label = set()
+        for reg in self.src_regs:
+            src_label.update(self.reg_tracking.get(reg, {reg}))
+        for flag in self.src_flags:
+            src_label.update(self.flag_tracking.get(flag, {flag}))
+        for addr in self.src_mems:
+            src_label.update(self.mem_tracking.get(addr, {addr}))
+
+        # Propagate label to all targets
+        for reg in self.dest_regs:
+            self.reg_tracking[reg] = list(src_label)
+        for flg in self.dest_flags:
+            self.flag_tracking[flg] = list(src_label)
+        for mem in self.dest_mems:
+            self.mem_tracking[mem] = list(src_label)
+
+    def track_memory_access(self, address, size, is_write: bool):
+        """ Tracking concrete memory accesses """
+        if is_write:
+            for i in range(0, size):
+                self.dest_mems.append(address + i)
+        else:
+            for i in range(0, size):
+                self.src_mems.append(address + i)
+
+    def taint_operands(self):
+        """ Add regLabel(PC) to the set of observed labels """
+        for reg in self.src_regs:
+            self.observed_labels.update(self.reg_tracking.get(reg, {reg}))
+
+    def taint_pc(self):
+        """ For all registers r in the instruction operands
+        (i.e., all source registers), Add regLabel(r) to the set of observed labels
+        """
+        self.observed_labels.update(self.reg_tracking.get("RIP", {"RIP"}))
+
+    def taint_memory_address(self, address: int, size: int):
+        """ Add memLabel(address) to the set of observed labels """
+        for i in range(0, size):
+            self.observed_labels.update(self.mem_tracking.get(address + i, {address + i}))
+
+    def save_state(self):
+        return copy.deepcopy(self.flag_tracking), \
+               copy.deepcopy(self.reg_tracking), \
+               copy.deepcopy(self.mem_tracking), \
+               copy.deepcopy(self.observed_labels)
+
+    def restore_state(self, flag_tracking, reg_tracking, mem_tracking, observed_labels):
+        self.flag_tracking = copy.deepcopy(flag_tracking)
+        self.reg_tracking = copy.deepcopy(reg_tracking)
+        self.mem_tracking = copy.deepcopy(mem_tracking)
+        self.observed_labels = copy.deepcopy(observed_labels)
+
+    def checkpoint(self):
+        t = self.save_state()
+        self.checkpoints.append(t)
+
+    def rollback(self):
+        assert self.checkpoints, "There are no more checkpoints"
+        t = self.checkpoints.pop()
+        self.restore_state(*t)
+
+    def get_taint(self, sandbox_base) -> InputTaint:
+        reg_decode = {
+            "A": UC_X86_REG_RAX,
+            "B": UC_X86_REG_RBX,
+            "C": UC_X86_REG_RCX,
+            "D": UC_X86_REG_RDX,
+            "DI": UC_X86_REG_RDI,
+            "SI": UC_X86_REG_RSI,
+            "SP": UC_X86_REG_RSP,
+            "BP": UC_X86_REG_RBP,
+            "8": UC_X86_REG_R8,
+            "9": UC_X86_REG_R9,
+            "10": UC_X86_REG_R10,
+            "11": UC_X86_REG_R11,
+            "12": UC_X86_REG_R12,
+            "13": UC_X86_REG_R13,
+            "14": UC_X86_REG_R14,
+            "15": UC_X86_REG_R15,
+            "FLAGS": UC_X86_REG_EFLAGS,
+            "CF": UC_X86_REG_EFLAGS,
+            "PF": UC_X86_REG_EFLAGS,
+            "AF": UC_X86_REG_EFLAGS,
+            "ZF": UC_X86_REG_EFLAGS,
+            "SF": UC_X86_REG_EFLAGS,
+            "TF": UC_X86_REG_EFLAGS,
+            "IF": UC_X86_REG_EFLAGS,
+            "DF": UC_X86_REG_EFLAGS,
+            "OF": UC_X86_REG_EFLAGS,
+            "AC": UC_X86_REG_EFLAGS,
+            "RIP": -1
+        }
+        registers = [
+            UC_X86_REG_RAX, UC_X86_REG_RBX, UC_X86_REG_RCX, UC_X86_REG_RDX, UC_X86_REG_RSI,
+            UC_X86_REG_RDI, UC_X86_REG_EFLAGS
+        ]
+
+        taint = InputTaint()
+        tainted_positions = []
+        for d in self.observed_labels:
+            pos = -1
+            if type(d) is int:
+                # memory address
+                # we taint the 64-bits block that contains the address
+                pos = (d - sandbox_base) // 8
+            elif type(d) is str:
+                # flag register
+                reg = reg_decode[d]
+                if reg in registers:
+                    pos = CONF.input_main_region_size + \
+                          CONF.input_assist_region_size + \
+                          registers.index(reg_decode[d])
+            if pos != -1:
+                tainted_positions.append(pos)
+
+        tainted_positions = list(dict.fromkeys(tainted_positions))
+        tainted_positions.sort()
+        for i in range(CONF.input_main_region_size + CONF.input_assist_region_size +
+                       CONF.input_register_region_size):
+            if i in tainted_positions:
+                taint[i] = True
+            else:
+                taint[i] = False
+        return taint
+
+
+# ==================================================================================================
 # Implementation of Observation Clauses
 # ==================================================================================================
 class L1DTracer(X86UnicornTracer):
@@ -391,7 +486,7 @@ class L1DTracer(X86UnicornTracer):
             self.trace[1] |= cache_set_index
         else:
             self.trace[0] |= cache_set_index
-        model.dependency_tracker.observe_instruction("OPS")
+        model.taint_tracker.taint_operands()
 
     def observe_mem_access(self, access, address, size, value, model):
         self.add_mem_address_to_trace(address, model)
@@ -458,7 +553,7 @@ class ArchTracer(CTRTracer):
         if access == uni.UC_MEM_READ:
             val = int.from_bytes(model.emulator.mem_read(address, size), byteorder='little')
             self.trace.append(val)
-            model.dependency_tracker.observe_memory_address(address, size)
+            model.taint_tracker.taint_memory_address(address, size)
         self.add_mem_address_to_trace(address, model)
         super(ArchTracer, self).observe_mem_access(access, address, size, value, model)
 
@@ -475,12 +570,12 @@ class X86UnicornSeq(X86UnicornModel):
 
     @staticmethod
     def trace_instruction(emulator, address, size, model) -> None:
-        model.dependency_tracker.initialize(model.current_instruction)
+        model.taint_tracker.initialize(model.current_instruction)
         model.tracer.observe_instruction(address, size, model)
 
     @staticmethod
     def trace_mem_access(emulator, access, address: int, size, value, model):
-        model.dependency_tracker.track_memory_access(address, size, access == UC_MEM_WRITE)
+        model.taint_tracker.track_memory_access(address, size, access == UC_MEM_WRITE)
         model.tracer.observe_mem_access(access, address, size, value, model)
 
 
@@ -528,7 +623,7 @@ class X86UnicornSpec(X86UnicornModel):
         self.checkpoints.append((context, next_instruction, flags, spec_window))
         self.store_logs.append([])
         self.in_speculation = True
-        self.dependency_tracker.checkpoint()
+        self.taint_tracker.checkpoint()
 
     def rollback(self):
         # restore register values
@@ -554,8 +649,8 @@ class X86UnicornSpec(X86UnicornModel):
         # restore the flags last, to avoid corruption by other operations
         self.emulator.reg_write(UC_X86_REG_EFLAGS, flags)
 
-        # restore the dependency tracking
-        self.dependency_tracker.rollback()
+        # restore the taint tracking
+        self.taint_tracker.rollback()
 
         # restart without misprediction
         self.emulator.emu_start(
@@ -784,16 +879,6 @@ def get_model(bases: Tuple[int, int]) -> Model:
         else:
             print("Error: unknown value of `contract_observation_clause` configuration option")
             exit(1)
-
-        # 64-bits only
-        if CONF.contract_observation_clause == 'ctr' or CONF.contract_observation_clause == 'arch':
-            initial_observations = [
-                "RAX", "RBX", "RCX", "RDX", "CF", "PF", "AF", "ZF", "SF", "TF", "IF", "DF", "OF",
-                "AC"
-            ]
-            model.dependency_tracker = DependencyTracker(64, initial_observations)
-        else:
-            model.dependency_tracker = DependencyTracker(64)
 
         return model
     else:
