@@ -170,8 +170,8 @@ class X86UnicornModel(Model):
     """
     CODE_SIZE = 4 * 1024
     WORKING_MEMORY_SIZE = 1024 * 1024
-    MAIN_REGION_SIZE = 4096
-    ASSIST_REGION_SIZE = 4096
+    MAIN_REGION_SIZE = CONF.input_main_region_size * 8
+    ASSIST_REGION_SIZE = CONF.input_assist_region_size * 8
     OVERFLOW_REGION_SIZE = 4096
 
     code: bytes
