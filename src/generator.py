@@ -769,6 +769,11 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
                     address_map[address] = inst
                     counter += 1
 
+        # map prologue and epilogue to dummy instructions
+        for address in address_list:
+            if address not in address_map:
+                address_map[address] = Instruction("UNMAPPED", True)
+
         test_case.address_map = address_map
 
     def get_return_instruction(self) -> Instruction:
