@@ -88,35 +88,30 @@ class AgenOperand(Operand):
 
 
 class FlagsOperand(Operand):
-    CF: str = "none"
-    PF: str = "none"
-    ZF: str = "none"
-    SF: str = "none"
-    OF: str = "none"
+    _flag_values: List[str]
+    _flag_names: List[str] = ["CF", "PF", "AF", "ZF", "SF", "TF", "IF", "DF", "OF"]
 
     def __init__(self, value, src: bool, dest: bool):
-        self.CF = value[0]
-        self.PF = value[1]
-        self.ZF = value[2]
-        self.SF = value[3]
-        self.OF = value[4]
+        self._flag_values = value
         super().__init__("FLAGS", OT.FLAGS, src, dest)
 
     def __str__(self):
-        return f"FLAGS: CF={self.CF}, PF={self.PF}, ZF={self.ZF}, SF={self.SF}, OF={self.OF}"
+        return "FLAGS: " \
+                f"{self._flag_names[0]}{self._flag_values[0]}|" \
+                f"{self._flag_names[1]}{self._flag_values[1]}|" \
+                f"{self._flag_names[2]}{self._flag_values[2]}|" \
+                f"{self._flag_names[3]}{self._flag_values[3]}|" \
+                f"{self._flag_names[4]}{self._flag_values[4]}|" \
+                f"{self._flag_names[5]}{self._flag_values[5]}|" \
+                f"{self._flag_names[6]}{self._flag_values[6]}|" \
+                f"{self._flag_names[7]}{self._flag_values[7]}|" \
+                f"{self._flag_names[8]}{self._flag_values[8]}"
 
     def _get_flag_list(self, types) -> List[str]:
         flags = []
-        if self.CF in types:
-            flags.append('CF')
-        if self.PF in types:
-            flags.append('PF')
-        if self.ZF in types:
-            flags.append('ZF')
-        if self.SF in types:
-            flags.append('SF')
-        if self.OF in types:
-            flags.append('OF')
+        for i, type_ in enumerate(self._flag_values):
+            if type_ in types:
+                flags.append(self._flag_names[i])
         return flags
 
     def get_read_flags(self) -> List[str]:

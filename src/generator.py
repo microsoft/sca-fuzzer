@@ -342,8 +342,7 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
                 terminator.operands = [LabelOperand(bb.successors[0].name)]
                 for op in spec.implicit_operands:
                     if op.type == OT.FLAGS:
-                        terminator.implicit_operands = \
-                            [FlagsOperand(op.values, op.src, op.dest)]
+                        terminator.implicit_operands = [FlagsOperand(op.values, op.src, op.dest)]
                         break
                 bb.terminators.append(terminator)
 

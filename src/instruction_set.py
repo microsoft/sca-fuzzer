@@ -284,11 +284,15 @@ class InstructionSet(InstructionSetAbstract):
     def parse_flags_operand(op):
         # TODO: this is x86-specific. Has to be decoupled from the generic data types
         flags = [
-            op.attrib.get("flag_CF", "none"),
-            op.attrib.get("flag_PF", "none"),
-            op.attrib.get("flag_ZF", "none"),
-            op.attrib.get("flag_SF", "none"),
-            op.attrib.get("flag_OF", "none"),
+            op.attrib.get("flag_CF", ""),
+            op.attrib.get("flag_PF", ""),
+            op.attrib.get("flag_AF", ""),
+            op.attrib.get("flag_ZF", ""),
+            op.attrib.get("flag_SF", ""),
+            op.attrib.get("flag_TF", ""),
+            op.attrib.get("flag_IF", ""),
+            op.attrib.get("flag_DF", ""),
+            op.attrib.get("flag_OF", ""),
         ]
         return OperandSpec(flags, OT.FLAGS,
                            op.attrib.get('r', "0"),
