@@ -174,6 +174,7 @@ class X86UnicornModel(Model):
     ASSIST_REGION_SIZE = CONF.input_assist_region_size * 8
     OVERFLOW_REGION_SIZE = 4096
 
+    test_case: TestCase
     code: bytes
     emulator: Uc
     in_speculation: bool = False
@@ -197,6 +198,8 @@ class X86UnicornModel(Model):
         self.overflow_region_values = bytes(self.OVERFLOW_REGION_SIZE)
 
     def load_test_case(self, test_case: TestCase) -> None:
+        self.test_case = test_case
+
         # create and read a binary
         with open(test_case.bin_path, 'rb') as f:
             self.code = f.read()
@@ -213,23 +216,10 @@ class X86UnicornModel(Model):
             # write machine code to be emulated to memory
             emulator.mem_write(self.code_base, self.code)
 
-            # initialize machine registers
-            emulator.reg_write(UC_X86_REG_RAX, 0x0)
-            emulator.reg_write(UC_X86_REG_RBX, 0x0)
-            emulator.reg_write(UC_X86_REG_RCX, 0x0)
-            emulator.reg_write(UC_X86_REG_RDX, 0x0)
-            emulator.reg_write(UC_X86_REG_RSI, 0x0)
-            emulator.reg_write(UC_X86_REG_R8, 0x0)
-            emulator.reg_write(UC_X86_REG_R9, 0x0)
-            emulator.reg_write(UC_X86_REG_R10, 0x0)
-            emulator.reg_write(UC_X86_REG_R11, 0x0)
-            emulator.reg_write(UC_X86_REG_R12, 0x0)
-            emulator.reg_write(UC_X86_REG_R13, 0x0)
-            emulator.reg_write(UC_X86_REG_R15, 0x0)
-
-            emulator.hook_add(uni.UC_HOOK_MEM_READ | uni.UC_HOOK_MEM_WRITE,
-                              self.trace_mem_access, self)
-            emulator.hook_add(uni.UC_HOOK_CODE, self.trace_instruction, self)
+            # set up callbacks
+            emulator.hook_add(uni.UC_HOOK_MEM_READ | uni.UC_HOOK_MEM_WRITE, self.trace_mem_access,
+                              self)
+            emulator.hook_add(uni.UC_HOOK_CODE, self.instruction_hook, self)
 
             self.emulator = emulator
 
@@ -245,15 +235,14 @@ class X86UnicornModel(Model):
         traces = []
         full_execution_traces = []
         taints = []
-        for i, input_ in enumerate(inputs):
+        for input_ in inputs:
             try:
                 self.reset_model()
-                self.reset_emulator(input_)
-                self.tracer.reset_trace(self.emulator)
-                if self.dependency_tracker is not None:
-                    self.dependency_tracker.reset()
-                self.emulator.emu_start(self.code_base, self.code_base + len(self.code),
-                                        timeout=10 * uni.UC_SECOND_SCALE)
+                self._load_input(input_)
+                self.emulator.emu_start(
+                    self.code_base,
+                    self.code_base + len(self.code),
+                    timeout=10 * uni.UC_SECOND_SCALE)
             except UcError as e:
                 if not self.in_speculation:
                     self.print_state()
@@ -281,7 +270,39 @@ class X86UnicornModel(Model):
 
         return traces, taints
 
+    def reset_model(self):
+        self.checkpoints = []
+        self.in_speculation = False
+        self.speculation_window = 0
+        self.tracer.reset_trace(self.emulator)
+        if self.dependency_tracker is not None:
+            self.dependency_tracker.reset()
+
+    def _load_input(self, input_: Input):
+        # Set memory:
+        # - initialize overflows with zeroes
+        self.emulator.mem_write(self.lower_overflow_base, self.overflow_region_values)
+        self.emulator.mem_write(self.upper_overflow_base, self.overflow_region_values)
+
+        # - sandbox pages
+        self.emulator.mem_write(self.sandbox_base, input_.tobytes())
+
+        # Set values in registers
+        registers = [
+            UC_X86_REG_RAX, UC_X86_REG_RBX, UC_X86_REG_RCX, UC_X86_REG_RDX, UC_X86_REG_RSI,
+            UC_X86_REG_RDI, UC_X86_REG_EFLAGS
+        ]
+        for i, value in enumerate(input_.get_registers()):
+            if registers[i] == UC_X86_REG_EFLAGS:
+                value = (value & np.uint64(2263)) | np.uint64(2)  # type: ignore
+            self.emulator.reg_write(registers[i], value)
+
+        self.emulator.reg_write(UC_X86_REG_RSP, self.stack_base)
+        self.emulator.reg_write(UC_X86_REG_RBP, self.stack_base)
+        self.emulator.reg_write(UC_X86_REG_R14, self.sandbox_base)
+
     def get_taint(self, dependencies) -> InputTaint:
+
         def get_register(reg_):
             reg_dict = {
                 "RAX": UC_X86_REG_RAX,
@@ -352,9 +373,10 @@ class X86UnicornModel(Model):
                 pos = (d - self.sandbox_base) // 8
             elif type(d) is str:
                 # flag register
-                registers = [UC_X86_REG_RAX, UC_X86_REG_RBX, UC_X86_REG_RCX,
-                             UC_X86_REG_RDX, UC_X86_REG_RSI, UC_X86_REG_RDI,
-                             UC_X86_REG_EFLAGS]
+                registers = [
+                    UC_X86_REG_RAX, UC_X86_REG_RBX, UC_X86_REG_RCX, UC_X86_REG_RDX, UC_X86_REG_RSI,
+                    UC_X86_REG_RDI, UC_X86_REG_EFLAGS
+                ]
                 reg = get_register(d)
                 if reg in registers:
                     pos = CONF.input_main_region_size + \
@@ -365,8 +387,7 @@ class X86UnicornModel(Model):
 
         tainted_positions = list(dict.fromkeys(tainted_positions))
         tainted_positions.sort()
-        for i in range(CONF.input_main_region_size +
-                       CONF.input_assist_region_size +
+        for i in range(CONF.input_main_region_size + CONF.input_assist_region_size +
                        CONF.input_register_region_size):
             if i in tainted_positions:
                 taint[i] = True
@@ -374,33 +395,8 @@ class X86UnicornModel(Model):
                 taint[i] = False
         return taint
 
-    def reset_emulator(self, input_: Input):
-        self.checkpoints = []
-        self.in_speculation = False
-        self.speculation_window = 0
-
-        # Set memory:
-        # - initialize overflows with zeroes
-        self.emulator.mem_write(self.lower_overflow_base, self.overflow_region_values)
-        self.emulator.mem_write(self.upper_overflow_base, self.overflow_region_values)
-
-        # - sandbox pages
-        self.emulator.mem_write(self.sandbox_base, input_.tobytes())
-
-        # Set values in registers
-        registers = [UC_X86_REG_RAX, UC_X86_REG_RBX, UC_X86_REG_RCX,
-                     UC_X86_REG_RDX, UC_X86_REG_RSI, UC_X86_REG_RDI,
-                     UC_X86_REG_EFLAGS]
-        for i, value in enumerate(input_.get_registers()):
-            if registers[i] == UC_X86_REG_EFLAGS:
-                value = (value & np.uint64(2263)) | np.uint64(2)  # type: ignore
-            self.emulator.reg_write(registers[i], value)
-
-        self.emulator.reg_write(UC_X86_REG_RSP, self.stack_base)
-        self.emulator.reg_write(UC_X86_REG_RBP, self.stack_base)
-        self.emulator.reg_write(UC_X86_REG_R14, self.sandbox_base)
-
     def print_state(self, oneline: bool = False):
+
         def compressed(val: int):
             if val < self.lower_overflow_base or \
                  val > self.upper_overflow_base + self.OVERFLOW_REGION_SIZE:
@@ -436,11 +432,17 @@ class X86UnicornModel(Model):
                   f"fl={emulator.reg_read(UC_X86_REG_EFLAGS):012b}")
 
     @staticmethod
-    def trace_mem_access(emulator, access, address, size, value, model):
+    def instruction_hook(emulator: Uc, address: int, size: int, model: X86UnicornModel) -> None:
+        model.current_instruction = model.test_case.address_map[address - model.code_base]
+        model.trace_instruction(emulator, address, size, model)
+
+    @staticmethod
+    def trace_instruction(emulator: Uc, address: int, size: int, model: X86UnicornModel) -> None:
         pass  # Implemented by subclasses
 
     @staticmethod
-    def trace_instruction(emulator: Uc, address, size, model) -> None:
+    def trace_mem_access(emulator: Uc, access: int, address: int, size: int, value: int,
+                         model: X86UnicornModel) -> None:
         pass  # Implemented by subclasses
 
     @staticmethod
@@ -458,8 +460,7 @@ class X86UnicornModel(Model):
     def rollback(self):
         pass  # Implemented by subclasses
 
-    def reset_model(self):
-        pass  # Implemented by subclasses
+
 
 
 class X86UnicornSeq(X86UnicornModel):
