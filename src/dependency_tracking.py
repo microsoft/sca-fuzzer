@@ -264,16 +264,14 @@ class DependencyTracker:
         if self.debug:
             print(f"Track Memory Access {address} {size} {mode}")
 
-        # Tracking concrete memory accesses
-        if mode == "READ":
+    def track_memory_access(self, address, size, is_write: bool):
+        """ Tracking concrete memory accesses """
+        if is_write:
             for i in range(0, size):
-                self.src_mems.add(address + i)
-        elif mode == "WRITE":
-            for i in range(0, size):
-                self.trg_mems.add(address + i)
+                self.dest_mems.append(address + i)
         else:
-            print(f"Unsupported mode {mode}")
-            exit(1)
+            for i in range(0, size):
+                self.src_mems.append(address + i)
 
     def finalize_tracking(self):
         # Compute the new dependency maps

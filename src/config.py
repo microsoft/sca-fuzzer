@@ -123,7 +123,6 @@ class ConfCls:
     contract_observation_clause: str = 'ct'
     max_nesting: int = 5
     max_speculation_window: int = 250
-    dependency_tracking: bool = True
     # ==============================================================================================
     # Executor
     executor: str = 'x86-intel'
@@ -152,10 +151,6 @@ class ConfCls:
     # Output
     verbose: int = 0
     multiline_output: bool = False
-
-    def __init__(self):
-        if not self.dependency_tracking:
-            self.inputs_per_class = 1
 
     def set(self, name, value):
         options = {

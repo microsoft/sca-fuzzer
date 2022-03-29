@@ -52,14 +52,11 @@ class X86UnicornTracer(ABC):
 
     def add_mem_address_to_trace(self, address, model):
         self.trace.append(address)
-        if model.dependency_tracker is not None:
-            # Update the tracking with the address labels
-            model.dependency_tracker.observe_instruction("OPS")
+        model.dependency_tracker.observe_instruction("OPS")
 
     def add_pc_to_trace(self, address, model):
         self.trace.append(address)
-        if model.dependency_tracker is not None:
-            model.dependency_tracker.observe_instruction("PC")
+        model.dependency_tracker.observe_instruction("PC")
 
     def observe_mem_access(self, access, address: int, size: int, value: int, model) -> None:
         if not model.in_speculation:
@@ -101,7 +98,7 @@ class X86UnicornModel(Model):
     tracer: X86UnicornTracer
     nesting: int = 0
     debug: bool = False
-    dependency_tracker: Optional[DependencyTracker] = None
+    dependency_tracker: DependencyTracker
 
     def __init__(self, sandbox_base, code_base):
         super().__init__(sandbox_base, code_base)
@@ -177,9 +174,9 @@ class X86UnicornModel(Model):
             # store the results
             traces.append(self.tracer.get_trace())
             full_execution_traces.append(self.tracer.get_full_execution_trace())
-            if self.dependency_tracker is not None:
-                dependencies = self.dependency_tracker.get_observed_dependencies()
-                taints.append(self.get_taint(dependencies))
+
+            dependencies = self.dependency_tracker.get_observed_dependencies()
+            taints.append(self.get_taint(dependencies))
 
         if self.coverage:
             self.coverage.model_hook(full_execution_traces)
@@ -191,8 +188,7 @@ class X86UnicornModel(Model):
         self.in_speculation = False
         self.speculation_window = 0
         self.tracer.reset_trace(self.emulator)
-        if self.dependency_tracker is not None:
-            self.dependency_tracker.reset()
+        self.dependency_tracker.reset()
 
     def _load_input(self, input_: Input):
         # Set memory:
@@ -394,8 +390,7 @@ class L1DTracer(X86UnicornTracer):
             self.trace[1] |= cache_set_index
         else:
             self.trace[0] |= cache_set_index
-        if model.dependency_tracker is not None:
-            model.dependency_tracker.observe_instruction("OPS")
+        model.dependency_tracker.observe_instruction("OPS")
 
     def observe_mem_access(self, access, address, size, value, model):
         self.add_mem_address_to_trace(address, model)
@@ -462,8 +457,7 @@ class ArchTracer(CTRTracer):
         if access == uni.UC_MEM_READ:
             val = int.from_bytes(model.emulator.mem_read(address, size), byteorder='little')
             self.trace.append(val)
-            if model.dependency_tracker is not None:
-                model.dependency_tracker.observe_memory_address(address, size)
+            model.dependency_tracker.observe_memory_address(address, size)
         self.add_mem_address_to_trace(address, model)
         super(ArchTracer, self).observe_mem_access(access, address, size, value, model)
 
@@ -479,23 +473,14 @@ class X86UnicornSeq(X86UnicornModel):
     """
 
     @staticmethod
-    def trace_mem_access(emulator, access, address: int, size, value, model):
-        # Dependency tracking: Track the memory access
-        if model.dependency_tracker is not None:
-            mode = "WRITE" if access == UC_MEM_WRITE else "READ"
-            model.dependency_tracker.track_memory_access(address, size, mode)
-
-        model.tracer.observe_mem_access(access, address, size, value, model)
+    def trace_instruction(emulator, address, size, model) -> None:
+        model.dependency_tracker.initialize(model.current_instruction)
+        model.tracer.observe_instruction(address, size, model)
 
     @staticmethod
-    def trace_instruction(emulator, address, size, model) -> None:
-        # Dependency tracking: Whenever we fetch a new instruction, we update the tracking data
-        if model.dependency_tracker is not None:
-            model.dependency_tracker.finalize_tracking()
-            code = bytes(emulator.mem_read(address, size))
-            model.dependency_tracker.initialize(code, model.current_instruction)
-
-        model.tracer.observe_instruction(address, size, model)
+    def trace_mem_access(emulator, access, address: int, size, value, model):
+        model.dependency_tracker.track_memory_access(address, size, access == UC_MEM_WRITE)
+        model.tracer.observe_mem_access(access, address, size, value, model)
 
 
 class X86UnicornSpec(X86UnicornModel):
@@ -543,8 +528,7 @@ class X86UnicornSpec(X86UnicornModel):
         self.checkpoints.append((context, next_instruction, flags, spec_window))
         self.store_logs.append([])
         self.in_speculation = True
-        if self.dependency_tracker is not None:
-            self.dependency_tracker.checkpoint()
+        self.dependency_tracker.checkpoint()
 
     def rollback(self):
         # restore register values
@@ -571,8 +555,7 @@ class X86UnicornSpec(X86UnicornModel):
         self.emulator.reg_write(UC_X86_REG_EFLAGS, flags)
 
         # restore the dependency tracking
-        if self.dependency_tracker is not None:
-            self.dependency_tracker.rollback()
+        self.dependency_tracker.rollback()
 
         # restart without misprediction
         self.emulator.emu_start(
@@ -802,16 +785,15 @@ def get_model(bases: Tuple[int, int]) -> Model:
             print("Error: unknown value of `contract_observation_clause` configuration option")
             exit(1)
 
-        if CONF.dependency_tracking:
-            # 64-bits only
-            if CONF.contract_observation_clause == 'ctr' or CONF.contract_observation_clause == 'arch':
-                initial_observations = [
-                    "RAX", "RBX", "RCX", "RDX", "CF", "PF", "AF", "ZF", "SF", "TF", "IF", "DF",
-                    "OF", "AC"
-                ]
-                model.dependency_tracker = DependencyTracker(64, initial_observations)
-            else:
-                model.dependency_tracker = DependencyTracker(64)
+        # 64-bits only
+        if CONF.contract_observation_clause == 'ctr' or CONF.contract_observation_clause == 'arch':
+            initial_observations = [
+                "RAX", "RBX", "RCX", "RDX", "CF", "PF", "AF", "ZF", "SF", "TF", "IF", "DF", "OF",
+                "AC"
+            ]
+            model.dependency_tracker = DependencyTracker(64, initial_observations)
+        else:
+            model.dependency_tracker = DependencyTracker(64)
 
         return model
     else:
