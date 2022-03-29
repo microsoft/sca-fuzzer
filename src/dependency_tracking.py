@@ -1,78 +1,8 @@
 from __future__ import annotations
 
-from iced_x86 import Register, OpAccess, FlowControl, MemorySize, UsedRegister, UsedMemory, \
-     RflagsBits, Decoder
 from typing import Dict, List
 from interfaces import Instruction, RegisterOperand, FlagsOperand, MemoryOperand
-from types import ModuleType
 import copy
-
-
-def create_enum_dict(module: ModuleType) -> Dict[int, str]:
-    return {
-        module.__dict__[key]: key
-        for key in module.__dict__
-        if isinstance(module.__dict__[key], int)
-    }
-
-
-REGISTER_TO_STRING: Dict[int, str] = create_enum_dict(Register)
-OP_ACCESS_TO_STRING: Dict[int, str] = create_enum_dict(OpAccess)
-FLOW_CONTROL_TO_STRING: Dict[int, str] = create_enum_dict(FlowControl)
-MEMORY_SIZE_TO_STRING: Dict[int, str] = create_enum_dict(MemorySize)
-
-
-def register_to_string(value: int) -> str:
-    s = REGISTER_TO_STRING.get(value)
-    if s is None:
-        return str(value) + " /*Register enum*/"
-    return s
-
-
-def op_access_to_string(value: int) -> str:
-    s = OP_ACCESS_TO_STRING.get(value)
-    if s is None:
-        return str(value) + " /*OpAccess enum*/"
-    return s
-
-
-def flow_control_to_string(value: int) -> str:
-    s = FLOW_CONTROL_TO_STRING.get(value)
-    if s is None:
-        return str(value) + " /*FlowControl enum*/"
-    return s
-
-
-def memory_size_to_string(value: int) -> str:
-    s = MEMORY_SIZE_TO_STRING.get(value)
-    if s is None:
-        return str(value) + " /*MemorySize enum*/"
-    return s
-
-
-def used_reg_to_string(reg_info: UsedRegister) -> str:
-    return register_to_string(reg_info.register) + ":" + op_access_to_string(reg_info.access)
-
-
-def used_mem_to_string(mem_info: UsedMemory) -> str:
-    sb = "[" + register_to_string(mem_info.segment) + ":"
-    need_plus = mem_info.base != Register.NONE
-    if need_plus:
-        sb += register_to_string(mem_info.base)
-    if mem_info.index != Register.NONE:
-        if need_plus:
-            sb += "+"
-        need_plus = True
-        sb += register_to_string(mem_info.index)
-        if mem_info.scale != 1:
-            sb += "*" + str(mem_info.scale)
-    if mem_info.displacement != 0 or not need_plus:
-        if need_plus:
-            sb += "+"
-        sb += f"0x{mem_info.displacement:X}"
-    sb += ";" + memory_size_to_string(mem_info.memory_size) + ";" + op_access_to_string(
-        mem_info.access) + "]"
-    return sb
 
 
 def get_register_label(reg_tracking, register_name: str) -> set:
@@ -104,7 +34,7 @@ def get_mem_label(mem_tracking, address: int) -> set:
 
 
 def register_deps(reg: str) -> set:
-    if reg == "PC":
+    if reg == "RIP":
         return {reg}
     for i in {"A", "B", "C", "D"}:
         if reg == f"R{i}X":
@@ -206,8 +136,6 @@ class DependencyTracker:
                 self.src_mems.append(address + i)
 
     def finalize_tracking(self):
-        # Compute the new dependency maps
-
         # Compute source label
         src_label = set()
         for reg in self.src_regs:
@@ -225,20 +153,13 @@ class DependencyTracker:
         for mem in self.dest_mems:
             self.mem_tracking[mem] = list(src_label)
 
-        if self.debug:
-            print("Tracking information")
-            print(f"Source label: {src_label}")
-            print(f"Registers: {self.reg_tracking}")
-            print(f"Flags: {self.flag_tracking}")
-            print(f"Memory: {self.mem_tracking}")
-
     def observe_instruction(self, mode):
         if self.debug:
             print(f"ObservedLabels: {self.observed_labels}")
         if mode == "PC":
             # Add regLabel(PC) to the set of observed labels
             self.observed_labels = \
-                self.observed_labels.union(get_register_label(self.reg_tracking, "PC"))
+                self.observed_labels.union(get_register_label(self.reg_tracking, "RIP"))
         elif mode == "OPS":
             # For all registers r in the instruction operands
             # (i.e., all source registers), Add regLabel(r) to the set of observed labels
@@ -279,12 +200,9 @@ class DependencyTracker:
         self.checkpoints.append(t)
 
     def rollback(self):
-        if len(self.checkpoints) > 0:
-            t = self.checkpoints.pop()
-            self.restore_state(*t)
-        else:
-            print("There are no more checkpoints")
-            exit(1)
+        assert self.checkpoints, "There are no more checkpoints"
+        t = self.checkpoints.pop()
+        self.restore_state(*t)
 
     def get_observed_dependencies(self):
         return copy.deepcopy(self.observed_labels)

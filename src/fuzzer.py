@@ -125,25 +125,16 @@ class Fuzzer:
             ctraces: List[CTrace]
             taints: List[InputTaint]
             ctraces, taints = model.trace_test_case(inputs, nesting)
+
             # ensure that we have many inputs in each input classes
-            if CONF.dependency_tracking and CONF.inputs_per_class > 1:
-                new_inputs: List[Input] = inputs
-                # orig_ctraces: List[CTrace] = list(ctraces)  # list - to make a copy instead of ref
-                orig_taints: List[InputTaint] = list(taints)
-                for i in range(CONF.inputs_per_class - 1):
-                    new_inputs = input_gen.extend_equivalence_classes(new_inputs, orig_taints)
-                    # TODO: ignore the comment below. Tainting is so far imperfect,
-                    #  so we do need to retrace the inputs
-                    #
-                    # The dependency tracking ensures that the new inputs generate
-                    # (1) the same traces and (2) the same taints as the original ones
-                    # So, no need to rerun model!
-                    inputs += new_inputs
-                    # taints += orig_taints
-                    # ctraces += orig_ctraces
+            orig_taints: List[InputTaint] = list(taints)
+            new_inputs: List[Input] = inputs
+            for i in range(CONF.inputs_per_class - 1):
+                new_inputs = input_gen.extend_equivalence_classes(new_inputs, orig_taints)
+                inputs += new_inputs
             ctraces, _ = model.trace_test_case(inputs, nesting)
 
-            # Hw measurement
+            # HW measurement
             htraces: List[HTrace] = executor.trace_test_case(inputs)
 
             # for debugging

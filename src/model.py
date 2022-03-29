@@ -99,6 +99,7 @@ class X86UnicornModel(Model):
     nesting: int = 0
     debug: bool = False
     dependency_tracker: DependencyTracker
+    current_instruction: Instruction
 
     def __init__(self, sandbox_base, code_base):
         super().__init__(sandbox_base, code_base)
@@ -237,7 +238,7 @@ class X86UnicornModel(Model):
 
             if reg_ in {"CF", "PF", "AF", "ZF", "SF", "TF", "IF", "DF", "OF", "AC"}:
                 return UC_X86_REG_EFLAGS
-            elif reg_ == "PC":
+            elif reg_ == "RIP":
                 return -1
             else:
                 for j in {"A", "B", "C", "D"}:
@@ -509,9 +510,8 @@ class X86UnicornSpec(X86UnicornModel):
     def trace_instruction(emulator, address, size, model) -> None:
         if model.in_speculation:
             model.speculation_window += 1
-            # rollback on a serializing instruction (lfence, sfence, mfence)
-            if emulator.mem_read(address,
-                                 size) in [b'\x0F\xAE\xE8', b'\x0F\xAE\xF8', b'\x0F\xAE\xF0']:
+            # rollback on a serializing instruction
+            if model.current_instruction.name in ["LFENCE", "MFENCE", "SFENCE"]:
                 emulator.emu_stop()
 
             # and on expired speculation window
