@@ -1,5 +1,9 @@
-from iced_x86 import *
-from typing import Dict, Sequence
+from __future__ import annotations
+
+from iced_x86 import Register, OpAccess, FlowControl, MemorySize, UsedRegister, UsedMemory, \
+     RflagsBits, Decoder
+from typing import Dict, List
+from interfaces import Instruction, RegisterOperand, FlagsOperand, MemoryOperand
 from types import ModuleType
 import copy
 
@@ -164,51 +168,39 @@ def register_deps(reg: str) -> set:
 
 
 class DependencyTracker:
-    # TODO:
-    # 1) When we observe an instruction operands,
-    # right now we do not distinguish between 1st and 2nd operand. Fix that!!
+    strict_undefined: bool = True
+
+    src_regs: List[str]
+    src_flags: List[str]
+    src_mems: List[str]
+    dest_regs: List[str]
+    dest_flags: List[str]
+    dest_mems: List[str]
 
     def __init__(self, code_biteness, initial_observations=None):
         if initial_observations is None:
             initial_observations = []
-        self.flag_tracking = {}
-        self.reg_tracking = {}
-        self.mem_tracking = {}
-        self.code_biteness = code_biteness
-        self.src_regs = set()
-        self.src_flags = set()
-        self.src_mems = set()
-        self.trg_regs = set()
-        self.trg_flags = set()
-        self.trg_mems = set()
-        self.debug = False
         self.initial_observations = initial_observations
-        self.observed_labels = set(self.initial_observations)
-        self.strict_undefined = True
-        self.checkpoints = []
+        self.debug = False
+        self.code_biteness = code_biteness
+
+        self.reset()
 
     def reset(self):
         self.flag_tracking = {}
         self.reg_tracking = {}
         self.mem_tracking = {}
         self.observed_labels = set(self.initial_observations)
-        self.src_regs = set()
-        self.src_flags = set()
-        self.src_mems = set()
-        self.trg_regs = set()
-        self.trg_flags = set()
-        self.trg_mems = set()
         self.checkpoints = []
+        self.reset_instruction_tracking()
 
-    def initialize(self, instruction):
-        # TODO: this function is extremely slow, has to get optimized
-        # Collect source and target registers/flags
-        self.src_regs = set()
-        self.src_flags = set()
-        self.src_mems = set()
-        self.trg_regs = set()
-        self.trg_flags = set()
-        self.trg_mems = set()
+    def reset_instruction_tracking(self):
+        self.src_regs = []
+        self.src_flags = []
+        self.src_mems = []
+        self.dest_regs = []
+        self.dest_flags = []
+        self.dest_mems = []
 
         decoder = Decoder(self.code_biteness, instruction)
         formatter = FastFormatter(FormatterSyntax.NASM)  # Formatter(FormatterSyntax.NASM)
@@ -286,11 +278,11 @@ class DependencyTracker:
             src_label = src_label.union(get_mem_label(self.mem_tracking, addr))
 
         # Propagate label to all targets
-        for reg in self.trg_regs:
+        for reg in self.dest_regs:
             self.reg_tracking[reg] = list(src_label)
-        for flg in self.trg_flags:
+        for flg in self.dest_flags:
             self.flag_tracking[flg] = list(src_label)
-        for mem in self.trg_mems:
+        for mem in self.dest_mems:
             self.mem_tracking[mem] = list(src_label)
 
         if self.debug:
