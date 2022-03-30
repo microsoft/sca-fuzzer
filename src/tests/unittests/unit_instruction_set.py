@@ -37,7 +37,7 @@ class InstructionSetParserTest(unittest.TestCase):
 
         flags = spec.implicit_operands[1]
         self.assertEqual(flags.type, OT.FLAGS)
-        self.assertEqual(flags.values, ['r/w', 'w', 'w', 'w', 'w'])
+        self.assertEqual(flags.values, ['r/w', 'w', 'w', 'w', 'w', '', '', '', 'w'])
 
     def test_dedup_identical(self):
         instruction_set = InstructionSet('./unittests/two_identical_specs.xml')

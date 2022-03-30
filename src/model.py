@@ -293,31 +293,71 @@ class X86UnicornModel(Model):
 # ==================================================================================================
 class TaintTracker:
     strict_undefined: bool = True
+    _instruction: Optional[Instruction] = None
 
     src_regs: List[str]
-    src_flags: List[str]
-    src_mems: List[str]
     dest_regs: List[str]
+    reg_dependencies: Dict[str, List]
+
+    src_flags: List[str]
     dest_flags: List[str]
+    flag_dependencies: Dict[str, List]
+
+    src_mems: List[str]
     dest_mems: List[str]
-    instruction: Optional[Instruction] = None
+    mem_dependencies: Dict[str, List]
+
+    _reg_decode = {
+        "A": UC_X86_REG_RAX,
+        "B": UC_X86_REG_RBX,
+        "C": UC_X86_REG_RCX,
+        "D": UC_X86_REG_RDX,
+        "DI": UC_X86_REG_RDI,
+        "SI": UC_X86_REG_RSI,
+        "SP": UC_X86_REG_RSP,
+        "BP": UC_X86_REG_RBP,
+        "8": UC_X86_REG_R8,
+        "9": UC_X86_REG_R9,
+        "10": UC_X86_REG_R10,
+        "11": UC_X86_REG_R11,
+        "12": UC_X86_REG_R12,
+        "13": UC_X86_REG_R13,
+        "14": UC_X86_REG_R14,
+        "15": UC_X86_REG_R15,
+        "FLAGS": UC_X86_REG_EFLAGS,
+        "CF": UC_X86_REG_EFLAGS,
+        "PF": UC_X86_REG_EFLAGS,
+        "AF": UC_X86_REG_EFLAGS,
+        "ZF": UC_X86_REG_EFLAGS,
+        "SF": UC_X86_REG_EFLAGS,
+        "TF": UC_X86_REG_EFLAGS,
+        "IF": UC_X86_REG_EFLAGS,
+        "DF": UC_X86_REG_EFLAGS,
+        "OF": UC_X86_REG_EFLAGS,
+        "AC": UC_X86_REG_EFLAGS,
+        "RIP": -1
+    }
+    _registers = [
+        UC_X86_REG_RAX, UC_X86_REG_RBX, UC_X86_REG_RCX, UC_X86_REG_RDX, UC_X86_REG_RSI,
+        UC_X86_REG_RDI, UC_X86_REG_EFLAGS
+    ]
 
     def __init__(self, code_biteness, initial_observations):
         self.initial_observations = initial_observations
         self.code_biteness = code_biteness
 
-        self.flag_tracking: Dict[str, set] = {}
-        self.reg_tracking: Dict[str, set] = {}
-        self.mem_tracking: Dict[int, set] = {}
-        self.observed_labels = set(self.initial_observations)
+        self.flag_dependencies = {}
+        self.reg_dependencies = {}
+        self.mem_dependencies = {}
+        self.tainted_labels = set(self.initial_observations)
         self.checkpoints = []
 
-    def initialize(self, instruction: Instruction):
+    def start_instruction(self, instruction: Instruction):
         """ Collect source and target registers/flags """
-        if self.instruction:
-            self.finalize_tracking()  # finalize the previous instruction
-        
-        self.instruction = instruction
+        if self._instruction:
+            self.finalize_instruction()  # finalize the previous instruction
+
+        self._instruction = instruction
         self.src_regs = []
         self.src_flags = []
         self.src_mems = []
@@ -340,60 +380,63 @@ class TaintTracker:
                     self.src_flags.extend(op.get_undef_flags())
                 self.dest_flags = op.get_write_flags()
 
-    def finalize_tracking(self):
+    def finalize_instruction(self):
         # Compute source label
-        src_label = set()
+        src_labels = []
         for reg in self.src_regs:
-            src_label.update(self.reg_tracking.get(reg, {reg}))
+            src_labels.extend(self.reg_dependencies.get(reg, {reg}))
         for flag in self.src_flags:
-            src_label.update(self.flag_tracking.get(flag, {flag}))
+            src_labels.extend(self.flag_dependencies.get(flag, {flag}))
         for addr in self.src_mems:
-            src_label.update(self.mem_tracking.get(addr, {addr}))
+            src_labels.extend(self.mem_dependencies.get(addr, {addr}))
 
         # Propagate label to all targets
         for reg in self.dest_regs:
-            self.reg_tracking[reg] = list(src_label)
+            self.reg_dependencies[reg] = src_labels
         for flg in self.dest_flags:
-            self.flag_tracking[flg] = list(src_label)
+            self.flag_dependencies[flg] = src_labels
         for mem in self.dest_mems:
-            self.mem_tracking[mem] = list(src_label)
+            self.mem_dependencies[mem] = src_labels
 
-    def track_memory_access(self, address, size, is_write: bool):
+        self._instruction = None
+
+    def track_memory_access(self, address: int, size: int, is_write: bool):
         """ Tracking concrete memory accesses """
         if is_write:
             for i in range(0, size):
-                self.dest_mems.append(address + i)
+                self.dest_mems.append(str(address + i))
         else:
             for i in range(0, size):
-                self.src_mems.append(address + i)
+                self.src_mems.append(str(address + i))
 
     def taint_operands(self):
         """ Add regLabel(PC) to the set of observed labels """
         for reg in self.src_regs:
-            self.observed_labels.update(self.reg_tracking.get(reg, {reg}))
+            self.tainted_labels.update(self.reg_dependencies.get(reg, {reg}))
 
     def taint_pc(self):
         """ For all registers r in the instruction operands
         (i.e., all source registers), Add regLabel(r) to the set of observed labels
         """
-        self.observed_labels.update(self.reg_tracking.get("RIP", {"RIP"}))
+        self.tainted_labels.update(self.reg_dependencies.get("RIP", {"RIP"}))
 
     def taint_memory_address(self, address: int, size: int):
         """ Add memLabel(address) to the set of observed labels """
         for i in range(0, size):
-            self.observed_labels.update(self.mem_tracking.get(address + i, {address + i}))
+            addr = str(address + i)
+            self.tainted_labels.update(self.mem_dependencies.get(addr, {addr}))
 
     def save_state(self):
-        return copy.deepcopy(self.flag_tracking), \
-               copy.deepcopy(self.reg_tracking), \
-               copy.deepcopy(self.mem_tracking), \
-               copy.deepcopy(self.observed_labels)
+        return copy.deepcopy(self.flag_dependencies), \
+               copy.deepcopy(self.reg_dependencies), \
+               copy.deepcopy(self.mem_dependencies), \
+               copy.deepcopy(self.tainted_labels)
 
-    def restore_state(self, flag_tracking, reg_tracking, mem_tracking, observed_labels):
-        self.flag_tracking = copy.deepcopy(flag_tracking)
-        self.reg_tracking = copy.deepcopy(reg_tracking)
-        self.mem_tracking = copy.deepcopy(mem_tracking)
-        self.observed_labels = copy.deepcopy(observed_labels)
+    def restore_state(self, flag_tracking, reg_tracking, mem_tracking, tainted_labels):
+        self.flag_dependencies = copy.deepcopy(flag_tracking)
+        self.reg_dependencies = copy.deepcopy(reg_tracking)
+        self.mem_dependencies = copy.deepcopy(mem_tracking)
+        self.tainted_labels = copy.deepcopy(tainted_labels)
 
     def checkpoint(self):
         t = self.save_state()
@@ -405,58 +448,25 @@ class TaintTracker:
         self.restore_state(*t)
 
     def get_taint(self, sandbox_base) -> InputTaint:
-        reg_decode = {
-            "A": UC_X86_REG_RAX,
-            "B": UC_X86_REG_RBX,
-            "C": UC_X86_REG_RCX,
-            "D": UC_X86_REG_RDX,
-            "DI": UC_X86_REG_RDI,
-            "SI": UC_X86_REG_RSI,
-            "SP": UC_X86_REG_RSP,
-            "BP": UC_X86_REG_RBP,
-            "8": UC_X86_REG_R8,
-            "9": UC_X86_REG_R9,
-            "10": UC_X86_REG_R10,
-            "11": UC_X86_REG_R11,
-            "12": UC_X86_REG_R12,
-            "13": UC_X86_REG_R13,
-            "14": UC_X86_REG_R14,
-            "15": UC_X86_REG_R15,
-            "FLAGS": UC_X86_REG_EFLAGS,
-            "CF": UC_X86_REG_EFLAGS,
-            "PF": UC_X86_REG_EFLAGS,
-            "AF": UC_X86_REG_EFLAGS,
-            "ZF": UC_X86_REG_EFLAGS,
-            "SF": UC_X86_REG_EFLAGS,
-            "TF": UC_X86_REG_EFLAGS,
-            "IF": UC_X86_REG_EFLAGS,
-            "DF": UC_X86_REG_EFLAGS,
-            "OF": UC_X86_REG_EFLAGS,
-            "AC": UC_X86_REG_EFLAGS,
-            "RIP": -1
-        }
-        registers = [
-            UC_X86_REG_RAX, UC_X86_REG_RBX, UC_X86_REG_RCX, UC_X86_REG_RDX, UC_X86_REG_RSI,
-            UC_X86_REG_RDI, UC_X86_REG_EFLAGS
-        ]
+        if self._instruction:
+            self.finalize_instruction()
 
         taint = InputTaint()
         tainted_positions = []
-        for d in self.observed_labels:
-            pos = -1
-            if type(d) is int:
+        for label in self.tainted_labels:
+            input_offset = -1  # the location of the label within the Input array
+            if isinstance(label, int):
                 # memory address
                 # we taint the 64-bits block that contains the address
-                pos = (d - sandbox_base) // 8
-            elif type(d) is str:
-                # flag register
-                reg = reg_decode[d]
-                if reg in registers:
-                    pos = CONF.input_main_region_size + \
+                input_offset = (label - sandbox_base) // 8
+            elif isinstance(label, str):
+                reg = self._reg_decode[label]
+                if reg in self._registers:
+                    input_offset = CONF.input_main_region_size + \
                           CONF.input_assist_region_size + \
-                          registers.index(reg_decode[d])
-            if pos != -1:
-                tainted_positions.append(pos)
+                          self._registers.index(self._reg_decode[label])
+            if input_offset != -1:
+                tainted_positions.append(input_offset)
 
         tainted_positions = list(dict.fromkeys(tainted_positions))
         tainted_positions.sort()
@@ -570,7 +580,7 @@ class X86UnicornSeq(X86UnicornModel):
 
     @staticmethod
     def trace_instruction(emulator, address, size, model) -> None:
-        model.taint_tracker.initialize(model.current_instruction)
+        model.taint_tracker.start_instruction(model.current_instruction)
         model.tracer.observe_instruction(address, size, model)
 
     @staticmethod
