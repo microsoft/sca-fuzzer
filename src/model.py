@@ -54,7 +54,7 @@ class X86UnicornTracer(ABC):
 
     def add_mem_address_to_trace(self, address: int, model):
         self.trace.append(address)
-        model.taint_tracker.taint_operands()
+        model.taint_tracker.taint_memory_address(address)
 
     def add_pc_to_trace(self, address, model):
         self.trace.append(address)
@@ -197,7 +197,7 @@ class X86UnicornModel(Model):
         self.in_speculation = False
         self.speculation_window = 0
         self.tracer.reset_trace(self.emulator)
-        self.taint_tracker = TaintTracker(64, self.initial_taints)
+        self.taint_tracker = TaintTracker(self.initial_taints)
 
     def _load_input(self, input_: Input):
         # Set memory:
@@ -342,10 +342,8 @@ class TaintTracker:
         UC_X86_REG_RDI, UC_X86_REG_EFLAGS
     ]
 
-    def __init__(self, code_biteness, initial_observations):
+    def __init__(self, initial_observations):
         self.initial_observations = initial_observations
-        self.code_biteness = code_biteness
-
         self.flag_dependencies = {}
         self.reg_dependencies = {}
         self.mem_dependencies = {}
@@ -381,6 +379,7 @@ class TaintTracker:
                 self.dest_flags = op.get_write_flags()
 
     def finalize_instruction(self):
+        """Propagate dependencies from source operands to destinations """
         # Compute source label
         src_labels = []
         for reg in self.src_regs:
@@ -402,29 +401,22 @@ class TaintTracker:
 
     def track_memory_access(self, address: int, size: int, is_write: bool):
         """ Tracking concrete memory accesses """
-        if is_write:
-            for i in range(0, size):
-                self.dest_mems.append(str(address + i))
-        else:
-            for i in range(0, size):
-                self.src_mems.append(str(address + i))
+        # mask the address - we taint at the granularity of 64 bits
+        masked_start_addr = address & 0xffff_ffff_ffff_ffc0
+        end_addr = address + (size - 1) * 8
+        masked_end_addr = end_addr & 0xffff_ffff_ffff_ffc0
 
-    def taint_operands(self):
-        """ Add regLabel(PC) to the set of observed labels """
-        for reg in self.src_regs:
-            self.tainted_labels.update(self.reg_dependencies.get(reg, {reg}))
+        # add all addresses to tracking
+        track_list = self.dest_mems if is_write else self.src_mems
+        for i in range(masked_start_addr, masked_end_addr + 1, 64):
+            track_list.append(hex(i))
 
     def taint_pc(self):
-        """ For all registers r in the instruction operands
-        (i.e., all source registers), Add regLabel(r) to the set of observed labels
-        """
         self.tainted_labels.update(self.reg_dependencies.get("RIP", {"RIP"}))
 
-    def taint_memory_address(self, address: int, size: int):
-        """ Add memLabel(address) to the set of observed labels """
-        for i in range(0, size):
-            addr = str(address + i)
-            self.tainted_labels.update(self.mem_dependencies.get(addr, {addr}))
+    def taint_memory_access_address(self):
+        for addr in self.dest_mems + self.src_mems:
+            self.tainted_labels.update(self.mem_dependencies.get(str(addr), {str(addr)}))
 
     def save_state(self):
         return copy.deepcopy(self.flag_dependencies), \

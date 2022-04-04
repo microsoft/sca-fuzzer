@@ -448,7 +448,7 @@ class InputTaint(np.ndarray):
         size = CONF.input_main_region_size + \
                CONF.input_assist_region_size + \
                CONF.input_register_region_size
-        obj = super().__new__(cls, (size,), np.bool, None, 0, None, None)  # type: ignore
+        obj = super().__new__(cls, (size,), bool, None, 0, None, None)  # type: ignore
         return obj
 
 
