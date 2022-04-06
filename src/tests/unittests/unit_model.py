@@ -7,75 +7,134 @@ import sys
 
 sys.path.insert(0, '..')
 from model import TaintTracker
-from interfaces import Instruction, RegisterOperand, MemoryOperand, InputTaint
+from interfaces import Instruction, RegisterOperand, MemoryOperand, InputTaint, LabelOperand, \
+    FlagsOperand
 from config import CONF
 
 
 class X86UnicornModelTest(unittest.TestCase):
 
-    def test_taint_tracking(self):
+    def test_dependency_tracking(self):
         tracker = TaintTracker([])
 
         # reg -> reg
         tracker.start_instruction(Instruction("ADD")
                                   .add_op(RegisterOperand("RAX", 64, True, True))
                                   .add_op(RegisterOperand("RBX", 64, True, False)))  # yapf: disable
-        tracker.finalize_instruction()
-        self.assertEqual(tracker.src_regs, ["A", "B"])
-        self.assertEqual(tracker.dest_regs, ["A"])
-        self.assertEqual(tracker.reg_dependencies, {'A': ['A', 'B']})
+        tracker._finalize_instruction()
+        self.assertCountEqual(tracker.src_regs, ["A", "B"])
+        self.assertCountEqual(tracker.dest_regs, ["A"])
+        self.assertCountEqual(tracker.reg_dependencies['A'], ['A', 'B'])
 
         # chain of dependencies
         tracker.start_instruction(Instruction("MOV")
                                   .add_op(RegisterOperand("RCX", 64, False, True))
                                   .add_op(RegisterOperand("RAX", 64, True, False)))  # yapf: disable
-        tracker.finalize_instruction()
-        self.assertEqual(tracker.reg_dependencies, {'A': ['A', 'B'], 'C': ['A', 'B']})
+        tracker._finalize_instruction()
+        self.assertCountEqual(tracker.reg_dependencies['A'], ['A', 'B'])
+        self.assertCountEqual(tracker.reg_dependencies['C'], ['A', 'B', 'C'])
 
         # memory -> reg
         tracker.start_instruction(Instruction("MOV")
                                   .add_op(RegisterOperand("RDX", 64, False, True))
                                   .add_op(MemoryOperand("RCX", 64, True, False)))  # yapf: disable
-        tracker.track_memory_access(100, 8, False)
-        tracker.finalize_instruction()
-        self.assertEqual(tracker.reg_dependencies['D'], ['0x40', '0x80'])
+        tracker.track_memory_access(0x87, 8, False)
+        tracker._finalize_instruction()
+        self.assertCountEqual(tracker.reg_dependencies['D'], ['0x80', '0x88', 'D'])
 
         # reg -> mem
         tracker.start_instruction(Instruction("MOV")
                                   .add_op(MemoryOperand("RAX", 64, False, True))
                                   .add_op(RegisterOperand("RSI", 64, True, False)))  # yapf: disable
-        tracker.track_memory_access(64, 8, True)
-        tracker.finalize_instruction()
-        self.assertEqual(tracker.mem_dependencies, {'0x40': ['SI']})
+        tracker.track_memory_access(0x80, 8, True)
+        tracker._finalize_instruction()
+        self.assertCountEqual(tracker.mem_dependencies['0x80'], ['0x80', 'SI'])
 
         # store -> load
         tracker.start_instruction(Instruction("MOV")
                                   .add_op(RegisterOperand("RDI", 64, False, True))
                                   .add_op(MemoryOperand("RAX", 64, True, False)))  # yapf: disable
-        tracker.track_memory_access(64, 8, False)
-        tracker.finalize_instruction()
-        self.assertEqual(tracker.reg_dependencies['DI'], ['SI'])
+        tracker.track_memory_access(0x80, 8, False)
+        tracker._finalize_instruction()
+        self.assertCountEqual(tracker.reg_dependencies['DI'], ['SI', 'DI', '0x80'])
 
-        # dependency overwriting
-        self.assertEqual(tracker.reg_dependencies['A'], ['A', 'B'])
+    def test_tainting(self):
+        tracker = TaintTracker([])
+        reg_offset = CONF.input_main_region_size + CONF.input_assist_region_size
+
+        # Initial dependency
+        tracker.start_instruction(Instruction("ADD")
+                                  .add_op(RegisterOperand("RAX", 64, True, True))
+                                  .add_op(RegisterOperand("RBX", 64, True, False)))  # yapf: disable
+        tracker._finalize_instruction()
         tracker.start_instruction(Instruction("MOV")
-                                  .add_op(RegisterOperand("RAX", 64, False, True))
-                                  .add_op(RegisterOperand("RSI", 64, True, False)))  # yapf: disable
-        tracker.finalize_instruction()
-        self.assertEqual(tracker.reg_dependencies['A'], ['SI'])
+                                  .add_op(MemoryOperand("RAX", 64, False, True))
+                                  .add_op(RegisterOperand("RAX", 64, True, False)))  # yapf: disable
+        tracker.track_memory_access(0x80, 8, True)
+        tracker._finalize_instruction()
 
-        # tracker.start_instruction(inst)
-        # tracker.track_memory_access(20, 8, False)
-        # tracker.taint_memory_access_address()
-        # tracker.finalize_instruction()
+        # Taint memory address
+        tracker.start_instruction(Instruction("MOV")
+                                  .add_op(RegisterOperand("RBX", 64, True, False))
+                                  .add_op(MemoryOperand("RCX + 8 -16", 64, False, True))
+                                  )  # yapf: disable
+        tracker.track_memory_access(0x80, 8, False)
+        tracker.taint_memory_access_address()
+        taint: InputTaint = tracker.get_taint()
+        self.assertCountEqual(tracker.mem_dependencies['0x80'], ['A', 'B', '0x80'])
+        self.assertCountEqual(tracker.tainted_labels, {'C'})
+        self.assertEqual(taint[reg_offset + 2], True)  # RCX
 
-        # taint: InputTaint = tracker.get_taint(0)
+        # Taint PC
+        tracker.tainted_labels = set()
+        tracker.start_instruction(Instruction("CMPC")
+                                  .add_op(RegisterOperand("RAX", 64, True, False))
+                                  .add_op(RegisterOperand("RDX", 64, True, False))
+                                  .add_op(FlagsOperand(["w", "", "", "", "", "", "", "", ""]), True)
+                                  )  # yapf: disable
+        tracker._finalize_instruction()
+        jmp_instruction = Instruction("JC").add_op(LabelOperand(".bb0"))\
+                          .add_op(FlagsOperand(["r", "", "", "", "", "", "", "", ""]), True)\
+                          .add_op(RegisterOperand("RIP", 64, True, True), True)
+        jmp_instruction.control_flow = True
+        tracker.start_instruction(jmp_instruction)
+        tracker.taint_pc()
+        taint: InputTaint = tracker.get_taint()
+        self.assertEqual(taint[reg_offset], True)  # RAX - through flags
+        self.assertEqual(taint[reg_offset + 1], True)  # RBX - through flags + register
+        self.assertEqual(taint[reg_offset + 3], True)  # RDX - through flags
 
-        # print(f"Reg deps: {tracker.reg_dependencies}")
-        # print(f"Mem deps: {tracker.mem_dependencies}")
-        # print(f"Taint labels: {tracker.tainted_labels}")
+        # Taint load value
+        tracker.tainted_labels = set()
+        tracker.start_instruction(Instruction("MOV")
+                                  .add_op(RegisterOperand("RBX", 64, False, True))
+                                  .add_op(MemoryOperand("RCX", 64, True, False))
+                                  )  # yapf: disable
+        tracker.track_memory_access(0x80, 8, is_write=False)
+        tracker.taint_memory_load()
+        taint: InputTaint = tracker.get_taint()
+        # 0x80 -> A -> [A, B]
+        self.assertEqual(taint[reg_offset + 0], True)
+        self.assertEqual(taint[reg_offset + 1], True)
 
-        # print(taint)
+    def test_label_to_taint(self):
+        tracker = TaintTracker([])
+        reg_offset = CONF.input_main_region_size + CONF.input_assist_region_size
+        taint_size = reg_offset + CONF.input_register_region_size
+        tracker.tainted_labels = {'0x0', '0x40', '0x640', 'D', 'SI', '8', '14', 'DF', 'RIP'}
+        taint = tracker.get_taint()
+
+        expected = [False for i in range(taint_size)]
+        expected[0] = True  # 0x0
+        expected[8] = True  # 0x40
+        expected[200] = True  # 640
+        expected[reg_offset + 3] = True  # D
+        expected[reg_offset + 4] = True  # SI
+        expected[reg_offset + 6] = True  # DF - flags
+        # 8, 14, RIP - not a part of the input
+
+        self.assertListEqual(list(taint), expected)
+
 
 
 if __name__ == '__main__':
