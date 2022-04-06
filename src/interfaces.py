@@ -91,9 +91,10 @@ class FlagsOperand(Operand):
     _flag_values: List[str]
     _flag_names: List[str] = ["CF", "PF", "AF", "ZF", "SF", "TF", "IF", "DF", "OF"]
 
-    def __init__(self, value, src: bool, dest: bool):
+    def __init__(self, value):
+        assert len(value) == len(self._flag_names)
         self._flag_values = value
-        super().__init__("FLAGS", OT.FLAGS, src, dest)
+        super().__init__("FLAGS", OT.FLAGS, False, False)
 
     def __str__(self):
         return "FLAGS: " \
@@ -151,7 +152,10 @@ class Instruction:
         self.control_flow = control_flow
 
     def __str__(self) -> str:
-        operands = ', '.join([o.value for o in self.operands])
+        op_list = [
+            "[" + o.value + "]" if isinstance(o, MemoryOperand) else o.value for o in self.operands
+        ]
+        operands = ', '.join(op_list)
         return f"{self.name} {operands}"
 
     def add_op(self, op: Operand):

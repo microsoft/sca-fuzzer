@@ -294,6 +294,4 @@ class InstructionSet(InstructionSetAbstract):
             op.attrib.get("flag_DF", ""),
             op.attrib.get("flag_OF", ""),
         ]
-        return OperandSpec(flags, OT.FLAGS,
-                           op.attrib.get('r', "0"),
-                           op.attrib.get('w', "0"))
+        return OperandSpec(flags, OT.FLAGS, "0", "0")

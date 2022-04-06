@@ -317,7 +317,7 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         return AgenOperand(reg1 + " + " + reg2 + " + " + imm, spec.width)
 
     def generate_flags_operand(self, spec: OperandSpec, _: Instruction) -> Operand:
-        return FlagsOperand(spec.values, spec.src, spec.dest)
+        return FlagsOperand(spec.values)
 
     def add_terminators_in_function(self, func: Function):
         for bb in func:
@@ -342,7 +342,7 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
                 terminator.operands = [LabelOperand(bb.successors[0].name)]
                 for op in spec.implicit_operands:
                     if op.type == OT.FLAGS:
-                        terminator.implicit_operands = [FlagsOperand(op.values, op.src, op.dest)]
+                        terminator.implicit_operands = [FlagsOperand(op.values)]
                         break
                 bb.terminators.append(terminator)
 
@@ -920,7 +920,7 @@ class X86SandboxPass(Pass):
                 parent.delete(inst)
                 return
 
-        # TODO: remove me
+        # TODO: remove me - avoids a certain violation
         if divisor.width == 64:
             parent.delete(inst)
             return
