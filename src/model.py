@@ -109,7 +109,8 @@ class X86UnicornModel(Model):
     tracer: X86UnicornTracer
     nesting: int = 0
     debug: bool = False
-    taint_tracker: TaintTracker
+    taint_tracker: TaintTrackerInterface
+    tainting_enabled: bool = True
     current_instruction: Instruction
 
     def __init__(self, sandbox_base, code_base):
@@ -160,10 +161,10 @@ class X86UnicornModel(Model):
             print("Model error [load_test_case]: %s" % e)
             raise e
 
-    def trace_test_case(self, inputs: List[Input], nesting, dbg: bool = False) -> \
-            Tuple[List[CTrace], List[InputTaint]]:
+    def trace_test_case(self, inputs, nesting, enable_tainting, dbg=False):
         self.nesting = nesting
         self.debug = dbg
+        self.tainting_enabled = enable_tainting
 
         traces = []
         full_execution_traces = []
@@ -206,7 +207,8 @@ class X86UnicornModel(Model):
         self.in_speculation = False
         self.speculation_window = 0
         self.tracer.reset_trace(self.emulator)
-        self.taint_tracker = TaintTracker(self.initial_taints)
+        self.taint_tracker = TaintTracker(self.initial_taints, self.sandbox_base) \
+            if self.tainting_enabled else DummyTaintTracker([])
 
     def _load_input(self, input_: Input):
         # Set memory:
@@ -300,14 +302,54 @@ class X86UnicornModel(Model):
 # ==================================================================================================
 # Tainting
 # ==================================================================================================
-class TaintTracker:
+class TaintTrackerInterface(ABC):
+
+    def __init__(self, initial_observations, sandbox_base=0):
+        pass
+
+    def start_instruction(self, instruction: Instruction) -> None:
+        pass
+
+    def track_memory_access(self, address: int, size: int, is_write: bool) -> None:
+        pass
+
+    def taint_pc(self):
+        pass
+
+    def taint_memory_access_address(self):
+        pass
+
+    def taint_memory_load(self):
+        pass
+
+    def taint_memory_store(self):
+        pass
+
+    def checkpoint(self):
+        pass
+
+    def rollback(self):
+        pass
+
+    @abstractmethod
+    def get_taint(self) -> InputTaint:
+        pass
+
+
+class DummyTaintTracker(TaintTrackerInterface):
+
+    def get_taint(self) -> InputTaint:
+        return InputTaint()
+
+
+class TaintTracker(TaintTrackerInterface):
     strict_undefined: bool = True
     _instruction: Optional[Instruction] = None
     sandbox_base: int = 0
 
     src_regs: List[str]
     dest_regs: List[str]
-    reg_dependencies: Dict[str, List]
+    reg_dependencies: Dict[str, Set]
 
     src_flags: List[str]
     dest_flags: List[str]

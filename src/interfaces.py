@@ -595,8 +595,11 @@ class Model(ABC):
         pass
 
     @abstractmethod
-    def trace_test_case(self, inputs: List[Input], nesting: int, dbg: bool = False) -> \
-            Tuple[List[CTrace], List[InputTaint]]:
+    def trace_test_case(self,
+                        inputs: List[Input],
+                        nesting: int,
+                        enable_tainting: bool = True,
+                        dbg: bool = False) -> Tuple[List[CTrace], List[InputTaint]]:
         pass
 
     def set_coverage(self, coverage: Coverage):
