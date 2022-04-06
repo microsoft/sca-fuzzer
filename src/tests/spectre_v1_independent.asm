@@ -16,6 +16,7 @@ SHR rbx, 63
 # speculation
 CMP rbx, 0
 JE .l1
+.l0:
     # rbx != 0
     MOV rcx, qword ptr [rcx + rax]
 JMP .l2

@@ -23,6 +23,7 @@ AND rbx, 0b1000000
 
 CMP rbx, 0
 JE .l1  # misprediction
+.l0:
     # rbx != 0
     MOV qword ptr [r14], rax
     MOV rbx, qword ptr [r14]

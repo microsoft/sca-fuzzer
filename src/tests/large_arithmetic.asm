@@ -14,5 +14,6 @@ LEA rax, qword ptr [rax + rax + 8]
 LEA rax, qword ptr [rax + rax + 8]
 DEC rbx
 JNZ .l1
+.l2:
 
 LFENCE

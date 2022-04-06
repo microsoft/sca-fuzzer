@@ -6,9 +6,11 @@ MOV rax, 0
 AND rbx, 0b1 # reduce the entropy in rbx
 CMP rbx, 0
 JE .l1
+.l0:
     # rbx != 0
     LFENCE
-    MOV rax, 64
+    NOP
+    MOV rax, 128
     JMP .fin
 .l1:
     # >250 instructions
@@ -275,7 +277,8 @@ JE .l1
     NOP
     NOP
     NOP
-    MOV rax, 128
+    MOV rax, 256
 
 .fin:
 MOV rax, qword ptr [r14 + rax]
+MFENCE
