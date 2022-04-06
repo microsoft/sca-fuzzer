@@ -715,7 +715,7 @@ class X86UnicornSpec(X86UnicornModel):
         if model.in_speculation:
             model.speculation_window += 1
             # rollback on a serializing instruction
-            if model.current_instruction.name in ["LFENCE", "MFENCE", "SFENCE"]:
+            if model.current_instruction.name in ["LFENCE", "MFENCE"]:
                 emulator.emu_stop()
 
             # and on expired speculation window
