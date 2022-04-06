@@ -98,6 +98,11 @@ def main():
         default=False,
         help="Add as many LFENCEs as possible, while preserving the violation.",
     )
+    parser_mini.add_argument(
+        "-s", "--instruction-set",
+        type=str,
+        required=True
+    )
 
     args = parser.parse_args()
 
@@ -131,7 +136,7 @@ def main():
 
     # Test Case minimisation
     if args.subparser_name == "minimize":
-        postprocessor = Postprocessor()
+        postprocessor = Postprocessor(args.instruction_set)
         postprocessor.minimize(args.infile, args.outfile, args.num_inputs, args.add_fences)
         return
 

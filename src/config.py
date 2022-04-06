@@ -25,6 +25,7 @@ class ConfCls:
     max_bb_successors = 0  # zero -> automatically set based on the available instructions
     test_case_size = 32
     avg_mem_accesses = 12
+    randomized_mem_alignment: bool = True
     avoid_data_dependencies: bool = True
     generate_memory_accesses_in_pairs: bool = True
     memory_access_zeroed_bits: int = 6
@@ -90,6 +91,8 @@ class ConfCls:
         # "REPNE STOSB", "REPNE STOSD", "REPNE STOSW"
         "REPNE CMPSB", "REPNE CMPSD", "REPNE CMPSW",
         "REPNE MOVSB", "REPNE MOVSD", "REPNE MOVSW",
+        # - not supported
+        # "LFENCE", "MFENCE", "SFENCE",
     ]  # yapf: disable
     extended_instruction_blocklist: List[str] = []
     # x86 executor internally uses R15, R14, RSP, RBP and, thus, they are excluded
@@ -111,7 +114,6 @@ class ConfCls:
     input_generator: str = 'random'
     input_generator_seed: int = 10  # zero is a reserved value, do not use it
     prng_entropy_bits: int = 3
-    randomized_mem_alignment: bool = True
     input_main_region_size: int = 4096 // 8
     input_assist_region_size: int = 4096 // 8
     input_register_region_size: int = 64 // 8

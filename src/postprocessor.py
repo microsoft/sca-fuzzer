@@ -3,103 +3,33 @@ File: All kinds of postprocessing actions performed after a violation has been d
 Currently, it's a stripped-down version of the main fuzzer, modified to find the minimal
 set of inputs that reproduce the vulnerability and to minimize the test case.
 
-Copyright (C) 2021 Oleksii Oleksenko
-Copyright (C) 2020 Microsoft Corporation
+Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 from subprocess import run
+from shutil import copy
 from fuzzer import Fuzzer
-from model import Model, get_model
-from executor import Executor, get_executor
-from analyser import Analyser, get_analyser
-from input_generator import InputGenerator, get_input_generator
 from typing import List
-from interfaces import HTrace, EquivalenceClass, Input, InputTaint, TestCase
+from interfaces import HTrace, EquivalenceClass, Input, TestCase
 from config import CONF
 
 
 class Postprocessor:
-    def __init__(self):
-        pass
 
-    def minimize(self, test_case: str, outfile: str, num_inputs: int, add_fences: bool):
-        fuzzer: Fuzzer = Fuzzer("", "", test_case)
-        executor: Executor = get_executor()
-        model: Model = get_model(executor.read_base_addresses())
-        input_gen: InputGenerator = get_input_generator()
-        analyser: Analyser = get_analyser()
+    def __init__(self, instruction_set_spec):
+        self.instruction_set_spec = instruction_set_spec
 
-        # Prepare initial inputs
-        inputs: List[Input] = input_gen.generate(CONF.input_generator_seed, num_inputs)
-
-        # ensure that we have many inputs in each input classes
-        model.load_test_case(TestCase(test_case))
-        taints: List[InputTaint]
-        _, taints = model.trace_test_case(inputs, CONF.max_nesting)
-        if CONF.dependency_tracking and CONF.inputs_per_class > 1:
-            new_inputs: List[Input] = inputs
-            orig_taints: List[InputTaint] = list(taints)
-            for i in range(CONF.inputs_per_class - 1):
-                new_inputs = input_gen.extend_equivalence_classes(new_inputs, orig_taints)
-                inputs += new_inputs
-
-        # Check if we can reproduce a violation with the given configuration
-        print("Trying to reproduce...")
-
-        violations: List[EquivalenceClass] = self.get_all_violations(TestCase(test_case), model,
-                                                                     executor, analyser, fuzzer,
-                                                                     inputs)
-        if not violations:
-            print("Could not reproduce the violation. Exiting...")
-            return
-
-        print(f"Found {len(violations)} violations\nSearching for a minimal input set...")
-        min_inputs = []
-        for violation in violations:
-            for i in range(len(violation.inputs)):
-                input_id = violation.original_positions[i]
-                expected_htrace = violation.htraces[i]
-                primer = fuzzer.get_min_primer(executor, inputs, input_id, expected_htrace, 1)
-                min_inputs.extend(primer)
-
-        # Make sure these inputs indeed reproduce
-        violations = self.get_all_violations(TestCase(test_case), model, executor, analyser, fuzzer,
-                                             min_inputs)
-        if not violations or len(min_inputs) > len(inputs):
-            print("Failed to build a minimal input sequence. Falling back to using all inputs...")
-            min_inputs = inputs
-        else:
-            print(f"Reduced to {len(min_inputs)} inputs")
-
-        with open(test_case, "r") as f:
-            instructions = f.readlines()
-
-        print("Minimizing the test case...")
-        min_instructions = self.minimize_test_case(instructions, model, executor, analyser, fuzzer,
-                                                   min_inputs)
-
-        if add_fences:
-            print("Trying to add fences...")
-            min_instructions = self.add_fences(instructions, model, executor, analyser,
-                                               fuzzer, min_inputs)
-
-        print("Storing the results")
-        with open(outfile, "w") as f:
-            for line in min_instructions:
-                f.write(line)
-
-    def get_all_violations(self, test_case, model: Model, executor: Executor, analyser: Analyser,
-                           fuzzer: Fuzzer, inputs: List[Input]) -> List[EquivalenceClass]:
+    def _get_all_violations(self, fuzzer: Fuzzer, test_case: TestCase,
+                            inputs: List[Input]) -> List[EquivalenceClass]:
         # Initial measurement
-        model.load_test_case(test_case)
-        ctraces, _ = model.trace_test_case(inputs, CONF.max_nesting)
-
-        executor.load_test_case(test_case)
-        htraces: List[HTrace] = executor.trace_test_case(inputs)
+        fuzzer.model.load_test_case(test_case)
+        fuzzer.executor.load_test_case(test_case)
+        ctraces, _ = fuzzer.model.trace_test_case(inputs, CONF.max_nesting, False)
+        htraces: List[HTrace] = fuzzer.executor.trace_test_case(inputs)
 
         # Check for violations
-        violations: List[EquivalenceClass] = analyser.filter_violations(inputs, ctraces,
-                                                                        htraces, stats=True)
+        violations: List[EquivalenceClass] = fuzzer.analyser.filter_violations(
+            inputs, ctraces, htraces, stats=True)
         if not violations:
             return []
         if CONF.no_priming:
@@ -109,134 +39,123 @@ class Postprocessor:
         true_violations = []
         while violations:
             violation: EquivalenceClass = violations.pop()
-            if fuzzer.verify_with_priming(violation, executor, inputs):
+            if fuzzer.verify_with_priming(violation, inputs):
                 true_violations.append(violation)
 
         return true_violations
 
-    def minimize_test_case(self, instructions, model: Model, executor: Executor, analyser: Analyser,
-                           fuzzer: Fuzzer, inputs: List[Input]) -> List:
-        minimised = "/tmp/minimised.asm"
+    def _get_test_case_from_instructions(self, fuzzer, instructions: List[str]) -> TestCase:
+        minimized_asm = "/tmp/minimised.asm"
+        run(f"touch {minimized_asm}", shell=True, check=True)
+        with open(minimized_asm, "w+") as f:
+            f.seek(0)  # is it necessary??
+            for line in instructions:
+                f.write(line)
+            f.truncate()  # is it necessary??
+        return fuzzer.generator.parse_existing_test_case(minimized_asm)
+
+    def _probe_test_case(self, fuzzer: Fuzzer, test_case: TestCase, inputs: List[Input],
+                         modifier) -> TestCase:
+        with open(test_case.asm_path, "r") as f:
+            instructions = f.readlines()
+
         cursor = len(instructions)
 
         # Try removing instructions, one at a time
         while True:
             cursor -= 1
+            line = instructions[cursor].strip()
 
             # Did we reach the header?
-            if instructions[cursor] == ".bb0:\n":
+            if line == ".test_case_enter:":
                 break
 
-            # Preserve those instructions used for sandboxing
-            if "instrumentation" in instructions[cursor]:
-                continue
-
-            # Preserve labels
-            if instructions[cursor][0] == '.' and instructions[cursor][-2] == ':':
-                continue
-
-            if instructions[cursor] == "LFENCE\n":
-                continue
-
-            if instructions[cursor] == "\n":
+            # Preserve instructions used for sandboxing, fences, and labels
+            if not line or \
+               "instrumentation" in line or \
+               "LFENCE" in line or \
+               line[0] == '.':
                 continue
 
             # Create a test case with one line missing
-            run(f"touch {minimised}", shell=True, check=True)
-            with open(minimised, "r+") as f:
-                f.seek(0)
-                for i, line in enumerate(instructions):
-                    if i == cursor:
-                        continue  # skip one line
-                    f.write(line)
-                f.truncate()
+            tmp_instructions = modifier(instructions, cursor)
+            tmp_test_case = self._get_test_case_from_instructions(fuzzer, tmp_instructions)
 
             # Run and check if the vuln. is still there
-            violations = self.get_all_violations(TestCase(minimised), model, executor, analyser,
-                                                 fuzzer, inputs)
+            violations = self._get_all_violations(fuzzer, tmp_test_case, inputs)
             if violations:
                 print(".", end="", flush=True)
-                del instructions[cursor]
+                instructions = tmp_instructions
             else:
                 print("-", end="", flush=True)
 
-        return instructions
+        new_test_case = self._get_test_case_from_instructions(fuzzer, instructions)
+        return new_test_case
 
-    def add_fences(self, instructions, model: Model, executor: Executor, analyser: Analyser,
-                   fuzzer: Fuzzer, inputs: List[Input]) -> List:
-        minimised = "/tmp/minimised.asm"
-        cursor = len(instructions)
+    def minimize(self, test_case_asm: str, outfile: str, num_inputs: int, add_fences: bool):
+        # initialize fuzzer
+        fuzzer: Fuzzer = Fuzzer(self.instruction_set_spec, "", test_case_asm)
+        fuzzer.initialize_modules()
 
-        while True:
-            cursor -= 1
+        # Parse the test case and inputs
+        test_case: TestCase = fuzzer.generator.parse_existing_test_case(test_case_asm)
+        inputs: List[Input] = fuzzer.input_gen.generate(CONF.input_generator_seed, num_inputs)
 
-            # Did we reach the header?
-            if instructions[cursor] == ".bb0:\n":
-                break
+        # Load, boost inputs, and trace
+        fuzzer.model.load_test_case(test_case)
+        boosted_inputs: List[Input] = fuzzer.boost_inputs(inputs, CONF.max_nesting)
 
-            # Create a test case with one additional fence
-            run(f"touch {minimised}", shell=True, check=True)
-            with open(minimised, "r+") as f:
-                f.seek(0)
-                for i, line in enumerate(instructions):
-                    if i == cursor:
-                        f.write("LFENCE\n")
-                    f.write(line)
-                f.truncate()
+        print("Trying to reproduce...")
+        violations = self._get_all_violations(fuzzer, test_case, boosted_inputs)
+        if not violations:
+            print("Could not reproduce the violation. Exiting...")
+            return
+        print(f"Found {len(violations)} violations")
 
-            # Run and check if the vuln. is still there
-            violations = self.get_all_violations(TestCase(minimised), model, executor, analyser,
-                                                 fuzzer, inputs)
-            if violations:
-                print(".", end="", flush=True)
-                instructions = instructions[:cursor] + ["LFENCE\n"] + instructions[cursor:]
-            else:
-                print("-", end="", flush=True)
+        print("Searching for a minimal input set...")
+        # min_inputs = self.minimize_inputs(fuzzer, test_case, boosted_inputs, violations)
+        min_inputs = boosted_inputs
 
-        return instructions
+        print("Minimizing the test case...")
+        min_test_case: TestCase = self.minimize_test_case(fuzzer, test_case, min_inputs)
 
-    def replace_with_nops(self, instructions, model: Model, executor: Executor, analyser: Analyser,
-                          fuzzer: Fuzzer, inputs: List[Input]) -> List:
-        minimised = "/tmp/minimised.asm"
+        if add_fences:
+            print("Trying to add fences...")
+            min_test_case = self.add_fences(fuzzer, min_test_case, min_inputs)
 
-        for num_nops in range(1, 9):
+        print("Storing the results")
+        copy(min_test_case.asm_path, outfile)
 
-            # Try removing instructions, one at a time
-            cursor = len(instructions)
-            while True:
-                cursor -= 1
+    def minimize_inputs(self, fuzzer: Fuzzer, test_case: TestCase, inputs: List[Input],
+                        violations: List[EquivalenceClass]) -> List[Input]:
+        min_inputs = []
+        for violation in violations:
+            for i in range(len(violation.inputs)):
+                input_id = violation.original_positions[i]
+                expected_htrace = violation.htraces[i]
+                primer = fuzzer.get_min_primer(inputs, input_id, expected_htrace, 1)
+                min_inputs.extend(primer)
 
-                # Did we reach the header?
-                if instructions[cursor] == ".bb0:\n":
-                    break
+        # Make sure these inputs indeed reproduce
+        violations = self._get_all_violations(fuzzer, test_case, min_inputs)
+        if not violations or len(min_inputs) > len(inputs):
+            print("Failed to build a minimal input sequence. Falling back to using all inputs...")
+            min_inputs = inputs
+        else:
+            print(f"Reduced to {len(min_inputs)} inputs")
+        return min_inputs
 
-                # Preserve those instructions used for sandboxing
-                if "instrumentation" in instructions[cursor]:
-                    continue
+    def minimize_test_case(self, fuzzer: Fuzzer, test_case: TestCase,
+                           inputs: List[Input]) -> TestCase:
 
-                if instructions[cursor] == "LFENCE\n":
-                    continue
-                if instructions[cursor] == "NOP\n":
-                    continue
+        def skip_instruction(instructions, i):
+            return instructions[:i] + instructions[i + 1:]
 
-                # Create a test case with one line replaced with nops
-                run(f"touch {minimised}", shell=True, check=True)
-                with open(minimised, "r+") as f:
-                    f.seek(0)
-                    for i, line in enumerate(instructions):
-                        if i == cursor:
-                            f.write("NOP\n" * num_nops)
-                        else:
-                            f.write(line)
-                    f.truncate()
+        return self._probe_test_case(fuzzer, test_case, inputs, skip_instruction)
 
-                # Run and check if the vuln. is still there
-                violations = self.get_all_violations(TestCase(minimised), model, executor,
-                                                     analyser, fuzzer, inputs)
-                if violations:
-                    print(".", end="", flush=True)
-                    instructions[cursor] = "NOP\n" * num_nops
-                else:
-                    print("-", end="", flush=True)
+    def add_fences(self, fuzzer: Fuzzer, test_case: TestCase, inputs: List[Input]) -> TestCase:
 
-        return instructions
+        def push_fence(instructions, i):
+            return instructions[:i] + ["LFENCE\n"] + instructions[i:]
+
+        return self._probe_test_case(fuzzer, test_case, inputs, push_fence)

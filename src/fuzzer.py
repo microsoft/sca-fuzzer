@@ -26,8 +26,14 @@ from helpers import pretty_bitmap, bit_count, TWOS_COMPLEMENT_MASK_64
 
 class Fuzzer:
     instruction_set: InstructionSet
-    test_case: TestCase
     existing_test_case: str
+
+    generator: Generator
+    input_gen: InputGenerator
+    executor: Executor
+    model: Model
+    analyser: Analyser
+    coverage: Coverage
 
     def __init__(self, instruction_set_spec: str, work_dir: str, existing_test_case: str = ""):
         self.existing_test_case = existing_test_case
@@ -44,12 +50,7 @@ class Fuzzer:
         LOGGER.start_fuzzing(num_test_cases, start_time)
 
         # create all main modules
-        generator: Generator = get_generator(self.instruction_set)
-        input_gen: InputGenerator = get_input_generator()
-        executor: Executor = get_executor()
-        model: Model = get_model(executor.read_base_addresses())
-        analyser: Analyser = get_analyser()
-        coverage: Coverage = get_coverage(self.instruction_set, executor, model, analyser)
+        self.initialize_modules()
 
         # preserve the original ratio of inputs to the test case size
         input_ratio = num_inputs / CONF.test_case_size
@@ -58,21 +59,21 @@ class Fuzzer:
         for i in range(num_test_cases):
             # Generate a test case
             if not self.existing_test_case:
-                self.test_case = generator.create_test_case('generated.asm')
+                test_case = self.generator.create_test_case('generated.asm')
             else:
-                self.test_case = generator.parse_existing_test_case(self.existing_test_case)
+                test_case = self.generator.parse_existing_test_case(self.existing_test_case)
 
             # Prepare inputs
-            inputs: List[Input] = input_gen.generate(CONF.input_generator_seed, num_inputs)
+            inputs: List[Input] = self.input_gen.generate(CONF.input_generator_seed, num_inputs)
 
             # Fuzz the test case
-            violation = self.fuzzing_round(executor, model, analyser, input_gen, inputs)
+            violation = self.fuzzing_round(test_case, inputs)
             STAT.test_cases += 1
-            coverage.update()
+            self.coverage.update()
 
             if violation:
-                self.report_violations(violation, model)
-                self.store_test_case(False)
+                self.report_violations(violation, self.model)
+                self.store_test_case(test_case, False)
                 STAT.violations += 1
                 if not nonstop:
                     break
@@ -113,29 +114,21 @@ class Fuzzer:
 
         LOGGER.finish()
 
-    def fuzzing_round(self, executor: Executor, model: Model, analyser: Analyser,
-                      input_gen: InputGenerator, inputs: List[Input]) -> Optional[EquivalenceClass]:
+    def fuzzing_round(self, test_case: TestCase, inputs: List[Input]) -> Optional[EquivalenceClass]:
         LOGGER.start_round()
-        model.load_test_case(self.test_case)
-        executor.load_test_case(self.test_case)
+        self.model.load_test_case(test_case)
+        self.executor.load_test_case(test_case)
 
         # by default, we test without nested misprediction,
         # but retry with nesting upon a violation
+        violations: List[EquivalenceClass] = []
         for nesting in [1, CONF.max_nesting]:
+            boosted_inputs: List[Input] = self.boost_inputs(inputs, nesting)
+
+            # get traces
             ctraces: List[CTrace]
-            taints: List[InputTaint]
-            ctraces, taints = model.trace_test_case(inputs, nesting)
-
-            # ensure that we have many inputs in each input classes
-            orig_taints: List[InputTaint] = list(taints)
-            new_inputs: List[Input] = inputs
-            for i in range(CONF.inputs_per_class - 1):
-                new_inputs = input_gen.extend_equivalence_classes(new_inputs, orig_taints)
-                inputs += new_inputs
-            ctraces, _ = model.trace_test_case(inputs, nesting)
-
-            # HW measurement
-            htraces: List[HTrace] = executor.trace_test_case(inputs)
+            ctraces, _ = self.model.trace_test_case(boosted_inputs, nesting, False)
+            htraces: List[HTrace] = self.executor.trace_test_case(boosted_inputs)
 
             # for debugging
             if CONF.verbose == 999:
@@ -147,8 +140,7 @@ class Fuzzer:
                     print(pretty_bitmap(htraces[i]))
 
             # Check for violations
-            violations: List[EquivalenceClass] = analyser.filter_violations(
-                inputs, ctraces, htraces, stats=True)
+            violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces, True)
 
             # nothing detected? -> we are done here, move to next test case
             if not violations:
@@ -170,7 +162,7 @@ class Fuzzer:
         while violations:
             LOGGER.priming(len(violations))
             violation: EquivalenceClass = violations.pop()
-            if self.verify_with_priming(violation, executor, inputs):
+            if self.verify_with_priming(violation, boosted_inputs):
                 break
         else:
             # all violations were cleaned. all good
@@ -179,8 +171,27 @@ class Fuzzer:
         # Violation survived priming. Report it
         return violation
 
-    def verify_with_priming(self, violation: EquivalenceClass, executor: Executor,
-                            inputs: List[Input]) -> bool:
+    def initialize_modules(self):
+        """ create all main modules """
+        self.generator = get_generator(self.instruction_set)
+        self.input_gen: InputGenerator = get_input_generator()
+        self.executor: Executor = get_executor()
+        self.model: Model = get_model(self.executor.read_base_addresses())
+        self.analyser: Analyser = get_analyser()
+        self.coverage: Coverage = get_coverage(self.instruction_set, self.executor, self.model,
+                                               self.analyser)
+
+    def boost_inputs(self, inputs: List[Input], nesting: int) -> List[Input]:
+        taints: List[InputTaint]
+        _, taints = self.model.trace_test_case(inputs, nesting, True)
+
+        # ensure that we have many inputs in each input classes
+        boosted_inputs: List[Input] = list(inputs)  # make a copy
+        for _ in range(CONF.inputs_per_class - 1):
+            boosted_inputs += self.input_gen.extend_equivalence_classes(inputs, taints)
+        return boosted_inputs
+
+    def verify_with_priming(self, violation: EquivalenceClass, inputs: List[Input]) -> bool:
         ordered_htraces = sorted(
             violation.htrace_groups.keys(), key=lambda x: bit_count(x), reverse=False)
         original_groups = violation.htrace_groups
@@ -195,8 +206,7 @@ class Fuzzer:
             # create a multiprimer based on the last element in the group
             priming_group_member = original_groups[primer_htrace][-1]
             target_id = violation.original_positions[priming_group_member]
-            multiprimer = self.get_min_primer(executor, inputs, target_id, primer_htrace,
-                                              len(primed_ids))
+            multiprimer = self.get_min_primer(inputs, target_id, primer_htrace, len(primed_ids))
             if not multiprimer:
                 return False
             primer_size = len(multiprimer) // len(primed_ids)
@@ -206,7 +216,7 @@ class Fuzzer:
                 multiprimer[(i + 1) * primer_size - 1] = violation.inputs[id_]
 
             # try swapping
-            reproduced = self.check_multiprimer(executor, multiprimer, primer_size, primer_htrace,
+            reproduced = self.check_multiprimer(multiprimer, primer_size, primer_htrace,
                                                 CONF.priming_retries)
             if not reproduced:
                 return True
@@ -220,7 +230,7 @@ class Fuzzer:
 
         return False
 
-    def get_min_primer(self, executor, inputs: List[Input], target_id, expected_htrace,
+    def get_min_primer(self, inputs: List[Input], target_id, expected_htrace,
                        num_primed_inputs) -> List[Input]:
         # first size to be tested
         primer_size = CONF.min_primer_size % len(inputs) + 1
@@ -238,8 +248,7 @@ class Fuzzer:
 
             # check if the hardware trace of the target_id matches
             # the hardware trace received with the primer
-            primer_found = self.check_multiprimer(executor, multiprimer, primer_size,
-                                                  expected_htrace, 1)
+            primer_found = self.check_multiprimer(multiprimer, primer_size, expected_htrace, 1)
 
             if primer_found:
                 return multiprimer
@@ -247,8 +256,8 @@ class Fuzzer:
             # run out of inputs to test?
             if primer_size >= len(inputs):
                 # maybe, we have too few executions; try with more
-                primer_found = self.check_multiprimer(executor, multiprimer, primer_size,
-                                                      expected_htrace, CONF.priming_retries)
+                primer_found = self.check_multiprimer(multiprimer, primer_size, expected_htrace,
+                                                      CONF.priming_retries)
                 if not primer_found:
                     print("Could not reproduce previous results with priming.")
                     STAT.broken_measurements += 1
@@ -264,7 +273,7 @@ class Fuzzer:
             print("Failed to find a primer - max_primer_size reached")
             return []
 
-    def store_test_case(self, require_retires: bool):
+    def store_test_case(self, test_case: TestCase, require_retires: bool):
         if not self.work_dir:
             return
 
@@ -272,19 +281,18 @@ class Fuzzer:
         timestamp = datetime.today().strftime('%H%M%S-%d-%m-%y')
         name = type_ + timestamp + ".asm"
         Path(self.work_dir).mkdir(exist_ok=True)
-        shutil.copy2(self.test_case.asm_path, self.work_dir + "/" + name)
+        shutil.copy2(test_case.asm_path, self.work_dir + "/" + name)
 
         if not Path(self.work_dir + "/config.yaml").exists:
             shutil.copy2(CONF.config_path, self.work_dir + "/config.yaml")
 
-    @staticmethod
-    def check_multiprimer(executor: Executor, inputs: List[Input], primer_size: int,
-                          expected_htrace: HTrace, retries: int) -> bool:
+    def check_multiprimer(self, inputs: List[Input], primer_size: int, expected_htrace: HTrace,
+                          retries: int) -> bool:
         num_inputs = len(inputs) // primer_size
         num_measurements: int = CONF.num_measurements
         for i in range(retries):
             mismatch = False
-            primed_traces: List[HTrace] = executor.trace_test_case(inputs, num_measurements)
+            primed_traces: List[HTrace] = self.executor.trace_test_case(inputs, num_measurements)
             for j in range(num_inputs):
                 id_ = (primer_size - 1) + j * primer_size
                 if primed_traces[id_] != expected_htrace:
@@ -336,4 +344,4 @@ class Fuzzer:
         for group in violation.htrace_groups.values():
             print("===========================================")
             print(f"Input: {violation.inputs[group[0]]}, {violation.original_positions[group[0]]}")
-            model.trace_test_case([violation.inputs[group[0]]], 1, True)
+            model.trace_test_case([violation.inputs[group[0]]], 1, False, True)
