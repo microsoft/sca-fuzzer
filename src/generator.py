@@ -579,6 +579,7 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
         with open(asm_file, "r") as f:
             current_bb = test_case.main.entry
             started = False
+            terminators_started = False
             for i, line in enumerate(f):
                 line = line.strip()
                 # skip footer and header
@@ -592,17 +593,22 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
                     continue
 
                 if line.startswith(".function_"):  # skip functions
+                    current_bb = bb_names[".bb_" + line[:-1].lstrip(".function_") + ".entry"]
+                    terminators_started = False
                     continue
 
                 if line.startswith("."):
                     current_bb = bb_names[line[:-1]]
+                    terminators_started = False
                     continue
 
                 # Instruction
                 inst: Instruction = self._parse_instruction(line, i, instruction_map)
                 if inst.control_flow and inst.category != "CALL":
                     current_bb.insert_terminator(inst)
+                    terminators_started = True
                 else:
+                    parser_assert(not terminators_started, i, "Terminator in the middle of BB")
                     current_bb.insert_after(current_bb.get_last(), inst)
 
         # connect basic blocks
