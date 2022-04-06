@@ -431,7 +431,8 @@ class X86Registers(RegisterSet):
         "R14": "14", "R14D": "14", "R14W": "14", "R14B": "14",
         "R15": "15", "R15D": "15", "R15W": "15", "R15B": "15",
         "FLAGS": "FLAGS",
-        "RIP:": "RIP",
+        "RIP": "RIP",
+        "RSP": "RSP",
     }  # yapf: disable
     registers = {
         8: ["AL", "BL", "CL", "DL", "SIL", "DIL", "R8B", "R9B", "R10B", "R11B", "R12B", "R13B",
@@ -765,7 +766,7 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
         counter = test_case.num_prologue_instructions
         for func in test_case.functions:
             for bb in func:
-                for inst in bb:
+                for inst in list(bb) + bb.terminators:
                     address = address_list[counter]
                     address_map[address] = inst
                     counter += 1
@@ -1159,7 +1160,7 @@ class X86Printer(Printer):
 
             # print the test case
             for func in test_case.functions:
-                f.write(f".{func.name}:\n")
+                f.write(f"{func.name}:\n")
                 for bb in func:
                     self.print_basic_block(bb, f)
 

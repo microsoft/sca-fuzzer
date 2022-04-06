@@ -158,8 +158,11 @@ class Instruction:
         operands = ', '.join(op_list)
         return f"{self.name} {operands}"
 
-    def add_op(self, op: Operand):
-        self.operands.append(op)
+    def add_op(self, op: Operand, implicit=False):
+        if not implicit:
+            self.operands.append(op)
+        else:
+            self.implicit_operands.append(op)
         return self
 
     def has_mem_operand(self, include_implicit: bool = False):
@@ -406,6 +409,8 @@ class Input(np.ndarray):
     |                      | Conf.input_main_region_size
     |  Main Region Values  |
     +----------------------+
+
+    The ordering of registers:  RAX, RBX, RCX, RDX, RSI, RDI, FLAGS
     """
     seed: int = 0
     data_size: int = 0
