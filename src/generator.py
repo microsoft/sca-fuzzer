@@ -992,8 +992,8 @@ class X86SandboxPass(Pass):
         parent.insert_before(inst, add_base)
 
     @staticmethod
-    def requires_sandbox(inst: Instruction):
-        if inst.has_mem_operand(True):
+    def requires_sandbox(inst: InstructionSpec):
+        if inst.has_mem_operand:
             return True
         if inst.name in ["DIV", "REX DIV"]:
             return True
@@ -1020,11 +1020,34 @@ class X86PatchUndefinedFlagsPass(Pass):
         ADD ebx, ecx  // random instruction that overwrites OF
         JNO .label
     """
+    patch_candidates: List[InstructionSpec]
 
     def __init__(self, instruction_set: InstructionSet, generator: ConfigurableGenerator):
         super().__init__()
         self.instruction_set = instruction_set
         self.generator = generator
+
+        self.patch_candidates = []
+        for instruction_spec in instruction_set.all:
+            # check if the instruction is safe to use on its own
+            if X86SandboxPass.requires_sandbox(instruction_spec):
+                continue
+
+            # check if it overwrites flags and if creates new dependencies
+            has_read = False
+            has_write = False
+            for op in instruction_spec.operands + instruction_spec.implicit_operands:
+                if op.type == OT.FLAGS:
+                    for f in op.values:
+                        if f in ['r', 'r/w', 'r/cw']:
+                            has_read = True
+                        elif f in ['w']:
+                            has_write = True
+            if not has_read and has_write:
+                self.patch_candidates.append(instruction_spec)
+
+        if not self.patch_candidates:
+            raise Exception("ERROR: The instruction set is insufficient to patch undef flags")
 
     def run_on_test_case(self, test_case: TestCase) -> None:
         for func in test_case.functions:
@@ -1049,12 +1072,13 @@ class X86PatchUndefinedFlagsPass(Pass):
                     # fix undefined flags by adding another instruction in-between
                     undef_flags = [i for i in flags.get_undef_flags() if i in flags_to_set]
                     if undef_flags:
-                        patch = self.find_flags_patch(undef_flags, flags_to_set)
-                        bb.insert_after(inst, patch)
-                        patch.is_instrumentation = True
-                        # remove the flags overwritten by the patch
-                        for f in patch.get_flags_operand().get_write_flags():  # type: ignore
-                            flags_to_set.discard(f)
+                        patches = self.find_flags_patch(undef_flags, flags_to_set)
+                        for patch in patches:
+                            bb.insert_after(inst, patch)
+                            patch.is_instrumentation = True
+                            # remove the flags overwritten by the patch
+                            for f in patch.get_flags_operand().get_write_flags():  # type: ignore
+                                flags_to_set.discard(f)
 
                     # remove the flags overwritten by the instruction
                     for f in flags.get_write_flags():
@@ -1066,43 +1090,33 @@ class X86PatchUndefinedFlagsPass(Pass):
 
                 # make sure that we do not have undefined flags when we enter the BB
                 if flags_to_set:
-                    patch = self.find_flags_patch(list(flags_to_set), flags_to_set)
-                    bb.insert_before(bb.get_first(), patch)
-                    patch.is_instrumentation = True
+                    patches = self.find_flags_patch(list(flags_to_set), flags_to_set)
+                    for patch in patches:
+                        bb.insert_before(bb.get_first(), patch)
+                        patch.is_instrumentation = True
 
-    def find_flags_patch(self, undef_flags, flags_to_set) -> Instruction:
+    def find_flags_patch(self, undef_flags, flags_to_set) -> List[Instruction]:
         """
         Find an instruction that would overwrite the undefined flags
-
-        FIXME: the implementation uses random sampling from the instruction set, which is
-        suboptimal performance-wise. A better implementation would be to pre-collect a list of
-        instructions useful for patching, and then just pick a correct instruction when necessary
         """
-
-        attempts = 100  # 100 is an arbitrary number
-        for _ in range(attempts):  # try to sample for a patch instruction several times
-
-            # pick a random instruction
-            instruction_spec = random.choice(self.instruction_set.all)
+        patches: List[Instruction] = []
+        for instruction_spec in self.patch_candidates:
             patch = self.generator.generate_instruction(instruction_spec)
-
-            # check if the instruction is safe to use on its own
-            if X86SandboxPass.requires_sandbox(patch):
-                continue
-
-            # check if it overwrites the undefined flags,
-            # and does not create new undefined dependencies
             patch_flags = patch.get_flags_operand()
-            if not patch_flags or patch_flags.get_read_flags():
-                continue
+            assert patch_flags
             new_undef_flags = [i for i in patch_flags.get_undef_flags() if i in flags_to_set]
             not_patched_flags = [i for i in undef_flags if i not in patch_flags.get_write_flags()]
 
-            if not new_undef_flags and not not_patched_flags:
-                return patch
+            if not new_undef_flags and not_patched_flags != undef_flags:
+                patches.append(patch)
+                undef_flags = not_patched_flags
+                if not undef_flags:
+                    break
 
-        # unreachable under normal conditions - should always find within 100 attempts
-        raise Exception("ERROR: Could not generate a test case from the given instruction set")
+        if undef_flags:
+            raise Exception(f"ERROR: Could not find an instruction to patch flags {undef_flags}")
+
+        return patches
 
 
 class X86PatchUndefinedResultPass(Pass):
