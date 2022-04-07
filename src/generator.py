@@ -10,7 +10,7 @@ import random
 import abc
 import re
 import iced_x86
-from typing import List, Dict, Set
+from typing import List, Dict, Set, Optional
 from subprocess import CalledProcessError, run
 
 from instruction_set import OperandSpec, InstructionSpec, InstructionSet
@@ -1030,7 +1030,7 @@ class X86PatchUndefinedFlagsPass(Pass):
         for func in test_case.functions:
             for bb in func:
                 # get a list of all instructions in the BB
-                all_instructions = []
+                all_instructions: List[Instruction] = []
                 for inst in bb:
                     all_instructions.append(inst)
                 if len(bb.terminators) == 2:  # include conditional terminators
@@ -1042,7 +1042,7 @@ class X86PatchUndefinedFlagsPass(Pass):
                 # walk the list in inverse order
                 while all_instructions:
                     inst = all_instructions.pop()
-                    flags: FlagsOperand = inst.get_flags_operand()
+                    flags: Optional[FlagsOperand] = inst.get_flags_operand()
                     if not flags:
                         continue
 
@@ -1061,9 +1061,8 @@ class X86PatchUndefinedFlagsPass(Pass):
                         flags_to_set.discard(f)
 
                     # add new flag dependencies
-                    if flags.src:
-                        for f in flags.get_read_flags():
-                            flags_to_set.add(f)
+                    for f in flags.get_read_flags():
+                        flags_to_set.add(f)
 
                 # make sure that we do not have undefined flags when we enter the BB
                 if flags_to_set:
@@ -1094,7 +1093,7 @@ class X86PatchUndefinedFlagsPass(Pass):
             # check if it overwrites the undefined flags,
             # and does not create new undefined dependencies
             patch_flags = patch.get_flags_operand()
-            if not patch_flags or patch_flags.src:
+            if not patch_flags or patch_flags.get_read_flags():
                 continue
             new_undef_flags = [i for i in patch_flags.get_undef_flags() if i in flags_to_set]
             not_patched_flags = [i for i in undef_flags if i not in patch_flags.get_write_flags()]

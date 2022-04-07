@@ -9,9 +9,9 @@ import subprocess
 import os
 
 sys.path.insert(0, '..')
-from generator import X86RandomGenerator, X86Printer
+from generator import X86RandomGenerator, X86Printer, X86PatchUndefinedFlagsPass
 from instruction_set import InstructionSet
-from interfaces import TestCase
+from interfaces import TestCase, Function, BasicBlock, Instruction
 from config import CONF
 
 
@@ -79,6 +79,24 @@ class X86RandomGeneratorTest(unittest.TestCase):
         self.assertEqual(entry.successors[0], bb0)
         self.assertEqual(bb0.successors[0], bb1)
         self.assertEqual(bb1.successors[0], exit_)
+
+    def test_x86_undef_flag_patch(self):
+        instruction_set = InstructionSet('../instruction_sets/x86/base.xml')
+        undef_instr_spec = list(filter(lambda x: x.name == 'BSF', instruction_set.all))[0]
+        read_instr_spec = list(filter(lambda x: x.name == 'LAHF', instruction_set.all))[0]
+
+        generator = X86RandomGenerator(instruction_set)
+        undef_instr = generator.generate_instruction(undef_instr_spec)
+        read_instr = generator.generate_instruction(read_instr_spec)
+
+        test_case = TestCase()
+        test_case.functions = [Function(".function_main")]
+        bb = test_case.functions[0].entry
+        bb.insert_after(bb.get_last(), undef_instr)
+        bb.insert_after(bb.get_last(), read_instr)
+
+        X86PatchUndefinedFlagsPass(instruction_set, generator).run_on_test_case(test_case)
+        self.assertEqual(len(bb), 3)
 
 
 if __name__ == '__main__':

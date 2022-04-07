@@ -118,6 +118,7 @@ class Fuzzer:
         LOGGER.start_round()
         self.model.load_test_case(test_case)
         self.executor.load_test_case(test_case)
+        self.coverage.load_test_case(test_case)
 
         # by default, we test without nested misprediction,
         # but retry with nesting upon a violation

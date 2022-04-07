@@ -254,6 +254,7 @@ class BasicBlock:
         count = 0
         if self.start:
             instr = self.start
+            count = 1
             while instr.next:
                 instr = instr.next
                 count += 1

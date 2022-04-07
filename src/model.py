@@ -125,8 +125,8 @@ class X86UnicornModel(Model):
 
         if CONF.contract_observation_clause == 'ctr' or CONF.contract_observation_clause == 'arch':
             self.initial_taints = [
-                "A", "B", "C", "D", "SI", "DI", "RSP", "CF", "PF", "AF", "ZF", "SF", "TF", "IF", "DF",
-                "OF", "AC"
+                "A", "B", "C", "D", "SI", "DI", "RSP", "CF", "PF", "AF", "ZF", "SF", "TF", "IF",
+                "DF", "OF", "AC"
             ]
         else:
             self.initial_taints = []
