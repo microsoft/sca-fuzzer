@@ -37,7 +37,7 @@ FLAGS_OF = 0b100000000000
 # ==================================================================================================
 class X86UnicornTracer(ABC):
     trace: List[int]
-    full_execution_trace: List[Tuple[bool, int]]
+    execution_trace: List[Tuple[bool, int]]
 
     def __init__(self):
         super().__init__()
@@ -45,13 +45,13 @@ class X86UnicornTracer(ABC):
 
     def reset_trace(self, emulator) -> None:
         self.trace = []
-        self.full_execution_trace = []
+        self.execution_trace = []
 
-    def get_trace(self) -> CTrace:
+    def get_contract_trace(self) -> CTrace:
         return hash(tuple(self.trace))
 
-    def get_full_execution_trace(self):
-        return self.full_execution_trace
+    def get_execution_trace(self):
+        return self.execution_trace
 
     def add_mem_address_to_trace(self, address: int, model):
         self.trace.append(address)
@@ -65,7 +65,7 @@ class X86UnicornTracer(ABC):
         if model.in_speculation:
             return
 
-        self.full_execution_trace.append((False, address - model.sandbox_base))
+        self.execution_trace.append((False, address - model.sandbox_base))
         if not model.debug:
             return
 
@@ -79,7 +79,7 @@ class X86UnicornTracer(ABC):
         if model.in_speculation:
             return
 
-        self.full_execution_trace.append((True, address - model.code_base))
+        self.execution_trace.append((True, address - model.code_base))
         if not model.debug:
             return
 
@@ -166,8 +166,8 @@ class X86UnicornModel(Model):
         self.debug = dbg
         self.tainting_enabled = enable_tainting
 
-        traces = []
-        full_execution_traces = []
+        contract_traces = []
+        execution_traces = []
         taints = []
         for input_ in inputs:
             self.reset_model()
@@ -193,14 +193,13 @@ class X86UnicornModel(Model):
                     continue
 
             # store the results
-            traces.append(self.tracer.get_trace())
-            full_execution_traces.append(self.tracer.get_full_execution_trace())
+            contract_traces.append(self.tracer.get_contract_trace())
+            execution_traces.append(self.tracer.get_execution_trace())
             taints.append(self.taint_tracker.get_taint())
 
-        if self.coverage:
-            self.coverage.model_hook(full_execution_traces)
+        self.coverage.model_hook(execution_traces)
 
-        return traces, taints
+        return contract_traces, taints
 
     def reset_model(self):
         self.checkpoints = []
@@ -585,11 +584,11 @@ class L1DTracer(X86UnicornTracer):
 
     def reset_trace(self, emulator):
         self.trace = [0, 0]
-        self.full_execution_trace = []
+        self.execution_trace = []
 
     def add_mem_address_to_trace(self, address, model):
-        page_offset = (address & 4032) >> 6  # 4032 = 0b111111000000
-        cache_set_index = 9223372036854775808 >> page_offset
+        page_offset = (address & 0b111111000000) >> 6
+        cache_set_index = 0x8000000000000000 >> page_offset
         # print(f"{cache_set_index:064b}")
         if model.in_speculation:
             self.trace[1] |= cache_set_index
@@ -604,10 +603,10 @@ class L1DTracer(X86UnicornTracer):
     def observe_instruction(self, address: int, size: int, model):
         super(L1DTracer, self).observe_instruction(address, size, model)
 
-    def get_trace(self) -> CTrace:
+    def get_contract_trace(self) -> CTrace:
         if CONF.ignore_first_cache_line:
-            self.trace[0] &= 9223372036854775807
-            self.trace[1] &= 9223372036854775807
+            self.trace[0] &= 0x7fffffffffffffff
+            self.trace[1] &= 0x7fffffffffffffff
         return (self.trace[1] << 64) + self.trace[0]
 
 
@@ -653,7 +652,7 @@ class CTRTracer(CTTracer):
             emulator.reg_read(UC_X86_REG_RDI),
             emulator.reg_read(UC_X86_REG_EFLAGS),
         ]
-        self.full_execution_trace = []
+        self.execution_trace = []
 
 
 class ArchTracer(CTRTracer):
