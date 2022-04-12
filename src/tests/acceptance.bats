@@ -1,6 +1,4 @@
 #!/usr/bin/env bats
-REPS=1000
-
 INSTRUCTION_SET='instruction_sets/x86/base.xml'
 
 EXTENDED_TESTS=0
@@ -54,7 +52,7 @@ EXTENDED_TESTS=0
 
 
 @test "Model and Executor are initialized with the same values" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/model_match.asm -c tests/model_match.yaml -i 1000"
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/model_match.asm -c tests/model_match.yaml -i 100"
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
@@ -63,7 +61,7 @@ EXTENDED_TESTS=0
 }
 
 @test "Model and Executor are initialized with the same FLAGS value" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/model_flags_match.asm -c tests/model_match.yaml -i 1000"
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/model_flags_match.asm -c tests/model_match.yaml -i 100"
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
@@ -71,54 +69,46 @@ EXTENDED_TESTS=0
     [ "$output" = "" ]
 }
 
-@test "Fuzzing: A sequence of NOPs" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/nops.asm -i 1000"
+function run_without_violation {
+    local cmd=$1
+    tmp_config=$(mktemp)
+cat << EOF >> $tmp_config
+logging_modes:
+  - 
+EOF
+    run bash -c "$cmd -c $tmp_config"
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
+    rm $tmp_config
+}
+
+@test "Fuzzing: A sequence of NOPs" {
+    run_without_violation "./cli.py fuzz -s $INSTRUCTION_SET -t tests/nops.asm -i 100"
 }
 
 @test "Fuzzing: A sequence of direct jumps" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/direct_jumps.asm -i 1000"
-    echo "$output"
-    [ "$status" -eq 0 ]
-    [ "$output" = "" ]
+    run_without_violation "./cli.py fuzz -s $INSTRUCTION_SET -t tests/direct_jumps.asm -i 100"
 }
 
-
 @test "Fuzzing: A long in-reg test case" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/large_arithmetic.asm -i 10"  # TODO: 1000
-    echo "$output"
-    [ "$status" -eq 0 ]
-    [ "$output" = "" ]
+    run_without_violation "./cli.py fuzz -s $INSTRUCTION_SET -t tests/large_arithmetic.asm -i 10"
 }
 
 @test "Fuzzing: A sequence of calls" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/calls.asm -i $REPS"
-    echo "$output"
-    [ "$status" -eq 0 ]
-    [ "$output" = "" ]
+    run_without_violation "./cli.py fuzz -s $INSTRUCTION_SET -t tests/calls.asm -i 100"
 }
 
 @test "Fuzzing: A sequence of valid loads (cache hits)" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/valid_loads.asm -i $REPS"
-    echo "$output"
-    [ "$status" -eq 0 ]
-    [ "$output" = "" ]
+    run_without_violation "./cli.py fuzz -s $INSTRUCTION_SET -t tests/valid_loads.asm -i 100"
 }
 
 @test "Fuzzing: A sequence of valid loads (cache misses)" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/valid_loads_with_miss.asm -i $REPS"
-    echo "$output"
-    [ "$status" -eq 0 ]
-    [ "$output" = "" ]
+    run_without_violation "./cli.py fuzz -s $INSTRUCTION_SET -t tests/valid_loads_with_miss.asm -i 100"
 }
 
 @test "Fuzzing: A sequence of valid stores (cache hits)" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/valid_stores.asm -i $REPS"
-    echo "$output"
-    [ "$status" -eq 0 ]
-    [ "$output" = "" ]
+    run_without_violation "./cli.py fuzz -s $INSTRUCTION_SET -t tests/valid_stores.asm -i 100"
 }
 
 @test "Detection: Spectre V1 - BCB load - P" {
@@ -209,7 +199,7 @@ EXTENDED_TESTS=0
 
 @test "Analyser: Priming" {
     skip
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/priming.asm -i 100 -c tests/priming.yaml -v"
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/priming.asm -i 100 -c tests/priming.yaml"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" == *"Priming"* ]]
@@ -224,7 +214,7 @@ EXTENDED_TESTS=0
 }
 
 @test "Model: Rollback on LFENCE and spec. window" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/rollback_fence_and_expire.asm -i 10 -c tests/rollback_fence_and_expire.yaml -v"
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/rollback_fence_and_expire.asm -i 10 -c tests/rollback_fence_and_expire.yaml"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" != *"[s]"* ]]

@@ -8,6 +8,9 @@ from enum import IntEnum
 from typing import Dict, Set, List, Optional
 
 from instruction_set import InstructionSet
+from interfaces import Coverage, EquivalenceClass, TestCase, Executor, Model, Analyser, \
+     ExecutionTrace, TracedInstruction, Instruction, RegisterOperand, OT
+from generator import X86Registers
 
 from config import CONF, ConfigException
 from service import STAT
@@ -22,10 +25,7 @@ class NoCoverage(Coverage):
     Used when fuzzing without coverage
     """
 
-    def load_test_case(self, asm_file):
-        pass
-
-    def update(self):
+    def load_test_case(self, test_case):
         pass
 
     def generator_hook(self, feedback):
@@ -45,7 +45,7 @@ class NoCoverage(Coverage):
 
 
 # ==================================================================================================
-# Pattern Coverage
+# DependentPairCoverage
 # ==================================================================================================
 class DT(IntEnum):  # Dependency Type
     REG_GPR = 1
@@ -58,323 +58,231 @@ class DT(IntEnum):  # Dependency Type
     CONTROL_COND = 9
 
 
-class PatternInstance:
-    instructions: Tuple[str, str]
-    dependency_type: DT
-    positions: Tuple[int, int]
-    addresses: Tuple[int, int] = (0, 0)
-    covered: bool = False
+class DependentPairCoverage(Coverage):
+    """ Coverage of pairs of instructions with a data or control-flow dependency """
+    coverage: Dict[DT, Set[int]]
+    max_coverage: Dict[DT, int]
+    execution_traces: List[ExecutionTrace]
+    test_case: TestCase
 
-    def __init__(self, instructions, positions, type_):
-        self.instructions = instructions
-        self.positions = positions
-        self.dependency_type = type_
-
-    def __str__(self):
-        return f"[{self.covered}] {self.instructions[0]} -> "\
-               f"{self.dependency_type} -> {self.instructions[1]} at " \
-               f"[{self.positions[0]}, {hex(self.addresses[0])}], " \
-               f"[{self.positions[1]}, {hex(self.addresses[1])}]"
-
-
-class PatternCoverage(Coverage):
-    coverage: Dict[int, Set[Tuple[int]]]
-    current_patterns: List[PatternInstance]
-    coverage_traces: List[List[Tuple[bool, int]]]
-    combination_length: int = 1
-    num_patterns: int = 0
-    previous_target_coverage: int = 0
-    current_max_combinations: int = 1
-    previous_max_combinations: int = 0
-    instruction_set_processed: bool = False
-
-    def __init__(self,
-                 instruction_set: InstructionSet,
-                 executor: Executor,
-                 model: Model,
+    def __init__(self, instruction_set: InstructionSet, executor: Executor, model: Model,
                  analyser: Analyser):
         super().__init__(instruction_set, executor, model, analyser)
-        self.current_patterns = []
-        self.coverage = defaultdict(set)
+        self.coverage = {k: set() for k in DT}
+        self.max_coverage = {}
+        self._calculate_max_coverage()
 
-        if CONF.avg_mem_accesses:
-            self.memory_patterns = [DT.MEM_LL, DT.MEM_SL, DT.MEM_SS, DT.MEM_LS]
-        else:
-            self.memory_patterns = []
-        self.register_patters = [DT.REG_GPR, DT.REG_FLAGS]
-        self.control_patterns = [DT.CONTROL_DIRECT]
+    def _update_coverage(self, effective_traces: List[ExecutionTrace]) -> None:
+        """ The main function of this class - calculates coverage based on the collected traces """
 
-    def process_instruction_set(self, instruction_set: InstructionSet):
-        if instruction_set.has_conditional_branch:
-            self.control_patterns = [DT.CONTROL_COND, DT.CONTROL_DIRECT]
+        # get rid of instrumentation in the traces
+        # - collect the addresses of instrumentation instructions
+        instrumentation_addresses = []
+        for addr, instr in self.test_case.address_map.items():
+            if instr.is_instrumentation:
+                instrumentation_addresses.append(addr)
+        # - remove those addresses from traces
+        filtered_traces = []
+        for trace in effective_traces:
+            filtered_trace = [t for t in trace if t.i_address not in instrumentation_addresses]
+            filtered_traces.append(filtered_trace)
+        effective_traces = filtered_traces
 
-        self.num_patterns = \
-            len(self.memory_patterns) + len(self.register_patters) + len(self.control_patterns)
+        # process all pairs of the executed instructions
+        addr1: TracedInstruction
+        addr2: TracedInstruction
+        for trace in effective_traces:
+            for addr1, addr2 in zip(trace, trace[1:]):
+                instr1 = self.test_case.address_map[addr1.i_address]
+                instr2 = self.test_case.address_map[addr2.i_address]
 
-        self.combination_length = CONF.combination_length_min
-        self.current_max_combinations = \
-            self.calculate_max_combinations(self.num_patterns, CONF.combination_length_min)
+                type_: Optional[DT]
+                key = hash(self._get_instruction_key(instr1) + self._get_instruction_key(instr2))
 
-        if CONF.feedback_driven_generator:
-            CONF.min_bb_per_function = 1
-            CONF.max_bb_per_function = 1 + CONF.combination_length_min
-            CONF.avg_mem_accesses = 2 * CONF.combination_length_min if CONF.avg_mem_accesses else 0
-            CONF.test_case_size = 8 * CONF.combination_length_min
+                # control flow dependency
+                if instr1.control_flow:
+                    type_ = DT.CONTROL_DIRECT if instr1.category == "UNCOND_BR" else DT.CONTROL_COND
+                    self.coverage[type_].add(key)
+
+                # potential memory dependency
+                if addr1.accesses and addr2.accesses:
+                    types = self._search_memory_dependency(addr1, addr2)
+                    for type_ in types:
+                        self.coverage[type_].add(key)
+
+                # potential reg dependency
+                if self._search_reg_dependency(instr1, instr2):
+                    self.coverage[DT.REG_GPR].add(key)
+                if self._search_flag_dependency(instr1, instr2):
+                    self.coverage[DT.REG_FLAGS].add(key)
+
+    def _calculate_max_coverage(self):
+        all_, reg_src, reg_dest, flags_src, flags_dest, mem_src, mem_dest, control_cond = (0, ) * 8
+        control_direct = 1
+
+        for inst in self.instruction_set.all:
+            all_ += 1
+
+            reg_ops = [r for r in inst.operands + inst.implicit_operands if r.type == OT.REG]
+            if any(reg.src for reg in reg_ops):
+                reg_src += 1
+            if any(reg.dest for reg in reg_ops):
+                reg_dest += 1
+
+            flag_ops = [r for r in inst.operands + inst.implicit_operands if r.type == OT.FLAGS]
+            if flag_ops:
+                has_src, has_dest = False, False
+                for v in flag_ops[0].values:
+                    if 'r' in v:
+                        has_src = True
+                    if 'w' in v:
+                        has_dest = True
+                if has_src:
+                    flags_src += 1
+                if has_dest:
+                    flags_dest += 1
+
+            if inst.has_write:
+                mem_dest += 1
+            if [r for r in inst.operands + inst.implicit_operands if r.type == OT.MEM and r.src]:
+                mem_src += 1
+
+        for inst in self.instruction_set.control_flow:
+            if inst.category == "UNCOND_BR":
+                control_direct += 1
+            else:
+                control_cond += 1
+
+        self.max_coverage[DT.REG_GPR] = reg_src * (reg_dest + mem_src + mem_dest)
+        self.max_coverage[DT.REG_FLAGS] = flags_src * flags_dest
+        self.max_coverage[DT.MEM_LL] = mem_src * mem_src
+        self.max_coverage[DT.MEM_LS] = mem_src * mem_dest
+        self.max_coverage[DT.MEM_SL] = mem_dest * mem_src
+        self.max_coverage[DT.MEM_SS] = mem_dest * mem_dest
+        self.max_coverage[DT.CONTROL_DIRECT] = control_direct * all_
+        self.max_coverage[DT.CONTROL_COND] = control_cond * all_
 
     def get(self) -> int:
         return sum([len(c) for c in self.coverage.values()])
 
-    def generator_hook(self, feedback: Dict):
-        if not self.instruction_set_processed:
-            self.process_instruction_set(feedback['instruction_set'])
-            self.instruction_set_processed = True
-
-        dag: TestCase = feedback['DAG']
-
-        # collect instruction positions
-        counter = 2  # account for the test case prologue
-        positions = {}
-        for func in dag.functions:
-            for bb in func:
-                for instr in bb:
-                    positions[instr] = counter
-                    counter += 1
-                for t in bb.terminators:
-                    positions[t] = counter
-                    counter += 1
-
-        # collect control hazards
-        for func in dag.functions:
-            for bb in func:
-                for t in bb.terminators:
-                    for target in t.operands:
-                        target_instruction = target.bb.get_first()
-
-                        # skip instrumentation
-                        while target_instruction and target_instruction.is_instrumentation:
-                            target_instruction = target_instruction.next
-
-                        if not target_instruction or not target_instruction.has_dest_operand(True):
-                            continue
-                        pair = (t.name, target_instruction.name)
-                        pair_ids = (positions[t], positions[target_instruction])
-                        type_ = DT.CONTROL_DIRECT if "JMP" in t.name else DT.CONTROL_COND
-                        self.current_patterns.append(PatternInstance(pair, pair_ids, type_))
-
-        # collect all instruction pairs
-        pairs: List[Tuple[Instruction, Instruction]] = []
-        for func in dag.functions:
-            for bb in func:
-                for instr in bb:
-                    if not instr.is_instrumentation and instr.next:
-                        # skip instrumentation
-                        next_instr = instr.next
-                        while next_instr and next_instr.is_instrumentation:
-                            next_instr = next_instr.next
-                        if not next_instr:
-                            continue
-
-                        pairs.append((instr, next_instr))
-
-        # filter pairs to those with potential data dependencies
-        for p in pairs:
-            # memory dependency?
-            if p[0].has_mem_operand() and p[1].has_mem_operand() and p[1].has_dest_operand(True):
-                pair = (p[0].name, p[1].name)
-                pair_ids = (positions[p[0]], positions[p[1]])
-                if p[0].has_write():
-                    type_ = DT.MEM_SS if p[1].has_write() else DT.MEM_SL
-                else:
-                    type_ = DT.MEM_LS if p[1].has_write() else DT.MEM_LL
-                self.current_patterns.append(PatternInstance(pair, pair_ids, type_))
-                continue
-
-            # flags or register dependency?
-            destinations = [X86Registers.gpr_normalized[op.value]
-                            for op in p[0].operands + p[0].implicit_operands if
-                            op.dest and op.type in [OT.REG, OT.FLAGS]]
-            sources = [X86Registers.gpr_normalized[op.value]
-                       for op in p[1].operands + p[1].implicit_operands if
-                       op.src and op.type in [OT.REG, OT.FLAGS]]
-            dependencies = [op for op in sources if op in destinations]
-            if dependencies and p[1].has_dest_operand(True):
-                pair = (p[0].name, p[1].name)
-                pair_ids = (positions[p[0]], positions[p[1]])
-                type_ = DT.REG_FLAGS if dependencies[0] == "FLAGS" else DT.REG_GPR
-                self.current_patterns.append(PatternInstance(pair, pair_ids, type_))
+    def get_brief(self):
+        flags = (len(self.coverage[DT.REG_FLAGS]) / self.max_coverage[DT.REG_FLAGS]) * 100
+        grp = (len(self.coverage[DT.REG_GPR]) / self.max_coverage[DT.REG_GPR]) * 100
+        ll = (len(self.coverage[DT.MEM_LL]) / self.max_coverage[DT.MEM_LL]) * 100
+        ls = (len(self.coverage[DT.MEM_LS]) / self.max_coverage[DT.MEM_LS]) * 100
+        sl = (len(self.coverage[DT.MEM_SL]) / self.max_coverage[DT.MEM_SL]) * 100
+        ss = (len(self.coverage[DT.MEM_SS]) / self.max_coverage[DT.MEM_SS]) * 100
+        cond = (len(self.coverage[DT.CONTROL_COND]) / self.max_coverage[DT.CONTROL_COND]) * 100
+        dire = (len(self.coverage[DT.CONTROL_DIRECT]) / self.max_coverage[DT.CONTROL_DIRECT]) * 100
+        return f"{flags:.2f}, {grp:.2f}, {ll:.2f}, {ls:.2f}," \
+               f" {sl:.2f}, {ss:.2f}, {cond:.2f}, {dire:.2f}"
 
     def load_test_case(self, test_case: TestCase):
-        obj_file = test_case.bin_path
-        output = run(f'objdump -D {obj_file} -b binary --no-show-raw-insn -m i386:x86-64',
-                     shell=True,
-                     check=False,
-                     capture_output=True)
-        lines = output.stdout.decode().split("\n")
-        addresses = {}
-        counter = 0
-        for line in lines:
-            match = re.search(r" ([0-9a-f]+):", line)
-            if match:
-                address = int(match.group(1), 16)
-                addresses[counter] = address
-                counter += 1
+        self.test_case = test_case
 
-        for pattern in self.current_patterns:
-            pattern.addresses = (
-                addresses[pattern.positions[0]],
-                addresses[pattern.positions[1]]
-            )
-
-        self.current_patterns = list(sorted(self.current_patterns, key=lambda x: x.positions[0]))
-
-    def model_hook(self, coverage_traces):
-        self.coverage_traces = coverage_traces
-
-    def executor_hook(self, feedback):
-        pass
+    def model_hook(self, execution_traces: List[ExecutionTrace]):
+        self.execution_traces = execution_traces
 
     def analyser_hook(self, classes: List[EquivalenceClass]):
+        # ignore those traces that belong to ineffective classes
         effective_traces = []
         for eq_cls in classes:
-            if len(eq_cls.inputs) >= 2:
-                # FIXME: should take the first from each coverage class, not from each input class
+            if len(eq_cls.inputs) > 1:
                 member_input_id = eq_cls.original_positions[0]
-                effective_traces.append(self.coverage_traces[member_input_id])
-        self.coverage_traces = effective_traces
-
-    def update(self):
-        if not self.coverage_traces or not self.coverage_traces[0]:
-            self.current_patterns = []
+                effective_traces.append(self.execution_traces[member_input_id])
+        if not effective_traces:
             return
 
-        # transform traces into a more usable form
-        base_address = self.coverage_traces[0][0][1]
-        combined_traces = []
-        for trace in self.coverage_traces:
-            combined_trace = []
-            latest_instruction = []
+        # we're done with this test case and are ready to collect coverage
+        self._update_coverage(effective_traces)
+        STAT.coverage = self.get()
+        return
 
-            for observation in trace:
-                if observation[0]:  # instruction address
-                    if latest_instruction:
-                        combined_trace.append(latest_instruction)
-                    latest_instruction = [observation[1] - base_address]
-                else:  # address of the instruction's memory access
-                    if len(latest_instruction) != 1 and latest_instruction[1] == observation[1]:
-                        continue
-                    latest_instruction.append(observation[1])
-            combined_trace.append(latest_instruction)
-            combined_traces.append(combined_trace)
+    def executor_hook(self, _):
+        pass
 
-        # collect patterns per trace
-        # start = datetime.now()
-        combined_covered_patterns = set()
-        for trace in combined_traces:
-            covered_instr_addresses = []
-            covered_with_matching_memory = []
+    def _get_instruction_key(self, instruction: Instruction) -> str:
+        key = instruction.name
+        for op in instruction.operands + instruction.implicit_operands:
+            key += "-" + str(op.width) + str(op.type)
+        return key
 
-            # simple coverage
-            for instr in trace:
-                covered_instr_addresses.append(instr[0])
+    def _search_memory_dependency(self, traced_instr1: TracedInstruction,
+                                  traced_instr2: TracedInstruction) -> List[DT]:
+        read_addresses1 = []
+        write_addresses1 = []
+        for addr in traced_instr1.accesses:
+            if addr.is_store:
+                write_addresses1.append(addr.m_address)
+            else:
+                read_addresses1.append(addr.m_address)
 
-            # memory hazards
-            access_trace = [t for t in trace if len(t) > 1]
-            for i in range(len(access_trace)):
-                # can this instruction be in a pair of mem. accesses?
-                if i == len(access_trace) - 1:
-                    continue
+        read_addresses2 = []
+        write_addresses2 = []
+        for addr in traced_instr2.accesses:
+            if addr.is_store:
+                read_addresses2.append(addr.m_address)
+            else:
+                write_addresses2.append(addr.m_address)
 
-                # does the address match the next instruction?
-                # FIXME: this code will be incorrect when the instruction
-                #  can access several different addresses
-                if access_trace[i][1] == access_trace[i + 1][1]:
-                    covered_with_matching_memory.append(access_trace[i][0])
+        types = []
+        if any(i in read_addresses2 for i in read_addresses1):
+            types.append(DT.MEM_LL)
 
-            # which of the patterns got covered
-            covered_patterns = []
-            for pattern in self.current_patterns:
-                if pattern.dependency_type in self.register_patters \
-                        and pattern.addresses[0] in covered_instr_addresses:
-                    covered_patterns.append(int(pattern.dependency_type))
-                    continue
+        if any(i in write_addresses2 for i in read_addresses1):
+            types.append(DT.MEM_LS)
 
-                if pattern.dependency_type in self.control_patterns \
-                        and pattern.addresses[0] in covered_instr_addresses \
-                        and pattern.addresses[1] in covered_instr_addresses:
-                    covered_patterns.append(int(pattern.dependency_type))
-                    continue
+        if any(i in read_addresses2 for i in write_addresses1):
+            types.append(DT.MEM_SL)
 
-                if pattern.dependency_type in self.memory_patterns \
-                        and pattern.addresses[0] in covered_with_matching_memory:
-                    covered_patterns.append(int(pattern.dependency_type))
-                    continue
-            combined_covered_patterns.add(tuple(covered_patterns))
+        if any(i in write_addresses2 for i in write_addresses1):
+            types.append(DT.MEM_SS)
 
-        # print(combined_covered_patterns)
-        for covered_patterns in combined_covered_patterns:
-            for i in range(self.combination_length - 1, len(covered_patterns)):
-                for comb in combinations(covered_patterns, i):
-                    self.coverage[i].add(comb)
+        return types
 
-        # Below is debugging code. Commented out intentionally
-        # duration = (datetime.now() - start).microseconds // 1000
-        # if duration > 500:
-        #     print(f"duration: {duration}")
-        # if STAT.test_cases % 10 == 0:
-        #     all_patterns = self.memory_patterns + self.control_patterns + self.register_patters
-        #     all_patterns = [int(i) for i in all_patterns]
-        #     all_combinations = set(product(all_patterns,
-        #                                    repeat=self.combination_length))
-        #     all_combinations = set([tuple(comb) for comb in all_combinations])
-        #     remaining_combinations = all_combinations - self.coverage[self.combination_length]
-        #     previous_remaining = \
-        #         self.previous_max_combinations - len(self.coverage[self.combination_length - 1])
-        #     print(f"\nremaining coverage - previous: {previous_remaining}")
-        #     print(f"remaining coverage - current: {len(remaining_combinations)}")
-        #     # print(sorted(remaining_combinations))
+    def _search_reg_dependency(self, inst1: Instruction, inst2: Instruction) -> Optional[DT]:
+        # normal register dependencies
+        dest_regs = [
+            r.value for r in inst1.get_dest_operands(True) if isinstance(r, RegisterOperand)
+        ]
+        src_regs = [r.value for r in inst2.get_src_operands(True) if isinstance(r, RegisterOperand)]
+        dest_regs = [X86Registers.gpr_normalized[r] for r in dest_regs]
+        src_regs = [X86Registers.gpr_normalized[r] for r in src_regs]
+        for r in dest_regs:
+            if r in src_regs:
+                return DT.REG_GPR
 
-        # save the result
-        STAT.coverage = sum([len(c) for c in self.coverage.values()])
-        STAT.coverage_longest_uncovered = len(self.coverage[self.combination_length])
+        # address dependency
+        mem_operands = [m.value for m in inst2.get_mem_operands()]
+        for r in dest_regs:
+            for mem in mem_operands:
+                if r in mem:
+                    return DT.REG_GPR
 
-        # increase the combination length?
-        if len(self.coverage[self.combination_length]) >= 0.98 * self.current_max_combinations:
-            self.length_covered()
+        return None
 
-        self.current_patterns = []
+    def _search_flag_dependency(self, instr1: Instruction, instr2: Instruction) -> Optional[DT]:
+        flags1 = instr1.get_flags_operand()
+        flags2 = instr2.get_flags_operand()
+        if flags1 and flags2 and flags2.is_dependent(flags1):
+            return DT.REG_FLAGS
 
-    def length_covered(self):
-        # store and notify about the progress
-        STAT.fully_covered = self.combination_length
-        print(f"\nCOVERAGE: Fully covered length {self.combination_length}")
+        return None
 
-        # update coverage parameters
-        self.previous_max_combinations = self.current_max_combinations
-        self.combination_length += 1
-        self.current_max_combinations = \
-            self.calculate_max_combinations(self.num_patterns, self.combination_length)
-
-        # update test case size
-        if CONF.feedback_driven_generator:
-            CONF.max_bb_per_function += 1
-            CONF.avg_mem_accesses += 2 if CONF.avg_mem_accesses else 0
-            CONF.test_case_size += 8
-            print(f"GENERATOR: increasing BBs to {CONF.max_bb_per_function}")
-            print(f"GENERATOR: increasing memory: {CONF.avg_mem_accesses}")
-            print(f"GENERATOR: increasing size: {CONF.test_case_size}")
-
-    @staticmethod
-    def calculate_max_combinations(n, r):
-        return pow(n, r)
+    def _dbg_print_coverage_by_type(self):
+        print("")
+        for k in self.coverage:
+            size = len(self.coverage[k])
+            ratio = (size / self.max_coverage[k]) * 100
+            print(f"- {str(k)}: {size} [{ratio:.3}%]")
 
 
-def get_coverage(instruction_set: InstructionSet,
-                 executor: Executor,
-                 model: Model,
+def get_coverage(instruction_set: InstructionSet, executor: Executor, model: Model,
                  analyser: Analyser) -> Coverage:
-    if CONF.coverage_type == 'dependencies':
-        return PatternCoverage(instruction_set, executor, model, analyser)
+    if CONF.coverage_type == 'dependent-pairs':
+        return DependentPairCoverage(instruction_set, executor, model, analyser)
     elif CONF.coverage_type == 'none':
         return NoCoverage(instruction_set, executor, model, analyser)
     else:
         ConfigException("unknown value of `coverage_type` configuration option")
+        exit(1)

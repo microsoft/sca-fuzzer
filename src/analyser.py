@@ -113,8 +113,7 @@ class EquivalenceAnalyser(Analyser):
         for eq_cls in equivalence_classes.values():
             eq_cls.update_groups()
 
-        if self.coverage:
-            self.coverage.analyser_hook(equivalence_classes.values())
+        self.coverage.analyser_hook(equivalence_classes.values())
 
         return equivalence_classes
 

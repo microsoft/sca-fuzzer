@@ -146,6 +146,14 @@ class FlagsOperand(Operand):
     def get_undef_flags(self) -> List[str]:
         return self._get_flag_list(['undef'])
 
+    def is_dependent(self, flags: FlagsOperand) -> bool:
+        for i, mode2 in enumerate(self._flag_values):
+            mode1 = flags._flag_values[i]
+            if 'w' in mode1 and 'r' in mode2:
+                return True
+        return False
+
+
 class InstructionSpec:
     name: str
     operands: List[OperandSpec]
@@ -235,41 +243,54 @@ class Instruction:
                 return True
         return False
 
-    def has_src_operand(self, include_implicit: bool = False):
+    def has_read(self):
+        for o in self.operands:
+            if o.type == OT.MEM and o.src:
+                return True
+        return False
+
+    def get_src_operands(self, include_implicit: bool = False) -> List[Operand]:
+        res = []
         for o in self.operands:
             if o.src:
-                return True
+                res.append(o)
 
         if include_implicit:
             for o in self.implicit_operands:
                 if o.src:
-                    return True
+                    res.append(o)
 
-        return False
+        return res
 
-    def has_dest_operand(self, include_implicit: bool = False):
+    def get_dest_operands(self, include_implicit: bool = False) -> List[Operand]:
+        res = []
         for o in self.operands:
             if o.dest:
-                return True
+                res.append(o)
 
         if include_implicit:
             for o in self.implicit_operands:
                 if o.dest:
-                    return True
+                    res.append(o)
 
-        return False
+        return res
 
     def get_mem_operands(self) -> List[MemoryOperand]:
         res = []
         for o in self.operands:
             if isinstance(o, MemoryOperand):
                 res.append(o)
+
+        for o in self.implicit_operands:
+            if isinstance(o, MemoryOperand):
+                res.append(o)
+
         return res
 
     def get_implicit_mem_operands(self):
         res = []
         for o in self.implicit_operands:
-            if o.type == OT.MEM:
+            if isinstance(o, MemoryOperand):
                 res.append(o)
         return res
 
@@ -282,6 +303,18 @@ class Instruction:
             if isinstance(o, FlagsOperand):
                 return o
         return None
+
+    def get_reg_operands(self) -> List[RegisterOperand]:
+        res = []
+        for o in self.implicit_operands:
+            if isinstance(o, RegisterOperand):
+                res.append(o)
+
+        for o in self.operands:
+            if isinstance(o, RegisterOperand):
+                res.append(o)
+
+        return res
 
 
 class BasicBlock:

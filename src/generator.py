@@ -858,9 +858,9 @@ class X86SandboxPass(Pass):
     def sandbox_memory_access(self, instr: Instruction, parent: BasicBlock):
         """ Force the memory accesses into the page starting from R14 """
         mem_operands = instr.get_mem_operands()
-        if mem_operands:
-            assert len(mem_operands) == 1
-            assert len(instr.get_implicit_mem_operands()) == 0
+        implicit_mem_operands = instr.get_implicit_mem_operands()
+        if mem_operands and not implicit_mem_operands:
+            assert len(mem_operands) == 1, f"Unexpected instruction format {instr.name}"
             mem_operand: Operand = mem_operands[0]
             address_reg = mem_operand.value
             imm_width = mem_operand.width if mem_operand.width <= 32 else 32
@@ -871,12 +871,9 @@ class X86SandboxPass(Pass):
             instr.get_mem_operands()[0].value = "R14 + " + address_reg
             return
 
-        mem_operands = instr.get_implicit_mem_operands()
+        mem_operands = implicit_mem_operands
         if mem_operands:
-            if len(mem_operands) != 1:
-                print(instr.name)
-            assert len(mem_operands) == 1
-
+            assert len(mem_operands) == 1, f"Unexpected instruction format {instr.name}"
             mem_operand = mem_operands[0]
             address_reg = mem_operand.value
             imm_width = mem_operand.width if mem_operand.width <= 32 else 32

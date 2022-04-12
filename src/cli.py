@@ -131,6 +131,7 @@ def main():
 
     # Test Case minimisation
     if args.subparser_name == "minimize":
+        CONF.coverage_type = 'none'
         postprocessor = Postprocessor(args.instruction_set)
         postprocessor.minimize(args.infile, args.outfile, args.num_inputs, args.add_fences)
         return

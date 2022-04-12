@@ -117,7 +117,7 @@ class ConfCls:
     input_main_region_size: int = 4096 // 8
     input_assist_region_size: int = 4096 // 8
     input_register_region_size: int = 64 // 8
-    inputs_per_class: int = 3
+    inputs_per_class: int = 2
     # ==============================================================================================
     # Model
     model: str = 'x86-unicorn'
@@ -146,7 +146,7 @@ class ConfCls:
     # ==============================================================================================
     # Coverage
     coverage_type: str = 'none'
-    feedback_driven_generator: bool = True
+    feedback_driven_generator: bool = False  # unused
     adaptive_input_number: bool = True
     combination_length_min: int = 1
     # ==============================================================================================
@@ -165,7 +165,7 @@ class ConfCls:
             'contract_observation_clause': [
                 'l1d', 'memory', 'ct', 'pc', 'ct-nonspecstore', 'ctr', 'arch'
             ],
-            'coverage_type': ['dependencies', 'none'],
+            'coverage_type': ['dependent-pairs', 'none'],
         }
 
         if name[0] == "_":
