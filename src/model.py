@@ -20,7 +20,7 @@ from unicorn.x86_const import UC_X86_REG_RSP, UC_X86_REG_RBP, \
 from typing import List, Tuple, Dict, Optional, Set
 
 from interfaces import CTrace, Input, TestCase, Model, InputTaint, Instruction, RegisterOperand, \
-    FlagsOperand, MemoryOperand
+    FlagsOperand, MemoryOperand, ExecutionTrace, TracedInstruction, TracedMemAccess
 from generator import X86Registers
 from config import CONF, ConfigException
 from service import LOGGER
@@ -38,7 +38,8 @@ FLAGS_OF = 0b100000000000
 # ==================================================================================================
 class X86UnicornTracer(ABC):
     trace: List[int]
-    execution_trace: List[Tuple[bool, int]]
+    execution_trace: ExecutionTrace
+    instruction_id: int
 
     def __init__(self):
         super().__init__()
@@ -51,7 +52,7 @@ class X86UnicornTracer(ABC):
     def get_contract_trace(self) -> CTrace:
         return hash(tuple(self.trace))
 
-    def get_execution_trace(self):
+    def get_execution_trace(self) -> ExecutionTrace:
         return self.execution_trace
 
     def add_mem_address_to_trace(self, address: int, model):
@@ -62,30 +63,29 @@ class X86UnicornTracer(ABC):
         self.trace.append(address)
         model.taint_tracker.taint_pc()
 
-    def observe_mem_access(self, access, address: int, size: int, value: int, model) -> None:
+    def observe_mem_access(self, access, address: int, size: int, value: int,
+                           model: X86UnicornModel) -> None:
         if model.in_speculation:
             return
 
-        self.execution_trace.append((False, address - model.sandbox_base))
-        if not model.debug:
-            return
+        normalized_address = address - model.sandbox_base
+        is_store = (access != uni.UC_MEM_READ)
+        val = value if is_store else int.from_bytes(
+            model.emulator.mem_read(address, size), byteorder='little')
+        LOGGER.dbg_model_mem_access(normalized_address, val, is_store)
 
-        if access == uni.UC_MEM_READ:
-            val = int.from_bytes(model.emulator.mem_read(address, size), byteorder='little')
-            print(f"  > read: +0x{address - model.sandbox_base:x} = 0x{val:x}")
-        else:
-            print(f"  > write: +0x{address - model.sandbox_base:x} = 0x{value:x}")
+        if model.execution_tracing_enabled:
+            traced_instruction = self.execution_trace[self.instruction_id]
+            traced_instruction.accesses.append(TracedMemAccess(normalized_address, val, is_store))
 
     def observe_instruction(self, address: int, size: int, model) -> None:
         if model.in_speculation:
             return
+        LOGGER.dbg_model_instruction(address - model.code_start, model)
 
-        self.execution_trace.append((True, address - model.code_base))
-        if not model.debug:
-            return
-
-        print(f"{address - model.code_base:2x}: ", end="")
-        model.print_state(oneline=True)
+        if model.execution_tracing_enabled:
+            self.execution_trace.append(TracedInstruction(address - model.code_start, []))
+            self.instruction_id = len(self.execution_trace) - 1
 
 
 class X86UnicornModel(Model):
@@ -99,25 +99,30 @@ class X86UnicornModel(Model):
     ASSIST_REGION_SIZE = CONF.input_assist_region_size * 8
     OVERFLOW_REGION_SIZE = 4096
 
-    test_case: TestCase
-    code: bytes
     emulator: Uc
+    tracer: X86UnicornTracer
+    taint_tracker: TaintTrackerInterface
+
+    test_case: TestCase
+    current_instruction: Instruction
+    code_start: int
+    code_end: int
+    sandbox_base: int
+    nesting: int = 0
     in_speculation: bool = False
     speculation_window: int = 0
     checkpoints: List
     store_logs: List
     previous_store: Tuple[int, int, int, int]
-    tracer: X86UnicornTracer
-    nesting: int = 0
-    debug: bool = False
-    taint_tracker: TaintTrackerInterface
-    tainting_enabled: bool = True
-    current_instruction: Instruction
 
-    def __init__(self, sandbox_base, code_base):
-        super().__init__(sandbox_base, code_base)
-        self.code_base: int = code_base
-        self.sandbox_base: int = sandbox_base
+    # execution modes
+    tainting_enabled: bool = False
+    execution_tracing_enabled: bool = False
+
+    def __init__(self, sandbox_base, code_start):
+        super().__init__(sandbox_base, code_start)
+        self.code_start = code_start
+        self.sandbox_base = sandbox_base
         self.lower_overflow_base = self.sandbox_base - self.OVERFLOW_REGION_SIZE
         self.upper_overflow_base = \
             self.sandbox_base + self.MAIN_REGION_SIZE + self.ASSIST_REGION_SIZE
@@ -137,19 +142,20 @@ class X86UnicornModel(Model):
 
         # create and read a binary
         with open(test_case.bin_path, 'rb') as f:
-            self.code = f.read()
+            code = f.read()
+        self.code_end = self.code_start + len(code)
 
         # initialize emulator in x86-64 mode
         emulator = Uc(uni.UC_ARCH_X86, uni.UC_MODE_64)
 
         try:
             # allocate memory
-            emulator.mem_map(self.code_base, self.CODE_SIZE)
+            emulator.mem_map(self.code_start, self.CODE_SIZE)
             emulator.mem_map(self.sandbox_base - self.WORKING_MEMORY_SIZE // 2,
                              self.WORKING_MEMORY_SIZE)
 
             # write machine code to be emulated to memory
-            emulator.mem_write(self.code_base, self.code)
+            emulator.mem_write(self.code_start, code)
 
             # set up callbacks
             emulator.hook_add(uni.UC_HOOK_MEM_READ | uni.UC_HOOK_MEM_WRITE, self.trace_mem_access,
@@ -161,22 +167,18 @@ class X86UnicornModel(Model):
         except UcError as e:
             LOGGER.error("[X86UnicornModel:load_test_case] %s" % e)
 
-    def trace_test_case(self, inputs, nesting, enable_tainting, dbg=False):
+    def _execute_test_case(self, inputs, nesting):
         self.nesting = nesting
-        self.debug = dbg
-        self.tainting_enabled = enable_tainting
 
-        contract_traces = []
-        execution_traces = []
+        contract_traces: List[CTrace] = []
+        execution_traces: List[ExecutionTrace] = []
         taints = []
         for input_ in inputs:
             self.reset_model()
             try:
                 self._load_input(input_)
                 self.emulator.emu_start(
-                    self.code_base,
-                    self.code_base + len(self.code),
-                    timeout=10 * uni.UC_SECOND_SCALE)
+                    self.code_start, self.code_end, timeout=10 * uni.UC_SECOND_SCALE)
             except UcError as e:
                 if not self.in_speculation:
                     self.print_state()
@@ -199,6 +201,18 @@ class X86UnicornModel(Model):
         self.coverage.model_hook(execution_traces)
 
         return contract_traces, taints
+
+    def trace_test_case(self, inputs, nesting):
+        self.execution_tracing_enabled = True
+        ctraces, _ = self._execute_test_case(inputs, nesting)
+        self.execution_tracing_enabled = False
+        return ctraces
+
+    def get_taints(self, inputs, nesting):
+        self.tainting_enabled = True
+        _, taints = self._execute_test_case(inputs, nesting)
+        self.tainting_enabled = False
+        return taints
 
     def reset_model(self):
         self.checkpoints = []
@@ -269,7 +283,7 @@ class X86UnicornModel(Model):
 
     @staticmethod
     def instruction_hook(emulator: Uc, address: int, size: int, model: X86UnicornModel) -> None:
-        model.current_instruction = model.test_case.address_map[address - model.code_base]
+        model.current_instruction = model.test_case.address_map[address - model.code_start]
         model.trace_instruction(emulator, address, size, model)
 
     @staticmethod
@@ -760,8 +774,7 @@ class X86UnicornSpec(X86UnicornModel):
         self.taint_tracker.rollback()
 
         # restart without misprediction
-        self.emulator.emu_start(
-            next_instr, self.code_base + len(self.code), timeout=10 * uni.UC_SECOND_SCALE)
+        self.emulator.emu_start(next_instr, self.code_end, timeout=10 * uni.UC_SECOND_SCALE)
 
     def reset_model(self):
         super().reset_model()

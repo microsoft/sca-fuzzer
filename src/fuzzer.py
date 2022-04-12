@@ -91,12 +91,13 @@ class Fuzzer:
         # by default, we test without nested misprediction,
         # but retry with nesting upon a violation
         violations: List[EquivalenceClass] = []
+        boosted_inputs: List[Input] = []
         for nesting in [1, CONF.max_nesting]:
-            boosted_inputs: List[Input] = self.boost_inputs(inputs, nesting)
+            boosted_inputs = self.boost_inputs(inputs, nesting)
+            STAT.num_inputs += len(boosted_inputs)
 
             # get traces
-            ctraces: List[CTrace]
-            ctraces, _ = self.model.trace_test_case(boosted_inputs, nesting, False)
+            ctraces: List[CTrace] = self.model.trace_test_case(boosted_inputs, nesting)
             htraces: List[HTrace] = self.executor.trace_test_case(boosted_inputs)
             LOGGER.dbg_dump_traces(htraces, ctraces)
 
@@ -144,7 +145,7 @@ class Fuzzer:
 
     def boost_inputs(self, inputs: List[Input], nesting: int) -> List[Input]:
         taints: List[InputTaint]
-        _, taints = self.model.trace_test_case(inputs, nesting, True)
+        taints = self.model.get_taints(inputs, nesting)
 
         # ensure that we have many inputs in each input classes
         boosted_inputs: List[Input] = list(inputs)  # make a copy

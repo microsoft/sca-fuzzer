@@ -6,7 +6,7 @@ SPDX-License-Identifier: MIT
 """
 from __future__ import annotations
 
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple, Optional, NamedTuple
 from collections import defaultdict
 from abc import ABC, abstractmethod
 import numpy as np
@@ -547,6 +547,21 @@ class EquivalenceClass:
         self.htrace_groups = groups
 
 
+# Execution Tracing
+class TracedMemAccess(NamedTuple):
+    m_address: int
+    value: int
+    is_store: bool
+
+
+class TracedInstruction(NamedTuple):
+    i_address: int
+    accesses: List[TracedMemAccess]
+
+
+ExecutionTrace = List[TracedInstruction]
+
+
 # ==================================================================================================
 # Interfaces of Modules
 # ==================================================================================================
@@ -648,11 +663,11 @@ class Model(ABC):
         pass
 
     @abstractmethod
-    def trace_test_case(self,
-                        inputs: List[Input],
-                        nesting: int,
-                        enable_tainting: bool = True,
-                        dbg: bool = False) -> Tuple[List[CTrace], List[InputTaint]]:
+    def trace_test_case(self, inputs: List[Input], nesting: int) -> List[CTrace]:
+        pass
+
+    @abstractmethod
+    def get_taints(self, inputs, nesting) -> List[InputTaint]:
         pass
 
     def set_coverage(self, coverage: Coverage):

@@ -24,7 +24,7 @@ class Postprocessor:
         # Initial measurement
         fuzzer.model.load_test_case(test_case)
         fuzzer.executor.load_test_case(test_case)
-        ctraces, _ = fuzzer.model.trace_test_case(inputs, CONF.max_nesting, False)
+        ctraces = fuzzer.model.trace_test_case(inputs, CONF.max_nesting)
         htraces: List[HTrace] = fuzzer.executor.trace_test_case(inputs)
 
         # Check for violations
