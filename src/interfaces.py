@@ -31,6 +31,28 @@ class OT(Enum):
         return str(self._name_)
 
 
+class OperandSpec:
+    values: List[str]
+    type: OT
+    width: int
+    src: bool
+    dest: bool
+
+    # certain operand values have special handling (e.g., separate opcode when RAX is a destination)
+    # magic_value attribute indicates a specification for this special value
+    magic_value: bool = False
+
+    def __init__(self, values: List[str], type_: OT, src: str, dest: str):
+        self.values = values
+        self.type = type_
+        self.src = True if src == "1" else False
+        self.dest = True if dest == "1" else False
+        self.width = 0
+
+    def __str__(self):
+        return f"{self.values}"
+
+
 class Operand(ABC):
     value: str
     type: OT
@@ -123,6 +145,31 @@ class FlagsOperand(Operand):
 
     def get_undef_flags(self) -> List[str]:
         return self._get_flag_list(['undef'])
+
+class InstructionSpec:
+    name: str
+    operands: List[OperandSpec]
+    implicit_operands: List[OperandSpec]
+    category: str
+    control_flow = False
+
+    zeroing = False
+    rnsae = False
+    sae = False
+
+    has_mem_operand = False
+    has_write = False
+    has_magic_value: bool = False
+
+    def __init__(self):
+        self.operands = []
+        self.implicit_operands = []
+
+    def __str__(self):
+        ops = ""
+        for o in self.operands:
+            ops += str(o) + " "
+        return f"{self.name} {ops}"
 
 
 class Instruction:
@@ -499,8 +546,8 @@ class EquivalenceClass:
 # Interfaces of Modules
 # ==================================================================================================
 class InstructionSetAbstract(ABC):
-    all: List = []
-    control_flow: List = []
+    all: List[InstructionSpec] = []
+    control_flow: List[InstructionSpec] = []
     has_unconditional_branch: bool = False
     has_conditional_branch: bool = False
     has_indirect_branch: bool = False

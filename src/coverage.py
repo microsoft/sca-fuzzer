@@ -12,7 +12,7 @@ from generator import Instruction, X86Registers
 from interfaces import Coverage, EquivalenceClass, TestCase, Executor, Model, Analyser
 from helpers import run
 
-from config import CONF
+from config import CONF, ConfigException
 from service import STAT
 
 
@@ -380,5 +380,4 @@ def get_coverage(instruction_set: InstructionSet,
     elif CONF.coverage_type == 'none':
         return NoCoverage(instruction_set, executor, model, analyser)
     else:
-        print("Error: unknown value of `coverage_type` configuration option")
-        exit(1)
+        ConfigException("unknown value of `coverage_type` configuration option")

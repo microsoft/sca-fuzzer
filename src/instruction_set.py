@@ -7,56 +7,8 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 import xml.etree.ElementTree as ET
-from interfaces import List, OT, InstructionSetAbstract
+from interfaces import List, OT, InstructionSetAbstract, OperandSpec, InstructionSpec
 from config import CONF
-
-
-class OperandSpec:
-    values: List[str]
-    type: OT
-    width: int
-    src: bool
-    dest: bool
-
-    # certain operand values have special handling (e.g., separate opcode when RAX is a destination)
-    # magic_value attribute indicates a specification for this special value
-    magic_value: bool = False
-
-    def __init__(self, values: List[str], type_: OT, src: str, dest: str):
-        self.values = values
-        self.type = type_
-        self.src = True if src == "1" else False
-        self.dest = True if dest == "1" else False
-        self.width = 0
-
-    def __str__(self):
-        return f"{self.values}"
-
-
-class InstructionSpec:
-    name: str
-    operands: List[OperandSpec]
-    implicit_operands: List[OperandSpec]
-    category: str
-    control_flow = False
-
-    zeroing = False
-    rnsae = False
-    sae = False
-
-    has_mem_operand = False
-    has_write = False
-    has_magic_value: bool = False
-
-    def __init__(self):
-        self.operands = []
-        self.implicit_operands = []
-
-    def __str__(self):
-        ops = ""
-        for o in self.operands:
-            ops += str(o) + " "
-        return f"{self.name} {ops}"
 
 
 class InstructionSet(InstructionSetAbstract):

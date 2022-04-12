@@ -13,8 +13,10 @@ import iced_x86
 from typing import List, Dict, Set, Optional
 from subprocess import CalledProcessError, run
 
-from instruction_set import OperandSpec, InstructionSpec, InstructionSet
+from instruction_set import InstructionSet
 from interfaces import Generator, TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
+    ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, Function, \
+    OperandSpec, InstructionSpec
 from service import NotSupportedException
 from config import CONF, ConfigException
 

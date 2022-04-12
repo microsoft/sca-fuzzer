@@ -7,8 +7,8 @@ import unittest
 import sys
 
 sys.path.insert(0, '..')
-from instruction_set import InstructionSet, InstructionSpec
-from interfaces import OT
+from instruction_set import InstructionSet
+from interfaces import OT, InstructionSpec
 
 
 class InstructionSetParserTest(unittest.TestCase):
