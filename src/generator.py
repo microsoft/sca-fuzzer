@@ -256,7 +256,7 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
 
     def generate_instruction(self, spec: InstructionSpec):
         # fill up with random operands, following the spec
-        inst = Instruction(spec.name)
+        inst = Instruction.from_spec(spec)
 
         # generate explicit operands
         for operand_spec in spec.operands:
@@ -343,7 +343,7 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
             elif len(bb.successors) == 2:
                 # Conditional branch
                 spec = random.choice(self.instruction_set.control_flow)
-                terminator = Instruction(spec.name)
+                terminator = Instruction.from_spec(spec)
                 terminator.operands = [LabelOperand(bb.successors[0].name)]
                 for op in spec.implicit_operands:
                     if op.type == OT.FLAGS:
@@ -734,7 +734,7 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
         spec: InstructionSpec = matching_specs[0]
 
         # generate a corresponding Instruction
-        inst = Instruction(name, is_instrumentation, spec.category, spec.control_flow)
+        inst = Instruction.from_spec(spec, is_instrumentation)
         op: Operand
         for op_id, op_raw in enumerate(operands_raw):
             op_spec = spec.operands[op_id]
@@ -788,10 +788,10 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
         test_case.address_map = address_map
 
     def get_return_instruction(self) -> Instruction:
-        return Instruction("RET")
+        return Instruction("RET", False, "", True)
 
     def get_unconditional_jump_instruction(self) -> Instruction:
-        return Instruction("JMP")
+        return Instruction("JMP", False, "UNCOND_BR", True)
 
 
 class X86LFENCEPass(Pass):

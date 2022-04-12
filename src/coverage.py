@@ -7,10 +7,7 @@ SPDX-License-Identifier: MIT
 from enum import IntEnum
 from typing import Dict, Set, List, Optional
 
-from instruction_set import OT, InstructionSet
-from generator import Instruction, X86Registers
-from interfaces import Coverage, EquivalenceClass, TestCase, Executor, Model, Analyser
-from helpers import run
+from instruction_set import InstructionSet
 
 from config import CONF, ConfigException
 from service import STAT

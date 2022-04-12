@@ -198,6 +198,11 @@ class Instruction:
         self.category = category
         self.control_flow = control_flow
 
+    @classmethod
+    def from_spec(cls, spec: InstructionSpec, is_instrumentation=False):
+        # Make sure there are exactly three vertices, though :)
+        return cls(spec.name, is_instrumentation, spec.category, spec.control_flow)
+
     def __str__(self) -> str:
         op_list = [
             "[" + o.value + "]" if isinstance(o, MemoryOperand) else o.value for o in self.operands

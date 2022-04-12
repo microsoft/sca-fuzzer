@@ -51,10 +51,6 @@ class Fuzzer:
         # create all main modules
         self.initialize_modules()
 
-        # preserve the original ratio of inputs to the test case size
-        input_ratio = num_inputs / CONF.test_case_size
-        STAT.num_inputs = num_inputs
-
         for i in range(num_test_cases):
             LOGGER.start_round(i)
             # Generate a test case
