@@ -13,6 +13,7 @@ from argparse import ArgumentParser
 from fuzzer import Fuzzer
 from postprocessor import Postprocessor
 from config import CONF
+from service import LOGGER
 
 
 def main():
@@ -65,10 +66,6 @@ def main():
         action='store_true',
         help="Don't stop after detecting an unexpected result"
     )
-    parser_fuzz.add_argument(
-        '-v', '--verbose',
-        action='store_true',
-    )
 
     parser_mini = subparsers.add_parser('minimize')
     parser_mini.add_argument(
@@ -107,8 +104,6 @@ def main():
     args = parser.parse_args()
 
     # Update configuration
-    if getattr(args, 'verbose', 0):
-        CONF.set('verbose', 1)
     if args.config:
         CONF.config_path = args.config
         with open(args.config, "r") as f:
@@ -116,6 +111,7 @@ def main():
         for var, value in config_update.items():
             CONF.set(var, value)
     CONF.sanity_check()
+    LOGGER.set_logging_modes()
 
     # Fuzzing
     if args.subparser_name == 'fuzz':

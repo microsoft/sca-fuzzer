@@ -630,9 +630,8 @@ class Coverage(ABC):
     def get(self) -> int:
         pass
 
-    @abstractmethod
-    def update(self):
-        pass
+    def get_brief(self) -> str:
+        return ""
 
     @abstractmethod
     def load_test_case(self, test_case: TestCase):

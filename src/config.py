@@ -151,8 +151,8 @@ class ConfCls:
     combination_length_min: int = 1
     # ==============================================================================================
     # Output
-    verbose: int = 0
     multiline_output: bool = False
+    logging_modes: List[str] = ["info"]
 
     def set(self, name, value):
         options = {

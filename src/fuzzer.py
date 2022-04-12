@@ -46,13 +46,15 @@ class Fuzzer:
 
     def start(self, num_test_cases: int, num_inputs: int, timeout: int, nonstop: bool = False):
         start_time = datetime.today()
-        LOGGER.start_fuzzing(num_test_cases, start_time)
+        LOGGER.fuzzer_start(num_test_cases, start_time)
 
         # create all main modules
         self.initialize_modules()
 
         for i in range(num_test_cases):
-            LOGGER.start_round(i)
+            LOGGER.fuzzer_start_round(i)
+            LOGGER.dbg_report_coverage(i, self.coverage.get_brief())
+
             # Generate a test case
             if not self.existing_test_case:
                 test_case = self.generator.create_test_case('generated.asm')
@@ -65,10 +67,9 @@ class Fuzzer:
             # Fuzz the test case
             violation = self.fuzzing_round(test_case, inputs)
             STAT.test_cases += 1
-            self.coverage.update()
 
             if violation:
-                LOGGER.report_violations(violation, self.model)
+                LOGGER.fuzzer_report_violations(violation, self.model)
                 self.store_test_case(test_case, False)
                 STAT.violations += 1
                 if not nonstop:
@@ -78,10 +79,10 @@ class Fuzzer:
             if timeout:
                 now = datetime.today()
                 if (now - start_time).total_seconds() > timeout:
-                    LOGGER.timeout()
+                    LOGGER.fuzzer_timeout()
                     break
 
-        LOGGER.finish_fuzzing()
+        LOGGER.fuzzer_finish()
 
     def fuzzing_round(self, test_case: TestCase, inputs: List[Input]) -> Optional[EquivalenceClass]:
         self.model.load_test_case(test_case)
@@ -99,7 +100,7 @@ class Fuzzer:
             # get traces
             ctraces: List[CTrace] = self.model.trace_test_case(boosted_inputs, nesting)
             htraces: List[HTrace] = self.executor.trace_test_case(boosted_inputs)
-            LOGGER.dbg_dump_traces(htraces, ctraces)
+            LOGGER.trc_fuzzer_dump_traces(htraces, ctraces)
 
             # Check for violations
             violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces, True)
@@ -114,7 +115,7 @@ class Fuzzer:
 
             # otherwise, try higher nesting
             if nesting == 1:
-                LOGGER.nesting_increased()
+                LOGGER.fuzzer_nesting_increased()
 
         if CONF.no_priming:
             return violations[-1]
@@ -122,7 +123,7 @@ class Fuzzer:
         # Try priming the inputs that disagree with the other ones within the same eq. class
         STAT.required_priming += 1
         while violations:
-            LOGGER.priming(len(violations))
+            LOGGER.fuzzer_priming(len(violations))
             violation: EquivalenceClass = violations.pop()
             if self.verify_with_priming(violation, boosted_inputs):
                 break
