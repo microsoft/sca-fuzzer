@@ -169,22 +169,18 @@ class ConfCls:
         }
 
         if name[0] == "_":
-            print(f"Error: Attempting to set an internal configuration variable {name}.\n")
-            exit(1)
+            ConfigException(f"Attempting to set an internal configuration variable {name}.")
         if getattr(self, name, None) is None:
-            print(f"Error: Unknown configuration variable {name}.\n"
-                  f"It's likely a typo in the configuration file.")
-            exit(1)
+            ConfigException(f"Unknown configuration variable {name}.\n"
+                            f"It's likely a typo in the configuration file.")
         if type(self.__getattribute__(name)) != type(value):
-            print(f"Error: Wrong type of the configuration variable {name}.\n"
-                  f"It's likely a typo in the configuration file.")
-            exit(1)
+            ConfigException(f"Wrong type of the configuration variable {name}.\n"
+                            f"It's likely a typo in the configuration file.")
 
         # value checks
         # TODO: would be great to have more of these
         if options.get(name, '') != '' and value not in options[name]:
-            print(f"Error: Unknown value '{value}' of configuration variable '{name}'")
-            exit(1)
+            ConfigException(f"Unknown value '{value}' of configuration variable '{name}'")
 
         # special handling
         if name == "extended_instruction_blocklist":
@@ -201,3 +197,7 @@ class ConfCls:
 
 
 CONF = ConfCls()
+
+
+class ConfigException(SystemExit):
+    pass

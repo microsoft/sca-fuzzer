@@ -20,8 +20,7 @@ from coverage import get_coverage
 from instruction_set import InstructionSet
 
 from config import CONF
-from service import STAT, LOGGER
-from helpers import pretty_bitmap, bit_count, TWOS_COMPLEMENT_MASK_64
+from service import STAT, LOGGER, TWOS_COMPLEMENT_MASK_64, bit_count
 
 
 class Fuzzer:
@@ -57,6 +56,7 @@ class Fuzzer:
         STAT.num_inputs = num_inputs
 
         for i in range(num_test_cases):
+            LOGGER.start_round(i)
             # Generate a test case
             if not self.existing_test_case:
                 test_case = self.generator.create_test_case('generated.asm')
@@ -72,7 +72,7 @@ class Fuzzer:
             self.coverage.update()
 
             if violation:
-                self.report_violations(violation, self.model)
+                LOGGER.report_violations(violation, self.model)
                 self.store_test_case(test_case, False)
                 STAT.violations += 1
                 if not nonstop:
@@ -82,40 +82,12 @@ class Fuzzer:
             if timeout:
                 now = datetime.today()
                 if (now - start_time).total_seconds() > timeout:
-                    if CONF.verbose:
-                        print("\nTimeout expired")
+                    LOGGER.timeout()
                     break
 
-            if STAT.test_cases % 100 == 0 and CONF.verbose >= 2:
-                print(f"\nFUZZER: current duration: "
-                      f"{(datetime.today() - start_time).total_seconds()}")
-
-            # if we fuzz a fixed test case, no re-configuration will be necessary
-            if self.existing_test_case:
-                continue
-
-            # if the configuration has changed, update num inputs and entropy
-            if CONF.feedback_driven_generator and \
-                    CONF.avg_mem_accesses >= pow(2, CONF.prng_entropy_bits):
-                input_ratio *= 1.5
-                CONF.prng_entropy_bits += 1
-                if CONF.verbose >= 2:
-                    print(f"FUZZER: increasing entropy: {CONF.prng_entropy_bits}")
-
-            if STAT.effective_eq_classes / STAT.test_cases < 1:
-                input_ratio *= 1.2
-
-            if CONF.adaptive_input_number and \
-                    num_inputs / CONF.test_case_size < input_ratio:
-                num_inputs = int(input_ratio * CONF.test_case_size) + 1
-                STAT.num_inputs = num_inputs
-                if CONF.verbose >= 2:
-                    print(f"FUZZER: increasing the number of inputs: {num_inputs}")
-
-        LOGGER.finish()
+        LOGGER.finish_fuzzing()
 
     def fuzzing_round(self, test_case: TestCase, inputs: List[Input]) -> Optional[EquivalenceClass]:
-        LOGGER.start_round()
         self.model.load_test_case(test_case)
         self.executor.load_test_case(test_case)
         self.coverage.load_test_case(test_case)
@@ -130,15 +102,7 @@ class Fuzzer:
             ctraces: List[CTrace]
             ctraces, _ = self.model.trace_test_case(boosted_inputs, nesting, False)
             htraces: List[HTrace] = self.executor.trace_test_case(boosted_inputs)
-
-            # for debugging
-            if CONF.verbose == 999:
-                print("")
-                nprinted = 10 if len(ctraces) > 10 else len(ctraces)
-                for i in range(nprinted):
-                    print("..............................................................")
-                    print(pretty_bitmap(ctraces[i], ctraces[i] > pow(2, 64)))
-                    print(pretty_bitmap(htraces[i]))
+            LOGGER.dbg_dump_traces(htraces, ctraces)
 
             # Check for violations
             violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces, True)
@@ -153,7 +117,7 @@ class Fuzzer:
 
             # otherwise, try higher nesting
             if nesting == 1:
-                LOGGER.higher_nesting()
+                LOGGER.nesting_increased()
 
         if CONF.no_priming:
             return violations[-1]
@@ -260,7 +224,7 @@ class Fuzzer:
                 primer_found = self.check_multiprimer(multiprimer, primer_size, expected_htrace,
                                                       CONF.priming_retries)
                 if not primer_found:
-                    print("Could not reproduce previous results with priming.")
+                    LOGGER.waring("Could not reproduce previous results with priming.")
                     STAT.broken_measurements += 1
                     return []
                 return multiprimer
@@ -271,7 +235,7 @@ class Fuzzer:
                 continue
 
             # otherwise, we failed to find a primer
-            print("Failed to find a primer - max_primer_size reached")
+            LOGGER.waring("Failed to find a primer - max_primer_size reached")
             return []
 
     def store_test_case(self, test_case: TestCase, require_retires: bool):
@@ -297,10 +261,6 @@ class Fuzzer:
             for j in range(num_inputs):
                 id_ = (primer_size - 1) + j * primer_size
                 if primed_traces[id_] != expected_htrace:
-                    # print("violation")
-                    # print(pretty_bitmap(primed_traces[id_]))
-                    # print(pretty_bitmap(expected_htrace) + " [expected]")
-
                     if primed_traces[id_] < expected_htrace:
                         mismatch = True  # subset, try more repetitions
                         num_measurements += CONF.num_measurements
@@ -318,31 +278,3 @@ class Fuzzer:
             if not mismatch:
                 return True
         return False
-
-    @staticmethod
-    def report_violations(violation: EquivalenceClass, model: Model):
-        print("\n\n================================ Violations detected ==========================")
-        print("  Contract trace (hash):\n")
-        if violation.ctrace <= pow(2, 64):
-            print(f"    {violation.ctrace:064b}")
-        else:
-            print(f"    {violation.ctrace % violation.mod2p64:064b} [ns]\n"
-                  f"    {(violation.ctrace >> 64) % violation.mod2p64:064b} [s]\n")
-        print("  Hardware traces:")
-        for group in violation.htrace_groups.values():
-            inputs = [violation.inputs[i] for i in group]
-            if len(inputs) < 4:
-                print(f"   Inputs {inputs}:")
-            else:
-                print(f"   Inputs {inputs[:4]} (+ {len(inputs) - 4} ):")
-            print(f"    {pretty_bitmap(violation.htraces[group[0]])}")
-        print("")
-
-        if CONF.verbose < 2:
-            return
-
-        # print details
-        for group in violation.htrace_groups.values():
-            print("===========================================")
-            print(f"Input: {violation.inputs[group[0]]}, {violation.original_positions[group[0]]}")
-            model.trace_test_case([violation.inputs[group[0]]], 1, False, True)

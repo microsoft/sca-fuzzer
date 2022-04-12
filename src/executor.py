@@ -11,10 +11,19 @@ from collections import Counter
 from typing import List
 from interfaces import CombinedHTrace, HTrace, Input, TestCase, Executor, Optional
 
-from helpers import write_to_pseudo_file, write_to_pseudo_file_bytes
-from config import CONF
+from config import CONF, ConfigException
+from service import LOGGER
 
 PFCReading = int
+
+
+def write_to_pseudo_file(value, path: str) -> None:
+    subprocess.run(f"sudo bash -c 'echo -n {value} > {path}'", shell=True, check=True)
+
+
+def write_to_pseudo_file_bytes(value: bytes, path: str) -> None:
+    with open(path, "wb") as f:
+        f.write(value)
 
 
 class X86Intel(Executor):
@@ -27,9 +36,8 @@ class X86Intel(Executor):
         try:
             out = subprocess.run("lscpu", shell=True, check=True, capture_output=True)
         except subprocess.CalledProcessError:
-            print("ERROR: Could not check if hyperthreading is enabled.\n"
-                  "       Is lscpu installed?")
-            exit(1)
+            LOGGER.error("Could not check if hyperthreading is enabled.\n"
+                         "       Is lscpu installed?")
 
         smt_on: Optional[bool] = None
         for line in out.stdout.decode().split("\n"):
@@ -39,9 +47,9 @@ class X86Intel(Executor):
                 else:
                     smt_on = True
         if smt_on is None:
-            print("WARNING: Could not check if SMT is on.")
+            LOGGER.waring("Could not check if SMT is on.")
         if smt_on:
-            print("WARNING: SMT is on! You may experience false positives.")
+            LOGGER.waring("SMT is on! You may experience false positives.")
 
         # disable prefetching
         subprocess.run('sudo modprobe msr', shell=True, check=True)
@@ -68,7 +76,7 @@ class X86Intel(Executor):
 
         # is kernel module ready?
         if not os.path.isfile("/proc/x86-executor"):
-            print("Error: x86 Intel Executor: kernel module not loaded")
+            LOGGER.error("x86 Intel Executor: kernel module not loaded")
 
         if num_measurements == 0:
             num_measurements = CONF.num_measurements
@@ -85,8 +93,7 @@ class X86Intel(Executor):
         # 3) Check that the load was successful
         with open('/sys/x86-executor/n_inputs', 'r') as f:
             if f.readline() == '0\n':
-                print("Failure loading inputs!")
-                raise Exception()
+                LOGGER.error("Failure loading inputs!")
 
         traces: List[List[HTrace]] = [[] for _ in inputs]
         pfc_readings: List[List] = [[[], [], []] for _ in inputs]
@@ -125,7 +132,6 @@ class X86Intel(Executor):
             num_occurrences: Counter = Counter()
             for trace in trace_list:
                 num_occurrences[trace] += 1
-                # print(pretty_bitmap(trace))
                 if num_occurrences[trace] <= CONF.max_outliers:
                     # if we see too few occurrences of this specific htrace,
                     # it might be noise, ignore it for now
@@ -167,6 +173,5 @@ def get_executor() -> Executor:
         'x86-intel': X86Intel,
     }
     if CONF.executor not in options:
-        print("Error: unknown executor in config.py")
-        exit(1)
+        ConfigException("unknown executor in config.py")
     return options[CONF.executor]()

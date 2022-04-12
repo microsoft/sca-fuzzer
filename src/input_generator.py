@@ -1,13 +1,12 @@
 """
 File: Input Generation
 
-Copyright (C) 2021 Oleksii Oleksenko
-Copyright (C) 2020 Microsoft Corporation
+Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 from typing import List, Tuple
 from interfaces import Input, InputTaint, InputGenerator
-from config import CONF
+from config import CONF, ConfigException
 
 POW32 = pow(2, 32)
 
@@ -74,7 +73,6 @@ class RandomInputGenerator(InputGenerator):
         for i in range(CONF.input_register_region_size):
             input_[-i - 1] = input_[-i - 1] % POW32
 
-        # print(input_.get_registers())
         return input_, randint
 
 
@@ -83,6 +81,6 @@ def get_input_generator() -> InputGenerator:
         'random': RandomInputGenerator,
     }
     if CONF.input_generator not in options:
-        print("Error: unknown input_generator in config.py")
+        ConfigException("unknown input_generator in config.py")
         exit(1)
     return options[CONF.input_generator]()

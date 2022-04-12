@@ -15,12 +15,15 @@ from subprocess import CalledProcessError, run
 
 from instruction_set import OperandSpec, InstructionSpec, InstructionSet
 from interfaces import Generator, TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
-    ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, Function
-from helpers import NotSupportedException
-from config import CONF
+from service import NotSupportedException
+from config import CONF, ConfigException
 
 
 # Helpers
+class GeneratorException(Exception):
+    pass
+
+
 class AsmParserException(Exception):
 
     def __init__(self, line_number, explanation):
@@ -537,7 +540,6 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
                 if line == ".test_case_exit:":
                     break
 
-                # print(line)
                 if not line[0] == ".":  # skip non-lables - we will parse them in the second pass
                     continue
                 parser_assert(line[-1] == ":", i, "Labels must start with '.', end with ':\\n'")
@@ -672,7 +674,6 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
             operands_raw = []
         else:  # clean the operands
             operands_raw = [o.strip() for o in operands_raw]
-        # print(f"{name} {operands_raw}")
 
         # find a matching spec
         matching_specs = []
@@ -887,8 +888,7 @@ class X86SandboxPass(Pass):
             parent.insert_before(instr, add_base)
             return
 
-        # print(X86Printer().instruction_to_str(instr))
-        raise Exception("Attempt to sandbox an instruction without memory operands")
+        raise GeneratorException("Attempt to sandbox an instruction without memory operands")
 
     def sandbox_division(self, inst: Instruction, parent: BasicBlock):
         """
@@ -1047,7 +1047,7 @@ class X86PatchUndefinedFlagsPass(Pass):
                 self.patch_candidates.append(instruction_spec)
 
         if not self.patch_candidates:
-            raise Exception("ERROR: The instruction set is insufficient to patch undef flags")
+            raise GeneratorException("The instruction set is insufficient to patch undef flags")
 
     def run_on_test_case(self, test_case: TestCase) -> None:
         for func in test_case.functions:
@@ -1114,7 +1114,7 @@ class X86PatchUndefinedFlagsPass(Pass):
                     break
 
         if undef_flags:
-            raise Exception(f"ERROR: Could not find an instruction to patch flags {undef_flags}")
+            raise GeneratorException(f"Could not find an instruction to patch flags {undef_flags}")
 
         return patches
 
@@ -1199,11 +1199,7 @@ class X86Printer(Printer):
             file.write(self.instruction_to_str(inst) + "\n")
 
     def instruction_to_str(self, inst: Instruction):
-        try:
-            operands = ", ".join([self.operand_to_str(op) for op in inst.operands])
-        except KeyError as e:
-            print(inst)
-            raise e
+        operands = ", ".join([self.operand_to_str(op) for op in inst.operands])
         comment = "# instrumentation" if inst.is_instrumentation else ""
         return f"{inst.name} {operands} {comment}"
 
@@ -1229,5 +1225,5 @@ def get_generator(instruction_set: InstructionSet) -> Generator:
         if CONF.generator == 'random':
             return X86RandomGenerator(instruction_set)
 
-    print("Error: unknown value of `instruction_set` configuration option")
+    ConfigException("unknown value of `instruction_set` configuration option")
     exit(1)

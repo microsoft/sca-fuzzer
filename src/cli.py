@@ -121,8 +121,7 @@ def main():
     if args.subparser_name == 'fuzz':
         # Make sure we're ready for fuzzing
         if args.working_directory and not os.path.isdir(args.working_directory):
-            print("The working directory does not exist")
-            exit(1)
+            SystemExit("The working directory does not exist")
 
         # Normal fuzzing mode
         fuzzer = Fuzzer(args.instruction_set, args.working_directory, args.testcase)

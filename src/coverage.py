@@ -1,14 +1,11 @@
 """
 File: Various helper functions used by multiple parts of the project
 
-Copyright (C) 2021 Oleksii Oleksenko
+Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
-import re
 from enum import IntEnum
-from collections import defaultdict
-from itertools import combinations
-from typing import Tuple, Dict, Set, List
+from typing import Dict, Set, List, Optional
 
 from instruction_set import OT, InstructionSet
 from generator import Instruction, X86Registers

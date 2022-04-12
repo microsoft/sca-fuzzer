@@ -22,7 +22,8 @@ from typing import List, Tuple, Dict, Optional, Set
 from interfaces import CTrace, Input, TestCase, Model, InputTaint, Instruction, RegisterOperand, \
     FlagsOperand, MemoryOperand
 from generator import X86Registers
-from config import CONF
+from config import CONF, ConfigException
+from service import LOGGER
 
 FLAGS_CF = 0b000000000001
 FLAGS_PF = 0b000000000100
@@ -158,8 +159,7 @@ class X86UnicornModel(Model):
             self.emulator = emulator
 
         except UcError as e:
-            print("Model error [load_test_case]: %s" % e)
-            raise e
+            LOGGER.error("[X86UnicornModel:load_test_case] %s" % e)
 
     def trace_test_case(self, inputs, nesting, enable_tainting, dbg=False):
         self.nesting = nesting
@@ -180,8 +180,7 @@ class X86UnicornModel(Model):
             except UcError as e:
                 if not self.in_speculation:
                     self.print_state()
-                    print("Model error [trace_test_case]: %s" % e)
-                    raise e
+                    LOGGER.error("[X86UnicornModel:trace_test_case] %s" % e)
 
             # if we use one of the SPEC contracts, we might have some residual simulations
             # that did not reach the spec. window by the end of simulation. Those need
@@ -966,7 +965,7 @@ def get_model(bases: Tuple[int, int]) -> Model:
         elif "seq" in CONF.contract_execution_clause:
             model = X86UnicornSeq(bases[0], bases[1])
         else:
-            print("Error: unknown value of `contract_execution_clause` configuration option")
+            ConfigException("unknown value of `contract_execution_clause` configuration option")
             exit(1)
 
         # observational part of the contract
@@ -985,10 +984,10 @@ def get_model(bases: Tuple[int, int]) -> Model:
         elif CONF.contract_observation_clause == 'arch':
             model.tracer = ArchTracer()
         else:
-            print("Error: unknown value of `contract_observation_clause` configuration option")
+            ConfigException("unknown value of `contract_observation_clause` configuration option")
             exit(1)
 
         return model
     else:
-        print("Error: unknown value of `model` configuration option")
+        ConfigException("unknown value of `model` configuration option")
         exit(1)
