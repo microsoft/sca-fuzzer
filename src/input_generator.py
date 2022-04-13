@@ -4,9 +4,11 @@ File: Input Generation
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
+import random
 from typing import List, Tuple
 from interfaces import Input, InputTaint, InputGenerator
 from config import CONF, ConfigException
+from service import LOGGER
 
 POW32 = pow(2, 32)
 
@@ -19,6 +21,10 @@ class RandomInputGenerator(InputGenerator):
         self.input_mask = pow(2, (CONF.prng_entropy_bits % 33)) - 1
 
     def generate(self, seed: int, count: int) -> List[Input]:
+        if seed == 0:
+            seed = random.randint(0, pow(2, 32) - 1)
+            LOGGER.info("input_gen", str(seed))
+
         generated_inputs = []
         for i in range(count):
             input_, seed = self._generate_one(seed)
