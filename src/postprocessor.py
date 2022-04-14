@@ -39,7 +39,7 @@ class Postprocessor:
         true_violations = []
         while violations:
             violation: EquivalenceClass = violations.pop()
-            if fuzzer.verify_with_priming(violation, inputs):
+            if fuzzer.survives_priming(violation, inputs):
                 true_violations.append(violation)
 
         return true_violations
@@ -82,7 +82,11 @@ class Postprocessor:
             tmp_test_case = self._get_test_case_from_instructions(fuzzer, tmp_instructions)
 
             # Run and check if the vuln. is still there
-            violations = self._get_all_violations(fuzzer, tmp_test_case, inputs)
+            retries = 1
+            for _ in range(0, retries):
+                violations = self._get_all_violations(fuzzer, tmp_test_case, inputs)
+                if violations:
+                    break
             if violations:
                 print(".", end="", flush=True)
                 instructions = tmp_instructions
@@ -112,7 +116,7 @@ class Postprocessor:
             return
         print(f"Found {len(violations)} violations")
 
-        print("Searching for a minimal input set...")
+        # print("Searching for a minimal input set...")
         # min_inputs = self.minimize_inputs(fuzzer, test_case, boosted_inputs, violations)
         min_inputs = boosted_inputs
 
@@ -130,10 +134,9 @@ class Postprocessor:
                         violations: List[EquivalenceClass]) -> List[Input]:
         min_inputs = []
         for violation in violations:
-            for i in range(len(violation.inputs)):
-                input_id = violation.original_positions[i]
-                expected_htrace = violation.htraces[i]
-                primer = fuzzer.get_min_primer(inputs, input_id, expected_htrace, 1)
+            for i in range(len(violation)):
+                measurement = violation.measurements[i]
+                primer = fuzzer.build_batch_primer(inputs, measurement.input_id, measurement.htrace, 1)
                 min_inputs.extend(primer)
 
         # Make sure these inputs indeed reproduce

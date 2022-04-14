@@ -7,7 +7,8 @@ SPDX-License-Identifier: MIT
 import shutil
 from pathlib import Path
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Dict, Tuple
+from copy import copy
 
 from interfaces import CTrace, HTrace, Input, InputTaint, EquivalenceClass, TestCase, Generator, \
     InputGenerator, Model, Executor, Analyser, Coverage, InputID
@@ -21,6 +22,8 @@ from instruction_set import InstructionSet
 
 from config import CONF
 from service import STAT, LOGGER, TWOS_COMPLEMENT_MASK_64, bit_count
+
+Multiprimer = Dict[Input, List[Input]]
 
 
 class Fuzzer:
@@ -125,7 +128,7 @@ class Fuzzer:
         while violations:
             LOGGER.fuzzer_priming(len(violations))
             violation: EquivalenceClass = violations.pop()
-            if self.verify_with_priming(violation, boosted_inputs):
+            if self.survives_priming(violation, boosted_inputs):
                 break
         else:
             # all violations were cleaned. all good
@@ -154,88 +157,6 @@ class Fuzzer:
             boosted_inputs += self.input_gen.extend_equivalence_classes(inputs, taints)
         return boosted_inputs
 
-    def verify_with_priming(self, violation: EquivalenceClass, inputs: List[Input]) -> bool:
-        ordered_htraces = sorted(
-            violation.htrace_groups.keys(), key=lambda x: bit_count(x), reverse=False)
-        original_groups = violation.htrace_groups
-
-        for primer_htrace in ordered_htraces:
-            # list of inputs to be tested
-            primed_ids = []
-            for key, group in original_groups.items():
-                if key != primer_htrace:
-                    primed_ids.extend(group)
-
-            # create a multiprimer based on the last element in the group
-            priming_group_member = original_groups[primer_htrace][-1]
-            target_id = violation.original_positions[priming_group_member]
-            multiprimer = self.get_min_primer(inputs, target_id, primer_htrace, len(primed_ids))
-            if not multiprimer:
-                return False
-            primer_size = len(multiprimer) // len(primed_ids)
-
-            # insert the tested inputs into their places
-            for i, id_ in enumerate(primed_ids):
-                multiprimer[(i + 1) * primer_size - 1] = violation.inputs[id_]
-
-            # try swapping
-            reproduced = self.check_multiprimer(multiprimer, primer_size, primer_htrace,
-                                                CONF.priming_retries)
-            if not reproduced:
-                return True
-
-            for id_ in primed_ids:
-                violation.htraces[id_] |= primer_htrace
-            violation.update_groups()
-
-            if len(violation.htrace_groups) == 1:
-                break
-
-        return False
-
-    def get_min_primer(self, inputs: List[Input], target_id, expected_htrace,
-                       num_primed_inputs) -> List[Input]:
-        # first size to be tested
-        primer_size = CONF.min_primer_size % len(inputs) + 1
-
-        while True:
-            # build a set of priming inputs (i.e., multiprimer)
-            primer_end = target_id + 1
-            primer_start = primer_end - primer_size
-            primer = inputs[primer_start:primer_end] if primer_start >= 0 else \
-                inputs[primer_start:] + inputs[0:primer_end]
-
-            multiprimer = []
-            for _ in range(num_primed_inputs):
-                multiprimer.extend(primer)
-
-            # check if the hardware trace of the target_id matches
-            # the hardware trace received with the primer
-            primer_found = self.check_multiprimer(multiprimer, primer_size, expected_htrace, 1)
-
-            if primer_found:
-                return multiprimer
-
-            # run out of inputs to test?
-            if primer_size >= len(inputs):
-                # maybe, we have too few executions; try with more
-                primer_found = self.check_multiprimer(multiprimer, primer_size, expected_htrace,
-                                                      CONF.priming_retries)
-                if not primer_found:
-                    LOGGER.waring("Could not reproduce previous results with priming.")
-                    STAT.broken_measurements += 1
-                    return []
-                return multiprimer
-
-            # if a larger primer is allowed, try adding more inputs
-            if primer_size <= CONF.max_primer_size:
-                primer_size *= 2
-                continue
-
-            # otherwise, we failed to find a primer
-            LOGGER.waring("Failed to find a primer - max_primer_size reached")
-            return []
-
     def store_test_case(self, test_case: TestCase, require_retires: bool):
         if not self.work_dir:
             return
@@ -249,30 +170,131 @@ class Fuzzer:
         if not Path(self.work_dir + "/config.yaml").exists:
             shutil.copy2(CONF.config_path, self.work_dir + "/config.yaml")
 
-    def check_multiprimer(self, inputs: List[Input], primer_size: int, expected_htrace: HTrace,
-                          retries: int) -> bool:
-        num_inputs = len(inputs) // primer_size
-        num_measurements: int = CONF.num_measurements
-        for i in range(retries):
-            mismatch = False
-            primed_traces: List[HTrace] = self.executor.trace_test_case(inputs, num_measurements)
-            for j in range(num_inputs):
-                id_ = (primer_size - 1) + j * primer_size
-                if primed_traces[id_] != expected_htrace:
-                    if primed_traces[id_] < expected_htrace:
-                        mismatch = True  # subset, try more repetitions
-                        num_measurements += CONF.num_measurements
-                        break
+    # ==============================================================================================
+    # Priming algorithm
+    def survives_priming(self, org_violation: EquivalenceClass, all_inputs: List[Input]) -> bool:
+        """
+        Try priming the inputs that caused the violations
+        return: True if the violation survived priming
+        """
+        violation = copy(org_violation)
+        ordered_htraces = sorted(
+            violation.htrace_map.keys(), key=lambda x: bit_count(x), reverse=False)
 
-                    # check for subsets
-                    mask = primed_traces[id_] ^ TWOS_COMPLEMENT_MASK_64
-                    if expected_htrace & mask == 0:
-                        # the primed measurement triggered more speculation. it's ok
-                        mismatch = False
-                        break
-                    else:
-                        mismatch = True
-                        break
-            if not mismatch:
-                return True
+        for current_htrace in ordered_htraces:
+            current_input_id = violation.htrace_map[current_htrace][-1].input_id
+
+            # list of inputs that produced a different HTrace
+            input_ids_to_test: List[InputID] = [
+                m.input_id for m in violation.measurements if m.htrace != current_htrace
+            ]
+
+            # insert the tested inputs into their places
+            for input_id in input_ids_to_test:
+                primer = list(all_inputs)
+                primer[current_input_id] = all_inputs[input_id]
+
+                # try priming
+                if not self.primer_is_effective(primer, [current_input_id], current_htrace):
+                    return True
+
         return False
+
+    def primer_is_effective(self, inputs: List[Input], positions: List[InputID],
+                            expected_htrace: HTrace) -> bool:
+        htraces: List[HTrace] = self.executor.trace_test_case(inputs, CONF.num_measurements)
+        for i, htrace in enumerate(htraces):
+            if i not in positions:
+                continue
+            if htrace == expected_htrace:
+                continue
+
+            # if the primed measurement triggered more speculation, it's ok
+            if (htrace ^ TWOS_COMPLEMENT_MASK_64) & expected_htrace == 0:
+                continue
+
+            return False
+        return True
+
+    # ==============================================================================================
+    # Batched priming algoritm - deprecated???
+    def survives_priming_batched(self, org_violation: EquivalenceClass,
+                                 all_inputs: List[Input]) -> bool:
+        violation = copy(org_violation)
+        ordered_htraces = sorted(
+            violation.htrace_map.keys(), key=lambda x: bit_count(x), reverse=False)
+
+        for current_htrace in ordered_htraces:
+            current_input_id = violation.htrace_map[current_htrace][-1].input_id
+
+            # list of inputs that produced a different HTrace
+            input_ids_to_test: List[InputID] = [
+                m.input_id for m in violation.measurements if m.htrace != current_htrace
+            ]
+
+            # create a primer that would cover all the conflicting inputs at the same time
+            batch_primer, primed_ids = self.build_batch_primer(all_inputs,
+                                                               current_input_id, current_htrace,
+                                                               len(input_ids_to_test))
+            if not batch_primer:
+                STAT.priming_errors += 1
+                # self.store_test_case(self.test_case, True)
+                return False
+
+            # insert the tested inputs into their places
+            assert len(primed_ids) == len(input_ids_to_test)
+            for input_id, primer_id in zip(input_ids_to_test, primed_ids):
+                batch_primer[primer_id] = all_inputs[input_id]
+
+            # try priming
+            if not self.primer_is_effective(batch_primer, primed_ids, current_htrace):
+                return True
+
+        return False
+
+    def build_batch_primer(self, inputs: List[Input], target_input_id: InputID,
+                           expected_htrace: HTrace,
+                           num_primed_inputs: int) -> Tuple[List[Input], List[InputID]]:
+        # the first size to be tested
+        primer_size = CONF.min_primer_size % len(inputs) + 1
+
+        while True:
+            # print(f"Trying primer {primer_size}")
+            # build a set of priming inputs (i.e., multiprimer)
+            if primer_size <= target_input_id:
+                primer = inputs[target_input_id - primer_size:target_input_id + 1]
+            else:
+                primer = inputs[target_input_id - primer_size:] + inputs[:target_input_id + 1]
+            assert len(primer) == primer_size + 1
+            assert primer[-1].seed == inputs[target_input_id].seed
+
+            batch_primer = primer * num_primed_inputs
+            # print(target_input_id, primer_size, len(inputs), len(primer))
+            primed_ids = list(
+                range(primer_size, num_primed_inputs * (primer_size + 1), primer_size + 1))
+            # print(primed_ids)
+
+            # check if the hardware trace of the target_id matches
+            # the hardware trace received with the primer
+            if self.primer_is_effective(batch_primer, primed_ids, expected_htrace):
+                return batch_primer, primed_ids
+
+            # if we failed, try a larger primer
+            new_size = primer_size * 2
+
+            # if we just wrapped around, try all original preceding inputs as primer
+            if new_size > target_input_id and primer_size < target_input_id:
+                primer_size = target_input_id
+            else:
+                primer_size = new_size
+
+            # if a larger primer is allowed, try adding more inputs
+            if primer_size > CONF.max_primer_size:
+                # otherwise, we failed to find a primer
+                LOGGER.waring("fuzzer", "Failed to build a primer - max_primer_size reached")
+                return [], []
+
+            # run out of inputs to test?
+            if primer_size >= len(inputs):
+                LOGGER.waring("fuzzer", "Insufficient inputs to build a primer")
+                return [], []

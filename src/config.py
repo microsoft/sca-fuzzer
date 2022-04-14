@@ -13,7 +13,7 @@ class ConfCls:
     # Fuzzer
     priming_retries: int = 6
     no_priming = False
-    min_primer_size: int = 10
+    min_primer_size: int = 1  # better leave it at 1. Other values may cause failure to build primer
     max_primer_size: int = 1000
     # ==============================================================================================
     # Generator
@@ -23,10 +23,10 @@ class ConfCls:
     min_bb_per_function = 1
     max_bb_per_function = 5
     max_bb_successors = 0  # zero -> automatically set based on the available instructions
-    test_case_size = 32
+    test_case_size = 24
     avg_mem_accesses = 12
     randomized_mem_alignment: bool = True
-    avoid_data_dependencies: bool = True
+    avoid_data_dependencies: bool = False
     generate_memory_accesses_in_pairs: bool = True
     memory_access_zeroed_bits: int = 6
     supported_categories = [
