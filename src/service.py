@@ -84,9 +84,11 @@ class Logger:
     progress_percent: int = 0
     msg: str = ""
     line_ending: str = ""
+    redraw_mode: bool = True
 
     # info modes
     info_enabled: bool = False
+    stat_enabled: bool = False
 
     # debugging modes
     fuzzer_debug: bool = False
@@ -101,6 +103,8 @@ class Logger:
         mode_list = CONF.logging_modes
         if "info" in mode_list:
             self.info_enabled = True
+        if "stat" in mode_list:
+            self.stat_enabled = True
         if "fuzzer_debug" in mode_list:
             self.fuzzer_debug = True
         if "fuzzer_trace" in mode_list:
@@ -112,18 +116,24 @@ class Logger:
 
         if not __debug__:
             if self.fuzzer_debug or self.model_debug or self.coverage_debug or self.fuzzer_trace:
-                self.waring("Debugging mode was not enabled! Remove '-O' from python arguments")
+                self.waring("", "Debugging mode was not enabled! Remove '-O' from python arguments")
 
     def error(self, msg) -> NoReturn:
+        if self.redraw_mode:
+            print("")
         print(f"ERROR: {msg}")
         exit(1)
 
-    def waring(self, msg) -> None:
-        print(f"WARNING: {msg}")
+    def waring(self, src, msg) -> None:
+        if self.redraw_mode:
+            print("")
+        print(f"WARNING: [{src}] {msg}")
 
-    def info(self, source, msg, end="\n") -> None:
+    def info(self, src, msg, end="\n") -> None:
         if self.info_enabled:
-            print(f"INFO: [{source}] {msg}", end=end, flush=True)
+            if self.redraw_mode:
+                print("")
+            print(f"INFO: [{src}] {msg}", end=end, flush=True)
 
     # ==============================================================================================
     # Fuzzer
@@ -139,6 +149,7 @@ class Logger:
             self.progress_percent = 0
             self.msg = ""
             self.line_ending = '\n' if CONF.multiline_output else ''
+            self.redraw_mode = False if CONF.multiline_output else True
             self.start_time = start_time
         self.info("fuzzer", start_time.strftime('Starting at %H:%M:%S'))
 
@@ -151,22 +162,22 @@ class Logger:
             if STAT.test_cases > self.progress:
                 self.progress += self.one_percent_progress
                 self.progress_percent += 1
-            msg = f"\rP: {STAT.test_cases} [{self.progress_percent}%] | "
+            msg = f"\rProgress: {STAT.test_cases}|{self.progress_percent}%, "
             msg += STAT.get_brief()
-            print(msg + "Normal execution            ", end=self.line_ending, flush=True)
+            print(msg + "> Normal execution              ", end=self.line_ending, flush=True)
             self.msg = msg
 
     def fuzzer_priming(self, num_violations: int):
         if self.info_enabled:
             print(
-                self.msg + "Priming " + str(num_violations) + "       ",
+                self.msg + "> Priming:" + str(num_violations) + "           ",
                 end=self.line_ending,
                 flush=True)
 
     def fuzzer_nesting_increased(self):
         if self.info_enabled:
             print(
-                self.msg + "Max nesting: " + str(CONF.max_nesting) + "         ",
+                self.msg + "> Trying max nesting:" + str(CONF.max_nesting) + "         ",
                 end=self.line_ending,
                 flush=True)
 
@@ -177,7 +188,8 @@ class Logger:
         if self.info_enabled:
             now = datetime.today()
             print("")  # new line after the progress bar
-            print(STAT)
+            if self.stat_enabled:
+                print(STAT)
             print(f"Duration: {(now - self.start_time).total_seconds():.1f}")
             print(datetime.today().strftime('Finished at %H:%M:%S'))
 
@@ -188,36 +200,36 @@ class Logger:
                 nprinted = 10 if len(ctraces) > 10 else len(ctraces)
                 for i in range(nprinted):
                     print("..............................................................")
-                    print(self._pretty_bitmap(ctraces[i], ctraces[i] > pow(2, 64)))
-                    print(self._pretty_bitmap(htraces[i]))
+                    print(self.pretty_bitmap(ctraces[i], ctraces[i] > pow(2, 64)))
+                    print(self.pretty_bitmap(htraces[i]))
 
-    def fuzzer_report_violations(self, violation, model):
+    def fuzzer_report_violations(self, violation: EquivalenceClass, model):
         print("\n\n================================ Violations detected ==========================")
         print("  Contract trace (hash):\n")
         if violation.ctrace <= pow(2, 64):
             print(f"    {violation.ctrace:064b}")
         else:
-            print(f"    {violation.ctrace % violation.mod2p64:064b} [ns]\n"
-                  f"    {(violation.ctrace >> 64) % violation.mod2p64:064b} [s]\n")
+            print(f"    {violation.ctrace % MASK_64BIT:064b} [ns]\n"
+                  f"    {(violation.ctrace >> 64) % MASK_64BIT:064b} [s]\n")
         print("  Hardware traces:")
-        for group in violation.htrace_groups.values():
-            inputs = [violation.inputs[i] for i in group]
+        for htrace, measurements in violation.htrace_map.items():
+            inputs = [m.input_id for m in measurements]
             if len(inputs) < 4:
                 print(f"   Inputs {inputs}:")
             else:
                 print(f"   Inputs {inputs[:4]} (+ {len(inputs) - 4} ):")
-            print(f"    {self._pretty_bitmap(violation.htraces[group[0]])}")
+            print(f"    {self.pretty_bitmap(htrace)}")
         print("")
 
         if __debug__ and self.fuzzer_debug:
             # print details
-            for group in violation.htrace_groups.values():
-                print("===========================================")
-                print(f"Input: {violation.inputs[group[0]]},"
-                      f" {violation.original_positions[group[0]]}")
+            print("================================ Execution Trace ==============================")
+            for htrace, measurements in violation.htrace_map.items():
+                print("---------------------------------------------------------------------------")
+                print(f"Input #{measurements[0].input_id}")
                 model_debug_state = self.model_debug
                 self.model_debug = True
-                model.trace_test_case([violation.inputs[group[0]]], 1)
+                model.trace_test_case([measurements[0].input_], 1)
                 self.model_debug = model_debug_state
 
     # ==============================================================================================
@@ -227,9 +239,9 @@ class Logger:
             type_ = "store:" if is_store else "load: "
             print(f"  > {type_} +0x{normalized_address:x} = 0x{val:x}")
 
-    def dbg_model_instruction(self, normalized_address, model):
+    def dbg_model_instruction(self, name, normalized_address, model):
         if self.model_debug:
-            print(f"{normalized_address:2x}: ", end="")
+            print(f"{normalized_address:2x}: {name}")
             model.print_state(oneline=True)
 
     # ==============================================================================================
@@ -241,7 +253,7 @@ class Logger:
 
     # ==============================================================================================
     # Helpers
-    def _pretty_bitmap(self, bits: int, merged=False):
+    def pretty_bitmap(self, bits: int, merged=False):
         if not merged:
             s = f"{bits:064b}"
         else:

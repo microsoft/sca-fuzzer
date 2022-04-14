@@ -47,9 +47,9 @@ class X86Intel(Executor):
                 else:
                     smt_on = True
         if smt_on is None:
-            LOGGER.waring("Could not check if SMT is on.")
+            LOGGER.waring("executor", "Could not check if SMT is on.")
         if smt_on:
-            LOGGER.waring("SMT is on! You may experience false positives.")
+            LOGGER.waring("executor", "SMT is on! You may experience false positives.")
 
         # disable prefetching
         subprocess.run('sudo modprobe msr', shell=True, check=True)
@@ -113,8 +113,6 @@ class X86Intel(Executor):
 
                 for i, row in enumerate(reader):
                     trace: HTrace = int(row['CACHE_MAP'])
-                    if CONF.ignore_first_cache_line:
-                        trace &= 9223372036854775807
                     traces[i].append(trace)
 
                     pfc_readings[i][0].append(int(row['pfc1']))

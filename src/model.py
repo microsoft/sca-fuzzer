@@ -81,10 +81,12 @@ class X86UnicornTracer(ABC):
     def observe_instruction(self, address: int, size: int, model) -> None:
         if model.in_speculation:
             return
-        LOGGER.dbg_model_instruction(address - model.code_start, model)
+        normalized_address = address - model.code_start
+        LOGGER.dbg_model_instruction(model.test_case.address_map[normalized_address].name,
+                                     normalized_address, model)
 
         if model.execution_tracing_enabled:
-            self.execution_trace.append(TracedInstruction(address - model.code_start, []))
+            self.execution_trace.append(TracedInstruction(normalized_address, []))
             self.instruction_id = len(self.execution_trace) - 1
 
 
@@ -617,9 +619,6 @@ class L1DTracer(X86UnicornTracer):
         super(L1DTracer, self).observe_instruction(address, size, model)
 
     def get_contract_trace(self) -> CTrace:
-        if CONF.ignore_first_cache_line:
-            self.trace[0] &= 0x7fffffffffffffff
-            self.trace[1] &= 0x7fffffffffffffff
         return (self.trace[1] << 64) + self.trace[0]
 
 
