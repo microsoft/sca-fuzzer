@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import Optional, List
 
 from interfaces import CTrace, HTrace, Input, InputTaint, EquivalenceClass, TestCase, Generator, \
-    InputGenerator, Model, Executor, Analyser, Coverage
+    InputGenerator, Model, Executor, Analyser, Coverage, InputID
 from generator import get_generator
 from input_generator import get_input_generator
 from model import get_model

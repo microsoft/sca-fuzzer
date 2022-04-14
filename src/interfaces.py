@@ -547,37 +547,47 @@ class InputTaint(np.ndarray):
         return obj
 
 
+class Measurement(NamedTuple):
+    input_id: InputID
+    input_: Input
+    ctrace: CTrace
+    htrace: HTrace
+
+
+HTraceGroup = List[Measurement]
+HTraceMap = Dict[HTrace, HTraceGroup]
+
+
 class EquivalenceClass:
     ctrace: CTrace
-    original_positions: List[InputID]
-    inputs: List[Input]
-    htraces: List[HTrace]
-    htrace_groups: Dict[HTrace, List[int]]
+    measurements: List[Measurement]
+    htrace_map: HTraceMap
     primed_positions: Dict[int, List[int]]
-    mod2p64 = pow(2, 64)
+    MOD2P64 = pow(2, 64)
 
-    def __init__(self):
-        self.inputs = []
-        self.htraces = []
-        self.original_positions = []
+    def __init__(self) -> None:
+        self.measurements = []
 
     def __str__(self):
-        s = f"Size: {len(self.inputs)}\n"
+        s = f"Size: {len(self.measurements)}\n"
         s += f"Ctrace:\n" \
-             f"{self.ctrace % self.mod2p64:064b} [ns]\n" \
-             f"{(self.ctrace >> 64) % self.mod2p64:064b} [s]\n"
+             f"{self.ctrace % self.MOD2P64:064b} [ns]\n" \
+             f"{(self.ctrace >> 64) % self.MOD2P64:064b} [s]\n"
         s += "Htraces:\n"
-        for h in self.htrace_groups.keys():
+        for h in self.htrace_map.keys():
             s += f"{h:064b}\n"
         s = s.replace("0", "_").replace("1", "^")
         return s
 
-    def update_groups(self) -> None:
+    def __len__(self):
+        return len(self.measurements)
+
+    def build_htrace_map(self) -> None:
         """ group inputs by htraces """
         groups = defaultdict(list)
-        for i, htrace in enumerate(self.htraces):
-            groups[htrace].append(i)
-        self.htrace_groups = groups
+        for measurement in self.measurements:
+            groups[measurement.htrace].append(measurement)
+        self.htrace_map = groups
 
 
 # Execution Tracing

@@ -7,6 +7,7 @@ SPDX-License-Identifier: MIT
 
 from datetime import datetime
 
+from interfaces import EquivalenceClass
 from config import CONF
 from typing import NoReturn
 

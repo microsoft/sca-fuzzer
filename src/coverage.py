@@ -187,8 +187,8 @@ class DependentPairCoverage(Coverage):
         # ignore those traces that belong to ineffective classes
         effective_traces = []
         for eq_cls in classes:
-            if len(eq_cls.inputs) > 1:
-                member_input_id = eq_cls.original_positions[0]
+            if len(eq_cls) > 1:
+                member_input_id = eq_cls.measurements[0].input_id
                 effective_traces.append(self.execution_traces[member_input_id])
         if not effective_traces:
             return

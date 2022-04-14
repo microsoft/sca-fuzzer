@@ -140,9 +140,7 @@ class ConfCls:
     # Analyser
     analyser: str = 'equivalence-classes'
     max_subsets: int = 100
-    ignore_first_cache_line: bool = False
     compare_only_same_size: bool = True
-    ignore_single_entry_classes: bool = True
     # ==============================================================================================
     # Coverage
     coverage_type: str = 'none'
