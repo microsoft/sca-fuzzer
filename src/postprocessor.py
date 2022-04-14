@@ -132,11 +132,12 @@ class Postprocessor:
 
     def minimize_inputs(self, fuzzer: Fuzzer, test_case: TestCase, inputs: List[Input],
                         violations: List[EquivalenceClass]) -> List[Input]:
-        min_inputs = []
+        min_inputs: List[Input] = []
         for violation in violations:
             for i in range(len(violation)):
                 measurement = violation.measurements[i]
-                primer = fuzzer.build_batch_primer(inputs, measurement.input_id, measurement.htrace, 1)
+                primer, _ = fuzzer.build_batch_primer(inputs, measurement.input_id,
+                                                      measurement.htrace, 1)
                 min_inputs.extend(primer)
 
         # Make sure these inputs indeed reproduce

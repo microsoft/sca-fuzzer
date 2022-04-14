@@ -30,6 +30,7 @@ class ConfCls:
     generate_memory_accesses_in_pairs: bool = True
     memory_access_zeroed_bits: int = 6
     supported_categories = [
+        # Base x86
         "BINARY",
         "BITBYTE",
         "CMOV",
@@ -57,6 +58,9 @@ class ConfCls:
         # "SYSCALL",     # Not supported: System instructions
         # "SYSRET",      # Not supported: System instructions
         # "SYSTEM",      # Not supported: System instructions
+
+        # Extensions
+        "BMI1",
     ]
     instruction_blocklist = [
         # Hard to fix:
@@ -76,23 +80,26 @@ class ConfCls:
         # - Requires complex instrumentation
         "ENTERW", "ENTER", "LEAVEW", "LEAVE",
 
+        # Bug in unicorn?
+        "ANDN", "BLSI", "BLSMSK",
+
         # Stringops - under construction
         "CMPSB", "CMPSD", "CMPSW",
         "MOVSB", "MOVSD", "MOVSW",
 
-        # "REPE LODSB", "REPE LODSD", "REPE LODSW",
-        # "REPE SCASB", "REPE SCASD", "REPE SCASW",
-        # "REPE STOSB", "REPE STOSD", "REPE STOSW",
+        "REPE LODSB", "REPE LODSD", "REPE LODSW",
+        "REPE SCASB", "REPE SCASD", "REPE SCASW",
+        "REPE STOSB", "REPE STOSD", "REPE STOSW",
         "REPE CMPSB", "REPE CMPSD", "REPE CMPSW",
         "REPE MOVSB", "REPE MOVSD", "REPE MOVSW",
 
-        # "REPNE LODSB", "REPNE LODSD", "REPNE LODSW",
-        # "REPNE SCASB", "REPNE SCASD", "REPNE SCASW",
-        # "REPNE STOSB", "REPNE STOSD", "REPNE STOSW"
+        "REPNE LODSB", "REPNE LODSD", "REPNE LODSW",
+        "REPNE SCASB", "REPNE SCASD", "REPNE SCASW",
+        "REPNE STOSB", "REPNE STOSD", "REPNE STOSW",
         "REPNE CMPSB", "REPNE CMPSD", "REPNE CMPSW",
         "REPNE MOVSB", "REPNE MOVSD", "REPNE MOVSW",
         # - not supported
-        # "LFENCE", "MFENCE", "SFENCE",
+        "LFENCE", "MFENCE", "SFENCE", "CLFLUSH"
     ]  # yapf: disable
     extended_instruction_blocklist: List[str] = []
     # x86 executor internally uses R15, R14, RSP, RBP and, thus, they are excluded
