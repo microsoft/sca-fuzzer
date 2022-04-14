@@ -157,7 +157,7 @@ class ConfCls:
     # ==============================================================================================
     # Output
     multiline_output: bool = False
-    logging_modes: List[str] = ["info"]
+    logging_modes: List[str] = ["info", "stat"]
 
     def set(self, name, value):
         options = {
