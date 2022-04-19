@@ -178,7 +178,7 @@ class Logger:
     def fuzzer_nesting_increased(self):
         if self.info_enabled:
             print(
-                self.msg + "> Trying max nesting:" + str(CONF.max_nesting) + "         ",
+                self.msg + "> Trying max nesting:" + str(CONF.model_max_nesting) + "         ",
                 end=self.line_ending,
                 flush=True)
 

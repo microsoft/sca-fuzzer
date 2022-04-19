@@ -544,12 +544,8 @@ class InputTaint(np.ndarray):
         size = (CONF.input_main_region_size + CONF.input_assist_region_size +
                 CONF.input_register_region_size) // 8
         obj = super().__new__(cls, (size,), bool, None, 0, None, None)  # type: ignore
-        obj.size = size
         obj.register_start = (CONF.input_main_region_size + CONF.input_assist_region_size) // 8
         return obj
-
-    def __len__(self) -> int:
-        return self.size
 
 
 class Measurement(NamedTuple):
@@ -729,7 +725,7 @@ class Executor(ABC):
         pass
 
     @abstractmethod
-    def trace_test_case(self, inputs: List[Input], num_measurements: int = 0) \
+    def trace_test_case(self, inputs: List[Input], repetitions: int = 0) \
             -> List[CombinedHTrace]:
         pass
 

@@ -1,4 +1,4 @@
 contract_observation_clause: ct
 contract_execution_clause:
   - seq
-attack_variant: F+R
+executor_mode: F+R

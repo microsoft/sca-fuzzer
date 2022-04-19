@@ -56,19 +56,19 @@ class X86Intel(Executor):
         subprocess.run('sudo wrmsr -a 0x1a4 15', shell=True, check=True)
 
         # initialize the kernel module
-        write_to_pseudo_file(CONF.warmups, '/sys/x86-executor/warmups')
+        write_to_pseudo_file(CONF.executor_warmups, '/sys/x86-executor/warmups')
         write_to_pseudo_file("1" if CONF.enable_ssbp_patch else "0",
                              "/sys/x86-executor/enable_ssbp_patch")
         write_to_pseudo_file("1" if CONF.enable_pre_run_flush else "0",
                              "/sys/x86-executor/enable_pre_run_flush")
         write_to_pseudo_file("1" if CONF.enable_assist_page else "0",
                              "/sys/x86-executor/enable_mds")
-        write_to_pseudo_file(CONF.attack_variant, "/sys/x86-executor/measurement_mode")
+        write_to_pseudo_file(CONF.executor_mode, "/sys/x86-executor/measurement_mode")
 
     def load_test_case(self, test_case: TestCase):
         write_to_pseudo_file(test_case.bin_path, "/sys/x86-executor/code")
 
-    def trace_test_case(self, inputs: List[Input], num_measurements: int = 0) \
+    def trace_test_case(self, inputs: List[Input], repetitions: int = 0) \
             -> List[CombinedHTrace]:
         # make sure it's not a dummy call
         if not inputs:
@@ -78,8 +78,8 @@ class X86Intel(Executor):
         if not os.path.isfile("/proc/x86-executor"):
             LOGGER.error("x86 Intel Executor: kernel module not loaded")
 
-        if num_measurements == 0:
-            num_measurements = CONF.num_measurements
+        if repetitions == 0:
+            repetitions = CONF.executor_repetitions
 
         # convert the inputs into a byte sequence
         byte_inputs = [i.tobytes() for i in inputs]
@@ -97,10 +97,10 @@ class X86Intel(Executor):
 
         traces: List[List[HTrace]] = [[] for _ in inputs]
         pfc_readings: List[List] = [[[], [], []] for _ in inputs]
-        for _ in range(num_measurements):
+        for _ in range(repetitions):
             # measure
             subprocess.run(
-                f"taskset -c {CONF.measurement_cpu} cat /proc/x86-executor "
+                f"taskset -c {CONF.executor_taskset} cat /proc/x86-executor "
                 "| sudo tee measurement.txt >/dev/null",
                 shell=True,
                 check=True)
@@ -119,7 +119,7 @@ class X86Intel(Executor):
                     pfc_readings[i][1].append(int(row['pfc2']))
                     pfc_readings[i][2].append(int(row['pfc3']))
 
-        if num_measurements == 1:
+        if repetitions == 1:
             if self.coverage:
                 self.coverage.executor_hook([[r[0][0], r[1][0], r[2][0]] for r in pfc_readings])
             return [t[0] for t in traces]
@@ -130,11 +130,11 @@ class X86Intel(Executor):
             num_occurrences: Counter = Counter()
             for trace in trace_list:
                 num_occurrences[trace] += 1
-                if num_occurrences[trace] <= CONF.max_outliers:
+                if num_occurrences[trace] <= CONF.executor_max_outliers:
                     # if we see too few occurrences of this specific htrace,
                     # it might be noise, ignore it for now
                     continue
-                elif num_occurrences[trace] == CONF.max_outliers + 1:
+                elif num_occurrences[trace] == CONF.executor_max_outliers + 1:
                     # otherwise, merge it
                     merged_traces[i] |= trace
 
@@ -145,11 +145,11 @@ class X86Intel(Executor):
 
             for reading in reading_lists[0]:
                 num_occurrences[reading] += 1
-                if num_occurrences[reading] <= CONF.max_outliers * 2:
+                if num_occurrences[reading] <= CONF.executor_max_outliers * 2:
                     # if we see too few occurrences of this specific htrace,
                     # it might be noise, ignore it for now
                     continue
-                elif num_occurrences[reading] == CONF.max_outliers * 2 + 1:
+                elif num_occurrences[reading] == CONF.executor_max_outliers * 2 + 1:
                     # otherwise, update max
                     filtered_pfc_readings[i][0] = max(filtered_pfc_readings[i][0], reading)
 

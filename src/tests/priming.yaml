@@ -1,10 +1,10 @@
 contract_observation_clause: ct
 contract_execution_clause:
   - cond
-attack_variant: P+P
+executor_mode: P+P
 enable_ssbp_patch: true
 enable_assist_page: false
 
-prng_entropy_bits: 2
-warmups: 5
+input_gen_entropy_bits: 2
+executor_warmups: 5
 no_priming: false

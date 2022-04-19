@@ -1,22 +1,22 @@
 contract_observation_clause: ct
 contract_execution_clause:
-  # - cond
-  - seq
+  - cond
+  # - seq
 
 enable_ssbp_patch: true
 enable_assist_page: false
 
 feedback_driven_generator: false
-prng_entropy_bits: 4
+input_gen_entropy_bits: 4
 
 inputs_per_class: 2
 
-warmups: 40
+executor_warmups: 40
 
 # coverage_type: none
 # no_priming: true
 
-# input_generator_seed: 0
+# input_gen_seed: 0
 
 logging_modes:
   - info

@@ -18,7 +18,7 @@ class RandomInputGenerator(InputGenerator):
 
     def __init__(self):
         super().__init__()
-        self.input_mask = pow(2, (CONF.prng_entropy_bits % 33)) - 1
+        self.input_mask = pow(2, (CONF.input_gen_entropy_bits % 33)) - 1
 
     def generate(self, seed: int, count: int) -> List[Input]:
         if seed == 0:

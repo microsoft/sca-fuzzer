@@ -50,7 +50,7 @@ function measure_detection_times() {
         conf="$SCRIPT_DIR/conf.yaml"
 
         cp $template $conf
-        echo "prng_entropy_bits: $INPUT_ENTROPY
+        echo "input_gen_entropy_bits: $INPUT_ENTROPY
 min_bb_per_function: $BB_PER_FUNCTION
 max_bb_per_function: $BB_PER_FUNCTION
 test_case_size: $TC_SIZE

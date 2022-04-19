@@ -11,10 +11,9 @@ class ConfCls:
     config_path: str = ""
     # ==============================================================================================
     # Fuzzer
-    priming_retries: int = 6
     no_priming = False
-    min_primer_size: int = 1  # better leave it at 1. Other values may cause failure to build primer
-    max_primer_size: int = 1000
+    min_primer_size: int = 1  # deprecated? # better leave at 1; otherwise may fail to build primer
+    max_primer_size: int = 1000  # deprecated?
     # ==============================================================================================
     # Generator
     instruction_set = "x86-64"
@@ -22,7 +21,6 @@ class ConfCls:
     test_case_generator_seed: int = 0
     min_bb_per_function = 2
     max_bb_per_function = 2
-    max_bb_successors = 0  # zero -> automatically set based on the available instructions
     test_case_size = 24
     avg_mem_accesses = 12
     randomized_mem_alignment: bool = True
@@ -119,8 +117,8 @@ class ConfCls:
     # ==============================================================================================
     # Input Generator
     input_generator: str = 'random'
-    input_generator_seed: int = 10  # zero is a reserved value, do not use it
-    prng_entropy_bits: int = 3
+    input_gen_seed: int = 10  # zero is a reserved value, do not use it
+    input_gen_entropy_bits: int = 3
     input_main_region_size: int = 4096
     input_assist_region_size: int = 4096
     input_register_region_size: int = 64
@@ -130,28 +128,27 @@ class ConfCls:
     model: str = 'x86-unicorn'
     contract_execution_clause: List[str] = ["seq"]  # options: "seq", "cond", "bpas"
     contract_observation_clause: str = 'ct'
-    max_nesting: int = 5
-    max_speculation_window: int = 250
+    model_max_nesting: int = 5
+    model_max_spec_window: int = 250
     # ==============================================================================================
     # Executor
     executor: str = 'x86-intel'
-    measurement_cpu: int = 0
-    warmups: int = 3
-    num_measurements: int = 40
-    max_outliers = 3
-    attack_variant: str = 'P+P'
+    executor_mode: str = 'P+P'
+    executor_warmups: int = 50
+    executor_repetitions: int = 40
+    executor_max_outliers: int = 3
+    executor_taskset: int = 0
     enable_ssbp_patch: bool = True
     enable_pre_run_flush: bool = True
     enable_assist_page: bool = False
     # ==============================================================================================
     # Analyser
     analyser: str = 'equivalence-classes'
-    compare_only_same_size: bool = True
+    analyser_permit_subsets: bool = True
     # ==============================================================================================
     # Coverage
     coverage_type: str = 'none'
-    feedback_driven_generator: bool = False  # unused
-    combination_length_min: int = 1
+    feedback_driven_generator: bool = False  # temporary unused
     # ==============================================================================================
     # Output
     multiline_output: bool = False
@@ -164,7 +161,7 @@ class ConfCls:
             'input_generator': ["random"],
             'model': ['x86-unicorn'],
             'executor': ['x86-intel'],
-            'attack_variant': ['P+P', 'F+R', 'E+R'],
+            'executor_mode': ['P+P', 'F+R', 'E+R'],
             'contract_observation_clause': [
                 'l1d', 'memory', 'ct', 'pc', 'ct-nonspecstore', 'ctr', 'arch'
             ],
@@ -194,9 +191,9 @@ class ConfCls:
         self.__setattr__(name, value)
 
     def sanity_check(self):
-        if self.max_outliers > 20:
+        if self.executor_max_outliers > 20:
             print(f"WARNING: Configuration: Are you sure you want to"
-                  f" ignore {self.max_outliers} outliers?")
+                  f" ignore {self.executor_max_outliers} outliers?")
         if self.coverage_type == "none":
             self.feedback_driven_generator = False
 

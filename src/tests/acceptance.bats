@@ -2,23 +2,24 @@
 INSTRUCTION_SET='instruction_sets/x86/base.xml'
 
 EXTENDED_TESTS=0
+cli_opt="python3 -OO ./cli.py"
 
 @test "Executor: Hardware tracing with F+R" {
-    bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/evict_second_line.asm -c tests/ct-seq-fr.yaml  -i 3"
+    bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/evict_second_line.asm -c tests/ct-seq-fr.yaml  -i 3"
     run cat measurement.txt
     [ "$status" -eq 0 ]
     [[ "$output" == *"2305843009213693952"* ]]
 }
 
 @test "Executor: Hardware tracing with P+P" {
-    bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/evict_second_line.asm -c tests/ct-seq-pp.yaml -i 3"
+    bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/evict_second_line.asm -c tests/ct-seq-pp.yaml -i 3"
     run cat measurement.txt
     [ "$status" -eq 0 ]
     [[ "$output" == *"11529215046068469760"* ]]
 }
 
 @test "Executor: Hardware tracing with E+R" {
-    bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/evict_second_line.asm -c tests/ct-seq-er.yaml -i 3"
+    bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/evict_second_line.asm -c tests/ct-seq-er.yaml -i 3"
     run cat measurement.txt
     [ "$status" -eq 0 ]
     [[ "$output" == *"2305843009213693952"* ]]
@@ -26,7 +27,7 @@ EXTENDED_TESTS=0
 
 @test "Executor: Noise Level" {
     # execute one dummy run to set Executor into the default config and to load the test case
-    bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/valid_loads_with_miss.asm -i 1"
+    bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/valid_loads_with_miss.asm -i 1"
 
     nruns=10000
     printf "" > inputs.bin
@@ -52,7 +53,7 @@ EXTENDED_TESTS=0
 
 
 @test "Model and Executor are initialized with the same values" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/model_match.asm -c tests/model_match.yaml -i 100"
+    run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/model_match.asm -c tests/model_match.yaml -i 100"
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
@@ -61,7 +62,7 @@ EXTENDED_TESTS=0
 }
 
 @test "Model and Executor are initialized with the same FLAGS value" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/model_flags_match.asm -c tests/model_match.yaml -i 100"
+    run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/model_flags_match.asm -c tests/model_match.yaml -i 100"
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
@@ -84,96 +85,96 @@ EOF
 }
 
 @test "Fuzzing: A sequence of NOPs" {
-    run_without_violation "./cli.py fuzz -s $INSTRUCTION_SET -t tests/nops.asm -i 100"
+    run_without_violation "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/nops.asm -i 100"
 }
 
 @test "Fuzzing: A sequence of direct jumps" {
-    run_without_violation "./cli.py fuzz -s $INSTRUCTION_SET -t tests/direct_jumps.asm -i 100"
+    run_without_violation "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/direct_jumps.asm -i 100"
 }
 
 @test "Fuzzing: A long in-reg test case" {
-    run_without_violation "./cli.py fuzz -s $INSTRUCTION_SET -t tests/large_arithmetic.asm -i 10"
+    run_without_violation "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/large_arithmetic.asm -i 10"
 }
 
 @test "Fuzzing: A sequence of calls" {
-    run_without_violation "./cli.py fuzz -s $INSTRUCTION_SET -t tests/calls.asm -i 100"
+    run_without_violation "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/calls.asm -i 100"
 }
 
 @test "Fuzzing: A sequence of valid loads (cache hits)" {
-    run_without_violation "./cli.py fuzz -s $INSTRUCTION_SET -t tests/valid_loads.asm -i 100"
+    run_without_violation "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/valid_loads.asm -i 100"
 }
 
 @test "Fuzzing: A sequence of valid loads (cache misses)" {
-    run_without_violation "./cli.py fuzz -s $INSTRUCTION_SET -t tests/valid_loads_with_miss.asm -i 100"
+    run_without_violation "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/valid_loads_with_miss.asm -i 100"
 }
 
 @test "Fuzzing: A sequence of valid stores (cache hits)" {
-    run_without_violation "./cli.py fuzz -s $INSTRUCTION_SET -t tests/valid_stores.asm -i 100"
+    run_without_violation "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/valid_stores.asm -i 100"
 }
 
 @test "Detection: Spectre V1 - BCB load - P" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v1.asm -i 20"
+    run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/spectre_v1.asm -i 20"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" = *"=== Violations detected ==="* ]]
 }
 
 @test "Detection: Spectre V1 - BCB load - N" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v1.asm -c tests/ct-cond.yaml -i 20"
+    run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/spectre_v1.asm -c tests/ct-cond.yaml -i 20"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" != *"=== Violations detected ==="* ]]
 }
 
 @test "Detection: Spectre V1.1 - BCB store" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v1.1.asm -i 100"
+    run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/spectre_v1.1.asm -i 100"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" = *"=== Violations detected ==="* ]]
 }
 
 @test "Detection: Spectre V2 - BTI - P" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v2.asm -i 20"
+    run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/spectre_v2.asm -i 20"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" = *"=== Violations detected ==="* ]]
 }
 
 @test "Detection: Spectre V4 - SSBP - P" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v4.asm -c tests/ct-seq-ssbp-patch-off.yaml -i 200"
+    run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/spectre_v4.asm -c tests/ct-seq-ssbp-patch-off.yaml -i 200"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" = *"=== Violations detected ==="* ]]
 }
 
 @test "Detection: Spectre V4 - SSBP - N (patch off)" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v4.asm -c tests/ct-bpas-ssbp-patch-off.yaml -i 200"
+    run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/spectre_v4.asm -c tests/ct-bpas-ssbp-patch-off.yaml -i 200"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" != *"=== Violations detected ==="* ]]
 }
 
 @test "Detection: Spectre V4 - SSBP - N (patch on)" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v4.asm -i 200"
+    run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/spectre_v4.asm -i 200"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" != *"=== Violations detected ==="* ]]
 }
 
 @test "Detection: Spectre V5-ret" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_ret.asm -i 10"
+    run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/spectre_ret.asm -i 10"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" = *"=== Violations detected ==="* ]]
 }
 
 @test "Detection: Nested misprediction" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v4_n2.asm -i 200 -c tests/ct-bpas-n1-ssbp-patch-off.yaml"
+    run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/spectre_v4_n2.asm -i 200 -c tests/ct-bpas-n1-ssbp-patch-off.yaml"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" = *"=== Violations detected ==="* ]]
 
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v4_n2.asm -i 200 -c tests/ct-bpas-ssbp-patch-off.yaml"
+    run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/spectre_v4_n2.asm -i 200 -c tests/ct-bpas-ssbp-patch-off.yaml"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" != *"=== Violations detected ==="* ]]
@@ -181,7 +182,7 @@ EOF
 
 @test "Detection: MDS-SB" {
     if cat /proc/cpuinfo | grep "mds" ; then
-        run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/mds.asm -i 100 -c tests/mds.yaml"
+        run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/mds.asm -i 100 -c tests/mds.yaml"
         echo "$output"
         [ "$status" -eq 0 ]
         [[ "$output" = *"=== Violations detected ==="* ]]

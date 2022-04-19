@@ -1,5 +1,5 @@
 contract_observation_clause: arch
 contract_execution_clause:
   - seq
-prng_entropy_bits: 1
+input_gen_entropy_bits: 1
 no_priming: true

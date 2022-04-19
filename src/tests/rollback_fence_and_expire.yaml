@@ -3,4 +3,4 @@ contract_execution_clause:
   - cond
 logging_modes:
   - "fuzzer_trace"
-input_generator_seed: 12
+input_gen_seed: 12

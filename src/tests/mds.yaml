@@ -1,6 +1,6 @@
 contract_observation_clause: ct
 contract_execution_clause:
   - seq
-prng_entropy_bits: 3
+input_gen_entropy_bits: 3
 no_priming: true
 enable_assist_page: true

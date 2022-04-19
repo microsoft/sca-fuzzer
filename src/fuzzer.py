@@ -65,7 +65,7 @@ class Fuzzer:
                 test_case = self.generator.parse_existing_test_case(self.existing_test_case)
 
             # Prepare inputs
-            inputs: List[Input] = self.input_gen.generate(CONF.input_generator_seed, num_inputs)
+            inputs: List[Input] = self.input_gen.generate(CONF.input_gen_seed, num_inputs)
 
             # Fuzz the test case
             violation = self.fuzzing_round(test_case, inputs)
@@ -96,7 +96,7 @@ class Fuzzer:
         # but retry with nesting upon a violation
         violations: List[EquivalenceClass] = []
         boosted_inputs: List[Input] = []
-        for nesting in [1, CONF.max_nesting]:
+        for nesting in [1, CONF.model_max_nesting]:
             boosted_inputs = self.boost_inputs(inputs, nesting)
             STAT.num_inputs += len(boosted_inputs)
 
@@ -202,7 +202,7 @@ class Fuzzer:
 
     def primer_is_effective(self, inputs: List[Input], positions: List[InputID],
                             expected_htrace: HTrace) -> bool:
-        htraces: List[HTrace] = self.executor.trace_test_case(inputs, CONF.num_measurements)
+        htraces: List[HTrace] = self.executor.trace_test_case(inputs, CONF.executor_repetitions)
         for i, htrace in enumerate(htraces):
             if i not in positions:
                 continue

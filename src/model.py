@@ -730,7 +730,7 @@ class X86UnicornSpec(X86UnicornModel):
                 emulator.emu_stop()
 
             # and on expired speculation window
-            if model.speculation_window > CONF.max_speculation_window:
+            if model.speculation_window > CONF.model_max_spec_window:
                 emulator.emu_stop()
 
         X86UnicornSeq.trace_instruction(emulator, address, size, model)

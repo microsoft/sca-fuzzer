@@ -24,7 +24,7 @@ class Postprocessor:
         # Initial measurement
         fuzzer.model.load_test_case(test_case)
         fuzzer.executor.load_test_case(test_case)
-        ctraces = fuzzer.model.trace_test_case(inputs, CONF.max_nesting)
+        ctraces = fuzzer.model.trace_test_case(inputs, CONF.model_max_nesting)
         htraces: List[HTrace] = fuzzer.executor.trace_test_case(inputs)
 
         # Check for violations
@@ -103,11 +103,11 @@ class Postprocessor:
 
         # Parse the test case and inputs
         test_case: TestCase = fuzzer.generator.parse_existing_test_case(test_case_asm)
-        inputs: List[Input] = fuzzer.input_gen.generate(CONF.input_generator_seed, num_inputs)
+        inputs: List[Input] = fuzzer.input_gen.generate(CONF.input_gen_seed, num_inputs)
 
         # Load, boost inputs, and trace
         fuzzer.model.load_test_case(test_case)
-        boosted_inputs: List[Input] = fuzzer.boost_inputs(inputs, CONF.max_nesting)
+        boosted_inputs: List[Input] = fuzzer.boost_inputs(inputs, CONF.model_max_nesting)
 
         print("Trying to reproduce...")
         violations = self._get_all_violations(fuzzer, test_case, boosted_inputs)
