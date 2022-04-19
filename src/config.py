@@ -20,14 +20,14 @@ class ConfCls:
     instruction_set = "x86-64"
     generator = "random"
     test_case_generator_seed: int = 0
-    min_bb_per_function = 1
-    max_bb_per_function = 5
+    min_bb_per_function = 2
+    max_bb_per_function = 2
     max_bb_successors = 0  # zero -> automatically set based on the available instructions
     test_case_size = 24
     avg_mem_accesses = 12
     randomized_mem_alignment: bool = True
     avoid_data_dependencies: bool = False
-    generate_memory_accesses_in_pairs: bool = True
+    generate_memory_accesses_in_pairs: bool = False
     memory_access_zeroed_bits: int = 6
     supported_categories = [
         # Base x86
@@ -121,9 +121,9 @@ class ConfCls:
     input_generator: str = 'random'
     input_generator_seed: int = 10  # zero is a reserved value, do not use it
     prng_entropy_bits: int = 3
-    input_main_region_size: int = 4096 // 8
-    input_assist_region_size: int = 4096 // 8
-    input_register_region_size: int = 64 // 8
+    input_main_region_size: int = 4096
+    input_assist_region_size: int = 4096
+    input_register_region_size: int = 64
     inputs_per_class: int = 2
     # ==============================================================================================
     # Model
@@ -146,13 +146,11 @@ class ConfCls:
     # ==============================================================================================
     # Analyser
     analyser: str = 'equivalence-classes'
-    max_subsets: int = 100
     compare_only_same_size: bool = True
     # ==============================================================================================
     # Coverage
     coverage_type: str = 'none'
     feedback_driven_generator: bool = False  # unused
-    adaptive_input_number: bool = True
     combination_length_min: int = 1
     # ==============================================================================================
     # Output
@@ -183,9 +181,11 @@ class ConfCls:
                             f"It's likely a typo in the configuration file.")
 
         # value checks
-        # TODO: would be great to have more of these
         if options.get(name, '') != '' and value not in options[name]:
             ConfigException(f"Unknown value '{value}' of configuration variable '{name}'")
+        if (self.input_main_region_size % 4096 != 0) or \
+                (self.input_assist_region_size % 4096 != 0):
+            ConfigException("Inputs must be page-aligned")
 
         # special handling
         if name == "extended_instruction_blocklist":

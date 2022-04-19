@@ -60,7 +60,6 @@ class X86UnicornModelTest(unittest.TestCase):
 
     def test_tainting(self):
         tracker = TaintTracker([])
-        reg_offset = CONF.input_main_region_size + CONF.input_assist_region_size
 
         # Initial dependency
         tracker.start_instruction(Instruction("ADD")
@@ -81,6 +80,8 @@ class X86UnicornModelTest(unittest.TestCase):
         tracker.track_memory_access(0x80, 8, False)
         tracker.taint_memory_access_address()
         taint: InputTaint = tracker.get_taint()
+        reg_offset = taint.register_start
+
         self.assertCountEqual(tracker.mem_dependencies['0x80'], ['A', 'B', '0x80'])
         self.assertCountEqual(tracker.tainted_labels, {'C'})
         self.assertEqual(taint[reg_offset + 2], True)  # RCX
@@ -119,18 +120,18 @@ class X86UnicornModelTest(unittest.TestCase):
 
     def test_label_to_taint(self):
         tracker = TaintTracker([])
-        reg_offset = CONF.input_main_region_size + CONF.input_assist_region_size
-        taint_size = reg_offset + CONF.input_register_region_size
         tracker.tainted_labels = {'0x0', '0x40', '0x640', 'D', 'SI', '8', '14', 'DF', 'RIP'}
-        taint = tracker.get_taint()
+        taint: InputTaint = tracker.get_taint()
+        register_start = taint.register_start
+        taint_size = taint.size
 
         expected = [False for i in range(taint_size)]
         expected[0] = True  # 0x0
         expected[8] = True  # 0x40
         expected[200] = True  # 640
-        expected[reg_offset + 3] = True  # D
-        expected[reg_offset + 4] = True  # SI
-        expected[reg_offset + 6] = True  # DF - flags
+        expected[register_start + 3] = True  # D
+        expected[register_start + 4] = True  # SI
+        expected[register_start + 6] = True  # DF - flags
         # 8, 14, RIP - not a part of the input
 
         self.assertListEqual(list(taint), expected)

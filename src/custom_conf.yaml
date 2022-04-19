@@ -7,7 +7,6 @@ enable_ssbp_patch: true
 enable_assist_page: false
 
 feedback_driven_generator: false
-combination_length_min: 4
 prng_entropy_bits: 4
 
 inputs_per_class: 2

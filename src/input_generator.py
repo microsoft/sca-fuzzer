@@ -76,7 +76,7 @@ class RandomInputGenerator(InputGenerator):
 
         # again, to emulate the legacy (and kinda broken) input generator,
         # initialize only the first 32 bits of registers
-        for i in range(CONF.input_register_region_size):
+        for i in range(CONF.input_register_region_size // 8):
             input_[-i - 1] = input_[-i - 1] % POW32
 
         return input_, randint

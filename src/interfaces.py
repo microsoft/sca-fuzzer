@@ -500,26 +500,26 @@ class Input(np.ndarray):
     """
     seed: int = 0
     data_size: int = 0
+    register_start: int = 0
 
     def __init__(self) -> None:
         pass  # unreachable; defined only for type checking
 
     def __new__(cls):
-        data_size = CONF.input_main_region_size + \
-               CONF.input_assist_region_size + \
-               CONF.input_register_region_size
-        aligned_size = data_size + (4096 // 8 - CONF.input_register_region_size)
+        data_size = (CONF.input_main_region_size + CONF.input_assist_region_size +
+                     CONF.input_register_region_size) // 8
+        aligned_size = data_size + (4096 - CONF.input_register_region_size) // 8
         obj = super().__new__(cls, (aligned_size,), np.uint64, None, 0, None, None)  # type: ignore
         obj.data_size = data_size
+        obj.register_start = data_size - CONF.input_register_region_size // 8
         return obj
 
     def __array_finalize__(self, obj):
         if obj is None:
             return
-        pass
 
     def get_registers(self):
-        return list(self[self.data_size - CONF.input_register_region_size:self.data_size - 1])
+        return list(self[self.register_start:self.data_size - 1])
 
     def __str__(self):
         return str(self.seed)
@@ -535,16 +535,21 @@ class InputTaint(np.ndarray):
     Each element is an boolean value: When it is True, the corresponding element
     of the input impacts the contract trace.
     """
+    register_start: int = 0
 
     def __init__(self) -> None:
         pass  # unreachable; defined only for type checking
 
     def __new__(cls):
-        size = CONF.input_main_region_size + \
-               CONF.input_assist_region_size + \
-               CONF.input_register_region_size
+        size = (CONF.input_main_region_size + CONF.input_assist_region_size +
+                CONF.input_register_region_size) // 8
         obj = super().__new__(cls, (size,), bool, None, 0, None, None)  # type: ignore
+        obj.size = size
+        obj.register_start = (CONF.input_main_region_size + CONF.input_assist_region_size) // 8
         return obj
+
+    def __len__(self) -> int:
+        return self.size
 
 
 class Measurement(NamedTuple):

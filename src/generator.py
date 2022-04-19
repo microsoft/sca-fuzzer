@@ -9,6 +9,7 @@ from __future__ import annotations
 import random
 import abc
 import re
+import math
 import iced_x86
 from typing import List, Dict, Set, Optional
 from subprocess import CalledProcessError, run

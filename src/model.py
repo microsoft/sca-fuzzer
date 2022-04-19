@@ -97,8 +97,8 @@ class X86UnicornModel(Model):
     """
     CODE_SIZE = 4 * 1024
     WORKING_MEMORY_SIZE = 1024 * 1024
-    MAIN_REGION_SIZE = CONF.input_main_region_size * 8
-    ASSIST_REGION_SIZE = CONF.input_assist_region_size * 8
+    MAIN_REGION_SIZE = CONF.input_main_region_size
+    ASSIST_REGION_SIZE = CONF.input_assist_region_size
     OVERFLOW_REGION_SIZE = 4096
 
     emulator: Uc
@@ -560,6 +560,8 @@ class TaintTracker(TaintTrackerInterface):
 
         taint = InputTaint()
         tainted_positions = []
+        register_start = taint.register_start
+
         for label in self.tainted_labels:
             input_offset = -1  # the location of the label within the Input array
             if label.startswith('0x'):
@@ -569,16 +571,14 @@ class TaintTracker(TaintTrackerInterface):
             else:
                 reg = self._reg_decode[label]
                 if reg in self._registers:
-                    input_offset = CONF.input_main_region_size + \
-                          CONF.input_assist_region_size + \
+                    input_offset = register_start + \
                           self._registers.index(self._reg_decode[label])
             if input_offset >= 0:
                 tainted_positions.append(input_offset)
 
         tainted_positions = list(dict.fromkeys(tainted_positions))
         tainted_positions.sort()
-        for i in range(CONF.input_main_region_size + CONF.input_assist_region_size +
-                       CONF.input_register_region_size):
+        for i in range(taint.size):
             if i in tainted_positions:
                 taint[i] = True
             else:
