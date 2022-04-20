@@ -187,7 +187,10 @@ EOF
         [ "$status" -eq 0 ]
         [[ "$output" = *"=== Violations detected ==="* ]]
     else
-        skip
+        run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/lvi.asm -i 100 -c tests/mds.yaml"
+        echo "$output"
+        [ "$status" -eq 0 ]
+        [[ "$output" = *"=== Violations detected ==="* ]]
     fi
 }
 
@@ -208,7 +211,7 @@ EOF
 }
 
 @test "Model: ARCH-SEQ" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v1_arch.asm -i 1000 -c tests/arch-seq.yaml"
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t tests/spectre_v1_arch.asm -i 20 -c tests/arch-seq.yaml"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" = *"=== Violations detected ==="* ]]

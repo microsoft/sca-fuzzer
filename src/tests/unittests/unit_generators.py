@@ -98,6 +98,24 @@ class X86RandomGeneratorTest(unittest.TestCase):
         X86PatchUndefinedFlagsPass(instruction_set, generator).run_on_test_case(test_case)
         self.assertEqual(len(bb), 3)
 
+    def test_x86_undef_flag_patch_conditional(self):
+        instruction_set = InstructionSet('../instruction_sets/x86/base.xml')
+        undef_instr_spec = list(filter(lambda x: x.name == 'SAR', instruction_set.all))[0]
+        read_instr_spec = list(filter(lambda x: x.name == 'RCL', instruction_set.all))[0]
+
+        generator = X86RandomGenerator(instruction_set)
+        undef_instr = generator.generate_instruction(undef_instr_spec)
+        read_instr = generator.generate_instruction(read_instr_spec)
+
+        test_case = TestCase()
+        test_case.functions = [Function(".function_main")]
+        bb = test_case.functions[0].entry
+        bb.insert_after(bb.get_last(), undef_instr)
+        bb.insert_after(bb.get_last(), read_instr)
+
+        X86PatchUndefinedFlagsPass(instruction_set, generator).run_on_test_case(test_case)
+        self.assertEqual(len(bb), 3)
+
 
 if __name__ == '__main__':
     unittest.main()

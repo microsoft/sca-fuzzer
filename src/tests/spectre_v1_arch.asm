@@ -14,6 +14,10 @@ LEA rbx, qword ptr [rbx + rax + 1]
 LEA rbx, qword ptr [rbx + rax - 1]
 LEA rbx, qword ptr [rbx + rax + 1]
 LEA rbx, qword ptr [rbx + rax - 1]
+LEA rbx, qword ptr [rbx + rax + 1]
+LEA rbx, qword ptr [rbx + rax - 1]
+LEA rbx, qword ptr [rbx + rax + 1]
+LEA rbx, qword ptr [rbx + rax - 1]
 
 # reduce the entropy in rbx
 AND rbx, 0b1000000

@@ -834,6 +834,7 @@ class X86SandboxPass(Pass):
                 divisions = []
                 bit_tests = []
                 repeated_instructions = []
+                corrupted_cf = []
                 for inst in bb:
                     if inst.has_mem_operand(True):
                         memory_instructions.append(inst)
@@ -843,6 +844,8 @@ class X86SandboxPass(Pass):
                         bit_tests.append(inst)
                     elif "REP" in inst.name:
                         repeated_instructions.append(inst)
+                    elif inst.category == "ROTATE" or inst.category == "SHIFT":
+                        corrupted_cf.append(inst)
 
                 # sandbox them
                 for inst in memory_instructions:
@@ -856,6 +859,9 @@ class X86SandboxPass(Pass):
 
                 for inst in repeated_instructions:
                     self.sandbox_repeated_instruction(inst, bb)
+
+                for inst in corrupted_cf:
+                    self.sandbox_corrupted_cf(inst, bb)
 
     def sandbox_memory_access(self, instr: Instruction, parent: BasicBlock):
         """ Force the memory accesses into the page starting from R14 """
@@ -992,6 +998,10 @@ class X86SandboxPass(Pass):
         parent.insert_before(inst, apply_mask)
         parent.insert_before(inst, add_base)
 
+    def sandbox_corrupted_cf(self, inst: Instruction, parent: BasicBlock):
+        set_cf = Instruction("STC", True)
+        parent.insert_after(inst, set_cf)
+
     @staticmethod
     def requires_sandbox(inst: InstructionSpec):
         if inst.has_mem_operand:
@@ -999,6 +1009,8 @@ class X86SandboxPass(Pass):
         if inst.name in ["DIV", "REX DIV"]:
             return True
         if inst.name in ["BT", "BTC", "BTR", "BTS", "LOCK BT", "LOCK BTC", "LOCK BTR", "LOCK BTS"]:
+            return True
+        if inst.category in ["SHIFT", "ROTATE"]:
             return True
         return False
 

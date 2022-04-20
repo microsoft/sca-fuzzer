@@ -44,11 +44,13 @@ class ConfCls:
         "SEMAPHORE",
         "SETCC",
         "STRINGOP",
-        # "ROTATE",     # TBD: under construction
-        # "SHIFT",      # TBD: under construction
+        "ROTATE",
+        "SHIFT",
+
         # "UNCOND_BR",   # Not supported: Complex control flow
         # "CALL",        # Not supported: Complex control flow
         # "RET",         # Not supported: Complex control flow
+
         # "SEGOP",       # Not supported: System instructions
         # "INTERRUPT",   # Not supported: System instructions
         # "IO",          # Not supported: System instructions
@@ -58,7 +60,7 @@ class ConfCls:
         # "SYSTEM",      # Not supported: System instructions
 
         # Extensions
-        "BMI1",
+        # "BMI1",
     ]
     instruction_blocklist = [
         # Hard to fix:
@@ -77,9 +79,6 @@ class ConfCls:
         "IDIV", "REX IDIV",
         # - Requires complex instrumentation
         "ENTERW", "ENTER", "LEAVEW", "LEAVE",
-
-        # Bug in unicorn?
-        "ANDN", "BLSI", "BLSMSK",
 
         # Stringops - under construction
         "CMPSB", "CMPSD", "CMPSW",
