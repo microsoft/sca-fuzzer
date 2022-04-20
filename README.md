@@ -10,9 +10,6 @@ Alternatively, a "bug" could also be in a form of a microarchitectural backdoor 
 
 See our [Technical Report](https://arxiv.org/abs/2105.06872) for details.
 
-
-**Origin**: This is an independently developed and improved fork of [SCA-Fuzzer from Microsoft](https://github.com/microsoft/sca-fuzzer).
-
 # Getting Started
 
 **Note:** If you find missing or confusing explanations, or a bug in Revizor, don't hesitate to open an issue.
