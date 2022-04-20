@@ -11,3 +11,4 @@ src/min.asm
 src/tmp.asm
 experiments/
 *.code-workspace
+src/custom_conf.yaml
