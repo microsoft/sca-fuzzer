@@ -31,10 +31,6 @@ class InstructionSet(InstructionSetAbstract):
             self.instruction.name = instruction_node.attrib['asm']
             self.instruction.category = instruction_node.attrib['category']
 
-            self.instruction.zeroing = instruction_node.attrib.get('zeroing', '') == '1'
-            self.instruction.rnsae = instruction_node.attrib.get('roundc', '') == '1'
-            self.instruction.sae = instruction_node.attrib.get('sae', '') == '1'
-
             for op_node in instruction_node.iter('op'):
                 op_type = op_node.attrib['type']
                 if op_type == 'reg':
@@ -79,9 +75,6 @@ class InstructionSet(InstructionSetAbstract):
                 return True
 
             if include_categories and spec.category not in include_categories:
-                return False
-
-            if spec.sae or spec.rnsae or spec.zeroing:
                 return False
 
             if spec.name in CONF.instruction_blocklist:

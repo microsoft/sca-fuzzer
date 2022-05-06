@@ -161,10 +161,6 @@ class InstructionSpec:
     category: str
     control_flow = False
 
-    zeroing = False
-    rnsae = False
-    sae = False
-
     has_mem_operand = False
     has_write = False
     has_magic_value: bool = False
@@ -186,10 +182,6 @@ class Instruction:
     implicit_operands: List[Operand]
     category: str
     control_flow = False
-
-    zeroing: bool = False
-    rnsae: bool = False
-    sae: bool = False
 
     next: Optional[Instruction] = None
     previous: Optional[Instruction] = None
