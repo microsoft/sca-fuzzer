@@ -26,6 +26,7 @@ class OT(Enum):
     LABEL = 4
     AGEN = 5  # memory address in LEA instructions
     FLAGS = 6
+    COND = 7
 
     def __str__(self):
         return str(self._name_)
@@ -42,11 +43,11 @@ class OperandSpec:
     # magic_value attribute indicates a specification for this special value
     magic_value: bool = False
 
-    def __init__(self, values: List[str], type_: OT, src: str, dest: str):
+    def __init__(self, values: List[str], type_: OT, src: bool, dest: bool):
         self.values = values
         self.type = type_
-        self.src = True if src == "1" else False
-        self.dest = True if dest == "1" else False
+        self.src = src
+        self.dest = dest
         self.width = 0
 
     def __str__(self):
@@ -602,8 +603,7 @@ ExecutionTrace = List[TracedInstruction]
 # Interfaces of Modules
 # ==================================================================================================
 class InstructionSetAbstract(ABC):
-    all: List[InstructionSpec] = []
-    control_flow: List[InstructionSpec] = []
+    instructions: List[InstructionSpec] = []
     has_unconditional_branch: bool = False
     has_conditional_branch: bool = False
     has_indirect_branch: bool = False

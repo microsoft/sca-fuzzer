@@ -9,7 +9,6 @@ sys.path.insert(0, '..')
 from model import TaintTracker
 from interfaces import Instruction, RegisterOperand, MemoryOperand, InputTaint, LabelOperand, \
     FlagsOperand
-from config import CONF
 
 
 class X86UnicornModelTest(unittest.TestCase):

@@ -14,7 +14,7 @@ import iced_x86
 from typing import List, Dict, Set, Optional
 from subprocess import CalledProcessError, run
 
-from instruction_set import InstructionSet
+from isa_loader import InstructionSet
 from interfaces import Generator, TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
     ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, Function, \
     OperandSpec, InstructionSpec
@@ -76,6 +76,11 @@ class ConfigurableGenerator(Generator, abc.ABC):
 
     def __init__(self, instruction_set: InstructionSet):
         super().__init__(instruction_set)
+        self.control_flow_instructions = \
+            [i for i in self.instruction_set.instructions if i.control_flow]
+        self.non_control_flow_instructions = \
+            [i for i in self.instruction_set.instructions if not i.control_flow]
+
         if CONF.test_case_generator_seed:
             random.seed(CONF.test_case_generator_seed)
 
@@ -342,7 +347,7 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
 
             elif len(bb.successors) == 2:
                 # Conditional branch
-                spec = random.choice(self.instruction_set.control_flow)
+                spec = random.choice(self.control_flow_instructions)
                 terminator = Instruction.from_spec(spec)
                 terminator.operands = [LabelOperand(bb.successors[0].name)]
                 for op in spec.implicit_operands:
@@ -385,7 +390,7 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
 
         # select a random instruction spec for generation
         while True:
-            instruction_spec = random.choice(self.instruction_set.all)
+            instruction_spec = random.choice(self.non_control_flow_instructions)
             if search_for_memory_access:
                 if instruction_spec.has_mem_operand and \
                         instruction_spec.has_write == search_for_store:
@@ -572,7 +577,7 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
         # Second Pass: Parse instructions
         # - build a map of all instruction specs
         instruction_map: Dict[str, List[InstructionSpec]] = {}
-        for spec in self.instruction_set.all + self.instruction_set.control_flow:
+        for spec in self.instruction_set.instructions:
             if spec.name in instruction_map:
                 instruction_map[spec.name].append(spec)
             else:
@@ -1041,7 +1046,11 @@ class X86PatchUndefinedFlagsPass(Pass):
         self.generator = generator
 
         self.patch_candidates = []
-        for instruction_spec in instruction_set.all:
+        for instruction_spec in instruction_set.instructions:
+            # we don't want to change the control flow
+            if instruction_spec.control_flow:
+                continue
+
             # check if the instruction is safe to use on its own
             if X86SandboxPass.requires_sandbox(instruction_spec):
                 continue
@@ -1080,6 +1089,7 @@ class X86PatchUndefinedFlagsPass(Pass):
                     inst = all_instructions.pop()
                     flags: Optional[FlagsOperand] = inst.get_flags_operand()
                     if not flags:
+                        print("no flags")
                         continue
 
                     # fix undefined flags by adding another instruction in-between

@@ -10,15 +10,15 @@ import os
 
 sys.path.insert(0, '..')
 from generator import X86RandomGenerator, X86Printer, X86PatchUndefinedFlagsPass
-from instruction_set import InstructionSet
-from interfaces import TestCase, Function, BasicBlock, Instruction
+from isa_loader import InstructionSet
+from interfaces import TestCase, Function
 from config import CONF
 
 
 class X86RandomGeneratorTest(unittest.TestCase):
 
     def test_x86_all_instructions(self):
-        instruction_set = InstructionSet('../instruction_sets/x86/base.xml',
+        instruction_set = InstructionSet('unittests/min_x86.json',
                                          CONF.supported_categories)
         generator = X86RandomGenerator(instruction_set)
         func = generator.generate_function("function_main")
@@ -27,7 +27,7 @@ class X86RandomGeneratorTest(unittest.TestCase):
 
         # try generating instruction strings
         for bb in func:
-            for instruction_spec in generator.instruction_set.all:
+            for instruction_spec in generator.non_control_flow_instructions:
                 # fill up with random operand, following the spec
                 inst = generator.generate_instruction(instruction_spec)
                 bb.insert_after(bb.get_last(), inst)
@@ -61,7 +61,7 @@ class X86RandomGeneratorTest(unittest.TestCase):
         CONF.gpr_blocklist = []
         CONF.instruction_blocklist = []
 
-        instruction_set = InstructionSet('../instruction_sets/x86/base.xml')
+        instruction_set = InstructionSet('unittests/min_x86.json')
         generator = X86RandomGenerator(instruction_set)
         tc: TestCase = generator.parse_existing_test_case("unittests/asm_basic.asm")
         self.assertEqual(len(tc.functions), 1)
@@ -81,27 +81,9 @@ class X86RandomGeneratorTest(unittest.TestCase):
         self.assertEqual(bb1.successors[0], exit_)
 
     def test_x86_undef_flag_patch(self):
-        instruction_set = InstructionSet('../instruction_sets/x86/base.xml')
-        undef_instr_spec = list(filter(lambda x: x.name == 'BSF', instruction_set.all))[0]
-        read_instr_spec = list(filter(lambda x: x.name == 'LAHF', instruction_set.all))[0]
-
-        generator = X86RandomGenerator(instruction_set)
-        undef_instr = generator.generate_instruction(undef_instr_spec)
-        read_instr = generator.generate_instruction(read_instr_spec)
-
-        test_case = TestCase()
-        test_case.functions = [Function(".function_main")]
-        bb = test_case.functions[0].entry
-        bb.insert_after(bb.get_last(), undef_instr)
-        bb.insert_after(bb.get_last(), read_instr)
-
-        X86PatchUndefinedFlagsPass(instruction_set, generator).run_on_test_case(test_case)
-        self.assertEqual(len(bb), 3)
-
-    def test_x86_undef_flag_patch_conditional(self):
-        instruction_set = InstructionSet('../instruction_sets/x86/base.xml')
-        undef_instr_spec = list(filter(lambda x: x.name == 'SAR', instruction_set.all))[0]
-        read_instr_spec = list(filter(lambda x: x.name == 'RCL', instruction_set.all))[0]
+        instruction_set = InstructionSet('unittests/min_x86.json')
+        undef_instr_spec = list(filter(lambda x: x.name == 'BSF', instruction_set.instructions))[0]
+        read_instr_spec = list(filter(lambda x: x.name == 'LAHF', instruction_set.instructions))[0]
 
         generator = X86RandomGenerator(instruction_set)
         undef_instr = generator.generate_instruction(undef_instr_spec)

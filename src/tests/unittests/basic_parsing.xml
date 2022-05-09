@@ -1,9 +1,0 @@
-<root >
-    <extension ex="BASE">
-        <instruction asm="TEST" category="CATEGORY" cpl="3" extension="BASE">
-            <op idx="1" r="1" w="1" type="mem"  width="16" />
-            <op idx="2" r="1" type="reg" width="16" suppressed="1">AX</op>
-            <op flag_AF="w" flag_CF="r/w" flag_OF="w" flag_PF="w" flag_SF="w" flag_ZF="w" idx="3" r="1" suppressed="1" type="flags" w="1"/>
-        </instruction>
-    </extension>
-</root>

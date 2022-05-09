@@ -7,7 +7,7 @@ SPDX-License-Identifier: MIT
 from enum import IntEnum
 from typing import Dict, Set, List, Optional
 
-from instruction_set import InstructionSet
+from isa_loader import InstructionSet
 from interfaces import Coverage, EquivalenceClass, TestCase, Executor, Model, Analyser, \
      ExecutionTrace, TracedInstruction, Instruction, RegisterOperand, OT
 from generator import X86Registers
@@ -120,7 +120,7 @@ class DependentPairCoverage(Coverage):
         all_, reg_src, reg_dest, flags_src, flags_dest, mem_src, mem_dest, control_cond = (0, ) * 8
         control_direct = 1
 
-        for inst in self.instruction_set.all:
+        for inst in self.instruction_set.instructions:
             all_ += 1
 
             reg_ops = [r for r in inst.operands + inst.implicit_operands if r.type == OT.REG]
@@ -147,11 +147,11 @@ class DependentPairCoverage(Coverage):
             if [r for r in inst.operands + inst.implicit_operands if r.type == OT.MEM and r.src]:
                 mem_src += 1
 
-        for inst in self.instruction_set.control_flow:
-            if inst.category == "UNCOND_BR":
-                control_direct += 1
-            else:
-                control_cond += 1
+            if inst.control_flow:
+                if inst.category == "UNCOND_BR":
+                    control_direct += 1
+                else:
+                    control_cond += 1
 
         self.max_coverage[DT.REG_GPR] = reg_src * (reg_dest + mem_src + mem_dest)
         self.max_coverage[DT.REG_FLAGS] = flags_src * flags_dest

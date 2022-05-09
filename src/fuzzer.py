@@ -18,7 +18,7 @@ from model import get_model
 from executor import get_executor
 from analyser import get_analyser
 from coverage import get_coverage
-from instruction_set import InstructionSet
+from isa_loader import InstructionSet
 
 from config import CONF
 from service import STAT, LOGGER, TWOS_COMPLEMENT_MASK_64, bit_count
