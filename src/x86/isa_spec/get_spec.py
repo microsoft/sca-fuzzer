@@ -4,10 +4,9 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 
-import os
-import glob
 import json
 import subprocess
+from argparse import ArgumentParser
 from typing import List
 from xml.etree import ElementTree as ET
 
@@ -98,16 +97,21 @@ class X86Transformer:
             exit(1)
         self.tree = tree
 
-    def parse_tree(self):
+    def parse_tree(self, extensions: List[str]):
         for instruction_node in self.tree.iter('instruction'):
             if instruction_node.attrib.get('sae', '') == '1' or \
                instruction_node.attrib.get('roundc', '') == '1' or \
                instruction_node.attrib.get('zeroing', '') == '1':
                 continue
 
+            if extensions and instruction_node.attrib['extension'] not in extensions:
+                continue
+
             self.instruction = InstructionSpec()
             self.instruction.name = instruction_node.attrib['asm']
-            self.instruction.category = instruction_node.attrib['category']
+            self.instruction.category = instruction_node.attrib['extension'] \
+                + "-" \
+                + instruction_node.attrib['category']
 
             try:
                 for op_node in instruction_node.iter('operand'):
@@ -240,14 +244,25 @@ class X86Transformer:
 
 
 def main():
+    parser = ArgumentParser(description='', add_help=False)
+    parser.add_argument(
+        "--extensions",
+        nargs="*",
+        default=[]
+    )
+    args = parser.parse_args()
+
     subprocess.run("wget "
                    "https://uops.info/instructions_Jan2022.xml", shell=True, check=True)
-    transformer = X86Transformer()
-    transformer.load_files("instructions_Jan2022.xml")
-    transformer.parse_tree()
-    print(f"Produced base.json with {len(transformer.instructions)} instructions")
-    transformer.save("base.json")
-    subprocess.run("rm instructions_Jan2022.xml", shell=True, check=True)
+
+    try:
+        transformer = X86Transformer()
+        transformer.load_files("instructions_Jan2022.xml")
+        transformer.parse_tree(args.extensions)
+        print(f"Produced base.json with {len(transformer.instructions)} instructions")
+        transformer.save("base.json")
+    finally:
+        subprocess.run("rm instructions_Jan2022.xml", shell=True, check=True)
 
 
 if __name__ == "__main__":
