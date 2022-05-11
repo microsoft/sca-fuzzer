@@ -21,7 +21,7 @@ from typing import List, Tuple, Dict, Optional, Set
 
 from interfaces import CTrace, Input, TestCase, Model, InputTaint, Instruction, RegisterOperand, \
     FlagsOperand, MemoryOperand, ExecutionTrace, TracedInstruction, TracedMemAccess
-from generator import X86Registers
+from x86.x86_generator import X86TargetDesc
 from config import CONF, ConfigException
 from service import LOGGER
 
@@ -440,7 +440,7 @@ class TaintTracker(TaintTrackerInterface):
 
         for op in instruction.operands + instruction.implicit_operands:
             if isinstance(op, RegisterOperand):
-                value = X86Registers.gpr_normalized[op.value]
+                value = X86TargetDesc.gpr_normalized[op.value]
                 if op.src:
                     self.src_regs.append(value)
                 if op.dest:
@@ -452,8 +452,8 @@ class TaintTracker(TaintTrackerInterface):
                 self.dest_flags = op.get_write_flags()
             elif isinstance(op, MemoryOperand):
                 for sub_op in re.split(r'\+|-|\*| ', op.value):
-                    if sub_op and sub_op in X86Registers.gpr_normalized:
-                        self.mem_address_regs.append(X86Registers.gpr_normalized[sub_op])
+                    if sub_op and sub_op in X86TargetDesc.gpr_normalized:
+                        self.mem_address_regs.append(X86TargetDesc.gpr_normalized[sub_op])
 
     def _finalize_instruction(self):
         """Propagate dependencies from source operands to destinations """

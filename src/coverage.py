@@ -10,7 +10,7 @@ from typing import Dict, Set, List, Optional
 from isa_loader import InstructionSet
 from interfaces import Coverage, EquivalenceClass, TestCase, Executor, Model, Analyser, \
      ExecutionTrace, TracedInstruction, Instruction, RegisterOperand, OT
-from generator import X86Registers
+from x86.x86_generator import X86TargetDesc
 
 from config import CONF, ConfigException
 from service import STAT
@@ -247,8 +247,8 @@ class DependentPairCoverage(Coverage):
             r.value for r in inst1.get_dest_operands(True) if isinstance(r, RegisterOperand)
         ]
         src_regs = [r.value for r in inst2.get_src_operands(True) if isinstance(r, RegisterOperand)]
-        dest_regs = [X86Registers.gpr_normalized[r] for r in dest_regs]
-        src_regs = [X86Registers.gpr_normalized[r] for r in src_regs]
+        dest_regs = [X86TargetDesc.gpr_normalized[r] for r in dest_regs]
+        src_regs = [X86TargetDesc.gpr_normalized[r] for r in src_regs]
         for r in dest_regs:
             if r in src_regs:
                 return DT.REG_GPR
