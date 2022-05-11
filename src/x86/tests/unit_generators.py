@@ -67,6 +67,34 @@ class X86RandomGeneratorTest(unittest.TestCase):
         if assembly_failed:
             self.fail("Generated invalid instruction(s)")
 
+    def test_create_test_case(self):
+        instruction_set = InstructionSet('tests/min_x86.json', CONF.supported_categories)
+        generator = X86RandomGenerator(instruction_set)
+
+        asm_file = tempfile.NamedTemporaryFile(delete=False)
+        name = asm_file.name
+        # name = "tmp.asm"
+        tc: TestCase = generator.create_test_case(name)
+        size = len([i for bb in tc.functions for i in bb])
+        self.assertNotEqual(size, 0)
+
+        with open(tc.bin_path, "rb") as f:
+            bin_file_contents = f.read()
+
+        decoder = iced_x86.Decoder(64, bin_file_contents)
+        formatter = iced_x86.Formatter(iced_x86.FormatterSyntax.NASM)
+        for inst in decoder:
+            inst_obj = tc.address_map[inst.ip]
+            if inst_obj.name == "UNMAPPED":
+                continue
+            disasm_name = formatter.format(inst).split(" ")[0].upper()
+            if disasm_name in X86Generator.asm_synonyms:
+                disasm_name = X86Generator.asm_synonyms[disasm_name]
+            self.assertIn(disasm_name, inst_obj.name)
+
+        asm_file.close()
+        os.unlink(asm_file.name)
+
     def test_x86_asm_parsing_basic(self):
         CONF.gpr_blocklist = []
         CONF.instruction_blocklist = []
