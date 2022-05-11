@@ -285,5 +285,4 @@ def get_coverage(instruction_set: InstructionSet, executor: Executor, model: Mod
     elif CONF.coverage_type == 'none':
         return NoCoverage(instruction_set, executor, model, analyser)
     else:
-        ConfigException("unknown value of `coverage_type` configuration option")
-        exit(1)
+        raise ConfigException("unknown value of `coverage_type` configuration option")

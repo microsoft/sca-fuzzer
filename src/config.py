@@ -4,7 +4,12 @@ File: Fuzzing Configuration Options
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
-from typing import List
+import x86.x86_config as x86_config
+from typing import List, Dict
+
+
+class ConfigException(SystemExit):
+    pass
 
 
 class ConfCls:
@@ -27,97 +32,10 @@ class ConfCls:
     avoid_data_dependencies: bool = False
     generate_memory_accesses_in_pairs: bool = False
     memory_access_zeroed_bits: int = 6
-    supported_categories = [
-        # Base x86
-        "BASE-BINARY",
-        "BASE-BITBYTE",
-        "BASE-CMOV",
-        "BASE-COND_BR",
-        "BASE-CONVERT",
-        "BASE-DATAXFER",
-        "BASE-FLAGOP",
-        "BASE-LOGICAL",
-        "BASE-MISC",
-        "BASE-NOP",
-        "BASE-POP",
-        "BASE-PUSH",
-        "BASE-SEMAPHORE",
-        "BASE-SETCC",
-        "BASE-STRINGOP",
-
-        # "BASE-ROTATE",      # Unknown bug in Unicorn - emulated incorrectly
-        # "BASE-SHIFT",       # Unknown bug in Unicorn - emulated incorrectly
-
-        # "BASE-UNCOND_BR",   # Not supported: Complex control flow
-        # "BASE-CALL",        # Not supported: Complex control flow
-        # "BASE-RET",         # Not supported: Complex control flow
-
-        # "BASE-SEGOP",       # Not supported: System instructions
-        # "BASE-INTERRUPT",   # Not supported: System instructions
-        # "BASE-IO",          # Not supported: System instructions
-        # "BASE-IOSTRINGOP",  # Not supported: System instructions
-        # "BASE-SYSCALL",     # Not supported: System instructions
-        # "BASE-SYSRET",      # Not supported: System instructions
-        # "BASE-SYSTEM",      # Not supported: System instructions
-
-        # Extensions
-        "SSE-MISC",  # SFENCE
-        "SSE2-MISC",  # LFENCE, MFENCE
-        "CLFLUSHOPT-CLFLUSHOPT",
-        "CLFSH-MISC",
-        # "BMI1",
-    ]
-    instruction_blocklist = [
-        # Hard to fix:
-        # - STI - enables interrupts, thus corrupting the measurements; CLI - just in case
-        "STI", "CLI",
-        # - CMPXCHG8B - Unicorn doesn't execute the mem. access hook
-        #   bug: https://github.com/unicorn-engine/unicorn/issues/990
-        "CMPXCHG8B", "LOCK CMPXCHG8B",
-        # - Undefined instructions are, well, undefined
-        "UD", "UD2",
-        # - Incorrect emulation
-        "CPUID",
-        # - Requires support of segment registers
-        "XLAT", "XLATB",
-        # - Requires special instrumentation to avoid #DE faults
-        "IDIV", "REX IDIV",
-        # - Requires complex instrumentation
-        "ENTERW", "ENTER", "LEAVEW", "LEAVE",
-
-        # Stringops - under construction
-        "CMPSB", "CMPSD", "CMPSW",
-        "MOVSB", "MOVSD", "MOVSW",
-
-        "REPE LODSB", "REPE LODSD", "REPE LODSW",
-        "REPE SCASB", "REPE SCASD", "REPE SCASW",
-        "REPE STOSB", "REPE STOSD", "REPE STOSW",
-        "REPE CMPSB", "REPE CMPSD", "REPE CMPSW",
-        "REPE MOVSB", "REPE MOVSD", "REPE MOVSW",
-
-        "REPNE LODSB", "REPNE LODSD", "REPNE LODSW",
-        "REPNE SCASB", "REPNE SCASD", "REPNE SCASW",
-        "REPNE STOSB", "REPNE STOSD", "REPNE STOSW",
-        "REPNE CMPSB", "REPNE CMPSD", "REPNE CMPSW",
-        "REPNE MOVSB", "REPNE MOVSD", "REPNE MOVSW",
-        # - not supported
-        "LFENCE", "MFENCE", "SFENCE", "CLFLUSH", "CLFLUSHOPT"
-    ]  # yapf: disable
     extended_instruction_blocklist: List[str] = []
-    # x86 executor internally uses R15, R14, RSP, RBP and, thus, they are excluded
-    # segment registers are also excluded as we don't support their handling so far
-    # same for CR* and DR*
-    gpr_blocklist = [
-        # free - rax, rbx, rcx, rdx, rdi, rsi
-        'R8', 'R9', 'R10', 'R11', 'R12', 'R13', 'R14', 'R15', 'RSP', 'RBP',
-        'R8D', 'R9D', 'R10D', 'R11D', 'R12D', 'R13D', 'R14D', 'R15D', 'ESP', 'EBP',
-        'R8W', 'R9W', 'R10W', 'R11W', 'R12W', 'R13W', 'R14W', 'R15W', 'SP', 'BP',
-        'R8B', 'R9B', 'R10B', 'R11B', 'R12B', 'R13B', 'R14B', 'R15B', 'SPL', 'BPL',
-        'ES', 'CS', 'SS', 'DS', 'FS', 'GS',
-        'CR0', 'CR2', 'CR3', 'CR4', 'CR8',
-        'DR0', 'DR1', 'DR2', 'DR3', 'DR4', 'DR5', 'DR6', 'DR7'
-    ]  # yapf: disable
-    _no_generation: bool = False
+    gpr_blocklist: List[str] = []
+    supported_categories: List[str] = []
+    instruction_blocklist: List[str] = []
     # ==============================================================================================
     # Input Generator
     input_generator: str = 'random'
@@ -157,53 +75,79 @@ class ConfCls:
     # Output
     multiline_output: bool = False
     logging_modes: List[str] = ["info", "stat"]
+    # ==============================================================================================
+    # Internal
+    _instance = None
+    _no_generation: bool = False
+    _option_values: Dict[str, List] = {
+        'generator': ["random"],
+        'input_generator': ["random"],
+        'executor_mode': ['P+P', 'F+R', 'E+R'],
+        'contract_observation_clause': [
+            'l1d', 'memory', 'ct', 'pc', 'ct-nonspecstore', 'ctr', 'arch'
+        ],
+        'coverage_type': ['dependent-pairs', 'none'],
+    }
 
-    def set(self, name, value):
-        options = {
-            'instruction_set': ["x86-64"],
-            'generator': ["random"],
-            'input_generator': ["random"],
-            'model': ['x86-unicorn'],
-            'executor': ['x86-intel'],
-            'executor_mode': ['P+P', 'F+R', 'E+R'],
-            'contract_observation_clause': [
-                'l1d', 'memory', 'ct', 'pc', 'ct-nonspecstore', 'ctr', 'arch'
-            ],
-            'coverage_type': ['dependent-pairs', 'none'],
-        }
+    # Implementation of singleton
+    def __new__(cls, *args, **kwargs):
+        if not isinstance(cls._instance, cls):
+            cls._instance = object.__new__(cls, *args, **kwargs)
+        return cls._instance
 
+    def __setattr__(self, name, value):
+        # print(f"CONF: setting {name} to {value}")
+        # sanity checks
         if name[0] == "_":
-            ConfigException(f"Attempting to set an internal configuration variable {name}.")
+            raise ConfigException(f"Attempting to set an internal configuration variable {name}.")
         if getattr(self, name, None) is None:
-            ConfigException(f"Unknown configuration variable {name}.\n"
-                            f"It's likely a typo in the configuration file.")
+            raise ConfigException(f"Unknown configuration variable {name}.\n"
+                                  f"It's likely a typo in the configuration file.")
         if type(self.__getattribute__(name)) != type(value):
-            ConfigException(f"Wrong type of the configuration variable {name}.\n"
-                            f"It's likely a typo in the configuration file.")
-
-        # value checks
-        if options.get(name, '') != '' and value not in options[name]:
-            ConfigException(f"Unknown value '{value}' of configuration variable '{name}'")
-        if (self.input_main_region_size % 4096 != 0) or \
-                (self.input_assist_region_size % 4096 != 0):
-            ConfigException("Inputs must be page-aligned")
-
-        # special handling
-        if name == "extended_instruction_blocklist":
-            self.instruction_blocklist.extend(value)
-
-        self.__setattr__(name, value)
-
-    def sanity_check(self):
-        if self.executor_max_outliers > 20:
+            raise ConfigException(f"Wrong type of the configuration variable {name}.\n"
+                                  f"It's likely a typo in the configuration file.")
+        if name == "executor_max_outliers" and value > 20:
             print(f"WARNING: Configuration: Are you sure you want to"
                   f" ignore {self.executor_max_outliers} outliers?")
-        if self.coverage_type == "none":
-            self.feedback_driven_generator = False
+        if name == "coverage_type" and value > "none":
+            super().__setattr__("feedback_driven_generator", "False")
+
+        # value checks
+        if self._option_values.get(name, '') != '' and value not in self._option_values[name]:
+            raise ConfigException(f"Unknown value '{value}' of configuration variable '{name}'")
+        if (self.input_main_region_size % 4096 != 0) or \
+                (self.input_assist_region_size % 4096 != 0):
+            raise ConfigException("Inputs must be page-aligned")
+
+        # special handling
+        if name == "instruction_set":
+            super().__setattr__("instruction_set", value)
+            self.update_arch()
+            return
+
+        if name == "extended_instruction_blocklist":
+            self.instruction_blocklist.extend(value)
+            return
+
+        super().__setattr__(name, value)
+
+    def update_arch(self):
+        # arch-specific config
+        if self.instruction_set == "x86-64":
+            config = x86_config
+            prefix = "x86_"
+        else:
+            raise ConfigException(f"Unknown architecture {self.instruction_set}")
+        options = [i for i in dir(config) if i.startswith(prefix)]
+
+        for option in options:
+            values = getattr(config, option)
+            trimmed_name = option.removeprefix(prefix)
+            if hasattr(self, trimmed_name):
+                setattr(self, trimmed_name, values)
+            else:
+                setattr(self, option, values)
 
 
 CONF = ConfCls()
-
-
-class ConfigException(SystemExit):
-    pass
+CONF.instruction_set = "x86-64"

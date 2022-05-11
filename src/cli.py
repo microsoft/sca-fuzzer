@@ -109,8 +109,7 @@ def main():
         with open(args.config, "r") as f:
             config_update: Dict = yaml.safe_load(f)
         for var, value in config_update.items():
-            CONF.set(var, value)
-    CONF.sanity_check()
+            setattr(CONF, var, value)
     LOGGER.set_logging_modes()
 
     # Fuzzing
