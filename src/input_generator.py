@@ -87,6 +87,5 @@ def get_input_generator() -> InputGenerator:
         'random': RandomInputGenerator,
     }
     if CONF.input_generator not in options:
-        ConfigException("unknown input_generator in config.py")
-        exit(1)
+        raise ConfigException("unknown input_generator in config.py")
     return options[CONF.input_generator]()

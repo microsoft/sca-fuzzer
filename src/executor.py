@@ -162,5 +162,5 @@ def get_executor() -> Executor:
         'x86-intel': X86IntelExecutor,
     }
     if CONF.executor not in options:
-        ConfigException("unknown executor in config.py")
+        raise ConfigException("unknown executor in config.py")
     return options[CONF.executor]()
