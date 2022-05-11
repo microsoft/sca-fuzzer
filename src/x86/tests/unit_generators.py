@@ -22,6 +22,12 @@ CONF.instruction_set = "x86-64"
 
 class X86RandomGeneratorTest(unittest.TestCase):
 
+    def test_x86_configuration(self):
+        CONF.generator = "random"
+        instruction_set = InstructionSet('tests/min_x86.json', CONF.supported_categories)
+        gen = get_generator(instruction_set)
+        self.assertEqual(gen.__class__, X86RandomGenerator)
+
     def test_x86_all_instructions(self):
         instruction_set = InstructionSet('tests/min_x86.json', CONF.supported_categories)
         generator = X86RandomGenerator(instruction_set)
