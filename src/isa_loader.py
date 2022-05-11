@@ -51,7 +51,7 @@ class InstructionSet(InstructionSetAbstract):
 
     def parse_operand(self, op: Dict, parent: InstructionSpec) -> OperandSpec:
         op_type = self.ot_str_to_enum[op["type_"]]
-        spec = OperandSpec(op["values"], op_type, op["src"], op["dest"])
+        spec = OperandSpec(op.get("values", []), op_type, op["src"], op["dest"])
         spec.width = op["width"]
 
         if op_type == OT.MEM:
