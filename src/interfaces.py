@@ -155,6 +155,12 @@ class FlagsOperand(Operand):
         return False
 
 
+class CondOperand(Operand):
+
+    def __init__(self, value):
+        super().__init__(value, OT.COND, True, False)
+
+
 class InstructionSpec:
     name: str
     operands: List[OperandSpec]
@@ -308,6 +314,14 @@ class Instruction:
                 res.append(o)
 
         return res
+
+    def get_cond_operand(self) -> Optional[CondOperand]:
+        for o in self.operands:
+            if isinstance(o, CondOperand):
+                return o
+
+        # not checking implicit operands -> conditions must be explicit
+        return None
 
 
 class BasicBlock:

@@ -17,7 +17,7 @@ from subprocess import CalledProcessError, run
 from isa_loader import InstructionSet
 from interfaces import Generator, TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
     ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, Function, \
-    OperandSpec, InstructionSpec
+    OperandSpec, InstructionSpec, CondOperand
 from service import NotSupportedException
 from config import CONF, ConfigException
 
@@ -58,10 +58,11 @@ class Printer(abc.ABC):
         pass
 
 
-class RegisterSet(abc.ABC):
+class TargetDesc(abc.ABC):
     register_sizes: Dict[str, int]
     registers: Dict[int, List[str]]
     simd_registers: Dict[int, List[str]]
+    branch_conditions: Dict[str, List[str]]
 
 
 class ConfigurableGenerator(Generator, abc.ABC):
@@ -72,7 +73,7 @@ class ConfigurableGenerator(Generator, abc.ABC):
     test_case: TestCase
     passes: List[Pass]  # set by subclasses
     printer: Printer  # set by subclasses
-    register_set: RegisterSet  # set by subclasses
+    target_desc: TargetDesc  # set by subclasses
 
     def __init__(self, instruction_set: InstructionSet):
         super().__init__(instruction_set)
@@ -164,6 +165,7 @@ class ConfigurableGenerator(Generator, abc.ABC):
             OT.LABEL: self.generate_label_operand,
             OT.AGEN: self.generate_agen_operand,
             OT.FLAGS: self.generate_flags_operand,
+            OT.COND: self.generate_cond_operand,
         }
         return generators[spec.type](spec, parent)
 
@@ -189,6 +191,10 @@ class ConfigurableGenerator(Generator, abc.ABC):
 
     @abc.abstractmethod
     def generate_flags_operand(self, spec: OperandSpec, _: Instruction) -> Operand:
+        pass
+
+    @abc.abstractmethod
+    def generate_cond_operand(self, spec: OperandSpec, _: Instruction) -> Operand:
         pass
 
     @abc.abstractmethod
@@ -278,9 +284,9 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
     def generate_reg_operand(self, spec: OperandSpec, parent: Instruction) -> Operand:
         reg_type = spec.values[0]
         if reg_type == 'GPR':
-            choices = self.register_set.registers[spec.width]
+            choices = self.target_desc.registers[spec.width]
         elif reg_type == "SIMD":
-            choices = self.register_set.simd_registers[spec.width]
+            choices = self.target_desc.simd_registers[spec.width]
         else:
             choices = spec.values
 
@@ -300,7 +306,7 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         if spec.values:
             address_reg = random.choice(spec.values)
         else:
-            address_reg = random.choice(self.register_set.registers[64])
+            address_reg = random.choice(self.target_desc.registers[64])
         return MemoryOperand(address_reg, spec.width, spec.src, spec.dest)
 
     def generate_imm_operand(self, spec: OperandSpec, _: Instruction) -> Operand:
@@ -315,19 +321,52 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
 
     def generate_agen_operand(self, spec: OperandSpec, __: Instruction) -> Operand:
         n_operands = random.randint(1, 3)
-        reg1 = random.choice(self.register_set.registers[64])
+        reg1 = random.choice(self.target_desc.registers[64])
         if n_operands == 1:
             return AgenOperand(reg1, spec.width)
 
-        reg2 = random.choice(self.register_set.registers[64])
+        reg2 = random.choice(self.target_desc.registers[64])
         if n_operands == 2:
             return AgenOperand(reg1 + " + " + reg2, spec.width)
 
         imm = str(random.randint(0, pow(2, 16) - 1))
         return AgenOperand(reg1 + " + " + reg2 + " + " + imm, spec.width)
 
-    def generate_flags_operand(self, spec: OperandSpec, _: Instruction) -> Operand:
-        return FlagsOperand(spec.values)
+    def generate_flags_operand(self, spec: OperandSpec, parent: Instruction) -> Operand:
+        cond_op = parent.get_cond_operand()
+        if not cond_op:
+            return FlagsOperand(spec.values)
+
+        flag_values = self.target_desc.branch_conditions[cond_op.value]
+        if not spec.values:
+            return FlagsOperand(flag_values)
+
+        # combine implicit flags with the condition
+        merged_flags = []
+        for flag_pair in zip(flag_values, spec.values):
+            if "undef" in flag_pair:
+                merged_flags.append("undef")
+            elif "r/w" in flag_pair:
+                merged_flags.append("r/w")
+            elif "w" in flag_pair:
+                if "r" in flag_pair:
+                    merged_flags.append("r/w")
+                else:
+                    merged_flags.append("w")
+            elif "cw" in flag_pair:
+                if "r" in flag_pair:
+                    merged_flags.append("r/cw")
+                else:
+                    merged_flags.append("cw")
+            elif "r" in flag_pair:
+                merged_flags.append("r")
+            else:
+                merged_flags.append("")
+        return FlagsOperand(merged_flags)
+
+    def generate_cond_operand(self, spec: OperandSpec, _: Instruction) -> Operand:
+        cond = random.choice(list(self.target_desc.branch_conditions))
+        return CondOperand(cond)
 
     def add_terminators_in_function(self, func: Function):
         for bb in func:
@@ -1247,5 +1286,4 @@ def get_generator(instruction_set: InstructionSet) -> Generator:
         if CONF.generator == 'random':
             return X86RandomGenerator(instruction_set)
 
-    ConfigException("unknown value of `instruction_set` configuration option")
-    exit(1)
+    raise ConfigException(f"unknown value {key} for `instruction_set` configuration option")
