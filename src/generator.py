@@ -81,6 +81,18 @@ class ConfigurableGenerator(Generator, abc.ABC):
             [i for i in self.instruction_set.instructions if i.control_flow]
         self.non_control_flow_instructions = \
             [i for i in self.instruction_set.instructions if not i.control_flow]
+        assert self.control_flow_instructions and self.non_control_flow_instructions, \
+            "The instruction set is insufficient to generate a test case"
+
+        self.non_memory_access_instructions = \
+            [i for i in self.non_control_flow_instructions if not i.has_mem_operand]
+        if CONF.avg_mem_accesses != 0:
+            memory_access_instructions = \
+                [i for i in self.non_control_flow_instructions if i.has_mem_operand]
+            self.load_instruction = [i for i in memory_access_instructions if not i.has_write]
+            self.store_instructions = [i for i in memory_access_instructions if i.has_write]
+            assert self.load_instruction and self.store_instructions, \
+                "The instruction set does not have memory accesses while `avg_mem_accesses > 0`"
 
         if CONF.test_case_generator_seed:
             random.seed(CONF.test_case_generator_seed)
@@ -428,17 +440,13 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         search_for_store = random.random() < 0.5  # 50% probability of stores
 
         # select a random instruction spec for generation
-        while True:
-            instruction_spec = random.choice(self.non_control_flow_instructions)
-            if search_for_memory_access:
-                if instruction_spec.has_mem_operand and \
-                        instruction_spec.has_write == search_for_store:
-                    break
-            else:
-                if not instruction_spec.has_mem_operand:
-                    break
+        if not search_for_memory_access:
+            return random.choice(self.non_memory_access_instructions)
 
-        return instruction_spec
+        if search_for_store:
+            return random.choice(self.store_instructions)
+
+        return random.choice(self.load_instruction)
 
     @abc.abstractmethod
     def get_return_instruction(self) -> Instruction:
