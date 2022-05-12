@@ -1,18 +1,19 @@
 supported_categories:
-  - NOP
-  - BINARY
-  - BITBYTE
-  - CMOV
-  - CONVERT
-  - DATAXFER
-  - FLAGOP
-  - SETCC
-  - LOGICAL
-  - POP
-  - PUSH
+  - BASE-NOP
+  - BASE-BINARY
+  - BASE-BITBYTE
+  - BASE-COND_BR
+  - BASE-CMOV
+  - BASE-CONVERT
+  - BASE-DATAXFER
+  - BASE-FLAGOP
+  - BASE-SETCC
+  - BASE-LOGICAL
+  - BASE-POP
+  - BASE-PUSH
 contract_observation_clause: ct
 contract_execution_clause:
-  - seq
+  - cond
 
 enable_ssbp_patch: false
 enable_assist_page: false
