@@ -99,14 +99,14 @@ If a few (up to 3) "Detection" tests fail, it's fine, you might just have a slig
 
 1. Fuzz in a violation-free configuration:
 ```bash
-./cli.py fuzz -s instruction_sets/x86/base.xml -i 50 -n 100 -c tests/test-nondetection.yaml
+./cli.py fuzz -s x86/isa_spec/base.json -i 50 -n 100 -c tests/test-nondetection.yaml
 ```
 
 No violations should be detected.
 
 2. Fuzz in a configuration with a known contract violation (Spectre V1):
 ```bash
-./cli.py fuzz -s instruction_sets/x86/base.xml -i 20 -n 1000 -c tests/test-detection.yaml
+./cli.py fuzz -s x86/isa_spec/base.json -i 20 -n 1000 -c tests/test-detection.yaml
 ```
 
 A violation should be detected within a few minutes, with a message similar to this:
@@ -133,7 +133,7 @@ To start a real fuzzing campaign, write your own configuration file (see descrip
 Below is a example launch command, which will start a 24-hour fuzzing session, with 50 input classes per test case:
 
 ```shell
-./cli.py fuzz -s instruction_sets/x86/base.xml -c tests/big-fuzz.yaml -i 50 -n 100000000 --timeout 86400 -w `pwd` --nonstop
+./cli.py fuzz -s x86/isa_spec/base.json -c tests/big-fuzz.yaml -i 50 -n 100000000 --timeout 86400 -w `pwd` --nonstop
 ```
 
 # Command line interface
