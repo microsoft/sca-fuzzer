@@ -248,6 +248,38 @@ class X86Transformer:
         spec.width = 0
         return spec
 
+    def add_missing(self, extensions):
+        """ adds the instructions specs that are missing from the XML file we use """
+        if not extensions or "CLFSH" in extensions:
+            for width in [8, 16, 32, 64]:
+                inst = InstructionSpec()
+                inst.name = "CLFLUSH"
+                inst.category = "CLFSH-MISC"
+                inst.control_flow = False
+                op = OperandSpec()
+                op.type_ = "MEM"
+                op.values = []
+                op.src = True
+                op.dest = False
+                op.width = width
+                inst.operands = [op]
+                self.instructions.append(inst)
+
+        if not extensions or "CLFLUSHOPT" in extensions:
+            for width in [8, 16, 32, 64]:
+                inst = InstructionSpec()
+                inst.name = "CLFLUSHOPT"
+                inst.category = "CLFLUSHOPT-CLFLUSHOPT"
+                inst.control_flow = False
+                op = OperandSpec()
+                op.type_ = "MEM"
+                op.values = []
+                op.src = True
+                op.dest = False
+                op.width = width
+                inst.operands = [op]
+                self.instructions.append(inst)
+
 
 def main():
     parser = ArgumentParser(description='', add_help=False)
@@ -265,6 +297,7 @@ def main():
         transformer = X86Transformer()
         transformer.load_files("instructions_Jan2022.xml")
         transformer.parse_tree(args.extensions)
+        transformer.add_missing(args.extensions)
         print(f"Produced base.json with {len(transformer.instructions)} instructions")
         transformer.save("base.json")
     finally:
