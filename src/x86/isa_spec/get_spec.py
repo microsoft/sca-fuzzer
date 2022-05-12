@@ -116,6 +116,7 @@ class X86Transformer:
             name = instruction_node.attrib['asm']
             name = name.removeprefix("{load} ")
             name = name.removeprefix("{store} ")
+            name = name.removeprefix("{disp32} ")
             self.instruction.name = name
 
             try:
