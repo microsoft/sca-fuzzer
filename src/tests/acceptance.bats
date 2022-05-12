@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-INSTRUCTION_SET='instruction_sets/x86/base.xml'
+INSTRUCTION_SET='x86/isa_spec/base.json'
 
 EXTENDED_TESTS=0
 cli_opt="python3 -OO ./cli.py"

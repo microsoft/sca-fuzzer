@@ -5,7 +5,7 @@ build/
 venv/
 **/__pycache__/
 CMakeLists.txt
-src/instruction_sets/x86/base.xml
+src/x86/isa_spec/*.json
 tmp.pdf
 src/min.asm
 src/tmp.asm

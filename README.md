@@ -71,9 +71,10 @@ In addition, you might want to stop any other actively-running software on the t
 git submodule update --init --recursive
 ```
 
-2. Copy the ISA description:
+2. Get the x86-64 ISA description:
 ```bash
-cp src/executor/x86/base.xml src/instruction_sets/x86
+cd src/x86/isa_loader
+./get_spec.py --extensions BASE SSE SSE2 CLFLUSHOPT CLFSH
 ```
 
 3. Install the executor:
