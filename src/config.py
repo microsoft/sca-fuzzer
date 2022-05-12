@@ -47,19 +47,23 @@ class ConfCls:
         "BASE-ROTATE",
         "BASE-SHIFT",
 
-        # "UNCOND_BR",   # Not supported: Complex control flow
-        # "CALL",        # Not supported: Complex control flow
-        # "RET",         # Not supported: Complex control flow
+        # "BASE-UNCOND_BR",   # Not supported: Complex control flow
+        # "BASE-CALL",        # Not supported: Complex control flow
+        # "BASE-RET",         # Not supported: Complex control flow
 
-        # "SEGOP",       # Not supported: System instructions
-        # "INTERRUPT",   # Not supported: System instructions
-        # "IO",          # Not supported: System instructions
-        # "IOSTRINGOP",  # Not supported: System instructions
-        # "SYSCALL",     # Not supported: System instructions
-        # "SYSRET",      # Not supported: System instructions
-        # "SYSTEM",      # Not supported: System instructions
+        # "BASE-SEGOP",       # Not supported: System instructions
+        # "BASE-INTERRUPT",   # Not supported: System instructions
+        # "BASE-IO",          # Not supported: System instructions
+        # "BASE-IOSTRINGOP",  # Not supported: System instructions
+        # "BASE-SYSCALL",     # Not supported: System instructions
+        # "BASE-SYSRET",      # Not supported: System instructions
+        # "BASE-SYSTEM",      # Not supported: System instructions
 
         # Extensions
+        "SSE-MISC",  # SFENCE
+        "SSE2-MISC",  # LFENCE, MFENCE
+        "CLFLUSHOPT-CLFLUSHOPT",
+        "CLFSH-MISC",
         # "BMI1",
     ]
     instruction_blocklist = [

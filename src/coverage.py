@@ -101,7 +101,8 @@ class DependentPairCoverage(Coverage):
 
                 # control flow dependency
                 if instr1.control_flow:
-                    type_ = DT.CONTROL_DIRECT if instr1.category == "UNCOND_BR" else DT.CONTROL_COND
+                    type_ = DT.CONTROL_DIRECT if instr1.category == "BASE-UNCOND_BR" \
+                        else DT.CONTROL_COND
                     self.coverage[type_].add(key)
 
                 # potential memory dependency
@@ -148,7 +149,7 @@ class DependentPairCoverage(Coverage):
                 mem_src += 1
 
             if inst.control_flow:
-                if inst.category == "UNCOND_BR":
+                if inst.category == "BASE-UNCOND_BR":
                     control_direct += 1
                 else:
                     control_cond += 1

@@ -613,7 +613,7 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
 
                 # Instruction
                 inst: Instruction = self._parse_instruction(line, i, instruction_map)
-                if inst.control_flow and inst.category != "CALL":
+                if inst.control_flow and inst.category != "BASE-CALL":
                     current_bb.insert_terminator(inst)
                     terminators_started = True
                 else:
@@ -628,7 +628,7 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
                 if previous_bb:  # skip the first BB
                     # there is a fallthrough only if the last terminator is not a direct jump
                     if not previous_bb.terminators or \
-                           previous_bb.terminators[-1].category != "UNCOND_BR":
+                           previous_bb.terminators[-1].category != "BASE-UNCOND_BR":
                         previous_bb.successors.append(bb)
                 previous_bb = bb
 
@@ -666,7 +666,7 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
             name += word
             break
         if not specs:
-            raise AsmParserException(li, "Unknown instruction")
+            raise AsmParserException(li, f"Unknown instruction {line}")
 
         # instrumentation?
         is_instrumentation = line.endswith("# instrumentation")
@@ -726,7 +726,7 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
                     match = False
             if match:
                 matching_specs.append(spec_candidate)
-        parser_assert(len(matching_specs) != 0, li, "Could not find a matching instruction spec")
+        parser_assert(len(matching_specs) != 0, li, f"Could not find a matching spec for {line}")
 
         # we might find several matches if the instruction has a magic operand value
         if len(matching_specs) > 1:
@@ -849,7 +849,7 @@ class X86SandboxPass(Pass):
                         bit_tests.append(inst)
                     elif "REP" in inst.name:
                         repeated_instructions.append(inst)
-                    elif inst.category == "ROTATE" or inst.category == "SHIFT":
+                    elif inst.category == "BASE-ROTATE" or inst.category == "BASE-SHIFT":
                         corrupted_cf.append(inst)
 
                 # sandbox them
@@ -1015,7 +1015,7 @@ class X86SandboxPass(Pass):
             return True
         if inst.name in ["BT", "BTC", "BTR", "BTS", "LOCK BT", "LOCK BTC", "LOCK BTR", "LOCK BTS"]:
             return True
-        if inst.category in ["SHIFT", "ROTATE"]:
+        if inst.category in ["BASE-SHIFT", "BASE-ROTATE"]:
             return True
         return False
 
@@ -1089,7 +1089,6 @@ class X86PatchUndefinedFlagsPass(Pass):
                     inst = all_instructions.pop()
                     flags: Optional[FlagsOperand] = inst.get_flags_operand()
                     if not flags:
-                        print("no flags")
                         continue
 
                     # fix undefined flags by adding another instruction in-between

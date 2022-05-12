@@ -126,7 +126,7 @@ class InstructionSet(InstructionSetAbstract):
         # set parameters
         for inst in self.instructions:
             if inst.control_flow:
-                if inst.category == "UNCOND_BR":
+                if inst.category == "BASE-UNCOND_BR":
                     self.has_unconditional_branch = True
                 else:
                     self.has_conditional_branch = True
