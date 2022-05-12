@@ -108,10 +108,15 @@ class X86Transformer:
                 continue
 
             self.instruction = InstructionSpec()
-            self.instruction.name = instruction_node.attrib['asm']
             self.instruction.category = instruction_node.attrib['extension'] \
                 + "-" \
                 + instruction_node.attrib['category']
+
+            # clean up the name
+            name = instruction_node.attrib['asm']
+            name = name.removeprefix("{load} ")
+            name = name.removeprefix("{store} ")
+            self.instruction.name = name
 
             try:
                 for op_node in instruction_node.iter('operand'):
