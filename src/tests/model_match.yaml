@@ -1,7 +1,9 @@
 contract_observation_clause: l1d
 contract_execution_clause:
   - seq
+inputs_per_class: 1
 enable_ssbp_patch: true
 no_priming: true
 logging_modes:
-  - 
+  - fuzzer_trace
+input_gen_entropy_bits: 6

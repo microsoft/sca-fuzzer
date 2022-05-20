@@ -24,6 +24,11 @@ MOV rax, rsp
 AND rax, 0b111111000000
 MOV rax, qword ptr [r14 + rax]
 
+MOV rax, r14
+SHR rax, 6
+AND rax, 0b111111000000
+MOV rax, qword ptr [r14 + rax]
+
 # test values in memory
 MOV rax, qword ptr [r14]
 AND rax, 0b111111000000

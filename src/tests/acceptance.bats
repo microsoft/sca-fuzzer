@@ -5,17 +5,27 @@ EXTENDED_TESTS=0
 cli_opt="python3 -OO ./cli.py"
 
 @test "Model and Executor are initialized with the same values" {
-    run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/model_match.asm -c tests/model_match.yaml -i 100"
-    echo "$output"
+    tmpfile=$(mktemp /tmp/revizor-test.XXXXXX.o)
+    ./cli.py fuzz -s $INSTRUCTION_SET -t tests/model_match.asm -c tests/model_match.yaml -i 100 > $tmpfile
+    run bash -c "cat $tmpfile | awk 'BEGIN{new=0} /\.\.\.\.\./{new=1} /\^/{if (new==1) {new = 0; prev=\$1} else {if (prev != \$1) {print \"mismatch\"; exit 1; }}} END{print \"finished\"}'"
+
+    echo "Output: $output"
     [ "$status" -eq 0 ]
-    [ "$output" = "" ]
+    [[ "$output" != *"mismatch"* ]]
+    [[ "$output" == *"finished" ]]
+    rm $tmpfile
 }
 
 @test "Model and Executor are initialized with the same FLAGS value" {
-    run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/model_flags_match.asm -c tests/model_match.yaml -i 100"
-    echo "$output"
+    tmpfile=$(mktemp /tmp/revizor-test.XXXXXX.o)
+    ./cli.py fuzz -s $INSTRUCTION_SET -t tests/model_flags_match.asm -c tests/model_match.yaml -i 100 > $tmpfile
+    run bash -c "cat $tmpfile | awk 'BEGIN{new=0} /\.\.\.\.\./{new=1} /\^/{if (new==1) {new = 0; prev=\$1} else {if (prev != \$1) {print \"mismatch\"; exit 1; }}} END{print \"finished\"}'"
+
+    echo "Output: $output"
     [ "$status" -eq 0 ]
-    [ "$output" = "" ]
+    [[ "$output" != *"mismatch"* ]]
+    [[ "$output" == *"finished" ]]
+    rm $tmpfile
 }
 
 function run_without_violation {
