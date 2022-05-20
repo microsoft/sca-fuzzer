@@ -9,7 +9,7 @@ from __future__ import annotations
 import random
 import abc
 import re
-from typing import List, Dict
+from typing import List, Dict, Type
 from subprocess import CalledProcessError, run
 
 from isa_loader import InstructionSet
@@ -19,7 +19,7 @@ from interfaces import Generator, TestCase, Operand, RegisterOperand, FlagsOpera
 from service import NotSupportedException
 from config import CONF, ConfigException
 
-REGISTERED_GENERATORS = {}
+REGISTERED_GENERATORS: Dict[str, Type[Generator]] = {}
 
 
 # Helpers

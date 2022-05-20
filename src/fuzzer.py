@@ -40,7 +40,7 @@ class Fuzzer:
     def __init__(self, instruction_set_spec: str, work_dir: str, existing_test_case: str = ""):
         self.existing_test_case = existing_test_case
         if existing_test_case:
-            CONF._no_generation = True
+            CONF.setattr_internal("_no_generation", True)
             CONF.gpr_blocklist = []
             CONF.instruction_blocklist = []
 

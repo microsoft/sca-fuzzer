@@ -148,6 +148,10 @@ class ConfCls:
             else:
                 setattr(self, option, values)
 
+    def setattr_internal(self, name, val: bool):
+        """ Bypass value checks and set an internal config variable. Use with caution! """
+        super().__setattr__(name, val)
+
 
 CONF = ConfCls()
 CONF.instruction_set = "x86-64"
