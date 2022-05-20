@@ -4,60 +4,10 @@ INSTRUCTION_SET='x86/isa_spec/base.json'
 EXTENDED_TESTS=0
 cli_opt="python3 -OO ./cli.py"
 
-@test "Executor: Hardware tracing with F+R" {
-    bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/evict_second_line.asm -c tests/ct-seq-fr.yaml  -i 3"
-    run cat measurement.txt
-    [ "$status" -eq 0 ]
-    [[ "$output" == *"2305843009213693952"* ]]
-}
-
-@test "Executor: Hardware tracing with P+P" {
-    bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/evict_second_line.asm -c tests/ct-seq-pp.yaml -i 3"
-    run cat measurement.txt
-    [ "$status" -eq 0 ]
-    [[ "$output" == *"11529215046068469760"* ]]
-}
-
-@test "Executor: Hardware tracing with E+R" {
-    bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/evict_second_line.asm -c tests/ct-seq-er.yaml -i 3"
-    run cat measurement.txt
-    [ "$status" -eq 0 ]
-    [[ "$output" == *"2305843009213693952"* ]]
-}
-
-@test "Executor: Noise Level" {
-    # execute one dummy run to set Executor into the default config and to load the test case
-    bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/valid_loads_with_miss.asm -i 1"
-
-    nruns=10000
-    printf "" > inputs.bin
-    for _ in $(seq 1 $nruns); do
-        echo -n -e '\x00\x00\x00\x00\x00\x00\x00\x01' >> inputs.bin
-    done
-
-    for mode in "F+R" "P+R" "E+R"; do
-        echo $mode
-        echo $mode > /sys/x86-executor/measurement_mode
-        echo "$nruns" > /sys/x86-executor/n_inputs
-        cat inputs.bin > /sys/x86-executor/inputs
-        run cat /sys/x86-executor/n_inputs
-        [[ "$output" != "0" ]]
-
-        cat /proc/x86-executor | awk '//{print $1}' | sort | uniq | wc -l > tmp.txt
-        run cat tmp.txt
-        cat tmp.txt
-        [ $output -lt 20 ]
-    done
-#    [ 1 -eq 0 ]
-}
-
-
 @test "Model and Executor are initialized with the same values" {
     run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/model_match.asm -c tests/model_match.yaml -i 100"
     echo "$output"
     [ "$status" -eq 0 ]
-    [ "$output" = "" ]
-    run bash -c "awk '//{if (\$1 == 0) {print \$0}}' measurement.txt"
     [ "$output" = "" ]
 }
 
@@ -65,8 +15,6 @@ cli_opt="python3 -OO ./cli.py"
     run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/model_flags_match.asm -c tests/model_match.yaml -i 100"
     echo "$output"
     [ "$status" -eq 0 ]
-    [ "$output" = "" ]
-    run bash -c "awk '//{if (\$1 == 0) {print \$0}}' measurement.txt"
     [ "$output" = "" ]
 }
 
@@ -98,18 +46,6 @@ EOF
 
 @test "Fuzzing: A sequence of calls" {
     run_without_violation "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/calls.asm -i 100"
-}
-
-@test "Fuzzing: A sequence of valid loads (cache hits)" {
-    run_without_violation "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/valid_loads.asm -i 100"
-}
-
-@test "Fuzzing: A sequence of valid loads (cache misses)" {
-    run_without_violation "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/valid_loads_with_miss.asm -i 100"
-}
-
-@test "Fuzzing: A sequence of valid stores (cache hits)" {
-    run_without_violation "$cli_opt fuzz -s $INSTRUCTION_SET -t tests/valid_stores.asm -i 100"
 }
 
 @test "Detection: Spectre V1 - BCB load - P" {

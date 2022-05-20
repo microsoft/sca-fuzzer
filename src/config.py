@@ -44,8 +44,9 @@ class ConfCls:
         "BASE-SEMAPHORE",
         "BASE-SETCC",
         "BASE-STRINGOP",
-        "BASE-ROTATE",
-        "BASE-SHIFT",
+
+        # "BASE-ROTATE",      # Unknown bug in Unicorn - emulated incorrectly
+        # "BASE-SHIFT",       # Unknown bug in Unicorn - emulated incorrectly
 
         # "BASE-UNCOND_BR",   # Not supported: Complex control flow
         # "BASE-CALL",        # Not supported: Complex control flow
@@ -100,7 +101,7 @@ class ConfCls:
         "REPNE CMPSB", "REPNE CMPSD", "REPNE CMPSW",
         "REPNE MOVSB", "REPNE MOVSD", "REPNE MOVSW",
         # - not supported
-        "LFENCE", "MFENCE", "SFENCE", "CLFLUSH"
+        "LFENCE", "MFENCE", "SFENCE", "CLFLUSH", "CLFLUSHOPT"
     ]  # yapf: disable
     extended_instruction_blocklist: List[str] = []
     # x86 executor internally uses R15, R14, RSP, RBP and, thus, they are excluded
@@ -138,8 +139,8 @@ class ConfCls:
     executor: str = 'x86-intel'
     executor_mode: str = 'P+P'
     executor_warmups: int = 50
-    executor_repetitions: int = 40
-    executor_max_outliers: int = 3
+    executor_repetitions: int = 20
+    executor_max_outliers: int = 2
     executor_taskset: int = 0
     enable_ssbp_patch: bool = True
     enable_pre_run_flush: bool = True

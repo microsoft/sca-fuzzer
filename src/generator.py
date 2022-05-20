@@ -1178,7 +1178,7 @@ class X86PatchUndefinedResultPass(Pass):
 
 
 class X86Printer(Printer):
-    memory_prefixes = {8: "byte ptr", 16: "word ptr", 32: "dword ptr", 64: "qword ptr"}
+    memory_prefixes = {8: "byte ptr", 16: "word ptr", 32: "dword ptr", 64: "qword ptr", 512: ""}
     prologue_template = [
         ".intel_syntax noprefix\n",
         "LEA R14, [R14 + {cache_line_offset}] # instrumentation\n",

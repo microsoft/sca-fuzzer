@@ -65,25 +65,19 @@ In addition, you might want to stop any other actively-running software on the t
 
 ## Installation
 
-1. Get submodules:
-```bash
-# from the root directory of this project
-git submodule update --init --recursive
-```
-
-2. Get the x86-64 ISA description:
+1. Get the x86-64 ISA description:
 ```bash
 cd src/x86/isa_loader
 ./get_spec.py --extensions BASE SSE SSE2 CLFLUSHOPT CLFSH
 ```
 
-3. Install the executor:
+2. Install the executor kernel module:
 ```bash
-cd revizor/src/executor/x86 
-sudo rmmod x86-executor  # the command will give an error message, but it's ok!
+cd src/x86/executor
+make uninstall  # the command will give an error message, but it's ok!
 make clean
 make
-sudo insmod x86-executor.ko
+make install
 ```
 
 ## Running Tests

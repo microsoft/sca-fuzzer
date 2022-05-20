@@ -710,7 +710,7 @@ class Model(ABC):
 
 
 class Executor(ABC):
-    coverage: Coverage
+    coverage: Optional[Coverage] = None
 
     @abstractmethod
     def load_test_case(self, test_case: TestCase):

@@ -1,4 +1,0 @@
-contract_observation_clause: ct
-contract_execution_clause:
-  - seq
-executor_mode: P+P

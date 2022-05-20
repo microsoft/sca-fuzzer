@@ -1,6 +1,0 @@
-contract_observation_clause: ct
-contract_execution_clause:
-  - cond
-  - bpas
-enable_ssbp_patch: false
-no_priming: true
