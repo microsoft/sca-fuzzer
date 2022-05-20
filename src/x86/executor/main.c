@@ -382,7 +382,7 @@ static ssize_t print_sandbox_base_show(struct kobject *kobj,
                                        struct kobj_attribute *attr,
                                        char *buf)
 {
-    return sprintf(buf, "%llx\n", (long long unsigned)sandbox);
+    return sprintf(buf, "%llx\n", (long long unsigned)sandbox->main_region);
 }
 
 static ssize_t print_code_base_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
