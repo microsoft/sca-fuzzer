@@ -31,7 +31,6 @@ class ConfCls:
     randomized_mem_alignment: bool = True
     avoid_data_dependencies: bool = False
     generate_memory_accesses_in_pairs: bool = False
-    memory_access_zeroed_bits: int = 6
     extended_instruction_blocklist: List[str] = []
     gpr_blocklist: List[str] = []
     supported_categories: List[str] = []
@@ -45,6 +44,7 @@ class ConfCls:
     input_assist_region_size: int = 4096
     input_register_region_size: int = 64
     inputs_per_class: int = 2
+    memory_access_zeroed_bits: int = 6
     # ==============================================================================================
     # Model
     model: str = 'x86-unicorn'
