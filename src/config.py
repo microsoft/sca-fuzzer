@@ -80,13 +80,10 @@ class ConfCls:
     _instance = None
     _no_generation: bool = False
     _option_values: Dict[str, List] = {
-        'generator': ["random"],
-        'input_generator': ["random"],
         'executor_mode': ['P+P', 'F+R', 'E+R'],
         'contract_observation_clause': [
             'l1d', 'memory', 'ct', 'pc', 'ct-nonspecstore', 'ctr', 'arch'
         ],
-        'coverage_type': ['dependent-pairs', 'none'],
     }
 
     # Implementation of singleton
