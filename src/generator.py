@@ -277,7 +277,7 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         func.insert_multiple(nodes)
         return func
 
-    def generate_instruction(self, spec: InstructionSpec):
+    def generate_instruction(self, spec: InstructionSpec) -> Instruction:
         # fill up with random operands, following the spec
         inst = Instruction.from_spec(spec)
 
@@ -329,7 +329,7 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         return ImmediateOperand(value, spec.width)
 
     def generate_label_operand(self, spec: OperandSpec, parent: Instruction) -> Operand:
-        raise NotSupportedException()
+        return LabelOperand("")  # the actual label will be set in add_terminators_in_function
 
     def generate_agen_operand(self, spec: OperandSpec, __: Instruction) -> Operand:
         n_operands = random.randint(1, 3)
@@ -399,12 +399,12 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
             elif len(bb.successors) == 2:
                 # Conditional branch
                 spec = random.choice(self.control_flow_instructions)
-                terminator = Instruction.from_spec(spec)
-                terminator.operands = [LabelOperand(bb.successors[0].name)]
-                for op in spec.implicit_operands:
-                    if op.type == OT.FLAGS:
-                        terminator.implicit_operands = [FlagsOperand(op.values)]
-                        break
+
+                terminator = self.generate_instruction(spec)
+                label = terminator.get_label_operand()
+                assert label
+                label.value = bb.successors[0].name
+
                 bb.terminators.append(terminator)
 
                 terminator = self.get_unconditional_jump_instruction()

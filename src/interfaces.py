@@ -323,6 +323,14 @@ class Instruction:
         # not checking implicit operands -> conditions must be explicit
         return None
 
+    def get_label_operand(self) -> Optional[LabelOperand]:
+        for o in self.operands:
+            if isinstance(o, LabelOperand):
+                return o
+
+        # not checking implicit operands -> labels must be explicit
+        return None
+
 
 class BasicBlock:
     name: str
