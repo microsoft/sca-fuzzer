@@ -9,7 +9,7 @@ import tempfile
 import subprocess
 
 sys.path.insert(0, '..')
-from executor import X86IntelExecutor
+from x86_executor import X86IntelExecutor
 from x86_generator import X86Generator
 from interfaces import TestCase, Input
 

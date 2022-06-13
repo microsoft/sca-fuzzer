@@ -5,7 +5,7 @@ import x86.x86_generator as x86_generator
 import model
 import x86.x86_model as x86_model
 
-import executor
+import x86.x86_executor as x86_executor
 
 import input_generator
 import analyser
@@ -34,7 +34,7 @@ TRACERS: Dict[str, Type[model.UnicornTracer]] = {
 }
 
 EXECUTORS = {
-    'x86-intel': executor.X86IntelExecutor,
+    'x86-intel': x86_executor.X86IntelExecutor,
 }
 
 ANALYSERS: Dict[str, Type[interfaces.Analyser]] = {
