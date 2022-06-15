@@ -120,12 +120,12 @@ class X86IntelExecutor(Executor):
 
         threshold_outliers = min(CONF.executor_max_outliers, repetitions - 1)
         traces = [0 for _ in inputs]
-        pfc_readings: np.ndarray = np.ndarray(shape=(len(inputs), 3), dtype=int)
+        pfc_readings: np.ndarray = np.zeros(shape=(len(inputs), 3), dtype=int)
 
         # merge the results of repeated measurements
         for input_id, input_results in enumerate(all_results):
             # find the max value of each perf counter for each input
-            for pfc_id in range(0, 2):
+            for pfc_id in range(0, 3):
                 pfc_readings[input_id][pfc_id] = max([res[pfc_id + 1] for res in input_results])
 
             # remove outliers and merge hardware traces
