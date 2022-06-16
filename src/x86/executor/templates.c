@@ -7,9 +7,9 @@
 // Note on registers.
 // Some of the registers are reserved for a specific purpose and should never be overwritten.
 // These include:
-//   R8 - performance counter #1
+//   R8 - performance counter #3
 //   R9 - performance counter #2
-//   R10 - performance counter #3
+//   R10 - performance counter #1
 //   R11 - hardware trace
 //   R12 - SMI counter
 //   R13 - input seed
