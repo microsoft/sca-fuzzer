@@ -115,8 +115,8 @@ class X86IntelExecutor(Executor):
         # simple case - no merging required
         if repetitions == 1:
             if self.coverage:
-                self.coverage.executor_hook([r[1:] for r in all_results[0]])
-            return [int(r[0]) for r in all_results[0]]
+                self.coverage.executor_hook([r[0][1:] for r in all_results])
+            return [int(r[0][0]) for r in all_results]
 
         threshold_outliers = min(CONF.executor_max_outliers, repetitions - 1)
         traces = [0 for _ in inputs]
