@@ -42,4 +42,12 @@ MOV rax, qword ptr [r14 + 4096 - 8]
 AND rax, 0b111111000000
 MOV rax, qword ptr [r14 + rax]
 
+MOV rax, qword ptr [r14 + 8192]  # register init region
+AND rax, 0b111111111111
+MOV rax, qword ptr [r14 + rax]
+
+MOV rax, qword ptr [r14 + 8192 + 48] # flags init value
+AND rax, 0b111111111111
+MOV rax, qword ptr [r14 + rax]
+
 MFENCE
