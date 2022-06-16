@@ -10,13 +10,14 @@ from subprocess import run
 from shutil import copy
 from fuzzer import Fuzzer
 from typing import List
-from interfaces import HTrace, EquivalenceClass, Input, TestCase
+from interfaces import HTrace, EquivalenceClass, Input, TestCase, Minimizer
 from config import CONF
 
 
-class Postprocessor:
+class MinimizerViolation(Minimizer):
 
     def __init__(self, instruction_set_spec):
+        CONF.coverage_type = 'none'
         self.instruction_set_spec = instruction_set_spec
 
     def _get_all_violations(self, fuzzer: Fuzzer, test_case: TestCase,

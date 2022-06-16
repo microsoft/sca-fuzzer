@@ -765,3 +765,13 @@ class Analyser(ABC):
 
     def set_coverage(self, coverage: Coverage):
         self.coverage = coverage
+
+
+class Minimizer(ABC):
+
+    def __init__(self, instruction_set_spec: InstructionSetAbstract):
+        pass
+
+    @abstractmethod
+    def minimize(self, test_case_asm: str, outfile: str, num_inputs: int, add_fences: bool):
+        pass

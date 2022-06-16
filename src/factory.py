@@ -10,9 +10,11 @@ import x86.x86_executor as x86_executor
 import input_generator
 import analyser
 import coverage
+import postprocessor
 
 import interfaces
 from config import CONF, ConfigException
+
 
 GENERATORS: Dict[str, Type[interfaces.Generator]] = {
     "x86-64-random": x86_generator.X86RandomGenerator
@@ -44,6 +46,10 @@ ANALYSERS: Dict[str, Type[interfaces.Analyser]] = {
 COVERAGE: Dict[str, Type[interfaces.Coverage]] = {
     'dependent-pairs': coverage.DependentPairCoverage,
     'none': coverage.NoCoverage
+}
+
+MINIMIZERS: Dict[str, Type[interfaces.Minimizer]] = {
+    'violation': postprocessor.MinimizerViolation,
 }
 
 
@@ -107,3 +113,7 @@ def get_coverage(instruction_set: interfaces.InstructionSetAbstract, executor_: 
                  model: interfaces.Model, analyser: interfaces.Analyser) -> interfaces.Coverage:
     return _get_from_config(COVERAGE, CONF.coverage_type, "coverage_type", instruction_set,
                             executor_, model, analyser)
+
+
+def get_minimizer(instruction_set: interfaces.InstructionSetAbstract) -> interfaces.Minimizer:
+    return _get_from_config(MINIMIZERS, CONF.minimizer, "minimizer", instruction_set)

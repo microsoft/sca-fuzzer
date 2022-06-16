@@ -10,8 +10,8 @@ import os
 import yaml
 from typing import Dict
 from argparse import ArgumentParser
+from factory import get_minimizer
 from fuzzer import Fuzzer
-from postprocessor import Postprocessor
 from config import CONF
 from service import LOGGER
 
@@ -130,9 +130,8 @@ def main():
 
     # Test Case minimisation
     if args.subparser_name == "minimize":
-        CONF.coverage_type = 'none'
-        postprocessor = Postprocessor(args.instruction_set)
-        postprocessor.minimize(args.infile, args.outfile, args.num_inputs, args.add_fences)
+        minimizer = get_minimizer(args.instruction_set)
+        minimizer.minimize(args.infile, args.outfile, args.num_inputs, args.add_fences)
         return
 
     raise Exception("Unreachable")

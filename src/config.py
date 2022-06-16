@@ -76,6 +76,9 @@ class ConfCls:
     multiline_output: bool = False
     logging_modes: List[str] = ["info", "stat"]
     # ==============================================================================================
+    # Minimizer
+    minimizer: str = 'violation'
+    # ==============================================================================================
     # Internal
     _instance = None
     _no_generation: bool = False
