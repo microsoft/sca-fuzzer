@@ -65,8 +65,11 @@ x86_instruction_blocklist: List[str] = [
     "ENTERW", "ENTER", "LEAVEW", "LEAVE",
 
     # Stringops - under construction
-    "CMPSB", "CMPSD", "CMPSW",
-    "MOVSB", "MOVSD", "MOVSW",
+    "LODSB", "LODSD", "LODSW", "LODSQ",
+    "SCASB", "SCASD", "SCASW", "SCASQ",
+    "STOSB", "STOSD", "STOSW", "STOSQ",
+    "CMPSB", "CMPSD", "CMPSW", "CMPSQ",
+    "MOVSB", "MOVSD", "MOVSW", "MOVSQ",
 
     "REPE LODSB", "REPE LODSD", "REPE LODSW", "REPE LODSQ",
     "REPE SCASB", "REPE SCASD", "REPE SCASW", "REPE SCASQ",
@@ -79,8 +82,9 @@ x86_instruction_blocklist: List[str] = [
     "REPNE STOSB", "REPNE STOSD", "REPNE STOSW", "REPNE STOSQ",
     "REPNE CMPSB", "REPNE CMPSD", "REPNE CMPSW", "REPNE CMPSQ",
     "REPNE MOVSB", "REPNE MOVSD", "REPNE MOVSW", "REPNE MOVSQ",
+
     # - not supported
-    "LFENCE", "MFENCE", "SFENCE", "CLFLUSH", "CLFLUSHOPT"
+    "LFENCE", "MFENCE", "SFENCE", "CLFLUSH", "CLFLUSHOPT",
 ]  # yapf: disable
 
 # x86 executor internally uses R15, R14, RSP, RBP and, thus, they are excluded
