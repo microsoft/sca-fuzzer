@@ -29,7 +29,7 @@ So far, Revizor supports only Intel CPU. It was tested on Intel Core i7-6700 and
 
 * Linux v5.6+ (tested on Linux v5.6.6-300 and v5.6.13-100; there is a good chance it will work on other versions as well, but it's not guaranteed).
 * Linux Kernel Headers
-* Python 3.7+
+* Python 3.9+
 * [Unicorn 1.0.2+](https://www.unicorn-engine.org/docs/)
 * Python bindings to Unicorn:
 ```shell
