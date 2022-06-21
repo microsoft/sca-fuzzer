@@ -39,12 +39,12 @@ class ConfCls:
     # Input Generator
     input_generator: str = 'random'
     input_gen_seed: int = 10  # zero is a reserved value, do not use it
-    input_gen_entropy_bits: int = 3
+    input_gen_entropy_bits: int = 16
     input_main_region_size: int = 4096
     input_assist_region_size: int = 4096
     input_register_region_size: int = 64
     inputs_per_class: int = 2
-    memory_access_zeroed_bits: int = 6
+    memory_access_zeroed_bits: int = 2
     # ==============================================================================================
     # Model
     model: str = 'x86-unicorn'
