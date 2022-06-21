@@ -63,6 +63,7 @@ class MinimizerViolation(Minimizer):
         cursor = len(instructions)
 
         # Try removing instructions, one at a time
+        previous_removed = False
         while True:
             cursor -= 1
             line = instructions[cursor].strip()
@@ -73,9 +74,12 @@ class MinimizerViolation(Minimizer):
 
             # Preserve instructions used for sandboxing, fences, and labels
             if not line or \
-               "instrumentation" in line or \
                "LFENCE" in line or \
                line[0] == '.':
+                continue
+
+            # Remove instrumentation only if the instrumented instruction is also removed
+            if "instrumentation" in line and not previous_removed:
                 continue
 
             # Create a test case with one line missing
@@ -89,9 +93,11 @@ class MinimizerViolation(Minimizer):
                 if violations:
                     break
             if violations:
+                previous_removed = True
                 print(".", end="", flush=True)
                 instructions = tmp_instructions
             else:
+                previous_removed = False
                 print("-", end="", flush=True)
 
         new_test_case = self._get_test_case_from_instructions(fuzzer, instructions)
