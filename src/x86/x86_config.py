@@ -100,3 +100,5 @@ x86_gpr_blocklist: List[str] = [
     'CR0', 'CR2', 'CR3', 'CR4', 'CR8',
     'DR0', 'DR1', 'DR2', 'DR3', 'DR4', 'DR5', 'DR6', 'DR7'
 ]  # yapf: disable
+
+x86_disable_div64: bool = True

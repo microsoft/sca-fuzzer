@@ -148,7 +148,7 @@ class ConfCls:
             if hasattr(self, trimmed_name):
                 setattr(self, trimmed_name, values)
             else:
-                setattr(self, option, values)
+                super().__setattr__(option, values)
 
     def setattr_internal(self, name, val: bool):
         """ Bypass value checks and set an internal config variable. Use with caution! """

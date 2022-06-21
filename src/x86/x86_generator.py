@@ -436,7 +436,7 @@ class X86SandboxPass(Pass):
                 return
 
         # TODO: remove me - avoids a certain violation
-        if divisor.width == 64:
+        if divisor.width == 64 and CONF.x86_disable_div64:
             parent.delete(inst)
             return
 
