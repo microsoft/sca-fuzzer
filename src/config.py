@@ -28,7 +28,6 @@ class ConfCls:
     max_bb_per_function = 2
     test_case_size = 24
     avg_mem_accesses = 12
-    randomized_mem_alignment: bool = True
     avoid_data_dependencies: bool = False
     generate_memory_accesses_in_pairs: bool = False
     extended_instruction_blocklist: List[str] = []

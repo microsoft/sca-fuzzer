@@ -796,23 +796,19 @@ class X86Printer(Printer):
     memory_prefixes = {8: "byte ptr", 16: "word ptr", 32: "dword ptr", 64: "qword ptr", 512: ""}
     prologue_template = [
         ".intel_syntax noprefix\n",
-        "LEA R14, [R14 + {cache_line_offset}] # instrumentation\n",
         "MFENCE # instrumentation\n",
         ".test_case_enter:\n",
     ]
     epilogue_template = [
         ".test_case_exit:\n",
         "MFENCE # instrumentation\n",
-        "LEA R14, [R14 - {cache_line_offset}] # instrumentation\n",
     ]
 
     def print(self, test_case: TestCase, outfile: str) -> None:
         with open(outfile, "w") as f:
             # print prologue
-            cache_line_offset = random.randint(0, 15) if CONF.randomized_mem_alignment else 0
-            cache_line_offset *= 4  # the memory slots are 4-bytes wide
             for line in self.prologue_template:
-                f.write(line.format(cache_line_offset=cache_line_offset))
+                f.write(line)
 
             # print the test case
             for func in test_case.functions:
@@ -822,10 +818,10 @@ class X86Printer(Printer):
 
             # print epilogue
             for line in self.epilogue_template:
-                f.write(line.format(cache_line_offset=cache_line_offset))
+                f.write(line)
 
         for i in self.prologue_template:
-            if i[0] == ".":
+            if i[0] != ".":
                 test_case.num_prologue_instructions += 1
 
     def print_basic_block(self, bb: BasicBlock, file):
