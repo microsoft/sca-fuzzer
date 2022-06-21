@@ -85,6 +85,7 @@ class X86UnicornModel(UnicornModel):
         # Set values in registers
         regs = self.target_desc.registers
         flags = self.target_desc.flags_register
+        reg_init_address = self.sandbox_base + self.MAIN_REGION_SIZE + self.FAULTY_REGION_SIZE
         for i, value in enumerate(input_.get_registers()):
             if regs[i] == flags:
                 value = (value & np.uint64(2263)) | np.uint64(2)  # type: ignore
@@ -92,9 +93,10 @@ class X86UnicornModel(UnicornModel):
 
             # executor uses the lower bytes of the upper_overflow_region to initialize registers
             # we need to match it in the model
-            reg_init_address = self.sandbox_base + self.MAIN_REGION_SIZE + \
-                self.ASSIST_REGION_SIZE + i * 8
             self.emulator.mem_write(reg_init_address, value.tobytes())
+            reg_init_address += 8
+        self.emulator.mem_write(reg_init_address,
+                                self.stack_base.to_bytes(8, byteorder='little', signed=False))
 
         self.emulator.reg_write(ucc.UC_X86_REG_RSP, self.stack_base)
         self.emulator.reg_write(ucc.UC_X86_REG_RBP, self.stack_base)
