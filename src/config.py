@@ -117,6 +117,9 @@ class ConfCls:
         if (self.input_main_region_size % 4096 != 0) or \
                 (self.input_faulty_region_size % 4096 != 0):
             raise ConfigException("Inputs must be page-aligned")
+        if self.input_gen_entropy_bits + self.memory_access_zeroed_bits > 32:
+            raise ConfigException("The sum of input_gen_entropy_bits and memory_access_zeroed_bits"
+                                  " must be less or equal to 32 bits")
 
         # special handling
         if name == "instruction_set":

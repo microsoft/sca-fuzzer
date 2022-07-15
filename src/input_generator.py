@@ -12,7 +12,6 @@ from config import CONF
 from service import LOGGER
 
 POW32 = pow(2, 32)
-POW26 = 67108864
 
 
 class LegacyRandomInputGenerator(InputGenerator):
@@ -91,7 +90,7 @@ class NumpyRandomInputGenerator(InputGenerator):
 
     def __init__(self):
         super().__init__()
-        self.max_input_value = pow(2, CONF.input_gen_entropy_bits % POW26)
+        self.max_input_value = pow(2, CONF.input_gen_entropy_bits)
 
     def generate(self, seed: int, count: int) -> List[Input]:
         if seed == 0:
