@@ -51,7 +51,10 @@ class InstructionSet(InstructionSetAbstract):
 
     def parse_operand(self, op: Dict, parent: InstructionSpec) -> OperandSpec:
         op_type = self.ot_str_to_enum[op["type_"]]
-        spec = OperandSpec(op.get("values", []), op_type, op["src"], op["dest"])
+        op_values = op.get("values", [])
+        if op_type == "REG":
+            op_values = sorted(op_values)
+        spec = OperandSpec(op_values, op_type, op["src"], op["dest"])
         spec.width = op["width"]
 
         if op_type == OT.MEM:
@@ -102,7 +105,7 @@ class InstructionSet(InstructionSetAbstract):
             skip_pending = False
             for op in s.operands:
                 if op.type == OT.REG:
-                    choices = list(set(op.values) - set(CONF.gpr_blocklist))
+                    choices = sorted(list(set(op.values) - set(CONF.gpr_blocklist)))
                     if not choices:
                         skip_pending = True
                         break
