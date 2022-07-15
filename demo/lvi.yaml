@@ -1,0 +1,27 @@
+# contract
+contract_observation_clause: ct
+contract_execution_clause:
+  - seq
+
+# tested instructions
+supported_categories:
+  - BASE-BINARY
+  - BASE-BITBYTE
+  - BASE-COND_BR
+  - BASE-CMOV
+  - BASE-LOGICAL
+  - BASE-FLAGOP
+  - BASE-STRINGOP
+
+# environment
+enable_faulty_page: true
+
+# fuzzing configuration
+input_gen_entropy_bits: 10
+min_bb_per_function: 1
+max_bb_per_function: 1
+test_case_size: 20
+avg_mem_accesses: 8
+inputs_per_class: 2
+coverage_type: pfc
+memory_access_zeroed_bits: 6

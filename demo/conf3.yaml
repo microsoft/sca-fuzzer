@@ -1,0 +1,68 @@
+# contract
+contract_observation_clause: ct
+contract_execution_clause:
+  - cond
+
+# tested instructions
+supported_categories:
+  - BASE-BINARY
+  - BASE-BITBYTE
+  - BASE-COND_BR
+  - BASE-CMOV
+  - BASE-LOGICAL
+  - BASE-FLAGOP
+  - BASE-STRINGOP
+
+# environment
+enable_faulty_page: false
+
+# fuzzing configuration
+input_gen_entropy_bits: 10
+min_bb_per_function: 2
+max_bb_per_function: 2
+test_case_size: 20
+avg_mem_accesses: 8
+inputs_per_class: 2
+coverage_type: pfc
+memory_access_zeroed_bits: 6
+
+instruction_blocklist:
+  - CMPSB
+  - CMPSD
+  - CMPSW
+  - CMPSQ
+  - MOVSB
+  - MOVSD
+  - MOVSW
+  - MOVSQ
+  - REPE CMPSB
+  - REPE CMPSD
+  - REPE CMPSW
+  - REPE CMPSQ
+  - REPE MOVSB
+  - REPE MOVSD
+  - REPE MOVSW
+  - REPE MOVSQ
+  - REPNE CMPSB
+  - REPNE CMPSD
+  - REPNE CMPSW
+  - REPNE CMPSQ
+  - REPNE MOVSB
+  - REPNE MOVSD
+  - REPNE MOVSW
+  - REPNE MOVSQ
+  - STI
+  - CLI
+  - CMPXCHG8B
+  - LOCK CMPXCHG8B
+  - UD
+  - UD2
+  - CPUID
+  - XLAT
+  - XLATB
+  - IDIV
+  - REX IDIV
+  - ENTERW
+  - ENTER
+  - LEAVEW
+  - LEAVE
