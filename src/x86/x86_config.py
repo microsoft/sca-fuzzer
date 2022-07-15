@@ -42,8 +42,8 @@ x86_supported_categories: List[str] = [
     # Extensions
     "SSE-MISC",  # SFENCE
     "SSE2-MISC",  # LFENCE, MFENCE
-    "CLFLUSHOPT-CLFLUSHOPT",
-    "CLFSH-MISC",
+    # "CLFLUSHOPT-CLFLUSHOPT",
+    # "CLFSH-MISC",
     # "BMI1",
 ]
 x86_instruction_blocklist: List[str] = [
