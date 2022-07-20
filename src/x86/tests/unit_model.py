@@ -6,15 +6,21 @@ import unittest
 import sys
 
 sys.path.insert(0, '..')
-from model import TaintTracker
+
+import x86.x86_model as x86_model
+from config import CONF
 from interfaces import Instruction, RegisterOperand, MemoryOperand, InputTaint, LabelOperand, \
     FlagsOperand
 
+CONF.instruction_set = "x86-64"
+CONF.model = 'x86-unicorn'
+CONF.input_gen_seed = 10  # default
 
-class X86UnicornModelTest(unittest.TestCase):
+
+class X86TaintTrackerTest(unittest.TestCase):
 
     def test_dependency_tracking(self):
-        tracker = TaintTracker([])
+        tracker = x86_model.X86TaintTracker([])
 
         # reg -> reg
         tracker.start_instruction(Instruction("ADD")
@@ -58,7 +64,7 @@ class X86UnicornModelTest(unittest.TestCase):
         self.assertCountEqual(tracker.reg_dependencies['DI'], ['SI', 'DI', '0x80'])
 
     def test_tainting(self):
-        tracker = TaintTracker([])
+        tracker = x86_model.X86TaintTracker([])
 
         # Initial dependency
         tracker.start_instruction(Instruction("ADD")
@@ -93,9 +99,10 @@ class X86UnicornModelTest(unittest.TestCase):
                                   .add_op(FlagsOperand(["w", "", "", "", "", "", "", "", ""]), True)
                                   )  # yapf: disable
         tracker._finalize_instruction()
-        jmp_instruction = Instruction("JC").add_op(LabelOperand(".bb0"))\
-                          .add_op(FlagsOperand(["r", "", "", "", "", "", "", "", ""]), True)\
-                          .add_op(RegisterOperand("RIP", 64, True, True), True)
+        jmp_instruction = Instruction("JC")\
+            .add_op(LabelOperand(".bb0"))\
+            .add_op(FlagsOperand(["r", "", "", "", "", "", "", "", ""]), True)\
+            .add_op(RegisterOperand("RIP", 64, True, True), True)
         jmp_instruction.control_flow = True
         tracker.start_instruction(jmp_instruction)
         tracker.taint_pc()
@@ -118,7 +125,7 @@ class X86UnicornModelTest(unittest.TestCase):
         self.assertEqual(taint[reg_offset + 1], True)
 
     def test_label_to_taint(self):
-        tracker = TaintTracker([])
+        tracker = x86_model.X86TaintTracker([])
         tracker.tainted_labels = {'0x0', '0x40', '0x640', 'D', 'SI', '8', '14', 'DF', 'RIP'}
         taint: InputTaint = tracker.get_taint()
         register_start = taint.register_start
@@ -134,7 +141,6 @@ class X86UnicornModelTest(unittest.TestCase):
         # 8, 14, RIP - not a part of the input
 
         self.assertListEqual(list(taint), expected)
-
 
 
 if __name__ == '__main__':

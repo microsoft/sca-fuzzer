@@ -476,6 +476,7 @@ class TestCase:
 
     def __init__(self):
         self.functions = []
+        self.address_map = {}
 
     def __iter__(self):
         for func in self.functions:
@@ -709,7 +710,7 @@ class Coverage(ABC):
 
 
 class Model(ABC):
-    coverage: Coverage
+    coverage: Optional[Coverage] = None
 
     @abstractmethod
     def __init__(self, sandbox_base: int, code_base: int):
