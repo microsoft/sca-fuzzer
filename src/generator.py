@@ -9,7 +9,7 @@ from __future__ import annotations
 import random
 import abc
 import re
-from typing import List, Dict, Type
+from typing import List, Dict
 from subprocess import CalledProcessError, run
 
 from isa_loader import InstructionSet
@@ -17,9 +17,7 @@ from interfaces import Generator, TestCase, Operand, RegisterOperand, FlagsOpera
     ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, Function, \
     OperandSpec, InstructionSpec, CondOperand
 from service import NotSupportedException
-from config import CONF, ConfigException
-
-REGISTERED_GENERATORS: Dict[str, Type[Generator]] = {}
+from config import CONF
 
 
 # Helpers
@@ -466,15 +464,3 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
     @abc.abstractmethod
     def get_unconditional_jump_instruction(self) -> Instruction:
         pass
-
-
-# ==================================================================================================
-# Concrete generators
-# ==================================================================================================
-def get_generator(instruction_set: InstructionSet) -> Generator:
-    key = CONF.instruction_set + "-" + CONF.generator
-    GenCls = REGISTERED_GENERATORS.get(key, None)
-    if GenCls:
-        return GenCls(instruction_set)
-
-    raise ConfigException(f"unknown value {key} for `instruction_set` configuration option")

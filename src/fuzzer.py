@@ -10,11 +10,10 @@ from datetime import datetime
 from typing import Optional, List, Dict, Tuple
 from copy import copy
 
+import factory
 from interfaces import CTrace, HTrace, Input, InputTaint, EquivalenceClass, TestCase, Generator, \
     InputGenerator, Model, Executor, Analyser, Coverage, InputID
-from generator import get_generator
 from input_generator import get_input_generator
-from model import get_model
 from executor import get_executor
 from analyser import get_analyser
 from coverage import get_coverage
@@ -139,10 +138,10 @@ class Fuzzer:
 
     def initialize_modules(self):
         """ create all main modules """
-        self.generator = get_generator(self.instruction_set)
+        self.generator = factory.get_generator(self.instruction_set)
         self.input_gen: InputGenerator = get_input_generator()
         self.executor: Executor = get_executor()
-        self.model: Model = get_model(self.executor.read_base_addresses())
+        self.model: Model = factory.get_model(self.executor.read_base_addresses())
         self.analyser: Analyser = get_analyser()
         self.coverage: Coverage = get_coverage(self.instruction_set, self.executor, self.model,
                                                self.analyser)

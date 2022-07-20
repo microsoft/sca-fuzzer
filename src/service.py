@@ -280,3 +280,7 @@ def bit_count(n):
 
 class NotSupportedException(Exception):
     pass
+
+
+class UnreachableCode(Exception):
+    pass

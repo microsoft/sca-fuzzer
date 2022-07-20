@@ -16,7 +16,7 @@ from interfaces import TestCase, Operand, RegisterOperand, FlagsOperand, MemoryO
     ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, Function, \
     InstructionSpec
 from generator import ConfigurableGenerator, TargetDesc, RandomGenerator, Pass, \
-     parser_assert, Printer, REGISTERED_GENERATORS, GeneratorException, AsmParserException
+     parser_assert, Printer, GeneratorException, AsmParserException
 from config import CONF
 
 
@@ -312,7 +312,6 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
             match = True
             for op_id, op_raw in enumerate(operands_raw):
                 op_spec = spec_candidate.operands[op_id]
-
                 if op_raw[0] == ".":  # match label
                     if op_spec.type != OT.LABEL:
                         match = False
@@ -322,7 +321,7 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
                     if op_spec.type not in [OT.AGEN, OT.MEM]:
                         match = False
                         break
-                    access_size = op_raw.split()[0]  # match address size
+                    access_size = op_raw.split()[0].lower()  # match address size
                     parser_assert(access_size in self.memory_sizes, li,
                                   "Pointer size must be declared explicitly")
                     if op_spec.width != self.memory_sizes[access_size]:
@@ -858,6 +857,3 @@ class X86RandomGenerator(X86Generator, RandomGenerator):
 
     def __init__(self, instruction_set: InstructionSet):
         super().__init__(instruction_set)
-
-
-REGISTERED_GENERATORS["x86-64-random"] = X86RandomGenerator
