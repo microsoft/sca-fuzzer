@@ -13,8 +13,7 @@ from typing import List, Dict, Set, Optional
 
 from isa_loader import InstructionSet
 from interfaces import TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
-    ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, Function, \
-    InstructionSpec
+    ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, InstructionSpec
 from generator import ConfigurableGenerator, TargetDesc, RandomGenerator, Pass, \
      parser_assert, Printer, GeneratorException, AsmParserException
 from config import CONF
@@ -79,9 +78,16 @@ class X86TargetDesc(TargetDesc):
                     filtered_decoding[size].append(register)
         self.registers = filtered_decoding
 
+    @staticmethod
+    def is_unconditional_branch(inst: Instruction) -> bool:
+        return inst.category == "BASE-UNCOND_BR"
+
+    @staticmethod
+    def is_call(inst: Instruction) -> bool:
+        return inst.category == "BASE-CALL"
+
 
 class X86Generator(ConfigurableGenerator, abc.ABC):
-    memory_sizes = {"byte": 8, "word": 16, "dword": 32, "qword": 64}
     asm_prefixes = ["LOCK", "REX", "REP", "REPE", "REPNE"]
     asm_synonyms = {
         "JE": "JZ",
@@ -127,6 +133,7 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
         "SETPE": "SETP",
         "SETPO": "SETNP",
     }
+    memory_sizes = {"BYTE": 8, "WORD": 16, "DWORD": 32, "QWORD": 64}
 
     def __init__(self, instruction_set: InstructionSet):
         super(X86Generator, self).__init__(instruction_set)
@@ -137,253 +144,6 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
         ]
         self.printer = X86Printer()
         self.target_desc = X86TargetDesc()
-
-    def parse_existing_test_case(self, asm_file: str) -> TestCase:
-        self.reset_generator()
-        test_case = TestCase()
-        test_case.asm_path = asm_file
-
-        # First Pass: Collect functions and basic blocks
-        with open(asm_file, "r") as f:
-            # the first function in a test case is always `main`.
-            # if there are no explicitly declared functions, we default to `main`
-            current_function = Function(".function_main")
-            current_bb = current_function.entry
-            test_case.functions.append(current_function)
-            test_case.main = current_function
-
-            started = False
-            for i, line in enumerate(f):
-                line = line.strip()
-                # trivial cases
-                if not line or line[0] in ["", "#", "/"]:
-                    continue
-
-                # skip footer and header
-                if not started:
-                    started = (line == ".test_case_enter:")
-                    if line[0] != ".":
-                        test_case.num_prologue_instructions += 1
-                    continue
-                if line == ".test_case_exit:":
-                    break
-
-                if not line[0] == ".":  # skip non-lables - we will parse them in the second pass
-                    continue
-                parser_assert(line[-1] == ":", i, "Labels must start with '.', end with ':\\n'")
-
-                # Function
-                if line.startswith(".function_"):
-                    name = line[:-1]
-                    if name == ".function_main":
-                        continue
-                    current_function = Function(name)
-                    test_case.functions.append(current_function)
-                    current_bb = current_function.entry
-                    continue
-
-                # Basic Block
-                if line.startswith("."):
-                    name = line[:-1]
-                    if name.endswith("entry"):
-                        continue
-                    if name.endswith("exit"):
-                        current_bb = current_function.exit
-                        continue
-                    current_bb = BasicBlock(name)
-                    current_function.insert(current_bb)
-                    continue
-            parser_assert(started, 0, "Could not find .test_case_enter")
-
-        # Second Pass: Parse instructions
-        # - build a map of all instruction specs
-        instruction_map: Dict[str, List[InstructionSpec]] = {}
-        for spec in self.instruction_set.instructions:
-            if spec.name in instruction_map:
-                instruction_map[spec.name].append(spec)
-            else:
-                instruction_map[spec.name] = [spec]
-        # - and a map of BB names
-        bb_names = {bb.name: bb for func in test_case for bb in func}
-        # - parse
-        with open(asm_file, "r") as f:
-            current_bb = test_case.main.entry
-            started = False
-            terminators_started = False
-            for i, line in enumerate(f):
-                line = line.strip()
-                # skip footer and header
-                if not started:
-                    started = (line == ".test_case_enter:")
-                    continue
-                if line == ".test_case_exit:":
-                    break
-
-                if not line or line[0] in ["", "#", "/"]:  # trivial cases
-                    continue
-
-                if line.startswith(".function_"):  # skip functions
-                    current_bb = bb_names[".bb_" + line[:-1].lstrip(".function_") + ".entry"]
-                    terminators_started = False
-                    continue
-
-                if line.startswith("."):
-                    current_bb = bb_names[line[:-1]]
-                    terminators_started = False
-                    continue
-
-                # Instruction
-                inst: Instruction = self._parse_instruction(line, i, instruction_map)
-                if inst.control_flow and inst.category != "BASE-CALL":
-                    current_bb.insert_terminator(inst)
-                    terminators_started = True
-                else:
-                    parser_assert(not terminators_started, i, "Terminator in the middle of BB")
-                    current_bb.insert_after(current_bb.get_last(), inst)
-
-        # connect basic blocks
-        previous_bb = None
-        for func in test_case:
-            for bb in func:
-                # fallthrough
-                if previous_bb:  # skip the first BB
-                    # there is a fallthrough only if the last terminator is not a direct jump
-                    if not previous_bb.terminators or \
-                           previous_bb.terminators[-1].category != "BASE-UNCOND_BR":
-                        previous_bb.successors.append(bb)
-                previous_bb = bb
-
-                # taken branches
-                for terminator in bb.terminators:
-                    for op in terminator.operands:
-                        if isinstance(op, LabelOperand):
-                            successor = bb_names[op.value]
-                            bb.successors.append(successor)
-
-        bin_file = asm_file[:-4] + ".o"
-        self.assemble(asm_file, bin_file)
-        test_case.bin_path = bin_file
-
-        self.map_addresses(test_case, bin_file)
-
-        return test_case
-
-    def _parse_instruction(self, line: str, li: int, instruction_map: Dict) -> Instruction:
-        # get name and possible specs
-        words = line.split()
-        name = ""
-        specs: List[InstructionSpec] = []
-        for word in words:
-            if word in self.asm_prefixes:
-                name += word + " "
-                continue
-
-            # fix jump name
-            if word.upper() in self.asm_synonyms:
-                key = name.upper() + self.asm_synonyms[word.upper()]
-            else:
-                key = (name + word).upper()
-            specs = instruction_map.get(key, [])
-            name += word
-            break
-        if not specs:
-            raise AsmParserException(li, f"Unknown instruction {line}")
-
-        # instrumentation?
-        is_instrumentation = line.endswith("# instrumentation")
-
-        # remove comments
-        if "#" in line:
-            line = re.search(r"(.*)#.*", line).group(1).strip()  # type: ignore
-
-        # extract operands
-        operands_raw = line.removeprefix(name).split(",")
-        if operands_raw == [""]:  # no operands
-            operands_raw = []
-        else:  # clean the operands
-            operands_raw = [o.strip() for o in operands_raw]
-
-        # find a matching spec
-        matching_specs = []
-        for spec_candidate in specs:
-            if len(spec_candidate.operands) != len(operands_raw):
-                continue
-
-            match = True
-            for op_id, op_raw in enumerate(operands_raw):
-                op_spec = spec_candidate.operands[op_id]
-                if op_raw[0] == ".":  # match label
-                    if op_spec.type != OT.LABEL:
-                        match = False
-                        break
-                    continue
-                elif "[" in op_raw:  # match address
-                    if op_spec.type not in [OT.AGEN, OT.MEM]:
-                        match = False
-                        break
-                    access_size = op_raw.split()[0].lower()  # match address size
-                    parser_assert(access_size in self.memory_sizes, li,
-                                  "Pointer size must be declared explicitly")
-                    if op_spec.width != self.memory_sizes[access_size]:
-                        match = False
-                        break
-                    continue
-                # match immediate value
-                elif re.match(r"^-?[0-9]+$", op_raw) or \
-                        re.match(r"^-?0x[0-9abcdef]+$", op_raw) or \
-                        re.match(r"^-?0b[01]+$", op_raw) or \
-                        re.match(r"^-?[0-9]+\ *[+-]\ *[0-9]+$", op_raw):
-                    if op_spec.type != OT.IMM:
-                        match = False
-                        break
-                    continue
-                elif op_spec.type == OT.REG:
-                    if op_raw.upper() not in self.target_desc.registers[op_spec.width]:
-                        match = False
-                        break
-                    continue
-                else:
-                    match = False
-            if match:
-                matching_specs.append(spec_candidate)
-        parser_assert(len(matching_specs) != 0, li, f"Could not find a matching spec for {line}")
-
-        # we might find several matches if the instruction has a magic operand value
-        if len(matching_specs) > 1:
-            magic_value_specs = list(filter(lambda x: (x.has_magic_value), matching_specs))
-            if magic_value_specs:
-                matching_specs = magic_value_specs
-
-        # at this point we should have only one spec, but even if we don't, all of them should
-        # be equivalent. Just pick the first
-        spec: InstructionSpec = matching_specs[0]
-
-        # generate a corresponding Instruction
-        inst = Instruction.from_spec(spec, is_instrumentation)
-        op: Operand
-        for op_id, op_raw in enumerate(operands_raw):
-            op_spec = spec.operands[op_id]
-            if op_spec.type == OT.REG:
-                op = RegisterOperand(op_raw, op_spec.width, op_spec.src, op_spec.dest)
-            elif op_spec.type == OT.MEM:
-                address_match = re.search(r'\[(.*)\]', op_raw)
-                parser_assert(address_match is not None, li, "Invalid memory address")
-                address = address_match.group(1)  # type: ignore
-                op = MemoryOperand(address, op_spec.width, op_spec.src, op_spec.dest)
-            elif op_spec.type == OT.IMM:
-                op = ImmediateOperand(op_raw, op_spec.width)
-            elif op_spec.type == OT.LABEL:
-                assert spec.control_flow
-                op = LabelOperand(op_raw)
-            else:  # AGEN
-                op = AgenOperand(op_raw, op_spec.width)
-            inst.operands.append(op)
-
-        for op_spec in spec.implicit_operands:
-            op = self.generate_operand(op_spec, inst)
-            inst.implicit_operands.append(op)
-
-        return inst
 
     def map_addresses(self, test_case: TestCase, bin_file: str) -> None:
         with open(bin_file, "rb") as f:
@@ -417,6 +177,127 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
 
     def get_unconditional_jump_instruction(self) -> Instruction:
         return Instruction("JMP", False, "UNCOND_BR", True)
+
+    def parse_line(self, line: str, line_num: int,
+                   instruction_map: Dict[str, List[InstructionSpec]]) -> Instruction:
+        line = line.upper()
+
+        # get name and possible specs
+        words = line.split()
+        name = ""
+        specs: List[InstructionSpec] = []
+        for word in words:
+            if word in self.asm_prefixes:
+                name += word + " "
+                continue
+
+            # fix jump name
+            if word in self.asm_synonyms:
+                key = name + self.asm_synonyms[word]
+            else:
+                key = name + word
+            specs = instruction_map.get(key, [])
+            name += word
+            break
+        if not specs:
+            raise AsmParserException(line_num, f"Unknown instruction {line}")
+
+        # instrumentation?
+        is_instrumentation = line.endswith("# INSTRUMENTATION")
+
+        # remove comments
+        if "#" in line:
+            line = re.search(r"(.*)#.*", line).group(1).strip()  # type: ignore
+
+        # extract operands
+        operands_raw = line.removeprefix(name).split(",")
+        if operands_raw == [""]:  # no operands
+            operands_raw = []
+        else:  # clean the operands
+            operands_raw = [o.strip() for o in operands_raw]
+
+        # find a matching spec
+        matching_specs = []
+        for spec_candidate in specs:
+            if len(spec_candidate.operands) != len(operands_raw):
+                continue
+
+            match = True
+            for op_id, op_raw in enumerate(operands_raw):
+                op_spec = spec_candidate.operands[op_id]
+                if op_raw[0] == ".":  # match label
+                    if op_spec.type != OT.LABEL:
+                        match = False
+                        break
+                    continue
+                elif "[" in op_raw:  # match address
+                    if op_spec.type not in [OT.AGEN, OT.MEM]:
+                        match = False
+                        break
+                    access_size = op_raw.split()[0]  # match address size
+                    parser_assert(access_size in self.memory_sizes, line_num,
+                                  f"Pointer size must be declared explicitly in {line}")
+                    if op_spec.width != self.memory_sizes[access_size]:
+                        match = False
+                        break
+                    continue
+                # match immediate value
+                elif re.match(r"^-?[0-9]+$", op_raw) or \
+                        re.match(r"^-?0X[0-9ABCDEF]+$", op_raw) or \
+                        re.match(r"^-?0B[01]+$", op_raw) or \
+                        re.match(r"^-?[0-9]+\ *[+-]\ *[0-9]+$", op_raw):
+                    if op_spec.type != OT.IMM:
+                        match = False
+                        break
+                    continue
+                elif op_spec.type == OT.REG:
+                    if op_raw not in self.target_desc.registers[op_spec.width]:
+                        match = False
+                        break
+                    continue
+                else:
+                    match = False
+            if match:
+                matching_specs.append(spec_candidate)
+        parser_assert(
+            len(matching_specs) != 0, line_num, f"Could not find a matching spec for {line}")
+
+        # we might find several matches if the instruction has a magic operand value
+        if len(matching_specs) > 1:
+            magic_value_specs = list(filter(lambda x: (x.has_magic_value), matching_specs))
+            if magic_value_specs:
+                matching_specs = magic_value_specs
+
+        # at this point we should have only one spec, but even if we don't, all of them should
+        # be equivalent. Just pick the first
+        spec: InstructionSpec = matching_specs[0]
+
+        # generate a corresponding Instruction
+        inst = Instruction.from_spec(spec, is_instrumentation)
+        op: Operand
+        for op_id, op_raw in enumerate(operands_raw):
+            op_spec = spec.operands[op_id]
+            if op_spec.type == OT.REG:
+                op = RegisterOperand(op_raw, op_spec.width, op_spec.src, op_spec.dest)
+            elif op_spec.type == OT.MEM:
+                address_match = re.search(r'\[(.*)\]', op_raw)
+                parser_assert(address_match is not None, line_num, "Invalid memory address")
+                address = address_match.group(1)  # type: ignore
+                op = MemoryOperand(address, op_spec.width, op_spec.src, op_spec.dest)
+            elif op_spec.type == OT.IMM:
+                op = ImmediateOperand(op_raw, op_spec.width)
+            elif op_spec.type == OT.LABEL:
+                assert spec.control_flow
+                op = LabelOperand(op_raw)
+            else:  # AGEN
+                op = AgenOperand(op_raw, op_spec.width)
+            inst.operands.append(op)
+
+        for op_spec in spec.implicit_operands:
+            op = self.generate_operand(op_spec, inst)
+            inst.implicit_operands.append(op)
+
+        return inst
 
 
 class X86LFENCEPass(Pass):

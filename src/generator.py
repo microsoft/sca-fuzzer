@@ -11,6 +11,7 @@ import abc
 import re
 from typing import List, Dict
 from subprocess import CalledProcessError, run
+from collections import OrderedDict
 
 from isa_loader import InstructionSet
 from interfaces import Generator, TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
@@ -62,6 +63,16 @@ class TargetDesc(abc.ABC):
     simd_registers: Dict[int, List[str]]
     branch_conditions: Dict[str, List[str]]
 
+    @staticmethod
+    @abc.abstractmethod
+    def is_unconditional_branch(inst: Instruction) -> bool:
+        pass
+
+    @staticmethod
+    @abc.abstractmethod
+    def is_call(inst: Instruction) -> bool:
+        pass
+
 
 class ConfigurableGenerator(Generator, abc.ABC):
     instruction_set: InstructionSet
@@ -98,11 +109,7 @@ class ConfigurableGenerator(Generator, abc.ABC):
         if CONF.test_case_generator_seed:
             random.seed(CONF.test_case_generator_seed)
 
-    def reset_generator(self):
-        pass
-
     def create_test_case(self, asm_file: str) -> TestCase:
-        self.reset_generator()
         self.test_case = TestCase()
 
         # create the main function
@@ -157,6 +164,140 @@ class ConfigurableGenerator(Generator, abc.ABC):
 
         run(f"strip --remove-section=.note.gnu.property {bin_file}", shell=True, check=True)
         run(f"objcopy {bin_file} -O binary {bin_file}", shell=True, check=True)
+
+    def parse_existing_test_case(self, asm_file: str) -> TestCase:
+        test_case = TestCase()
+        test_case.asm_path = asm_file
+
+        # prepare regexes
+        re_redundant_spaces = re.compile(r"(?<![a-zA-Z0-9]) +")
+
+        # prepare a map of all instruction specs
+        instruction_map: Dict[str, List[InstructionSpec]] = {}
+        for spec in self.instruction_set.instructions:
+            if spec.name in instruction_map:
+                instruction_map[spec.name].append(spec)
+            else:
+                instruction_map[spec.name] = [spec]
+
+        # load the text and clean it up
+        lines = []
+        started = False
+        with open(asm_file, "r") as f:
+            for line in f:
+                # remove extra spaces
+                line = line.strip()
+                line = re_redundant_spaces.sub("", line)
+
+                # skip comments and empty lines
+                if not line or line[0] in ["", "#", "/"]:
+                    continue
+
+                # skip footer and header
+                if not started:
+                    started = (line == ".test_case_enter:")
+                    if line[0] != ".":
+                        test_case.num_prologue_instructions += 1
+                    continue
+                if line == ".test_case_exit:":
+                    break
+
+                lines.append(line)
+
+        # set defaults in case the main function is implicit
+        if not lines[0].startswith(".function_main:"):
+            lines = [".function_main:"] + lines
+
+        # map lines to functions and basic blocks
+        current_function = ""
+        current_bb = ".bb_main.entry"
+        test_case_map: Dict[str, Dict[str, List[str]]] = OrderedDict()
+        for line in lines:
+            # instruction
+            if not line.startswith("."):
+                test_case_map[current_function][current_bb].append(line)
+                continue
+
+            # function
+            if line.startswith(".function_"):
+                current_function = line[:-1]
+                test_case_map[current_function] = OrderedDict()
+
+                current_bb = ".bb_" + current_function.removeprefix(".function_") + ".entry"
+                test_case_map[current_function][current_bb] = []
+                continue
+
+            # basic block
+            current_bb = line[:-1]
+            if current_bb not in test_case_map[current_function]:
+                test_case_map[current_function][current_bb] = []
+
+        # parse lines and create their object representations
+        line_id = 1
+        for func_name, bbs in test_case_map.items():
+            # print(func_name)
+            line_id += 1
+            func = Function(func_name)
+            test_case.functions.append(func)
+            if func_name == ".function_main":
+                test_case.main = func
+
+            for bb_name, lines in bbs.items():
+                # print(">>", bb_name)
+                line_id += 1
+                if bb_name.endswith("entry"):
+                    bb = func.entry
+                elif bb_name.endswith("exit"):
+                    bb = func.exit
+                else:
+                    bb = BasicBlock(bb_name)
+                    func.insert(bb)
+
+                terminators_started = False
+                for line in lines:
+                    # print(f"    {line}")
+                    line_id += 1
+                    inst = self.parse_line(line, line_id, instruction_map)
+                    if inst.control_flow and not self.target_desc.is_call(inst):
+                        terminators_started = True
+                        bb.insert_terminator(inst)
+                    else:
+                        parser_assert(not terminators_started, line_id,
+                                      "Terminator not at the end of BB")
+                        bb.insert_after(bb.get_last(), inst)
+
+        # connect basic blocks
+        bb_names = {bb.name.upper(): bb for func in test_case for bb in func}
+        previous_bb = None
+        for func in test_case:
+            for bb in func:
+                # fallthrough
+                if previous_bb:  # skip the first BB
+                    # there is a fallthrough only if the last terminator is not a direct jump
+                    if not previous_bb.terminators or \
+                          not self.target_desc.is_unconditional_branch(previous_bb.terminators[-1]):
+                        previous_bb.successors.append(bb)
+                previous_bb = bb
+
+                # taken branches
+                for terminator in bb.terminators:
+                    for op in terminator.operands:
+                        if isinstance(op, LabelOperand):
+                            successor = bb_names[op.value]
+                            bb.successors.append(successor)
+
+        bin_file = asm_file[:-4] + ".o"
+        self.assemble(asm_file, bin_file)
+        test_case.bin_path = bin_file
+
+        self.map_addresses(test_case, bin_file)
+
+        return test_case
+
+    @abc.abstractmethod
+    def parse_line(self, line: str, line_num: int,
+                   instruction_map: Dict[str, List[InstructionSpec]]) -> Instruction:
+        pass
 
     @abc.abstractmethod
     def map_addresses(self, test_case: TestCase, bin_file: str) -> None:
