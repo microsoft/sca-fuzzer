@@ -12,7 +12,7 @@ from collections import Counter
 from typing import List
 from interfaces import CombinedHTrace, Input, TestCase, Executor, Optional
 
-from config import CONF, ConfigException
+from config import CONF
 from service import LOGGER
 
 
@@ -155,12 +155,3 @@ class X86IntelExecutor(Executor):
         with open('/sys/x86_executor/print_code_base', 'r') as f:
             code_base = f.readline()
         return int(sandbox_base, 16), int(code_base, 16)
-
-
-def get_executor() -> Executor:
-    options = {
-        'x86-intel': X86IntelExecutor,
-    }
-    if CONF.executor not in options:
-        raise ConfigException("unknown executor in config.py")
-    return options[CONF.executor]()

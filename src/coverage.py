@@ -12,7 +12,6 @@ from interfaces import Coverage, EquivalenceClass, TestCase, Executor, Model, An
      ExecutionTrace, TracedInstruction, Instruction, RegisterOperand, OT
 from x86.x86_generator import X86TargetDesc
 
-from config import CONF, ConfigException
 from service import STAT
 
 
@@ -118,7 +117,7 @@ class DependentPairCoverage(Coverage):
                     self.coverage[DT.REG_FLAGS].add(key)
 
     def _calculate_max_coverage(self):
-        all_, reg_src, reg_dest, flags_src, flags_dest, mem_src, mem_dest, control_cond = (0, ) * 8
+        all_, reg_src, reg_dest, flags_src, flags_dest, mem_src, mem_dest, control_cond = (0,) * 8
         control_direct = 1
 
         for inst in self.instruction_set.instructions:
@@ -276,13 +275,3 @@ class DependentPairCoverage(Coverage):
             size = len(self.coverage[k])
             ratio = (size / self.max_coverage[k]) * 100
             print(f"- {str(k)}: {size} [{ratio:.3}%]")
-
-
-def get_coverage(instruction_set: InstructionSet, executor: Executor, model: Model,
-                 analyser: Analyser) -> Coverage:
-    if CONF.coverage_type == 'dependent-pairs':
-        return DependentPairCoverage(instruction_set, executor, model, analyser)
-    elif CONF.coverage_type == 'none':
-        return NoCoverage(instruction_set, executor, model, analyser)
-    else:
-        raise ConfigException("unknown value of `coverage_type` configuration option")

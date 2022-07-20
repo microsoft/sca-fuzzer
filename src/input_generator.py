@@ -8,7 +8,7 @@ import random
 import numpy as np
 from typing import List, Tuple
 from interfaces import Input, InputTaint, InputGenerator
-from config import CONF, ConfigException
+from config import CONF
 from service import LOGGER
 
 POW32 = pow(2, 32)
@@ -36,8 +36,7 @@ class LegacyRandomInputGenerator(InputGenerator):
             generated_inputs.append(input_)
         return generated_inputs
 
-    def extend_equivalence_classes(self,
-                                   inputs: List[Input],
+    def extend_equivalence_classes(self, inputs: List[Input],
                                    taints: List[InputTaint]) -> List[Input]:
         if len(inputs) != len(taints):
             raise Exception("Error: Cannot extend inputs. "
@@ -134,17 +133,7 @@ class NumpyRandomInputGenerator(InputGenerator):
 
         rng = np.random.default_rng(seed)
         data = rng.integers(self.max_input_value, size=input_.data_size, dtype=np.uint64)
-        data = data << CONF.memory_access_zeroed_bits
+        data = data << CONF.memory_access_zeroed_bits  # type: ignore
         input_[:input_.data_size] = (data << 32) + data
 
         return input_, seed + 1
-
-
-def get_input_generator() -> InputGenerator:
-    options = {
-        'random': NumpyRandomInputGenerator,
-        'legacy-random': LegacyRandomInputGenerator,
-    }
-    if CONF.input_generator not in options:
-        raise ConfigException("unknown input_generator in config.py")
-    return options[CONF.input_generator]()

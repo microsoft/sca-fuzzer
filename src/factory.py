@@ -5,27 +5,70 @@ import x86.x86_generator as x86_generator
 import model
 import x86.x86_model as x86_model
 
-from interfaces import Model, Generator, InstructionSetAbstract
+import executor
+
+import input_generator
+import analyser
+import coverage
+
+import interfaces
 from config import CONF, ConfigException
 
-REGISTERED_GENERATORS: Dict[str, Type[Generator]] = {
+GENERATORS: Dict[str, Type[interfaces.Generator]] = {
     "x86-64-random": x86_generator.X86RandomGenerator
 }
 
+INPUT_GENERATORS: Dict[str, Type[interfaces.InputGenerator]] = {
+    'random': input_generator.NumpyRandomInputGenerator,
+    'legacy-random': input_generator.LegacyRandomInputGenerator,
+}
 
-def get_generator(instruction_set: InstructionSetAbstract) -> Generator:
-    key = CONF.instruction_set + "-" + CONF.generator
-    GenCls = REGISTERED_GENERATORS.get(key, None)
+TRACERS: Dict[str, Type[model.UnicornTracer]] = {
+    "l1d": model.L1DTracer,
+    "pc": model.PCTracer,
+    "memory": model.MemoryTracer,
+    "ct": model.CTTracer,
+    "ct-nonspecstore": model.CTNonSpecStoreTracer,
+    "ctr": model.CTRTracer,
+    "arch": model.ArchTracer,
+}
+
+EXECUTORS = {
+    'x86-intel': executor.X86IntelExecutor,
+}
+
+ANALYSERS: Dict[str, Type[interfaces.Analyser]] = {
+    'equivalence-classes': analyser.EquivalenceAnalyser,
+}
+
+COVERAGE: Dict[str, Type[interfaces.Coverage]] = {
+    'dependent-pairs': coverage.DependentPairCoverage,
+    'none': coverage.NoCoverage
+}
+
+
+def _get_from_config(options: Dict, key: str, conf_option_name: str, *args):
+    GenCls = options.get(key, None)
     if GenCls:
-        return GenCls(instruction_set)
+        return GenCls(*args)
 
-    raise ConfigException(f"unknown value {key} for `instruction_set` configuration option")
+    raise ConfigException(f"unknown value {key} for `{conf_option_name}` configuration option")
 
 
-def get_model(bases: Tuple[int, int]) -> Model:
+def get_generator(instruction_set: interfaces.InstructionSetAbstract) -> interfaces.Generator:
+    return _get_from_config(GENERATORS, CONF.instruction_set + "-" + CONF.generator,
+                            "instruction_set", instruction_set)
+
+
+def get_input_generator() -> interfaces.InputGenerator:
+    return _get_from_config(INPUT_GENERATORS, CONF.input_generator, "input_generator")
+
+
+def get_model(bases: Tuple[int, int]) -> interfaces.Model:
     model_instance: model.UnicornModel
+
+    # functional part of the contract
     if CONF.model == 'x86-unicorn':
-        # functional part of the contract
         if "cond" in CONF.contract_execution_clause and "bpas" in CONF.contract_execution_clause:
             model_instance = x86_model.X86UnicornCondBpas(bases[0], bases[1])
         elif "cond" in CONF.contract_execution_clause:
@@ -46,21 +89,21 @@ def get_model(bases: Tuple[int, int]) -> Model:
         raise ConfigException("unknown value of `model` configuration option")
 
     # observational part of the contract
-    if CONF.contract_observation_clause == "l1d":
-        model_instance.tracer = model.L1DTracer()
-    elif CONF.contract_observation_clause == 'pc':
-        model_instance.tracer = model.PCTracer()
-    elif CONF.contract_observation_clause == 'memory':
-        model_instance.tracer = model.MemoryTracer()
-    elif CONF.contract_observation_clause == 'ct':
-        model_instance.tracer = model.CTTracer()
-    elif CONF.contract_observation_clause == 'ct-nonspecstore':
-        model_instance.tracer = model.CTNonSpecStoreTracer()
-    elif CONF.contract_observation_clause == 'ctr':
-        model_instance.tracer = model.CTRTracer()
-    elif CONF.contract_observation_clause == 'arch':
-        model_instance.tracer = model.ArchTracer()
-    else:
-        raise ConfigException("unknown value of `contract_observation_clause` configuration option")
+    model_instance.tracer = _get_from_config(TRACERS, CONF.contract_observation_clause,
+                                             "contract_observation_clause")
 
     return model_instance
+
+
+def get_executor() -> interfaces.Executor:
+    return _get_from_config(EXECUTORS, CONF.executor, "executor")
+
+
+def get_analyser() -> interfaces.Analyser:
+    return _get_from_config(ANALYSERS, CONF.analyser, "analyser")
+
+
+def get_coverage(instruction_set: interfaces.InstructionSetAbstract, executor_: interfaces.Executor,
+                 model: interfaces.Model, analyser: interfaces.Analyser) -> interfaces.Coverage:
+    return _get_from_config(COVERAGE, CONF.coverage_type, "coverage_type", instruction_set,
+                            executor_, model, analyser)

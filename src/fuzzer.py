@@ -7,22 +7,16 @@ SPDX-License-Identifier: MIT
 import shutil
 from pathlib import Path
 from datetime import datetime
-from typing import Optional, List, Dict, Tuple
+from typing import Optional, List, Tuple
 from copy import copy
 
 import factory
 from interfaces import CTrace, HTrace, Input, InputTaint, EquivalenceClass, TestCase, Generator, \
     InputGenerator, Model, Executor, Analyser, Coverage, InputID
-from input_generator import get_input_generator
-from executor import get_executor
-from analyser import get_analyser
-from coverage import get_coverage
 from isa_loader import InstructionSet
 
 from config import CONF
 from service import STAT, LOGGER, TWOS_COMPLEMENT_MASK_64, bit_count
-
-Multiprimer = Dict[Input, List[Input]]
 
 
 class Fuzzer:
@@ -139,12 +133,12 @@ class Fuzzer:
     def initialize_modules(self):
         """ create all main modules """
         self.generator = factory.get_generator(self.instruction_set)
-        self.input_gen: InputGenerator = get_input_generator()
-        self.executor: Executor = get_executor()
+        self.input_gen: InputGenerator = factory.get_input_generator()
+        self.executor: Executor = factory.get_executor()
         self.model: Model = factory.get_model(self.executor.read_base_addresses())
-        self.analyser: Analyser = get_analyser()
-        self.coverage: Coverage = get_coverage(self.instruction_set, self.executor, self.model,
-                                               self.analyser)
+        self.analyser: Analyser = factory.get_analyser()
+        self.coverage: Coverage = factory.get_coverage(self.instruction_set, self.executor,
+                                                       self.model, self.analyser)
 
     def boost_inputs(self, inputs: List[Input], nesting: int) -> List[Input]:
         taints: List[InputTaint]
