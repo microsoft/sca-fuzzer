@@ -323,7 +323,18 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
 
     def generate_imm_operand(self, spec: OperandSpec, _: Instruction) -> Operand:
         if spec.values:
-            value = spec.values[0]
+            if spec.values[0] == "bitmask":
+                # FIXME: this implementation always returns the same bitmask
+                # make it random
+                value = str(pow(2, spec.width) - 2)
+            else:
+                assert "[" in spec.values[0], spec.values
+                range_ = spec.values[0][1:-1].split("-")
+                if range_[0] == "":
+                    range_ = range_[1:]
+                    range_[0] = "-" + range_[0]
+                assert len(range_) == 2
+                value = str(random.randint(int(range_[0]), int(range_[1])))
         else:
             value = str(random.randint(pow(2, spec.width - 1) * -1, pow(2, spec.width - 1) - 1))
         return ImmediateOperand(value, spec.width)
