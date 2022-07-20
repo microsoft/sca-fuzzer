@@ -74,7 +74,7 @@ For a complete list, see `src/config.py`.
   Enabled by default.
 * `enable_pre_run_flush` [bool]: If enabled, the executor will do its best to flush the microarchitectural state before running test cases.
   Enabled by default.
-* `enable_assist_page` [bool]: If enabled, only of the sandbox memory pages will have the accessed bit set to zero, which will cause a microcode assist on the fist load/store to this page.
+* `enable_faulty_page` [bool]: If enabled, only of the sandbox memory pages will have the accessed bit set to zero, which will cause a microcode assist on the fist load/store to this page.
   Disabled by default.
 
 # Analyser Configuration

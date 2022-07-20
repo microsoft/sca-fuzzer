@@ -4,7 +4,7 @@ contract_execution_clause:
 
 executor_mode: P+P
 enable_ssbp_patch: true
-enable_assist_page: false
+enable_faulty_page: false
 
 input_gen_entropy_bits: 8
 executor_warmups: 5

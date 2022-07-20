@@ -40,7 +40,7 @@ class ConfCls:
     input_gen_seed: int = 10  # zero is a reserved value, do not use it
     input_gen_entropy_bits: int = 16
     input_main_region_size: int = 4096
-    input_assist_region_size: int = 4096
+    input_faulty_region_size: int = 4096
     input_register_region_size: int = 64
     inputs_per_class: int = 2
     memory_access_zeroed_bits: int = 2
@@ -61,7 +61,7 @@ class ConfCls:
     executor_taskset: int = 0
     enable_ssbp_patch: bool = True
     enable_pre_run_flush: bool = True
-    enable_assist_page: bool = False
+    enable_faulty_page: bool = False
     # ==============================================================================================
     # Analyser
     analyser: str = 'equivalence-classes'
@@ -115,7 +115,7 @@ class ConfCls:
         if self._option_values.get(name, '') != '' and value not in self._option_values[name]:
             raise ConfigException(f"Unknown value '{value}' of configuration variable '{name}'")
         if (self.input_main_region_size % 4096 != 0) or \
-                (self.input_assist_region_size % 4096 != 0):
+                (self.input_faulty_region_size % 4096 != 0):
             raise ConfigException("Inputs must be page-aligned")
 
         # special handling

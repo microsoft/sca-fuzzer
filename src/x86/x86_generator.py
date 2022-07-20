@@ -320,7 +320,7 @@ class X86SandboxPass(Pass):
 
     def __init__(self):
         super().__init__()
-        input_memory_size = CONF.input_main_region_size + CONF.input_assist_region_size
+        input_memory_size = CONF.input_main_region_size + CONF.input_faulty_region_size
         mask_size = int(math.log(input_memory_size, 2)) - CONF.memory_access_zeroed_bits
         self.sandbox_address_mask = "0b" + "1" * mask_size + "0" * CONF.memory_access_zeroed_bits
 

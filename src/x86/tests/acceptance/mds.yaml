@@ -3,4 +3,4 @@ contract_execution_clause:
   - seq
 input_gen_entropy_bits: 3
 no_priming: true
-enable_assist_page: true
+enable_faulty_page: true

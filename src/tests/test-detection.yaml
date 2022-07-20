@@ -22,4 +22,4 @@ avg_mem_accesses: 4
 input_gen_entropy_bits: 9
 
 enable_ssbp_patch: true
-enable_assist_page: false
+enable_faulty_page: false

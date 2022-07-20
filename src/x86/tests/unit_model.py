@@ -4,17 +4,57 @@ SPDX-License-Identifier: MIT
 """
 import unittest
 import sys
+import tempfile
+import os
+from typing import List
+from pathlib import Path
 
 sys.path.insert(0, '..')
 
 import x86.x86_model as x86_model
-from config import CONF
+import factory
 from interfaces import Instruction, RegisterOperand, MemoryOperand, InputTaint, LabelOperand, \
-    FlagsOperand
+    FlagsOperand, TestCase, InputGenerator, Input, CTrace
+from isa_loader import InstructionSet
+from x86.x86_generator import X86RandomGenerator
+from model import CTRTracer
+from copy import deepcopy
 
-CONF.instruction_set = "x86-64"
-CONF.model = 'x86-unicorn'
-CONF.input_gen_seed = 10  # default
+from config import CONF
+
+test_path = Path(__file__).resolve()
+test_dir = test_path.parent
+
+
+class X86ModelTest(unittest.TestCase):
+
+    def test_x86_model_random(self):
+        global CONF
+        prev_conf = deepcopy(CONF)
+        CONF.instruction_set = "x86-64"
+        CONF.model = 'x86-unicorn'
+
+        asm_file = tempfile.NamedTemporaryFile(delete=False)
+        min_x86_path = test_dir / "min_x86.json"
+
+        instruction_set = InstructionSet(min_x86_path.absolute().as_posix(),
+                                         CONF.supported_categories)
+        random_generator = X86RandomGenerator(instruction_set)
+        tc: TestCase = random_generator.create_test_case(asm_file.name)
+
+        model = x86_model.X86UnicornCond(0x1000000, 0x8000)
+        model.tracer = CTRTracer()
+        model.load_test_case(tc)
+
+        input_generator: InputGenerator = factory.get_input_generator()
+        inputs: List[Input] = input_generator.generate(CONF.input_gen_seed, 1)
+        ctraces: List[CTrace] = model.trace_test_case(inputs, 1)
+        self.assertTrue(len(ctraces) != 0)
+
+        asm_file.close()
+        os.unlink(asm_file.name)
+
+        CONF = prev_conf
 
 
 class X86TaintTrackerTest(unittest.TestCase):

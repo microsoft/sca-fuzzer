@@ -91,9 +91,8 @@ class UnicornModel(Model, ABC):
     Serves as an adapter between Unicorn and our fuzzer.
     """
     CODE_SIZE = 4 * 1024
-    WORKING_MEMORY_SIZE = 1024 * 1024
     MAIN_REGION_SIZE = CONF.input_main_region_size
-    ASSIST_REGION_SIZE = CONF.input_assist_region_size
+    FAULTY_REGION_SIZE = CONF.input_faulty_region_size
     OVERFLOW_REGION_SIZE = 4096
 
     emulator: Uc
@@ -107,6 +106,8 @@ class UnicornModel(Model, ABC):
     code_start: int
     code_end: int
     sandbox_base: int
+    main_region: int
+    faulty_region: int
     nesting: int = 0
     in_speculation: bool = False
     speculation_window: int = 0
@@ -124,10 +125,14 @@ class UnicornModel(Model, ABC):
         super().__init__(sandbox_base, code_start)
         self.code_start = code_start
         self.sandbox_base = sandbox_base
+
         self.lower_overflow_base = self.sandbox_base - self.OVERFLOW_REGION_SIZE
         self.upper_overflow_base = \
-            self.sandbox_base + self.MAIN_REGION_SIZE + self.ASSIST_REGION_SIZE
-        self.stack_base = sandbox_base + self.MAIN_REGION_SIZE - 8
+            self.sandbox_base + self.MAIN_REGION_SIZE + self.FAULTY_REGION_SIZE
+        self.main_region = self.sandbox_base
+        self.faulty_region = self.main_region + self.MAIN_REGION_SIZE
+        self.stack_base = self.main_region + self.MAIN_REGION_SIZE - 8
+
         self.overflow_region_values = bytes(self.OVERFLOW_REGION_SIZE)
 
         if CONF.contract_observation_clause == 'ctr' or CONF.contract_observation_clause == 'arch':

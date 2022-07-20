@@ -16,4 +16,4 @@ contract_execution_clause:
   - cond
 
 enable_ssbp_patch: true
-enable_assist_page: true
+enable_faulty_page: true

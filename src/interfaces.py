@@ -504,7 +504,7 @@ class Input(np.ndarray):
     |   Register Values    | Conf.input_register_region_size
     +----------------------+
     |                      |
-    |                      | Conf.input_assist_region_size
+    |                      | Conf.input_faulty_region_size
     | Assist Region Values |
     +----------------------+
     |                      |
@@ -522,7 +522,7 @@ class Input(np.ndarray):
         pass  # unreachable; defined only for type checking
 
     def __new__(cls):
-        data_size = (CONF.input_main_region_size + CONF.input_assist_region_size +
+        data_size = (CONF.input_main_region_size + CONF.input_faulty_region_size +
                      CONF.input_register_region_size) // 8
         aligned_size = data_size + (4096 - CONF.input_register_region_size) // 8
         obj = super().__new__(cls, (aligned_size,), np.uint64, None, 0, None, None)  # type: ignore
@@ -536,6 +536,9 @@ class Input(np.ndarray):
 
     def get_registers(self):
         return list(self[self.register_start:self.data_size - 1])
+
+    def get_memory(self):
+        return self[0:self.register_start]
 
     def __str__(self):
         return str(self.seed)
@@ -557,10 +560,10 @@ class InputTaint(np.ndarray):
         pass  # unreachable; defined only for type checking
 
     def __new__(cls):
-        size = (CONF.input_main_region_size + CONF.input_assist_region_size +
+        size = (CONF.input_main_region_size + CONF.input_faulty_region_size +
                 CONF.input_register_region_size) // 8
         obj = super().__new__(cls, (size,), bool, None, 0, None, None)  # type: ignore
-        obj.register_start = (CONF.input_main_region_size + CONF.input_assist_region_size) // 8
+        obj.register_start = (CONF.input_main_region_size + CONF.input_faulty_region_size) // 8
         return obj
 
 

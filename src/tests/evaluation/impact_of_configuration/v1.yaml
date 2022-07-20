@@ -16,5 +16,5 @@ contract_execution_clause:
   - seq
 
 enable_ssbp_patch: true
-enable_assist_page: false
+enable_faulty_page: false
 

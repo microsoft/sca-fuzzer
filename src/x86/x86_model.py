@@ -60,8 +60,9 @@ class X86UnicornModel(UnicornModel):
         try:
             # allocate memory
             emulator.mem_map(self.code_start, self.CODE_SIZE)
-            emulator.mem_map(self.sandbox_base - self.WORKING_MEMORY_SIZE // 2,
-                             self.WORKING_MEMORY_SIZE)
+            sandbox_size = \
+                self.OVERFLOW_REGION_SIZE * 2 + self.MAIN_REGION_SIZE + self.FAULTY_REGION_SIZE
+            emulator.mem_map(self.sandbox_base - self.OVERFLOW_REGION_SIZE, sandbox_size)
 
             # write machine code to be emulated to memory
             emulator.mem_write(self.code_start, code)
@@ -79,8 +80,13 @@ class X86UnicornModel(UnicornModel):
         """
         Set registers and stack before starting the emulation
         """
+        # Set memory:
+        # - initialize overflows with zeroes
+        self.emulator.mem_write(self.lower_overflow_base, self.overflow_region_values)
+        self.emulator.mem_write(self.upper_overflow_base, self.overflow_region_values)
+
         # - sandbox pages
-        self.emulator.mem_write(self.sandbox_base, input_.tobytes())
+        self.emulator.mem_write(self.sandbox_base, input_.get_memory().tobytes())
 
         # Set values in registers
         regs = self.target_desc.registers
@@ -206,7 +212,7 @@ class X86UnicornCond(X86UnicornSpec):
     }  # yapf: disable
 
     @staticmethod
-    def speculate_instruction(emulator: Uc, address, size, model: UnicornSpec) -> None:
+    def speculate_instruction(emulator: Uc, address, size, model: UnicornModel) -> None:
         # reached max spec. window? skip
         if len(model.checkpoints) >= model.nesting:
             return
