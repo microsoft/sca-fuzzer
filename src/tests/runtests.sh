@@ -4,7 +4,6 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 echo ""
 echo "===== Type Checking with mypy ====="
-echo ""
 cd $SCRIPT_DIR/.. || exit
 python3 -m mypy cli.py --ignore-missing-imports 
 cd - > /dev/null || exit
@@ -12,21 +11,23 @@ cd - > /dev/null || exit
 echo ""
 echo "===== Core Unit Tests ====="
 cd $SCRIPT_DIR || exit
-python3 -m unittest discover unittests -p "unit_*.py" -v
+python3 -m unittest discover . -p "unit_*.py" -v
 cd - > /dev/null || exit
 
 echo ""
-echo "===== x86 tests ====="
-echo ""
+echo "===== x86 kernel module ====="
 cd $SCRIPT_DIR/../x86 || exit
 ./tests/kernel_module.bats
-echo "x86 unittests"
-python3 -m unittest discover tests -p "unit_*.py" -v
-cd - || exit
+cd - > /dev/null || exit
 
 echo ""
-echo "===== Acceptance Tests ====="
+echo "===== x86 unit tests ====="
+cd $SCRIPT_DIR/../x86 || exit
+python3 -m unittest discover tests -p "unit_*.py" -v
+cd - > /dev/null || exit
+
 echo ""
+echo "===== x86 acceptance tests ====="
 cd $SCRIPT_DIR/.. || exit
-./tests/acceptance.bats
-cd - || exit
+./x86/tests/acceptance/acceptance.bats
+cd - > /dev/null || exit

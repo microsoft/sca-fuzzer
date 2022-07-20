@@ -154,4 +154,4 @@ class ConfCls:
 
 
 CONF = ConfCls()
-CONF.instruction_set = "x86-64"
+CONF.update_arch()
