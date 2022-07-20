@@ -268,6 +268,7 @@ class ConfigurableGenerator(Generator, abc.ABC):
 
         # connect basic blocks
         bb_names = {bb.name.upper(): bb for func in test_case for bb in func}
+        bb_names[".TEST_CASE_EXIT"] = func.exit
         previous_bb = None
         for func in test_case:
             for bb in func:
