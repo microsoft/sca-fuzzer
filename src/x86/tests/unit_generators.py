@@ -12,7 +12,7 @@ import iced_x86
 sys.path.insert(0, '..')
 from x86.x86_generator import X86RandomGenerator, X86Printer, X86PatchUndefinedFlagsPass, \
     X86Generator
-from generator import get_generator
+from factory import get_generator
 from isa_loader import InstructionSet
 from interfaces import TestCase, Function
 from config import CONF
