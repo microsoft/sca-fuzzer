@@ -756,7 +756,7 @@ class Executor(ABC):
 
 
 class Analyser(ABC):
-    coverage: Coverage
+    coverage: Optional[Coverage] = None
 
     @abstractmethod
     def filter_violations(self,

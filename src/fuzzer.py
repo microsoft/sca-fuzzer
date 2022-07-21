@@ -40,6 +40,16 @@ class Fuzzer:
         self.instruction_set = InstructionSet(instruction_set_spec, CONF.supported_categories)
         self.work_dir = work_dir
 
+    def initialize_modules(self):
+        """ create all main modules """
+        self.generator = factory.get_generator(self.instruction_set)
+        self.input_gen: InputGenerator = factory.get_input_generator()
+        self.executor: Executor = factory.get_executor()
+        self.model: Model = factory.get_model(self.executor.read_base_addresses())
+        self.analyser: Analyser = factory.get_analyser()
+        self.coverage: Coverage = factory.get_coverage(self.instruction_set, self.executor,
+                                                       self.model, self.analyser)
+
     def start(self, num_test_cases: int, num_inputs: int, timeout: int, nonstop: bool = False):
         start_time = datetime.today()
         LOGGER.fuzzer_start(num_test_cases, start_time)
@@ -130,16 +140,6 @@ class Fuzzer:
         # Violation survived priming. Report it
         return violation
 
-    def initialize_modules(self):
-        """ create all main modules """
-        self.generator = factory.get_generator(self.instruction_set)
-        self.input_gen: InputGenerator = factory.get_input_generator()
-        self.executor: Executor = factory.get_executor()
-        self.model: Model = factory.get_model(self.executor.read_base_addresses())
-        self.analyser: Analyser = factory.get_analyser()
-        self.coverage: Coverage = factory.get_coverage(self.instruction_set, self.executor,
-                                                       self.model, self.analyser)
-
     def boost_inputs(self, inputs: List[Input], nesting: int) -> List[Input]:
         taints: List[InputTaint]
         taints = self.model.get_taints(inputs, nesting)
@@ -162,6 +162,40 @@ class Fuzzer:
 
         if not Path(self.work_dir + "/config.yaml").exists:
             shutil.copy2(CONF.config_path, self.work_dir + "/config.yaml")
+
+    # ==============================================================================================
+    # Single-stage interfaces
+    @staticmethod
+    def analyse_traces_from_files(ctrace_file: str, htrace_file: str):
+        LOGGER.fuzzer_debug = False  # make sure we don't try to call the model
+        LOGGER.fuzzer_start(0, datetime.today())
+        STAT.test_cases = 1
+
+        # read traces
+        ctraces: List[CTrace] = []
+        htraces: List[HTrace] = []
+
+        with open(ctrace_file, 'r') as f:
+            for line in f:
+                ctraces.append(int(line))
+        with open(htrace_file, 'r') as f:
+            for line in f:
+                htraces.append(int(line))
+
+        assert len(ctraces) == len(htraces), \
+            "The number of hardware traces does not match the number of contract traces"
+
+        dummy_inputs = factory.get_input_generator().generate(1, len(ctraces))
+
+        # check for violations
+        analyser = factory.get_analyser()
+        violations = analyser.filter_violations(dummy_inputs, ctraces, htraces, True)
+
+        # print results
+        if violations:
+            LOGGER.fuzzer_report_violations(violations[0], None)
+
+        LOGGER.fuzzer_finish()
 
     # ==============================================================================================
     # Priming algorithm
