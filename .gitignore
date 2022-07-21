@@ -1,6 +1,7 @@
 cmake-build-*/
 build/
 .vscode/
+.mypy_cache/
 .lsync*
 venv/
 **/__pycache__/

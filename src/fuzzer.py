@@ -7,7 +7,7 @@ SPDX-License-Identifier: MIT
 import shutil
 from pathlib import Path
 from datetime import datetime
-from typing import Optional, List, Tuple
+from typing import Optional, List
 from copy import copy
 
 import factory
@@ -208,86 +208,3 @@ class Fuzzer:
 
             return False
         return True
-
-    # ==============================================================================================
-    # Batched priming algoritm - deprecated???
-    def survives_priming_batched(self, org_violation: EquivalenceClass,
-                                 all_inputs: List[Input]) -> bool:
-        violation = copy(org_violation)
-        ordered_htraces = sorted(
-            violation.htrace_map.keys(), key=lambda x: bit_count(x), reverse=False)
-
-        for current_htrace in ordered_htraces:
-            current_input_id = violation.htrace_map[current_htrace][-1].input_id
-
-            # list of inputs that produced a different HTrace
-            input_ids_to_test: List[InputID] = [
-                m.input_id for m in violation.measurements if m.htrace != current_htrace
-            ]
-
-            # create a primer that would cover all the conflicting inputs at the same time
-            batch_primer, primed_ids = self.build_batch_primer(all_inputs,
-                                                               current_input_id, current_htrace,
-                                                               len(input_ids_to_test))
-            if not batch_primer:
-                STAT.priming_errors += 1
-                # self.store_test_case(self.test_case, True)
-                return False
-
-            # insert the tested inputs into their places
-            assert len(primed_ids) == len(input_ids_to_test)
-            for input_id, primer_id in zip(input_ids_to_test, primed_ids):
-                batch_primer[primer_id] = all_inputs[input_id]
-
-            # try priming
-            if not self.primer_is_effective(batch_primer, primed_ids, current_htrace):
-                return True
-
-        return False
-
-    def build_batch_primer(self, inputs: List[Input], target_input_id: InputID,
-                           expected_htrace: HTrace,
-                           num_primed_inputs: int) -> Tuple[List[Input], List[InputID]]:
-        # the first size to be tested
-        primer_size = CONF.min_primer_size % len(inputs) + 1
-
-        while True:
-            # print(f"Trying primer {primer_size}")
-            # build a set of priming inputs (i.e., multiprimer)
-            if primer_size <= target_input_id:
-                primer = inputs[target_input_id - primer_size:target_input_id + 1]
-            else:
-                primer = inputs[target_input_id - primer_size:] + inputs[:target_input_id + 1]
-            assert len(primer) == primer_size + 1
-            assert primer[-1].seed == inputs[target_input_id].seed
-
-            batch_primer = primer * num_primed_inputs
-            # print(target_input_id, primer_size, len(inputs), len(primer))
-            primed_ids = list(
-                range(primer_size, num_primed_inputs * (primer_size + 1), primer_size + 1))
-            # print(primed_ids)
-
-            # check if the hardware trace of the target_id matches
-            # the hardware trace received with the primer
-            if self.primer_is_effective(batch_primer, primed_ids, expected_htrace):
-                return batch_primer, primed_ids
-
-            # if we failed, try a larger primer
-            new_size = primer_size * 2
-
-            # if we just wrapped around, try all original preceding inputs as primer
-            if new_size > target_input_id and primer_size < target_input_id:
-                primer_size = target_input_id
-            else:
-                primer_size = new_size
-
-            # if a larger primer is allowed, try adding more inputs
-            if primer_size > CONF.max_primer_size:
-                # otherwise, we failed to find a primer
-                LOGGER.waring("fuzzer", "Failed to build a primer - max_primer_size reached")
-                return [], []
-
-            # run out of inputs to test?
-            if primer_size >= len(inputs):
-                LOGGER.waring("fuzzer", "Insufficient inputs to build a primer")
-                return [], []
