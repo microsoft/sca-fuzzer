@@ -40,7 +40,7 @@ class MinimizerViolation(Minimizer):
         true_violations = []
         while violations:
             violation: EquivalenceClass = violations.pop()
-            if fuzzer.survives_priming(violation, inputs):
+            if fuzzer.priming(violation, inputs):
                 true_violations.append(violation)
 
         return true_violations
@@ -123,38 +123,15 @@ class MinimizerViolation(Minimizer):
             return
         print(f"Found {len(violations)} violations")
 
-        # print("Searching for a minimal input set...")
-        # min_inputs = self.minimize_inputs(fuzzer, test_case, boosted_inputs, violations)
-        min_inputs = boosted_inputs
-
         print("Minimizing the test case...")
-        min_test_case: TestCase = self.minimize_test_case(fuzzer, test_case, min_inputs)
+        min_test_case: TestCase = self.minimize_test_case(fuzzer, test_case, boosted_inputs)
 
         if add_fences:
             print("Trying to add fences...")
-            min_test_case = self.add_fences(fuzzer, min_test_case, min_inputs)
+            min_test_case = self.add_fences(fuzzer, min_test_case, boosted_inputs)
 
         print("Storing the results")
         copy(min_test_case.asm_path, outfile)
-
-    def minimize_inputs(self, fuzzer: Fuzzer, test_case: TestCase, inputs: List[Input],
-                        violations: List[EquivalenceClass]) -> List[Input]:
-        min_inputs: List[Input] = []
-        for violation in violations:
-            for i in range(len(violation)):
-                measurement = violation.measurements[i]
-                primer, _ = fuzzer.build_batch_primer(inputs, measurement.input_id,
-                                                      measurement.htrace, 1)
-                min_inputs.extend(primer)
-
-        # Make sure these inputs indeed reproduce
-        violations = self._get_all_violations(fuzzer, test_case, min_inputs)
-        if not violations or len(min_inputs) > len(inputs):
-            print("Failed to build a minimal input sequence. Falling back to using all inputs...")
-            min_inputs = inputs
-        else:
-            print(f"Reduced to {len(min_inputs)} inputs")
-        return min_inputs
 
     def minimize_test_case(self, fuzzer: Fuzzer, test_case: TestCase,
                            inputs: List[Input]) -> TestCase:

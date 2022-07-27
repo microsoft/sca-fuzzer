@@ -131,7 +131,7 @@ class Fuzzer:
         while violations:
             LOGGER.fuzzer_priming(len(violations))
             violation: EquivalenceClass = violations.pop()
-            if self.survives_priming(violation, boosted_inputs):
+            if self.priming(violation, boosted_inputs):
                 break
         else:
             # all violations were cleaned. all good
@@ -199,9 +199,10 @@ class Fuzzer:
 
     # ==============================================================================================
     # Priming algorithm
-    def survives_priming(self, org_violation: EquivalenceClass, all_inputs: List[Input]) -> bool:
+    def priming(self, org_violation: EquivalenceClass, all_inputs: List[Input]) -> bool:
         """
         Try priming the inputs that caused the violations
+
         return: True if the violation survived priming
         """
         violation = copy(org_violation)
@@ -222,23 +223,16 @@ class Fuzzer:
                 primer[current_input_id] = all_inputs[input_id]
 
                 # try priming
-                if not self.primer_is_effective(primer, [current_input_id], current_htrace):
-                    return True
+                htraces: List[HTrace] = self.executor.trace_test_case(primer,
+                                                                      CONF.executor_repetitions)
+                primed_htrace = htraces[current_input_id]
+                if primed_htrace == current_htrace:
+                    continue
+
+                # if the primed measurement triggered more speculation, it's ok
+                if (primed_htrace ^ TWOS_COMPLEMENT_MASK_64) & current_htrace == 0:
+                    continue
+
+                return True
 
         return False
-
-    def primer_is_effective(self, inputs: List[Input], positions: List[InputID],
-                            expected_htrace: HTrace) -> bool:
-        htraces: List[HTrace] = self.executor.trace_test_case(inputs, CONF.executor_repetitions)
-        for i, htrace in enumerate(htraces):
-            if i not in positions:
-                continue
-            if htrace == expected_htrace:
-                continue
-
-            # if the primed measurement triggered more speculation, it's ok
-            if (htrace ^ TWOS_COMPLEMENT_MASK_64) & expected_htrace == 0:
-                continue
-
-            return False
-        return True
