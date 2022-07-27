@@ -22,7 +22,7 @@ class StatisticsCls:
     eff_classes = 0
     single_entry_classes = 0
     required_priming = 0
-    priming_errors = 0
+    flaky_violations = 0
     violations = 0
     coverage = 0
     coverage_longest_uncovered = 0
@@ -46,7 +46,7 @@ class StatisticsCls:
         s += f"  Total Cls: {total_clss_per_test_case:.1f}\n"
         s += f"  Effective Cls: {effective_clss:.1f}\n"
         s += f"Required priming: {self.required_priming}\n"
-        s += f"Priming errors: {self.priming_errors}\n"
+        s += f"Flaky violations: {self.flaky_violations}\n"
         s += f"Violations: {self.violations}\n"
         return s
 
@@ -59,7 +59,7 @@ class StatisticsCls:
             s += f"In:{self.num_inputs / self.test_cases:.1f}, "
             s += f"Cov:{self.coverage}, "
             s += f"Prim:{self.required_priming}, " \
-                 f"PErr:{self.priming_errors}, " \
+                 f"Flak:{self.flaky_violations}, " \
                  f"Viol:{self.violations}, "
             return s
 

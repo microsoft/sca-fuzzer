@@ -128,13 +128,18 @@ class Fuzzer:
 
         # Try priming the inputs that disagree with the other ones within the same eq. class
         STAT.required_priming += 1
-        while violations:
+        violation_stack = list(violations)
+        while violation_stack:
             LOGGER.fuzzer_priming(len(violations))
             violation: EquivalenceClass = violations.pop()
             if self.priming(violation, boosted_inputs):
                 break
         else:
-            # all violations were cleaned. all good
+            # All violations were cleared by priming.
+            # Check whether it was actually successful priming
+            # or the measurement are just flaky
+            if self.check_if_reproducible(violations, boosted_inputs, htraces):
+                STAT.flaky_violations += 1
             return None
 
         # Violation survived priming. Report it
@@ -198,7 +203,23 @@ class Fuzzer:
         LOGGER.fuzzer_finish()
 
     # ==============================================================================================
-    # Priming algorithm
+    # Priming and reproducibility
+    def check_if_reproducible(self, violations: List[EquivalenceClass], inputs: List[Input],
+                              org_htraces: List[HTrace]) -> bool:
+        violating_input_ids = []
+        for violation in violations:
+            for measurement in violation.measurements:
+                violating_input_ids.append(measurement.input_id)
+
+        # re-collect htraces
+        htraces: List[HTrace] = self.executor.trace_test_case(inputs, CONF.executor_repetitions)
+
+        # check if all htraces that had a violation match
+        for i in violating_input_ids:
+            if htraces[i] != org_htraces[i]:
+                return True
+        return False
+
     def priming(self, org_violation: EquivalenceClass, all_inputs: List[Input]) -> bool:
         """
         Try priming the inputs that caused the violations

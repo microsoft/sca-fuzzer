@@ -582,7 +582,6 @@ class EquivalenceClass:
     ctrace: CTrace
     measurements: List[Measurement]
     htrace_map: HTraceMap
-    primed_positions: Dict[int, List[int]]
     MOD2P64 = pow(2, 64)
 
     def __init__(self) -> None:
