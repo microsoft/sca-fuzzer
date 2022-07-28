@@ -128,10 +128,10 @@ class Fuzzer:
 
         # Try priming the inputs that disagree with the other ones within the same eq. class
         STAT.required_priming += 1
-        violation_stack = list(violations)
+        violation_stack = list(violations)  # make a copy
         while violation_stack:
-            LOGGER.fuzzer_priming(len(violations))
-            violation: EquivalenceClass = violations.pop()
+            LOGGER.fuzzer_priming(len(violation_stack))
+            violation: EquivalenceClass = violation_stack.pop()
             if self.priming(violation, boosted_inputs):
                 break
         else:
