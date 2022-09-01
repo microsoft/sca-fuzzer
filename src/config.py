@@ -56,8 +56,8 @@ class ConfCls:
     executor: str = 'x86-intel'
     executor_mode: str = 'P+P'
     executor_warmups: int = 50
-    executor_repetitions: int = 20
-    executor_max_outliers: int = 2
+    executor_repetitions: int = 10
+    executor_max_outliers: int = 1
     executor_taskset: int = 0
     enable_ssbp_patch: bool = True
     enable_pre_run_flush: bool = True
