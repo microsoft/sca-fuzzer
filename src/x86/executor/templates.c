@@ -235,15 +235,15 @@ inline void epilogue(void) {
         "mov "COUNTER", "REPS"                              \n" \
         "   1: mov "OFFSET", 0                              \n" \
         "       2: lfence                                   \n" \
-        "       mov "TMP", "OFFSET"                         \n" \
-        "       add "TMP", ["BASE" + "TMP"]                 \n" \
-        "       add "TMP", ["BASE" + "TMP" + 4096]          \n" \
-        "       add "TMP", ["BASE" + "TMP" + 8192]          \n" \
-        "       add "TMP", ["BASE" + "TMP" + 12288]         \n" \
-        "       add "TMP", ["BASE" + "TMP" + 16384]         \n" \
-        "       add "TMP", ["BASE" + "TMP" + 20480]         \n" \
-        "       add "TMP", ["BASE" + "TMP" + 24576]         \n" \
-        "       add "TMP", ["BASE" + "TMP" + 28672]         \n" \
+        "       mov "TMP", "OFFSET"                ; mfence \n" \
+        "       add "TMP", ["BASE" + "TMP"]        ; mfence \n" \
+        "       add "TMP", ["BASE" + "TMP" + 4096] ; mfence \n" \
+        "       add "TMP", ["BASE" + "TMP" + 8192] ; mfence \n" \
+        "       add "TMP", ["BASE" + "TMP" + 12288]; mfence \n" \
+        "       add "TMP", ["BASE" + "TMP" + 16384]; mfence \n" \
+        "       add "TMP", ["BASE" + "TMP" + 20480]; mfence \n" \
+        "       add "TMP", ["BASE" + "TMP" + 24576]; mfence \n" \
+        "       add "TMP", ["BASE" + "TMP" + 28672]; mfence \n" \
         "       add "OFFSET", 64                            \n" \
         "   cmp "OFFSET", 4096; jl 2b                       \n" \
         "dec "COUNTER"; jnz 1b                              \n" \
@@ -253,26 +253,26 @@ inline void epilogue(void) {
 #define PROBE(BASE, OFFSET, TMP, DEST)                  \
         "xor "DEST", "DEST"                         \n" \
         "xor "OFFSET", "OFFSET"                     \n" \
-        "1:                                         \n" \
+        "1: lfence                                  \n" \
         "   xor "TMP", "TMP"                        \n" \
         "   mov rcx, 0                              \n" \
-        "   mfence; rdpmc; lfence                   \n" \
+        "   mfence; rdpmc; mfence                   \n" \
         "   shl rdx, 32; or rdx, rax                \n" \
         "   sub "TMP", rdx                          \n" \
         "   mov rax, "OFFSET"                       \n" \
-        "   add rax, ["BASE" + rax]                 \n" \
-        "   add rax, ["BASE" + rax + 4096]          \n" \
-        "   add rax, ["BASE" + rax + 8192]          \n" \
-        "   add rax, ["BASE" + rax + 12288]         \n" \
-        "   add rax, ["BASE" + rax + 16384]         \n" \
-        "   add rax, ["BASE" + rax + 20480]         \n" \
-        "   add rax, ["BASE" + rax + 24576]         \n" \
-        "   add rax, ["BASE" + rax + 28672]         \n" \
+        "   add rax, ["BASE" + rax]        ; mfence \n" \
+        "   add rax, ["BASE" + rax + 4096] ; mfence \n" \
+        "   add rax, ["BASE" + rax + 8192] ; mfence \n" \
+        "   add rax, ["BASE" + rax + 12288]; mfence \n" \
+        "   add rax, ["BASE" + rax + 16384]; mfence \n" \
+        "   add rax, ["BASE" + rax + 20480]; mfence \n" \
+        "   add rax, ["BASE" + rax + 24576]; mfence \n" \
+        "   add rax, ["BASE" + rax + 28672]; mfence \n" \
         "   mov rcx, 0                              \n" \
-        "   lfence; rdpmc; mfence                   \n" \
+        "   mfence; rdpmc; mfence                   \n" \
         "   shl rdx, 32; or rdx, rax                \n" \
         "   add "TMP", rdx                          \n" \
-        "   cmp "TMP", 8; jne 2f                    \n" \
+        "   cmp "TMP", 8; jl 2f                     \n" \
         "      shl "DEST", 1                        \n" \
         "      jmp 3f                               \n" \
         "   2:                                      \n" \
@@ -350,11 +350,12 @@ void template_l1d_prime_probe(void) {
     // clobber: rax, rbx, rcx, rdx
     asm_volatile_intel(""\
         "lea rax, [r14 - "xstr(EVICT_REGION_OFFSET)"]\n"
-        PRIME("rax", "rbx", "rcx", "rdx", "16"));
+        PRIME("rax", "rbx", "rcx", "rdx", "32"));
 
+    // Deprecated?
     // Push empty values into the store buffer (just in case)
     // clobber: rax
-    asm_volatile_intel(SB_FLUSH("rax", "60"));
+    // asm_volatile_intel(SB_FLUSH("rax", "60"));
 
     // PFC
     // clobber: rax, rcx, rdx
@@ -426,8 +427,9 @@ void template_l1d_flush_reload(void) {
         "mov rbx, r14\n" \
         FLUSH("rbx", "rax"));
 
+    // Deprecated?
     // Push empty values into the store buffer (just in case)
-    asm_volatile_intel(SB_FLUSH("rax", "60"));
+    // asm_volatile_intel(SB_FLUSH("rax", "60"));
 
     // PFC
     asm_volatile_intel(READ_PFC_START());
@@ -460,10 +462,11 @@ void template_l1d_evict_reload(void) {
     // Prime
     asm_volatile_intel(""\
         "lea rax, [r14 - "xstr(EVICT_REGION_OFFSET)"]\n"
-        PRIME("rax", "rbx", "rcx", "rdx", "16"));
+        PRIME("rax", "rbx", "rcx", "rdx", "32"));
 
+    // Deprecated?
     // Push empty values into the store buffer (just in case)
-    asm_volatile_intel(SB_FLUSH("rax", "60"));
+    // asm_volatile_intel(SB_FLUSH("rax", "60"));
 
     // PFC
     asm_volatile_intel(READ_PFC_START());
