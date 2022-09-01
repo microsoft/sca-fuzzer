@@ -73,6 +73,9 @@ void run_experiment(long rounds)
     unsigned long flags;
     raw_local_irq_save(flags);
 
+    // Zero-initialize the region of memory used by Prime+Probe
+    memset(&sandbox->eviction_region[0], 0, EVICT_REGION_SIZE * sizeof(char));
+
     for (long i = -uarch_reset_rounds; i < rounds; i++)
     {
         // ignore "warm-up" runs (i<0)uarch_reset_rounds
@@ -81,12 +84,6 @@ void run_experiment(long rounds)
 
         // Initialize memory:
         // NOTE: memset is not used intentionally! somehow, it messes up with P+P measurements
-
-        // - eviction region is initialized with zeroes
-        for (int j = 0; j < EVICT_REGION_SIZE / 8; j += 1) {
-            ((uint64_t *) sandbox->eviction_region)[j] = 0;
-        }
-
         // - overflows are initialized with zeroes
         memset(&sandbox->lower_overflow[0], 0, OVERFLOW_REGION_SIZE * sizeof(char));
         for (int j = 0; j < OVERFLOW_REGION_SIZE / 8; j += 1) {
