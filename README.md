@@ -29,7 +29,27 @@ So far, Revizor supports only Intel CPU. It was tested on Intel Core i7-6700 and
 
 * Linux v5.6+ (tested on Linux v5.6.6-300 and v5.6.13-100; there is a good chance it will work on other versions as well, but it's not guaranteed).
 * Linux Kernel Headers
+```
+# On Ubuntu
+sudo apt install linux-headers-$(uname -r)
+```
+* MSR Tools:
+```
+# On Ubuntu
+sudo apt install msr-tools
+```
 * Python 3.9+
+```
+# On Ubuntu 18
+sudo apt install python3.9 python3.9-distutils
+sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 2
+sudo update-alternatives --config python3
+
+# you may also need
+pip3 install --upgrade setuptools
+pip3 install --upgrade pip
+pip3 install --upgrade distlib
+```
 * [Unicorn 1.0.2+](https://www.unicorn-engine.org/docs/)
 * Python bindings to Unicorn:
 ```shell
