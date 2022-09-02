@@ -1,7 +1,7 @@
 # Explanations
 
 * [How Revizor Works](./how-revizor-works.md)
-* [Revizor's Architecture](./architecture.md)
+* [Revizor Architecture](./architecture.md)
 
 # Papers
 

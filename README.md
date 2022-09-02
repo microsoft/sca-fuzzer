@@ -43,8 +43,15 @@ sudo apt-get install linux-headers-$(uname -r)
 * [Python 3.9+](https://www.python.org/downloads/)
 
 ```shell
-# check python version
-python3 --version
+# On Ubuntu 18
+sudo apt install python3.9 python3.9-distutils
+sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 2
+sudo update-alternatives --config python3
+
+# you may also need
+pip3 install --upgrade setuptools
+pip3 install --upgrade pip
+pip3 install --upgrade distlib
 ```
 
 * [Unicorn 1.0.2+](https://www.unicorn-engine.org/docs/)
