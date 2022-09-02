@@ -37,7 +37,15 @@ cat /proc/version
 * Linux Kernel Headers
 
 ```shell
+# On Ubuntu
 sudo apt-get install linux-headers-$(uname -r)
+```
+
+* MSR Tools
+
+```shell
+# On Ubuntu
+sudo apt install msr-tools
 ```
 
 * [Python 3.9+](https://www.python.org/downloads/)
