@@ -93,6 +93,8 @@ def get_model(bases: Tuple[int, int]) -> interfaces.Model:
             model_instance = x86_model.X86UnicornNullFault(bases[0], bases[1])
         elif "ooo" in CONF.contract_execution_clause:
             model_instance = x86_model.x86UnicornOOO(bases[0], bases[1])
+        elif "gp" in CONF.contract_execution_clause:
+            model_instance = x86_model.X86GPOOOModel(bases[0], bases[1])
         elif "div-overflow" in CONF.contract_execution_clause:
             model_instance = x86_model.X86UnicornDivOverflow(bases[0], bases[1])
         elif "meltdown" in CONF.contract_execution_clause:
