@@ -34,7 +34,7 @@ For a complete list, see `src/config.py`.
 * `model_max_nesting` [int]: Maximum number of simulated mispredictions.
 * `model_max_spec_window` [int]: Size of the speculation window.
 
-## Generator Configuration
+# Generator Configuration
 
 * `instruction_set`  [str]: Tested ISA.
   Only one option is currently supported - "x86-64" (default).

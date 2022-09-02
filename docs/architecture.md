@@ -1,8 +1,56 @@
-# Architecture
+# Revizor's Architecture
 
-![architecture](Arch.png)
+![architecture](diagrams/arch.png)
 
-**Under construction**
+Revizor has **five** chief components:
+
+1. Test Case Generator
+2. Input Generator
+3. Model
+4. Executor
+5. Analyser
+
+The **Test Case Generator** and **Input Generator** are responsible for
+generating random test cases to be run through the **Model** and **Executor**.
+The results are examined by the **Analyser** for contract violations.
+
+## Test Case Generator
+
+The TCG is responsible for generating random assembly test cases. It takes an
+Instruction Set Specification as input in order for it to understand the
+instructions and syntax it can use for generation.
+
+## Input Generator
+
+The IG is responsible for generating the *inputs* that are passed into a test
+case created by the TCG. Largely, this means **register** and **memory** values
+that the microarchitecture will be primed with before executing the test case.
+In this way, a single test case program can be run across several different
+inputs, allowing for multiple contract traces (and later, hardware traces) to be
+collected for analysis.
+
+## Model
+
+The Model's job is to accept test cases and inputs from the TCG & IG and
+*emulate* the test case to collect **contract traces**. A single test case seeded
+with several inputs (`N` inputs) will create several contract traces (`N`
+contract traces) as the model's output. These are passed to the Analyser to
+determine **input classes**.
+
+## Executor
+
+The Executor, on the other side from the Model, is responsible for running the
+*same* test cases (with the *same* inputs) on physical hardware to collect
+**hardware traces**. Hardware traces from the same input class are collected and
+studied by the Analyser to detect **contract violations**.
+
+## Analyser
+
+The Analyser receives contract traces from the Model and hardware traces from
+the Executor to accomplish two primary goals:
+
+1. Compare contract traces to set up **input classes**.
+2. Compare hardware traces to detect **contract violations**.
 
 [comment]: <> (## Instruction Set Spec)
 
