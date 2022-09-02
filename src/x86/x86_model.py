@@ -5,9 +5,9 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 import re
+import copy
 import numpy as np
 from typing import Tuple, Dict, List, Set
-from copy import copy
 
 import unicorn.x86_const as ucc
 from unicorn import Uc, UC_MEM_WRITE, UC_ARCH_X86, UC_MODE_64
@@ -371,15 +371,8 @@ class x86UnicornOOO(X86UnicornSpec):
         # store the address for checkpointing (see speculate_fault)
         model.next_instr_address = address + size
 
-<<<<<<< HEAD
         # track dependencies only after faults
         if not model.in_speculation or not model.dependencies:
-=======
-        if len(model.dependencies) == 0:
-            return
-
-        if model.last_faulty_instr_address == model.curr_instr_address:
->>>>>>> 747c2bd (x86/model: contract for GP faults)
             return
 
         # check if the instruction should be skipped due to a dependency on a faulting instr
@@ -420,25 +413,6 @@ class x86UnicornOOO(X86UnicornSpec):
         # skip the dependent instruction
         emulator.reg_write(ucc.UC_X86_REG_RIP, address + size)
 
-<<<<<<< HEAD
-=======
-    @staticmethod
-    def trace_mem_access(emulator, access, address, size, value, model) -> None:
-        assert isinstance(model, x86UnicornOOO)
-
-        # speculate only on the accesses to the faulty page
-        if (address >= model.faulty_region
-            and address < model.faulty_region + model.FAULTY_REGION_SIZE)\
-                and not model.in_speculation and UC_ERR_EXCEPTION in model.ooo_faults:
-            model.pending_fault = UC_ERR_EXCEPTION  # 21
-            model.last_faulty_instr_address = \
-                model.curr_instr_address
-            emulator.emu_stop()
-            return
-
-        X86UnicornSpec.trace_mem_access(emulator, access, address, size, value, model)
-
->>>>>>> 747c2bd (x86/model: contract for GP faults)
     def checkpoint(self, emulator: Uc, next_instruction):
         self.dependency_checkpoints.append(copy.copy(self.dependencies))
         return super().checkpoint(emulator, next_instruction)

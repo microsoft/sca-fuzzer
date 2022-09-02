@@ -74,6 +74,7 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
         self.passes = [
             X86SandboxPass(),
             X86PatchUndefinedFlagsPass(self.instruction_set, self),
+            X86NonCanonicalAddressPass(),
             X86PatchUndefinedResultPass(),
             X86AddUndefinedOpcodesPass(),
         ]
@@ -274,6 +275,70 @@ class X86LFENCEPass(Pass):
 
                 for instr in insertion_points:
                     bb.insert_after(instr, Instruction("LFENCE", True))
+
+
+class X86NonCanonicalAddressPass(Pass):
+
+    def run_on_test_case(self, test_case: TestCase) -> None:
+        if 'PF-noncanonical' in CONF.permitted_faults:
+            return
+
+        for func in test_case.functions:
+            for bb in func:
+                if bb == func.entry:
+                    continue
+
+                memory_instructions = []
+                for inst in bb:
+                    if inst.has_mem_operand(True):
+                        memory_instructions.append(inst)
+
+                # Collect src operands
+                for instr in memory_instructions:
+                    n = len(memory_instructions)
+                    rand_bool = random.randint(0, n) == 0
+                    if not rand_bool:
+                        continue
+
+                    src_operands = []
+                    for o in instr.get_src_operands():
+                        if isinstance(o, RegisterOperand):
+                            src_operands.append(o)
+
+                    mem_operands = instr.get_mem_operands()
+                    implicit_mem_operands = instr.get_implicit_mem_operands()
+                    if mem_operands and not implicit_mem_operands:
+                        assert len(mem_operands) == 1, f"Unexpected instruction format {instr.name}"
+                        mem_operand: Operand = mem_operands[0]
+                        registers = mem_operand.value
+
+                        offsets = ["RCX", "RDX"]
+                        masks = ["RAX", "RBX"]
+                        offset_reg = offsets[0]
+                        mask_reg = masks[0]
+                        for reg in src_operands:
+                            if X86TargetDesc.gpr_normalized[offset_reg] == \
+                               X86TargetDesc.gpr_normalized[reg.value]:
+                                offset_reg = offsets[1]
+                            if X86TargetDesc.gpr_normalized[mask_reg] == \
+                               X86TargetDesc.gpr_normalized[reg.value]:
+                                mask_reg = masks[1]
+
+                        lea = Instruction("LEA", True) \
+                            .add_op(RegisterOperand(offset_reg, 64, False, True)) \
+                            .add_op(MemoryOperand(registers, 64, True, False))
+                        bb.insert_before(instr, lea)
+                        mov = Instruction("MOV", True) \
+                            .add_op(RegisterOperand(mask_reg, 64, True, True)) \
+                            .add_op(ImmediateOperand("0x1000000000000", 64))
+                        bb.insert_before(instr, mov)
+                        mask = Instruction("XOR", True) \
+                            .add_op(RegisterOperand(offset_reg, 64, True, True)) \
+                            .add_op(RegisterOperand(mask_reg, 64, True, False))
+                        bb.insert_before(instr, mask)
+                        for idx, op in enumerate(instr.operands):
+                            if op == mem_operand:
+                                instr.operands[idx].value = offset_reg
 
 
 class X86SandboxPass(Pass):

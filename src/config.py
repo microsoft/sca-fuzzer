@@ -88,7 +88,6 @@ class ConfCls:
     """ model_max_nesting: """
     model_max_spec_window: int = 250
     """ model_max_spec_window: """
-
     # ==============================================================================================
     # Executor
     executor: str = 'default'

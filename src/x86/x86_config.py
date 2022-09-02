@@ -10,8 +10,8 @@ from typing import List
 x86_option_values = {
     'executor_mode': ['P+P', 'F+R', 'E+R'],
     'permitted_faults': [
-        'DE-zero', 'DE-overflow', 'UD', 'PF-present', 'PF-writable', 'assist-accessed',
-        'assist-dirty'
+        'DE-zero', 'DE-overflow', 'UD', 'PF-present', 'PF-writable', 'PF-noncanonical',
+        'assist-accessed', 'assist-dirty'
     ],
 }
 
