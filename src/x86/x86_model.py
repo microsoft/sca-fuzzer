@@ -15,8 +15,8 @@ from unicorn import Uc, UcError, UC_MEM_WRITE, UC_ARCH_X86, UC_MODE_64, \
 
 from interfaces import TestCase, InputTaint, Instruction, RegisterOperand, FlagsOperand, \
     MemoryOperand, Input
-from model import UnicornModel, UnicornSpec, UnicornSeq, TaintTrackerInterface, UnicornTargetDesc
-from x86.x86_generator import X86TargetDesc
+from model import UnicornModel, UnicornSpec, UnicornSeq, TaintTrackerInterface
+from x86.x86_target_desc import X86UnicornTargetDesc, X86TargetDesc
 from service import LOGGER
 
 FLAGS_CF = 0b000000000001
@@ -25,15 +25,6 @@ FLAGS_AF = 0b000000010000
 FLAGS_ZF = 0b000001000000
 FLAGS_SF = 0b000010000000
 FLAGS_OF = 0b100000000000
-
-
-class X86UnicornTargetDesc(UnicornTargetDesc):
-    registers: List[int] = [
-        ucc.UC_X86_REG_RAX, ucc.UC_X86_REG_RBX, ucc.UC_X86_REG_RCX, ucc.UC_X86_REG_RDX,
-        ucc.UC_X86_REG_RSI, ucc.UC_X86_REG_RDI, ucc.UC_X86_REG_EFLAGS
-    ]
-    barriers: List[str] = ['MFENCE', 'LFENCE']
-    flags_register: int = ucc.UC_X86_REG_EFLAGS
 
 
 class X86UnicornModel(UnicornModel):
@@ -368,37 +359,6 @@ class X86TaintTracker(TaintTrackerInterface):
     tainted_labels: Set[str]
     pending_taint: List[str]
 
-    _reg_decode = {
-        "A": ucc.UC_X86_REG_RAX,
-        "B": ucc.UC_X86_REG_RBX,
-        "C": ucc.UC_X86_REG_RCX,
-        "D": ucc.UC_X86_REG_RDX,
-        "DI": ucc.UC_X86_REG_RDI,
-        "SI": ucc.UC_X86_REG_RSI,
-        "SP": ucc.UC_X86_REG_RSP,
-        "BP": ucc.UC_X86_REG_RBP,
-        "8": ucc.UC_X86_REG_R8,
-        "9": ucc.UC_X86_REG_R9,
-        "10": ucc.UC_X86_REG_R10,
-        "11": ucc.UC_X86_REG_R11,
-        "12": ucc.UC_X86_REG_R12,
-        "13": ucc.UC_X86_REG_R13,
-        "14": ucc.UC_X86_REG_R14,
-        "15": ucc.UC_X86_REG_R15,
-        "FLAGS": ucc.UC_X86_REG_EFLAGS,
-        "CF": ucc.UC_X86_REG_EFLAGS,
-        "PF": ucc.UC_X86_REG_EFLAGS,
-        "AF": ucc.UC_X86_REG_EFLAGS,
-        "ZF": ucc.UC_X86_REG_EFLAGS,
-        "SF": ucc.UC_X86_REG_EFLAGS,
-        "TF": ucc.UC_X86_REG_EFLAGS,
-        "IF": ucc.UC_X86_REG_EFLAGS,
-        "DF": ucc.UC_X86_REG_EFLAGS,
-        "OF": ucc.UC_X86_REG_EFLAGS,
-        "AC": ucc.UC_X86_REG_EFLAGS,
-        "RIP": -1,
-        "RSP": -1,
-    }
     _registers = [
         ucc.UC_X86_REG_RAX, ucc.UC_X86_REG_RBX, ucc.UC_X86_REG_RCX, ucc.UC_X86_REG_RDX,
         ucc.UC_X86_REG_RSI, ucc.UC_X86_REG_RDI, ucc.UC_X86_REG_EFLAGS
@@ -412,6 +372,7 @@ class X86TaintTracker(TaintTrackerInterface):
         self.mem_dependencies = {}
         self.tainted_labels = set(self.initial_observations)
         self.checkpoints = []
+        self.target_desc = X86UnicornTargetDesc()
 
     def start_instruction(self, instruction):
         """ Collect source and target registers/flags """
@@ -447,11 +408,6 @@ class X86TaintTracker(TaintTrackerInterface):
 
     def _finalize_instruction(self):
         """Propagate dependencies from source operands to destinations """
-        # print("-----------------------------------------------")
-        # print(self._instruction)
-        # print(f"Src:  {self.src_regs}, {self.src_flags}, {self.src_mems}, "
-        #   f"Mem regs: {self.mem_address_regs}")
-        # print(f"Dest: {self.dest_regs}, {self.dest_flags}, {self.dest_mems}")
 
         # Compute source label
         src_labels = set()
@@ -556,10 +512,10 @@ class X86TaintTracker(TaintTrackerInterface):
                 # we taint the 64-bits block that contains the address
                 input_offset = (int(label, 16)) // 8
             else:
-                reg = self._reg_decode[label]
+                reg = self.target_desc.reg_decode[label]
                 if reg in self._registers:
                     input_offset = register_start + \
-                          self._registers.index(self._reg_decode[label])
+                          self._registers.index(self.target_desc.reg_decode[label])
             if input_offset >= 0:
                 tainted_positions.append(input_offset)
 
@@ -570,10 +526,5 @@ class X86TaintTracker(TaintTrackerInterface):
                 taint[i] = True
             else:
                 taint[i] = False
-
-        # print(self.tainted_labels)
-        # for i, t in enumerate(taint):
-        # if t:
-        # print(i)
 
         return taint
