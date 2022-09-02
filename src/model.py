@@ -11,7 +11,7 @@ from typing import List, Tuple, Type
 from unicorn import Uc, UcError, UC_MEM_WRITE, UC_MEM_READ, UC_SECOND_SCALE
 
 from interfaces import CTrace, TestCase, Model, InputTaint, Instruction, ExecutionTrace, \
-     TracedInstruction, TracedMemAccess, Input
+     TracedInstruction, TracedMemAccess, Input, Dict
 from config import CONF
 from service import LOGGER
 
@@ -23,6 +23,7 @@ class UnicornTargetDesc(ABC):
     registers: List[int]
     barriers: List[str]
     flags_register: int
+    reg_decode: Dict[str, int]
 
 
 class UnicornTracer(ABC):
@@ -378,6 +379,7 @@ class CTRTracer(CTTracer):
     """
     When execution starts we also observe registers state.
     """
+
     def reset_trace(self, emulator: Uc, target_desc: UnicornTargetDesc):
         self.trace = [emulator.reg_read(reg) for reg in target_desc.registers]
         self.execution_trace = []
