@@ -28,6 +28,19 @@ test_dir = test_path.parent
 
 class X86ModelTest(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        # make sure that the change in the configuration does not impact the other tests
+        cls.prev_conf = deepcopy(CONF)
+        CONF.instruction_set = "x86-64"
+        CONF.model = 'x86-unicorn'
+        CONF.input_gen_seed = 10  # default
+
+    @classmethod
+    def tearDownClass(cls):
+        global CONF
+        CONF = cls.prev_conf
+
     def test_x86_model_random(self):
         global CONF
         prev_conf = deepcopy(CONF)
