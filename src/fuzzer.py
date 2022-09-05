@@ -66,14 +66,18 @@ class Fuzzer:
                 test_case = self.generator.create_test_case('generated.asm')
             else:
                 test_case = self.generator.parse_existing_test_case(self.existing_test_case)
+            STAT.test_cases += 1
 
             # Prepare inputs
             inputs: List[Input] = self.input_gen.generate(CONF.input_gen_seed, num_inputs)
             STAT.num_inputs += len(inputs) * CONF.inputs_per_class
 
+            # Check if the test case is useful
+            if self.filter(test_case, inputs):
+                continue
+
             # Fuzz the test case
             violation = self.fuzzing_round(test_case, inputs)
-            STAT.test_cases += 1
 
             if violation:
                 LOGGER.fuzzer_report_violations(violation, self.model)
@@ -91,43 +95,50 @@ class Fuzzer:
 
         LOGGER.fuzzer_finish()
 
+    def filter(self, test_case, inputs):
+        return False  # implemented by architecture-specific subclasses
+
     def fuzzing_round(self, test_case: TestCase, inputs: List[Input]) -> Optional[EquivalenceClass]:
         self.model.load_test_case(test_case)
         self.executor.load_test_case(test_case)
         self.coverage.load_test_case(test_case)
 
-        # by default, we test without nested misprediction,
-        # but retry with nesting upon a violation
-        violations: List[EquivalenceClass] = []
-        boosted_inputs: List[Input] = []
-        for nesting in [1, CONF.model_max_nesting]:
-            boosted_inputs = self.boost_inputs(inputs, nesting)
+        # 1. Test for contract violations with nesting=1
+        # Test against the most basic contract - seq with no nesting - to check
+        # if the traces contain *any* speculative information
+        ctraces: List[CTrace]
+        htraces: List[HTrace]
 
-            # get traces
-            ctraces: List[CTrace] = self.model.trace_test_case(boosted_inputs, nesting)
-            htraces: List[HTrace] = self.executor.trace_test_case(boosted_inputs)
-            LOGGER.trc_fuzzer_dump_traces(htraces, ctraces)
+        # at this point we need to increase the effectiveness of inputs
+        # so that we can detect contract violations (note that it wasn't necessary
+        # up to this point because we weren't testing against a contract)
+        boosted_inputs: List[Input] = self.boost_inputs(inputs, 1)
 
-            # Check for violations
+        # check for violations
+        ctraces = self.model.trace_test_case(boosted_inputs, 1)
+        htraces = self.executor.trace_test_case(boosted_inputs, CONF.executor_repetitions)
+        LOGGER.trc_fuzzer_dump_traces(htraces, ctraces)
+        violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces, True)
+        if not violations:  # nothing detected? -> we are done here, move to next test case
+            return None
+
+        # 4. Repeat with with max nesting
+        # Test against the target contract to check if the speculative information
+        # is already exposed in the contract. If it isn't - we found a violation
+        if 'seq' not in CONF.contract_execution_clause:
+            LOGGER.fuzzer_nesting_increased()
+            boosted_inputs = self.boost_inputs(inputs, CONF.model_max_nesting)
+            ctraces = self.model.trace_test_case(boosted_inputs, CONF.model_max_nesting)
+            htraces = self.executor.trace_test_case(boosted_inputs, CONF.executor_repetitions)
             violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces, True)
-
-            # nothing detected? -> we are done here, move to next test case
             if not violations:
                 return None
 
-            # sequential contract? -> no point in trying higher nesting
-            if 'seq' in CONF.contract_execution_clause:
-                break
-
-            # otherwise, try higher nesting
-            if nesting == 1:
-                LOGGER.fuzzer_nesting_increased()
-
+        # 5. Check if the violation survives priming
         if not CONF.enable_priming:
             return violations[-1]
-
-        # Try priming the inputs that disagree with the other ones within the same eq. class
         STAT.required_priming += 1
+
         violation_stack = list(violations)  # make a copy
         while violation_stack:
             LOGGER.fuzzer_priming(len(violation_stack))

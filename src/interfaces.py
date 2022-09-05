@@ -663,6 +663,11 @@ class Generator(ABC):
         """
         pass
 
+    @staticmethod
+    @abstractmethod
+    def assemble(asm_file: str, bin_file: str) -> None:
+        pass
+
 
 class InputGenerator(ABC):
 
