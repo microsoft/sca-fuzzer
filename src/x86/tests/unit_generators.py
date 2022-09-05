@@ -97,7 +97,7 @@ class X86RandomGeneratorTest(unittest.TestCase):
 
     def test_x86_asm_parsing_basic(self):
         CONF.register_blocklist = []
-        CONF._default_instruction_blocklist = []
+        CONF.setattr_internal("_default_instruction_blocklist", [])
 
         instruction_set = InstructionSet('tests/min_x86.json')
         generator = X86RandomGenerator(instruction_set)
