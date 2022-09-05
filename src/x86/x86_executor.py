@@ -21,6 +21,7 @@ def write_to_sysfs_file_bytes(value: bytes, path: str) -> None:
 
 class X86IntelExecutor(Executor):
     previous_num_inputs: int = 0
+    feedback: List[int]
 
     def __init__(self):
         super().__init__()
@@ -117,8 +118,7 @@ class X86IntelExecutor(Executor):
 
         # simple case - no merging required
         if repetitions == 1:
-            if self.coverage:
-                self.coverage.executor_hook([r[0][1:] for r in all_results])
+            self.feedback = [r[0][1:] for r in all_results]
             return [int(r[0][0]) for r in all_results]
 
         traces = [0 for _ in inputs]
@@ -139,9 +139,7 @@ class X86IntelExecutor(Executor):
                     # merge the trace if we observed it sufficiently many time
                     # (i.e., if we can conclude it's not noise)
                     traces[input_id] |= trace
-
-        if self.coverage:
-            self.coverage.executor_hook(pfc_readings)
+        self.feedback = pfc_readings.tolist()
 
         return traces
 
@@ -151,3 +149,6 @@ class X86IntelExecutor(Executor):
         with open('/sys/x86_executor/print_code_base', 'r') as f:
             code_base = f.readline()
         return int(sandbox_base, 16), int(code_base, 16)
+
+    def get_last_feedback(self) -> List:
+        return self.feedback

@@ -742,8 +742,7 @@ class Executor(ABC):
         pass
 
     @abstractmethod
-    def trace_test_case(self, inputs: List[Input], repetitions: int = 0) \
-            -> List[CombinedHTrace]:
+    def trace_test_case(self, inputs: List[Input], repetitions: int = 0) -> List[CombinedHTrace]:
         pass
 
     @abstractmethod
@@ -752,6 +751,10 @@ class Executor(ABC):
 
     def set_coverage(self, coverage: Coverage):
         self.coverage = coverage
+
+    @abstractmethod
+    def get_last_feedback(self):
+        pass
 
 
 class Analyser(ABC):
