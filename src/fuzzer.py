@@ -146,6 +146,9 @@ class Fuzzer:
         return violation
 
     def boost_inputs(self, inputs: List[Input], nesting: int) -> List[Input]:
+        if CONF.inputs_per_class == 1:
+            return inputs
+
         taints: List[InputTaint]
         taints = self.model.get_taints(inputs, nesting)
 
