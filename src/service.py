@@ -34,16 +34,13 @@ class StatisticsCls:
             if self.analysed_test_cases else 0
         effective_clss = self.eff_classes / self.analysed_test_cases \
             if self.analysed_test_cases else 0
+        iptc = self.num_inputs / self.test_cases if self.test_cases else 0
 
         s = "================================ Statistics ===================================\n"
         s += f"Test Cases: {self.test_cases}\n"
-        s += f"Inputs per test case: {self.num_inputs / self.test_cases:.1f}\n"
-        s += "Coverage:\n"
-        s += f"  Patterns: {self.coverage}\n"
-        s += f"  Fully covered: {self.fully_covered}\n"
-        s += f"  Longest uncovered: {self.coverage_longest_uncovered}\n"
-        s += f"  Effectiveness: {effectiveness:.1f}\n"
+        s += f"Inputs per test case: {iptc:.1f}\n"
         s += "Effectiveness: \n"
+        s += f"  Effectiveness: {effectiveness:.1f}\n"
         s += f"  Total Cls: {total_clss_per_test_case:.1f}\n"
         s += f"  Effective Cls: {effective_clss:.1f}\n"
         s += f"Required priming: {self.required_priming}\n"
