@@ -3,5 +3,5 @@ contract_execution_clause:
   - seq
 input_gen_entropy_bits: 9
 inputs_per_class: 3
-no_priming: true
+enable_priming: false
 enable_faulty_page: true

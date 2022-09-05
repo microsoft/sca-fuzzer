@@ -1,4 +1,4 @@
-supported_categories:
+instruction_categories:
   - NOP
   - BINARY
   - BITBYTE
@@ -15,7 +15,7 @@ contract_observation_clause: ct
 contract_execution_clause:
   - cond
 
-test_case_size: 16
+program_size: 16
 min_bb_per_function: 5
 max_bb_per_function: 5
 avg_mem_accesses: 4

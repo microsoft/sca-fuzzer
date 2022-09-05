@@ -24,12 +24,12 @@ class X86RandomGeneratorTest(unittest.TestCase):
 
     def test_x86_configuration(self):
         CONF.generator = "random"
-        instruction_set = InstructionSet('tests/min_x86.json', CONF.supported_categories)
+        instruction_set = InstructionSet('tests/min_x86.json', CONF.instruction_categories)
         gen = get_generator(instruction_set)
         self.assertEqual(gen.__class__, X86RandomGenerator)
 
     def test_x86_all_instructions(self):
-        instruction_set = InstructionSet('tests/min_x86.json', CONF.supported_categories)
+        instruction_set = InstructionSet('tests/min_x86.json', CONF.instruction_categories)
         generator = X86RandomGenerator(instruction_set)
         func = generator.generate_function(".function_main")
         printer = X86Printer()
@@ -68,7 +68,7 @@ class X86RandomGeneratorTest(unittest.TestCase):
             self.fail("Generated invalid instruction(s)")
 
     def test_create_test_case(self):
-        instruction_set = InstructionSet('tests/min_x86.json', CONF.supported_categories)
+        instruction_set = InstructionSet('tests/min_x86.json', CONF.instruction_categories)
         generator = X86RandomGenerator(instruction_set)
 
         asm_file = tempfile.NamedTemporaryFile(delete=False)
@@ -96,8 +96,8 @@ class X86RandomGeneratorTest(unittest.TestCase):
         os.unlink(asm_file.name)
 
     def test_x86_asm_parsing_basic(self):
-        CONF.gpr_blocklist = []
-        CONF.instruction_blocklist = []
+        CONF.register_blocklist = []
+        CONF._default_instruction_blocklist = []
 
         instruction_set = InstructionSet('tests/min_x86.json')
         generator = X86RandomGenerator(instruction_set)
@@ -119,7 +119,7 @@ class X86RandomGeneratorTest(unittest.TestCase):
         self.assertEqual(bb1.successors[0], exit_)
 
     def test_x86_undef_flag_patch(self):
-        instruction_set = InstructionSet('tests/min_x86.json', CONF.supported_categories)
+        instruction_set = InstructionSet('tests/min_x86.json', CONF.instruction_categories)
         undef_instr_spec = list(filter(lambda x: x.name == 'BSF', instruction_set.instructions))[0]
         read_instr_spec = list(filter(lambda x: x.name == 'LAHF', instruction_set.instructions))[0]
 

@@ -3,7 +3,7 @@ contract_execution_clause:
   - seq
 inputs_per_class: 1
 enable_ssbp_patch: true
-no_priming: true
+enable_priming: false
 logging_modes:
   - fuzzer_trace
 input_gen_entropy_bits: 6

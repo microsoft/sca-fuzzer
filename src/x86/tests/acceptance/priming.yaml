@@ -7,4 +7,4 @@ enable_faulty_page: false
 
 input_gen_entropy_bits: 2
 executor_warmups: 5
-no_priming: false
+enable_priming: true

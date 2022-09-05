@@ -106,8 +106,8 @@ class ConfigurableGenerator(Generator, abc.ABC):
             assert self.load_instruction and self.store_instructions, \
                 "The instruction set does not have memory accesses while `avg_mem_accesses > 0`"
 
-        if CONF.test_case_generator_seed:
-            random.seed(CONF.test_case_generator_seed)
+        if CONF.program_generator_seed:
+            random.seed(CONF.program_generator_seed)
 
     def create_test_case(self, asm_file: str) -> TestCase:
         self.test_case = TestCase()
@@ -571,7 +571,7 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
     def add_instructions_in_function(self, func: Function):
         # evenly fill all BBs with random instructions
         basic_blocks_to_fill = func.get_all()[1:-1]
-        for _ in range(0, CONF.test_case_size):
+        for _ in range(0, CONF.program_size):
             bb = random.choice(basic_blocks_to_fill)
             spec = self._pick_random_instruction_spec()
             inst = self.generate_instruction(spec)
@@ -582,10 +582,10 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
 
         # ensure the requested avg. number of mem. accesses
         search_for_memory_access = False
-        memory_access_probability = CONF.avg_mem_accesses / CONF.test_case_size
+        memory_access_probability = CONF.avg_mem_accesses / CONF.program_size
         if CONF.generate_memory_accesses_in_pairs:
             memory_access_probability = 1 if self.had_recent_memory_access else \
-                (CONF.avg_mem_accesses / 2) / (CONF.test_case_size - CONF.avg_mem_accesses / 2)
+                (CONF.avg_mem_accesses / 2) / (CONF.program_size - CONF.avg_mem_accesses / 2)
 
         if random.random() < memory_access_probability:
             search_for_memory_access = True

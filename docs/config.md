@@ -15,7 +15,7 @@ For a complete list, see `src/config.py`.
 
 ## General Configuration
 
-* `no_priming` [bool]: Disable priming.
+* `enable_priming` [bool]: priming.
 * `logging_modes` List[str]: Verbosity of the output.
   Available options:
   `info` - general information about the progress of fuzzing;
@@ -40,16 +40,16 @@ For a complete list, see `src/config.py`.
   Only one option is currently supported - "x86-64" (default).
 * `generator` [str]: Test case generator type.
   Only one option is currently supported - "random" (default).
-* `test_case_generator_seed` [int]: Test case generation seed.
+* `program_generator_seed` [int]: Test case generation seed.
   Will use a random seed if set to zero.
 * `min_bb_per_function` [int]: Minimum number of basic blocks per test case.
 * `max_bb_per_function` [int]: Maximum number of basic blocks per test case.
-* `test_case_size` [int]: Number of instructions per test case.
+* `program_size` [int]: Number of instructions per test case.
   The actual size might be larger because of the instrumentation.
 * `avg_mem_accesses` [int]: Average number of memory accesses per test case.
-* `supported_categories` [list(str)]: List of instruction categories to be used when generating a test case.
+* `instruction_categories` [list(str)]: List of instruction categories to be used when generating a test case.
   Used to filter out instructions from the instruction set file passed via command line (`--instruction-set`).
-* `extended_instruction_blocklist` [list(str)]: List of instructions to be excluded by the generator.
+* `instruction_blocklist` [list(str)]: List of instructions to be excluded by the generator.
   Used to filter out instructions from the instruction set file passed via command line (`--instruction-set`).
 
 # Input Generator Configuration

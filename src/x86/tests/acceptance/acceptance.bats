@@ -187,14 +187,3 @@ EOF
         [[ "$output" != *"=== Violations detected ==="* ]]
     done
 }
-
-@test "Priming: False Positive due to small min_primer_size" {
-    if [ $EXTENDED_TESTS -eq 0 ]; then
-        skip
-    fi
-
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/generated/priming-19-03-21.asm -i 500 -c x86/tests/acceptance/generated/priming-19-03-21.yaml"
-    echo "$output"
-    [ "$status" -eq 0 ]
-    [[ "$output" != *"=== Violations detected ==="* ]]
-}

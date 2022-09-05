@@ -16,77 +16,129 @@ class ConfCls:
     config_path: str = ""
     # ==============================================================================================
     # Fuzzer
-    no_priming = False
-    min_primer_size: int = 1  # deprecated? # better leave at 1; otherwise may fail to build primer
-    max_primer_size: int = 1000  # deprecated?
+    fuzzer: str = "basic"
+    """ fuzzer: type of the fuzzing algorithm """
+    enable_priming: bool = True
+    """ enable_priming: whether to check violations with priming """
+
     # ==============================================================================================
-    # Generator
-    instruction_set = "x86-64"
-    generator = "random"
-    test_case_generator_seed: int = 0
-    min_bb_per_function = 2
-    max_bb_per_function = 2
-    test_case_size = 24
-    avg_mem_accesses = 12
-    avoid_data_dependencies: bool = False
-    generate_memory_accesses_in_pairs: bool = False
-    extended_instruction_blocklist: List[str] = []
-    gpr_blocklist: List[str] = []
-    supported_categories: List[str] = []
+    # Program Generator
+    generator: str = "random"
+    """ generator: type of the program generator """
+    instruction_set: str = "x86-64"
+    """ instruction_set: ISA under test """
+    instruction_categories: List[str] = []
+    """ instruction_categories: list of instruction categories to use for generating programs """
     instruction_blocklist: List[str] = []
+    """ instruction_blocklist: list of instruction that will NOT be used for generating programs """
+    program_generator_seed: int = 0
+    """ program_generator_seed: seed of the program generator """
+    program_size: int = 24
+    """ program_size: size of generated programs """
+    avg_mem_accesses: int = 12
+    """ avg_mem_accesses: average number of memory accesses in generated programs """
+    min_bb_per_function: int = 2
+    """ min_bb_per_function: minimal number of basic blocks per function in generated programs """
+    max_bb_per_function: int = 2
+    """ max_bb_per_function: maximum number of basic blocks per function in generated programs """
+    register_blocklist: List[str] = []
+    """ register_blocklist: list of registers that will NOT be used for generating programs """
+    avoid_data_dependencies: bool = False
+    """ [DEPRECATED] avoid_data_dependencies: """
+    generate_memory_accesses_in_pairs: bool = False
+    """ [DEPRECATED] generate_memory_accesses_in_pairs: """
+    feedback_driven_generator: bool = False
+    """ [DEPRECATED] feedback_driven_generator: """
+
     # ==============================================================================================
     # Input Generator
     input_generator: str = 'random'
-    input_gen_seed: int = 10  # zero is a reserved value, do not use it
+    """ input_generator: type of the input generator """
+    input_gen_seed: int = 10
+    """ input_gen_seed: input generation seed; will use a random seed if set to zero """
     input_gen_entropy_bits: int = 16
-    input_main_region_size: int = 4096
-    input_faulty_region_size: int = 4096
-    input_register_region_size: int = 64
+    """ input_gen_entropy_bits: entropy of the random values created by the input generator """
+    memory_access_zeroed_bits: int = 0
+    """ [DEPRECATED] memory_access_zeroed_bits: """
     inputs_per_class: int = 2
-    memory_access_zeroed_bits: int = 2
+    """ inputs_per_class: number of inputs per input class """
+    input_main_region_size: int = 4096
+    """ input_main_region_size: """
+    input_faulty_region_size: int = 4096
+    """ input_faulty_region_size: """
+    input_register_region_size: int = 64
+    """ input_register_region_size: """
+
     # ==============================================================================================
-    # Model
+    # Contract Model
     model: str = 'x86-unicorn'
-    contract_execution_clause: List[str] = ["seq"]  # options: "seq", "cond", "bpas"
+    """ model: """
+    contract_execution_clause: List[str] = ["seq"]
+    """ contract_execution_clause: """
     contract_observation_clause: str = 'ct'
+    """ contract_observation_clause: """
     model_max_nesting: int = 5
+    """ model_max_nesting: """
     model_max_spec_window: int = 250
+    """ model_max_spec_window: """
+
     # ==============================================================================================
     # Executor
     executor: str = 'x86-intel'
+    """ executor: executor type """
     executor_mode: str = 'P+P'
+    """ executor_mode: hardware trace collection mode """
     executor_warmups: int = 50
+    """ executor_warmups: number of warmup rounds executed before starting to collect
+    hardware traces """
     executor_repetitions: int = 10
+    """ executor_repetitions: number of repetitions while collecting hardware traces """
     executor_max_outliers: int = 1
+    """ executor_max_outliers: """
     executor_taskset: int = 0
+    """ executor_taskset: id of the CPU core on which the executor is running test cases """
     enable_ssbp_patch: bool = True
+    """ enable_ssbp_patch: enable a patch against Speculative Store Bypass (Intel-only) """
     enable_pre_run_flush: bool = True
+    """ enable_pre_run_flush: ff enabled, the executor will do its best to flush
+    the microarchitectural state before running test cases """
     enable_faulty_page: bool = False
+    """ enable_faulty_page: If enabled, only of the sandbox memory pages will have the accessed
+    bit set to zero, which will cause a microcode assist on the fist load/store to this page. """
+
     # ==============================================================================================
     # Analyser
     analyser: str = 'equivalence-classes'
+    """ analyser: analyser type """
     analyser_permit_subsets: bool = True
+    """ analyser_permit_subsets: if enabled, the analyser will not label hardware traces
+    as mismatching if they form a subset relation """
+
     # ==============================================================================================
     # Coverage
     coverage_type: str = 'none'
-    feedback_driven_generator: bool = False  # temporary unused
-    # ==============================================================================================
-    # Output
-    multiline_output: bool = False
-    logging_modes: List[str] = ["info", "stat"]
+    """ coverage_type: coverage type """
+
     # ==============================================================================================
     # Minimizer
     minimizer: str = 'violation'
+    """ minimizer: type of the test case minimizer """
+
+    # ==============================================================================================
+    # Output
+    multiline_output: bool = False
+    """ multiline_output: """
+    logging_modes: List[str] = ["info", "stat"]
+    """ logging_modes: """
+
     # ==============================================================================================
     # Internal
     _instance = None
     _no_generation: bool = False
     _option_values: Dict[str, List] = {
         'executor_mode': ['P+P', 'F+R', 'E+R'],
-        'contract_observation_clause': [
-            'l1d', 'memory', 'ct', 'pc', 'ct-nonspecstore', 'ctr', 'arch'
-        ],
     }
+    _default_instruction_blocklist: List[str] = []
 
     # Implementation of singleton
     def __new__(cls, *args, **kwargs):
@@ -96,7 +148,8 @@ class ConfCls:
 
     def __setattr__(self, name, value):
         # print(f"CONF: setting {name} to {value}")
-        # sanity checks
+
+        # Sanity checks
         if name[0] == "_":
             raise ConfigException(f"Attempting to set an internal configuration variable {name}.")
         if getattr(self, name, None) is None:
@@ -127,8 +180,8 @@ class ConfCls:
             self.update_arch()
             return
 
-        if name == "extended_instruction_blocklist":
-            self.instruction_blocklist.extend(value)
+        if name == "instruction_blocklist":
+            self._default_instruction_blocklist.extend(value)
             return
 
         super().__setattr__(name, value)
@@ -150,7 +203,7 @@ class ConfCls:
             else:
                 super().__setattr__(option, values)
 
-    def setattr_internal(self, name, val: bool):
+    def setattr_internal(self, name, val):
         """ Bypass value checks and set an internal config variable. Use with caution! """
         super().__setattr__(name, val)
 

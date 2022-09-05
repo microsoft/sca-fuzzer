@@ -34,10 +34,10 @@ class Fuzzer:
         self.existing_test_case = existing_test_case
         if existing_test_case:
             CONF.setattr_internal("_no_generation", True)
-            CONF.gpr_blocklist = []
-            CONF.instruction_blocklist = []
+            CONF.setattr_internal("_default_instruction_blocklist", [])
+            CONF.register_blocklist = []
 
-        self.instruction_set = InstructionSet(instruction_set_spec, CONF.supported_categories)
+        self.instruction_set = InstructionSet(instruction_set_spec, CONF.instruction_categories)
         self.work_dir = work_dir
 
     def initialize_modules(self):
@@ -123,7 +123,7 @@ class Fuzzer:
             if nesting == 1:
                 LOGGER.fuzzer_nesting_increased()
 
-        if CONF.no_priming:
+        if not CONF.enable_priming:
             return violations[-1]
 
         # Try priming the inputs that disagree with the other ones within the same eq. class

@@ -33,7 +33,7 @@ class MinimizerViolation(Minimizer):
             inputs, ctraces, htraces, stats=True)
         if not violations:
             return []
-        if CONF.no_priming:
+        if not CONF.enable_priming:
             return violations
 
         # Try priming the inputs that disagree with the other ones within the same eq. class

@@ -3,4 +3,4 @@ contract_execution_clause:
   - bpas
 enable_ssbp_patch: false
 model_max_nesting: 1
-no_priming: true
+enable_priming: false

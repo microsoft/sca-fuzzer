@@ -51,7 +51,7 @@ class X86ModelTest(unittest.TestCase):
         min_x86_path = test_dir / "min_x86.json"
 
         instruction_set = InstructionSet(min_x86_path.absolute().as_posix(),
-                                         CONF.supported_categories)
+                                         CONF.instruction_categories)
         random_generator = X86RandomGenerator(instruction_set)
         tc: TestCase = random_generator.create_test_case(asm_file.name)
 

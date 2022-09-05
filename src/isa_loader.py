@@ -75,22 +75,22 @@ class InstructionSet(InstructionSetAbstract):
             if include_categories and spec.category not in include_categories:
                 return False
 
-            if spec.name in CONF.instruction_blocklist:
+            if spec.name in CONF._default_instruction_blocklist:
                 return False
 
             for operand in spec.operands:
                 if operand.type == OT.MEM and operand.values \
-                        and operand.values[0] in CONF.gpr_blocklist:
+                        and operand.values[0] in CONF.register_blocklist:
                     return False
 
             for implicit_operand in spec.implicit_operands:
                 assert implicit_operand.type != OT.LABEL  # I know no such instructions
                 if implicit_operand.type == OT.MEM and \
-                        implicit_operand.values[0] in CONF.gpr_blocklist:
+                        implicit_operand.values[0] in CONF.register_blocklist:
                     return False
 
                 if implicit_operand.type == OT.REG and \
-                        implicit_operand.values[0] in CONF.gpr_blocklist:
+                        implicit_operand.values[0] in CONF.register_blocklist:
                     assert len(implicit_operand.values) == 1
                     return False
             return True
@@ -105,7 +105,7 @@ class InstructionSet(InstructionSetAbstract):
             skip_pending = False
             for op in s.operands:
                 if op.type == OT.REG:
-                    choices = sorted(list(set(op.values) - set(CONF.gpr_blocklist)))
+                    choices = sorted(list(set(op.values) - set(CONF.register_blocklist)))
                     if not choices:
                         skip_pending = True
                         break

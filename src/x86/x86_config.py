@@ -6,7 +6,7 @@ SPDX-License-Identifier: MIT
 """
 from typing import List
 
-x86_supported_categories: List[str] = [
+x86_instruction_categories: List[str] = [
     # Base x86
     "BASE-BINARY",
     "BASE-BITBYTE",
@@ -90,7 +90,7 @@ x86_instruction_blocklist: List[str] = [
 # x86 executor internally uses R15, R14, RSP, RBP and, thus, they are excluded
 # segment registers are also excluded as we don't support their handling so far
 # same for CR* and DR*
-x86_gpr_blocklist: List[str] = [
+x86_register_blocklist: List[str] = [
     # free - rax, rbx, rcx, rdx, rdi, rsi
     'R8', 'R9', 'R10', 'R11', 'R12', 'R13', 'R14', 'R15', 'RSP', 'RBP',
     'R8D', 'R9D', 'R10D', 'R11D', 'R12D', 'R13D', 'R14D', 'R15D', 'ESP', 'EBP',

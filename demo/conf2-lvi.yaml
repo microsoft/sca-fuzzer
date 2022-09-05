@@ -4,7 +4,7 @@ contract_execution_clause:
   - cond
 
 # tested instructions
-supported_categories:
+instruction_categories:
   - BASE-BITBYTE
   - BASE-COND_BR
   - BASE-CMOV
@@ -17,7 +17,7 @@ supported_categories:
 input_gen_entropy_bits: 10
 min_bb_per_function: 2
 max_bb_per_function: 2
-test_case_size: 20
+program_size: 20
 avg_mem_accesses: 8
 inputs_per_class: 2
 # coverage_type: pfc

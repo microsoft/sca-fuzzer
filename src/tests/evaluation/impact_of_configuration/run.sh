@@ -53,7 +53,7 @@ function measure_detection_times() {
         echo "input_gen_entropy_bits: $INPUT_ENTROPY
 min_bb_per_function: $BB_PER_FUNCTION
 max_bb_per_function: $BB_PER_FUNCTION
-test_case_size: $TC_SIZE
+program_size: $TC_SIZE
 avg_mem_accesses: $NUM_MEM
 avoid_data_dependencies: $AVOID_DATA_DEP
 generate_memory_accesses_in_pairs: $MEM_IN_PAIRS
