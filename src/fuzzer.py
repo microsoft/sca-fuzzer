@@ -69,6 +69,7 @@ class Fuzzer:
 
             # Prepare inputs
             inputs: List[Input] = self.input_gen.generate(CONF.input_gen_seed, num_inputs)
+            STAT.num_inputs += len(inputs) * CONF.inputs_per_class
 
             # Fuzz the test case
             violation = self.fuzzing_round(test_case, inputs)
@@ -101,7 +102,6 @@ class Fuzzer:
         boosted_inputs: List[Input] = []
         for nesting in [1, CONF.model_max_nesting]:
             boosted_inputs = self.boost_inputs(inputs, nesting)
-            STAT.num_inputs += len(boosted_inputs)
 
             # get traces
             ctraces: List[CTrace] = self.model.trace_test_case(boosted_inputs, nesting)
