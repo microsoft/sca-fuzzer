@@ -26,6 +26,8 @@ class StatisticsCls:
     violations = 0
     coverage = 0
     analysed_test_cases: int = 0
+    spec_filter: int = 0
+    observ_filter: int = 0
 
     def __str__(self):
         total_clss = self.eff_classes + self.single_entry_classes
@@ -39,13 +41,16 @@ class StatisticsCls:
         s = "================================ Statistics ===================================\n"
         s += f"Test Cases: {self.test_cases}\n"
         s += f"Inputs per test case: {iptc:.1f}\n"
+        s += f"Required priming: {self.required_priming}\n"
+        s += f"Flaky violations: {self.flaky_violations}\n"
+        s += f"Violations: {self.violations}\n"
         s += "Effectiveness: \n"
         s += f"  Effectiveness: {effectiveness:.1f}\n"
         s += f"  Total Cls: {total_clss_per_test_case:.1f}\n"
         s += f"  Effective Cls: {effective_clss:.1f}\n"
-        s += f"Required priming: {self.required_priming}\n"
-        s += f"Flaky violations: {self.flaky_violations}\n"
-        s += f"Violations: {self.violations}\n"
+        s += "Filters:"
+        s += f"  Speculation Filter: {self.spec_filter}\n"
+        s += f"  Observation Filter: {self.observ_filter}\n"
         return s
 
     def get_brief(self):
@@ -53,14 +58,13 @@ class StatisticsCls:
             return ""
         else:
             if self.analysed_test_cases:
-                eff_cls = self.eff_classes / self.analysed_test_cases
                 all_cls = (self.eff_classes + self.single_entry_classes) / self.analysed_test_cases
             else:
-                eff_cls, all_cls = 0, 0
-            s = f"EfCl:{eff_cls:.1f}, "
-            s += f"AlCl:{all_cls:.1f}, "
+                all_cls = 0
+            s = f"AlCl:{all_cls:.1f}, "
             s += f"In:{self.num_inputs / self.test_cases:.1f}, "
             s += f"Cov:{self.coverage}, "
+            s += f"Obs:{self.observ_filter}, "
             s += f"Prim:{self.required_priming}, " \
                  f"Flak:{self.flaky_violations}, " \
                  f"Viol:{self.violations}, "
