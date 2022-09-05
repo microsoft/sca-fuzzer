@@ -25,16 +25,17 @@ class StatisticsCls:
     flaky_violations = 0
     violations = 0
     coverage = 0
-    coverage_longest_uncovered = 0
-    fully_covered: int = 0
+    analysed_test_cases: int = 0
 
     def __str__(self):
         total_clss = self.eff_classes + self.single_entry_classes
         effectiveness = self.eff_classes / total_clss if total_clss else 0
-        total_clss_per_test_case = total_clss / self.test_cases if self.test_cases else 0
-        effective_clss = self.eff_classes / self.test_cases if self.test_cases else 0
+        total_clss_per_test_case = total_clss / self.analysed_test_cases \
+            if self.analysed_test_cases else 0
+        effective_clss = self.eff_classes / self.analysed_test_cases \
+            if self.analysed_test_cases else 0
 
-        s = "\n================================ Statistics ===================================\n"
+        s = "================================ Statistics ===================================\n"
         s += f"Test Cases: {self.test_cases}\n"
         s += f"Inputs per test case: {self.num_inputs / self.test_cases:.1f}\n"
         s += "Coverage:\n"
@@ -54,8 +55,13 @@ class StatisticsCls:
         if self.test_cases == 0:
             return ""
         else:
-            s = f"EfCl:{self.eff_classes / self.test_cases:.1f}, "
-            s += f"AlCl:{(self.eff_classes + self.single_entry_classes) / self.test_cases:.1f}, "
+            if self.analysed_test_cases:
+                eff_cls = self.eff_classes / self.analysed_test_cases
+                all_cls = (self.eff_classes + self.single_entry_classes) / self.analysed_test_cases
+            else:
+                eff_cls, all_cls = 0, 0
+            s = f"EfCl:{eff_cls:.1f}, "
+            s += f"AlCl:{all_cls:.1f}, "
             s += f"In:{self.num_inputs / self.test_cases:.1f}, "
             s += f"Cov:{self.coverage}, "
             s += f"Prim:{self.required_priming}, " \

@@ -99,6 +99,7 @@ class EquivalenceAnalyser(Analyser):
         if stats:
             STAT.eff_classes += len(effective_classes)
             STAT.single_entry_classes += len(eq_class_map) - len(effective_classes)
+            STAT.analysed_test_cases += 1
 
         # build maps of htraces
         for eq_cls in effective_classes:
