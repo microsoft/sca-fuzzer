@@ -71,6 +71,9 @@ class X86IntelExecutor(Executor):
 
         if repetitions == 0:
             repetitions = CONF.executor_repetitions
+            threshold_outliers = CONF.executor_max_outliers
+        else:
+            threshold_outliers = repetitions // 10
 
         # convert the inputs into a byte sequence
         byte_inputs = [i.tobytes() for i in inputs]
@@ -118,7 +121,6 @@ class X86IntelExecutor(Executor):
                 self.coverage.executor_hook([r[0][1:] for r in all_results])
             return [int(r[0][0]) for r in all_results]
 
-        threshold_outliers = min(CONF.executor_max_outliers, repetitions - 1)
         traces = [0 for _ in inputs]
         pfc_readings: np.ndarray = np.zeros(shape=(len(inputs), 3), dtype=int)
 
