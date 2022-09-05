@@ -7,6 +7,7 @@ import x86.x86_model as x86_model
 
 import x86.x86_executor as x86_executor
 
+import x86.x86_fuzzer as x86_fuzzer
 import input_generator
 import analyser
 import coverage
@@ -59,6 +60,12 @@ def _get_from_config(options: Dict, key: str, conf_option_name: str, *args):
         return GenCls(*args)
 
     raise ConfigException(f"unknown value {key} for `{conf_option_name}` configuration option")
+
+
+def get_fuzzer(instruction_set, working_directory, testcase):
+    if CONF.instruction_set == "x86-64":
+        return x86_fuzzer.X86Fuzzer(instruction_set, working_directory, testcase)
+    raise ConfigException("unknown value of `instruction_set` configuration option")
 
 
 def get_generator(instruction_set: interfaces.InstructionSetAbstract) -> interfaces.Generator:

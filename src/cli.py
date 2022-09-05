@@ -10,7 +10,7 @@ import os
 import yaml
 from typing import Dict
 from argparse import ArgumentParser
-from factory import get_minimizer
+from factory import get_minimizer, get_fuzzer
 from fuzzer import Fuzzer
 from config import CONF
 from service import LOGGER
@@ -136,7 +136,7 @@ def main():
             SystemExit("The working directory does not exist")
 
         # Normal fuzzing mode
-        fuzzer = Fuzzer(args.instruction_set, args.working_directory, args.testcase)
+        fuzzer = get_fuzzer(args.instruction_set, args.working_directory, args.testcase)
         fuzzer.start(
             args.num_test_cases,
             args.num_inputs,
