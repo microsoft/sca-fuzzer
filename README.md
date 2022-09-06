@@ -150,6 +150,8 @@ Below is a example launch command, which will start a 24-hour fuzzing session, w
 ./cli.py fuzz -s x86/isa_spec/base.json -c tests/big-fuzz.yaml -i 50 -n 100000000 --timeout 86400 -w `pwd` --nonstop
 ```
 
+For more examples, see the `demo/` directory.
+
 # Command line interface
 
 The fuzzer is controlled via a single command line interface `cli.py` (located in `src/cli.py`). It accepts the following arguments:

@@ -1,7 +1,8 @@
 # contract
 contract_observation_clause: ct
 contract_execution_clause:
-  - seq
+  - cond
+analyser_permit_subsets: false
 
 # tested instructions
 instruction_categories:
@@ -14,11 +15,12 @@ instruction_categories:
 enable_faulty_page: false
 
 # fuzzing configuration
-input_gen_entropy_bits: 10
+enable_speculation_filter: true
+enable_observation_filter: true
+input_gen_entropy_bits: 16
+memory_access_zeroed_bits: 0
 min_bb_per_function: 2
 max_bb_per_function: 2
 program_size: 20
-avg_mem_accesses: 8
+avg_mem_accesses: 10
 inputs_per_class: 2
-coverage_type: pfc
-memory_access_zeroed_bits: 6
