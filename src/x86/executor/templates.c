@@ -22,10 +22,13 @@
 #define TEMPLATE_ENTER 0x0fff379000000000
 #define TEMPLATE_INSERT_TC 0x0fff2f9000000000
 #define TEMPLATE_RETURN 0x0fff279000000000
+#define TEMPLATE_JUMP_EXCEPTION 0x0fff479000000000
 
 #define xstr(s) _str(s)
 #define _str(s) str(s)
 #define str(s) #s
+
+char *fault_handler;
 
 int load_template(size_t tc_size)
 {
@@ -75,6 +78,13 @@ int load_template(size_t tc_size)
 
         if (*(uint64_t *)&measurement_template[template_pos] == TEMPLATE_RETURN)
             break;
+
+       if (*(uint64_t *) &measurement_template[template_pos] == TEMPLATE_JUMP_EXCEPTION) {
+            template_pos += 7;
+            fault_handler = (char *) measurement_code + code_pos;
+            code_pos--;
+            continue;
+        }
 
         measurement_code[code_pos] = measurement_template[template_pos];
     }
@@ -393,6 +403,8 @@ void template_l1d_prime_probe(void) {
         ".quad "xstr(TEMPLATE_INSERT_TC)" \n"
         "mfence\n");
 
+    asm(".quad "xstr(TEMPLATE_JUMP_EXCEPTION));
+
     // PFC
     asm_volatile_intel(READ_PFC_END());
 
@@ -489,6 +501,8 @@ void template_l1d_flush_reload(void) {
         ".quad "xstr(TEMPLATE_INSERT_TC)"\n"
         "mfence\n");
 
+    asm(".quad "xstr(TEMPLATE_JUMP_EXCEPTION));
+
     // PFC
     asm_volatile_intel(READ_PFC_END());
 
@@ -525,6 +539,8 @@ void template_l1d_evict_reload(void) {
     asm("lfence\n"
         ".quad "xstr(TEMPLATE_INSERT_TC)" \n"
         "mfence\n");
+
+    asm(".quad "xstr(TEMPLATE_JUMP_EXCEPTION));
 
     // PFC
     asm_volatile_intel(READ_PFC_END());
