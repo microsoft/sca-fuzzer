@@ -389,7 +389,7 @@ class X86TaintTracker(TaintTrackerInterface):
         self.pending_taint = []
         self.mem_address_regs = []
 
-        for op in instruction.operands + instruction.implicit_operands:
+        for op in instruction.get_all_operands():
             if isinstance(op, RegisterOperand):
                 value = X86TargetDesc.gpr_normalized[op.value]
                 if op.src:

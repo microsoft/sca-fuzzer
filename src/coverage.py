@@ -203,7 +203,7 @@ class DependentPairCoverage(Coverage):
 
     def _get_instruction_key(self, instruction: Instruction) -> str:
         key = instruction.name
-        for op in instruction.operands + instruction.implicit_operands:
+        for op in instruction.get_all_operands():
             key += "-" + str(op.width) + str(op.type)
         return key
 

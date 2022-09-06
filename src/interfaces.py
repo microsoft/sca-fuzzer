@@ -248,6 +248,9 @@ class Instruction:
                 return True
         return False
 
+    def get_all_operands(self):
+        return self.operands + self.implicit_operands
+
     def get_src_operands(self, include_implicit: bool = False) -> List[Operand]:
         res = []
         for o in self.operands:
