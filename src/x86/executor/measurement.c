@@ -24,9 +24,21 @@ struct pfc_config
     unsigned int inv;
 };
 
+struct idt_data
+{
+    unsigned int vector;
+    unsigned int segment;
+    struct idt_bits bits;
+    const void *addr;
+};
+
 unsigned long faulty_page_addr;
 pte_t faulty_page_pte;
 pte_t *faulty_page_ptep;
+
+gate_desc *orig_idt_table;
+gate_desc *curr_idt_table;
+struct desc_ptr idtr;
 
 int config_pfc(unsigned int id, char *pfc_code, unsigned int usr, unsigned int os);
 pte_t *get_pte(unsigned long address);
@@ -34,6 +46,103 @@ pte_t *get_pte(unsigned long address);
 inline void wrmsr64(unsigned int msr, uint64_t value)
 {
     native_write_msr(msr, (uint32_t)value, (uint32_t)(value >> 32));
+}
+
+// =================================================================================================
+// Fault Handling
+// =================================================================================================
+static void inline local_store_idt(void *dtr)
+{
+    asm volatile("sidt %0"
+                 : "=m"(*((struct desc_ptr *)dtr)));
+}
+
+static void inline local_load_idt(void *dtr)
+{
+    asm volatile("lidt %0" ::"m"(*((struct desc_ptr *)dtr)));
+}
+
+static void
+idt_setup_from_table(gate_desc *idt, const struct idt_data *t, int size)
+{
+    gate_desc desc;
+
+    for (; size > 0; t++, size--)
+    {
+        unsigned long addr = (unsigned long)t->addr;
+
+        desc.offset_low = (u16)addr;
+        desc.segment = (u16)t->segment;
+        desc.bits = t->bits;
+        desc.offset_middle = (u16)(addr >> 16);
+#ifdef CONFIG_X86_64
+        desc.offset_high = (u32)(addr >> 32);
+        desc.reserved = 0;
+#endif
+
+        write_idt_entry(idt, t->vector, &desc);
+    }
+}
+
+static void set_intr_gate(unsigned int n, const void *addr)
+{
+    struct idt_data data;
+
+    memset(&data, 0, sizeof(data));
+    data.vector = n;
+    data.addr = addr;
+    data.segment = __KERNEL_CS;
+    data.bits.type = GATE_INTERRUPT;
+    data.bits.p = 1;
+
+    idt_setup_from_table(curr_idt_table, &data, 1);
+}
+
+static void enable_write_protection(void)
+{
+    unsigned long cr0 = read_cr0();
+    set_bit(16, &cr0);
+    asm volatile("mov %0,%%cr0" ::"r"(cr0)
+                 : "memory");
+}
+
+static void disable_write_protection(void)
+{
+    unsigned long cr0 = read_cr0();
+    clear_bit(16, &cr0);
+    asm volatile("mov %0,%%cr0" ::"r"(cr0)
+                 : "memory");
+}
+
+static void idt_copy(void)
+{
+    for (int entry = 0; entry < 256; entry++)
+    {
+        const gate_desc *gate = &orig_idt_table[entry];
+        memcpy(&curr_idt_table[entry], gate, sizeof(*gate));
+    }
+}
+
+static void setup_idt(void)
+{
+    disable_write_protection();
+    uint8_t idx = 0;
+    for (idx = 0; idx < 32; idx++)
+    {
+        if (BIT_CHECK(handled_faults, idx))
+        {
+            set_intr_gate(idx, (void *)fault_handler);
+        }
+    }
+    enable_write_protection();
+    idtr.address = (unsigned long)curr_idt_table;
+    local_load_idt(&idtr);
+}
+
+static void reset_idt(void)
+{
+    idtr.address = (unsigned long)orig_idt_table;
+    local_load_idt(&idtr);
 }
 
 // =================================================================================================
@@ -73,6 +182,11 @@ void run_experiment(long rounds)
     get_cpu();
     unsigned long flags;
     raw_local_irq_save(flags);
+
+    // save the current state of IDT
+    local_store_idt(&idtr);
+    orig_idt_table = (gate_desc *)idtr.address;
+    idt_copy();
 
     // Zero-initialize the region of memory used by Prime+Probe
     memset(&sandbox->eviction_region[0], 0, EVICT_REGION_SIZE * sizeof(char));
@@ -142,8 +256,12 @@ void run_experiment(long rounds)
             asm volatile("invlpg (%0)" ::"r"(faulty_page_addr) : "memory");
         }
 
+        setup_idt();
+
         // execute
         ((void (*)(char *))measurement_code)(&sandbox->main_region[0]);
+
+        reset_idt();
 
         // store the measurement results
         measurement_t result = sandbox->latest_measurement;

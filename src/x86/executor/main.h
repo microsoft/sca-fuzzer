@@ -7,6 +7,7 @@
 #define X86_EXECUTOR
 
 #include <linux/types.h>
+#include <asm/traps.h>
 
 #define DEBUG 0
 
@@ -81,11 +82,22 @@ extern char *measurement_template;
 extern uint64_t *inputs;
 extern volatile size_t n_inputs;
 
+// Fault handling
+extern char *fault_handler;
+extern uint32_t handled_faults;
+#define HANDLED_FAULTS_DEFAULT 0
+extern gate_desc *curr_idt_table;
+
 // Shared functions
 int trace_test_case(void);
 int load_template(size_t tc_size);
 void template_l1d_prime_probe(void);
 void template_l1d_flush_reload(void);
 void template_l1d_evict_reload(void);
+
+#define BIT_SET(a, b) ((a) |= (1ULL << (b)))
+#define BIT_CLEAR(a, b) ((a) &= ~(1ULL << (b)))
+#define BIT_FLIP(a, b) ((a) ^= (1ULL << (b)))
+#define BIT_CHECK(a, b) (!!((a) & (1ULL << (b))))
 
 #endif
