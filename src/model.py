@@ -77,8 +77,7 @@ class UnicornTracer(ABC):
             return
         normalized_address = address - model.code_start
         if normalized_address in model.test_case.address_map:
-            LOGGER.dbg_model_instruction(model.test_case.address_map[normalized_address].name,
-                                         normalized_address, model)
+            LOGGER.dbg_model_instruction(normalized_address, model)
         # TODO: handle keyerror
 
         if model.execution_tracing_enabled:

@@ -247,9 +247,13 @@ class Logger:
             type_ = "store:" if is_store else "load: "
             print(f"  > {type_} +0x{normalized_address:x} = 0x{val:x}")
 
-    def dbg_model_instruction(self, name, normalized_address, model):
+    def dbg_model_instruction(self, normalized_address, model):
         if self.model_debug:
-            print(f"{normalized_address:2x}: {name}")
+            name = model.test_case.address_map[normalized_address].name
+            if model.in_speculation:
+                print(f"*{normalized_address:2x}: {name}")
+            else:
+                print(f"{normalized_address:2x}: {name}")
             model.print_state(oneline=True)
 
     # ==============================================================================================
