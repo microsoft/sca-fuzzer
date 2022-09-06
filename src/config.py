@@ -167,8 +167,18 @@ class ConfCls:
             super().__setattr__("feedback_driven_generator", "False")
 
         # value checks
-        if self._option_values.get(name, '') != '' and value not in self._option_values[name]:
-            raise ConfigException(f"Unknown value '{value}' of configuration variable '{name}'")
+        if self._option_values.get(name, '') != '':
+            invalid = False
+            if isinstance(value, List):
+                for v in value:
+                    if v not in self._option_values[name]:
+                        invalid = True
+                        break
+            else:
+                invalid = value not in self._option_values[name]
+            if invalid:
+                raise ConfigException(f"Unknown value '{value}' of config variable '{name}'\n"
+                                      f"Possible options: {self._option_values[name]}")
         if (self.input_main_region_size % 4096 != 0) or \
                 (self.input_faulty_region_size % 4096 != 0):
             raise ConfigException("Inputs must be page-aligned")
