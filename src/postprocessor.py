@@ -26,7 +26,7 @@ class MinimizerViolation(Minimizer):
         fuzzer.model.load_test_case(test_case)
         fuzzer.executor.load_test_case(test_case)
         ctraces = fuzzer.model.trace_test_case(inputs, CONF.model_max_nesting)
-        htraces: List[HTrace] = fuzzer.executor.trace_test_case(inputs)
+        htraces: List[HTrace] = fuzzer.executor.trace_test_case(inputs, CONF.executor_repetitions)
 
         # Check for violations
         violations: List[EquivalenceClass] = fuzzer.analyser.filter_violations(
@@ -53,7 +53,9 @@ class MinimizerViolation(Minimizer):
             for line in instructions:
                 f.write(line)
             f.truncate()  # is it necessary??
-        return fuzzer.generator.parse_existing_test_case(minimized_asm)
+        tc = fuzzer.generator.parse_existing_test_case(minimized_asm)
+        fuzzer.generator.create_pte(tc)
+        return tc
 
     def _probe_test_case(self, fuzzer: Fuzzer, test_case: TestCase, inputs: List[Input],
                          modifier) -> TestCase:
@@ -113,6 +115,7 @@ class MinimizerViolation(Minimizer):
         inputs: List[Input] = fuzzer.input_gen.generate(CONF.input_gen_seed, num_inputs)
 
         # Load, boost inputs, and trace
+        fuzzer.generator.create_pte(test_case)
         fuzzer.model.load_test_case(test_case)
         boosted_inputs: List[Input] = fuzzer.boost_inputs(inputs, CONF.model_max_nesting)
 

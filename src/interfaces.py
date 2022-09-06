@@ -489,10 +489,12 @@ class TestCase:
     functions: List[Function]
     address_map: Dict[int, Instruction]
     num_prologue_instructions: int = 0
+    faulty_pte: PageTableModifier
 
     def __init__(self):
         self.functions = []
         self.address_map = {}
+        self.faulty_pte = PageTableModifier()
 
     def __iter__(self):
         for func in self.functions:
@@ -500,6 +502,11 @@ class TestCase:
 
     def save(self, path: str) -> None:
         shutil.copy2(self.asm_path, path)
+
+
+class PageTableModifier(NamedTuple):
+    mask_set: int = 0x0
+    mask_clear: int = 0xffffffffffffffff
 
 
 # ==================================================================================================
@@ -707,6 +714,10 @@ class Generator(ABC):
     @staticmethod
     @abstractmethod
     def assemble(asm_file: str, bin_file: str) -> None:
+        pass
+
+    @abstractmethod
+    def create_pte(self, test_case: TestCase) -> None:
         pass
 
 
