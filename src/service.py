@@ -48,7 +48,7 @@ class StatisticsCls:
         s += f"  Effectiveness: {effectiveness:.1f}\n"
         s += f"  Total Cls: {total_clss_per_test_case:.1f}\n"
         s += f"  Effective Cls: {effective_clss:.1f}\n"
-        s += "Filters:"
+        s += "Filters:\n"
         s += f"  Speculation Filter: {self.spec_filter}\n"
         s += f"  Observation Filter: {self.observ_filter}\n"
         return s
