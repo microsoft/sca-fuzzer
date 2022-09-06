@@ -21,25 +21,36 @@ Make sure you're not running these experiments on an important machine.
 
 ## Requirements & Dependencies
 
-1. Hardware Requirements
+### 1. Hardware Requirements
 
-So far, Revizor supports only Intel CPU. It was tested on Intel Core i7-6700 and i7-9700, but it should work on any other Intel CPU just as well.
+So far, Revizor supports only Intel CPUs. It was tested on Intel Core i7-6700 and i7-9700, but it should work on any other Intel CPU just as well.
 
-1. Software Requirements
+### 2. Software Requirements
 
 * Linux v5.6+ (tested on Linux v5.6.6-300 and v5.6.13-100; there is a good chance it will work on other versions as well, but it's not guaranteed).
+
+```shell
+# check linux version
+cat /proc/version
+```
+
 * Linux Kernel Headers
-```
+
+```shell
 # On Ubuntu
-sudo apt install linux-headers-$(uname -r)
+sudo apt-get install linux-headers-$(uname -r)
 ```
-* MSR Tools:
-```
+
+* MSR Tools
+
+```shell
 # On Ubuntu
 sudo apt install msr-tools
 ```
-* Python 3.9+
-```
+
+* [Python 3.9+](https://www.python.org/downloads/)
+
+```shell
 # On Ubuntu 18
 sudo apt install python3.9 python3.9-distutils
 sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 2
@@ -50,8 +61,15 @@ pip3 install --upgrade setuptools
 pip3 install --upgrade pip
 pip3 install --upgrade distlib
 ```
+
 * [Unicorn 1.0.2+](https://www.unicorn-engine.org/docs/)
-* Python bindings to Unicorn:
+
+```shell
+sudo apt install unicorn
+```
+
+* Python bindings to Unicorn
+
 ```shell
 pip3 install --user unicorn
 
@@ -59,12 +77,14 @@ pip3 install --user unicorn
 cd bindings/python
 sudo make install
 ```
+
 * Python packages `pyyaml`, `types-pyyaml`, `numpy`, `iced-x86`:
+
 ```shell
 pip3 install --user pyyaml types-pyyaml numpy iced-x86
 ```
 
-1. Software Requirements for Revizor Development
+### 3. Software Requirements for Revizor Development
 
 Tests: 
 * [Bash Automated Testing System](https://bats-core.readthedocs.io/en/latest/index.html)
@@ -74,7 +94,7 @@ Tests:
 Documentation:
 * [pdoc3](https://pypi.org/project/pdoc3/)
 
-1. (Optional) System Configuration
+### 4. (Optional) System Configuration
 
 For more stable results, disable hyperthreading (there's usually a BIOS option for it).
 If you do not disable hyperthreading, you will see a warning every time you invoke Revizor; you can ignore it.
@@ -85,13 +105,15 @@ In addition, you might want to stop any other actively-running software on the t
 
 ## Installation
 
-1. Get the x86-64 ISA description:
+### 1. Get the x86-64 ISA description:
+
 ```bash
 cd src/x86/isa_loader
 ./get_spec.py --extensions BASE SSE SSE2 CLFLUSHOPT CLFSH
 ```
 
-2. Install the executor kernel module:
+### 2. Install the executor kernel module:
+
 ```bash
 cd src/x86/executor
 make uninstall  # the command will give an error message, but it's ok!
@@ -167,7 +189,7 @@ The fuzzer is controlled via a single command line interface `cli.py` (located i
 
 # Documentation
 
-For more details, see [docs/_main.md](docs/_main.md).
+For more details, see [docs/main.md](docs/main.md).
 
 ## Contributing
 
