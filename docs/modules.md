@@ -12,7 +12,7 @@ multiple Python files:
   [revizor's architecture](architecture.md).
 * `model.py` - implements the Unicorn-based **Model** portion of
   [revizor's architecture](architecture.md).
-* `executor.py` - implements the x86 **Executor** portion of
+* `executor.py` - implements the **Executor** portion of
   [revizor's architecture](architecture.md).
 * `analyser.py` - implements the **Analyser** portion of
   [revizor's architecture](architecture.md).
@@ -21,23 +21,42 @@ multiple Python files:
   size while still maintaining the violation-inducing behavior.
 * `fuzzer.py` - implements `fuzz` mode that utilizes all main components to
   perform end-to-end hardware fuzzing.
-* `coverage.py` - implements
-* `factory.py` - defines a series of dictionaries that allows revizor to choose
-  between various generation techniques, executors, analysers, etc. This will be
-  especially useful when revizor supports multiple ISAs.
-* `interfaces.py` - defines a number of classes used by the test case generator
-  to generate valid assembly (`Instruction`, `BasicBlock`, `Operand`s, etc.)
+* `coverage.py` - will collect coverage in the future; currently not in use.
+* `factory.py` - used to configure revizor accordingly to the user provided
+  YAML configuration. Implements a simplified version of the Factory pattern:
+  Defines a series of dictionaries that allows revizor to choose
+  between various contract, generation techniques, executors, analysers, etc.
+  In future, it be also used to implement  multiple-ISA support.
+* `interfaces.py` - defines abstract classes (i.e., interfaces) of all main
+  components of revizor (e.g., abstract  `Executor`, `Model`, `TestCase`,
+   `Input`, etc)
 * `isa\_loader.py` - defines the `InstructionSet` class, used to load an
-  ISA's specifications from an XML file provided via the
+  ISA's specifications from a JSON file provided via the
   [command-line interface](cli.md).
 * `service.py` - defines logging, statistical, and other services to all other
   modules within revizor.
 
-## Assembly Generation
+## Architecture-specific Implementation
+
+The modules above are ISA-independent. The architecture-specific implementations
+are located in the subdirectories. For example, the implementation of the modules
+for the x86-64 architecture is located in `src/x86/`. It's structure largely
+mirrors the main modules of revizor (e.g., `x86_model.py` contains x86-specific
+parts of the **Model** module). The only unique parts are:
+
+* `*_target_desc.py` - defines constants describing the ISA (e.g., a list of
+  available registers) and some helper functions.
+* `isa_spec/get_spec.py` - a script for transforming the ISA description provided
+  by the CPU vendor (different for every vendor) into a unified JSON format
+* `executor/` - contains a low-level implementation of the executor. The 
+  implementation will be different for each architecture. For black-box x86 CPUs,
+  it is a Linux kernel module.
+
+## Abstract Test Case
 
 This describes a number of Python classes within revizor that define parts of an
 assembly test case. Revizor's TCG uses them to generate syntactically-valid
-assembly.
+assembly. The classes are defined in `interfaces.py`.
 
 #### `OperandSpec`
 
