@@ -129,6 +129,11 @@ class UnicornModel(Model, ABC):
     tainting_enabled: bool = False
     execution_tracing_enabled: bool = False
 
+    # fault handling
+    handled_faults: List[int]
+    pending_fault_id: int = 0
+    previous_context = None
+
     # set by subclasses
     architecture: Tuple[int, int]
 
@@ -153,6 +158,8 @@ class UnicornModel(Model, ABC):
             ]
         else:
             self.initial_taints = []
+        self.pending_fault_id = 0
+        self.handled_faults = []
 
     def load_test_case(self, test_case: TestCase) -> None:
         """
@@ -203,25 +210,41 @@ class UnicornModel(Model, ABC):
         contract_traces: List[CTrace] = []
         execution_traces: List[ExecutionTrace] = []
         taints = []
+
         for input_ in inputs:
             self._load_input(input_)
             self.reset_model()
-            try:
-                self.emulator.emu_start(
-                    self.code_start, self.code_end, timeout=10 * UC_SECOND_SCALE)
-            except UcError as e:
-                if not self.in_speculation:
-                    self.print_state()
-                    LOGGER.error("[UnicornModel:trace_test_case] %s" % e)
+            start_address = self.code_start
+            while True:
+                self.pending_fault_id = 0
 
-            # if we use one of the SPEC contracts, we might have some residual simulations
-            # that did not reach the spec. window by the end of simulation. Those need
-            # to be rolled back
-            while self.in_speculation:
+                # execute the test case
                 try:
-                    self.rollback()
-                except UcError:
+                    self.emulator.emu_start(
+                        start_address, self.code_end, timeout=10 * UC_SECOND_SCALE)
+                except UcError as e:
+                    self.pending_fault_id = e.errno
+
+                # handle faults
+                if self.pending_fault_id:
+                    # workaround for a Unicorn bug: after catching an exception
+                    # we need to restore some pre-exception context. otherwise,
+                    # the emulator becomes corrupted
+                    self.emulator.context_restore(self.previous_context)
+                    start_address = self.handle_fault(self.pending_fault_id)
+                    self.pending_fault_id = 0
+                    if start_address:
+                        continue
+
+                # if we use one of the speculative contracts, we might have some residual simulation
+                # that did not reach the spec. window by the end of simulation. Those need
+                # to be rolled back
+                if self.in_speculation:
+                    start_address = self.rollback()
                     continue
+
+                # otherwise, we're done with this execution
+                break
 
             # store the results
             assert self.tracer
@@ -271,6 +294,7 @@ class UnicornModel(Model, ABC):
             self.taint_tracker = self.taint_tracker_cls(self.initial_taints, self.sandbox_base)
         else:
             self.taint_tracker = DummyTaintTracker([])
+        self.pending_fault_id = 0
 
     @abstractmethod
     def print_state(self, oneline: bool = False):
@@ -282,8 +306,26 @@ class UnicornModel(Model, ABC):
         Invoked when an instruction is executed.
         it records instruction
         """
+        model.previous_context = model.emulator.context_save()
         model.current_instruction = model.test_case.address_map[address - model.code_start]
         model.trace_instruction(emulator, address, size, model)
+
+    def handle_fault(self, errno: int) -> int:
+        next_addr = self.speculate_fault(errno)
+        if next_addr:
+            return next_addr
+
+        # if we're speculating, rollback regardless of the fault type
+        if self.in_speculation:
+            return 0
+
+        # an expected fault - terminate execution
+        if errno in self.handled_faults:
+            return self.code_end
+
+        # unexpected fault - throw an error
+        self.print_state()
+        LOGGER.error("[UnicornModel:trace_test_case] %s" % errno)
 
     @staticmethod
     @abstractmethod
@@ -304,11 +346,18 @@ class UnicornModel(Model, ABC):
     def speculate_instruction(emulator: Uc, address, size, model: UnicornModel) -> None:
         pass
 
+    def speculate_fault(self, errno: int) -> int:
+        """
+        return the address of the first speculative instruction
+        return 0 if not speculation is triggered
+        """
+        return 0
+
     def checkpoint(self, emulator: Uc, next_instruction: int):
         pass
 
-    def rollback(self):
-        pass
+    def rollback(self) -> int:
+        return 0
 
 
 # ==================================================================================================
@@ -471,7 +520,7 @@ class UnicornSpec(UnicornModel):
         self.in_speculation = True
         self.taint_tracker.checkpoint()
 
-    def rollback(self):
+    def rollback(self) -> int:
         # restore register values
         state, next_instr, flags, spec_window = self.checkpoints.pop()
         if not self.checkpoints:
@@ -500,7 +549,7 @@ class UnicornSpec(UnicornModel):
         self.taint_tracker.rollback()
 
         # restart without misprediction
-        self.emulator.emu_start(next_instr, self.code_end, timeout=10 * UC_SECOND_SCALE)
+        return next_instr
 
     def reset_model(self):
         super().reset_model()
