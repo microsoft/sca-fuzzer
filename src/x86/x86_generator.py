@@ -75,6 +75,7 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
             X86SandboxPass(),
             X86PatchUndefinedFlagsPass(self.instruction_set, self),
             X86PatchUndefinedResultPass(),
+            X86AddUndefinedOpcodesPass(),
         ]
         self.printer = X86Printer()
         self.target_desc = X86TargetDesc()
@@ -632,6 +633,62 @@ class X86PatchUndefinedResultPass(Pass):
             .add_op(source) \
             .add_op(ImmediateOperand(mask, mask_size))
         parent.insert_before(inst, apply_mask)
+
+
+class X86AddUndefinedOpcodesPass(Pass):
+    """
+    Replaces all UD instructions with actual opcodes undefined under Intel x86 ISA
+    """
+    opcodes: List[str] = [
+        # UD2 instruction
+        "0x0f, 0x0b",
+
+        # invalid in 64-bit mode
+        "0x37",  # AAA
+        "0xd5, 0x0a",  # AAD
+        "0xd4, 0x0a",  # AAM
+        "0x3f",  # AAS
+        "0x62",  # BOUND
+        "0x27",  # DAA
+        "0x2F",  # DAS
+        "0x61",  # POPA
+
+        # invalid in 64-bit + invalid with lock
+        "0xf0, 0x37",  # AAA
+        "0xf0, 0xd5, 0x0a",  # AAD
+        "0xf0, 0xd4, 0x0a",  # AAM
+        "0xf0, 0x3f",  # AAS
+        "0xf0, 0x62",  # BOUND
+        "0xf0, 0x27",  # DAA
+        "0xf0, 0x2F",  # DAS
+        "0xf0, 0x61",  # POPA
+
+        # invalid with lock
+        # "0xf0, 0x48, 0x11, 0xc0",  # LOCK ADC rax, rax
+
+        # invalid when not in VMX operation
+        # "0xf0, 0x01, 0xc1",  # VMCALL
+    ]
+
+    def run_on_test_case(self, test_case: TestCase) -> None:
+        for func in test_case.functions:
+            for bb in func:
+                if bb == func.entry:
+                    continue
+
+                # collect all UD instructions
+                undefined_inst = []
+                for inst in bb:
+                    if inst.name in ["UD", "UD2"]:
+                        undefined_inst.append(inst)
+
+                # patch them
+                for inst in undefined_inst:
+                    self.replace_opcode(inst, bb)
+
+    def replace_opcode(self, inst: Instruction, _: BasicBlock):
+        opcode = random.choice(self.opcodes)
+        inst.name = ".byte " + opcode
 
 
 class X86Printer(Printer):
