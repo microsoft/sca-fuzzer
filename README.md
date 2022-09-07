@@ -78,10 +78,10 @@ cd bindings/python
 sudo make install
 ```
 
-* Python packages `pyyaml`, `types-pyyaml`, `numpy`, `iced-x86`:
+* Python packages `pyyaml`, `types-pyyaml`, `numpy`:
 
 ```shell
-pip3 install --user pyyaml types-pyyaml numpy iced-x86
+pip3 install --user pyyaml types-pyyaml numpy
 ```
 
 ### 3. Software Requirements for Revizor Development

@@ -7,9 +7,9 @@ SPDX-License-Identifier: MIT
 import abc
 import math
 import re
-import iced_x86
 import random
 from typing import List, Dict, Set, Optional
+from subprocess import run
 
 from isa_loader import InstructionSet
 from interfaces import TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
@@ -79,14 +79,14 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
         self.target_desc = X86TargetDesc()
 
     def map_addresses(self, test_case: TestCase, bin_file: str) -> None:
-        with open(bin_file, "rb") as f:
-            bin_file_contents = f.read()
-
         # get a list of relative instruction addresses
-        decoder = iced_x86.Decoder(64, bin_file_contents)
-        address_list: List[int] = []
-        for instruction in decoder:
-            address_list.append(instruction.ip)
+        dump = run(
+            f"objdump --no-show-raw-insn -D -M intel -b binary -m i386:x86-64 {bin_file} "
+            "| awk '/ [0-9a-f]+:/{print $1}'",
+            shell=True,
+            check=True,
+            capture_output=True)
+        address_list = [int(addr[:-1], 16) for addr in dump.stdout.decode().split("\n") if addr]
 
         # connect them with instructions in the test case
         address_map: Dict[int, Instruction] = {}
