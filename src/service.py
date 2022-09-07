@@ -61,13 +61,14 @@ class StatisticsCls:
                 all_cls = (self.eff_classes + self.single_entry_classes) / self.analysed_test_cases
             else:
                 all_cls = 0
-            s = f"AlCl:{all_cls:.1f}, "
-            s += f"In:{self.num_inputs / self.test_cases:.1f}, "
-            s += f"Cov:{self.coverage}, "
-            s += f"Obs:{self.observ_filter}, "
-            s += f"Prim:{self.required_priming}, " \
-                 f"Flak:{self.flaky_violations}, " \
-                 f"Viol:{self.violations}, "
+            s = f"Cls:{all_cls:.1f},"
+            s += f"In:{self.num_inputs / self.test_cases:.1f},"
+            s += f"Cv:{self.coverage},"
+            s += f"SpF:{self.spec_filter},"
+            s += f"ObF:{self.observ_filter},"
+            s += f"Prm: {self.required_priming}," \
+                 f"Flk:{self.flaky_violations}," \
+                 f"Vio:{self.violations}"
             return s
 
 
