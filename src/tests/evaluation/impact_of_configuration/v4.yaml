@@ -16,5 +16,4 @@ contract_execution_clause:
   - cond
 
 x86_executor_enable_ssbp_patch: false
-enable_faulty_page: false
 

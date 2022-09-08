@@ -4,4 +4,5 @@ contract_execution_clause:
 input_gen_entropy_bits: 9
 inputs_per_class: 3
 enable_priming: false
-enable_faulty_page: true
+permitted_faults:
+  - assist-accessed

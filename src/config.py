@@ -107,9 +107,6 @@ class ConfCls:
     enable_pre_run_flush: bool = True
     """ enable_pre_run_flush: ff enabled, the executor will do its best to flush
     the microarchitectural state before running test cases """
-    enable_faulty_page: bool = False
-    """ enable_faulty_page: If enabled, only of the sandbox memory pages will have the accessed
-    bit set to zero, which will cause a microcode assist on the fist load/store to this page. """
 
     # ==============================================================================================
     # Analyser
