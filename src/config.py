@@ -137,9 +137,7 @@ class ConfCls:
     # Internal
     _instance = None
     _no_generation: bool = False
-    _option_values: Dict[str, List] = {
-        'executor_mode': ['P+P', 'F+R', 'E+R'],
-    }
+    _option_values: Dict[str, List] = {}  # set by ISA-specific config.py
     _default_instruction_blocklist: List[str] = []
 
     # Implementation of singleton
@@ -210,6 +208,10 @@ class ConfCls:
         for option in options:
             values = getattr(config, option)
             trimmed_name = option.removeprefix(prefix)
+            if trimmed_name == "option_values":
+                self.setattr_internal("_option_values", values)
+                continue
+
             if hasattr(self, trimmed_name):
                 setattr(self, trimmed_name, values)
             else:
