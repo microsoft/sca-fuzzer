@@ -192,6 +192,69 @@ EOF
 }
 
 
+@test "Faults: Handling #DE-zero fault" {
+    tmp_config=$(mktemp)
+cat << EOF >> $tmp_config
+contract_observation_clause: ct
+contract_execution_clause:
+  - seq
+input_gen_entropy_bits: 24
+inputs_per_class: 3
+permitted_faults:
+  - DE-zero
+logging_modes:
+  - 
+EOF
+
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/fault_DE_zero.asm -i 100 -c $tmp_config"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [ "$output" = "" ]
+    rm $tmp_config
+}
+
+@test "Faults: Handling #UD fault" {
+    tmp_config=$(mktemp)
+cat << EOF >> $tmp_config
+contract_observation_clause: ct
+contract_execution_clause:
+  - seq
+input_gen_entropy_bits: 24
+inputs_per_class: 3
+permitted_faults:
+  - UD
+logging_modes:
+  - 
+EOF
+
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/fault_UD.asm -i 100 -c $tmp_config"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [ "$output" = "" ]
+    rm $tmp_config
+}
+
+@test "Faults: Handling #PF fault" {
+    tmp_config=$(mktemp)
+cat << EOF >> $tmp_config
+contract_observation_clause: ct
+contract_execution_clause:
+  - seq
+input_gen_entropy_bits: 24
+inputs_per_class: 3
+permitted_faults:
+  - PF-present
+logging_modes:
+  - 
+EOF
+
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/fault_PF.asm -i 100 -c $tmp_config"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [ "$output" = "" ]
+    rm $tmp_config
+}
+
 # ==================================================================================================
 # Extended tests - take long time, but test deeper
 # ==================================================================================================

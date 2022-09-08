@@ -17,6 +17,18 @@ from x86.x86_executor import X86IntelExecutor
 class X86Fuzzer(Fuzzer):
     executor: X86IntelExecutor
 
+    def _adjust_config(self, existing_test_case):
+        super()._adjust_config(existing_test_case)
+
+        # remove those instructions that trigger unhandled exceptions
+        if 'DE-overflow' not in CONF.permitted_faults:
+            if "IDIV" not in CONF._default_instruction_blocklist:
+                CONF._default_instruction_blocklist.append("IDIV")
+            if "REX IDIV" not in CONF._default_instruction_blocklist:
+                CONF._default_instruction_blocklist.append("REX IDIV")
+        if 'UD' not in CONF.permitted_faults:
+            CONF._default_instruction_blocklist.extend(["UD", "UD2"])
+
     def filter(self, test_case: TestCase, inputs: List[Input]) -> bool:
         """ This function implements a multi-stage algorithm that gradually filters out
         uninteresting test cases """
