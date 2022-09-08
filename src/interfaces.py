@@ -735,6 +735,10 @@ class Model(ABC):
         pass
 
     @abstractmethod
+    def dbg_get_trace_detailed(self, input, nesting) -> List[str]:
+        pass
+
+    @abstractmethod
     def get_taints(self, inputs, nesting) -> List[InputTaint]:
         pass
 

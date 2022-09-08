@@ -117,7 +117,7 @@ class Fuzzer:
         # check for violations
         ctraces = self.model.trace_test_case(boosted_inputs, 1)
         htraces = self.executor.trace_test_case(boosted_inputs, CONF.executor_repetitions)
-        LOGGER.trc_fuzzer_dump_traces(htraces, ctraces)
+        LOGGER.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces)
         violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces, True)
         if not violations:  # nothing detected? -> we are done here, move to next test case
             return None
@@ -186,7 +186,7 @@ class Fuzzer:
     # Single-stage interfaces
     @staticmethod
     def analyse_traces_from_files(ctrace_file: str, htrace_file: str):
-        LOGGER.fuzzer_debug = False  # make sure we don't try to call the model
+        LOGGER.dbg_violation = False  # make sure we don't try to call the model
         LOGGER.fuzzer_start(0, datetime.today())
         STAT.test_cases = 1
 

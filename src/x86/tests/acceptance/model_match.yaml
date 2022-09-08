@@ -5,5 +5,6 @@ inputs_per_class: 1
 enable_ssbp_patch: true
 enable_priming: false
 logging_modes:
-  - fuzzer_trace
+  - dbg_traces
 input_gen_entropy_bits: 12
+memory_access_zeroed_bits: 2

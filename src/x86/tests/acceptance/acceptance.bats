@@ -7,8 +7,8 @@ cli_opt="python3 -OO ./cli.py"
 
 @test "Model and Executor are initialized with the same values" {
     tmpfile=$(mktemp /tmp/revizor-test.XXXXXX.o)
-    ./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/model_match.asm -c x86/tests/acceptance/model_match.yaml -i 100 > $tmpfile
-    run bash -c "cat $tmpfile | awk 'BEGIN{new=0} /\.\.\.\.\./{new=1} /\^/{if (new==1) {new = 0; prev=\$1} else {if (prev != \$1) {print \"mismatch\"; exit 1; }}} END{print \"finished\"}'"
+    ./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/model_match.asm -c x86/tests/acceptance/model_match.yaml -i 20 > $tmpfile
+    run bash -c "cat $tmpfile | awk 'BEGIN{new=0} /    /{new=1} /\^/{if (new==1) {new = 0; prev=\$2} else {if (prev != \$2) {print \"mismatch\"; exit 1; }}} END{print \"finished\"}'"
 
     echo "Output: $output"
     [ "$status" -eq 0 ]
@@ -19,8 +19,8 @@ cli_opt="python3 -OO ./cli.py"
 
 @test "Model and Executor are initialized with the same FLAGS value" {
     tmpfile=$(mktemp /tmp/revizor-test.XXXXXX.o)
-    ./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/model_flags_match.asm -c x86/tests/acceptance/model_match.yaml -i 100 > $tmpfile
-    run bash -c "cat $tmpfile | awk 'BEGIN{new=0} /\.\.\.\.\./{new=1} /\^/{if (new==1) {new = 0; prev=\$1} else {if (prev != \$1) {print \"mismatch\"; exit 1; }}} END{print \"finished\"}'"
+    ./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/model_flags_match.asm -c x86/tests/acceptance/model_match.yaml -i 20 > $tmpfile
+    run bash -c "cat $tmpfile | awk 'BEGIN{new=0} /    /{new=1} /\^/{if (new==1) {new = 0; prev=\$2} else {if (prev != \$2) {print \"mismatch\"; exit 1; }}} END{print \"finished\"}'"
 
     echo "Output: $output"
     [ "$status" -eq 0 ]

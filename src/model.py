@@ -46,6 +46,9 @@ class UnicornTracer(ABC):
     def get_contract_trace(self) -> CTrace:
         return hash(tuple(self.trace))
 
+    def get_contract_trace_full(self) -> List[int]:
+        return self.trace
+
     def get_execution_trace(self) -> ExecutionTrace:
         return self.execution_trace
 
@@ -59,26 +62,26 @@ class UnicornTracer(ABC):
 
     def observe_mem_access(self, access, address: int, size: int, value: int,
                            model: UnicornModel) -> None:
+        normalized_address = address - model.sandbox_base
+        is_store = (access != UC_MEM_READ)
+        LOGGER.dbg_model_mem_access(normalized_address, value, address, size, is_store, model)
+
         if model.in_speculation:
             return
 
-        normalized_address = address - model.sandbox_base
-        is_store = (access != UC_MEM_READ)
-        val = value if is_store else int.from_bytes(
-            model.emulator.mem_read(address, size), byteorder='little')
-        LOGGER.dbg_model_mem_access(normalized_address, val, is_store)
-
         if model.execution_tracing_enabled:
+            val = value if is_store else int.from_bytes(
+                model.emulator.mem_read(address, size), byteorder='little')
             traced_instruction = self.execution_trace[self.instruction_id]
             traced_instruction.accesses.append(TracedMemAccess(normalized_address, val, is_store))
 
     def observe_instruction(self, address: int, size: int, model) -> None:
-        if model.in_speculation:
-            return
         normalized_address = address - model.code_start
         if normalized_address in model.test_case.address_map:
             LOGGER.dbg_model_instruction(normalized_address, model)
-        # TODO: handle keyerror
+
+        if model.in_speculation:
+            return
 
         if model.execution_tracing_enabled:
             self.execution_trace.append(TracedInstruction(normalized_address, []))
@@ -212,6 +215,19 @@ class UnicornModel(Model, ABC):
         _, taints = self._execute_test_case(inputs, nesting)
         self.tainting_enabled = False
         return taints
+
+    def dbg_get_trace_detailed(self, input, nesting) -> List[str]:
+        _, __ = self._execute_test_case([input], nesting)
+        trace = self.tracer.get_contract_trace_full()
+        normalized_trace = []
+        for val in trace:
+            if self.code_start <= val and val < self.code_start + 0x1000:
+                normalized_trace.append(f"pc:0x{val - self.code_start:x}")
+            elif self.lower_overflow_base < val and val < self.upper_overflow_base:
+                normalized_trace.append(f"mem:0x{val - self.sandbox_base:x}")
+            else:
+                normalized_trace.append(f"val:{val}")
+        return normalized_trace
 
     def reset_model(self):
         self.checkpoints = []
@@ -472,6 +488,7 @@ class UnicornSpec(UnicornModel):
         if not self.checkpoints:
             self.in_speculation = False
 
+        LOGGER.dbg_model_rollback(next_instr, self.code_start)
         self.latest_rollback_address = next_instr
 
         # restore the speculation state

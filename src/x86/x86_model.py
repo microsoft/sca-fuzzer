@@ -126,13 +126,13 @@ class X86UnicornModel(UnicornModel):
             print(f"RSI: {rsi}")
             print(f"RDI: {rdi}")
         else:
-            print(f"rax={rax} "
+            print(f"  rax={rax} "
                   f"rbx={rbx} "
-                  f"rcx={rcx} "
-                  f"rdx={rdx} "
+                  f"rcx={rcx} \n"
+                  f"  rdx={rdx} "
                   f"rsi={rsi} "
-                  f"rdi={rdi} "
-                  f"fl={emulator.reg_read(ucc.UC_X86_REG_EFLAGS):012b}")
+                  f"rdi={rdi} \n"
+                  f"  fl={emulator.reg_read(ucc.UC_X86_REG_EFLAGS):012b}")
 
 
 # ==================================================================================================

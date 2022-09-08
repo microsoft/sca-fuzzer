@@ -20,10 +20,11 @@ For a complete list, see `src/config.py`.
   Available options:
   `info` - general information about the progress of fuzzing;
   `stat` - statistics the end of the fuzzing campaign;
-  `fuzzer_debug` - detailed information about the fuzzing progress and about the detected vulnerabilities;
-  `fuzzer_trace` - very detailed information about the fuzzing progress (not recommended);
-  `model_debug` - detailed information about the execution of each test case on the model;
-  `coverage_debug` - detailed information about the changes in coverage.
+  `dbg_timestamp` - periodically print the timestamp during the fuzzing process;
+  `dbg_violation` - detailed information about the fuzzing progress and about the detected vulnerabilities;
+  `dbg_traces` - print ALL hardware and contract traces (use carefully, produces lots of text);
+  `dbg_model` - print a detailed trace of ALL executions on the model (use carefully, produces lots of text);
+  `dbg_coverage` - periodically report detailed information about the changes in coverage.
 * `multiline_output` [bool]: Print each output message on a separate line.
   Preferred when piping the log into a file.
 

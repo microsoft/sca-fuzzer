@@ -39,9 +39,9 @@ class X86IntelExecutor(Executor):
                 else:
                     smt_on = True
         if smt_on is None:
-            LOGGER.waring("executor", "Could not check if SMT is on.")
+            LOGGER.warning("executor", "Could not check if SMT is on.")
         if smt_on:
-            LOGGER.waring("executor", "SMT is on! You may experience false positives.")
+            LOGGER.warning("executor", "SMT is on! You may experience false positives.")
 
         # disable prefetching
         subprocess.run('sudo modprobe msr', shell=True, check=True)

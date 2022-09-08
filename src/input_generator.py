@@ -27,7 +27,7 @@ class LegacyRandomInputGenerator(InputGenerator):
     def generate(self, seed: int, count: int) -> List[Input]:
         if seed == 0:
             seed = random.randint(0, pow(2, 32) - 1)
-            LOGGER.info("input_gen", str(seed))
+            LOGGER.inform("input_gen", str(seed))
 
         generated_inputs = []
         for i in range(count):
@@ -95,7 +95,7 @@ class NumpyRandomInputGenerator(InputGenerator):
     def generate(self, seed: int, count: int) -> List[Input]:
         if seed == 0:
             seed = random.randint(0, pow(2, 32) - 1)
-            LOGGER.info("input_gen", str(seed))
+            LOGGER.inform("input_gen", str(seed))
 
         generated_inputs = []
         for _ in range(count):

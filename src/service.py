@@ -66,7 +66,7 @@ class StatisticsCls:
             s += f"Cv:{self.coverage},"
             s += f"SpF:{self.spec_filter},"
             s += f"ObF:{self.observ_filter},"
-            s += f"Prm: {self.required_priming}," \
+            s += f"Prm:{self.required_priming}," \
                  f"Flk:{self.flaky_violations}," \
                  f"Vio:{self.violations}"
             return s
@@ -81,11 +81,9 @@ class Logger:
 
     Has the following levels of logging:
     - Error: Critical error. Prints a message and exits
-    - Warning: Non-critical error. Always printed, but does not exit
+    - Warning: Non-critical error. Always printed, but does not cause an exit
     - Info: Useful info. Printed only if enabled in CONF.logging_modes
     - Debug: Detailed info. Printed if both enabled in CONF.logging_modes and if __debug__ is set.
-             Enabled separately for each module.
-    - Trace: Same as debug, but for the cases when the amount of printed info is huge
     """
 
     one_percent_progress: float = 0.0
@@ -96,36 +94,32 @@ class Logger:
     redraw_mode: bool = True
 
     # info modes
-    info_enabled: bool = False
-    stat_enabled: bool = False
+    info: bool = False
+    stat: bool = False
 
-    # debugging modes
-    fuzzer_debug: bool = False
-    fuzzer_trace: bool = False
-    model_debug: bool = False
-    coverage_debug: bool = False
+    # debugging
+    dbg_timestamp: bool = False
+    dbg_violation: bool = False
+    dbg_traces: bool = False
+    dbg_model: bool = False
+    dbg_coverage: bool = False
 
     def __init__(self) -> None:
         pass
 
     def set_logging_modes(self):
-        mode_list = CONF.logging_modes
-        if "info" in mode_list:
-            self.info_enabled = True
-        if "stat" in mode_list:
-            self.stat_enabled = True
-        if "fuzzer_debug" in mode_list:
-            self.fuzzer_debug = True
-        if "fuzzer_trace" in mode_list:
-            self.fuzzer_trace = True
-        if "model_debug" in mode_list:
-            self.model_debug = True
-        if "coverage_debug" in mode_list:
-            self.coverage_debug = True
+        for mode in CONF.logging_modes:
+            if not mode:
+                continue
+            if getattr(self, mode, None) is None:
+                self.error(f"Unknown value '{mode}' of config variable 'logging_modes'")
+            setattr(self, mode, True)
 
         if not __debug__:
-            if self.fuzzer_debug or self.model_debug or self.coverage_debug or self.fuzzer_trace:
-                self.waring("", "Debugging mode was not enabled! Remove '-O' from python arguments")
+            if self.dbg_timestamp or self.dbg_model or self.dbg_coverage or self.dbg_traces:
+                self.warning(
+                    "", "Current value of `logging_modes` requires debugging mode!\n"
+                    "Remove '-O' from python arguments")
 
     def error(self, msg) -> NoReturn:
         if self.redraw_mode:
@@ -133,26 +127,26 @@ class Logger:
         print(f"ERROR: {msg}")
         exit(1)
 
-    def waring(self, src, msg) -> None:
+    def warning(self, src, msg) -> None:
         if self.redraw_mode:
             print("")
         print(f"WARNING: [{src}] {msg}")
 
-    def info(self, src, msg, end="\n") -> None:
-        if self.info_enabled:
+    def inform(self, src, msg, end="\n") -> None:
+        if self.info:
             if self.redraw_mode:
                 print("")
             print(f"INFO: [{src}] {msg}", end=end, flush=True)
 
+    def dbg(self, src, msg) -> None:
+        if self.redraw_mode:
+            print("")
+        print(f"DBG: [{src}] {msg}")
+
     # ==============================================================================================
     # Fuzzer
-    def dbg_fuzzer(self, msg) -> None:
-        if __debug__:
-            if self.fuzzer_debug:
-                print(f"DBG: [fuzzer] {msg}")
-
     def fuzzer_start(self, iterations: int, start_time):
-        if self.info_enabled:
+        if self.info:
             self.one_percent_progress = iterations / 100
             self.progress = 0
             self.progress_percent = 0
@@ -160,108 +154,157 @@ class Logger:
             self.line_ending = '\n' if CONF.multiline_output else ''
             self.redraw_mode = False if CONF.multiline_output else True
             self.start_time = start_time
-        self.info("fuzzer", start_time.strftime('Starting at %H:%M:%S'))
+        self.inform("fuzzer", start_time.strftime('Starting at %H:%M:%S'))
 
     def fuzzer_start_round(self, round_id):
-        if __debug__ and round_id and round_id % 1000 == 0:
-            self.dbg_fuzzer(
-                f"Current duration: {(datetime.today() - self.start_time).total_seconds()}")
-
-        if self.info_enabled:
+        if self.info:
             if STAT.test_cases > self.progress:
                 self.progress += self.one_percent_progress
                 self.progress_percent += 1
-            msg = f"\rProgress: {STAT.test_cases}|{self.progress_percent}%, "
+            msg = f"\r{STAT.test_cases:<6}({self.progress_percent:>2}%)| Stats: "
             msg += STAT.get_brief()
-            print(msg + "> Normal execution              ", end=self.line_ending, flush=True)
+            print(msg + "         ", end=self.line_ending, flush=True)
             self.msg = msg
 
+        if not __debug__:
+            return
+
+        if self.dbg_timestamp and round_id and round_id % 1000 == 0:
+            self.dbg(
+                "fuzzer", f"Time: {datetime.today()} | "
+                f" Duration: {(datetime.today() - self.start_time).total_seconds()} seconds")
+
     def fuzzer_priming(self, num_violations: int):
-        if self.info_enabled:
+        if self.info:
             print(
-                self.msg + "> Priming:" + str(num_violations) + "           ",
+                self.msg + "> Prime  " + str(num_violations) + "           ",
                 end=self.line_ending,
                 flush=True)
 
     def fuzzer_nesting_increased(self):
-        if self.info_enabled:
+        if self.info:
             print(
-                self.msg + "> Trying max nesting:" + str(CONF.model_max_nesting) + "         ",
+                self.msg + "> Nest   " + str(CONF.model_max_nesting) + "         ",
                 end=self.line_ending,
                 flush=True)
 
     def fuzzer_timeout(self):
-        self.info("fuzzer", "\nTimeout expired")
+        self.inform("fuzzer", "\nTimeout expired")
 
     def fuzzer_finish(self):
-        if self.info_enabled:
+        if self.info:
             now = datetime.today()
             print("")  # new line after the progress bar
-            if self.stat_enabled:
+            if self.stat:
                 print(STAT)
             print(f"Duration: {(now - self.start_time).total_seconds():.1f}")
             print(datetime.today().strftime('Finished at %H:%M:%S'))
 
-    def trc_fuzzer_dump_traces(self, htraces, ctraces):
+    def trc_fuzzer_dump_traces(self, model, inputs, htraces, ctraces):
         if __debug__:
-            if self.fuzzer_trace:
-                print("")
-                nprinted = 10 if len(ctraces) > 10 else len(ctraces)
-                for i in range(nprinted):
-                    print("..............................................................")
-                    print(self.pretty_bitmap(ctraces[i], ctraces[i] > pow(2, 64)))
-                    print(self.pretty_bitmap(htraces[i]))
+            if self.dbg_traces:
+                print("\n================================ Collected Traces "
+                      "=============================")
+
+                if CONF.contract_observation_clause == 'l1d':
+                    for i in range(len(htraces)):
+                        if i > 100:
+                            self.warning("fuzzer", "Trace output is limited to 100 traces")
+                            break
+                        print("    ")
+                        print(f"CTr{i}: {self.pretty_bitmap(ctraces[i], ctraces[i] > pow(2, 64))}")
+                        print(f"HTr{i}: {self.pretty_bitmap(htraces[i])}")
+                    return
+
+                org_debug_state = self.dbg_model
+                self.dbg_model = False
+                for i in range(len(htraces)):
+                    if i > 100:
+                        self.warning("fuzzer", "Trace output is limited to 100 traces")
+                        break
+                    ctrace_full = model.dbg_get_trace_detailed(inputs[i], 1)
+                    print("    ")
+                    print(f"CTr{i}: {ctrace_full}")
+                    print(f"HTr{i}: {self.pretty_bitmap(htraces[i])}")
+                self.dbg_model = org_debug_state
 
     def fuzzer_report_violations(self, violation: EquivalenceClass, model):
         print("\n\n================================ Violations detected ==========================")
-        print("  Contract trace (hash):\n")
-        if violation.ctrace <= pow(2, 64):
-            print(f"    {violation.ctrace:064b}")
+        print("Contract trace:")
+        if CONF.contract_observation_clause != 'l1d':
+            print(f" {violation.ctrace} (hash)")
         else:
-            print(f"    {violation.ctrace % MASK_64BIT:064b} [ns]\n"
-                  f"    {(violation.ctrace >> 64) % MASK_64BIT:064b} [s]\n")
-        print("  Hardware traces:")
+            if violation.ctrace <= pow(2, 64):
+                print(f"    {violation.ctrace:064b}")
+            else:
+                print(f"    {violation.ctrace % MASK_64BIT:064b} [ns]\n"
+                      f"    {(violation.ctrace >> 64) % MASK_64BIT:064b} [s]\n")
+        print("Hardware traces:")
         for htrace, measurements in violation.htrace_map.items():
             inputs = [m.input_id for m in measurements]
             if len(inputs) < 4:
-                print(f"   Inputs {inputs}:")
+                print(f" Inputs {inputs}:")
             else:
-                print(f"   Inputs {inputs[:4]} (+ {len(inputs) - 4} ):")
-            print(f"    {self.pretty_bitmap(htrace)}")
+                print(f" Inputs {inputs[:4]} (+ {len(inputs) - 4} ):")
+            print(f"  {self.pretty_bitmap(htrace)}")
         print("")
 
-        if __debug__ and self.fuzzer_debug:
+        if not __debug__:
+            return
+
+        if self.dbg_violation:
             # print details
-            print("================================ Execution Trace ==============================")
+            print("================================ Debug Trace ==================================")
             for htrace, measurements in violation.htrace_map.items():
-                print("---------------------------------------------------------------------------")
-                print(f"Input #{measurements[0].input_id}")
-                model_debug_state = self.model_debug
+                print(f"                      ##### Input {measurements[0].input_id} #####")
+                model_debug_state = self.dbg_model
                 self.model_debug = True
                 model.trace_test_case([measurements[0].input_], 1)
                 self.model_debug = model_debug_state
+                print("\n\n")
 
     # ==============================================================================================
     # Model
-    def dbg_model_mem_access(self, normalized_address, val, is_store):
-        if self.model_debug:
-            type_ = "store:" if is_store else "load: "
-            print(f"  > {type_} +0x{normalized_address:x} = 0x{val:x}")
+    def dbg_model_mem_access(self, normalized_address, value, address, size, is_store, model):
+        if not __debug__:
+            return
+
+        if not self.dbg_model:
+            return
+
+        val = value if is_store else int.from_bytes(
+            model.emulator.mem_read(address, size), byteorder='little')
+        type_ = "store to" if is_store else "load from"
+        print(f"  > {type_} +0x{normalized_address:x} value 0x{val:x}")
 
     def dbg_model_instruction(self, normalized_address, model):
-        if self.model_debug:
-            name = model.test_case.address_map[normalized_address].name
-            if model.in_speculation:
-                print(f"*{normalized_address:2x}: {name}")
-            else:
-                print(f"{normalized_address:2x}: {name}")
-            model.print_state(oneline=True)
+        if not __debug__:
+            return
+
+        if not self.dbg_model:
+            return
+
+        name = model.test_case.address_map[normalized_address].name
+        if model.in_speculation:
+            print(f"transient 0x{normalized_address:<2x}: {name}")
+        else:
+            print(f"0x{normalized_address:<2x}: {name}")
+        model.print_state(oneline=True)
+
+    def dbg_model_rollback(self, address, base):
+        if not __debug__:
+            return
+
+        if not self.dbg_model:
+            return
+
+        print(f"ROLLBACK to 0x{address - base:x}")
 
     # ==============================================================================================
     # Coverage
     def dbg_report_coverage(self, round_id, msg):
         if __debug__:
-            if round_id and round_id % 100 == 0 and self.coverage_debug:
+            if self.dbg_coverage and round_id and round_id % 100 == 0:
                 print(f"\nDBG: [coverage] {msg}")
 
     # ==============================================================================================
