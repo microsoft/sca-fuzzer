@@ -58,7 +58,6 @@ class X86IntelExecutor(Executor):
                             "/sys/x86_executor/enable_prefetcher")
         write_to_sysfs_file("1" if CONF.enable_pre_run_flush else "0",
                             "/sys/x86_executor/enable_pre_run_flush")
-        write_to_sysfs_file("1" if CONF.enable_faulty_page else "0", "/sys/x86_executor/enable_mds")
         write_to_sysfs_file(CONF.executor_mode, "/sys/x86_executor/measurement_mode")
 
     def load_test_case(self, test_case: TestCase):

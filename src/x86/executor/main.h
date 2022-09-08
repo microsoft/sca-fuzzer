@@ -47,8 +47,6 @@ extern uint64_t ssbp_patch_control;
 #define SSBP_PATH_DEFAULT SSBP_PATCH_ON
 extern uint64_t prefetcher_control;
 #define PREFETCHER_DEFAULT PREFETCHER_OFF
-extern char enable_faulty_page;
-#define ENABLE_FAULTY_DEFAULT 0
 extern char pre_run_flush;
 #define PRE_RUN_FLUSH_DEFAULT 1
 extern char *attack_template;

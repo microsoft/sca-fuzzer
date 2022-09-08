@@ -223,21 +223,47 @@ class X86UnicornBpas(UnicornBpas, X86UnicornModel):
 
 class X86UnicornNull(X86UnicornSpec):
     instruction_address: int
+    relevant_faults: List[int]
+    injection_pending: bool = False
 
-    @staticmethod
-    def speculate_mem_access(emulator, access, address, size, _, model):
-        assert isinstance(model, X86UnicornNull)
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.relevant_faults = [12, 13]
+
+    def speculate_fault(self, errno: int) -> int:
+        if errno not in self.relevant_faults:  # we speculate only on a subset of faults
+            return 0
 
         # reached max spec. window? skip
-        if len(model.checkpoints) >= model.nesting:
+        if len(self.checkpoints) >= self.nesting:
+            return 0
+
+        # tell speculate_mem_access that we need to inject zero
+        self.injection_pending = True
+
+        # remove protection
+        self.emulator.mem_protect(self.sandbox_base + self.MAIN_REGION_SIZE,
+                                  self.FAULTY_REGION_SIZE)
+
+        # re-execute the instruction
+        return self.instruction_address
+
+    @staticmethod
+    def speculate_instruction(emulator: Uc, address, size, model) -> None:
+        assert isinstance(model, X86UnicornNull)
+        # store the address for checkpointing (see speculate_fault)
+        model.instruction_address = address
+
+    @staticmethod
+    def speculate_mem_access(emulator, access, address, size, value, model):
+        assert isinstance(model, X86UnicornNull)
+
+        if not model.injection_pending:
             return
+        model.injection_pending = False
 
         # applicable only to loads
         if access == UC_MEM_WRITE:
-            return
-
-        # make sure we do not repeat the same injection all over again
-        if model.instruction_address == model.latest_rollback_address:
             return
 
         # store a checkpoint
@@ -248,10 +274,27 @@ class X86UnicornNull(X86UnicornSpec):
         zero_value = bytes([0 for _ in range(size)])
         emulator.mem_write(address, zero_value)
 
+
+class X86UnicornNullFault(X86UnicornNull):
     @staticmethod
-    def speculate_instruction(emulator: Uc, address, _, model) -> None:
+    def speculate_mem_access(emulator, access, address, size, value, model):
         assert isinstance(model, X86UnicornNull)
-        model.instruction_address = address
+
+        if not model.injection_pending:
+            return
+        model.injection_pending = False
+
+        # applicable only to loads
+        if access == UC_MEM_WRITE:
+            return
+
+        # store a checkpoint
+        model.checkpoint(emulator, model.code_end)
+        model.store_logs[-1].append((address, emulator.mem_read(address, 8)))
+
+        # emulate zero-injection by writing zero to the target address of the load
+        zero_value = bytes([0 for _ in range(size)])
+        emulator.mem_write(address, zero_value)
 
 
 class X86UnicornCondBpas(X86UnicornSpec):

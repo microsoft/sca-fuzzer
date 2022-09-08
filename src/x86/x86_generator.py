@@ -80,6 +80,13 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
         self.printer = X86Printer()
         self.target_desc = X86TargetDesc()
 
+        # select PTE bits that could be set
+        self.pte_bit_choices: List[Tuple[int, bool]] = []
+        if 'assist-accessed' in CONF.permitted_faults:
+            self.pte_bit_choices.append(self.target_desc.pte_bits["ACCESSED"])
+        if 'assist-dirty' in CONF.permitted_faults:
+            self.pte_bit_choices.append(self.target_desc.pte_bits["DIRTY"])
+
     def map_addresses(self, test_case: TestCase, bin_file: str) -> None:
         # get a list of relative instruction addresses
         dump = run(
