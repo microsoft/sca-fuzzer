@@ -50,8 +50,7 @@ inline void wrmsr64(unsigned int msr, uint64_t value)
 
 inline void _native_page_invalidate(void)
 {
-    asm volatile("invlpg (%0)" ::"r"(faulty_page_addr)
-                 : "memory");
+    asm volatile("invlpg (%0)" ::"r"(faulty_page_addr) : "memory");
 }
 
 // =================================================================================================
@@ -59,8 +58,7 @@ inline void _native_page_invalidate(void)
 // =================================================================================================
 static void inline local_store_idt(void *dtr)
 {
-    asm volatile("sidt %0"
-                 : "=m"(*((struct desc_ptr *)dtr)));
+    asm volatile("sidt %0" : "=m"(*((struct desc_ptr *)dtr)));
 }
 
 static void inline local_load_idt(void *dtr)
@@ -68,8 +66,7 @@ static void inline local_load_idt(void *dtr)
     asm volatile("lidt %0" ::"m"(*((struct desc_ptr *)dtr)));
 }
 
-static void
-idt_setup_from_table(gate_desc *idt, const struct idt_data *t, int size)
+static void idt_setup_from_table(gate_desc *idt, const struct idt_data *t, int size)
 {
     gate_desc desc;
 
@@ -108,16 +105,14 @@ static void enable_write_protection(void)
 {
     unsigned long cr0 = read_cr0();
     set_bit(16, &cr0);
-    asm volatile("mov %0,%%cr0" ::"r"(cr0)
-                 : "memory");
+    asm volatile("mov %0,%%cr0" ::"r"(cr0) : "memory");
 }
 
 static void disable_write_protection(void)
 {
     unsigned long cr0 = read_cr0();
     clear_bit(16, &cr0);
-    asm volatile("mov %0,%%cr0" ::"r"(cr0)
-                 : "memory");
+    asm volatile("mov %0,%%cr0" ::"r"(cr0) : "memory");
 }
 
 static void idt_copy(void)
@@ -262,16 +257,9 @@ void run_experiment(long rounds)
             faulty_page_pte.pte =
                 ((faulty_page_ptep->pte | faulty_pte_mask_set) & faulty_pte_mask_clear);
             set_pte_at(current->mm, faulty_page_addr, faulty_page_ptep, faulty_page_pte);
+            // asm volatile("clflush (%0)\nlfence\n" ::"r"(faulty_page_addr)
+            //  : "memory");
             _native_page_invalidate();
-        }
-
-        // clear the ACCESSED bit and flush the corresponding TLB entry
-        if (enable_faulty_page)
-        {
-            faulty_page_pte.pte = faulty_page_ptep->pte & ~_PAGE_ACCESSED;
-            set_pte_at(current->mm, faulty_page_addr, faulty_page_ptep, faulty_page_pte);
-            asm volatile("clflush (%0)\nlfence\n" ::"r"(faulty_page_addr) : "memory");
-            asm volatile("invlpg (%0)" ::"r"(faulty_page_addr) : "memory");
         }
 
         setup_idt();

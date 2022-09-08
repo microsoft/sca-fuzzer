@@ -16,8 +16,6 @@ extern long uarch_reset_rounds;
 #define UARCH_RESET_ROUNDS_DEFAULT 1
 extern uint64_t ssbp_patch_control;
 #define SSBP_PATH_DEFAULT 0b011
-extern char enable_faulty_page;
-#define ENABLE_FAULTY_DEFAULT 0
 extern char pre_run_flush;
 #define PRE_RUN_FLUSH_DEFAULT 1
 extern char *attack_template;
