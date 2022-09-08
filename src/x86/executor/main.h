@@ -83,7 +83,7 @@ extern volatile size_t n_inputs;
 // Fault handling
 extern char *fault_handler;
 extern uint32_t handled_faults;
-#define HANDLED_FAULTS_DEFAULT 1 // #DE
+#define HANDLED_FAULTS_DEFAULT 24641 // #DE #IO #PF #GP
 extern gate_desc *curr_idt_table;
 extern pteval_t faulty_pte_mask_set;
 extern pteval_t faulty_pte_mask_clear;

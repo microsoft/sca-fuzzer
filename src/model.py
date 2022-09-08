@@ -167,6 +167,8 @@ class UnicornModel(Model, ABC):
         # update a list of handled faults based on the config
         if 'DE-zero' in CONF.permitted_faults or 'DE-overflow' in CONF.permitted_faults:
             self.handled_faults.append(21)
+        if 'UD' in CONF.permitted_faults:
+            self.handled_faults.append(10)
 
     def load_test_case(self, test_case: TestCase) -> None:
         """

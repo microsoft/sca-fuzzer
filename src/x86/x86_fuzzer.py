@@ -26,6 +26,8 @@ class X86Fuzzer(Fuzzer):
                 CONF._default_instruction_blocklist.append("IDIV")
             if "REX IDIV" not in CONF._default_instruction_blocklist:
                 CONF._default_instruction_blocklist.append("REX IDIV")
+        if 'UD' not in CONF.permitted_faults:
+            CONF._default_instruction_blocklist.extend(["UD", "UD2"])
 
     def filter(self, test_case: TestCase, inputs: List[Input]) -> bool:
         """ This function implements a multi-stage algorithm that gradually filters out

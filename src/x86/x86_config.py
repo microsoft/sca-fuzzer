@@ -9,7 +9,7 @@ from typing import List
 # x86_option_values attribute MUST be the first attribute in the file
 x86_option_values = {
     'executor_mode': ['P+P', 'F+R', 'E+R'],
-    'permitted_faults': ['DE-zero', 'DE-overflow', 'assist-accessed', 'assist-dirty'],
+    'permitted_faults': ['DE-zero', 'DE-overflow', 'UD', 'assist-accessed', 'assist-dirty'],
 }
 
 x86_instruction_categories: List[str] = [
@@ -60,8 +60,6 @@ x86_instruction_blocklist: List[str] = [
     # - CMPXCHG8B - Unicorn doesn't execute the mem. access hook
     #   bug: https://github.com/unicorn-engine/unicorn/issues/990
     "CMPXCHG8B", "LOCK CMPXCHG8B",
-    # - Undefined instructions are, well, undefined
-    "UD", "UD2",
     # - Incorrect emulation
     "CPUID",
     # - Requires support of segment registers
