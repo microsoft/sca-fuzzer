@@ -24,6 +24,11 @@ class ConfCls:
     enable_observation_filter: bool = False
 
     # ==============================================================================================
+    # Execution Environment
+    permitted_faults: List[str] = []
+    """ permitted_faults: a list of faults that are permitted to happen during testing """
+
+    # ==============================================================================================
     # Program Generator
     generator: str = "random"
     """ generator: type of the program generator """
