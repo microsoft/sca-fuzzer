@@ -9,7 +9,10 @@ from typing import List
 # x86_option_values attribute MUST be the first attribute in the file
 x86_option_values = {
     'executor_mode': ['P+P', 'F+R', 'E+R'],  # 'GPR' is intentionally left out
-    'permitted_faults': ['assist-accessed', 'assist-dirty'],
+    'permitted_faults': [
+        'DE-zero', 'DE-overflow', 'UD', 'PF-present', 'PF-writable', 'assist-accessed',
+        'assist-dirty'
+    ],
 }
 
 x86_executor_enable_prefetcher: bool = False
@@ -59,6 +62,7 @@ x86_instruction_categories: List[str] = [
     # "CLFSH-MISC",
     # "BMI1",
 ]
+
 x86_instruction_blocklist: List[str] = [
     # Hard to fix:
     # - STI - enables interrupts, thus corrupting the measurements; CLI - just in case
@@ -66,14 +70,10 @@ x86_instruction_blocklist: List[str] = [
     # - CMPXCHG8B - Unicorn doesn't execute the mem. access hook
     #   bug: https://github.com/unicorn-engine/unicorn/issues/990
     "CMPXCHG8B", "LOCK CMPXCHG8B",
-    # - Undefined instructions are, well, undefined
-    "UD", "UD2",
     # - Incorrect emulation
     "CPUID",
     # - Requires support of segment registers
     "XLAT", "XLATB",
-    # - Requires special instrumentation to avoid #DE faults
-    "IDIV", "REX IDIV",
     # - Requires complex instrumentation
     "ENTERW", "ENTER", "LEAVEW", "LEAVE",
 

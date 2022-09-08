@@ -153,6 +153,7 @@ class UnicornModel(Model, ABC):
 
         self.overflow_region_values = bytes(self.OVERFLOW_REGION_SIZE)
 
+        # taint tracking
         if CONF.contract_observation_clause == 'ctr' or CONF.contract_observation_clause == 'arch':
             self.initial_taints = [
                 "A", "B", "C", "D", "SI", "DI", "RSP", "CF", "PF", "AF", "ZF", "SF", "TF", "IF",
@@ -160,8 +161,16 @@ class UnicornModel(Model, ABC):
             ]
         else:
             self.initial_taints = []
+
+        # fault handling
         self.pending_fault_id = 0
         self.handled_faults = []
+
+        # update a list of handled faults based on the config
+        if 'DE-zero' in CONF.permitted_faults or 'DE-overflow' in CONF.permitted_faults:
+            self.handled_faults.append(21)
+        if 'UD' in CONF.permitted_faults:
+            self.handled_faults.append(10)
 
     def load_test_case(self, test_case: TestCase) -> None:
         """
