@@ -372,11 +372,25 @@ class X86SandboxPass(Pass):
         """
         divisor = inst.operands[0]
 
-        # make sure the divisor is not zero
-        instrumentation = Instruction("OR", True).\
-            add_op(divisor).\
-            add_op(ImmediateOperand("1", 8))
-        parent.insert_before(inst, instrumentation)
+        # TODO: remove me - avoids a certain violation
+        if divisor.width == 64 and CONF.x86_disable_div64:
+            parent.delete(inst)
+            return
+
+        if 'DE-zero' not in CONF.permitted_faults:
+            # Prevent div by zero
+            instrumentation = Instruction("OR", True).\
+                add_op(divisor).\
+                add_op(ImmediateOperand("1", 8))
+            parent.insert_before(inst, instrumentation)
+
+        if 'DE-overflow' in CONF.permitted_faults:
+            return
+
+        # divisor in D or in memory with RDX offset? Impossible case, give up
+        if divisor.value in ["RDX", "EDX", "DX", "DH", "DL"] or "RDX" in divisor.value:
+            parent.delete(inst)
+            return
 
         # dividend in AX?
         if divisor.width == 8:
@@ -391,16 +405,6 @@ class X86SandboxPass(Pass):
                 # Too complex (impossible?). Giving up
                 parent.delete(inst)
                 return
-
-        # TODO: remove me - avoids a certain violation
-        if divisor.width == 64 and CONF.x86_disable_div64:
-            parent.delete(inst)
-            return
-
-        # divisor in D or in memory with RDX offset? Impossible case, give up
-        if divisor.value in ["RDX", "EDX", "DX", "DH", "DL"] or "RDX" in divisor.value:
-            parent.delete(inst)
-            return
 
         # Normal case
         # D = (D & divisor) >> 1

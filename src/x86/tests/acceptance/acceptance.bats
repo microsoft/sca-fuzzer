@@ -154,6 +154,27 @@ EOF
 }
 
 
+@test "Faults: Handling div by zero" {
+    tmp_config=$(mktemp)
+cat << EOF >> $tmp_config
+contract_observation_clause: ct
+contract_execution_clause:
+  - seq
+input_gen_entropy_bits: 24
+inputs_per_class: 3
+permitted_faults:
+  - DE-zero
+logging_modes:
+  - 
+EOF
+
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/fault_DE_zero.asm -i 100 -c $tmp_config"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [ "$output" = "" ]
+    rm $tmp_config
+}
+
 # ==================================================================================================
 # Extended tests - take long time, but test deeper
 # ==================================================================================================

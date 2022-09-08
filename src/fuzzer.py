@@ -31,14 +31,18 @@ class Fuzzer:
     coverage: Coverage
 
     def __init__(self, instruction_set_spec: str, work_dir: str, existing_test_case: str = ""):
+        self._adjust_config(existing_test_case)
         self.existing_test_case = existing_test_case
+
+        self.instruction_set = InstructionSet(instruction_set_spec, CONF.instruction_categories)
+        self.work_dir = work_dir
+
+    def _adjust_config(self, existing_test_case):
         if existing_test_case:
             CONF.setattr_internal("_no_generation", True)
             CONF.setattr_internal("_default_instruction_blocklist", [])
             CONF.register_blocklist = []
-
-        self.instruction_set = InstructionSet(instruction_set_spec, CONF.instruction_categories)
-        self.work_dir = work_dir
+        # more adjustments could be implemented by subclasses!
 
     def initialize_modules(self):
         """ create all main modules """

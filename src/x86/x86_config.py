@@ -9,7 +9,7 @@ from typing import List
 # x86_option_values attribute MUST be the first attribute in the file
 x86_option_values = {
     'executor_mode': ['P+P', 'F+R', 'E+R'],
-    'permitted_faults': ['assist-accessed', 'assist-dirty'],
+    'permitted_faults': ['DE-zero', 'DE-overflow', 'assist-accessed', 'assist-dirty'],
 }
 
 x86_instruction_categories: List[str] = [
@@ -52,6 +52,7 @@ x86_instruction_categories: List[str] = [
     # "CLFSH-MISC",
     # "BMI1",
 ]
+
 x86_instruction_blocklist: List[str] = [
     # Hard to fix:
     # - STI - enables interrupts, thus corrupting the measurements; CLI - just in case
@@ -65,8 +66,6 @@ x86_instruction_blocklist: List[str] = [
     "CPUID",
     # - Requires support of segment registers
     "XLAT", "XLATB",
-    # - Requires special instrumentation to avoid #DE faults
-    "IDIV", "REX IDIV",
     # - Requires complex instrumentation
     "ENTERW", "ENTER", "LEAVEW", "LEAVE",
 
