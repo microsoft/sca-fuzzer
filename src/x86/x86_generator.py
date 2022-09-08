@@ -8,12 +8,13 @@ import abc
 import math
 import re
 import random
-from typing import List, Dict, Set, Optional
+from typing import List, Dict, Set, Optional, Tuple
 from subprocess import run
 
 from isa_loader import InstructionSet
 from interfaces import TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
-    ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, InstructionSpec
+    ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, InstructionSpec, \
+    PageTableModifier
 from generator import ConfigurableGenerator, RandomGenerator, Pass, \
      parser_assert, Printer, GeneratorException, AsmParserException
 from x86.x86_target_desc import X86TargetDesc
@@ -231,6 +232,22 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
             inst.implicit_operands.append(op)
 
         return inst
+
+    def create_pte(self, test_case: TestCase):
+        """
+        Pick a random PTE bit (among the permitted ones) and set/reset it
+        """
+        if not self.pte_bit_choices:  # no choices, so PTE should stay intact
+            return
+
+        pte_bit = random.choice(self.pte_bit_choices)
+        if pte_bit[1]:
+            mask_clear = 0xffffffffffffffff ^ (1 << pte_bit[0])
+            mask_set = 0x0
+        else:
+            mask_clear = 0xffffffffffffffff
+            mask_set = 0x0 | (1 << pte_bit[0])
+        test_case.faulty_pte = PageTableModifier(mask_set, mask_clear)
 
 
 class X86LFENCEPass(Pass):
