@@ -61,6 +61,8 @@ class X86IntelExecutor(Executor):
         write_to_sysfs_file(CONF.executor_mode, "/sys/x86_executor/measurement_mode")
 
     def load_test_case(self, test_case: TestCase):
+        masks = f"{test_case.faulty_pte.mask_set} {test_case.faulty_pte.mask_clear}"
+        write_to_sysfs_file(masks, "/sys/x86_executor/faulty_pte_mask")
         with open(test_case.bin_path, "rb") as f:
             write_to_sysfs_file_bytes(f.read(), "/sys/x86_executor/test_case")
 

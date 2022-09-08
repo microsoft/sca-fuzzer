@@ -87,6 +87,8 @@ extern char *fault_handler;
 extern uint32_t handled_faults;
 #define HANDLED_FAULTS_DEFAULT 0
 extern gate_desc *curr_idt_table;
+extern pteval_t faulty_pte_mask_set;
+extern pteval_t faulty_pte_mask_clear;
 
 // Shared functions
 int trace_test_case(void);

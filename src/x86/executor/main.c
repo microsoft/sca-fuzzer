@@ -55,6 +55,8 @@ uint64_t *inputs = NULL;
 volatile size_t n_inputs = 1;
 
 uint32_t handled_faults = HANDLED_FAULTS_DEFAULT;
+pteval_t faulty_pte_mask_set = 0x0;
+pteval_t faulty_pte_mask_clear = 0xffffffffffffffff;
 
 measurement_t *measurements;
 
@@ -148,6 +150,13 @@ static ssize_t enable_pre_run_flush_store(struct kobject *kobj, struct kobj_attr
 static struct kobj_attribute enable_pre_run_flush_attribute =
     __ATTR(enable_pre_run_flush, 0666, NULL, enable_pre_run_flush_store);
 
+/// Bitmask that control which pte bits to flip
+//
+static ssize_t faulty_pte_mask_store(struct kobject *kobj, struct kobj_attribute *attr,
+                                     const char *buf, size_t count);
+static struct kobj_attribute pte_mask_attribute =
+    __ATTR(faulty_pte_mask, 0666, NULL, faulty_pte_mask_store);
+
 /// Measurement template selector
 ///
 static ssize_t measurement_mode_store(struct kobject *kobj, struct kobj_attribute *attr,
@@ -167,6 +176,7 @@ static struct attribute *sysfs_attributes[] = {
     &enable_mds_attribute.attr,
     &enable_pre_run_flush_attribute.attr,
     &measurement_mode_attribute.attr,
+    &pte_mask_attribute.attr,
     NULL, /* need to NULL terminate the list of attributes */
 };
 
@@ -219,6 +229,13 @@ static ssize_t trace_show(struct kobject *kobj, struct kobj_attribute *attr, cha
         count += retval;
     }
     count += sprintf(&buf[count], "done\n");
+    return count;
+}
+
+static ssize_t faulty_pte_mask_store(struct kobject *kobj, struct kobj_attribute *attr,
+                                     const char *buf, size_t count)
+{
+    sscanf(buf, "%lu %lu", &faulty_pte_mask_set, &faulty_pte_mask_clear);
     return count;
 }
 

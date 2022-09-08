@@ -48,6 +48,12 @@ inline void wrmsr64(unsigned int msr, uint64_t value)
     native_write_msr(msr, (uint32_t)value, (uint32_t)(value >> 32));
 }
 
+inline void _native_page_invalidate(void)
+{
+    asm volatile("invlpg (%0)" ::"r"(faulty_page_addr)
+                 : "memory");
+}
+
 // =================================================================================================
 // Fault Handling
 // =================================================================================================
@@ -188,6 +194,9 @@ void run_experiment(long rounds)
     orig_idt_table = (gate_desc *)idtr.address;
     idt_copy();
 
+    // save the current value of the faulty page PTE
+    pteval_t orig_pte = faulty_page_ptep->pte;
+
     // Zero-initialize the region of memory used by Prime+Probe
     memset(&sandbox->eviction_region[0], 0, EVICT_REGION_SIZE * sizeof(char));
 
@@ -247,6 +256,15 @@ void run_experiment(long rounds)
             wrmsr64(MSR_IA32_FLUSH_CMD, L1D_FLUSH);
         }
 
+        // Set page table entry for the faulty region
+        if ((faulty_pte_mask_set != 0) || (faulty_pte_mask_clear != 0xffffffffffffffff))
+        {
+            faulty_page_pte.pte =
+                ((faulty_page_ptep->pte | faulty_pte_mask_set) & faulty_pte_mask_clear);
+            set_pte_at(current->mm, faulty_page_addr, faulty_page_ptep, faulty_page_pte);
+            _native_page_invalidate();
+        }
+
         // clear the ACCESSED bit and flush the corresponding TLB entry
         if (enable_faulty_page)
         {
@@ -262,6 +280,14 @@ void run_experiment(long rounds)
         ((void (*)(char *))measurement_code)(&sandbox->main_region[0]);
 
         reset_idt();
+
+        // restore the original value of the faulty page PTE
+        if ((faulty_pte_mask_set != 0) || (faulty_pte_mask_clear != 0xffffffffffffffff))
+        {
+            faulty_page_pte.pte = orig_pte;
+            set_pte_at(current->mm, faulty_page_addr, faulty_page_ptep, faulty_page_pte);
+            _native_page_invalidate();
+        }
 
         // store the measurement results
         measurement_t result = sandbox->latest_measurement;
