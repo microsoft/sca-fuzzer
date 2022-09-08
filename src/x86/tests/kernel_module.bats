@@ -214,7 +214,7 @@ function load_test_case() {
 
 @test "x86 executor: Detection of machine clears" {
     echo "P+P" > /sys/x86_executor/measurement_mode
-    echo "1" > /sys/x86_executor/enable_mds
+    echo "0 18446744073709551583" > /sys/x86_executor/faulty_pte_mask
     tmpasm=$(mktemp /tmp/revizor-test.XXXXXX.asm)
 
     echo "MOVQ %r14, %rax; add \$4096, %rax; movq (%rax), %rax" > $tmpasm

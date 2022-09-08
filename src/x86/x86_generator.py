@@ -86,6 +86,10 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
             self.pte_bit_choices.append(self.target_desc.pte_bits["ACCESSED"])
         if 'assist-dirty' in CONF.permitted_faults:
             self.pte_bit_choices.append(self.target_desc.pte_bits["DIRTY"])
+        if 'PF-present' in CONF.permitted_faults:
+            self.pte_bit_choices.append(self.target_desc.pte_bits["PRESENT"])
+        if 'PF-writable' in CONF.permitted_faults:
+            self.pte_bit_choices.append(self.target_desc.pte_bits["RW"])
 
     def map_addresses(self, test_case: TestCase, bin_file: str) -> None:
         # get a list of relative instruction addresses
