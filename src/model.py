@@ -12,7 +12,7 @@ import copy
 import re
 
 from unicorn import Uc, UcError, UC_MEM_WRITE, UC_MEM_READ, UC_SECOND_SCALE, UC_HOOK_MEM_READ, \
-    UC_HOOK_MEM_WRITE, UC_HOOK_CODE
+    UC_HOOK_MEM_WRITE, UC_HOOK_CODE, UC_PROT_NONE, UC_PROT_READ
 
 from interfaces import CTrace, TestCase, Model, InputTaint, Instruction, ExecutionTrace, \
      TracedInstruction, TracedMemAccess, Input, Dict, \
@@ -133,6 +133,8 @@ class UnicornModel(Model, ABC):
     handled_faults: List[int]
     pending_fault_id: int = 0
     previous_context = None
+    rw_protect: bool = False
+    write_protect: bool = False
 
     # set by subclasses
     architecture: Tuple[int, int]
@@ -190,6 +192,13 @@ class UnicornModel(Model, ABC):
             sandbox_size = \
                 self.OVERFLOW_REGION_SIZE * 2 + self.MAIN_REGION_SIZE + self.FAULTY_REGION_SIZE
             emulator.mem_map(self.sandbox_base - self.OVERFLOW_REGION_SIZE, sandbox_size)
+
+            if self.rw_protect:
+                emulator.mem_protect(self.sandbox_base + self.MAIN_REGION_SIZE,
+                                     self.FAULTY_REGION_SIZE, UC_PROT_NONE)
+            elif self.write_protect:
+                emulator.mem_protect(self.sandbox_base + self.MAIN_REGION_SIZE,
+                                     self.FAULTY_REGION_SIZE, UC_PROT_READ)
 
             # write machine code to be emulated to memory
             emulator.mem_write(self.code_start, code)
