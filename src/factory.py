@@ -6,6 +6,7 @@ import model
 import x86.x86_model as x86_model
 
 import x86.x86_executor as x86_executor
+import arm64.arm64_executor as arm64_executor
 
 import x86.x86_fuzzer as x86_fuzzer
 import input_generator
@@ -38,6 +39,7 @@ TRACERS: Dict[str, Type[model.UnicornTracer]] = {
 
 EXECUTORS = {
     'x86-64': x86_executor.X86IntelExecutor,
+    'arm64': arm64_executor.ARMDummyExecutor
 }
 
 ANALYSERS: Dict[str, Type[interfaces.Analyser]] = {
