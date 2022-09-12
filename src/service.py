@@ -309,12 +309,12 @@ class Logger:
 
     # ==============================================================================================
     # Helpers
-    def pretty_bitmap(self, bits: int, merged=False):
+    def pretty_bitmap(self, bits: int, merged=False, offset: str = ""):
         if not merged:
             s = f"{bits:064b}"
         else:
             s = f"{bits % MASK_64BIT:064b} [ns]\n" \
-                f"{(bits >> 64) % MASK_64BIT:064b} [s]"
+                f"{offset}{(bits >> 64) % MASK_64BIT:064b} [s]"
         s = s.replace("0", "_").replace("1", "^")
         return s
 
