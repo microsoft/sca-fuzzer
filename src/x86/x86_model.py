@@ -284,6 +284,7 @@ class X86UnicornNull(X86UnicornSpec):
 
 
 class X86UnicornNullFault(X86UnicornNull):
+
     @staticmethod
     def speculate_mem_access(emulator, access, address, size, value, model):
         assert isinstance(model, X86UnicornNull)
@@ -500,6 +501,18 @@ class X86UnicornDivOverflow(x86UnicornOOO):
     def trace_mem_access(emulator: Uc, access, address: int, size, value, model):
         model.div_value = int.from_bytes(emulator.mem_read(address, size), "little")
         x86UnicornOOO.trace_mem_access(emulator, access, address, size, value, model)
+
+
+class X86MeltdownModel(x86UnicornOOO):
+    """
+     Loads from the faulty region speculatively return the in-memory value
+    """
+
+    @staticmethod
+    def speculate_instruction(emulator: Uc, address, size, model) -> None:
+        """ Do nothing - assume we speculate the invalid access """
+        model.next_instr_address = address + size
+        model.curr_instr_address = address
 
 
 # ==================================================================================================
