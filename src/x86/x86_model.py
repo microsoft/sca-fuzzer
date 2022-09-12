@@ -116,7 +116,7 @@ class X86UnicornSeq(UnicornSeq, X86UnicornModel):
 
 
 class X86UnicornSpec(UnicornSpec, X86UnicornModel):
-    curr_instr_address: int = 0
+    pass
 
 
 class X86UnicornCond(X86UnicornSpec):
@@ -343,6 +343,101 @@ class X86UnicornNullTerminating(X86UnicornNull):
 
     def get_rollback_address(self) -> int:
         return self.code_end
+
+
+class X86UnicornOOO(X86FaultModelAbstract):
+    """
+    Contract for out-of-order handling of faults
+    """
+    dependencies: Set[str]
+    dependency_checkpoints: List[Set[str]]
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.relevant_faults.update([12, 13])
+        self.dependencies = set()
+        self.dependency_checkpoints = []
+
+    def speculate_fault(self, errno: int) -> int:
+        if not self.fault_triggers_speculation(errno):
+            return 0
+
+        # start speculation
+        # we set the rollback address to the end of the testcase
+        # because faults are terminating execution
+        self.checkpoint(self.emulator, self.code_end)
+
+        # add destinations to the dependency list
+        for op in self.current_instruction.get_dest_operands(True):
+            if isinstance(op, RegisterOperand):
+                self.dependencies.add(X86TargetDesc.gpr_normalized[op.value])
+            elif isinstance(op, FlagsOperand):
+                for flag in op.get_write_flags():
+                    self.dependencies.add(flag)
+
+        # speculatively skip the faulting instruction
+        if self.next_instruction_addr >= self.code_end:
+            return 0  # no need for speculation if we're at the end
+        else:
+            return self.next_instruction_addr
+
+    @staticmethod
+    def speculate_instruction(emulator: Uc, address, size, model) -> None:
+        """
+        Track instruction dependencies to skip those instructions that are dependent
+        on a faulting instruction
+        """
+        assert isinstance(model, X86UnicornOOO)
+
+        # track dependencies only after faults
+        if not model.in_speculation or not model.dependencies:
+            return
+
+        # check if the instruction should be skipped due to a dependency on a faulting instr
+        reg_src_operands = []
+        reg_dest_operands = []
+        for op in model.current_instruction.get_all_operands():
+            if isinstance(op, RegisterOperand):
+                if op.src:
+                    reg_src_operands.append(X86TargetDesc.gpr_normalized[op.value])
+                if op.dest:
+                    reg_dest_operands.append(X86TargetDesc.gpr_normalized[op.value])
+            elif isinstance(op, MemoryOperand):
+                for sub_op in re.split(r'\+|-|\*| ', op.value):
+                    if sub_op and sub_op in X86TargetDesc.gpr_normalized:
+                        reg_src_operands.append(X86TargetDesc.gpr_normalized[sub_op])
+            elif isinstance(op, FlagsOperand):
+                reg_src_operands.extend(op.get_read_flags())
+                reg_dest_operands.extend(op.get_write_flags())
+
+        is_dependent = False
+        for reg in reg_src_operands:
+            if reg in model.dependencies:
+                is_dependent = True
+                break
+
+        # remove overwritten values from dependencies
+        for reg in reg_dest_operands:
+            if reg not in reg_src_operands and reg in model.dependencies:
+                model.dependencies.remove(reg)
+
+        if not is_dependent:
+            return
+
+        # update dependencies
+        for reg in reg_dest_operands:
+            model.dependencies.add(reg)
+
+        # skip the dependent instruction
+        emulator.reg_write(ucc.UC_X86_REG_RIP, address + size)
+
+    def checkpoint(self, emulator: Uc, next_instruction):
+        self.dependency_checkpoints.append(copy.copy(self.dependencies))
+        return super().checkpoint(emulator, next_instruction)
+
+    def rollback(self) -> int:
+        self.dependencies = self.dependency_checkpoints.pop()
+        return super().rollback()
 
 
 # ==================================================================================================

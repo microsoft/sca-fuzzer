@@ -17,7 +17,6 @@ import postprocessor
 import interfaces
 from config import CONF, ConfigException
 
-
 GENERATORS: Dict[str, Type[interfaces.Generator]] = {
     "x86-64-random": x86_generator.X86RandomGenerator
 }
