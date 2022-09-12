@@ -89,6 +89,8 @@ def get_model(bases: Tuple[int, int]) -> interfaces.Model:
             model_instance = x86_model.X86UnicornBpas(bases[0], bases[1])
         elif "null-injection" in CONF.contract_execution_clause:
             model_instance = x86_model.X86UnicornNull(bases[0], bases[1])
+        elif "ooo" in CONF.contract_execution_clause:
+            model_instance = x86_model.x86UnicornOOO(bases[0], bases[1])
         elif "seq" in CONF.contract_execution_clause:
             model_instance = x86_model.X86UnicornSeq(bases[0], bases[1])
         else:
