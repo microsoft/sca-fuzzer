@@ -89,6 +89,80 @@ class ARMGenerator(ConfigurableGenerator, abc.ABC):
             check=True)
         run(f"aarch64-linux-gnu-objcopy {bin_file} -O binary {bin_file}", shell=True, check=True)
 
+    def parse_line(self, line: str, line_num: int,
+                   instruction_map: Dict[str, List[InstructionSpec]]) -> Instruction:
+        line = line.upper()
+        matches = self.re_tokenize.findall(line)
+        parser_assert(matches != [], line_num, "Could not parse the line")
+
+        name = matches[0][0]
+        operand_tokens = ["COND"] if matches[0][1] else []
+        operand_tokens += [op.removeprefix(",") for op in matches[0][2:5] if op]
+        comment = matches[0][-1][3:]
+
+        # find a spec that describes this instruction
+        spec_candidates = instruction_map.get(name, [])
+        parser_assert(len(spec_candidates) > 0, line_num, f"Unknown instruction {line}")
+
+        # find a matching spec:
+        # - check the number of operands
+        matching_specs = [s for s in spec_candidates if len(s.operands) == len(operand_tokens)]
+
+        # - check the other operands
+        for op_id, op_raw in enumerate(operand_tokens):
+            if "COND" == op_raw:
+                matching_specs = [s for s in matching_specs if s.operands[op_id].type == OT.COND]
+            elif "." == op_raw[0]:  # match label
+                matching_specs = [s for s in matching_specs if s.operands[op_id].type == OT.LABEL]
+            elif "[" in op_raw:  # match address
+                matching_specs = [s for s in matching_specs if s.operands[op_id].type == OT.MEM]
+            elif "#" == op_raw[0]:  # match immediate
+                matching_specs = [s for s in matching_specs if s.operands[op_id].type == OT.IMM]
+            elif "X" == op_raw[0] or "W" == op_raw[0] or "SP" == op_raw:  # match register
+                matching_specs = [s for s in matching_specs if s.operands[op_id].type == OT.REG]
+                if "W" == op_raw[0]:
+                    matching_specs = [s for s in matching_specs if s.operands[op_id].width == 32]
+                else:
+                    matching_specs = [s for s in matching_specs if s.operands[op_id].width == 64]
+            else:
+                raise AsmParserException(line_num, f"Unknown type of the operand |{op_raw}|")
+
+        if not matching_specs:
+            raise AsmParserException(line_num, f"Could not find a matching spec for {line}")
+        elif len(matching_specs) > 1:
+            raise AsmParserException(line_num, f"Found multiple matching specs for {line}")
+
+        # at this point we should have only one spec
+        # generate the corresponding Instruction
+        spec: InstructionSpec = matching_specs[0]
+        inst = Instruction.from_spec(spec, is_instrumentation=comment.startswith("INSTRUMENTATION"))
+
+        op: Operand
+        for op_id, op_raw in enumerate(operand_tokens):
+            op_spec = spec.operands[op_id]
+            if op_spec.type == OT.REG:
+                op = RegisterOperand(op_raw, op_spec.width, op_spec.src, op_spec.dest)
+            elif op_spec.type == OT.MEM:
+                address_match = re.search(r'\[(.*)\]', op_raw)
+                parser_assert(address_match is not None, line_num, "Invalid memory address")
+                address = address_match.group(1)  # type: ignore
+                op = MemoryOperand(address, op_spec.width, op_spec.src, op_spec.dest)
+            elif op_spec.type == OT.IMM:
+                op = ImmediateOperand(op_raw, op_spec.width)
+            elif op_spec.type == OT.LABEL:
+                assert spec.control_flow
+                op = LabelOperand(op_raw)
+            elif op_spec.type == OT.COND:
+                op = CondOperand(op_raw)
+            else:
+                raise AsmParserException(line_num, f"Unknown spec operand type {op_spec.type}")
+            inst.operands.append(op)
+
+        for op_spec in spec.implicit_operands:
+            op = self.generate_operand(op_spec, inst)
+            inst.implicit_operands.append(op)
+
+        return inst
 
 
 class ARMSandboxPass(Pass):
