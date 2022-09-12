@@ -4,15 +4,18 @@ File: x86-specific model implementation
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
+import re
 import numpy as np
-from typing import Tuple, Dict
+from typing import Tuple, Dict, List, Set
+from copy import copy
 
 import unicorn.x86_const as ucc
 from unicorn import Uc, UC_MEM_WRITE, UC_ARCH_X86, UC_MODE_64, UC_PROT_READ, UC_PROT_NONE
 
-from interfaces import Input
+from interfaces import Input, FlagsOperand, RegisterOperand, MemoryOperand
 from model import UnicornModel, UnicornSpec, UnicornSeq, UnicornBpas, BaseTaintTracker
 from x86.x86_target_desc import X86UnicornTargetDesc, X86TargetDesc
+from service import UnreachableCode
 
 FLAGS_CF = 0b000000000001
 FLAGS_PF = 0b000000000100
@@ -438,6 +441,107 @@ class X86UnicornOOO(X86FaultModelAbstract):
     def rollback(self) -> int:
         self.dependencies = self.dependency_checkpoints.pop()
         return super().rollback()
+
+
+class X86UnicornDivZero(X86FaultModelAbstract):
+    injected_value: int = 0
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.relevant_faults.add(21)
+
+    def speculate_fault(self, errno: int) -> int:
+        if not self.fault_triggers_speculation(errno):
+            return 0
+
+        if self.current_instruction.name not in ["DIV", "IDIV"]:
+            return super().speculate_fault(errno)
+
+        # start speculation
+        self.checkpoint(self.emulator, self.code_end)
+
+        # inject zero into both destination operands of division
+        self.emulator.reg_write(ucc.UC_X86_REG_RAX, 0)
+        self.emulator.reg_write(ucc.UC_X86_REG_RDX, 0)
+
+        return self.next_instruction_addr
+
+
+class X86UnicornDivOverflow(X86FaultModelAbstract):
+    div_value: int = 0
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.relevant_faults.add(21)
+
+    def speculate_fault(self, errno: int) -> int:
+        if not self.fault_triggers_speculation(errno):
+            return 0
+
+        if self.current_instruction.name not in ["DIV", "IDIV"]:
+            return super().speculate_fault(errno)
+
+        # get division arguments
+        assert len(self.current_instruction.operands) == 1
+        assert self.current_instruction.operands[0].src
+        divider = self.current_instruction.operands[0]
+        if isinstance(divider, RegisterOperand):
+            uc_id = X86UnicornTargetDesc.reg_str_to_constant[divider.value]
+            value = self.emulator.reg_read(uc_id)
+        elif isinstance(divider, MemoryOperand):
+            value = self.div_value
+        else:
+            raise UnreachableCode()
+
+        # skip div by zero exceptions
+        if value == 0:
+            return super().speculate_fault(errno)
+
+        # start speculation
+        self.checkpoint(self.emulator, self.code_end)
+
+        if self.current_instruction.name == "DIV":
+            # set carry flag
+            # flags = self.emulator.reg_read(ucc.UC_X86_REG_EFLAGS)
+            # self.emulator.reg_write(ucc.UC_X86_REG_EFLAGS, flags | FLAGS_CF)
+
+            # execute division with trimming
+            width = divider.width
+            if width == 64:
+                a = self.emulator.reg_read(ucc.UC_X86_REG_RAX)
+                d = self.emulator.reg_read(ucc.UC_X86_REG_RDX)
+                trimmed_result = (((d << 64) + a) // value) % 0xffffffffffffffff
+                self.emulator.reg_write(ucc.UC_X86_REG_RAX, trimmed_result)
+                self.emulator.reg_write(ucc.UC_X86_REG_RDX, ((d << 64) + a) % value)
+                return self.next_instruction_addr
+            if width == 32:
+                a = self.emulator.reg_read(ucc.UC_X86_REG_EAX)
+                d = self.emulator.reg_read(ucc.UC_X86_REG_EDX)
+                trimmed_result = (((d << 32) + a) // value) % 0xffffffff
+                self.emulator.reg_write(ucc.UC_X86_REG_EAX, trimmed_result)
+                self.emulator.reg_write(ucc.UC_X86_REG_EDX, ((d << 32) + a) % value)
+                return self.next_instruction_addr
+            if width == 16:
+                a = self.emulator.reg_read(ucc.UC_X86_REG_AX)
+                d = self.emulator.reg_read(ucc.UC_X86_REG_DX)
+                trimmed_result = (((d << 16) + a) // value) % 0xffff
+                self.emulator.reg_write(ucc.UC_X86_REG_AX, trimmed_result)
+                self.emulator.reg_write(ucc.UC_X86_REG_DX, ((d << 16) + a) % value)
+                return self.next_instruction_addr
+            if width == 8:
+                a = self.emulator.reg_read(ucc.UC_X86_REG_AX)
+                trimmed_result = (a // value) % 0xff
+                self.emulator.reg_write(ucc.UC_X86_REG_AL, trimmed_result)
+                self.emulator.reg_write(ucc.UC_X86_REG_AH, a % value)
+                return self.next_instruction_addr
+            raise UnreachableCode()
+        else:  # IDIV
+            raise UnreachableCode()
+
+    @staticmethod
+    def trace_mem_access(emulator: Uc, access, address: int, size, value, model):
+        model.div_value = int.from_bytes(emulator.mem_read(address, size), "little")
+        X86UnicornOOO.trace_mem_access(emulator, access, address, size, value, model)
 
 
 # ==================================================================================================
