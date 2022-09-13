@@ -108,7 +108,7 @@ In addition, you might want to stop any other actively-running software on the t
 ### 1. Get the x86-64 ISA description:
 
 ```bash
-cd src/x86/isa_loader
+cd src/x86/isa_spec
 ./get_spec.py --extensions BASE SSE SSE2 CLFLUSHOPT CLFSH
 ```
 
