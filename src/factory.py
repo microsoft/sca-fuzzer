@@ -39,7 +39,7 @@ TRACERS: Dict[str, Type[model.UnicornTracer]] = {
 }
 
 EXECUTORS = {
-    'x86-intel': x86_executor.X86IntelExecutor,
+    'x86-64': x86_executor.X86IntelExecutor,
     'arm64': arm64_executor.ARMDummyExecutor
 }
 
@@ -85,7 +85,7 @@ def get_model(bases: Tuple[int, int]) -> interfaces.Model:
     if CONF.model != 'unicorn':
         raise ConfigException("unknown value of `model` configuration option")
 
-    if CONF.instruction_set == '"x86-64"':
+    if CONF.instruction_set == 'x86-64':
         if "cond" in CONF.contract_execution_clause and "bpas" in CONF.contract_execution_clause:
             model_instance = x86_model.X86UnicornCondBpas(bases[0], bases[1])
         elif "cond" in CONF.contract_execution_clause:
@@ -120,7 +120,9 @@ def get_model(bases: Tuple[int, int]) -> interfaces.Model:
 
 
 def get_executor() -> interfaces.Executor:
-    return _get_from_config(EXECUTORS, CONF.executor, "executor")
+    if CONF.executor != 'default':
+        raise ConfigException("unknown value of `executor` configuration option")
+    return _get_from_config(EXECUTORS, CONF.instruction_set, "instruction_set")
 
 
 def get_analyser() -> interfaces.Analyser:
