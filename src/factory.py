@@ -4,6 +4,7 @@ import x86.x86_generator as x86_generator
 
 import model
 import x86.x86_model as x86_model
+import arm64.arm64_model as arm64_model
 
 import x86.x86_executor as x86_executor
 import arm64.arm64_executor as arm64_executor
@@ -81,9 +82,10 @@ def get_input_generator() -> interfaces.InputGenerator:
 
 def get_model(bases: Tuple[int, int]) -> interfaces.Model:
     model_instance: model.UnicornModel
+    if CONF.model != 'unicorn':
+        raise ConfigException("unknown value of `model` configuration option")
 
-    # functional part of the contract
-    if CONF.model == 'x86-unicorn':
+    if CONF.instruction_set == '"x86-64"':
         if "cond" in CONF.contract_execution_clause and "bpas" in CONF.contract_execution_clause:
             model_instance = x86_model.X86UnicornCondBpas(bases[0], bases[1])
         elif "cond" in CONF.contract_execution_clause:
@@ -99,9 +101,16 @@ def get_model(bases: Tuple[int, int]) -> interfaces.Model:
                 "unknown value of `contract_execution_clause` configuration option")
 
         model_instance.taint_tracker_cls = x86_model.X86TaintTracker
+    elif CONF.instruction_set == 'arm64':
+        if "seq" in CONF.contract_execution_clause:
+            model_instance = arm64_model.ARM64UnicornSeq(bases[0], bases[1])
+        else:
+            raise ConfigException(
+                "unknown value of `contract_execution_clause` configuration option")
 
+        model_instance.taint_tracker_cls = arm64_model.ARMTaintTracker
     else:
-        raise ConfigException("unknown value of `model` configuration option")
+        raise ConfigException("unknown value of `instruction_set` configuration option")
 
     # observational part of the contract
     model_instance.tracer = _get_from_config(TRACERS, CONF.contract_observation_clause,

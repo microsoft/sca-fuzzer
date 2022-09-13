@@ -33,7 +33,6 @@ class X86ModelTest(unittest.TestCase):
         # make sure that the change in the configuration does not impact the other tests
         cls.prev_conf = deepcopy(CONF)
         CONF.instruction_set = "x86-64"
-        CONF.model = 'x86-unicorn'
         CONF.input_gen_seed = 10  # default
 
     @classmethod
@@ -45,7 +44,6 @@ class X86ModelTest(unittest.TestCase):
         global CONF
         prev_conf = deepcopy(CONF)
         CONF.instruction_set = "x86-64"
-        CONF.model = 'x86-unicorn'
 
         asm_file = tempfile.NamedTemporaryFile(delete=False)
         min_x86_path = test_dir / "min_x86.json"
