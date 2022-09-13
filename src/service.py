@@ -59,9 +59,11 @@ class StatisticsCls:
         else:
             if self.analysed_test_cases:
                 all_cls = (self.eff_classes + self.single_entry_classes) / self.analysed_test_cases
+                eff_cls = self.eff_classes / self.analysed_test_cases
             else:
                 all_cls = 0
-            s = f"Cls:{all_cls:.1f},"
+                eff_cls = 0
+            s = f"Cls:{eff_cls:.1f}/{all_cls:.1f},"
             s += f"In:{self.num_inputs / self.test_cases:.1f},"
             s += f"Cv:{self.coverage},"
             s += f"SpF:{self.spec_filter},"
