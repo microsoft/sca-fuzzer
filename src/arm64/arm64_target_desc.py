@@ -4,10 +4,13 @@ File:
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
-from typing import List, Dict
+from typing import List
 from interfaces import Instruction
 from generator import TargetDesc
 from model import UnicornTargetDesc
+
+from unicorn.arm64_const import UC_ARM64_REG_X0, UC_ARM64_REG_X1, UC_ARM64_REG_X2, \
+    UC_ARM64_REG_X3, UC_ARM64_REG_X4, UC_ARM64_REG_X5, UC_ARM64_REG_NZCV
 
 from config import CONF
 
@@ -64,9 +67,13 @@ class ARMTargetDesc(TargetDesc):
         return inst.name in ["BL"]
 
 
-class X86UnicornTargetDesc(UnicornTargetDesc):
-    # Under construction
-    registers: List[int]
-    barriers: List[str]
-    flags_register: int
-    reg_decode: Dict[str, int]
+class ARM64UnicornTargetDesc(UnicornTargetDesc):
+    registers: List[int] = [
+        UC_ARM64_REG_X0, UC_ARM64_REG_X1, UC_ARM64_REG_X2, UC_ARM64_REG_X3, UC_ARM64_REG_X4,
+        UC_ARM64_REG_X5, UC_ARM64_REG_NZCV
+    ]
+    barriers: List[str] = [
+        'DMB', 'DSB',
+        'LDAR', 'STLR', 'LDAXR', 'STLXR'  # One-way barrier
+    ]
+    flags_register: int = UC_ARM64_REG_NZCV
