@@ -21,12 +21,12 @@ CONF.instruction_set = "arm64"
 class ARMRandomGeneratorTest(unittest.TestCase):
 
     def test_configuration(self):
-        instruction_set = InstructionSet('isa_spec/base.json', CONF.supported_categories)
+        instruction_set = InstructionSet('isa_spec/base.json', CONF.instruction_categories)
         gen = get_generator(instruction_set)
         self.assertEqual(gen.__class__, ARMRandomGenerator)
 
     def test_create_test_case(self):
-        instruction_set = InstructionSet('isa_spec/base.json', CONF.supported_categories)
+        instruction_set = InstructionSet('isa_spec/base.json', CONF.instruction_categories)
         self.assertNotEqual(len(instruction_set.instructions), 0)
 
         generator = ARMRandomGenerator(instruction_set)
@@ -59,7 +59,7 @@ class ARMRandomGeneratorTest(unittest.TestCase):
         os.unlink(asm_file.name)
 
     def test_arm_parse_asm(self):
-        gpr_blocklist_old = CONF.gpr_blocklist
+        gpr_blocklist_old = CONF.register_blocklist
         instruction_blocklist_old = CONF.instruction_blocklist
         CONF.gpr_blocklist = []
         CONF.instruction_blocklist = []
@@ -96,7 +96,7 @@ class ARMRandomGeneratorTest(unittest.TestCase):
         self.assertEqual(inst.operands[2].value, "W10")
 
     def test_arm_all_instructions(self):
-        instruction_set = InstructionSet('isa_spec/base.json', CONF.supported_categories)
+        instruction_set = InstructionSet('isa_spec/base.json', CONF.instruction_blocklist)
         generator = ARMRandomGenerator(instruction_set)
         func = generator.generate_function("function_main")
         printer = ARMPrinter()
