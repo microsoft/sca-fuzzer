@@ -10,7 +10,10 @@ import arm64.arm64_model as arm64_model
 import x86.x86_executor as x86_executor
 import arm64.arm64_executor as arm64_executor
 
+import fuzzer
 import x86.x86_fuzzer as x86_fuzzer
+import arm64.arm64_fuzzer as arm64_fuzzer
+
 import input_generator
 import analyser
 import coverage
@@ -19,6 +22,10 @@ import postprocessor
 import interfaces
 from config import CONF, ConfigException
 
+FUZZERS: Dict[str, Type[fuzzer.Fuzzer]] = {
+    "x86-64": x86_fuzzer.X86Fuzzer,
+    "arm64": arm64_fuzzer.ARMFuzzer
+}
 
 GENERATORS: Dict[str, Type[interfaces.Generator]] = {
     "x86-64-random": x86_generator.X86RandomGenerator,
@@ -40,10 +47,7 @@ TRACERS: Dict[str, Type[model.UnicornTracer]] = {
     "arch": model.ArchTracer,
 }
 
-EXECUTORS = {
-    'x86-64': x86_executor.X86IntelExecutor,
-    'arm64': arm64_executor.ARMDummyExecutor
-}
+EXECUTORS = {'x86-64': x86_executor.X86IntelExecutor, 'arm64': arm64_executor.ARMDummyExecutor}
 
 ANALYSERS: Dict[str, Type[interfaces.Analyser]] = {
     'equivalence-classes': analyser.EquivalenceAnalyser,
@@ -68,9 +72,8 @@ def _get_from_config(options: Dict, key: str, conf_option_name: str, *args):
 
 
 def get_fuzzer(instruction_set, working_directory, testcase):
-    if CONF.instruction_set == "x86-64":
-        return x86_fuzzer.X86Fuzzer(instruction_set, working_directory, testcase)
-    raise ConfigException("unknown value of `instruction_set` configuration option")
+    return _get_from_config(FUZZERS, CONF.instruction_set, "instruction_set", instruction_set,
+                            working_directory, testcase)
 
 
 def get_generator(instruction_set: interfaces.InstructionSetAbstract) -> interfaces.Generator:
