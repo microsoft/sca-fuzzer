@@ -10,14 +10,12 @@ import numpy as np
 from typing import List, Tuple, Dict, Optional, Set
 
 import unicorn.x86_const as ucc
-from unicorn import Uc, UcError, UC_MEM_WRITE, UC_ARCH_X86, UC_MODE_64, \
-    UC_HOOK_MEM_READ, UC_HOOK_MEM_WRITE, UC_HOOK_CODE
+from unicorn import Uc, UC_MEM_WRITE, UC_ARCH_X86, UC_MODE_64
 
-from interfaces import TestCase, InputTaint, Instruction, RegisterOperand, FlagsOperand, \
+from interfaces import InputTaint, Instruction, RegisterOperand, FlagsOperand, \
     MemoryOperand, Input
 from model import UnicornModel, UnicornSpec, UnicornSeq, TaintTrackerInterface
 from x86.x86_target_desc import X86UnicornTargetDesc, X86TargetDesc
-from service import LOGGER
 
 FLAGS_CF = 0b000000000001
 FLAGS_PF = 0b000000000100
@@ -30,42 +28,13 @@ FLAGS_OF = 0b100000000000
 class X86UnicornModel(UnicornModel):
     """
     Base class that serves as main interface.
-    Load inputs and executes the test case on x86
+    Loads inputs and executes the test case on x86
     """
 
     def __init__(self, sandbox_base, code_start):
         self.target_desc = X86UnicornTargetDesc()
+        self.architecture = (UC_ARCH_X86, UC_MODE_64)
         super().__init__(sandbox_base, code_start)
-
-    def load_test_case(self, test_case: TestCase) -> None:
-        self.test_case = test_case
-
-        # create and read a binary
-        with open(test_case.bin_path, 'rb') as f:
-            code = f.read()
-        self.code_end = self.code_start + len(code)
-
-        # initialize emulator in x86-64 mode
-        emulator = Uc(UC_ARCH_X86, UC_MODE_64)
-
-        try:
-            # allocate memory
-            emulator.mem_map(self.code_start, self.CODE_SIZE)
-            sandbox_size = \
-                self.OVERFLOW_REGION_SIZE * 2 + self.MAIN_REGION_SIZE + self.FAULTY_REGION_SIZE
-            emulator.mem_map(self.sandbox_base - self.OVERFLOW_REGION_SIZE, sandbox_size)
-
-            # write machine code to be emulated to memory
-            emulator.mem_write(self.code_start, code)
-
-            # set up callbacks
-            emulator.hook_add(UC_HOOK_MEM_READ | UC_HOOK_MEM_WRITE, self.trace_mem_access, self)
-            emulator.hook_add(UC_HOOK_CODE, self.instruction_hook, self)
-
-            self.emulator = emulator
-
-        except UcError as e:
-            LOGGER.error("[X86UnicornModel:load_test_case] %s" % e)
 
     def _load_input(self, input_: Input):
         """

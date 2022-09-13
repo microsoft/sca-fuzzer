@@ -8,7 +8,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import List, Tuple, Type
 
-from unicorn import Uc, UcError, UC_MEM_WRITE, UC_MEM_READ, UC_SECOND_SCALE
+from unicorn import Uc, UcError, UC_MEM_WRITE, UC_MEM_READ, UC_SECOND_SCALE, UC_HOOK_MEM_READ, \
+    UC_HOOK_MEM_WRITE, UC_HOOK_CODE
 
 from interfaces import CTrace, TestCase, Model, InputTaint, Instruction, ExecutionTrace, \
      TracedInstruction, TracedMemAccess, Input, Dict
@@ -124,6 +125,9 @@ class UnicornModel(Model, ABC):
     tainting_enabled: bool = False
     execution_tracing_enabled: bool = False
 
+    # set by subclasses
+    architecture: Tuple[int, int]
+
     def __init__(self, sandbox_base, code_start):
         super().__init__(sandbox_base, code_start)
         self.code_start = code_start
@@ -146,13 +150,38 @@ class UnicornModel(Model, ABC):
         else:
             self.initial_taints = []
 
-    @abstractmethod
     def load_test_case(self, test_case: TestCase) -> None:
         """
         Instantiate emulator and load input in registers
-        This is architecture specific.
         """
-        pass
+        self.test_case = test_case
+
+        # create and read a binary
+        with open(test_case.bin_path, 'rb') as f:
+            code = f.read()
+        self.code_end = self.code_start + len(code)
+
+        # initialize emulator in x86-64 mode
+        emulator = Uc(*self.architecture)
+
+        try:
+            # allocate memory
+            emulator.mem_map(self.code_start, self.CODE_SIZE)
+            sandbox_size = \
+                self.OVERFLOW_REGION_SIZE * 2 + self.MAIN_REGION_SIZE + self.FAULTY_REGION_SIZE
+            emulator.mem_map(self.sandbox_base - self.OVERFLOW_REGION_SIZE, sandbox_size)
+
+            # write machine code to be emulated to memory
+            emulator.mem_write(self.code_start, code)
+
+            # set up callbacks
+            emulator.hook_add(UC_HOOK_MEM_READ | UC_HOOK_MEM_WRITE, self.trace_mem_access, self)
+            emulator.hook_add(UC_HOOK_CODE, self.instruction_hook, self)
+
+            self.emulator = emulator
+
+        except UcError as e:
+            LOGGER.error("[UnicornModel:load_test_case] %s" % e)
 
     @abstractmethod
     def _load_input(self, input_: Input):
