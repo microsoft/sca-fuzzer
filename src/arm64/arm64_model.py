@@ -69,20 +69,20 @@ class ARM64UnicornModel(UnicornModel):
 
         if not oneline:
             print("\n\nRegisters:")
-            print(f"X): {x0}")
+            print(f"X0: {x0}")
             print(f"X1: {x1}")
             print(f"X2: {x2}")
             print(f"X3: {x3}")
             print(f"X4: {x4}")
             print(f"X5: {x5}")
         else:
-            print(f"  rax={x0} "
-                  f"rbx={x1} "
-                  f"rcx={x2} \n"
-                  f"  rdx={x3} "
-                  f"rsi={x4} "
-                  f"rdi={x5} \n"
-                  f"  fl={emulator.reg_read(ucc.UC_ARM64_REG_NZCV):012b}")
+            print(f"  x0={x0} "
+                  f"x1={x1} "
+                  f"x2={x2} \n"
+                  f"  x3={x3} "
+                  f"x4={x4} "
+                  f"x5={x5} \n"
+                  f"  nzcv={emulator.reg_read(ucc.UC_ARM64_REG_NZCV):012b}")
 
 
 class ARMTaintTracker(TaintTrackerInterface):
