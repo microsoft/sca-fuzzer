@@ -1,6 +1,7 @@
 from typing import Tuple, Dict, Type
 
 import x86.x86_generator as x86_generator
+import arm64.arm64_generator as arm64_generator
 
 import model
 import x86.x86_model as x86_model
@@ -20,7 +21,8 @@ from config import CONF, ConfigException
 
 
 GENERATORS: Dict[str, Type[interfaces.Generator]] = {
-    "x86-64-random": x86_generator.X86RandomGenerator
+    "x86-64-random": x86_generator.X86RandomGenerator,
+    "arm64-random": arm64_generator.ARMRandomGenerator
 }
 
 INPUT_GENERATORS: Dict[str, Type[interfaces.InputGenerator]] = {
@@ -62,7 +64,7 @@ def _get_from_config(options: Dict, key: str, conf_option_name: str, *args):
     if GenCls:
         return GenCls(*args)
 
-    raise ConfigException(f"unknown value {key} for `{conf_option_name}` configuration option")
+    raise ConfigException(f"unknown value `{key}` for `{conf_option_name}` configuration option")
 
 
 def get_fuzzer(instruction_set, working_directory, testcase):
