@@ -27,7 +27,7 @@ arm64_instruction_blocklist: List[str] = [
     "AUTDB",
     "AUTDZA",
     "AUTDZB",
-    "B",
+    # "B",
     "BC.",
     "BFM",
     "BIC",
