@@ -17,6 +17,35 @@ from config import CONF
 
 CONF.instruction_set = "arm64"
 
+PARSING_TEST_CASE = """
+ISB  // instrumentation
+.test_case_enter:
+
+.function_main:
+.bb_main.entry:
+B .bb_main.0
+.bb_main.0:
+
+  // line with a comment
+
+ADC W11, W20, W10  // register operands
+AND X13, X13, #0b1111111000000     // immediate operand
+ADD X13, X13, X30 // instrumentation
+LDRH W23, [X13], #-115 // memory operand
+
+B.NE .bb_main.1
+B .bb_main.exit
+  .bb_main.1:
+    ADC W1, W2, W3  // indentation
+    AND X30, X30, #0b1111111000000
+    ADD X30, X30, X30
+        LDRH W28, [ X30],     #-143    // extra spaces
+
+.bb_main.exit:
+.test_case_exit:
+ISB  // instrumentation
+"""
+
 
 class ARMRandomGeneratorTest(unittest.TestCase):
 
@@ -61,14 +90,20 @@ class ARMRandomGeneratorTest(unittest.TestCase):
     def test_arm_parse_asm(self):
         gpr_blocklist_old = CONF.register_blocklist
         instruction_blocklist_old = CONF.instruction_blocklist
-        CONF.gpr_blocklist = []
+        CONF.register_blocklist = []
         CONF.instruction_blocklist = []
         instruction_set = InstructionSet('isa_spec/base.json')
-        CONF.gpr_blocklist = gpr_blocklist_old
+        CONF.register_blocklist = gpr_blocklist_old
         CONF.instruction_blocklist = instruction_blocklist_old
 
         generator = ARMRandomGenerator(instruction_set)
-        tc: TestCase = generator.parse_existing_test_case("tests/asm_basic.asm")
+        asm_file = tempfile.NamedTemporaryFile(delete=False)
+        with open(asm_file.name, "w") as f:
+            f.write(PARSING_TEST_CASE)
+        tc: TestCase = generator.parse_existing_test_case(asm_file.name)
+        asm_file.close()
+        os.unlink(asm_file.name)
+
         self.assertEqual(len(tc.functions), 1)
 
         main = tc.functions[0]
