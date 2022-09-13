@@ -5,6 +5,7 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 import x86.x86_config as x86_config
+import arm64.arm64_config as arm64_config
 from typing import List, Dict
 
 
@@ -201,6 +202,9 @@ class ConfCls:
         if self.instruction_set == "x86-64":
             config = x86_config
             prefix = "x86_"
+        elif self.instruction_set == "arm64":
+            config = arm64_config
+            prefix = "arm64_"
         else:
             raise ConfigException(f"Unknown architecture {self.instruction_set}")
         options = [i for i in dir(config) if i.startswith(prefix)]
