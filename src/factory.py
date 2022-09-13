@@ -80,8 +80,7 @@ def get_input_generator() -> interfaces.InputGenerator:
 def get_model(bases: Tuple[int, int]) -> interfaces.Model:
     model_instance: model.UnicornModel
 
-    # functional part of the contract
-    if CONF.model == 'x86-unicorn':
+    if CONF.instruction_set == 'x86-64':
         if "cond" in CONF.contract_execution_clause and "bpas" in CONF.contract_execution_clause:
             model_instance = x86_model.X86UnicornCondBpas(bases[0], bases[1])
         elif "cond" in CONF.contract_execution_clause:
@@ -109,7 +108,9 @@ def get_model(bases: Tuple[int, int]) -> interfaces.Model:
 
 
 def get_executor() -> interfaces.Executor:
-    return _get_from_config(EXECUTORS, CONF.executor, "executor")
+    if CONF.executor != 'default':
+        raise ConfigException("unknown value of `executor` configuration option")
+    return _get_from_config(EXECUTORS, CONF.instruction_set, "instruction_set")
 
 
 def get_analyser() -> interfaces.Analyser:

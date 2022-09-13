@@ -86,7 +86,7 @@ class ConfCls:
 
     # ==============================================================================================
     # Executor
-    executor: str = 'x86-intel'
+    executor: str = 'default'
     """ executor: executor type """
     executor_mode: str = 'P+P'
     """ executor_mode: hardware trace collection mode """

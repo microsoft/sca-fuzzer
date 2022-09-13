@@ -31,7 +31,7 @@ For a complete list, see `src/config.py`.
 # Model Configuration
 
 * `model` [str]: Model type.
-  Only one option is currently supported - "x86-unicorn" (default).
+  Only one option is currently supported - "unicorn" (default).
 * `model_max_nesting` [int]: Maximum number of simulated mispredictions.
 * `model_max_spec_window` [int]: Size of the speculation window.
 
@@ -65,7 +65,7 @@ For a complete list, see `src/config.py`.
 # Executor Configuration
 
 * `executor` [str]: Executor type.
-  Only one option is currently supported - "x86-intel" (default).
+  Only one option is currently supported - "default".
 * `executor_mode` [str]: Hardware trace collection mode.
   Available options: 'P+P' - prime and probe; 'F+R' - flush and reload; 'E+R' - evict and reload.
 * `executor_warmups` [int]: Number of warmup rounds executed before starting to collect hardware traces.
