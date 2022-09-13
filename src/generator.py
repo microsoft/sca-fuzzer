@@ -205,7 +205,7 @@ class ConfigurableGenerator(Generator, abc.ABC):
                 lines.append(line)
 
         # set defaults in case the main function is implicit
-        if not lines[0].startswith(".function_main:"):
+        if not lines or not lines[0].startswith(".function_main:"):
             lines = [".function_main:"] + lines
 
         # map lines to functions and basic blocks
