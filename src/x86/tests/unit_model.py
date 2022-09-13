@@ -78,7 +78,6 @@ class X86ModelTest(unittest.TestCase):
         # make sure that the change in the configuration does not impact the other tests
         cls.prev_conf = deepcopy(CONF)
         CONF.instruction_set = "x86-64"
-        CONF.model = 'x86-unicorn'
         CONF.input_gen_seed = 10  # default
         CONF.setattr_internal("_no_generation", True)
 
