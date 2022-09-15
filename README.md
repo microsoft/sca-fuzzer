@@ -166,10 +166,10 @@ Congratulations, you just found your first Spectre! You can find the violating t
 
 To start a real fuzzing campaign, write your own configuration file (see description [here](docs/config.md) and an example config [here](src/tests/big-fuzz.yaml)), and launch the fuzzer.
 
-Below is a example launch command, which will start a 24-hour fuzzing session, with 50 input classes per test case:
+Below is a example launch command, which will start a 24-hour fuzzing session, with 100 input classes per test case:
 
 ```shell
-./cli.py fuzz -s x86/isa_spec/base.json -c tests/big-fuzz.yaml -i 50 -n 100000000 --timeout 86400 -w `pwd` --nonstop
+./cli.py fuzz -s x86/isa_spec/base.json -c tests/big-fuzz.yaml -i 100 -n 100000000 --timeout 86400 -w `pwd` --nonstop
 ```
 
 For more examples, see the `demo/` directory.
