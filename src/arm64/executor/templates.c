@@ -21,27 +21,32 @@
 #define _str(s) str(s)
 #define str(s) #s
 
-int load_template(size_t tc_size) {
+int load_template(size_t tc_size)
+{
     unsigned template_pos = 0;
     unsigned code_pos = 0;
 
     // skip until the beginning of the template
-    for (;; template_pos++) {
+    for (;; template_pos++)
+    {
         if (template_pos >= MAX_MEASUREMENT_CODE_SIZE)
             return -1;
 
-        if (*(uint32_t *) &measurement_template[template_pos] == TEMPLATE_ENTER) {
+        if (*(uint32_t *)&measurement_template[template_pos] == TEMPLATE_ENTER)
+        {
             template_pos += 4;
             break;
         }
     }
 
     // copy the first part of the template
-    for (;; template_pos++, code_pos++) {
+    for (;; template_pos++, code_pos++)
+    {
         if (template_pos >= MAX_MEASUREMENT_CODE_SIZE)
             return -1;
 
-        if (*(uint32_t *) &measurement_template[template_pos] == TEMPLATE_INSERT_TC) {
+        if (*(uint32_t *)&measurement_template[template_pos] == TEMPLATE_INSERT_TC)
+        {
             template_pos += 4;
             break;
         }
@@ -54,14 +59,15 @@ int load_template(size_t tc_size) {
     code_pos += tc_size;
 
     // write the rest of the template
-    for (;; template_pos++, code_pos++) {
+    for (;; template_pos++, code_pos++)
+    {
         if (template_pos >= MAX_MEASUREMENT_CODE_SIZE)
             return -2;
 
-        if (*(uint32_t *) &measurement_template[template_pos] == TEMPLATE_INSERT_TC)
+        if (*(uint32_t *)&measurement_template[template_pos] == TEMPLATE_INSERT_TC)
             return -3;
 
-        if (*(uint32_t *) &measurement_template[template_pos] == TEMPLATE_RETURN)
+        if (*(uint32_t *)&measurement_template[template_pos] == TEMPLATE_RETURN)
             break;
 
         measurement_code[code_pos] = measurement_template[template_pos];
@@ -69,16 +75,18 @@ int load_template(size_t tc_size) {
 
     // RET
     measurement_code[code_pos + 0] = '\xc0';
-    measurement_code[code_pos + 1] = '\x03'; 
-    measurement_code[code_pos + 2] = '\x5f'; 
-    measurement_code[code_pos + 3] = '\xd6'; 
+    measurement_code[code_pos + 1] = '\x03';
+    measurement_code[code_pos + 2] = '\x5f';
+    measurement_code[code_pos + 3] = '\xd6';
     return code_pos + 4;
 }
 
 // =================================================================================================
 // Template building blocks
 // =================================================================================================
-inline void prologue(void) {
+// clang-format off
+inline void prologue(void)
+{
     // As we don't use a compiler to track clobbering,
     // we have to save the callee-saved regs
     asm volatile("" \
@@ -136,10 +144,10 @@ inline void epilogue(void) {
 // =================================================================================================
 #if L1D_ASSOCIATIVITY == 2
 
-// clobber: 
+// clobber:
 #define PRIME() ""  // TBD
 
-// clobber: 
+// clobber:
 #define PROBE() asm volatile("mov x15, x7\n")  // TBD
 
 #endif
