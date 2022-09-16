@@ -8,7 +8,7 @@ from typing import List
 
 # x86_option_values attribute MUST be the first attribute in the file
 arm64_option_values = {
-    'executor_mode': ['P+P', 'F+R', 'E+R'],
+    'executor_mode': ['P+P'],
 }
 
 arm64_instruction_categories: List[str] = [
