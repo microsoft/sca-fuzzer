@@ -44,10 +44,61 @@ void run_experiment(long rounds)
     unsigned long flags;
     raw_local_irq_save(flags);
 
+    // Zero-initialize the region of memory used by Prime+Probe
+    memset(&sandbox->eviction_region[0], 0, EVICT_REGION_SIZE * sizeof(char));
+
     for (long i = -uarch_reset_rounds; i < rounds; i++)
     {
         // ignore "warm-up" runs (i<0)uarch_reset_rounds
         long i_ = (i < 0) ? 0 : i;
+        uint64_t *current_input = &inputs[i_ * INPUT_SIZE / 8];
+
+        // Initialize memory:
+        // NOTE: memset is not used intentionally! somehow, it messes up with P+P measurements
+        // - overflows are initialized with zeroes
+        memset(&sandbox->lower_overflow[0], 0, OVERFLOW_REGION_SIZE * sizeof(char));
+        for (int j = 0; j < OVERFLOW_REGION_SIZE / 8; j += 1) {
+            // ((uint64_t *) sandbox->lower_overflow)[j] = 0;
+            ((uint64_t *) sandbox->upper_overflow)[j] = 0;
+        }
+
+        // - sandbox: main and faulty regions
+        uint64_t *main_page_values = &current_input[0];
+        uint64_t *main_base = (uint64_t *)&sandbox->main_region[0];
+        for (int j = 0; j < MAIN_REGION_SIZE / 8; j += 1)
+        {
+            ((uint64_t *)main_base)[j] = main_page_values[j];
+        }
+
+        uint64_t *faulty_page_values = &current_input[MAIN_REGION_SIZE / 8];
+        uint64_t *faulty_base = (uint64_t *)&sandbox->faulty_region[0];
+        for (int j = 0; j < FAULTY_REGION_SIZE / 8; j += 1)
+        {
+            ((uint64_t *)faulty_base)[j] = faulty_page_values[j];
+        }
+
+        // Initial register values (the registers will be set to these values in template.c)
+        uint64_t *register_values = &current_input[(MAIN_REGION_SIZE + FAULTY_REGION_SIZE) / 8];
+        uint64_t *register_initialization_base = (uint64_t *)&sandbox->upper_overflow[0];
+
+        // - RAX ... RDI
+        for (int j = 0; j < 6; j += 1)
+        {
+            ((uint64_t *)register_initialization_base)[j] = register_values[j];
+        }
+
+        // - flags
+        uint64_t masked_flags = register_values[6] << 28;
+        ((uint64_t *)register_initialization_base)[6] = masked_flags;
+
+        // - RSP and RBP
+        ((uint64_t *)register_initialization_base)[7] = (uint64_t)stack_base;
+
+        // flush some of the uarch state
+        if (pre_run_flush == 1)
+        {
+            // TBD
+        }
 
         // execute
         ((void (*)(char *))measurement_code)(&sandbox->main_region[0]);
