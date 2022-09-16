@@ -64,7 +64,7 @@ class ARMModelTest(unittest.TestCase):
     def test_input_loading(self):
         asm = ".test_case_enter:\nADD x10, x10, x10\n.test_case_exit:"
         tc = tc_from_str(self.default_isa, asm)
-        reg_values = [0, 1, 2, 3, 4, 5, 6 << 28]
+        reg_values = [0, 1, 2, 3, 4, 5, 6]
         input_ = Input()
         input_[input_.register_start:input_.data_size - 1] = reg_values
 
@@ -80,7 +80,7 @@ class ARMModelTest(unittest.TestCase):
         self.assertEqual(model.emulator.reg_read(ucc.UC_ARM64_REG_X3), reg_values[3])
         self.assertEqual(model.emulator.reg_read(ucc.UC_ARM64_REG_X4), reg_values[4])
         self.assertEqual(model.emulator.reg_read(ucc.UC_ARM64_REG_X5), reg_values[5])
-        self.assertEqual(model.emulator.reg_read(ucc.UC_ARM64_REG_NZCV), reg_values[6])
+        self.assertEqual(model.emulator.reg_read(ucc.UC_ARM64_REG_NZCV), reg_values[6] << 28)
 
     def test_tracing(self):
         asm = """
