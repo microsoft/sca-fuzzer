@@ -4,20 +4,145 @@ File:
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
-from typing import List, Tuple
-from interfaces import Input, Executor, CombinedHTrace
+import subprocess
+import os.path
+import csv
+import numpy as np
+from collections import Counter
+from typing import List
+from interfaces import CombinedHTrace, Input, TestCase, Executor, Optional
+
+from config import CONF
+from service import LOGGER
 
 
-class ARMDummyExecutor(Executor):
+def write_to_sysfs_file(value, path: str) -> None:
+    subprocess.run(f"sudo bash -c 'echo -n {value} > {path}'", shell=True, check=True)
 
-    def load_test_case(self, _):
-        pass
 
-    def trace_test_case(self, inputs: List[Input], _) -> List[CombinedHTrace]:
-        return [0 for _ in inputs]
+def write_to_sysfs_file_bytes(value: bytes, path: str) -> None:
+    with open(path, "wb") as f:
+        f.write(value)
 
-    def read_base_addresses(self) -> Tuple[int, int]:
-        return (0x10000, 0x0)
 
-    def get_last_feedback(self):
-        pass
+class ARMExecutor(Executor):
+    previous_num_inputs: int = 0
+
+    def __init__(self):
+        super().__init__()
+        # check the execution environment: is SMT disabled?
+        smt_on: Optional[bool] = None
+        try:
+            out = subprocess.run("lscpu", shell=True, check=True, capture_output=True)
+        except subprocess.CalledProcessError:
+            LOGGER.error("Could not check if hyperthreading is enabled.\n"
+                         "       Is lscpu installed?")
+        for line in out.stdout.decode().split("\n"):
+            if line.startswith("Thread(s) per core:"):
+                if line[-1] == "1":
+                    smt_on = False
+                else:
+                    smt_on = True
+        if smt_on is None:
+            LOGGER.warning("executor", "Could not check if SMT is on.")
+        if smt_on:
+            LOGGER.warning("executor", "SMT is on! You may experience false positives.")
+
+        # disable prefetching
+        # TBD
+
+        # is kernel module ready?
+        if not os.path.isfile("/sys/arm64_executor/trace"):
+            LOGGER.error("arm64 executor: kernel module not loaded")
+
+        # initialize the kernel module
+        write_to_sysfs_file(CONF.executor_warmups, '/sys/arm64_executor/warmups')
+        write_to_sysfs_file("1" if CONF.enable_pre_run_flush else "0",
+                            "/sys/arm64_executor/enable_pre_run_flush")
+        write_to_sysfs_file(CONF.executor_mode, "/sys/arm64_executor/measurement_mode")
+
+    def load_test_case(self, test_case: TestCase):
+        with open(test_case.bin_path, "rb") as f:
+            write_to_sysfs_file_bytes(f.read(), "/sys/arm64_executor/test_case")
+
+    def trace_test_case(self, inputs: List[Input], repetitions: int = 0) \
+            -> List[CombinedHTrace]:
+        # make sure it's not a dummy call
+        if not inputs:
+            return []
+
+        if repetitions == 0:
+            repetitions = CONF.executor_repetitions
+            threshold_outliers = CONF.executor_max_outliers
+        else:
+            threshold_outliers = repetitions // 10
+
+        # convert the inputs into a byte sequence
+        byte_inputs = [i.tobytes() for i in inputs]
+        byte_inputs_merged = bytes().join(byte_inputs)
+
+        # protocol of loading inputs (must be in this order):
+        # 1) Announce the number of inputs
+        write_to_sysfs_file(str(len(inputs)), "/sys/arm64_executor/n_inputs")
+        # 2) Load the inputs
+        write_to_sysfs_file_bytes(byte_inputs_merged, "/sys/arm64_executor/inputs")
+        # 3) Check that the load was successful
+        with open('/sys/arm64_executor/inputs', 'r') as f:
+            if f.readline() != '1\n':
+                LOGGER.error("Failure loading inputs!")
+
+        # run experiments and load the results
+        all_results: np.ndarray = np.ndarray(shape=(len(inputs), repetitions, 1), dtype=np.uint64)
+        for rep in range(repetitions):
+            # executor prints results in reverse, so we begin from the end
+            input_id = len(inputs) - 1
+            reading_finished = False
+
+            # executor prints results in batches, hence we have to call it several times,
+            # until we find the `done` keyword in the output
+            while not reading_finished:
+                output = subprocess.check_output(
+                    f"taskset -c {CONF.executor_taskset} cat /sys/arm64_executor/trace", shell=True)
+                reader = csv.reader(output.decode().split("\n"))
+                for row in reader:
+                    if not row:
+                        continue
+                    if 'done' in row:
+                        reading_finished = True
+                        break
+
+                    all_results[input_id][rep][0] = int(row[0])
+                    input_id -= 1
+
+        # simple case - no merging required
+        if repetitions == 1:
+            return [int(r[0][0]) for r in all_results]
+
+        traces = [0 for _ in inputs]
+
+        # merge the results of repeated measurements
+        for input_id, input_results in enumerate(all_results):
+            # remove outliers and merge hardware traces
+            print(input_results[0])
+
+            counter: Counter = Counter()
+            for result in input_results:
+                trace = int(result[0])
+                counter[trace] += 1
+                if counter[trace] == threshold_outliers + 1:
+                    # merge the trace if we observed it sufficiently many time
+                    # (i.e., if we can conclude it's not noise)
+                    traces[input_id] |= trace
+
+        return traces
+
+    def read_base_addresses(self):
+        with open('/sys/arm64_executor/print_sandbox_base', 'r') as f:
+            sandbox_base = f.readline()
+        with open('/sys/arm64_executor/print_code_base', 'r') as f:
+            code_base = f.readline()
+        return int(sandbox_base, 16), int(code_base, 16)
+
+    def get_last_feedback(self) -> List:
+        # TBD
+        return []
