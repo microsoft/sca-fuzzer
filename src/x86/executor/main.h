@@ -51,13 +51,13 @@ extern measurement_t *measurements;
 
 typedef struct Sandbox
 {
-    char eviction_region[EVICT_REGION_SIZE];  // region used in Prime+Probe for priming
-    char lower_overflow[OVERFLOW_REGION_SIZE];  // zero-initialized region for accidental overflows
-    char main_region[MAIN_REGION_SIZE];  // first input page. does not cause faults
-    char faulty_region[FAULTY_REGION_SIZE];  // second input. causes a (configurable) fault
-    char upper_overflow[OVERFLOW_REGION_SIZE];  // zero-initialized region for accidental overflows
+    char eviction_region[EVICT_REGION_SIZE];   // region used in Prime+Probe for priming
+    char lower_overflow[OVERFLOW_REGION_SIZE]; // zero-initialized region for accidental overflows
+    char main_region[MAIN_REGION_SIZE];        // first input page. does not cause faults
+    char faulty_region[FAULTY_REGION_SIZE];    // second input. causes a (configurable) fault
+    char upper_overflow[OVERFLOW_REGION_SIZE]; // zero-initialized region for accidental overflows
     uint64_t stored_rsp;
-    measurement_t latest_measurement;  // measurement results
+    measurement_t latest_measurement; // measurement results
 } sandbox_t;
 
 extern sandbox_t *sandbox;

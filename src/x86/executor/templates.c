@@ -27,27 +27,32 @@
 #define _str(s) str(s)
 #define str(s) #s
 
-int load_template(size_t tc_size) {
+int load_template(size_t tc_size)
+{
     unsigned template_pos = 0;
     unsigned code_pos = 0;
 
     // skip until the beginning of the template
-    for (;; template_pos++) {
+    for (;; template_pos++)
+    {
         if (template_pos >= MAX_MEASUREMENT_CODE_SIZE)
             return -1;
 
-        if (*(uint64_t *) &measurement_template[template_pos] == TEMPLATE_ENTER) {
+        if (*(uint64_t *)&measurement_template[template_pos] == TEMPLATE_ENTER)
+        {
             template_pos += 8;
             break;
         }
     }
 
     // copy the first part of the template
-    for (;; template_pos++, code_pos++) {
+    for (;; template_pos++, code_pos++)
+    {
         if (template_pos >= MAX_MEASUREMENT_CODE_SIZE)
             return -1;
 
-        if (*(uint64_t *) &measurement_template[template_pos] == TEMPLATE_INSERT_TC) {
+        if (*(uint64_t *)&measurement_template[template_pos] == TEMPLATE_INSERT_TC)
+        {
             template_pos += 8;
             break;
         }
@@ -60,14 +65,15 @@ int load_template(size_t tc_size) {
     code_pos += tc_size;
 
     // write the rest of the template
-    for (;; template_pos++, code_pos++) {
+    for (;; template_pos++, code_pos++)
+    {
         if (template_pos >= MAX_MEASUREMENT_CODE_SIZE)
             return -2;
 
-        if (*(uint64_t *) &measurement_template[template_pos] == TEMPLATE_INSERT_TC)
+        if (*(uint64_t *)&measurement_template[template_pos] == TEMPLATE_INSERT_TC)
             return -3;
 
-        if (*(uint64_t *) &measurement_template[template_pos] == TEMPLATE_RETURN)
+        if (*(uint64_t *)&measurement_template[template_pos] == TEMPLATE_RETURN)
             break;
 
         measurement_code[code_pos] = measurement_template[template_pos];
@@ -79,6 +85,7 @@ int load_template(size_t tc_size) {
 // =================================================================================================
 // Template building blocks
 // =================================================================================================
+// clang-format off
 #define asm_volatile_intel(ASM) \
     asm volatile( \
     "\n.intel_syntax noprefix                  \n" \
@@ -147,8 +154,8 @@ int load_template(size_t tc_size) {
     "mov rbp, rsp \n" \
     ".att_syntax noprefix");
 
-
-inline void prologue(void) {
+inline void prologue(void)
+{
     // As we don't use a compiler to track clobbering,
     // we have to save the callee-saved regs
     asm_volatile_intel(
@@ -184,15 +191,15 @@ inline void prologue(void) {
         "mov r15, 0\n"
 
         // start monitoring SMIs
-        READ_SMI_START("r12")
-    );
+        READ_SMI_START("r12"));
 }
 
-inline void epilogue(void) {
+inline void epilogue(void)
+{
     asm_volatile_intel(
         READ_SMI_END("r12")
 
-        // rax <- &latest_measurement 
+        // rax <- &latest_measurement
         "lea rax, [r14 + "xstr(MEASUREMENT_OFFSET)"]\n"
 
         // if we see no SMI interrupts, store the hardware trace (r11)
@@ -222,7 +229,6 @@ inline void epilogue(void) {
         "pop rbx\n"
     );
 }
-
 
 // =================================================================================================
 // L1D Prime+Probe

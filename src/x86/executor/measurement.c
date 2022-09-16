@@ -5,12 +5,13 @@
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+// clang-format off
 #include <linux/seq_file.h>
 #include <linux/irqflags.h>
 #include <../arch/x86/include/asm/fpu/api.h>
 #include <../arch/x86/include/asm/pgtable.h>
 #include <../arch/x86/include/asm/tlbflush.h>
-
+// clang-format on
 #include "main.h"
 
 struct pfc_config
@@ -43,14 +44,14 @@ static inline int pre_measurement_setup(void)
     // on some microarchitectures (e.g., Broadwell), some events
     // (e.g., L1 misses) are not counted properly if only the OS field is set
     int err = 0;
-    err |= config_pfc(0, "D1.01", 1, 1);            // L1 hits - for htrace collection
+    err |= config_pfc(0, "D1.01", 1, 1); // L1 hits - for htrace collection
     // err |= config_pfc(1, "C3.01.CMSK=1.EDG", 1, 1); // machine clears - fuzzing feedback
     // err |= config_pfc(2, "C5.00", 1, 1);  // mispredicted branches - fuzzing feedback
 
     // uops
     err |= config_pfc(1, "0D.01", 1, 1); // misprediction recovery cycles - fuzzing feedback
-    err |= config_pfc(2, "C2.02", 1, 1);   // C2.02 - uops retirement slots
-    err |= config_pfc(3, "0E.01", 1, 1);  // 0E.01 - uops issued
+    err |= config_pfc(2, "C2.02", 1, 1); // C2.02 - uops retirement slots
+    err |= config_pfc(3, "0E.01", 1, 1); // 0E.01 - uops issued
 
     if (err)
         return err;
@@ -86,9 +87,10 @@ void run_experiment(long rounds)
         // NOTE: memset is not used intentionally! somehow, it messes up with P+P measurements
         // - overflows are initialized with zeroes
         memset(&sandbox->lower_overflow[0], 0, OVERFLOW_REGION_SIZE * sizeof(char));
-        for (int j = 0; j < OVERFLOW_REGION_SIZE / 8; j += 1) {
+        for (int j = 0; j < OVERFLOW_REGION_SIZE / 8; j += 1)
+        {
             // ((uint64_t *) sandbox->lower_overflow)[j] = 0;
-            ((uint64_t *) sandbox->upper_overflow)[j] = 0;
+            ((uint64_t *)sandbox->upper_overflow)[j] = 0;
         }
 
         // - sandbox: main and faulty regions
@@ -127,10 +129,7 @@ void run_experiment(long rounds)
         if (pre_run_flush == 1)
         {
             static const u16 ds = __KERNEL_DS;
-            asm volatile("verw %[ds]"
-                         :
-                         : [ds] "m"(ds)
-                         : "cc");
+            asm volatile("verw %[ds]" : : [ds] "m"(ds) : "cc");
             wrmsr64(MSR_IA32_FLUSH_CMD, L1D_FLUSH);
         }
 
@@ -139,10 +138,8 @@ void run_experiment(long rounds)
         {
             faulty_page_pte.pte = faulty_page_ptep->pte & ~_PAGE_ACCESSED;
             set_pte_at(current->mm, faulty_page_addr, faulty_page_ptep, faulty_page_pte);
-            asm volatile("clflush (%0)\nlfence\n" ::"r"(faulty_page_addr)
-                         : "memory");
-            asm volatile("invlpg (%0)" ::"r"(faulty_page_addr)
-                         : "memory");
+            asm volatile("clflush (%0)\nlfence\n" ::"r"(faulty_page_addr) : "memory");
+            asm volatile("invlpg (%0)" ::"r"(faulty_page_addr) : "memory");
         }
 
         // execute
