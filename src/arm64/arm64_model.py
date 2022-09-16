@@ -4,11 +4,14 @@ File:
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
+import numpy as np
 import unicorn as uni
 import unicorn.arm64_const as ucc
 from model import UnicornModel, UnicornSpec, UnicornSeq, TaintTrackerInterface
 from interfaces import Input
 from arm64.arm64_target_desc import ARM64UnicornTargetDesc
+
+REG64_MASK = np.uint64(pow(2, 64) - 1)  # type: ignore
 
 
 class ARM64UnicornModel(UnicornModel):
@@ -36,8 +39,11 @@ class ARM64UnicornModel(UnicornModel):
 
         # Set values in registers
         regs = self.target_desc.registers
+        flags = self.target_desc.flags_register
         reg_init_address = self.sandbox_base + self.MAIN_REGION_SIZE + self.FAULTY_REGION_SIZE
         for i, value in enumerate(input_.get_registers()):
+            if regs[i] == flags:
+                value = (value << np.uint64(28)) % REG64_MASK   # type: ignore
             self.emulator.reg_write(regs[i], value)
 
             # executor uses the lower bytes of the upper_overflow_region to initialize registers
