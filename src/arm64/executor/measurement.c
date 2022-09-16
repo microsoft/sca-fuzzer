@@ -5,8 +5,10 @@
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+// clang-format off
 #include <linux/seq_file.h>
 #include <linux/irqflags.h>
+// clang-format on
 
 #include "main.h"
 
@@ -57,9 +59,10 @@ void run_experiment(long rounds)
         // NOTE: memset is not used intentionally! somehow, it messes up with P+P measurements
         // - overflows are initialized with zeroes
         memset(&sandbox->lower_overflow[0], 0, OVERFLOW_REGION_SIZE * sizeof(char));
-        for (int j = 0; j < OVERFLOW_REGION_SIZE / 8; j += 1) {
+        for (int j = 0; j < OVERFLOW_REGION_SIZE / 8; j += 1)
+        {
             // ((uint64_t *) sandbox->lower_overflow)[j] = 0;
-            ((uint64_t *) sandbox->upper_overflow)[j] = 0;
+            ((uint64_t *)sandbox->upper_overflow)[j] = 0;
         }
 
         // - sandbox: main and faulty regions

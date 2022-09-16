@@ -3,6 +3,7 @@
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+// clang-format off
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/module.h>
@@ -10,6 +11,7 @@
 #include <linux/slab.h>
 #include <linux/version.h>
 #include <linux/kobject.h>
+// clang-format on
 
 #include "main.h"
 
@@ -22,8 +24,7 @@
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0)
 #define KPROBE_LOOKUP 1
 #include <linux/kprobes.h>
-static struct kprobe kp = {
-    .symbol_name = "kallsyms_lookup_name"};
+static struct kprobe kp = {.symbol_name = "kallsyms_lookup_name"};
 #endif
 
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(4, 12, 0)
@@ -81,9 +82,7 @@ static struct kobj_attribute trace_attribute = __ATTR(trace, 0664, trace_show, N
 
 /// Loading a test case
 ///
-static ssize_t test_case_store(struct kobject *kobj,
-                               struct kobj_attribute *attr,
-                               const char *buf,
+static ssize_t test_case_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf,
                                size_t count);
 static ssize_t test_case_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf);
 static struct kobj_attribute test_case_attribute =
@@ -91,18 +90,14 @@ static struct kobj_attribute test_case_attribute =
 
 /// Loading inputs
 ///
-static ssize_t inputs_store(struct kobject *kobj,
-                            struct kobj_attribute *attr,
-                            const char *buf,
+static ssize_t inputs_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf,
                             size_t count);
 static ssize_t inputs_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf);
 static struct kobj_attribute inputs_attribute = __ATTR(inputs, 0666, inputs_show, inputs_store);
 
 /// Changing the number of tested inputs
 ///
-static ssize_t n_inputs_store(struct kobject *kobj,
-                              struct kobj_attribute *attr,
-                              const char *buf,
+static ssize_t n_inputs_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf,
                               size_t count);
 static ssize_t n_inputs_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf);
 static struct kobj_attribute n_inputs_attribute =
@@ -111,16 +106,13 @@ static struct kobj_attribute n_inputs_attribute =
 /// Setting the number of warm up rounds
 ///
 static ssize_t warmups_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf);
-static ssize_t warmups_store(struct kobject *kobj,
-                             struct kobj_attribute *attr,
-                             const char *buf,
+static ssize_t warmups_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf,
                              size_t count);
 static struct kobj_attribute warmups_attribute = __ATTR(warmups, 0666, warmups_show, warmups_store);
 
 /// Getting the sandbox base address
 ///
-static ssize_t print_sandbox_base_show(struct kobject *kobj,
-                                       struct kobj_attribute *attr,
+static ssize_t print_sandbox_base_show(struct kobject *kobj, struct kobj_attribute *attr,
                                        char *buf);
 static struct kobj_attribute print_sandbox_base_attribute =
     __ATTR(print_sandbox_base, 0664, print_sandbox_base_show, NULL);
@@ -133,19 +125,15 @@ static struct kobj_attribute print_code_base_attribute =
 
 /// Control flushing
 ///
-static ssize_t enable_pre_run_flush_store(struct kobject *kobj,
-                                          struct kobj_attribute *attr,
-                                          const char *buf,
-                                          size_t count);
+static ssize_t enable_pre_run_flush_store(struct kobject *kobj, struct kobj_attribute *attr,
+                                          const char *buf, size_t count);
 static struct kobj_attribute enable_pre_run_flush_attribute =
     __ATTR(enable_pre_run_flush, 0666, NULL, enable_pre_run_flush_store);
 
 /// Measurement template selector
 ///
-static ssize_t measurement_mode_store(struct kobject *kobj,
-                                      struct kobj_attribute *attr,
-                                      const char *buf,
-                                      size_t count);
+static ssize_t measurement_mode_store(struct kobject *kobj, struct kobj_attribute *attr,
+                                      const char *buf, size_t count);
 static struct kobj_attribute measurement_mode_attribute =
     __ATTR(measurement_mode, 0666, NULL, measurement_mode_store);
 
@@ -209,8 +197,7 @@ static ssize_t trace_show(struct kobject *kobj, struct kobj_attribute *attr, cha
             return count; // we will continue in the next call of this function
 
         measurement_t m = measurements[next_measurement_id];
-        retval = sprintf(&buf[count], "%llu\n",
-                         m.htrace[0]);
+        retval = sprintf(&buf[count], "%llu\n", m.htrace[0]);
         if (!retval)
             return -1;
         count += retval;
@@ -219,9 +206,7 @@ static ssize_t trace_show(struct kobject *kobj, struct kobj_attribute *attr, cha
     return count;
 }
 
-static ssize_t test_case_store(struct kobject *kobj,
-                               struct kobj_attribute *attr,
-                               const char *buf,
+static ssize_t test_case_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf,
                                size_t count)
 {
     if (count >= MAX_TEST_CASE_SIZE)
@@ -261,9 +246,7 @@ static ssize_t test_case_show(struct kobject *kobj, struct kobj_attribute *attr,
     return loaded_tc_size;
 }
 
-static ssize_t n_inputs_store(struct kobject *kobj,
-                              struct kobj_attribute *attr,
-                              const char *buf,
+static ssize_t n_inputs_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf,
                               size_t count)
 {
     unsigned long old_n_inputs = n_inputs;
@@ -299,9 +282,7 @@ static ssize_t n_inputs_show(struct kobject *kobj, struct kobj_attribute *attr, 
     return sprintf(buf, "%ld\n", n_inputs);
 }
 
-static ssize_t inputs_store(struct kobject *kobj,
-                            struct kobj_attribute *attr,
-                            const char *buf,
+static ssize_t inputs_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf,
                             size_t count)
 {
     if (n_inputs_ready == 0)
@@ -351,18 +332,14 @@ static ssize_t warmups_show(struct kobject *kobj, struct kobj_attribute *attr, c
     return sprintf(buf, "%ld\n", uarch_reset_rounds);
 }
 
-static ssize_t warmups_store(struct kobject *kobj,
-                             struct kobj_attribute *attr,
-                             const char *buf,
+static ssize_t warmups_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf,
                              size_t count)
 {
     sscanf(buf, "%ld", &uarch_reset_rounds);
     return count;
 }
 
-static ssize_t print_sandbox_base_show(struct kobject *kobj,
-                                       struct kobj_attribute *attr,
-                                       char *buf)
+static ssize_t print_sandbox_base_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
     return sprintf(buf, "%llx\n", (long long unsigned)sandbox->main_region);
 }
@@ -372,10 +349,8 @@ static ssize_t print_code_base_show(struct kobject *kobj, struct kobj_attribute 
     return sprintf(buf, "%llx\n", (long long unsigned)test_case);
 }
 
-static ssize_t enable_pre_run_flush_store(struct kobject *kobj,
-                                          struct kobj_attribute *attr,
-                                          const char *buf,
-                                          size_t count)
+static ssize_t enable_pre_run_flush_store(struct kobject *kobj, struct kobj_attribute *attr,
+                                          const char *buf, size_t count)
 {
     unsigned value = 0;
     sscanf(buf, "%u", &value);
@@ -383,10 +358,8 @@ static ssize_t enable_pre_run_flush_store(struct kobject *kobj,
     return count;
 }
 
-static ssize_t measurement_mode_store(struct kobject *kobj,
-                                      struct kobj_attribute *attr,
-                                      const char *buf,
-                                      size_t count)
+static ssize_t measurement_mode_store(struct kobject *kobj, struct kobj_attribute *attr,
+                                      const char *buf, size_t count)
 {
     if (buf[0] == 'P')
     {
