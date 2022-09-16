@@ -82,6 +82,15 @@ inline void epilogue(void) {
 // =================================================================================================
 // L1D Prime+Probe
 // =================================================================================================
+#if L1D_ASSOCIATIVITY == 2
+
+// clobber: 
+#define PRIME() ""  // TBD
+
+// clobber: 
+#define PROBE() asm volatile("mov x15, x7\n")  // TBD
+
+#endif
 
 void template_l1d_prime_probe(void) {
     asm volatile(".long "xstr(TEMPLATE_ENTER));
@@ -90,10 +99,16 @@ void template_l1d_prime_probe(void) {
     asm volatile("bti c");
 
     prologue();
+
+    PRIME();
+
     // Execute the test case
     asm("\nisb\n"
         ".long "xstr(TEMPLATE_INSERT_TC)" \n"
         "isb\n");
+
+    // Probe and store the resulting eviction bitmap map into x?
+    PROBE();
 
     epilogue();
     asm volatile(".long "xstr(TEMPLATE_RETURN));
