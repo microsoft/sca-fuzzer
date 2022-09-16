@@ -39,13 +39,18 @@ fi
 
 if [[ "$TARGET" == "arm64" ]] ; then
     echo ""
-    echo "===== ARM64 unit tests ====="
+    echo "===== arm64 kernel module ====="
+    cd $SCRIPT_DIR/../arm64 || exit
+    ./tests/kernel_module.bats
+    cd - > /dev/null || exit
+    echo ""
+    echo "===== arm64 unit tests ====="
     cd $SCRIPT_DIR/../arm64 || exit
     python3 -m unittest discover tests -p "unit_*.py" -v
     cd - || exit
 
     echo ""
-    echo "===== ARM64 acceptance tests ====="
+    echo "===== arm64 acceptance tests ====="
     cd $SCRIPT_DIR/.. || exit
     ./arm64/tests/acceptance.bats
     cd - > /dev/null || exit
