@@ -40,6 +40,26 @@ static inline int pre_measurement_setup(void)
 
 void run_experiment(long rounds)
 {
+    get_cpu();
+    unsigned long flags;
+    raw_local_irq_save(flags);
+
+    for (long i = -uarch_reset_rounds; i < rounds; i++)
+    {
+        // ignore "warm-up" runs (i<0)uarch_reset_rounds
+        long i_ = (i < 0) ? 0 : i;
+
+        // execute
+        ((void (*)(char *))measurement_code)(&sandbox->main_region[0]);
+
+        // store the measurement results
+        measurement_t result = sandbox->latest_measurement;
+        // printk(KERN_ERR "arm64_executor: measurement %llu\n", result.htrace[0]);
+        measurements[i_].htrace[0] = result.htrace[0];
+    }
+
+    raw_local_irq_restore(flags);
+    put_cpu();
 }
 
 int trace_test_case(void)
