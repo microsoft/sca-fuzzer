@@ -31,6 +31,7 @@ class ARMGenerator(ConfigurableGenerator, abc.ABC):
         self.printer = ARMPrinter()
         self.target_desc = ARMTargetDesc()
         self.re_tokenize = re.compile(r"^([^ .]+\.?)([^ ]+)? ([^ ,]+)(,[^ ,]+)?(,[^ ,]+)?( //.*)?")
+        self.re_tokenize_nops = re.compile(r"^([^ .]+\.?)([^ ]+)?")
 
     def map_addresses(self, test_case: TestCase, bin_file: str) -> None:
         # get a list of relative instruction addresses
@@ -93,6 +94,8 @@ class ARMGenerator(ConfigurableGenerator, abc.ABC):
                    instruction_map: Dict[str, List[InstructionSpec]]) -> Instruction:
         line = line.upper()
         matches = self.re_tokenize.findall(line)
+        if matches == []:
+            matches = self.re_tokenize_nops.findall(line)
         parser_assert(matches != [], line_num, "Could not parse the line")
 
         name = matches[0][0]
@@ -129,8 +132,8 @@ class ARMGenerator(ConfigurableGenerator, abc.ABC):
 
         if not matching_specs:
             raise AsmParserException(line_num, f"Could not find a matching spec for {line}")
-        elif len(matching_specs) > 1:
-            raise AsmParserException(line_num, f"Found multiple matching specs for {line}")
+        #elif len(matching_specs) > 1:
+        #    raise AsmParserException(line_num, f"Found multiple matching specs for {line}")
 
         # at this point we should have only one spec
         # generate the corresponding Instruction

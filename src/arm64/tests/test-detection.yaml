@@ -1,13 +1,25 @@
 instruction_set: arm64
 instruction_categories:
   - general
-contract_observation_clause: ct
+contract_observation_clause: l1d
 
 program_size: 16
-min_bb_per_function: 5
-max_bb_per_function: 5
+min_bb_per_function: 2
+max_bb_per_function: 2
 avg_mem_accesses: 4
 input_gen_entropy_bits: 9
 
 enable_ssbp_patch: true
 enable_faulty_page: false
+
+logging_modes:
+  - info
+  - stat
+  # - dbg_timestamp
+  # - dbg_violation
+  # - dbg_traces
+  # - dbg_model
+  # - dbg_coverage
+
+executor_repetitions: 1
+
