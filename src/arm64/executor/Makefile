@@ -1,6 +1,9 @@
 NAME = arm64_executor
 
-ccflags-y += -ggdb3 -std=gnu11 -Wno-declaration-after-statement -DL1D_ASSOCIATIVITY=$(shell cat /sys/devices/system/cpu/cpu0/cache/index0/ways_of_associativity)
+L1D_ASSOCIATIVITY=$(shell cat /sys/devices/system/cpu/cpu0/cache/index0/ways_of_associativity)
+L1D_SIZE_K=$(shell cat /sys/devices/system/cpu/cpu0/cache/index0/size | sed -e "s:K::g" )
+
+ccflags-y += -std=gnu11 -Wno-declaration-after-statement -DL1D_ASSOCIATIVITY=$(L1D_ASSOCIATIVITY) -DL1D_SIZE_K=$(L1D_SIZE_K)
 
 obj-m += $(NAME).o
 $(NAME)-objs += main.o templates.o measurement.o

@@ -8,7 +8,9 @@
 // Some of the registers are reserved for a specific purpose and should never be overwritten.
 // These include:
 //   * X15 - hardware trace
-//
+//   * X20 - performance counter 1
+//   * X21 - performance counter 2
+//   * X22 - performance counter 3
 
 #include "main.h"
 #include <linux/string.h>
@@ -110,9 +112,12 @@ inline void prologue(void)
 }
 
 inline void epilogue(void) {
-    asm volatile("" \
-        // store the hardware trace (x15)
-        "str x15, [x30, #"xstr(MEASUREMENT_OFFSET)"]\n"
+    asm volatile(""
+        // store the hardware trace (x15) and pfc readings (x20)
+        "mov x16, #"xstr(MEASUREMENT_OFFSET)"\n"
+        "add x16, x16, x30\n"
+        "stp x15, x20, [x16]\n"
+        "str x21, [x16, #16]\n"
 
         // rsp <- stored_rsp
         "ldr x0, [x30, #"xstr(RSP_OFFSET)"]\n"
@@ -139,17 +144,89 @@ inline void epilogue(void) {
     "msr nzcv, x6\n" \
     "mov sp, x7\n");
 
+
+// clobber: -
+// dest: x20
+#define READ_PFC_START() asm volatile("" \
+    "mov x20, #0 \n" \
+    "mov x21, #0 \n" \
+    "isb; dsb SY \n" \
+    "mrs x20, pmevcntr1_el0 \n" \
+    "mrs x21, pmevcntr2_el0 \n");
+
+// clobber: x1
+// dest: x20
+#define READ_PFC_END() asm volatile("" \
+    "isb; dsb SY \n" \
+    "mrs x1, pmevcntr1_el0 \n" \
+    "sub x20, x1, x20 \n" \
+    "mrs x1, pmevcntr2_el0 \n" \
+    "sub x21, x1, x21 \n");
+
 // =================================================================================================
 // L1D Prime+Probe
 // =================================================================================================
 #if L1D_ASSOCIATIVITY == 2
 
 // clobber:
-#define PRIME() ""  // TBD
+#define PRIME(BASE, OFFSET, TMP, ACC, COUNTER, REPS) asm volatile("" \
+    "isb; dsb SY                                        \n" \
+    "mov "COUNTER", "REPS"                              \n" \
+    "_arm64_executor_prime_outer:                       \n" \
+    "mov "OFFSET", 0                                    \n" \
+                                                            \
+    "_arm64_executor_prime_inner:                       \n" \
+    "sub "TMP", "BASE", #"xstr(EVICT_REGION_OFFSET)"    \n" \
+    "isb; dsb SY                                        \n" \
+    "add "TMP", "TMP", "OFFSET"                         \n" \
+    "ldr "ACC", ["TMP", #0]                             \n" \
+    "isb; dsb SY                                        \n" \
+    "ldr "ACC", ["TMP", #"xstr(L1D_CONFLICT_DISTANCE)"] \n" \
+    "isb; dsb SY                                        \n" \
+    "add "OFFSET", "OFFSET", #64                        \n" \
+                                                            \
+    "mov "ACC", #"xstr(L1D_CONFLICT_DISTANCE)"          \n" \
+    "cmp "ACC", "OFFSET"                                \n" \
+    "b.gt _arm64_executor_prime_inner                   \n" \
+                                                            \
+    "sub "COUNTER", "COUNTER", #1                       \n" \
+    "cmp "COUNTER", xzr                                 \n" \
+    "b.ne _arm64_executor_prime_outer                   \n" \
+                                                            \
+    "isb; dsb SY                                        \n" \
+)
 
-// clobber:
-#define PROBE() asm volatile("mov x15, x7\n")  // TBD
-
+#define PROBE(BASE, OFFSET, TMP, TMP2, ACC, DEST) asm volatile("" \
+    "eor "DEST", "DEST", "DEST"                           \n" \
+    "eor "OFFSET", "OFFSET", "OFFSET"                     \n" \
+    "_arm64_executor_probe_loop:                          \n" \
+    "  isb; dsb SY                                        \n" \
+    "  eor "TMP", "TMP", "TMP"                            \n" \
+    "  mrs "TMP", pmevcntr0_el0                           \n" \
+    "  mov "ACC", "TMP"                                   \n" \
+                                                            \
+    "  sub "TMP", "BASE", #"xstr(EVICT_REGION_OFFSET)"    \n" \
+    "  add "TMP", "TMP", "OFFSET"                         \n" \
+    "  ldr "TMP2", ["TMP", #0]                            \n" \
+    "  isb; dsb SY                                        \n" \
+    "  ldr "TMP2", ["TMP", #"xstr(L1D_CONFLICT_DISTANCE)"]\n" \
+    "  isb; dsb SY                                        \n" \
+                                                            \
+    "  mrs "TMP", pmevcntr0_el0                           \n" \
+    "  subs "ACC", "TMP", "ACC"                           \n" \
+    "  b.eq _arm64_executor_probe_failed                  \n" \
+    "  _arm64_executor_probe_success:                     \n" \
+    "    mov "DEST", "DEST", lsl #1                       \n" \
+    "    orr "DEST", "DEST", #1                           \n" \
+    "    b _arm64_executor_probe_loop_check               \n" \
+    "  _arm64_executor_probe_failed:                      \n" \
+    "    mov "DEST", "DEST", lsl #1                       \n" \
+    "  _arm64_executor_probe_loop_check:                  \n" \
+    "  add "OFFSET", "OFFSET", #64                        \n" \
+    "  mov "TMP", #"xstr(L1D_CONFLICT_DISTANCE)"          \n" \
+    "  cmp "TMP", "OFFSET"                                \n" \
+    "  b.gt _arm64_executor_probe_loop                    \n" \
+)
 #endif
 
 void template_l1d_prime_probe(void) {
@@ -160,18 +237,102 @@ void template_l1d_prime_probe(void) {
 
     prologue();
 
-    PRIME();
+    PRIME("x30", "x1", "x2", "x3", "x4", "32");
 
     // Initialize registers
     SET_REGISTER_FROM_INPUT();
 
     // Execute the test case
-    asm("\nisb\n"
+    asm("\nisb; dsb SY\n"
         ".long "xstr(TEMPLATE_INSERT_TC)" \n"
-        "isb\n");
+        "isb; dsb SY\n");
 
-    // Probe and store the resulting eviction bitmap map into x?
-    PROBE();
+    // Probe and store the resulting eviction bitmap map into x15
+    PROBE("x30", "x0", "x1", "x2", "x3", "x15");
+
+    epilogue();
+    asm volatile(".long "xstr(TEMPLATE_RETURN));
+}
+
+// =================================================================================================
+// Flush+Reload
+// =================================================================================================
+#define FLUSH(BASE, OFFSET, TMP) asm volatile("" \
+    "isb; dsb SY                                        \n" \
+    "mov "OFFSET", #0                                   \n" \
+    "_arm64_executor_flush_loop:                        \n" \
+                                                            \
+    "add "TMP", "BASE", "OFFSET"                        \n" \
+    "isb; dsb SY                                        \n" \
+    "dc ivac, "TMP"                                     \n" \
+    "isb; dsb SY                                        \n" \
+    "add "OFFSET", "OFFSET", #64                        \n" \
+                                                            \
+    "mov "TMP", #8192                                   \n" \
+    "cmp "TMP", "OFFSET"                                \n" \
+    "b.gt _arm64_executor_flush_loop                    \n" \
+                                                            \
+    "isb; dsb SY                                        \n" \
+)
+
+#define RELOAD(BASE, OFFSET, TMP, TMP2, ACC, DEST) asm volatile("" \
+    "mov "OFFSET", #0                                   \n" \
+    "mov "TMP", #0                                      \n" \
+    "mov "TMP2", #0                                     \n" \
+    "mov "ACC", #0                                      \n" \
+    "mov "DEST", #0                                     \n" \
+    "_arm64_executor_reload_loop:                       \n" \
+    "  isb; dsb SY                                      \n" \
+    "  mov "TMP", #0                                    \n" \
+    "  mrs "TMP", pmevcntr0_el0                         \n" \
+    "  mov "ACC", "TMP"                                 \n" \
+    "  isb; dsb SY                                      \n" \
+                                                            \
+    "  add "TMP", "BASE", "OFFSET"                      \n" \
+    "  ldr "TMP2", ["TMP", #0]                          \n" \
+    "  isb; dsb SY                                      \n" \
+                                                            \
+    "  mrs "TMP", pmevcntr0_el0                         \n" \
+    "  subs "ACC", "TMP", "ACC"                         \n" \
+    "  b.ne _arm64_executor_reload_failed               \n" \
+    "  _arm64_executor_reload_success:                  \n" \
+    "    mov "DEST", "DEST", lsl #1                     \n" \
+    "    orr "DEST", "DEST", #1                         \n" \
+    "    b _arm64_executor_reload_loop_check            \n" \
+    "  _arm64_executor_reload_failed:                   \n" \
+    "    mov "DEST", "DEST", lsl #1                     \n" \
+    "  _arm64_executor_reload_loop_check:               \n" \
+    "  add "OFFSET", "OFFSET", #64                      \n" \
+    "  mov "TMP", #"xstr(MAIN_REGION_SIZE)"             \n" \
+    "  cmp "TMP", "OFFSET"                              \n" \
+    "b.gt _arm64_executor_reload_loop                   \n" \
+)
+
+
+void template_l1d_flush_reload(void) {
+    asm volatile(".long "xstr(TEMPLATE_ENTER));
+
+    // ensure that we don't crash because of BTI
+    asm volatile("bti c");
+
+    prologue();
+
+    FLUSH("x30", "x16", "x17");
+
+    // Initialize registers
+    SET_REGISTER_FROM_INPUT();
+
+    READ_PFC_START();
+
+    // Execute the test case
+    asm("\nisb; dsb SY\n"
+        ".long "xstr(TEMPLATE_INSERT_TC)" \n"
+        "isb; dsb SY\n");
+
+    READ_PFC_END();
+
+    // Probe and store the resulting eviction bitmap map into x15
+    RELOAD("x30", "x16", "x17", "x18", "x19", "x15");
 
     epilogue();
     asm volatile(".long "xstr(TEMPLATE_RETURN));

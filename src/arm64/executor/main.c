@@ -42,7 +42,7 @@ int (*set_memory_nx)(unsigned long, int) = 0;
 long uarch_reset_rounds = UARCH_RESET_ROUNDS_DEFAULT;
 char pre_run_flush = PRE_RUN_FLUSH_DEFAULT;
 char enable_faulty_page = ENABLE_FAULTY_DEFAULT;
-char *measurement_template = (char *)&template_l1d_prime_probe;
+char *measurement_template = (char *)&template_l1d_flush_reload; // template_l1d_prime_probe is an alternative but is currently non-functional
 char *measurement_code = NULL;
 
 sandbox_t *sandbox = NULL;
@@ -197,7 +197,7 @@ static ssize_t trace_show(struct kobject *kobj, struct kobj_attribute *attr, cha
             return count; // we will continue in the next call of this function
 
         measurement_t m = measurements[next_measurement_id];
-        retval = sprintf(&buf[count], "%llu\n", m.htrace[0]);
+        retval = sprintf(&buf[count], "%llu, %llu, %llu\n", m.htrace[0], m.pfc[0], m.pfc[1]);
         if (!retval)
             return -1;
         count += retval;
@@ -363,7 +363,7 @@ static ssize_t measurement_mode_store(struct kobject *kobj, struct kobj_attribut
 {
     if (buf[0] == 'P')
     {
-        measurement_template = (char *)&template_l1d_prime_probe;
+        measurement_template = (char *)&template_l1d_flush_reload;  // template_l1d_prime_probe is an alternative but is currently non-functional
     }
 
     return count;
