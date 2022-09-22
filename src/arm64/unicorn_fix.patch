@@ -1,0 +1,20 @@
+diff --git a/qemu/tcg/aarch64/tcg-target.inc.c b/qemu/tcg/aarch64/tcg-target.inc.c
+index 85185611..b2f44318 100644
+--- a/qemu/tcg/aarch64/tcg-target.inc.c
++++ b/qemu/tcg/aarch64/tcg-target.inc.c
+@@ -1702,8 +1702,14 @@ static void tcg_out_tlb_read(TCGContext *s, TCGReg addr_reg, MemOp opc,
+     tcg_out_logicali(s, I3404_ANDI, TARGET_LONG_BITS == 64,
+                      TCG_REG_X3, x3, compare_mask);
+
++
+     /* Perform the address comparison. */
+-    tcg_out_cmp(s, TARGET_LONG_BITS == 64, TCG_REG_X0, TCG_REG_X3, 0);
++    // Unicorn: fast path if hookmem is not enabled
++    if (!HOOK_EXISTS(s->uc, UC_HOOK_MEM_READ) && !HOOK_EXISTS(s->uc, UC_HOOK_MEM_WRITE))
++        tcg_out_cmp(s, TARGET_LONG_BITS == 64, TCG_REG_X0, TCG_REG_X3, 0);
++    else
++        /* slow_path, so data access will go via load_helper() */
++        tcg_out_cmp(s, TARGET_LONG_BITS == 64, TCG_REG_XZR, 1, 0);
+
+     /* If not equal, we jump to the slow path. */
+     *label_ptr = s->code_ptr;
