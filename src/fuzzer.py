@@ -117,7 +117,8 @@ class Fuzzer:
         # check for violations
         ctraces = self.model.trace_test_case(boosted_inputs, 1)
         htraces = self.executor.trace_test_case(boosted_inputs, CONF.executor_repetitions)
-        LOGGER.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces)
+        LOGGER.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces,
+                                      self.executor.get_last_feedback())
         violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces, True)
         if not violations:  # nothing detected? -> we are done here, move to next test case
             return None

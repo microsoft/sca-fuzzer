@@ -202,7 +202,7 @@ class Logger:
             print(f"Duration: {(now - self.start_time).total_seconds():.1f}")
             print(datetime.today().strftime('Finished at %H:%M:%S'))
 
-    def trc_fuzzer_dump_traces(self, model, inputs, htraces, ctraces):
+    def trc_fuzzer_dump_traces(self, model, inputs, htraces, ctraces, hw_feedback):
         if __debug__:
             if self.dbg_traces:
                 print("\n================================ Collected Traces "
@@ -216,6 +216,8 @@ class Logger:
                         print("    ")
                         print(f"CTr{i}: {self.pretty_bitmap(ctraces[i], ctraces[i] > pow(2, 64))}")
                         print(f"HTr{i}: {self.pretty_bitmap(htraces[i])}")
+                        print(f"Feedback{i}: {hw_feedback[i]}")
+
                     return
 
                 org_debug_state = self.dbg_model
@@ -228,6 +230,7 @@ class Logger:
                     print("    ")
                     print(f"CTr{i}: {ctrace_full}")
                     print(f"HTr{i}: {self.pretty_bitmap(htraces[i])}")
+                    print(f"Feedback{i}: {hw_feedback[i]}")
                 self.dbg_model = org_debug_state
 
     def fuzzer_report_violations(self, violation: EquivalenceClass, model):
@@ -237,10 +240,10 @@ class Logger:
             print(f" {violation.ctrace} (hash)")
         else:
             if violation.ctrace <= pow(2, 64):
-                print(f"    {violation.ctrace:064b}")
+                print(f"  {violation.ctrace:064b}")
             else:
-                print(f"    {violation.ctrace % MASK_64BIT:064b} [ns]\n"
-                      f"    {(violation.ctrace >> 64) % MASK_64BIT:064b} [s]\n")
+                print(f"  {violation.ctrace % MASK_64BIT:064b} [ns]\n"
+                      f"  {(violation.ctrace >> 64) % MASK_64BIT:064b} [s]\n")
         print("Hardware traces:")
         for htrace, measurements in violation.htrace_map.items():
             inputs = [m.input_id for m in measurements]
@@ -260,9 +263,9 @@ class Logger:
             for htrace, measurements in violation.htrace_map.items():
                 print(f"                      ##### Input {measurements[0].input_id} #####")
                 model_debug_state = self.dbg_model
-                self.model_debug = True
+                self.dbg_model = True
                 model.trace_test_case([measurements[0].input_], 1)
-                self.model_debug = model_debug_state
+                self.dbg_model = model_debug_state
                 print("\n\n")
 
     # ==============================================================================================
