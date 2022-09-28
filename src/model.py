@@ -44,7 +44,7 @@ class UnicornTracer(ABC):
         super().__init__()
         self.trace = []
 
-    def reset_trace(self, emulator, target_desc: UnicornTargetDesc) -> None:
+    def init_trace(self, emulator, target_desc: UnicornTargetDesc) -> None:
         self.trace = []
         self.execution_trace = []
 
@@ -204,9 +204,9 @@ class UnicornModel(Model, ABC):
         execution_traces: List[ExecutionTrace] = []
         taints = []
         for input_ in inputs:
+            self._load_input(input_)
             self.reset_model()
             try:
-                self._load_input(input_)
                 self.emulator.emu_start(
                     self.code_start, self.code_end, timeout=10 * UC_SECOND_SCALE)
             except UcError as e:
@@ -266,7 +266,7 @@ class UnicornModel(Model, ABC):
         self.checkpoints = []
         self.in_speculation = False
         self.speculation_window = 0
-        self.tracer.reset_trace(self.emulator, self.target_desc)
+        self.tracer.init_trace(self.emulator, self.target_desc)
         if self.tainting_enabled:
             self.taint_tracker = self.taint_tracker_cls(self.initial_taints, self.sandbox_base)
         else:
@@ -316,7 +316,7 @@ class UnicornModel(Model, ABC):
 # ==================================================================================================
 class L1DTracer(UnicornTracer):
 
-    def reset_trace(self, _, __):
+    def init_trace(self, _, __):
         self.trace = [0, 0]
         self.execution_trace = []
 
@@ -385,7 +385,7 @@ class CTRTracer(CTTracer):
     When execution starts we also observe registers state.
     """
 
-    def reset_trace(self, emulator: Uc, target_desc: UnicornTargetDesc):
+    def init_trace(self, emulator: Uc, target_desc: UnicornTargetDesc):
         self.trace = [emulator.reg_read(reg) for reg in target_desc.registers]
         self.execution_trace = []
 
