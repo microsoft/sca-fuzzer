@@ -34,17 +34,13 @@ function run_without_violation {
     tmp_config=$(mktemp)
 cat << EOF >> $tmp_config
 logging_modes:
-  - 
+  -
 EOF
     run bash -c "$cmd -c $tmp_config"
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
     rm $tmp_config
-}
-
-@test "Fuzzing: A sequence of NOPs" {
-    run_without_violation "$cli_opt fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/nops.asm -i 100"
 }
 
 @test "Fuzzing: A sequence of direct jumps" {
@@ -157,19 +153,6 @@ EOF
     [[ "$output" != *"=== Violations detected ==="* ]]
 }
 
-@test "Model: ARCH-SEQ" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/spectre_v1_arch.asm -i 20 -c x86/tests/acceptance/arch-seq.yaml"
-    echo "$output"
-    [ "$status" -eq 0 ]
-    [[ "$output" = *"=== Violations detected ==="* ]]
-}
-
-@test "Model: Rollback on LFENCE and spec. window" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/rollback_fence_and_expire.asm -i 10 -c x86/tests/acceptance/rollback_fence_and_expire.yaml"
-    echo "$output"
-    [ "$status" -eq 0 ]
-    [[ "$output" != *"[s]"* ]]
-}
 
 # ==================================================================================================
 # Extended tests - take long time, but test deeper

@@ -1,6 +1,0 @@
-contract_observation_clause: l1d
-contract_execution_clause:
-  - cond
-logging_modes:
-  - dbg_traces
-input_gen_seed: 12
