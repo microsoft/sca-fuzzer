@@ -12,18 +12,63 @@ from pathlib import Path
 sys.path.insert(0, '..')
 
 import x86.x86_model as x86_model
-import factory
+import model as core_model
+
 from interfaces import Instruction, RegisterOperand, MemoryOperand, InputTaint, LabelOperand, \
-    FlagsOperand, TestCase, InputGenerator, Input, CTrace
+    FlagsOperand, TestCase, Input, CTrace
 from isa_loader import InstructionSet
 from x86.x86_generator import X86RandomGenerator
-from model import CTRTracer
 from copy import deepcopy
 
 from config import CONF
+# from service import LOGGER
 
 test_path = Path(__file__).resolve()
 test_dir = test_path.parent
+
+ASM_THREE_LOADS = """
+.intel_syntax noprefix
+.test_case_enter:
+MOV RAX, qword ptr [R14]
+MOV RAX, qword ptr [R14 + 512]
+MOV RAX, qword ptr [R14 + 1050]
+.test_case_exit:
+"""
+
+ASM_BRANCH_AND_LOAD = """
+.intel_syntax noprefix
+.test_case_enter:
+XOR rax, rax
+JNZ .l1
+.l0:
+MOV RAX, qword ptr [R14]
+.l1:
+NOP
+.test_case_exit:
+"""
+
+ASM_STORE_AND_LOAD = """
+.intel_syntax noprefix
+.test_case_enter:
+MOV qword ptr [R14], 2
+MOV RAX, qword ptr [R14]
+MOV RAX, qword ptr [R14 + RAX]
+.test_case_exit:
+"""
+
+ASM_FENCE = """
+.intel_syntax noprefix
+.test_case_enter:
+XOR rax, rax
+JZ .l1
+.l0:
+MOV RAX, qword ptr [R14]
+LFENCE
+MOV RAX, qword ptr [R14 + 2]
+.l1:
+NOP
+.test_case_exit:
+"""
 
 
 class X86ModelTest(unittest.TestCase):
@@ -35,39 +80,134 @@ class X86ModelTest(unittest.TestCase):
         CONF.instruction_set = "x86-64"
         CONF.model = 'x86-unicorn'
         CONF.input_gen_seed = 10  # default
+        CONF.setattr_internal("_no_generation", True)
 
     @classmethod
     def tearDownClass(cls):
         global CONF
         CONF = cls.prev_conf
 
-    def test_x86_model_random(self):
-        global CONF
-        prev_conf = deepcopy(CONF)
-        CONF.instruction_set = "x86-64"
-        CONF.model = 'x86-unicorn'
+    @staticmethod
+    def load_tc(asm_str: str):
+        min_x86_path = test_dir / "min_x86.json"
+        instruction_set = InstructionSet(min_x86_path.absolute().as_posix())
+        generator = X86RandomGenerator(instruction_set)
 
         asm_file = tempfile.NamedTemporaryFile(delete=False)
-        min_x86_path = test_dir / "min_x86.json"
-
-        instruction_set = InstructionSet(min_x86_path.absolute().as_posix(),
-                                         CONF.instruction_categories)
-        random_generator = X86RandomGenerator(instruction_set)
-        tc: TestCase = random_generator.create_test_case(asm_file.name)
-
-        model = x86_model.X86UnicornCond(0x1000000, 0x8000)
-        model.tracer = CTRTracer()
-        model.load_test_case(tc)
-
-        input_generator: InputGenerator = factory.get_input_generator()
-        inputs: List[Input] = input_generator.generate(CONF.input_gen_seed, 1)
-        ctraces: List[CTrace] = model.trace_test_case(inputs, 1)
-        self.assertTrue(len(ctraces) != 0)
-
+        with open(asm_file.name, "w") as f:
+            f.write(asm_str)
+        tc: TestCase = generator.parse_existing_test_case(asm_file.name)
         asm_file.close()
         os.unlink(asm_file.name)
+        return tc
 
-        CONF = prev_conf
+    def get_traces(self, model, asm_str, inputs):
+        tc = self.load_tc(asm_str)
+        model.load_test_case(tc)
+        # LOGGER.dbg_model = True
+        ctraces: List[CTrace] = model.trace_test_case(inputs, 1)
+        return ctraces
+
+    def test_l1d_seq(self):
+        model = x86_model.X86UnicornSeq(0x1000000, 0x8000)
+        model.tracer = core_model.L1DTracer()
+        ctraces = self.get_traces(model, ASM_THREE_LOADS, [Input()])
+        expected_trace = (1 << 63) + (1 << 55) + (1 << 47)
+        self.assertEqual(ctraces, [expected_trace])
+
+    def test_pc_seq(self):
+        code_base = 0x8000
+        model = x86_model.X86UnicornSeq(0x1000000, code_base)
+        model.tracer = core_model.PCTracer()
+        ctraces = self.get_traces(model, ASM_BRANCH_AND_LOAD, [Input()])
+        expected_trace = hash(
+            tuple([code_base + 0x0, code_base + 0x3, code_base + 0x5, code_base + 0x8]))
+        self.assertEqual(ctraces, [expected_trace])
+
+    def test_mem_seq(self):
+        mem_base = 0x1000000
+        model = x86_model.X86UnicornSeq(mem_base, 0x8000)
+        model.tracer = core_model.MemoryTracer()
+        ctraces = self.get_traces(model, ASM_THREE_LOADS, [Input()])
+        expected_trace = hash(tuple([mem_base + 0, mem_base + 512, mem_base + 1050]))
+        self.assertEqual(ctraces, [expected_trace])
+
+    def test_ct_seq(self):
+        mem_base, code_base = 0x1000000, 0x8000
+        model = x86_model.X86UnicornSeq(mem_base, code_base)
+        model.tracer = core_model.CTTracer()
+        ctraces = self.get_traces(model, ASM_BRANCH_AND_LOAD, [Input()])
+        expected_trace = hash(
+            tuple(
+                [code_base + 0x0, code_base + 0x3, code_base + 0x5, mem_base + 0, code_base + 0x8]))
+        self.assertEqual(ctraces, [expected_trace])
+
+    def test_ctr_seq(self):
+        mem_base, code_base = 0x1000000, 0x8000
+        model = x86_model.X86UnicornSeq(mem_base, code_base)
+        model.tracer = core_model.CTRTracer()
+        input_ = Input()
+        for i in range(0, 7):
+            input_[input_.register_start + i] = 2
+        ctraces = self.get_traces(model, ASM_BRANCH_AND_LOAD, [input_])
+        # print(model.tracer.get_contract_trace_full())
+        expected_trace = hash(
+            tuple([
+                2, 2, 2, 2, 2, 2, 2, code_base + 0x0, code_base + 0x3, code_base + 0x5,
+                mem_base + 0, code_base + 0x8
+            ]))
+        self.assertEqual(ctraces, [expected_trace])
+
+    def test_arch_seq(self):
+        mem_base, code_base = 0x1000000, 0x8000
+        model = x86_model.X86UnicornSeq(mem_base, code_base)
+        model.tracer = core_model.ArchTracer()
+        input_ = Input()
+        input_[0] = 1
+        for i in range(0, 7):
+            input_[input_.register_start + i] = 2
+        ctraces = self.get_traces(model, ASM_BRANCH_AND_LOAD, [input_])
+        expected_trace = hash(
+            tuple([
+                2, 2, 2, 2, 2, 2, 2, code_base + 0x0, code_base + 0x3, code_base + 0x5, 1,
+                mem_base + 0, code_base + 0x8
+            ]))
+        self.assertEqual(ctraces, [expected_trace])
+
+    def test_ct_cond(self):
+        mem_base, code_base = 0x1000000, 0x8000
+        model = x86_model.X86UnicornCond(mem_base, code_base)
+        model.tracer = core_model.CTTracer()
+        ctraces = self.get_traces(model, ASM_BRANCH_AND_LOAD, [Input()])
+        expected_trace = hash(
+            tuple([
+                code_base + 0x0, code_base + 0x3, code_base + 0x8, code_base + 0x5, mem_base + 0,
+                code_base + 0x8
+            ]))
+        self.assertEqual(ctraces, [expected_trace])
+
+    def test_ct_bpas(self):
+        mem_base, code_base = 0x1000000, 0x8000
+        model = x86_model.X86UnicornBpas(mem_base, code_base)
+        model.tracer = core_model.CTTracer()
+        input_ = Input()
+        input_[0] = 1
+        ctraces = self.get_traces(model, ASM_STORE_AND_LOAD, [input_])
+        # print(model.tracer.get_contract_trace_full(), mem_base, code_base)
+        expected_trace = hash(
+            tuple([
+                code_base, mem_base, code_base + 7, mem_base, code_base + 10, mem_base + 1,
+                code_base + 7, mem_base, code_base + 10, mem_base + 2
+            ]))
+        self.assertEqual(ctraces, [expected_trace])
+
+    def test_rollback_on_fence(self):
+        mem_base, code_base = 0x1000000, 0x8000
+        model = x86_model.X86UnicornCond(mem_base, code_base)
+        model.tracer = core_model.MemoryTracer()
+        ctraces = self.get_traces(model, ASM_FENCE, [Input()])
+        expected_trace = hash(tuple([mem_base + 0]))
+        self.assertEqual(ctraces, [expected_trace])
 
 
 class X86TaintTrackerTest(unittest.TestCase):
