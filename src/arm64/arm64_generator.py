@@ -7,13 +7,15 @@ SPDX-License-Identifier: MIT
 import abc
 import math
 import re
+import random
 
 from subprocess import run, CalledProcessError
 from typing import Dict, List
 
 from isa_loader import InstructionSet
 from interfaces import TestCase, Operand, RegisterOperand, MemoryOperand, LabelOperand, \
-    ImmediateOperand, AgenOperand, CondOperand, Instruction, BasicBlock, InstructionSpec, OT
+    ImmediateOperand, AgenOperand, CondOperand, Instruction, BasicBlock, InstructionSpec, OT, \
+    OperandSpec
 from generator import ConfigurableGenerator, RandomGenerator, Pass, \
     Printer, GeneratorException, AsmParserException, parser_assert
 from config import CONF
@@ -25,13 +27,14 @@ class ARMGenerator(ConfigurableGenerator, abc.ABC):
 
     def __init__(self, instruction_set: InstructionSet):
         super(ARMGenerator, self).__init__(instruction_set)
-        self.passes = [
-            ARMSandboxPass(),
-        ]
-        self.printer = ARMPrinter()
         self.target_desc = ARMTargetDesc()
+        self.printer = ARMPrinter()
         self.re_tokenize = re.compile(r"^([^ .]+\.?)([^ ]+)? ([^ ,]+)(,[^ ,]+)?(,[^ ,]+)?( //.*)?")
         self.re_tokenize_nops = re.compile(r"^([^ .]+\.?)([^ ]+)?")
+        self.passes = [
+            ARMPatchUndefinedLoadsPass(self.target_desc),
+            ARMSandboxPass(),
+        ]
 
     def map_addresses(self, test_case: TestCase, bin_file: str) -> None:
         # get a list of relative instruction addresses
@@ -166,6 +169,37 @@ class ARMGenerator(ConfigurableGenerator, abc.ABC):
             inst.implicit_operands.append(op)
 
         return inst
+
+
+class ARMPatchUndefinedLoadsPass(Pass):
+    def __init__(self, target_desc) -> None:
+        self.target_desc: ARMTargetDesc = target_desc
+        super().__init__()
+
+    def run_on_test_case(self, test_case: TestCase) -> None:
+        for func in test_case.functions:
+            for bb in func:
+                if bb == func.entry:
+                    continue
+
+                to_patch: List[Instruction] = []
+                for inst in bb:
+                    # check if it's a load with post-index
+                    if "LDR" in inst.name and inst.get_imm_operands():
+                        ops = inst.operands
+                        assert isinstance(ops[0], RegisterOperand)
+                        assert isinstance(ops[1], MemoryOperand)
+                        normalized_dest = self.target_desc.gpr_normalized[ops[0].value]
+                        if normalized_dest in ops[1].value:
+                            to_patch.append(inst)
+
+                # fix operands
+                for inst in to_patch:
+                    org_dest = inst.operands[0]
+                    options = self.target_desc.registers[org_dest.width]
+                    options = [i for i in options if i != org_dest.value]
+                    new_value = random.choice(options)
+                    inst.operands[0].value = new_value
 
 
 class ARMSandboxPass(Pass):
