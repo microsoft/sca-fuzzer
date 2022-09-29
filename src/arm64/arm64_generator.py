@@ -206,7 +206,9 @@ class ARMSandboxPass(Pass):
 
     def __init__(self):
         super().__init__()
-        input_memory_size = CONF.input_main_region_size + CONF.input_faulty_region_size
+        # input_memory_size = CONF.input_main_region_size + CONF.input_faulty_region_size
+        # FIX: the faulty page is temporary unused
+        input_memory_size = CONF.input_main_region_size
         mask_size = int(math.log(input_memory_size, 2))
         self.sandbox_address_mask = "0b" + \
                                     "1" * (mask_size - CONF.memory_access_zeroed_bits) + \
