@@ -130,6 +130,8 @@ class ARMGenerator(ConfigurableGenerator, abc.ABC):
                     matching_specs = [s for s in matching_specs if s.operands[op_id].width == 32]
                 else:
                     matching_specs = [s for s in matching_specs if s.operands[op_id].width == 64]
+            elif op_raw in ["SY", "LD", "ST"]:  # match keyword immediate
+                matching_specs = [s for s in matching_specs if s.operands[op_id].type == OT.IMM]
             else:
                 raise AsmParserException(line_num, f"Unknown type of the operand |{op_raw}|")
 
