@@ -176,4 +176,3 @@ class ARM64UnicornTargetDesc(UnicornTargetDesc):
         "29": ucc.UC_ARM64_REG_X29,
         "30": ucc.UC_ARM64_REG_X30
     }
-

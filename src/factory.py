@@ -112,6 +112,8 @@ def get_model(bases: Tuple[int, int]) -> interfaces.Model:
     elif CONF.instruction_set == 'arm64':
         if "seq" in CONF.contract_execution_clause:
             model_instance = arm64_model.ARM64UnicornSeq(bases[0], bases[1])
+        elif "bpas" in CONF.contract_execution_clause:
+            model_instance = arm64_model.ARM64UnicornBpas(bases[0], bases[1])
         else:
             raise ConfigException(
                 "unknown value of `contract_execution_clause` configuration option")

@@ -7,7 +7,7 @@ SPDX-License-Identifier: MIT
 import numpy as np
 import unicorn as uni
 import unicorn.arm64_const as ucc
-from model import UnicornModel, UnicornSpec, UnicornSeq, BaseTaintTracker
+from model import UnicornModel, UnicornSeq, UnicornSpec, UnicornBpas, BaseTaintTracker
 from interfaces import Input
 from arm64.arm64_target_desc import ARMTargetDesc, ARM64UnicornTargetDesc
 
@@ -90,7 +90,7 @@ class ARM64UnicornModel(UnicornModel):
                   f"  x3={x3} "
                   f"x4={x4} "
                   f"x5={x5} \n"
-                  f"  nzcv={emulator.reg_read(ucc.UC_ARM64_REG_NZCV):012b}")
+                  f"  nzcv={emulator.reg_read(ucc.UC_ARM64_REG_NZCV)>>28:0b}")
 
 
 class ARMTaintTracker(BaseTaintTracker):
@@ -105,8 +105,8 @@ class ARMTaintTracker(BaseTaintTracker):
         super().__init__(initial_observations, sandbox_base=sandbox_base)
 
         # ISA-specific field setup
-        self.target_desc = ARM64UnicornTargetDesc()
-        self.isa_target_desc = ARMTargetDesc
+        self.target_desc = ARMTargetDesc()
+        self.unicorn_target_desc = ARM64UnicornTargetDesc()
 
 
 # ==================================================================================================
@@ -117,4 +117,8 @@ class ARM64UnicornSeq(UnicornSeq, ARM64UnicornModel):
 
 
 class ARM64UnicornSpec(UnicornSpec, ARM64UnicornModel):
+    pass
+
+
+class ARM64UnicornBpas(UnicornBpas, ARM64UnicornModel):
     pass
