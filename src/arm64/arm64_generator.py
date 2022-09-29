@@ -14,8 +14,7 @@ from typing import Dict, List
 
 from isa_loader import InstructionSet
 from interfaces import TestCase, Operand, RegisterOperand, MemoryOperand, LabelOperand, \
-    ImmediateOperand, AgenOperand, CondOperand, Instruction, BasicBlock, InstructionSpec, OT, \
-    OperandSpec
+    ImmediateOperand, AgenOperand, CondOperand, Instruction, BasicBlock, InstructionSpec, OT
 from generator import ConfigurableGenerator, RandomGenerator, Pass, \
     Printer, GeneratorException, AsmParserException, parser_assert
 from config import CONF
