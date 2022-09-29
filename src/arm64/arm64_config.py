@@ -110,7 +110,8 @@ arm64_instruction_blocklist: List[str] = [
     "UMADDL",
     "UMSUBL",
     "UMULH",
-    "ISB"
+    "ISB",
+    "DSB"
 ]
 
 arm64_register_blocklist: List[str] = [

@@ -152,9 +152,7 @@ int trace_test_case(void)
 ///
 int config_pfc(void)
 {
-    // printk(KERN_ERR "SETTING UP PMU\n");
-
-    // disable PMU user-mode access
+    // disable PMU user-mode access (not necessary?)
     uint64_t val = 0;
     // asm volatile("msr pmuserenr_el0, %0" :: "r" (0x1));
     // asm volatile("isb\n");
