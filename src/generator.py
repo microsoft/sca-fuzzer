@@ -16,7 +16,7 @@ from collections import OrderedDict
 from isa_loader import InstructionSet
 from interfaces import Generator, TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
     ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, Function, \
-    OperandSpec, InstructionSpec, CondOperand
+    OperandSpec, InstructionSpec, CondOperand, TargetDesc
 from service import NotSupportedException
 from config import CONF
 
@@ -54,23 +54,6 @@ class Printer(abc.ABC):
 
     @abc.abstractmethod
     def print(self, test_case: TestCase, outfile: str) -> None:
-        pass
-
-
-class TargetDesc(abc.ABC):
-    register_sizes: Dict[str, int]
-    registers: Dict[int, List[str]]
-    simd_registers: Dict[int, List[str]]
-    branch_conditions: Dict[str, List[str]]
-
-    @staticmethod
-    @abc.abstractmethod
-    def is_unconditional_branch(inst: Instruction) -> bool:
-        pass
-
-    @staticmethod
-    @abc.abstractmethod
-    def is_call(inst: Instruction) -> bool:
         pass
 
 

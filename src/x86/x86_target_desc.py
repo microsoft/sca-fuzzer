@@ -7,8 +7,7 @@ SPDX-License-Identifier: MIT
 from typing import List
 import unicorn.x86_const as ucc
 
-from interfaces import Instruction
-from generator import TargetDesc
+from interfaces import Instruction, TargetDesc
 from model import UnicornTargetDesc
 from config import CONF
 

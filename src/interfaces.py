@@ -334,6 +334,18 @@ class Instruction:
         # not checking implicit operands -> labels must be explicit
         return None
 
+    def get_imm_operands(self) -> List[ImmediateOperand]:
+        res = []
+        for o in self.implicit_operands:
+            if isinstance(o, ImmediateOperand):
+                res.append(o)
+
+        for o in self.operands:
+            if isinstance(o, RegisterOperand):
+                res.append(o)
+
+        return res
+
 
 class BasicBlock:
     name: str
@@ -643,6 +655,24 @@ class InstructionSetAbstract(ABC):
         pass
 
 
+class TargetDesc(ABC):
+    register_sizes: Dict[str, int]
+    registers: Dict[int, List[str]]
+    simd_registers: Dict[int, List[str]]
+    branch_conditions: Dict[str, List[str]]
+    gpr_normalized: Dict[str, str]
+
+    @staticmethod
+    @abstractmethod
+    def is_unconditional_branch(inst: Instruction) -> bool:
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def is_call(inst: Instruction) -> bool:
+        pass
+
+
 class Generator(ABC):
     instruction_set: InstructionSetAbstract
 
@@ -791,4 +821,38 @@ class Minimizer(ABC):
 
     @abstractmethod
     def minimize(self, test_case_asm: str, outfile: str, num_inputs: int, add_fences: bool):
+        pass
+
+
+class TaintTrackerInterface(ABC):
+
+    def __init__(self, initial_observations, sandbox_base=0):
+        pass
+
+    def start_instruction(self, instruction: Instruction) -> None:
+        pass
+
+    def track_memory_access(self, address: int, size: int, is_write: bool) -> None:
+        pass
+
+    def taint_pc(self):
+        pass
+
+    def taint_memory_access_address(self):
+        pass
+
+    def taint_memory_load(self):
+        pass
+
+    def taint_memory_store(self):
+        pass
+
+    def checkpoint(self):
+        pass
+
+    def rollback(self):
+        pass
+
+    @abstractmethod
+    def get_taint(self) -> InputTaint:
         pass
