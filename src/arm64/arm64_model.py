@@ -60,10 +60,12 @@ class ARM64UnicornModel(UnicornModel):
     def print_state(self, oneline: bool = False):
 
         def compressed(val: int):
-            if val >= self.sandbox_base:
+            if val >= self.sandbox_base and val <= self.sandbox_base + 12288:
+                return f"+0x{val - self.sandbox_base:<15x}"
+            elif val >= self.sandbox_base - self.OVERFLOW_REGION_SIZE and val < self.sandbox_base:
                 return f"+0x{val - self.sandbox_base:<15x}"
             else:
-                return f"-0x{self.sandbox_base - val:<15x}"
+                return f"0x{val:<16x}"
 
         emulator = self.emulator
         x0 = compressed(emulator.reg_read(ucc.UC_ARM64_REG_X0))
