@@ -37,7 +37,7 @@ TRACERS: Dict[str, Type[model.UnicornTracer]] = {
 }
 
 EXECUTORS = {
-    'x86-intel': x86_executor.X86IntelExecutor,
+    'x86-64': x86_executor.X86IntelExecutor,
 }
 
 ANALYSERS: Dict[str, Type[interfaces.Analyser]] = {
