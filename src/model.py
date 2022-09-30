@@ -175,12 +175,20 @@ class UnicornModel(Model, ABC):
             self.handled_faults.extend([12, 13])
         if 'PF-writable' in CONF.permitted_faults:
             self.handled_faults.append(12)
+        if 'assist-dirty' in CONF.permitted_faults:
+            self.handled_faults.extend([12, 13])
+        if 'assist-accessed' in CONF.permitted_faults:
+            self.handled_faults.extend([12, 13])
 
         # check if the fault page needs to be protected
         if 'PF-present' in CONF.permitted_faults:
             self.rw_protect = True
         if 'PF-writable' in CONF.permitted_faults:
             self.write_protect = True
+        if 'assist-dirty' in CONF.permitted_faults:
+            self.write_protect = True
+        if 'assist-accessed' in CONF.permitted_faults:
+            self.rw_protect = True
 
     def load_test_case(self, test_case: TestCase) -> None:
         """
