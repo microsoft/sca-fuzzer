@@ -7,7 +7,7 @@ SPDX-License-Identifier: MIT
 import re
 import numpy as np
 from typing import Tuple, Dict, List, Set
-from copy import copy
+import copy
 
 import unicorn.x86_const as ucc
 from unicorn import Uc, UC_MEM_WRITE, UC_ARCH_X86, UC_MODE_64, UC_PROT_READ, UC_PROT_NONE
