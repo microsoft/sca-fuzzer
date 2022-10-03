@@ -518,11 +518,77 @@ class X86MeltdownModel(x86UnicornOOO):
      Loads from the faulty region speculatively return the in-memory value
     """
 
+    def speculate_fault(self, errno: int) -> int:
+        if errno not in self.relevant_faults:  # we speculate only on a subset of faults
+            return 0
+
+        # reached max spec. window? skip
+        if len(self.checkpoints) >= self.nesting:
+            return 0
+
+        # store a checkpoint
+        self.checkpoint(self.emulator, self.code_end)
+
+        # remove protection
+        self.emulator.mem_protect(self.sandbox_base + self.MAIN_REGION_SIZE,
+                                  self.FAULTY_REGION_SIZE)
+
+        return self.curr_instr_address
+
     @staticmethod
     def speculate_instruction(emulator: Uc, address, size, model) -> None:
         """ Do nothing - assume we speculate the invalid access """
         model.next_instr_address = address + size
         model.curr_instr_address = address
+
+    @staticmethod
+    def speculate_mem_access(emulator, access, address, size, value, model):
+        assert isinstance(model, X86MeltdownModel)
+
+        # save load address for zero injection
+        model.load_address = address
+        model.load_size = size
+
+
+class X86RegisterLeakModel(x86UnicornOOO):
+    """
+    As Meltdown but we skip the faulty load.
+    """
+
+    def speculate_fault(self, errno: int) -> int:
+        if errno not in self.relevant_faults:  # we speculate only on a subset of faults
+            return 0
+
+        # reached max spec. window? skip
+        if len(self.checkpoints) >= self.nesting:
+            return 0
+
+        # store a checkpoint
+        self.checkpoint(self.emulator, self.code_end)
+
+        # remove protection
+        self.emulator.mem_protect(self.sandbox_base + self.MAIN_REGION_SIZE,
+                                  self.FAULTY_REGION_SIZE)
+
+        # speculatively skip the faulting instruction
+        if self.next_instr_address >= self.code_end:
+            return 0  # no need for speculation if we're at the end
+        else:
+            return self.next_instr_address
+
+    @staticmethod
+    def speculate_instruction(emulator: Uc, address, size, model) -> None:
+        """ Do nothing - assume we speculate the invalid access """
+        model.next_instr_address = address + size
+        model.curr_instr_address = address
+
+    @staticmethod
+    def speculate_mem_access(emulator, access, address, size, value, model):
+        assert isinstance(model, X86MeltdownModel)
+
+        # save load address for zero injection
+        model.load_address = address
+        model.load_size = size
 
 
 class X86GPOOOModel(x86UnicornOOO):
