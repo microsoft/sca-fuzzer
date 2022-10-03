@@ -21,7 +21,7 @@ from x86.x86_generator import X86RandomGenerator
 from copy import deepcopy
 
 from config import CONF
-# from service import LOGGER
+from service import LOGGER
 
 test_path = Path(__file__).resolve()
 test_dir = test_path.parent
@@ -70,6 +70,15 @@ NOP
 .test_case_exit:
 """
 
+ASM_FAULTY_ACCESS = """
+.intel_syntax noprefix
+.test_case_enter:
+MOV RAX, qword ptr [R14 + 4096]
+MOV RAX, qword ptr [R14 + RAX]
+MOV RBX, qword ptr [R14 + RBX]
+.test_case_exit:
+"""
+
 
 class X86ModelTest(unittest.TestCase):
 
@@ -106,6 +115,7 @@ class X86ModelTest(unittest.TestCase):
         model.load_test_case(tc)
         # LOGGER.dbg_model = True
         ctraces: List[CTrace] = model.trace_test_case(inputs, 1)
+        # LOGGER.dbg_model = False
         return ctraces
 
     def test_l1d_seq(self):
@@ -207,6 +217,67 @@ class X86ModelTest(unittest.TestCase):
         model.tracer = core_model.MemoryTracer()
         ctraces = self.get_traces(model, ASM_FENCE, [Input()])
         expected_trace = hash(tuple([mem_base + 0]))
+        self.assertEqual(ctraces, [expected_trace])
+
+    def test_fault_handling(self):
+        mbase, cbase = 0x1000000, 0x8000
+        model = x86_model.X86UnicornSeq(mbase, cbase)
+        model.tracer = core_model.CTTracer()
+        # Note that this test sets up a R/W protection to trigger a fault
+        # and enables handling of page faults (errno=12,13) to catch them on the contract level
+        model.rw_protect = True
+        model.handled_faults.extend([12, 13])
+        input_ = Input()
+        input_[0] = 1
+        ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_])
+        expected_trace = hash(tuple([cbase, mbase + 4096]))
+        self.assertEqual(ctraces, [expected_trace])
+
+    def test_ct_nullinj(self):
+        mbase, cbase = 0x1000000, 0x8000
+        model = x86_model.X86UnicornNull(mbase, cbase)
+        model.tracer = core_model.CTTracer()
+        model.rw_protect = True
+        model.handled_faults.extend([12, 13])
+        input_ = Input()
+        for i in range(0, 7):
+            input_[input_.register_start + i] = 2
+        input_[0] = 1
+        input_[4096 // 8] = 3
+        ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_])
+        expected_trace = hash(tuple([
+            cbase, mbase + 4096,  # fault
+            cbase, mbase + 4096,  # speculative injection
+            cbase + 7,  # speculatively start executing the next instr
+            cbase + 7, mbase + 0,  # re-execute the instruction after setting the permissions
+            cbase + 11, mbase + 2,  # speculatively execute the last instruction and rollback
+            cbase, mbase + 4096, cbase + 7, mbase + 3, cbase + 11, mbase + 2,  # after rollback
+            ]))
+        self.assertEqual(ctraces, [expected_trace])
+
+    def test_ct_nullinj_term(self):
+        mbase, cbase = 0x1000000, 0x8000
+        model = x86_model.X86UnicornNullTerminating(mbase, cbase)
+        model.tracer = core_model.CTTracer()
+        model.rw_protect = True
+        model.handled_faults.extend([12, 13])
+        input_ = Input()
+        for i in range(0, 7):
+            input_[input_.register_start + i] = 2
+        input_[0] = 1
+        input_[4096 // 8] = 3
+        # LOGGER.dbg_model = True
+        ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_])
+        # LOGGER.dbg_model = False
+        # print(model.tracer.get_contract_trace_full(), mbase, cbase)
+        expected_trace = hash(tuple([
+            cbase, mbase + 4096,  # fault
+            cbase, mbase + 4096,  # speculative injection
+            cbase + 7,  # speculatively start executing the next instr
+            cbase + 7, mbase + 0,  # re-execute the instruction after setting the permissions
+            cbase + 11, mbase + 2,  # speculatively execute the last instruction and rollback
+            # terminate after rollback
+            ]))
         self.assertEqual(ctraces, [expected_trace])
 
 
