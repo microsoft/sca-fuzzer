@@ -247,7 +247,9 @@ class UnicornModel(Model, ABC):
         execution_traces: List[ExecutionTrace] = []
         taints = []
 
-        for input_ in inputs:
+        for index, input_ in enumerate(inputs):
+            LOGGER.dbg_model_header(index)
+
             self._load_input(input_)
             self.reset_model()
             start_address = self.code_start
