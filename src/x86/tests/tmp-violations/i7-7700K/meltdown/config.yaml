@@ -1,0 +1,38 @@
+instruction_categories:
+  - BASE-NOP
+  - BASE-BINARY
+  - BASE-BITBYTE
+  - BASE-CMOV
+  - BASE-CONVERT
+  - BASE-DATAXFER
+  - BASE-FLAGOP
+  - BASE-SETCC
+  - BASE-LOGICAL
+  - BASE-POP
+  - BASE-PUSH
+contract_observation_clause: ct
+contract_execution_clause:
+  - nullinj-fault
+  # - meltdown
+  # - ooo
+
+program_size: 16
+min_bb_per_function: 1
+max_bb_per_function: 1
+avg_mem_accesses: 4
+input_gen_entropy_bits: 9
+
+enable_ssbp_patch: true
+permitted_faults:
+  - PF-present
+  - PF-writable
+  # - assist-dirty
+  # - assist-accessed
+  # - DE-overflow
+
+logging_modes:
+  - info
+  # - dbg_model
+  # - dbg_traces
+  - stat
+  # - dbg_violation
