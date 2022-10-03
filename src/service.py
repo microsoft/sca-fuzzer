@@ -270,6 +270,15 @@ class Logger:
 
     # ==============================================================================================
     # Model
+    def dbg_model_header(self, input_id):
+        if not __debug__:
+            return
+
+        if not self.dbg_model:
+            return
+
+        print(f"\n                     ##### Input {input_id} #####")
+
     def dbg_model_mem_access(self, normalized_address, value, address, size, is_store, model):
         if not __debug__:
             return
