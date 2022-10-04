@@ -19,6 +19,9 @@ def write_to_sysfs_file_bytes(value: bytes, path: str) -> None:
         f.write(value)
 
 
+TRACE_NUM_ELEMENTS = 6
+
+
 class X86IntelExecutor(Executor):
     previous_num_inputs: int = 0
     feedback: List[int]
@@ -91,7 +94,8 @@ class X86IntelExecutor(Executor):
                 LOGGER.error("Failure loading inputs!")
 
         # run experiments and load the results
-        all_results: np.ndarray = np.ndarray(shape=(len(inputs), repetitions, 4), dtype=np.uint64)
+        all_results: np.ndarray = np.ndarray(
+            shape=(len(inputs), repetitions, TRACE_NUM_ELEMENTS), dtype=np.uint64)
         for rep in range(repetitions):
             # executor prints results in reverse, so we begin from the end
             input_id = len(inputs) - 1
@@ -110,10 +114,8 @@ class X86IntelExecutor(Executor):
                         reading_finished = True
                         break
 
-                    all_results[input_id][rep][0] = int(row[0])
-                    all_results[input_id][rep][1] = int(row[1])
-                    all_results[input_id][rep][2] = int(row[2])
-                    all_results[input_id][rep][3] = int(row[3])
+                    for i in range(TRACE_NUM_ELEMENTS):
+                        all_results[input_id][rep][i] = int(row[i])
                     input_id -= 1
 
         # simple case - no merging required

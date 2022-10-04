@@ -206,12 +206,12 @@ static ssize_t trace_show(struct kobject *kobj, struct kobj_attribute *attr, cha
     for (; next_measurement_id >= 0; next_measurement_id--)
     {
         // check if the output buffer still has space
-        if (count >= (4096 - 84))
+        if (count >= (4096 - 128))
             return count; // we will continue in the next call of this function
 
         measurement_t m = measurements[next_measurement_id];
-        retval = sprintf(&buf[count], "%llu,%llu,%llu,%llu\n", m.htrace[0], m.pfc[0], m.pfc[1],
-                         m.pfc[2]);
+        retval = sprintf(&buf[count], "%llu,%llu,%llu,%llu,%llu,%llu\n", m.htrace[0], m.pfc[0],
+                         m.pfc[1], m.pfc[2], m.pfc[3], m.pfc[4]);
         if (!retval)
             return -1;
         count += retval;
@@ -404,6 +404,10 @@ static ssize_t measurement_mode_store(struct kobject *kobj, struct kobj_attribut
     else if (buf[0] == 'E')
     {
         measurement_template = (char *)&template_l1d_evict_reload;
+    }
+    else if (buf[0] == 'G')
+    {
+        measurement_template = (char *)&template_gpr;
     }
 
     return count;

@@ -795,7 +795,7 @@ class Executor(ABC):
         self.coverage = coverage
 
     @abstractmethod
-    def get_last_feedback(self):
+    def get_last_feedback(self) -> List:
         pass
 
 

@@ -42,7 +42,7 @@ function setup_suite {
 
 function load_test_case() {
     local test_file=$1
-    
+
     tmpbin=$(mktemp /tmp/revizor-test.XXXXXX.o)
 
     as "$test_file" -o "$tmpbin"
@@ -115,6 +115,19 @@ function load_test_case() {
     rm "$tmpasm"
 }
 
+@test "x86 executor: Hardware tracing with GPR" {
+    echo "GPR" > /sys/x86_executor/measurement_mode
+    tmpasm=$(mktemp /tmp/revizor-test.XXXXXX.asm)
+
+    echo "mov \$1, %rax; mov \$2, %rbx; mov \$3, %rcx; mov \$4, %rdx; mov \$5, %rsi; mov \$6, %rdi;" > $tmpasm
+    load_test_case $tmpasm
+    run cat /sys/x86_executor/trace
+    echo "Output: $output"
+    [[ "$output" == *"1,2,3,4,5,6"* ]]
+
+    rm "$tmpasm"
+}
+
 @test "x86 executor: Noise Level" {
     # execute one dummy run to set Executor into the default config and to load the test case
     nruns=10000
@@ -141,9 +154,9 @@ function load_test_case() {
         cat $tmpinput > /sys/x86_executor/inputs
         run cat /sys/x86_executor/inputs
         [[ "$output" -eq "1" ]]
-        
+
         echo "" > $tmpresult
-    
+
         # START=$(date +%s.%N)
         while true; do
             run cat /sys/x86_executor/trace
@@ -154,7 +167,7 @@ function load_test_case() {
             fi
         done
         # END=$(date +%s.%N)
-        # echo "$END - $START" | bc  
+        # echo "$END - $START" | bc
 
         # cat $tmpresult | awk '/,/{print $1}' | sort | uniq -c | sort -r | awk '//{print $1}'
         run bash -c "cat $tmpresult | awk '/,/{print \$1}' | sort | uniq -c | sort -r | awk '//{print \$1}' | head -n1"
@@ -191,7 +204,7 @@ function load_test_case() {
     cat $tmpinput > /sys/x86_executor/inputs
     run cat /sys/x86_executor/inputs
     [[ "$output" -eq "1" ]]
-    
+
     echo "" > $tmpresult
 
     while true; do
