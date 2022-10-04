@@ -34,6 +34,7 @@ TRACERS: Dict[str, Type[model.UnicornTracer]] = {
     "ct-nonspecstore": model.CTNonSpecStoreTracer,
     "ctr": model.CTRTracer,
     "arch": model.ArchTracer,
+    "gpr": model.GPRTracer,
 }
 
 EXECUTORS = {
