@@ -8,12 +8,19 @@ from typing import List
 
 # x86_option_values attribute MUST be the first attribute in the file
 x86_option_values = {
-    'executor_mode': ['P+P', 'F+R', 'E+R'],
+    'executor_mode': ['P+P', 'F+R', 'E+R'],  # 'GPR' is intentionally left out
     'permitted_faults': [
         'DE-zero', 'DE-overflow', 'UD', 'PF-present', 'PF-writable', 'PF-noncanonical',
         'assist-accessed', 'assist-dirty'
     ],
 }
+
+x86_executor_enable_prefetcher: bool = False
+""" x86_executor_enable_prefetcher: enable all prefetchers"""
+x86_executor_enable_ssbp_patch: bool = True
+""" x86_executor_enable_ssbp_patch: enable a patch against Speculative Store Bypass"""
+x86_disable_div64: bool = True
+
 
 x86_instruction_categories: List[str] = [
     # Base x86
@@ -106,5 +113,3 @@ x86_register_blocklist: List[str] = [
     'CR0', 'CR2', 'CR3', 'CR4', 'CR8',
     'DR0', 'DR1', 'DR2', 'DR3', 'DR4', 'DR5', 'DR6', 'DR7'
 ]  # yapf: disable
-
-x86_disable_div64: bool = True

@@ -42,6 +42,7 @@ int (*set_memory_nx)(unsigned long, int) = 0;
 // Global Variables
 long uarch_reset_rounds = UARCH_RESET_ROUNDS_DEFAULT;
 uint64_t ssbp_patch_control = SSBP_PATH_DEFAULT;
+uint64_t prefetcher_control = PREFETCHER_DEFAULT;
 char pre_run_flush = PRE_RUN_FLUSH_DEFAULT;
 char *measurement_template = (char *)&template_l1d_prime_probe;
 char *measurement_code = NULL;
@@ -135,6 +136,13 @@ static ssize_t enable_ssbp_patch_store(struct kobject *kobj, struct kobj_attribu
 static struct kobj_attribute enable_ssbp_patch_attribute =
     __ATTR(enable_ssbp_patch, 0666, NULL, enable_ssbp_patch_store);
 
+/// Control prefetchers
+///
+static ssize_t enable_prefetcher_store(struct kobject *kobj, struct kobj_attribute *attr,
+                                       const char *buf, size_t count);
+static struct kobj_attribute enable_prefetcher_attribute =
+    __ATTR(enable_prefetcher, 0666, NULL, enable_prefetcher_store);
+
 /// Control flushing
 ///
 static ssize_t enable_pre_run_flush_store(struct kobject *kobj, struct kobj_attribute *attr,
@@ -165,6 +173,7 @@ static struct attribute *sysfs_attributes[] = {
     &print_sandbox_base_attribute.attr,
     &print_code_base_attribute.attr,
     &enable_ssbp_patch_attribute.attr,
+    &enable_prefetcher_attribute.attr,
     &enable_pre_run_flush_attribute.attr,
     &measurement_mode_attribute.attr,
     &pte_mask_attribute.attr,
@@ -209,12 +218,12 @@ static ssize_t trace_show(struct kobject *kobj, struct kobj_attribute *attr, cha
     for (; next_measurement_id >= 0; next_measurement_id--)
     {
         // check if the output buffer still has space
-        if (count >= (4096 - 84))
+        if (count >= (4096 - 128))
             return count; // we will continue in the next call of this function
 
         measurement_t m = measurements[next_measurement_id];
-        retval = sprintf(&buf[count], "%llu,%llu,%llu,%llu\n", m.htrace[0], m.pfc[0], m.pfc[1],
-                         m.pfc[2]);
+        retval = sprintf(&buf[count], "%llu,%llu,%llu,%llu,%llu,%llu\n", m.htrace[0], m.pfc[0],
+                         m.pfc[1], m.pfc[2], m.pfc[3], m.pfc[4]);
         if (!retval)
             return -1;
         count += retval;
@@ -378,7 +387,16 @@ static ssize_t enable_ssbp_patch_store(struct kobject *kobj, struct kobj_attribu
 {
     unsigned value = 0;
     sscanf(buf, "%u", &value);
-    ssbp_patch_control = (value == 0) ? 0b011 : 0b111;
+    ssbp_patch_control = (value == 0) ? SSBP_PATCH_OFF : SSBP_PATCH_ON;
+    return count;
+}
+
+static ssize_t enable_prefetcher_store(struct kobject *kobj, struct kobj_attribute *attr,
+                                       const char *buf, size_t count)
+{
+    unsigned value = 0;
+    sscanf(buf, "%u", &value);
+    prefetcher_control = (value == 0) ? PREFETCHER_OFF : PREFETCHER_ON;
     return count;
 }
 
@@ -405,6 +423,10 @@ static ssize_t measurement_mode_store(struct kobject *kobj, struct kobj_attribut
     else if (buf[0] == 'E')
     {
         measurement_template = (char *)&template_l1d_evict_reload;
+    }
+    else if (buf[0] == 'G')
+    {
+        measurement_template = (char *)&template_gpr;
     }
 
     return count;
@@ -434,17 +456,9 @@ static int __init executor_init(void)
     memcpy(vendor_name, (char *)&ebx, 4);
     memcpy(vendor_name + 4, (char *)&edx, 4);
     memcpy(vendor_name + 8, (char *)&ecx, 4);
-    if (strcmp(vendor_name, "GenuineIntel") != 0)
+    if (strcmp(vendor_name, "GenuineIntel") != 0 && strcmp(vendor_name, "AuthenticAMD") != 0)
     {
         printk(KERN_ERR "x86_executor: This CPU vendor is not supported\n");
-        return -1;
-    }
-
-    // Check version of perf monitoring
-    __cpuid(0x0A, eax, ebx, ecx, edx);
-    if ((eax & 0xFF) < 2)
-    {
-        printk(KERN_ERR "x86_executor: This CPU model is not supported\n");
         return -1;
     }
 

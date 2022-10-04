@@ -6,7 +6,7 @@ SPDX-License-Identifier: MIT
 """
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Type, Optional, Set
+from typing import List, Tuple, Type, Optional, Set, Dict
 
 import copy
 import re
@@ -15,7 +15,7 @@ from unicorn import Uc, UcError, UC_MEM_WRITE, UC_MEM_READ, UC_SECOND_SCALE, UC_
     UC_HOOK_MEM_WRITE, UC_HOOK_CODE, UC_PROT_NONE, UC_PROT_READ
 
 from interfaces import CTrace, TestCase, Model, InputTaint, Instruction, ExecutionTrace, \
-     TracedInstruction, TracedMemAccess, Input, Dict, \
+     TracedInstruction, TracedMemAccess, Input, Tracer, \
      RegisterOperand, FlagsOperand, MemoryOperand, TaintTrackerInterface, TargetDesc
 from config import CONF
 from service import LOGGER, NotSupportedException
@@ -31,7 +31,7 @@ class UnicornTargetDesc(ABC):
     reg_decode: Dict[str, int]
 
 
-class UnicornTracer(ABC):
+class UnicornTracer(Tracer):
     """
     A simple tracer.
     Collect instructions as they are emulated. See :class:`TracedInstruction`
@@ -488,6 +488,23 @@ class ArchTracer(CTRTracer):
             self.trace.append(val)
             model.taint_tracker.taint_memory_load()
         super(ArchTracer, self).observe_mem_access(access, address, size, value, model)
+
+
+class GPRTracer(UnicornTracer):
+    """
+    This is a special type of tracer, primarily used for debugging the model.
+    It returns the values of all GPRs after the test case finished its execution.
+    """
+
+    def init_trace(self, emulator: Uc, target_desc: UnicornTargetDesc) -> None:
+        self.emulator = emulator
+        self.target_desc = target_desc
+        return super().init_trace(emulator, target_desc)
+
+    def get_contract_trace(self) -> CTrace:
+        self.trace = [self.emulator.reg_read(reg) for reg in self.target_desc.registers]
+        self.trace = self.trace[:-1]  # exclude flags
+        return self.trace[0]
 
 
 # ==================================================================================================

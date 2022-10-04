@@ -214,8 +214,10 @@ class Logger:
                             self.warning("fuzzer", "Trace output is limited to 100 traces")
                             break
                         print("    ")
-                        print(f"CTr{i}: {self.pretty_bitmap(ctraces[i], ctraces[i] > pow(2, 64))}")
-                        print(f"HTr{i}: {self.pretty_bitmap(htraces[i])}")
+                        print(
+                            f"CTr{i:<2} "
+                            f"{self.pretty_bitmap(ctraces[i], ctraces[i] > pow(2, 64), '      ')}")
+                        print(f"HTr{i:<2} {self.pretty_bitmap(htraces[i])}")
                         print(f"Feedback{i}: {hw_feedback[i]}")
 
                     return

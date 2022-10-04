@@ -11,7 +11,7 @@ instruction_categories:
   - BASE-LOGICAL
 
 # environment
-enable_ssbp_patch: false
+x86_executor_enable_ssbp_patch: false
 
 # fuzzing configuration
 enable_speculation_filter: true
