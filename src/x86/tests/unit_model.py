@@ -108,6 +108,20 @@ class X86ModelTest(unittest.TestCase):
         ctraces: List[CTrace] = model.trace_test_case(inputs, 1)
         return ctraces
 
+    def test_gpr_tracer(self):
+        mem_base, code_base = 0x1000000, 0x8000
+        model = x86_model.X86UnicornSeq(mem_base, code_base)
+        model.tracer = core_model.GPRTracer()
+        input_ = Input()
+        input_[0] = 0
+        input_[1] = 1
+        for i in range(0, 7):
+            input_[input_.register_start + i] = 2
+        _ = self.get_traces(model, ASM_STORE_AND_LOAD, [input_])
+        full_trace = model.tracer.get_contract_trace_full()
+        expected_trace = [1 << 48, 2, 2, 2, 2, 2]
+        self.assertEqual(full_trace, expected_trace)
+
     def test_l1d_seq(self):
         model = x86_model.X86UnicornSeq(0x1000000, 0x8000)
         model.tracer = core_model.L1DTracer()
