@@ -119,7 +119,7 @@ class X86UnicornSeq(UnicornSeq, X86UnicornModel):
 
 
 class X86UnicornSpec(UnicornSpec, X86UnicornModel):
-    curr_instr_address: int = 0
+    pass
 
 
 class X86UnicornCond(X86UnicornSpec):
@@ -248,25 +248,49 @@ class X86UnicornCondBpas(X86UnicornSpec):
         X86UnicornBpas.speculate_instruction(emulator, address, size, model)
 
 
-class X86UnicornNull(X86UnicornSpec):
+class X86FaultModelAbstract(X86UnicornSpec):
+    relevant_faults: Set[int]
+    curr_instruction_addr: int = 0
+    next_instruction_addr: int = 0
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.relevant_faults = set()
+
+    def fault_triggers_speculation(self, errno: int) -> bool:
+        # we speculate only on a subset of faults
+        if errno not in self.relevant_faults:
+            return False
+
+        # reached max spec. window? skip
+        if len(self.checkpoints) >= self.nesting:
+            return False
+        return True
+
+    @staticmethod
+    def trace_instruction(emulator, address, size, model: UnicornModel) -> None:
+        assert isinstance(model, X86FaultModelAbstract)
+        model.curr_instruction_addr = address
+        model.next_instruction_addr = address + size
+        X86UnicornSpec.trace_instruction(emulator, address, size, model)
+
+
+class X86UnicornNull(X86FaultModelAbstract):
     """
     Contract describing zero injection on faults
-    Note that the contract permits only one injection;
-    that is, no nested speculation is expected.
     """
     curr_load: Tuple[int, int]
-    relevant_faults: List[int]
     pending_restore_protection: bool = False
 
     def __init__(self, *args):
         super().__init__(*args)
-        self.relevant_faults = [12, 13]
+        self.relevant_faults.update([12, 13])
 
     @staticmethod
     def speculate_instruction(emulator: Uc, address, size, model) -> None:
         assert isinstance(model, X86UnicornNull)
         # restore permissions after speculation - we might have nested injections
-        if address != model.curr_instr_address and model.pending_restore_protection:
+        if address != model.curr_instruction_addr and model.pending_restore_protection:
             model.pending_restore_protection = False
             if model.rw_protect:
                 model.emulator.mem_protect(model.sandbox_base + model.MAIN_REGION_SIZE,
@@ -276,7 +300,7 @@ class X86UnicornNull(X86UnicornSpec):
                                            model.FAULTY_REGION_SIZE, UC_PROT_READ)
 
         # store the address for checkpointing (see speculate_fault)
-        model.curr_instr_address = address
+        model.curr_instruction_addr = address
         model.curr_load = (0, 0)
 
     @staticmethod
@@ -287,12 +311,7 @@ class X86UnicornNull(X86UnicornSpec):
             model.curr_load = (address, size)
 
     def speculate_fault(self, errno: int) -> int:
-        # we speculate only on a subset of faults
-        if errno not in self.relevant_faults:
-            return 0
-
-        # reached max spec. window? skip
-        if len(self.checkpoints) >= self.nesting:
+        if not self.fault_triggers_speculation(errno):
             return 0
 
         # store a checkpoint
@@ -311,7 +330,7 @@ class X86UnicornNull(X86UnicornSpec):
         self.pending_restore_protection = True
         self.emulator.mem_protect(self.sandbox_base + self.MAIN_REGION_SIZE,
                                   self.FAULTY_REGION_SIZE)
-        return self.curr_instr_address
+        return self.curr_instruction_addr
 
     def rollback(self) -> int:
         self.emulator.mem_protect(self.sandbox_base + self.MAIN_REGION_SIZE,
@@ -320,35 +339,30 @@ class X86UnicornNull(X86UnicornSpec):
 
     def get_rollback_address(self) -> int:
         """ This function exists so that we can overwrite the rollback in subclasses """
-        return self.curr_instr_address
+        return self.curr_instruction_addr
 
 
 class X86UnicornNullTerminating(X86UnicornNull):
+
     def get_rollback_address(self) -> int:
         return self.code_end
 
 
-class x86UnicornOOO(X86UnicornSpec):
+class X86UnicornOOO(X86FaultModelAbstract):
     """
     Contract for out-of-order handling of faults
     """
-    relevant_faults: List[int]
-    next_instr_address: int
     dependencies: Set[str]
     dependency_checkpoints: List[Set[str]]
 
     def __init__(self, *args):
         super().__init__(*args)
-        self.relevant_faults = [12, 13]
+        self.relevant_faults.update([12, 13])
         self.dependencies = set()
         self.dependency_checkpoints = []
 
     def speculate_fault(self, errno: int) -> int:
-        if errno not in self.relevant_faults:  # we speculate only on a subset of faults
-            return 0
-
-        # reached max spec. window? skip
-        if len(self.checkpoints) >= self.nesting:
+        if not self.fault_triggers_speculation(errno):
             return 0
 
         # start speculation
@@ -365,10 +379,10 @@ class x86UnicornOOO(X86UnicornSpec):
                     self.dependencies.add(flag)
 
         # speculatively skip the faulting instruction
-        if self.next_instr_address >= self.code_end:
+        if self.next_instruction_addr >= self.code_end:
             return 0  # no need for speculation if we're at the end
         else:
-            return self.next_instr_address
+            return self.next_instruction_addr
 
     @staticmethod
     def speculate_instruction(emulator: Uc, address, size, model) -> None:
@@ -376,10 +390,7 @@ class x86UnicornOOO(X86UnicornSpec):
         Track instruction dependencies to skip those instructions that are dependent
         on a faulting instruction
         """
-        assert isinstance(model, x86UnicornOOO)
-
-        # store the address for checkpointing (see speculate_fault)
-        model.next_instr_address = address + size
+        assert isinstance(model, X86UnicornOOO)
 
         # track dependencies only after faults
         if not model.in_speculation or not model.dependencies:
@@ -432,17 +443,45 @@ class x86UnicornOOO(X86UnicornSpec):
         return super().rollback()
 
 
-class X86UnicornDivOverflow(x86UnicornOOO):
-    div_value: int = 0
+class X86UnicornDivZero(X86FaultModelAbstract):
+    injected_value: int = 0
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.relevant_faults.add(21)
 
     def speculate_fault(self, errno: int) -> int:
+        if not self.fault_triggers_speculation(errno):
+            return 0
+
         if self.current_instruction.name not in ["DIV", "IDIV"]:
             return super().speculate_fault(errno)
 
-        # reached max spec. window? skip
-        if len(self.checkpoints) >= self.nesting:
+        # start speculation
+        self.checkpoint(self.emulator, self.code_end)
+
+        # inject zero into both destination operands of division
+        self.emulator.reg_write(ucc.UC_X86_REG_RAX, 0)
+        self.emulator.reg_write(ucc.UC_X86_REG_RDX, 0)
+
+        return self.next_instruction_addr
+
+
+class X86UnicornDivOverflow(X86FaultModelAbstract):
+    div_value: int = 0
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.relevant_faults.add(21)
+
+    def speculate_fault(self, errno: int) -> int:
+        if not self.fault_triggers_speculation(errno):
             return 0
 
+        if self.current_instruction.name not in ["DIV", "IDIV"]:
+            return super().speculate_fault(errno)
+
+        # get division arguments
         assert len(self.current_instruction.operands) == 1
         assert self.current_instruction.operands[0].src
         divider = self.current_instruction.operands[0]
@@ -474,35 +513,27 @@ class X86UnicornDivOverflow(x86UnicornOOO):
                 trimmed_result = (((d << 64) + a) // value) % 0xffffffffffffffff
                 self.emulator.reg_write(ucc.UC_X86_REG_RAX, trimmed_result)
                 self.emulator.reg_write(ucc.UC_X86_REG_RDX, ((d << 64) + a) % value)
-                return self.next_instr_address
+                return self.next_instruction_addr
             if width == 32:
                 a = self.emulator.reg_read(ucc.UC_X86_REG_EAX)
                 d = self.emulator.reg_read(ucc.UC_X86_REG_EDX)
                 trimmed_result = (((d << 32) + a) // value) % 0xffffffff
-                # self.emulator.reg_write(ucc.UC_X86_REG_RAX, 0)
-                # self.emulator.reg_write(ucc.UC_X86_REG_RDX, 0)
                 self.emulator.reg_write(ucc.UC_X86_REG_EAX, trimmed_result)
                 self.emulator.reg_write(ucc.UC_X86_REG_EDX, ((d << 32) + a) % value)
-                return self.next_instr_address
+                return self.next_instruction_addr
             if width == 16:
                 a = self.emulator.reg_read(ucc.UC_X86_REG_AX)
                 d = self.emulator.reg_read(ucc.UC_X86_REG_DX)
                 trimmed_result = (((d << 16) + a) // value) % 0xffff
-                # self.emulator.reg_write(ucc.UC_X86_REG_RAX, 0)
-                # self.emulator.reg_write(ucc.UC_X86_REG_RDX, 0)
                 self.emulator.reg_write(ucc.UC_X86_REG_AX, trimmed_result)
                 self.emulator.reg_write(ucc.UC_X86_REG_DX, ((d << 16) + a) % value)
-                return self.next_instr_address
+                return self.next_instruction_addr
             if width == 8:
                 a = self.emulator.reg_read(ucc.UC_X86_REG_AX)
                 trimmed_result = (a // value) % 0xff
-                # self.emulator.reg_write(ucc.UC_X86_REG_RAX, 0)
-                # self.emulator.reg_write(ucc.UC_X86_REG_RDX, 0)
                 self.emulator.reg_write(ucc.UC_X86_REG_AL, trimmed_result)
                 self.emulator.reg_write(ucc.UC_X86_REG_AH, a % value)
-                # trimmed_result = 1024
-                # self.emulator.reg_write(ucc.UC_X86_REG_AX, trimmed_result)
-                return self.next_instr_address
+                return self.next_instruction_addr
             raise UnreachableCode()
         else:  # IDIV
             raise UnreachableCode()
@@ -510,20 +541,21 @@ class X86UnicornDivOverflow(x86UnicornOOO):
     @staticmethod
     def trace_mem_access(emulator: Uc, access, address: int, size, value, model):
         model.div_value = int.from_bytes(emulator.mem_read(address, size), "little")
-        x86UnicornOOO.trace_mem_access(emulator, access, address, size, value, model)
+        X86UnicornOOO.trace_mem_access(emulator, access, address, size, value, model)
 
 
-class X86MeltdownModel(x86UnicornOOO):
+class X86Meltdown(X86FaultModelAbstract):
     """
-     Loads from the faulty region speculatively return the in-memory value
+    Loads from the faulty region speculatively return the in-memory value
     """
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.relevant_faults.update([12, 13])
 
     def speculate_fault(self, errno: int) -> int:
-        if errno not in self.relevant_faults:  # we speculate only on a subset of faults
-            return 0
-
-        # reached max spec. window? skip
-        if len(self.checkpoints) >= self.nesting:
+        self.curr_instruction_addr
+        if not self.fault_triggers_speculation(errno):
             return 0
 
         # store a checkpoint
@@ -533,34 +565,20 @@ class X86MeltdownModel(x86UnicornOOO):
         self.emulator.mem_protect(self.sandbox_base + self.MAIN_REGION_SIZE,
                                   self.FAULTY_REGION_SIZE)
 
-        return self.curr_instr_address
-
-    @staticmethod
-    def speculate_instruction(emulator: Uc, address, size, model) -> None:
-        """ Do nothing - assume we speculate the invalid access """
-        model.next_instr_address = address + size
-        model.curr_instr_address = address
-
-    @staticmethod
-    def speculate_mem_access(emulator, access, address, size, value, model):
-        assert isinstance(model, X86MeltdownModel)
-
-        # save load address for zero injection
-        model.load_address = address
-        model.load_size = size
+        return self.curr_instruction_addr
 
 
-class X86RegisterLeakModel(x86UnicornOOO):
+class X86FaultSkip(X86FaultModelAbstract):
     """
     As Meltdown but we skip the faulty load.
     """
 
-    def speculate_fault(self, errno: int) -> int:
-        if errno not in self.relevant_faults:  # we speculate only on a subset of faults
-            return 0
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.relevant_faults.update([12, 13])
 
-        # reached max spec. window? skip
-        if len(self.checkpoints) >= self.nesting:
+    def speculate_fault(self, errno: int) -> int:
+        if not self.fault_triggers_speculation(errno):
             return 0
 
         # store a checkpoint
@@ -571,30 +589,19 @@ class X86RegisterLeakModel(x86UnicornOOO):
                                   self.FAULTY_REGION_SIZE)
 
         # speculatively skip the faulting instruction
-        if self.next_instr_address >= self.code_end:
+        if self.next_instruction_addr >= self.code_end:
             return 0  # no need for speculation if we're at the end
         else:
-            return self.next_instr_address
-
-    @staticmethod
-    def speculate_instruction(emulator: Uc, address, size, model) -> None:
-        """ Do nothing - assume we speculate the invalid access """
-        model.next_instr_address = address + size
-        model.curr_instr_address = address
-
-    @staticmethod
-    def speculate_mem_access(emulator, access, address, size, value, model):
-        assert isinstance(model, X86MeltdownModel)
-
-        # save load address for zero injection
-        model.load_address = address
-        model.load_size = size
+            return self.next_instruction_addr
 
 
-class X86GPOOOModel(x86UnicornOOO):
+class X86NonCanonicalOOO(X86UnicornOOO):
     """
      Trace faulty and out-of-order instructions but skip data dependent ones
     """
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.relevant_faults.update([12, 13])
 
     def speculate_fault(self, errno: int) -> int:
         '''
@@ -603,15 +610,12 @@ class X86GPOOOModel(x86UnicornOOO):
         '''
         ret = super().speculate_fault(errno)
         if errno == 6 and ret != 0:
-            return self.curr_instr_address  # We re-execute but this time with canonica address
+            return self.curr_instruction_addr  # We re-execute but this time with canonica address
         return ret
 
     @staticmethod
     def speculate_instruction(emulator: Uc, address, size, model) -> None:
-        assert isinstance(model, x86UnicornOOO)
-        # store the address for checkpointing (see speculate_fault)
-        model.next_instr_address = address + size
-        model.curr_instr_address = address
+        assert isinstance(model, X86NonCanonicalOOO)
 
         # We detect access to non-canonical addresses before unicorn triggers the exception,
         # otherwise the context is corrupted and unicorn keeps faulting.
