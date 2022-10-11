@@ -73,9 +73,17 @@ NOP
 ASM_FAULTY_ACCESS = """
 .intel_syntax noprefix
 .test_case_enter:
-MOV RAX, qword ptr [R14 + 4096]
+MOV RAX, qword ptr [R14 + RCX]
 MOV RAX, qword ptr [R14 + RAX]
 MOV RBX, qword ptr [R14 + RBX]
+.test_case_exit:
+"""
+
+ASM_DIV_ZERO = """
+.intel_syntax noprefix
+.test_case_enter:
+DIV EBX
+MOV rax, qword ptr [R14 + RAX]
 .test_case_exit:
 """
 
@@ -113,9 +121,7 @@ class X86ModelTest(unittest.TestCase):
     def get_traces(self, model, asm_str, inputs):
         tc = self.load_tc(asm_str)
         model.load_test_case(tc)
-        # LOGGER.dbg_model = True
         ctraces: List[CTrace] = model.trace_test_case(inputs, 1)
-        # LOGGER.dbg_model = False
         return ctraces
 
     def test_l1d_seq(self):
@@ -203,7 +209,6 @@ class X86ModelTest(unittest.TestCase):
         input_ = Input()
         input_[0] = 1
         ctraces = self.get_traces(model, ASM_STORE_AND_LOAD, [input_])
-        # print(model.tracer.get_contract_trace_full(), mem_base, code_base)
         expected_trace = hash(
             tuple([
                 code_base, mem_base, code_base + 7, mem_base, code_base + 10, mem_base + 1,
@@ -229,6 +234,7 @@ class X86ModelTest(unittest.TestCase):
         model.handled_faults.extend([12, 13])
         input_ = Input()
         input_[0] = 1
+        input_[input_.register_start + 2] = 4096
         ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_])
         expected_trace = hash(tuple([cbase, mbase + 4096]))
         self.assertEqual(ctraces, [expected_trace])
@@ -242,18 +248,27 @@ class X86ModelTest(unittest.TestCase):
         input_ = Input()
         for i in range(0, 7):
             input_[input_.register_start + i] = 2
+        input_[input_.register_start + 2] = 4096
         input_[0] = 1
         input_[4096 // 8] = 3
         ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_])
         expected_trace = hash(tuple([
             cbase, mbase + 4096,  # fault
             cbase, mbase + 4096,  # speculative injection
-            cbase + 7,  # speculatively start executing the next instr
-            cbase + 7, mbase + 0,  # re-execute the instruction after setting the permissions
-            cbase + 11, mbase + 2,  # speculatively execute the last instruction and rollback
-            cbase, mbase + 4096, cbase + 7, mbase + 3, cbase + 11, mbase + 2,  # after rollback
+            cbase + 4,  # speculatively start executing the next instr
+            cbase + 4, mbase + 0,  # re-execute the instruction after setting the permissions
+            cbase + 8, mbase + 2,  # speculatively execute the last instruction and rollback
+            cbase, mbase + 4096, cbase + 4, mbase + 3, cbase + 8, mbase + 2,  # after rollback
+            ]))   # yapf: disable
+        # on newer versions of Unicorn, the instruction may
+        # not be re-executed after changing permissions
+        # hence, an alternative trace would be
+        expected_trace2 = hash(
+            tuple([
+                cbase, mbase + 4096, cbase, mbase + 4096, cbase + 4, mbase + 0, cbase + 8,
+                mbase + 2, cbase, mbase + 4096, cbase + 4, mbase + 3, cbase + 8, mbase + 2
             ]))
-        self.assertEqual(ctraces, [expected_trace])
+        self.assertIn(ctraces[0], [expected_trace, expected_trace2])
 
     def test_ct_nullinj_term(self):
         mbase, cbase = 0x1000000, 0x8000
@@ -264,6 +279,7 @@ class X86ModelTest(unittest.TestCase):
         input_ = Input()
         for i in range(0, 7):
             input_[input_.register_start + i] = 2
+        input_[input_.register_start + 2] = 4096
         input_[0] = 1
         input_[4096 // 8] = 3
         # LOGGER.dbg_model = True
@@ -273,12 +289,107 @@ class X86ModelTest(unittest.TestCase):
         expected_trace = hash(tuple([
             cbase, mbase + 4096,  # fault
             cbase, mbase + 4096,  # speculative injection
-            cbase + 7,  # speculatively start executing the next instr
-            cbase + 7, mbase + 0,  # re-execute the instruction after setting the permissions
+            cbase + 4,  # speculatively start executing the next instr
+            cbase + 4, mbase + 0,  # re-execute the instruction after setting the permissions
+            cbase + 8, mbase + 2,  # speculatively execute the last instruction and rollback
+            # terminate after rollback
+            ]))   # yapf: disable
+        # on newer versions of Unicorn, the instruction may
+        # not be re-executed after changing permissions
+        # hence, an alternative trace would be
+        expected_trace2 = hash(
+            tuple([
+                cbase, mbase + 4096, cbase, mbase + 4096, cbase + 4, mbase + 0, cbase + 8, mbase + 2
+            ]))
+        self.assertIn(ctraces[0], [expected_trace, expected_trace2])
+
+    def test_ct_ooo(self):
+        mbase, cbase = 0x1000000, 0x8000
+        model = x86_model.X86UnicornOOO(mbase, cbase)
+        model.tracer = core_model.CTTracer()
+        model.rw_protect = True
+        model.handled_faults.extend([12, 13])
+        input_ = Input()
+        for i in range(0, 7):
+            input_[input_.register_start + i] = 2
+        input_[input_.register_start + 2] = 4096
+        input_[0] = 1
+        input_[4096 // 8] = 3
+        ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_])
+        expected_trace = hash(tuple([
+            cbase, mbase + 4096,  # faulty load
+            cbase + 7,  # next load is dependent - do not execute the mem access
             cbase + 11, mbase + 2,  # speculatively execute the last instruction and rollback
             # terminate after rollback
-            ]))
-        self.assertEqual(ctraces, [expected_trace])
+            ]))   # yapf: disable
+        self.assertEqual(ctraces[0], expected_trace)
+
+    def test_ct_div_zero(self):
+        mbase, cbase = 0x1000000, 0x8000
+        model = x86_model.X86UnicornDivZero(mbase, cbase)
+        model.tracer = core_model.CTTracer()
+        model.rw_protect = True
+        model.handled_faults.append(21)
+        input_ = Input()
+        input_[input_.register_start] = 2  # rax
+        input_[input_.register_start + 1] = 0  # rbx
+        input_[input_.register_start + 3] = 0  # rdx
+        ctraces = self.get_traces(model, ASM_DIV_ZERO, [input_])
+        expected_trace = hash(tuple([cbase, cbase + 2, mbase + 0]))
+        self.assertEqual(ctraces[0], expected_trace)
+
+    @unittest.skip("not implemented")
+    def test_ct_div_overflow(self):
+        # TBD
+        pass
+
+    def test_ct_meltdown(self):
+        mbase, cbase = 0x1000000, 0x8000
+        model = x86_model.X86Meltdown(mbase, cbase)
+        model.tracer = core_model.CTTracer()
+        model.rw_protect = True
+        model.handled_faults.extend([12, 13])
+        input_ = Input()
+        for i in range(0, 7):
+            input_[input_.register_start + i] = 2
+        input_[input_.register_start + 2] = 4096
+        input_[0] = 1
+        input_[4096 // 8] = 3
+        ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_])
+        expected_trace = hash(tuple([
+            cbase, mbase + 4096,  # fault
+            cbase, mbase + 4096,  # speculative injection
+            cbase + 4, mbase + 3,  # next instruction
+            cbase + 8, mbase + 2,  # speculatively execute the last instruction and rollback
+            # terminate after rollback
+            ]))   # yapf: disable
+        self.assertEqual(ctraces[0], expected_trace)
+
+    def test_ct_skip_fault(self):
+        mbase, cbase = 0x1000000, 0x8000
+        model = x86_model.X86FaultSkip(mbase, cbase)
+        model.tracer = core_model.CTTracer()
+        model.rw_protect = True
+        model.handled_faults.extend([12, 13])
+        input_ = Input()
+        for i in range(0, 7):
+            input_[input_.register_start + i] = 2
+        input_[input_.register_start + 2] = 4096
+        input_[0] = 1
+        input_[4096 // 8] = 3
+        ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_])
+        expected_trace = hash(tuple([
+            cbase, mbase + 4096,  # fault
+            cbase + 4, mbase + 2,  # next instruction
+            cbase + 8, mbase + 2,  # speculatively execute the last instruction and rollback
+            # terminate after rollback
+            ]))   # yapf: disable
+        self.assertEqual(ctraces[0], expected_trace)
+
+    @unittest.skip("not implemented")
+    def test_ct_gp_ooo(self):
+        # TBD
+        pass
 
 
 class X86TaintTrackerTest(unittest.TestCase):
