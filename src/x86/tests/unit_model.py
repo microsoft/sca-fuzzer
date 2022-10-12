@@ -47,6 +47,31 @@ NOP
 .test_case_exit:
 """
 
+ASM_BRANCH_AND_LOAD2 = """
+.intel_syntax noprefix
+.test_case_enter:
+XOR rax, rax
+JZ .l1
+.l0:
+MOV RAX, qword ptr [R14]
+.l1:
+NOP
+.test_case_exit:
+"""
+
+ASM_BRANCH_AND_LOAD3 = """
+.intel_syntax noprefix
+.test_case_enter:
+XOR rax, rax
+JNZ .l1
+.l0:
+MOV RAX, qword ptr [R14]
+.l1:
+MOV RAX, qword ptr [R14]
+MOV RBX, qword ptr [R14]
+.test_case_exit:
+"""
+
 ASM_STORE_AND_LOAD = """
 .intel_syntax noprefix
 .test_case_enter:
@@ -64,6 +89,20 @@ JZ .l1
 .l0:
 MOV RAX, qword ptr [R14]
 LFENCE
+MOV RAX, qword ptr [R14 + 2]
+.l1:
+NOP
+.test_case_exit:
+"""
+
+ASM_FENCE2 = """
+.intel_syntax noprefix
+.test_case_enter:
+XOR rax, rax
+JZ .l1
+.l0:
+LFENCE
+MOV RAX, qword ptr [R14]
 MOV RAX, qword ptr [R14 + 2]
 .l1:
 NOP
@@ -140,6 +179,33 @@ class X86ModelTest(unittest.TestCase):
             tuple([code_base + 0x0, code_base + 0x3, code_base + 0x5, code_base + 0x8]))
         self.assertEqual(ctraces, [expected_trace])
 
+    def test_pc_seq2(self):
+        code_base = 0x8000
+        model = x86_model.X86UnicornSeq(0x1000000, code_base)
+        model.tracer = core_model.PCTracer()
+        ctraces = self.get_traces(model, ASM_BRANCH_AND_LOAD2, [Input()])
+        expected_trace = hash(
+            tuple([code_base + 0x0, code_base + 0x3, code_base + 0x8]))
+        self.assertEqual(ctraces, [expected_trace])
+        
+    def test_pc_seq3(self):
+        code_base = 0x8000
+        model = x86_model.X86UnicornSeq(0x1000000, code_base)
+        model.tracer = core_model.PCTracer()
+        ctraces = self.get_traces(model, ASM_BRANCH_AND_LOAD3, [Input()])
+        expected_trace = hash(
+            tuple([code_base + 0, code_base + 3, code_base + 5, code_base + 8, code_base + 11]))
+        self.assertEqual(ctraces, [expected_trace])
+        
+    def test_pc_seq4(self):
+        code_base = 0x8000
+        model = x86_model.X86UnicornSeq(0x1000000, code_base)
+        model.tracer = core_model.PCTracer()
+        ctraces = self.get_traces(model, ASM_THREE_LOADS, [Input()])
+        expected_trace = hash(
+            tuple([code_base + 0, code_base + 3, code_base + 10]))
+        self.assertEqual(ctraces, [expected_trace])
+
     def test_mem_seq(self):
         mem_base = 0x1000000
         model = x86_model.X86UnicornSeq(mem_base, 0x8000)
@@ -157,6 +223,7 @@ class X86ModelTest(unittest.TestCase):
             tuple(
                 [code_base + 0x0, code_base + 0x3, code_base + 0x5, mem_base + 0, code_base + 0x8]))
         self.assertEqual(ctraces, [expected_trace])
+    
 
     def test_ctr_seq(self):
         mem_base, code_base = 0x1000000, 0x8000
@@ -166,7 +233,6 @@ class X86ModelTest(unittest.TestCase):
         for i in range(0, 7):
             input_[input_.register_start + i] = 2
         ctraces = self.get_traces(model, ASM_BRANCH_AND_LOAD, [input_])
-        # print(model.tracer.get_contract_trace_full())
         expected_trace = hash(
             tuple([
                 2, 2, 2, 2, 2, 2, 2, code_base + 0x0, code_base + 0x3, code_base + 0x5,
@@ -223,6 +289,14 @@ class X86ModelTest(unittest.TestCase):
         ctraces = self.get_traces(model, ASM_FENCE, [Input()])
         expected_trace = hash(tuple([mem_base + 0]))
         self.assertEqual(ctraces, [expected_trace])
+        
+    def test_rollback_on_fence2(self):
+        mem_base, code_base = 0x1000000, 0x8000
+        model = x86_model.X86UnicornCond(mem_base, code_base)
+        model.tracer = core_model.MemoryTracer()
+        ctraces = self.get_traces(model, ASM_FENCE2, [Input()])
+        expected_trace = hash(tuple())
+        self.assertEqual(ctraces, [expected_trace])    
 
     def test_fault_handling(self):
         mbase, cbase = 0x1000000, 0x8000
