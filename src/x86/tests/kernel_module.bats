@@ -3,10 +3,6 @@
 INPUT_SIZE=$((4096 * 3))
 NOP_OPCODE='\x90'
 
-function setup_suite {
-    sudo modprobe msr
-    sudo wrmsr -a 0x1a4 15
-}
 
 @test "x86 executor: Loading a test case" {
     echo -n -e $NOP_OPCODE >/sys/x86_executor/test_case
@@ -69,6 +65,16 @@ function load_test_case() {
     [ "$status" -eq 0 ]
 
     run bash -c 'echo "0" > /sys/x86_executor/enable_ssbp_patch'
+    [ "$status" -eq 0 ]
+    run cat /sys/x86_executor/trace
+    [ "$status" -eq 0 ]
+
+    run bash -c 'echo "1" > /sys/x86_executor/enable_prefetcher'
+    [ "$status" -eq 0 ]
+    run cat /sys/x86_executor/trace
+    [ "$status" -eq 0 ]
+
+    run bash -c 'echo "0" > /sys/x86_executor/enable_prefetcher'
     [ "$status" -eq 0 ]
     run cat /sys/x86_executor/trace
     [ "$status" -eq 0 ]
@@ -186,8 +192,9 @@ function load_test_case() {
         # END=$(date +%s.%N)
         # echo "$END - $START" | bc
 
-        # cat $tmpresult | awk '/,/{print $1}' | sort | uniq -c | sort -r | awk '//{print $1}'
-        run bash -c "cat $tmpresult | awk '/,/{print \$1}' | sort | uniq -c | sort -r | awk '//{print \$1}' | head -n1"
+        # cat $tmpresult | awk -F, '/,/{print $1, "   ", $2}' | sort | uniq -c | sort -r
+        run bash -c "cat $tmpresult | awk -F, '/,/{print \$1}' | sort | uniq -c | sort -r | awk '//{print \$1}' | head -n1"
+        echo "$mode: $output"
         [ $output -ge $threshold ]
     done
     rm $tmpasm
