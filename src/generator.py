@@ -92,7 +92,7 @@ class ConfigurableGenerator(Generator, abc.ABC):
         if CONF.program_generator_seed:
             random.seed(CONF.program_generator_seed)
 
-    def create_test_case(self, asm_file: str) -> TestCase:
+    def create_test_case(self, asm_file: str, disable_assembler: bool = False) -> TestCase:
         self.test_case = TestCase()
 
         # create the main function
@@ -112,6 +112,9 @@ class ConfigurableGenerator(Generator, abc.ABC):
 
         self.printer.print(self.test_case, asm_file)
         self.test_case.asm_path = asm_file
+
+        if disable_assembler:
+            return self.test_case
 
         bin_file = asm_file[:-4] + ".o"
         self.assemble(asm_file, bin_file)
