@@ -456,17 +456,9 @@ static int __init executor_init(void)
     memcpy(vendor_name, (char *)&ebx, 4);
     memcpy(vendor_name + 4, (char *)&edx, 4);
     memcpy(vendor_name + 8, (char *)&ecx, 4);
-    if (strcmp(vendor_name, "GenuineIntel") != 0)
+    if (strcmp(vendor_name, "GenuineIntel") != 0 && strcmp(vendor_name, "AuthenticAMD") != 0)
     {
         printk(KERN_ERR "x86_executor: This CPU vendor is not supported\n");
-        return -1;
-    }
-
-    // Check version of perf monitoring
-    __cpuid(0x0A, eax, ebx, ecx, edx);
-    if ((eax & 0xFF) < 2)
-    {
-        printk(KERN_ERR "x86_executor: This CPU model is not supported\n");
         return -1;
     }
 

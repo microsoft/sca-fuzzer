@@ -9,11 +9,35 @@
 #include <linux/types.h>
 
 #define DEBUG 0
+#define STRINGIFY(...) #__VA_ARGS__
+
+// HW configuration
+#ifndef VENDOR_ID
+#error "Undefined VENDOR_ID"
+#define VENDOR_ID 0
+#endif
+
+#ifndef L1D_ASSOCIATIVITY
+#error "Undefined L1D_ASSOCIATIVITY"
+#define L1D_ASSOCIATIVITY 0
+#elif L1D_ASSOCIATIVITY != 12 && L1D_ASSOCIATIVITY != 8
+#warning "Unsupported/corrupted L1D associativity. Falling back to 8-way"
+#define L1D_ASSOCIATIVITY 8
+#endif
+
+// Model-specific constants
+#if VENDOR_ID == 1 // Intel
 #define SSBP_PATCH_ON 0b111
 #define SSBP_PATCH_OFF 0b011
 #define PREFETCHER_ON 0
 #define PREFETCHER_OFF 15
 
+#elif VENDOR_ID == 2 // AMD
+#define SSBP_PATCH_ON 0b111
+#define SSBP_PATCH_OFF 0b011
+#define PREFETCHER_ON 0b000000
+#define PREFETCHER_OFF 0b101111
+#endif
 
 // Executor Configuration Interface
 extern long uarch_reset_rounds;
@@ -27,14 +51,6 @@ extern char enable_faulty_page;
 extern char pre_run_flush;
 #define PRE_RUN_FLUSH_DEFAULT 1
 extern char *attack_template;
-
-// Attack configuration
-#ifndef L1D_ASSOCIATIVITY
-#error "Undefined associativity"
-#elif L1D_ASSOCIATIVITY != 12 && L1D_ASSOCIATIVITY != 8
-#warning "Unsupported/corrupted L1D associativity. Falling back to 8-way"
-#define L1D_ASSOCIATIVITY 8
-#endif
 
 // Measurement results
 #define HTRACE_WIDTH 1

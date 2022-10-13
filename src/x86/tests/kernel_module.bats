@@ -255,16 +255,23 @@ function load_test_case() {
     rm "$tmpresult"
 }
 
-@test "x86 executor: Detection of machine clears" {
-    echo "P+P" > /sys/x86_executor/measurement_mode
-    echo "1" > /sys/x86_executor/enable_mds
-    tmpasm=$(mktemp /tmp/revizor-test.XXXXXX.asm)
+@test "x86 executor: Detection of mispredictions" {
+    if cat /proc/cpuinfo | grep "Intel" ; then
+        echo "P+P" > /sys/x86_executor/measurement_mode
+        echo "1" > /sys/x86_executor/enable_mds
+        tmpasm=$(mktemp /tmp/revizor-test.XXXXXX.asm)
 
-    echo "MOVQ %r14, %rax; add \$4096, %rax; movq (%rax), %rax" > $tmpasm
-    load_test_case $tmpasm
-    run cat /sys/x86_executor/trace
-    echo "Output: $output"
-    [[ "$output" != *",0,"* ]]
+        echo "MOVQ %r14, %rax; add \$4096, %rax; movq (%rax), %rax" > $tmpasm
+        load_test_case $tmpasm
+        run cat /sys/x86_executor/trace
+        echo "Output: $output"
+        [[ "$output" != *",0,"* ]]
 
-    rm "$tmpasm"
+        rm "$tmpasm"
+    elif grep "AMD" /proc/cpuinfo  -m1 ; then
+        # TBD
+        skip
+    else
+        skip
+    fi
 }
