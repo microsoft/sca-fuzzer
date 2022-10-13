@@ -186,6 +186,16 @@ class Fuzzer:
 
     # ==============================================================================================
     # Single-stage interfaces
+    def generate_test_batch(self, seed: int, num_test_cases: int):
+        LOGGER.fuzzer_start(0, datetime.today())
+        STAT.test_cases = num_test_cases
+        random.seed(seed)
+        Path(self.work_dir).mkdir(exist_ok=True)
+        self.generator = factory.get_generator(self.instruction_set)
+        for i in range(num_test_cases):
+            self.generator.create_test_case(self.work_dir + "/" + str(i) + '_generated.asm', True)
+        LOGGER.fuzzer_finish()
+
     @staticmethod
     def analyse_traces_from_files(ctrace_file: str, htrace_file: str):
         LOGGER.dbg_violation = False  # make sure we don't try to call the model
@@ -273,13 +283,3 @@ class Fuzzer:
                 return True
 
         return False
-
-    ##-------------------for standalon generator
-    def generate_test (self, seed: int, num_test_cases: int):
-        disable_assembler = True
-        random.seed(seed)
-        self.generator = factory.get_generator(self.instruction_set)
-        Path(self.work_dir).mkdir(exist_ok=True)
-        for i in range(num_test_cases):
-            self.generator.create_test_case(self.work_dir+"/"+str(i)+'_generated.asm', disable_assembler)
-

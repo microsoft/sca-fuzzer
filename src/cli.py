@@ -10,7 +10,7 @@ import os
 import yaml
 from typing import Dict
 from argparse import ArgumentParser
-from factory import get_minimizer, get_fuzzer, get_standalone_generator
+from factory import get_minimizer, get_fuzzer
 from fuzzer import Fuzzer
 from config import CONF
 from service import LOGGER
@@ -116,7 +116,7 @@ def main():
         "-s", "--instruction-set",
         type=str,
         required=True
-    ) 
+    )
 
     parser_generator = subparsers.add_parser('generate')
     parser_generator.add_argument(
@@ -192,12 +192,13 @@ def main():
 
     # Stand-alone generator
     if args.subparser_name == "generate":
-        fuzzer = get_standalone_generator(args.instruction_set, args.working_directory)
-        fuzzer.generate_test(args.seed, args.num_test_cases)
+        fuzzer = get_fuzzer(args.instruction_set, args.working_directory, None)
+        fuzzer.generate_test_batch(args.seed, args.num_test_cases)
         return
 
-    #TODO create input_generate
-    
+    # TODO: create input_generate
+    # Perhaps include input generation into generate_test?
+
     raise Exception("Unreachable")
 
 
