@@ -5,6 +5,7 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 import shutil
+import random
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, List
@@ -193,6 +194,33 @@ class Fuzzer:
 
     # ==============================================================================================
     # Single-stage interfaces
+    def generate_test_batch(self, program_generator_seed: int, num_test_cases: int, num_inputs: int,
+                            permit_overwrite: bool):
+        LOGGER.fuzzer_start(0, datetime.today())
+
+        # prepare for generation
+        STAT.test_cases = num_test_cases
+        CONF.program_generator_seed = program_generator_seed
+        program_gen = factory.get_generator(self.instruction_set)
+        input_gen = factory.get_input_generator()
+
+        # generate test cases
+        Path(self.work_dir).mkdir(exist_ok=True)
+        for i in range(0, num_test_cases):
+            test_case_dir = self.work_dir + "/tc" + str(i)
+            try:
+                Path(test_case_dir).mkdir(exist_ok=permit_overwrite)
+            except FileExistsError:
+                LOGGER.error(f"Directory '{test_case_dir}' already exists\n"
+                             "       Use --permit-overwrite to overwrite the test case")
+
+            program_gen.create_test_case(test_case_dir + "/" + "program.asm", True)
+            inputs = input_gen.generate(CONF.input_gen_seed, num_inputs)
+            for j, input_ in enumerate(inputs):
+                input_.save(f"{test_case_dir}/input{j}.bin")
+
+        LOGGER.fuzzer_finish()
+
     @staticmethod
     def analyse_traces_from_files(ctrace_file: str, htrace_file: str):
         LOGGER.dbg_violation = False  # make sure we don't try to call the model

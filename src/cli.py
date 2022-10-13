@@ -118,6 +118,45 @@ def main() -> int:
         required=True
     )
 
+    parser_generator = subparsers.add_parser('generate')
+    parser_generator.add_argument(
+        "-s", "--instruction-set",
+        type=str,
+        required=True
+    )
+    parser_generator.add_argument(
+        "-r", "--seed",
+        type=int,
+        default=0,
+        help="Add seed to generate test case.",
+    )
+    parser_generator.add_argument(
+        "-n", "--num-test-cases",
+        type=int,
+        default=5,
+        help="Number of test cases.",
+    )
+    parser_generator.add_argument(
+        "-i", "--num-inputs",
+        type=int,
+        default=100,
+        help="Number of inputs per test case.",
+    )
+    parser_generator.add_argument(
+        "-c", "--config",
+        type=str,
+        required=False
+    )
+    parser_generator.add_argument(
+        '-w', '--working-directory',
+        type=str,
+        default='',
+    )
+    parser_generator.add_argument(
+        '--permit-overwrite',
+        action='store_true',
+    )
+
     args = parser.parse_args()
 
     # Update configuration
@@ -144,6 +183,17 @@ def main() -> int:
             args.nonstop,
         )
         return exit_code
+
+    # Stand-alone generator
+    if args.subparser_name == "generate":
+        fuzzer = get_fuzzer(args.instruction_set, args.working_directory, None)
+        fuzzer.generate_test_batch(
+            args.seed,
+            args.num_test_cases,
+            args.num_inputs,
+            args.permit_overwrite
+        )
+        return 0
 
     # Trace analysis
     if args.subparser_name == 'analyse':
