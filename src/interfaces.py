@@ -681,7 +681,7 @@ class Generator(ABC):
         super().__init__()
 
     @abstractmethod
-    def create_test_case(self, path: str) -> TestCase:
+    def create_test_case(self, path: str, disable_assembler: bool) -> TestCase:
         """
         Create a simple test case with a single BB
         Run instrumentation passes and print the result into a file
