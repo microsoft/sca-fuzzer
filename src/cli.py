@@ -10,7 +10,7 @@ import os
 import yaml
 from typing import Dict
 from argparse import ArgumentParser
-from factory import get_minimizer, get_fuzzer
+from factory import get_minimizer, get_fuzzer, get_standalone_generator
 from fuzzer import Fuzzer
 from config import CONF
 from service import LOGGER
@@ -116,6 +116,41 @@ def main():
         "-s", "--instruction-set",
         type=str,
         required=True
+    ) 
+
+    parser_generator = subparsers.add_parser('generate')
+    parser_generator.add_argument(
+        "-s", "--instruction-set",
+        type=str,
+        required=True
+    )
+    parser_generator.add_argument(
+        "-d", "--seed",
+        type=int,
+        default=0,
+        help="Add seed to generate test case.",
+    )
+    parser_generator.add_argument(
+        "-n", "--num-test-cases",
+        type=int,
+        default=5,
+        help="Number of test cases.",
+    )
+    parser_generator.add_argument(
+        "-i", "--num-inputs",
+        type=int,
+        default=100,
+        help="Number of inputs per test case.",
+    )
+    parser_generator.add_argument(
+        "-c", "--config",
+        type=str,
+        required=False
+    )
+    parser_generator.add_argument(
+        '-w', '--working-directory',
+        type=str,
+        default='',
     )
 
     args = parser.parse_args()
@@ -156,6 +191,14 @@ def main():
         minimizer.minimize(args.infile, args.outfile, args.num_inputs, args.add_fences)
         return
 
+    # Stand-alone generator
+    if args.subparser_name == "generate":
+        fuzzer = get_standalone_generator(args.instruction_set, args.working_directory)
+        fuzzer.generate_test(args.seed, args.num_test_cases)
+        return
+
+    #TODO create input_generate
+    
     raise Exception("Unreachable")
 
 

@@ -272,3 +272,13 @@ class Fuzzer:
                 return True
 
         return False
+
+    ##-------------------for standalon generator
+    def generate_test (self, seed: int, num_test_cases: int):
+        ##TODO clean up, add working directory and dissable assembler
+        disable_assembler = True
+        self.generator = factory.get_generator(self.instruction_set)
+        Path(self.work_dir).mkdir(exist_ok=True)
+        for i in range(num_test_cases):
+            self.generator.create_test_case(self.work_dir+"/"+str(i)+'_generated.asm', disable_assembler)
+

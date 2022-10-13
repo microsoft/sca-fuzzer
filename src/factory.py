@@ -79,6 +79,11 @@ def get_fuzzer(instruction_set, working_directory, testcase):
                             working_directory, testcase)
 
 
+def get_standalone_generator(instruction_set, working_directory):
+    return _get_from_config(FUZZERS, CONF.instruction_set, "instruction_set", instruction_set,
+                            working_directory)
+
+
 def get_generator(instruction_set: interfaces.InstructionSetAbstract) -> interfaces.Generator:
     return _get_from_config(GENERATORS, CONF.instruction_set + "-" + CONF.generator,
                             "instruction_set", instruction_set)
