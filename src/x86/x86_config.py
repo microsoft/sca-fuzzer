@@ -11,6 +11,11 @@ x86_option_values = {
     'executor_mode': ['P+P', 'F+R', 'E+R'],  # 'GPR' is intentionally left out
 }
 
+x86_executor_enable_ssbp_patch: bool = True
+""" x86_executor_enable_ssbp_patch: enable a patch against Speculative Store Bypass"""
+x86_disable_div64: bool = True
+
+
 x86_instruction_categories: List[str] = [
     # Base x86
     "BASE-BINARY",
@@ -105,5 +110,3 @@ x86_register_blocklist: List[str] = [
     'CR0', 'CR2', 'CR3', 'CR4', 'CR8',
     'DR0', 'DR1', 'DR2', 'DR3', 'DR4', 'DR5', 'DR6', 'DR7'
 ]  # yapf: disable
-
-x86_disable_div64: bool = True

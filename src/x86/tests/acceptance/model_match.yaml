@@ -2,7 +2,7 @@ contract_observation_clause: l1d
 contract_execution_clause:
   - seq
 inputs_per_class: 1
-enable_ssbp_patch: true
+x86_executor_enable_ssbp_patch: true
 enable_priming: false
 logging_modes:
   - dbg_traces

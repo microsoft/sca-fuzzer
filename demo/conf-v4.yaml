@@ -12,7 +12,7 @@ instruction_categories:
 
 # environment
 enable_faulty_page: false
-enable_ssbp_patch: false
+x86_executor_enable_ssbp_patch: false
 
 # fuzzing configuration
 enable_speculation_filter: true

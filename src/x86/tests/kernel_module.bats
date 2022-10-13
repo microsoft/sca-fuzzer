@@ -58,6 +58,23 @@ function load_test_case() {
     rm "$tmpbin"
 }
 
+@test "x86 executor: Controlling patches" {
+    tmpasm=$(mktemp /tmp/revizor-test.XXXXXX.asm)
+    echo "NOP" > $tmpasm
+    load_test_case $tmpasm
+
+    run bash -c 'echo "1" > /sys/x86_executor/enable_ssbp_patch'
+    [ "$status" -eq 0 ]
+    run cat /sys/x86_executor/trace
+    [ "$status" -eq 0 ]
+
+    run bash -c 'echo "0" > /sys/x86_executor/enable_ssbp_patch'
+    [ "$status" -eq 0 ]
+    run cat /sys/x86_executor/trace
+    [ "$status" -eq 0 ]
+}
+
+
 @test "x86 executor: Hardware tracing with P+P" {
     echo "P+P" > /sys/x86_executor/measurement_mode
     tmpasm=$(mktemp /tmp/revizor-test.XXXXXX.asm)

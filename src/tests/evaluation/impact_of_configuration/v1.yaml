@@ -15,6 +15,6 @@ contract_observation_clause: ct
 contract_execution_clause:
   - seq
 
-enable_ssbp_patch: true
+x86_executor_enable_ssbp_patch: true
 enable_faulty_page: false
 
