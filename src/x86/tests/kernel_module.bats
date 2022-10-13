@@ -3,6 +3,11 @@
 INPUT_SIZE=$((4096 * 3))
 NOP_OPCODE='\x90'
 
+setup() {
+    # get the containing directory of this file
+    DIR="$( cd "$( dirname "$BATS_TEST_FILENAME" )" >/dev/null 2>&1 && pwd )"
+}
+
 
 @test "x86 executor: Loading a test case" {
     echo -n -e $NOP_OPCODE >/sys/x86_executor/test_case
@@ -154,7 +159,7 @@ function load_test_case() {
 @test "x86 executor: Noise Level" {
     # execute one dummy run to set Executor into the default config and to load the test case
     nruns=10000
-    threshold=$((nruns - 2))
+    threshold=$((nruns - 10))
 
     tmpasm=$(mktemp /tmp/revizor-test.XXXXXX.asm)
     tmpbin=$(mktemp /tmp/revizor-test.XXXXXX.o)
@@ -206,7 +211,7 @@ function load_test_case() {
 @test "x86 executor: Noisy stores" {
     # execute one dummy run to set Executor into the default config and to load the test case
     nruns=10000
-    threshold=$((nruns - 2))
+    threshold=$((nruns - 10))
 
     tmpasm=$(mktemp /tmp/revizor-test.XXXXXX.asm)
     tmpbin=$(mktemp /tmp/revizor-test.XXXXXX.o)
@@ -241,6 +246,7 @@ function load_test_case() {
     done
 
     run bash -c "cat $tmpresult | awk '/,/{print \$1}' | sort | uniq -c | sort -r | awk '//{print \$1}' | head -n1"
+    echo "$mode: $output"
     [ $output -ge $threshold ]
 
     rm $tmpasm
