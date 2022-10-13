@@ -5,6 +5,7 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 import shutil
+import random
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, List
@@ -275,8 +276,8 @@ class Fuzzer:
 
     ##-------------------for standalon generator
     def generate_test (self, seed: int, num_test_cases: int):
-        ##TODO clean up, add working directory and dissable assembler
         disable_assembler = True
+        random.seed(seed)
         self.generator = factory.get_generator(self.instruction_set)
         Path(self.work_dir).mkdir(exist_ok=True)
         for i in range(num_test_cases):
