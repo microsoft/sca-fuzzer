@@ -96,6 +96,10 @@ EOF
 }
 
 @test "Detection: Spectre V1.1 - BCB store" {
+    if cat /proc/cpuinfo | grep "AMD" ; then
+        skip
+    fi
+
     run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/spectre_v1.1.asm -i 100"
     echo "$output"
     [ "$status" -eq 0 ]
@@ -103,6 +107,10 @@ EOF
 }
 
 @test "Detection: Spectre V2 - BTI - P" {
+    if cat /proc/cpuinfo | grep "AMD" ; then
+        skip
+    fi
+
     run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/spectre_v2.asm -i 20"
     echo "$output"
     [ "$status" -eq 0 ]
@@ -150,6 +158,10 @@ EOF
 }
 
 @test "Detection: MDS-SB" {
+    if cat /proc/cpuinfo | grep "AMD" ; then
+        skip
+    fi
+
     if cat /proc/cpuinfo | grep "mds" ; then
         run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/mds.asm -i 100 -c x86/tests/acceptance/mds.yaml"
         echo "$output"
