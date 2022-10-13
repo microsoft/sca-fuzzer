@@ -7,7 +7,7 @@ contract_execution_clause:
 
 # Executor
 executor_mode: P+P
-enable_ssbp_patch: true
+x86_executor_enable_ssbp_patch: true
 enable_faulty_page: false
 
 # Program generator

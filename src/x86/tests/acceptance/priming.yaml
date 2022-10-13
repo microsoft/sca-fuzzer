@@ -2,7 +2,7 @@ contract_observation_clause: ct
 contract_execution_clause:
   - cond
 executor_mode: P+P
-enable_ssbp_patch: true
+x86_executor_enable_ssbp_patch: true
 enable_faulty_page: false
 
 input_gen_entropy_bits: 2

@@ -99,8 +99,6 @@ class ConfCls:
     """ executor_max_outliers: """
     executor_taskset: int = 0
     """ executor_taskset: id of the CPU core on which the executor is running test cases """
-    enable_ssbp_patch: bool = True
-    """ enable_ssbp_patch: enable a patch against Speculative Store Bypass (Intel-only) """
     enable_pre_run_flush: bool = True
     """ enable_pre_run_flush: ff enabled, the executor will do its best to flush
     the microarchitectural state before running test cases """
