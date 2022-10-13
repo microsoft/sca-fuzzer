@@ -65,7 +65,7 @@ EOF
     run bash -c "$cmd -c $tmp_config"
     echo "$output"
     [ "$status" -eq 0 ]
-    [ "$output" = "" ]
+    [[ "$output" != *"=== Violations detected ==="* ]]
     rm $tmp_config
 }
 
