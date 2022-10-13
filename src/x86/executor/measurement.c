@@ -57,6 +57,7 @@ static inline int pre_measurement_setup(void)
         return err;
 
     wrmsr64(MSR_IA32_SPEC_CTRL, ssbp_patch_control);
+    wrmsr64(0x1a4, prefetcher_control);
 
     faulty_page_addr = (unsigned long)&sandbox->faulty_region[0];
     faulty_page_ptep = get_pte(faulty_page_addr);

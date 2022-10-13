@@ -11,6 +11,8 @@ x86_option_values = {
     'executor_mode': ['P+P', 'F+R', 'E+R'],  # 'GPR' is intentionally left out
 }
 
+x86_executor_enable_prefetcher: bool = False
+""" x86_executor_enable_prefetcher: enable all prefetchers"""
 x86_executor_enable_ssbp_patch: bool = True
 """ x86_executor_enable_ssbp_patch: enable a patch against Speculative Store Bypass"""
 x86_disable_div64: bool = True

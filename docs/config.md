@@ -95,3 +95,5 @@ For a complete list, see `src/config.py`.
 
 * `x86_executor_enable_ssbp_patch` [bool]: Enable a patch against Speculative Store Bypass.
   Enabled by default.
+* `x86_executor_enable_prefetcher` [bool]: Enable all pretechers.
+  Disabled by default.
