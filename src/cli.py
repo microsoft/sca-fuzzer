@@ -125,9 +125,8 @@ def main():
         required=True
     )
     parser_generator.add_argument(
-        "-d", "--seed",
+        "-r", "--seed",
         type=int,
-        default=0,
         help="Add seed to generate test case.",
     )
     parser_generator.add_argument(

@@ -5,6 +5,7 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 import shutil
+import random
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, List
@@ -187,7 +188,8 @@ class Fuzzer:
     # Single-stage interfaces
     def generate_test_batch(self, seed: int, num_test_cases: int):
         LOGGER.fuzzer_start(0, datetime.today())
-        STAT.test_cases = 1
+        STAT.test_cases = num_test_cases
+        random.seed(seed)
         Path(self.work_dir).mkdir(exist_ok=True)
         self.generator = factory.get_generator(self.instruction_set)
         for i in range(num_test_cases):
