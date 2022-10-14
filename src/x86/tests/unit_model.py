@@ -137,6 +137,7 @@ MOV RBX, qword ptr [R14 + RBX]
 """
 
 
+
 ASM_FAULTY_ACCESS_FENCE = """
 .intel_syntax noprefix
 .test_case_enter:
@@ -396,7 +397,6 @@ class X86ModelTest(unittest.TestCase):
         for i in range(0, 7):
             input_[input_.register_start + i] = 2
         input_[input_.register_start + 2] = 4096
-        input_[0] = 1
         input_[4096 // 8] = 3
         ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_])
         expected_trace = hash(tuple([
@@ -462,11 +462,12 @@ class X86ModelTest(unittest.TestCase):
         input_[input_.register_start + 2] = 4096
         input_[0] = 1
         input_[4096 // 8] = 3
-        ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_])
+        ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_])                         
+        # print(model.tracer.get_contract_trace_full())  
         expected_trace = hash(tuple([
             cbase, mbase + 4096,  # faulty load
-            cbase + 7,  # next load is dependent - do not execute the mem access
-            cbase + 11, mbase + 2,  # speculatively execute the last instruction and rollback
+            cbase + 4,  # next load is dependent - do not execute the mem access
+            cbase + 8, mbase + 2,  # speculatively execute the last instruction and rollback
             # terminate after rollback
             ]))   # yapf: disable
         self.assertEqual(ctraces[0], expected_trace)
@@ -514,7 +515,6 @@ class X86ModelTest(unittest.TestCase):
         for i in range(0, 7):
             input_[input_.register_start + i] = 2
         input_[input_.register_start + 2] = 4096
-        input_[0] = 1
         input_[4096 // 8] = 3
         ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_])
         expected_trace = hash(tuple([
@@ -544,8 +544,33 @@ class X86ModelTest(unittest.TestCase):
             cbase + 4, mbase + 3,  # next instruction
             cbase + 8, # now at fence, initiating a rollback
             # next instruction is not executed: speculation ended, handling of exceptions not modeled
-            ]))      
+            ]))
         self.assertEqual(ctraces[0], expected_trace)
+        
+    def test_ct_meltdown_double(self):
+        mbase, cbase = 0x1000000, 0x8000
+        model = x86_model.X86Meltdown(mbase, cbase)
+        model.tracer = core_model.CTTracer()
+        model.rw_protect = True
+        model.handled_faults.extend([12, 13])
+        input_ = Input()
+        for i in range(0, 7):
+            input_[input_.register_start + i] = 2
+        input_[input_.register_start + 2] = 4096
+        input_[4096 // 8] = 4097
+        ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_], nesting=2)
+        expected_trace = hash(tuple([
+            cbase, mbase + 4096,  # fault
+            cbase, mbase + 4096,  # speculative injection
+            cbase + 4, mbase + 4097, # second fault
+            # no second speculative injection, fault just ignored
+            cbase + 8, mbase + 2 # speculatively execute the last instruction and rollback
+            # terminate after rollback
+            ])) 
+        print(model.tracer.get_contract_trace_full())
+        self.assertEqual(ctraces[0], expected_trace)    
+        
+    
     
     @unittest.skip("not implemented")
     def test_ct_branch_meltdown(self):
@@ -558,7 +583,6 @@ class X86ModelTest(unittest.TestCase):
         for i in range(0, 7):
             input_[input_.register_start + i] = 2
         input_[input_.register_start + 2] = 4096
-        input_[0] = 1
         input_[4096 // 8] = 3
         ctraces = self.get_traces(model, ASM_BRANCH_AND_FAULT, [input_], nesting=2)
         expected_trace = hash(tuple([
@@ -568,8 +592,7 @@ class X86ModelTest(unittest.TestCase):
             cbase + 5, mbase + 4096,  # speculative injection
             cbase + 9, mbase + 3,  # leak [4096]
             cbase + 13, # last instruction
-            ]))   # yapf: disable                 
-        print(model.tracer.get_contract_trace_full())  
+            ]))   # yapf: disable
         self.assertEqual(ctraces[0], expected_trace)  
 
     def test_ct_skip_fault(self):
@@ -582,7 +605,6 @@ class X86ModelTest(unittest.TestCase):
         for i in range(0, 7):
             input_[input_.register_start + i] = 2
         input_[input_.register_start + 2] = 4096
-        input_[0] = 1
         input_[4096 // 8] = 3
         ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_])
         expected_trace = hash(tuple([
