@@ -6,6 +6,7 @@ SPDX-License-Identifier: MIT
 """
 from __future__ import annotations
 
+import shutil
 from typing import List, Dict, Tuple, Optional, NamedTuple
 from collections import defaultdict
 from abc import ABC, abstractmethod
@@ -497,6 +498,9 @@ class TestCase:
         for func in self.functions:
             yield func
 
+    def save(self, path: str) -> None:
+        shutil.copy2(self.asm_path, path)
+
 
 # ==================================================================================================
 # Custom Data Types
@@ -560,6 +564,10 @@ class Input(np.ndarray):
 
     def __repr__(self):
         return str(self.seed)
+
+    def save(self, path: str) -> None:
+        with open(path, 'wb') as f:
+            f.write(self.tobytes())
 
 
 class InputTaint(np.ndarray):
