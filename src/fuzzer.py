@@ -179,7 +179,7 @@ class Fuzzer:
         timestamp = datetime.today().strftime('%H%M%S-%d-%m-%y')
         name = type_ + timestamp + ".asm"
         Path(self.work_dir).mkdir(exist_ok=True)
-        shutil.copy2(test_case.asm_path, self.work_dir + "/" + name)
+        test_case.save(self.work_dir + "/" + name)
 
         if not Path(self.work_dir + "/config.yaml").exists:
             shutil.copy2(CONF.config_path, self.work_dir + "/config.yaml")
