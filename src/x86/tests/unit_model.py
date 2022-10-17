@@ -219,7 +219,7 @@ class X86ModelTest(unittest.TestCase):
         expected_trace = hash(
             tuple(
                 [code_base + 0x0, code_base + 0x3, code_base + 0x5, mem_base + 0, code_base + 0x8]))
-        self.assertEqual(ctraces, [expected_trace])   
+        self.assertEqual(ctraces, [expected_trace])
 
     def test_ctr_seq(self):
         mem_base, code_base = 0x1000000, 0x8000
