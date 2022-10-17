@@ -328,7 +328,7 @@ class X86ModelTest(unittest.TestCase):
         ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_])
         expected_trace = hash(tuple([cbase, mbase + 4096]))
         self.assertEqual(ctraces, [expected_trace])
-        
+
     def test_ct_nullinj(self):
         mbase, cbase = 0x1000000, 0x8000
         model = x86_model.X86UnicornNull(mbase, cbase)
