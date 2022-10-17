@@ -111,8 +111,6 @@ MOV RBX, qword ptr [R14 + RBX]
 .test_case_exit:
 """
 
-
-
 ASM_FAULTY_ACCESS_FENCE = """
 .intel_syntax noprefix
 .test_case_enter:
@@ -152,7 +150,6 @@ LFENCE
 MOV rax, qword ptr [R14 + RAX]
 .test_case_exit:
 """
-
 
 class X86ModelTest(unittest.TestCase):
 
@@ -206,7 +203,6 @@ class X86ModelTest(unittest.TestCase):
             tuple([code_base + 0x0, code_base + 0x3, code_base + 0x5, code_base + 0x8]))
         self.assertEqual(ctraces, [expected_trace])
 
-
     def test_mem_seq(self):
         mem_base = 0x1000000
         model = x86_model.X86UnicornSeq(mem_base, 0x8000)
@@ -223,8 +219,7 @@ class X86ModelTest(unittest.TestCase):
         expected_trace = hash(
             tuple(
                 [code_base + 0x0, code_base + 0x3, code_base + 0x5, mem_base + 0, code_base + 0x8]))
-        self.assertEqual(ctraces, [expected_trace])
-    
+        self.assertEqual(ctraces, [expected_trace])   
 
     def test_ctr_seq(self):
         mem_base, code_base = 0x1000000, 0x8000
@@ -333,8 +328,6 @@ class X86ModelTest(unittest.TestCase):
         ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_])
         expected_trace = hash(tuple([cbase, mbase + 4096]))
         self.assertEqual(ctraces, [expected_trace])
-        
-
         
     def test_ct_nullinj(self):
         mbase, cbase = 0x1000000, 0x8000
@@ -519,8 +512,6 @@ class X86ModelTest(unittest.TestCase):
         print(model.tracer.get_contract_trace_full())
         self.assertEqual(ctraces[0], expected_trace)    
         
-    
-    
     @unittest.skip("not implemented")
     def test_ct_branch_meltdown(self):
         mbase, cbase = 0x1000000, 0x8000
@@ -568,7 +559,6 @@ class X86ModelTest(unittest.TestCase):
     def test_ct_gp_ooo(self):
         # TBD
         pass
-
 
 class X86TaintTrackerTest(unittest.TestCase):
 
