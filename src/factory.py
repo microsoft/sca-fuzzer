@@ -37,6 +37,19 @@ TRACERS: Dict[str, Type[model.UnicornTracer]] = {
     "gpr": model.GPRTracer,
 }
 
+X86_SIMPLE_EXECUTION_CLAUSES: Dict[str, Type[x86_model.X86UnicornModel]] = {
+    "seq": x86_model.X86UnicornSeq,
+    "cond": x86_model.X86UnicornCond,
+    "bpas": x86_model.X86UnicornBpas,
+    "nullinj": x86_model.X86UnicornNull,
+    "nullinj-term": x86_model.X86UnicornNullTerminating,
+    "ooo": x86_model.X86UnicornOOO,
+    "div-zero": x86_model.X86UnicornDivZero,
+    "div-overflow": x86_model.X86UnicornDivOverflow,
+    "meltdown": x86_model.X86Meltdown,
+    "fault-skip": x86_model.X86FaultSkip,
+}
+
 EXECUTORS = {
     'x86-64': x86_executor.X86IntelExecutor,
 }
@@ -88,22 +101,10 @@ def get_model(bases: Tuple[int, int]) -> interfaces.Model:
     if CONF.instruction_set == 'x86-64':
         if "cond" in CONF.contract_execution_clause and "bpas" in CONF.contract_execution_clause:
             model_instance = x86_model.X86UnicornCondBpas(bases[0], bases[1])
-        elif "cond" in CONF.contract_execution_clause:
-            model_instance = x86_model.X86UnicornCond(bases[0], bases[1])
-        elif "bpas" in CONF.contract_execution_clause:
-            model_instance = x86_model.X86UnicornBpas(bases[0], bases[1])
-        elif "nullinj" in CONF.contract_execution_clause:
-            model_instance = x86_model.X86UnicornNull(bases[0], bases[1])
-        elif "nullinj-term" in CONF.contract_execution_clause:
-            model_instance = x86_model.X86UnicornNullTerminating(bases[0], bases[1])
-        elif "ooo" in CONF.contract_execution_clause:
-            model_instance = x86_model.x86UnicornOOO(bases[0], bases[1])
-        elif "div-overflow" in CONF.contract_execution_clause:
-            model_instance = x86_model.X86UnicornDivOverflow(bases[0], bases[1])
-        elif "meltdown" in CONF.contract_execution_clause:
-            model_instance = x86_model.X86MeltdownModel(bases[0], bases[1])
-        elif "seq" in CONF.contract_execution_clause:
-            model_instance = x86_model.X86UnicornSeq(bases[0], bases[1])
+        elif len(CONF.contract_execution_clause) == 1:
+            model_instance = _get_from_config(X86_SIMPLE_EXECUTION_CLAUSES,
+                                              CONF.contract_execution_clause[0],
+                                              "contract_execution_clause", bases[0], bases[1])
         else:
             raise ConfigException(
                 "unknown value of `contract_execution_clause` configuration option")
