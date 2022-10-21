@@ -134,6 +134,19 @@ NOP
 .test_case_exit:
 """
 
+ASM_FAULT_AND_BRANCH = """
+.intel_syntax noprefix
+.test_case_enter:
+MOV RAX, qword ptr [R14 + RCX]
+XOR rbx, rbx
+JZ .l1
+.l0:
+MOV RAX, qword ptr [R14 + RAX]
+.l1:
+NOP
+.test_case_exit:
+"""
+
 ASM_DIV_ZERO = """
 .intel_syntax noprefix
 .test_case_enter:
@@ -509,13 +522,11 @@ class X86ModelTest(unittest.TestCase):
             cbase + 8, mbase + 2 # speculatively execute the last instruction and rollback
             # terminate after rollback
             ])) 
-        print(model.tracer.get_contract_trace_full())
         self.assertEqual(ctraces[0], expected_trace)    
         
-    @unittest.skip("not implemented")
     def test_ct_branch_meltdown(self):
         mbase, cbase = 0x1000000, 0x8000
-        model = x86_model.X86Meltdown(mbase, cbase)
+        model = x86_model.X86CondMeltdown(mbase, cbase)
         model.tracer = core_model.CTTracer()
         model.rw_protect = True
         model.handled_faults.extend([12, 13])
@@ -531,9 +542,39 @@ class X86ModelTest(unittest.TestCase):
             cbase + 5, mbase + 4096,  # fault while speculating
             cbase + 5, mbase + 4096,  # speculative injection
             cbase + 9, mbase + 3,  # leak [4096]
-            cbase + 13, # last instruction
-            ]))   # yapf: disable
+            cbase + 13, # last instruction of speculation caused by exception, rollback
+            cbase + 13, # execution of correct branch
+            ]))   # yapf: disable        
         self.assertEqual(ctraces[0], expected_trace)  
+    
+    def test_ct_meltdown_branch(self):
+        mbase, cbase = 0x1000000, 0x8000
+        model = x86_model.X86CondMeltdown(mbase, cbase)
+        model.tracer = core_model.CTTracer()
+        model.rw_protect = True
+        model.handled_faults.extend([12, 13])
+        input_ = Input()
+        for i in range(0, 7):
+            input_[input_.register_start + i] = 2
+        input_[input_.register_start + 2] = 4096
+        input_[4096 // 8] = 3
+        # LOGGER.dbg_model = True
+        ctraces = self.get_traces(model, ASM_FAULT_AND_BRANCH, [input_], nesting=2)
+        expected_trace_tmp = [
+            cbase, mbase + 4096,  # faulty access
+            cbase, mbase + 4096,  # speculative injection
+            cbase + 4, # xor
+            cbase + 7, # speculatively do not jump
+            cbase + 9, mbase + 3,  # leak [4096] 
+            cbase + 13, # end of branch speculation, rollback
+            cbase + 13, # execution of correct branch            
+            # end of speculation after exception, rollback and terminate
+            ]
+        expected_trace = hash(tuple(expected_trace_tmp))
+        # print(expected_trace_tmp)            
+        # print(model.tracer.get_contract_trace_full())        
+        # LOGGER.dbg_model = False
+        self.assertEqual(ctraces[0], expected_trace) 
 
     def test_ct_skip_fault(self):
         mbase, cbase = 0x1000000, 0x8000
