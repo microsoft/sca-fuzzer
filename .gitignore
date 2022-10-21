@@ -16,3 +16,6 @@ experiments/
 src/custom_conf.yaml
 *.o
 patches/
+src/generated.asm
+src/x86/executor/.cache.mk
+src/x86/executor/measurement.o.ur-safe
