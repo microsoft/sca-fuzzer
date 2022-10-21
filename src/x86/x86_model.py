@@ -357,7 +357,7 @@ class X86UnicornOOO(X86FaultModelAbstract):
 
     def __init__(self, *args):
         super().__init__(*args)
-        self.relevant_faults.update([12, 13])
+        self.relevant_faults.update([12, 13, 6])
         self.dependencies = set()
         self.dependency_checkpoints = []
 
