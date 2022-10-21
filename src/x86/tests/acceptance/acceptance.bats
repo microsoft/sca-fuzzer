@@ -30,7 +30,6 @@ cli_opt="python3 -OO ./cli.py"
 }
 
 @test "Architectural Fuzzing" {
-    local cmd=$1
     tmp_config=$(mktemp)
 cat << EOF >> $tmp_config
 fuzzer: architectural
@@ -203,7 +202,7 @@ inputs_per_class: 3
 permitted_faults:
   - DE-zero
 logging_modes:
-  - 
+  -
 EOF
 
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/fault_DE_zero.asm -i 100 -c $tmp_config"
@@ -224,7 +223,7 @@ inputs_per_class: 3
 permitted_faults:
   - DE-overflow
 logging_modes:
-  - 
+  -
 EOF
 
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/fault_DE_overflow.asm -i 20 -c $tmp_config"
@@ -245,7 +244,7 @@ inputs_per_class: 3
 permitted_faults:
   - UD
 logging_modes:
-  - 
+  -
 EOF
 
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/fault_UD.asm -i 100 -c $tmp_config"
@@ -266,7 +265,7 @@ inputs_per_class: 3
 permitted_faults:
   - PF-present
 logging_modes:
-  - 
+  -
 EOF
 
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/fault_PF.asm -i 100 -c $tmp_config"
@@ -287,7 +286,7 @@ inputs_per_class: 3
 permitted_faults:
   - PF-present
 logging_modes:
-  - 
+  -
 EOF
 
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/fault_ooo_mem_access.asm -i 100 -c $tmp_config"

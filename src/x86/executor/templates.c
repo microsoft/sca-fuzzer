@@ -571,6 +571,8 @@ void template_gpr(void) {
         ".quad "xstr(TEMPLATE_INSERT_TC)" \n"
         "mfence\n");
 
+    asm(".quad "xstr(TEMPLATE_JUMP_EXCEPTION));
+
     // Read GPR values
     asm_volatile_intel(
         // r15 <- &latest_measurement

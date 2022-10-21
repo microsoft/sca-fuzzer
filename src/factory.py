@@ -78,7 +78,9 @@ def _get_from_config(options: Dict, key: str, conf_option_name: str, *args):
 
 def get_fuzzer(instruction_set, working_directory, testcase):
     if CONF.fuzzer == "architectural":
-        return fuzzer.ArchitecturalFuzzer(instruction_set, working_directory, testcase)
+        if CONF.instruction_set == "x86-64":
+            return x86_fuzzer.X86ArchitecturalFuzzer(instruction_set, working_directory, testcase)
+        raise ConfigException("unknown value of `instruction_set` configuration option")
     elif CONF.fuzzer == "basic":
         if CONF.instruction_set == "x86-64":
             return x86_fuzzer.X86Fuzzer(instruction_set, working_directory, testcase)

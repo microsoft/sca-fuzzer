@@ -7,11 +7,26 @@ SPDX-License-Identifier: MIT
 from subprocess import run
 from typing import List
 
-from fuzzer import Fuzzer
+from fuzzer import Fuzzer, ArchitecturalFuzzer
 from interfaces import TestCase, Input
 from service import STAT
 from config import CONF
 from x86.x86_executor import X86IntelExecutor
+
+
+def update_instruction_list():
+    """
+    Remove those instructions that trigger unhandled exceptions.
+    This functionality is implemented as a module-level function
+    to avoid code duplication between X86Fuzzer and X86ArchitecturalFuzzer
+    """
+    if 'DE-overflow' not in CONF.permitted_faults:
+        if "IDIV" not in CONF._default_instruction_blocklist:
+            CONF._default_instruction_blocklist.append("IDIV")
+        if "REX IDIV" not in CONF._default_instruction_blocklist:
+            CONF._default_instruction_blocklist.append("REX IDIV")
+    if 'UD' not in CONF.permitted_faults:
+        CONF._default_instruction_blocklist.extend(["UD", "UD2"])
 
 
 class X86Fuzzer(Fuzzer):
@@ -19,15 +34,7 @@ class X86Fuzzer(Fuzzer):
 
     def _adjust_config(self, existing_test_case):
         super()._adjust_config(existing_test_case)
-
-        # remove those instructions that trigger unhandled exceptions
-        if 'DE-overflow' not in CONF.permitted_faults:
-            if "IDIV" not in CONF._default_instruction_blocklist:
-                CONF._default_instruction_blocklist.append("IDIV")
-            if "REX IDIV" not in CONF._default_instruction_blocklist:
-                CONF._default_instruction_blocklist.append("REX IDIV")
-        if 'UD' not in CONF.permitted_faults:
-            CONF._default_instruction_blocklist.extend(["UD", "UD2"])
+        update_instruction_list()
 
     def filter(self, test_case: TestCase, inputs: List[Input]) -> bool:
         """ This function implements a multi-stage algorithm that gradually filters out
@@ -67,3 +74,10 @@ class X86Fuzzer(Fuzzer):
             STAT.observ_filter += 1
 
         return False
+
+
+class X86ArchitecturalFuzzer(ArchitecturalFuzzer):
+
+    def _adjust_config(self, existing_test_case):
+        super()._adjust_config(existing_test_case)
+        update_instruction_list()
