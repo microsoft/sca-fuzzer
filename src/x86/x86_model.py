@@ -566,6 +566,9 @@ class X86Meltdown(X86FaultModelAbstract):
                                   self.FAULTY_REGION_SIZE)
 
         return self.curr_instruction_addr
+    
+class X86CondMeltdown(X86Meltdown, X86UnicornCond):
+    pass
 
 
 class X86NonCanonicalAddress(X86FaultModelAbstract):
