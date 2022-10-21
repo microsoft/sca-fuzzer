@@ -88,20 +88,6 @@ NOP
 .test_case_exit:
 """
 
-ASM_FENCE2 = """
-.intel_syntax noprefix
-.test_case_enter:
-XOR rax, rax
-JZ .l1
-.l0:
-LFENCE
-MOV RAX, qword ptr [R14]
-MOV RAX, qword ptr [R14 + 2]
-.l1:
-NOP
-.test_case_exit:
-"""
-
 ASM_FAULTY_ACCESS = """
 .intel_syntax noprefix
 .test_case_enter:
@@ -318,14 +304,6 @@ class X86ModelTest(unittest.TestCase):
         ctraces = self.get_traces(model, ASM_FENCE, [Input()])
         expected_trace = hash(tuple([mem_base + 0]))
         self.assertEqual(ctraces, [expected_trace])
-        
-    def test_rollback_on_fence2(self):
-        mem_base, code_base = 0x1000000, 0x8000
-        model = x86_model.X86UnicornCond(mem_base, code_base)
-        model.tracer = core_model.MemoryTracer()
-        ctraces = self.get_traces(model, ASM_FENCE2, [Input()])
-        expected_trace = hash(tuple())
-        self.assertEqual(ctraces, [expected_trace])    
 
     def test_fault_handling(self):
         mbase, cbase = 0x1000000, 0x8000
