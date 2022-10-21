@@ -595,112 +595,45 @@ class X86FaultSkip(X86FaultModelAbstract):
             return self.next_instruction_addr
 
 
-class X86NonCanonicalOOO(X86UnicornOOO):
+class X86NonCanonicalAddress(X86FaultModelAbstract):
     """
-     Trace faulty and out-of-order instructions but skip data dependent ones
+     Load from non-canonical addresss
     """
+    fault_inst_addr: int
+
     def __init__(self, *args):
         super().__init__(*args)
-        self.relevant_faults.update([12, 13])
+        self.relevant_faults.update([6])
 
     def speculate_fault(self, errno: int) -> int:
-        '''
-         Recover from faulty instruction after the address has been corrected
-        (see speculate_instruction)
-        '''
-        ret = super().speculate_fault(errno)
-        if errno == 6 and ret != 0:
-            return self.curr_instruction_addr  # We re-execute but this time with canonica address
-        return ret
+        if not self.fault_triggers_speculation(errno):
+            return 0
+
+        self.checkpoint(self.emulator, self.code_end)
+        self.last_faulty_addr = self.curr_instruction_addr
+        return self.curr_instruction_addr
 
     @staticmethod
     def speculate_instruction(emulator: Uc, address, size, model) -> None:
-        assert isinstance(model, X86NonCanonicalOOO)
+        assert isinstance(model, X86NonCanonicalAddress)
 
-        # We detect access to non-canonical addresses before unicorn triggers the exception,
-        # otherwise the context is corrupted and unicorn keeps faulting.
-        curr: Instruction = model.current_instruction
-        for mem_op in curr.get_mem_operands():
+        if not model.in_speculation or model.last_faulty_addr != address:
+            return
+
+        for mem_op in  model.current_instruction.get_mem_operands():
             registers = re.split(r'\+|-|\*| ', mem_op.value)
             if len(registers) > 1:
                 continue
-            uc_reg = model.target_desc.reg_str_to_constant[registers[0]]
+            uc_reg = X86UnicornTargetDesc.reg_str_to_constant[registers[0]]
             low = 0x00007fffffffffff
             high = 0xffff800000000000
-            old = model.emulator.reg_read(uc_reg)
-            if old > low and old < high:
-                model.pending_fault = 6  # We simualte the fault
-                model.last_faulty_instr_address = address
-                reg_new = old ^ 0x1000000000000  # mask used to make the address non-canonical
-                model.emulator.reg_write(uc_reg, reg_new)
-                # Snapshot already taken in trace_instruction
-                # but we need to update the context
-                # otherwise the exception is raised again
-                model.previous_context = model.emulator.context_save()
-                emulator.emu_stop()
+            address = model.emulator.reg_read(uc_reg) # load address
+            if address > low and address < high:
+                canonical = address ^ 0x1000000000000
+                model.emulator.reg_write(uc_reg, canonical)
+
                 return  # Continue execution with canonical address
-
-        if not model.in_speculation and not model.dependencies:
-            return
-
-        if len(model.dependencies) == 0:
-            return
-
-        if model.last_faulty_instr_address == model.curr_instr_address:
-            return
-
-        # check if the instruction should be skipped due to a dependency on a faulting instr
-        reg_src_operands = []
-        reg_dest_operands = []
-        for op in model.current_instruction.get_all_operands():
-            if isinstance(op, RegisterOperand):
-                if op.src:
-                    reg_src_operands.append(X86TargetDesc.gpr_normalized[op.value])
-                if op.dest:
-                    reg_dest_operands.append(X86TargetDesc.gpr_normalized[op.value])
-            elif isinstance(op, MemoryOperand):
-                for sub_op in re.split(r'\+|-|\*| ', op.value):
-                    if sub_op and sub_op in X86TargetDesc.gpr_normalized:
-                        reg_src_operands.append(X86TargetDesc.gpr_normalized[sub_op])
-            elif isinstance(op, FlagsOperand):
-                reg_src_operands.extend(op.get_read_flags())
-                reg_dest_operands.extend(op.get_write_flags())
-
-        is_dependent = False
-        for reg in reg_src_operands:
-            if reg in model.dependencies:
-                is_dependent = True
-                break
-
-        # remove overwritten values from dependencies
-        for reg in reg_dest_operands:
-            if reg not in reg_src_operands and reg in model.dependencies:
-                model.dependencies.remove(reg)
-
-        if not is_dependent:
-            return
-
-        # instruction is dependent but we can execute the memory access
-        all_operands = model.current_instruction.get_mem_operands()
-        implicit = model.current_instruction.get_implicit_mem_operands()
-        is_dependent = False
-        for op in all_operands:
-            if op in implicit:
-                continue
-            for sub_op in re.split(r'\+|-|\*| ', op.value):
-                if sub_op and sub_op in X86TargetDesc.gpr_normalized:
-                    if X86TargetDesc.gpr_normalized[sub_op] in model.dependencies:
-                        is_dependent = True
-                        break
-
-        if not is_dependent:
-            return
-
-        # update dependencies
-        for reg in reg_dest_operands:
-            model.dependencies.add(reg)
-
-        emulator.reg_write(ucc.UC_X86_REG_RIP, address + size)
+        return
 
 
 # ==================================================================================================
