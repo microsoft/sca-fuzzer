@@ -188,6 +188,18 @@ class Fuzzer:
     # ==============================================================================================
     # Single-stage interfaces
     def generate_batch(self, seed: int, num_test_cases: int, num_inputs: int):
+        """
+        A function invoked as a standalone way to generate fuzzer test cases and
+        inputs without running the entire fuzzer. This accepts a seed, a number
+        of test cases, and a number of inputs, and generates accordingly.
+
+        * To generate only assembly test cases, set 'num_inputs' to 0.
+        * To generate only inputs, set 'num_test_cases' to 0.
+
+        The test cases and inputs are saved to individual files in the
+        user-specified working directory (or the user's current directory, if no
+        directory is specified).
+        """
         LOGGER.fuzzer_start(0, datetime.today())
         STAT.test_cases = num_test_cases
         random.seed(seed)
@@ -209,6 +221,8 @@ class Fuzzer:
         # invoke the input generator to create inputs
         if num_inputs > 0:
             self.input_gen: InputGenerator = factory.get_input_generator()
+            # TODO - determine if seed should be taken from the config or from
+            # the command-line...
             inputs: List[Input] = self.input_gen.generate(CONF.input_gen_seed, num_inputs)
 
             # iterate across each generated input
@@ -216,8 +230,9 @@ class Fuzzer:
                 inp = inputs[i]
                 inp_path = "%s/input_%d.data" % (out_dir, i)
                 inp.save(inp_path)
-                LOGGER.inform("fuzzer", "Created input with seed %d at %s" % 
-                                        (inp.seed, inp_path))
+                LOGGER.inform("fuzzer", "Created input with seed=%d, data_size=%d, "
+                                        "and register_start=%d at %s" % 
+                                        (inp.seed, inp.data_size, inp.register_start, inp_path))
 
         LOGGER.fuzzer_finish()
 
