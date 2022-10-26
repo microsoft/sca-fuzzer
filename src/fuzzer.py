@@ -6,6 +6,7 @@ SPDX-License-Identifier: MIT
 """
 import shutil
 import random
+import os
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, List
@@ -190,10 +191,16 @@ class Fuzzer:
         LOGGER.fuzzer_start(0, datetime.today())
         STAT.test_cases = num_test_cases
         random.seed(seed)
-        Path(self.work_dir).mkdir(exist_ok=True)
+
+        # if no working directory was supplied, use the current directory
+        out_dir = self.work_dir
+        if not out_dir or out_dir == "":
+            out_dir = os.getcwd()
+        Path(out_dir).mkdir(exist_ok=True)
+
         self.generator = factory.get_generator(self.instruction_set)
         for i in range(num_test_cases):
-            self.generator.create_test_case(self.work_dir + "/" + str(i) + '_generated.asm', True)
+            self.generator.create_test_case(out_dir + "/" + str(i) + '_generated.asm', True)
         LOGGER.fuzzer_finish()
 
     @staticmethod
