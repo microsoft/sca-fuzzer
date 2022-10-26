@@ -54,7 +54,11 @@ class Fuzzer:
         self.coverage: Coverage = factory.get_coverage(self.instruction_set, self.executor,
                                                        self.model, self.analyser)
 
-    def start(self, num_test_cases: int, num_inputs: int, timeout: int, nonstop: bool = False):
+    def start(self,
+              num_test_cases: int,
+              num_inputs: int,
+              timeout: int,
+              nonstop: bool = False) -> bool:
         start_time = datetime.today()
         LOGGER.fuzzer_start(num_test_cases, start_time)
 
@@ -101,6 +105,7 @@ class Fuzzer:
                     break
 
         LOGGER.fuzzer_finish()
+        return STAT.violations > 0
 
     def filter(self, test_case, inputs):
         return False  # implemented by architecture-specific subclasses

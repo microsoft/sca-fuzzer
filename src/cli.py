@@ -16,7 +16,7 @@ from config import CONF
 from service import LOGGER
 
 
-def main():
+def main() -> int:
     parser = ArgumentParser(description='', add_help=False)
     subparsers = parser.add_subparsers(dest='subparser_name')
 
@@ -137,27 +137,28 @@ def main():
 
         # Normal fuzzing mode
         fuzzer = get_fuzzer(args.instruction_set, args.working_directory, args.testcase)
-        fuzzer.start(
+        exit_code = fuzzer.start(
             args.num_test_cases,
             args.num_inputs,
             args.timeout,
             args.nonstop,
         )
-        return
+        return exit_code
 
     # Trace analysis
     if args.subparser_name == 'analyse':
         fuzzer = Fuzzer.analyse_traces_from_files(args.ctraces, args.htraces)
-        return
+        return 0
 
     # Test case minimisation
     if args.subparser_name == "minimize":
         minimizer = get_minimizer(args.instruction_set)
         minimizer.minimize(args.infile, args.outfile, args.num_inputs, args.add_fences)
-        return
+        return 0
 
     raise Exception("Unreachable")
 
 
 if __name__ == '__main__':
-    main()
+    exit_code = main()
+    exit(exit_code)
