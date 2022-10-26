@@ -8,6 +8,7 @@
 // clang-format off
 #include <linux/seq_file.h>
 #include <linux/irqflags.h>
+#include <linux/version.h>
 #include <../arch/x86/include/asm/fpu/api.h>
 #include <../arch/x86/include/asm/pgtable.h>
 #include <../arch/x86/include/asm/tlbflush.h>
@@ -24,6 +25,7 @@ struct pfc_config
     unsigned int inv;
 };
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0)
 struct idt_data
 {
     unsigned int vector;
@@ -31,6 +33,7 @@ struct idt_data
     struct idt_bits bits;
     const void *addr;
 };
+#endif
 
 unsigned long faulty_page_addr;
 pte_t faulty_page_pte;
@@ -282,8 +285,8 @@ void run_experiment(long rounds)
             faulty_page_pte.pte =
                 ((faulty_page_ptep->pte | faulty_pte_mask_set) & faulty_pte_mask_clear);
             set_pte_at(current->mm, faulty_page_addr, faulty_page_ptep, faulty_page_pte);
-            // asm volatile("clflush (%0)\nlfence\n" ::"r"(faulty_page_addr)
-            //  : "memory");
+            asm volatile("clflush (%0)\nlfence\n" ::"r"(faulty_page_addr)
+             : "memory");
             _native_page_invalidate();
         }
 
