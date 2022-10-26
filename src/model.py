@@ -512,6 +512,13 @@ class UnicornSeq(UnicornModel):
         model.taint_tracker.track_memory_access(address, size, access == UC_MEM_WRITE)
         model.tracer.observe_mem_access(access, address, size, value, model)
 
+    def handle_fault(self, errno: int) -> int:
+        # when a fault is triggered, CPU stores the PC and the fault type
+        # on stack - this has to be mirrored at the contract level
+        self.tracer.observe_mem_access(UC_MEM_WRITE, self.stack_base, 8, errno, self)
+        # since the address of the fault handler is input-independent, no need for tainting
+        return super().handle_fault(errno)
+
 
 class UnicornSpec(UnicornModel):
     """
@@ -548,6 +555,13 @@ class UnicornSpec(UnicornModel):
 
         UnicornSeq.trace_instruction(emulator, address, size, model)
         model.speculate_instruction(emulator, address, size, model)
+
+    def handle_fault(self, errno: int) -> int:
+        # when a fault is triggered, CPU stores the PC and the fault type
+        # on stack - this has to be mirrored at the contract level
+        self.tracer.observe_mem_access(UC_MEM_WRITE, self.stack_base, 8, errno, self)
+        # since the address of the fault handler is input-independent, no need for tainting
+        return super().handle_fault(errno)
 
     def checkpoint(self, emulator: Uc, next_instruction):
         flags = emulator.reg_read(self.target_desc.flags_register)

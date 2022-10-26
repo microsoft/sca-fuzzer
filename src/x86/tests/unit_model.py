@@ -332,7 +332,7 @@ class X86ModelTest(unittest.TestCase):
         input_[0] = 1
         input_[input_.register_start + 2] = 4096
         ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_], pte_mask=PF_MASK)
-        expected_trace = hash(tuple([cbase, mbase + 4096]))
+        expected_trace = hash(tuple([cbase, mbase + 4096, mbase + 4088]))
         self.assertEqual(ctraces, [expected_trace])
 
     def test_ct_nullinj(self):
@@ -348,7 +348,7 @@ class X86ModelTest(unittest.TestCase):
         input_[4096 // 8] = 3
         ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_], pte_mask=PF_MASK)
         expected_trace = hash(tuple([
-            cbase, mbase + 4096,  # fault
+            cbase, mbase + 4096, mbase + 4088,  # fault
             cbase, mbase + 4096,  # speculative injection
             cbase + 4,  # speculatively start executing the next instr
             cbase + 4, mbase + 0,  # re-execute the instruction after setting the permissions
@@ -360,7 +360,7 @@ class X86ModelTest(unittest.TestCase):
         # hence, an alternative trace would be
         expected_trace2 = hash(
             tuple([
-                cbase, mbase + 4096, cbase, mbase + 4096, cbase + 4, mbase + 0, cbase + 8,
+                cbase, mbase + 4096, mbase + 4088, cbase, mbase + 4096, cbase + 4, mbase + 0, cbase + 8,
                 mbase + 2, cbase, mbase + 4096, cbase + 4, mbase + 3, cbase + 8, mbase + 2
             ]))
         self.assertIn(ctraces[0], [expected_trace, expected_trace2])
@@ -381,7 +381,7 @@ class X86ModelTest(unittest.TestCase):
         # LOGGER.dbg_model = not LOGGER.dbg_model
         # print(model.tracer.get_contract_trace_full(), mbase, cbase)
         expected_trace = hash(tuple([
-            cbase, mbase + 4096,  # fault
+            cbase, mbase + 4096, mbase + 4088,  # fault
             cbase, mbase + 4096,  # speculative injection
             cbase + 4,  # speculatively start executing the next instr
             cbase + 4, mbase + 0,  # re-execute the instruction after setting the permissions
@@ -393,7 +393,7 @@ class X86ModelTest(unittest.TestCase):
         # hence, an alternative trace would be
         expected_trace2 = hash(
             tuple([
-                cbase, mbase + 4096, cbase, mbase + 4096, cbase + 4, mbase + 0, cbase + 8, mbase + 2
+                cbase, mbase + 4096, mbase + 4088, cbase, mbase + 4096, cbase + 4, mbase + 0, cbase + 8, mbase + 2
             ]))
         self.assertIn(ctraces[0], [expected_trace, expected_trace2])
 
@@ -410,7 +410,7 @@ class X86ModelTest(unittest.TestCase):
         input_[4096 // 8] = 3
         ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_], pte_mask=PF_MASK)
         expected_trace = hash(tuple([
-            cbase, mbase + 4096,  # faulty load
+            cbase, mbase + 4096, mbase + 4088,  # faulty load
             cbase + 4,  # next load is dependent - do not execute the mem access
             cbase + 8, mbase + 2,  # speculatively execute the last instruction and rollback
             # terminate after rollback
@@ -427,7 +427,7 @@ class X86ModelTest(unittest.TestCase):
         input_[input_.register_start + 1] = 0  # rbx
         input_[input_.register_start + 3] = 0  # rdx
         ctraces = self.get_traces(model, ASM_DIV_ZERO, [input_])
-        expected_trace = hash(tuple([cbase, cbase + 2, mbase + 0]))
+        expected_trace = hash(tuple([cbase, mbase + 4088, cbase + 2, mbase + 0]))
         self.assertEqual(ctraces[0], expected_trace)
 
     def test_ct_div_zero_fence(self):
@@ -461,7 +461,7 @@ class X86ModelTest(unittest.TestCase):
         input_[4096 // 8] = 3
         ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_], pte_mask=PF_MASK)
         expected_trace = hash(tuple([
-            cbase, mbase + 4096,  # fault
+            cbase, mbase + 4096, mbase + 4088,  # fault
             cbase, mbase + 4096,  # speculative injection
             cbase + 4, mbase + 3,  # next instruction
             cbase + 8, mbase + 2,  # speculatively execute the last instruction and rollback
@@ -576,7 +576,7 @@ class X86ModelTest(unittest.TestCase):
         input_[4096 // 8] = 3
         ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_], pte_mask=PF_MASK)
         expected_trace = hash(tuple([
-            cbase, mbase + 4096,  # fault
+            cbase, mbase + 4096, mbase + 4088,  # fault
             cbase + 4, mbase + 2,  # next instruction
             cbase + 8, mbase + 2,  # speculatively execute the last instruction and rollback
             # terminate after rollback
