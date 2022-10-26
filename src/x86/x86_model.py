@@ -367,10 +367,11 @@ class X86UnicornOOO(X86FaultModelAbstract):
     """
     dependencies: Set[str]
     dependency_checkpoints: List[Set[str]]
+    curr_is_dependent: bool = False
 
     def __init__(self, *args):
         super().__init__(*args)
-        self.relevant_faults.update([12, 13, 6])
+        self.relevant_faults.update([6, 12, 13, 21])
         self.dependencies = set()
         self.dependency_checkpoints = []
 
@@ -405,6 +406,9 @@ class X86UnicornOOO(X86FaultModelAbstract):
         """
         assert isinstance(model, X86UnicornOOO)
 
+        # reset flag
+        model.curr_is_dependent = False
+
         # track dependencies only after faults
         if not model.in_speculation or not model.dependencies:
             return
@@ -412,6 +416,7 @@ class X86UnicornOOO(X86FaultModelAbstract):
         # check if the instruction should be skipped due to a dependency on a faulting instr
         reg_src_operands = []
         reg_dest_operands = []
+        address_regs = []
         for op in model.current_instruction.get_all_operands():
             if isinstance(op, RegisterOperand):
                 if op.src:
@@ -421,16 +426,22 @@ class X86UnicornOOO(X86FaultModelAbstract):
             elif isinstance(op, MemoryOperand):
                 for sub_op in re.split(r'\+|-|\*| ', op.value):
                     if sub_op and sub_op in X86TargetDesc.gpr_normalized:
-                        reg_src_operands.append(X86TargetDesc.gpr_normalized[sub_op])
+                        normalized = X86TargetDesc.gpr_normalized[sub_op]
+                        reg_src_operands.append(normalized)
+                        address_regs.append(normalized)
             elif isinstance(op, FlagsOperand):
                 reg_src_operands.extend(op.get_read_flags())
                 reg_dest_operands.extend(op.get_write_flags())
 
         is_dependent = False
+        is_dependent_addr = False
         for reg in reg_src_operands:
             if reg in model.dependencies:
                 is_dependent = True
                 break
+        for reg in address_regs:
+            if reg in model.dependencies:
+                is_dependent_addr = True
 
         # remove overwritten values from dependencies
         for reg in reg_dest_operands:
@@ -444,8 +455,20 @@ class X86UnicornOOO(X86FaultModelAbstract):
         for reg in reg_dest_operands:
             model.dependencies.add(reg)
 
+
+        # special case - many memory operations are implemented as two uops,
+        # and one of them could be expected even if the other is data-dependent
+        # we approximate it by simply not skipping the dependent stores
+        if model.current_instruction.has_mem_operand() and not is_dependent_addr:
+            return
+
         # skip the dependent instruction
-        emulator.reg_write(ucc.UC_X86_REG_RIP, address + size)
+        model.curr_is_dependent = True
+
+    @staticmethod
+    def trace_mem_access(emulator, access, address, size, value, model) -> None:
+        if not model.curr_is_dependent:
+            X86FaultModelAbstract.trace_mem_access(emulator, access, address, size, value, model)
 
     def checkpoint(self, emulator: Uc, next_instruction):
         self.dependency_checkpoints.append(copy.copy(self.dependencies))
