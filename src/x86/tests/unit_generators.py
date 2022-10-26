@@ -7,7 +7,6 @@ import tempfile
 import sys
 import subprocess
 import os
-import iced_x86
 
 sys.path.insert(0, '..')
 from x86.x86_generator import X86RandomGenerator, X86Printer, X86PatchUndefinedFlagsPass, \
@@ -78,16 +77,21 @@ class X86RandomGeneratorTest(unittest.TestCase):
         size = len([i for bb in tc.functions for i in bb])
         self.assertNotEqual(size, 0)
 
-        with open(tc.bin_path, "rb") as f:
-            bin_file_contents = f.read()
-
-        decoder = iced_x86.Decoder(64, bin_file_contents)
-        formatter = iced_x86.Formatter(iced_x86.FormatterSyntax.NASM)
-        for inst in decoder:
-            inst_obj = tc.address_map[inst.ip]
+        dump = subprocess.run(
+            f"objdump --no-show-raw-insn -D -M intel -b binary -m i386:x86-64 {tc.bin_path} "
+            "| awk '/ [0-9a-f]+:/{print $1, $2, $3}'",
+            shell=True,
+            check=True,
+            capture_output=True).stdout.decode().split("\n")
+        for line in dump:
+            words = line.split(" ")
+            if len(words) < 2:
+                continue
+            pc = int(words[0][:-1], 16)
+            inst_obj = tc.address_map[pc]
             if inst_obj.name == "UNMAPPED":
                 continue
-            disasm_name = formatter.format(inst).split(" ")[0].upper()
+            disasm_name = words[1].upper()
             if disasm_name in X86Generator.asm_synonyms:
                 disasm_name = X86Generator.asm_synonyms[disasm_name]
             self.assertIn(disasm_name, inst_obj.name)

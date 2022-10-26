@@ -29,6 +29,31 @@ cli_opt="python3 -OO ./cli.py"
     rm $tmpfile
 }
 
+@test "Architectural Fuzzing" {
+    tmp_config=$(mktemp)
+cat << EOF >> $tmp_config
+fuzzer: architectural
+contract_observation_clause: ct
+contract_execution_clause:
+  - seq
+enable_priming: false
+input_gen_entropy_bits: 20
+memory_access_zeroed_bits: 0
+inputs_per_class: 1
+program_size: 300
+avg_mem_accesses: 150
+max_bb_per_function: 3
+min_bb_per_function: 3
+logging_modes:
+  -
+EOF
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -c $tmp_config -n 10 -i 100"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"=== Violations detected ==="* ]]
+    rm $tmp_config
+}
+
 function run_without_violation {
     local cmd=$1
     tmp_config=$(mktemp)
@@ -39,7 +64,7 @@ EOF
     run bash -c "$cmd -c $tmp_config"
     echo "$output"
     [ "$status" -eq 0 ]
-    [ "$output" = "" ]
+    [[ "$output" != *"=== Violations detected ==="* ]]
     rm $tmp_config
 }
 
@@ -58,7 +83,7 @@ EOF
 @test "Detection: Spectre V1 - BCB load - P" {
     run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/spectre_v1.asm -i 20"
     echo "$output"
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 1 ]
     [[ "$output" = *"=== Violations detected ==="* ]]
 }
 
@@ -70,23 +95,31 @@ EOF
 }
 
 @test "Detection: Spectre V1.1 - BCB store" {
+    if cat /proc/cpuinfo | grep "AMD" ; then
+        skip
+    fi
+
     run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/spectre_v1.1.asm -i 100"
     echo "$output"
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 1 ]
     [[ "$output" = *"=== Violations detected ==="* ]]
 }
 
 @test "Detection: Spectre V2 - BTI - P" {
+    if cat /proc/cpuinfo | grep "AMD" ; then
+        skip
+    fi
+
     run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/spectre_v2.asm -i 20"
     echo "$output"
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 1 ]
     [[ "$output" = *"=== Violations detected ==="* ]]
 }
 
 @test "Detection: Spectre V4 - SSBP - P" {
     run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/spectre_v4.asm -c x86/tests/acceptance/ct-seq-ssbp-patch-off.yaml -i 200"
     echo "$output"
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 1 ]
     [[ "$output" = *"=== Violations detected ==="* ]]
 }
 
@@ -107,14 +140,14 @@ EOF
 @test "Detection: Spectre V5-ret" {
     run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/spectre_ret.asm -i 10"
     echo "$output"
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 1 ]
     [[ "$output" = *"=== Violations detected ==="* ]]
 }
 
 @test "Detection: Nested misprediction" {
     run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/spectre_v4_n2.asm -i 200 -c x86/tests/acceptance/ct-bpas-n1-ssbp-patch-off.yaml"
     echo "$output"
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 1 ]
     [[ "$output" = *"=== Violations detected ==="* ]]
 
     run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/spectre_v4_n2.asm -i 200 -c x86/tests/acceptance/ct-bpas-ssbp-patch-off.yaml"
@@ -124,15 +157,19 @@ EOF
 }
 
 @test "Detection: MDS-SB" {
+    if cat /proc/cpuinfo | grep "AMD" ; then
+        skip
+    fi
+
     if cat /proc/cpuinfo | grep "mds" ; then
         run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/mds.asm -i 100 -c x86/tests/acceptance/mds.yaml"
         echo "$output"
-        [ "$status" -eq 0 ]
+        [ "$status" -eq 1 ]
         [[ "$output" = *"=== Violations detected ==="* ]]
     else
         run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/lvi.asm -i 100 -c x86/tests/acceptance/mds.yaml"
         echo "$output"
-        [ "$status" -eq 0 ]
+        [ "$status" -eq 1 ]
         [[ "$output" = *"=== Violations detected ==="* ]]
     fi
 }
@@ -165,7 +202,7 @@ inputs_per_class: 3
 permitted_faults:
   - DE-zero
 logging_modes:
-  - 
+  -
 EOF
 
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/fault_DE_zero.asm -i 100 -c $tmp_config"
@@ -186,7 +223,7 @@ inputs_per_class: 3
 permitted_faults:
   - DE-overflow
 logging_modes:
-  - 
+  -
 EOF
 
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/fault_DE_overflow.asm -i 20 -c $tmp_config"
@@ -207,7 +244,7 @@ inputs_per_class: 3
 permitted_faults:
   - UD
 logging_modes:
-  - 
+  -
 EOF
 
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/fault_UD.asm -i 100 -c $tmp_config"
@@ -228,7 +265,7 @@ inputs_per_class: 3
 permitted_faults:
   - PF-present
 logging_modes:
-  - 
+  -
 EOF
 
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/fault_PF.asm -i 100 -c $tmp_config"
@@ -249,7 +286,7 @@ inputs_per_class: 3
 permitted_faults:
   - PF-present
 logging_modes:
-  - 
+  -
 EOF
 
     run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/fault_ooo_mem_access.asm -i 100 -c $tmp_config"

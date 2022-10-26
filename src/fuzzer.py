@@ -12,7 +12,7 @@ from copy import copy
 
 import factory
 from interfaces import CTrace, HTrace, Input, InputTaint, EquivalenceClass, TestCase, Generator, \
-    InputGenerator, Model, Executor, Analyser, Coverage, InputID
+    InputGenerator, Model, Executor, Analyser, Coverage, InputID, Measurement
 from isa_loader import InstructionSet
 
 from config import CONF
@@ -54,7 +54,11 @@ class Fuzzer:
         self.coverage: Coverage = factory.get_coverage(self.instruction_set, self.executor,
                                                        self.model, self.analyser)
 
-    def start(self, num_test_cases: int, num_inputs: int, timeout: int, nonstop: bool = False):
+    def start(self,
+              num_test_cases: int,
+              num_inputs: int,
+              timeout: int,
+              nonstop: bool = False) -> bool:
         start_time = datetime.today()
         LOGGER.fuzzer_start(num_test_cases, start_time)
 
@@ -101,6 +105,7 @@ class Fuzzer:
                     break
 
         LOGGER.fuzzer_finish()
+        return STAT.violations > 0
 
     def filter(self, test_case, inputs):
         return False  # implemented by architecture-specific subclasses
@@ -181,7 +186,7 @@ class Fuzzer:
         timestamp = datetime.today().strftime('%H%M%S-%d-%m-%y')
         name = type_ + timestamp + ".asm"
         Path(self.work_dir).mkdir(exist_ok=True)
-        shutil.copy2(test_case.asm_path, self.work_dir + "/" + name)
+        test_case.save(self.work_dir + "/" + name)
 
         if not Path(self.work_dir + "/config.yaml").exists:
             shutil.copy2(CONF.config_path, self.work_dir + "/config.yaml")
@@ -275,3 +280,49 @@ class Fuzzer:
                 return True
 
         return False
+
+
+class ArchitecturalFuzzer(Fuzzer):
+    """
+    A stripped-down version of the fuzzer that compares the architectural results
+    of the model execution vs execution on the CPU
+    """
+
+    def __init__(self, instruction_set_spec: str, work_dir: str, existing_test_case: str = ""):
+        LOGGER.warning("fuzzer", "Running in architectural mode. "
+                       "Contract violations can't be detected!")
+        CONF.setattr_internal('executor_mode', "GPR")
+        CONF.contract_observation_clause = 'gpr'
+        super().__init__(instruction_set_spec, work_dir, existing_test_case)
+
+    def fuzzing_round(self, test_case: TestCase, inputs: List[Input]) -> Optional[EquivalenceClass]:
+        self.model.load_test_case(test_case)
+        self.executor.load_test_case(test_case)
+        self.coverage.load_test_case(test_case)
+
+        # collect architectural hardware traces
+        htraces: List[List[int]] = [[t] for t in self.executor.trace_test_case(inputs, 1)]
+        for i, trace in enumerate(self.executor.get_last_feedback()):
+            htraces[i].extend(trace)
+
+        # collect architectural model traces
+        ctraces: List[List[int]] = []
+        for input_ in inputs:
+            self.model.trace_test_case([input_], CONF.model_max_nesting)
+            ctraces.append(self.model.tracer.get_contract_trace_full())
+
+        # check for violations - since we simply check the equality of traces, we don't need
+        # to invoke the analyser
+        for i, input_ in enumerate(inputs):
+            if ctraces[i] != htraces[i]:
+                print(f"Input #{i}")
+                print(f"Model: {ctraces[i]}")
+                print(f"CPU:   {htraces[i]}")
+
+                eq_cls = EquivalenceClass()
+                eq_cls.ctrace = ctraces[i][0]
+                eq_cls.measurements = [Measurement(i, inputs[i], ctraces[i][0], htraces[i][0])]
+                eq_cls.build_htrace_map()
+                return eq_cls
+
+        return None

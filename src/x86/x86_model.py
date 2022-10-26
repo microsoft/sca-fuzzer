@@ -566,7 +566,8 @@ class X86Meltdown(X86FaultModelAbstract):
                                   self.FAULTY_REGION_SIZE)
 
         return self.curr_instruction_addr
-    
+
+
 class X86CondMeltdown(X86Meltdown, X86UnicornCond):
     pass
 
@@ -623,14 +624,14 @@ class X86NonCanonicalAddress(X86FaultModelAbstract):
         if not model.in_speculation or model.last_faulty_addr != address:
             return
 
-        for mem_op in  model.current_instruction.get_mem_operands():
+        for mem_op in model.current_instruction.get_mem_operands():
             registers = re.split(r'\+|-|\*| ', mem_op.value)
             if len(registers) > 1:
                 continue
             uc_reg = X86UnicornTargetDesc.reg_str_to_constant[registers[0]]
             low = 0x00007fffffffffff
             high = 0xffff800000000000
-            address = model.emulator.reg_read(uc_reg) # load address
+            address = model.emulator.reg_read(uc_reg)  # load address
             if address > low and address < high:
                 canonical = address ^ 0x1000000000000
                 model.emulator.reg_write(uc_reg, canonical)

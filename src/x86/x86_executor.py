@@ -19,6 +19,9 @@ def write_to_sysfs_file_bytes(value: bytes, path: str) -> None:
         f.write(value)
 
 
+TRACE_NUM_ELEMENTS = 6
+
+
 class X86IntelExecutor(Executor):
     previous_num_inputs: int = 0
     feedback: List[int]
@@ -43,18 +46,16 @@ class X86IntelExecutor(Executor):
         if smt_on:
             LOGGER.warning("executor", "SMT is on! You may experience false positives.")
 
-        # disable prefetching
-        subprocess.run('sudo modprobe msr', shell=True, check=True)
-        subprocess.run('sudo wrmsr -a 0x1a4 15', shell=True, check=True)
-
         # is kernel module ready?
         if not os.path.isfile("/sys/x86_executor/trace"):
             LOGGER.error("x86 executor: kernel module not loaded")
 
         # initialize the kernel module
         write_to_sysfs_file(CONF.executor_warmups, '/sys/x86_executor/warmups')
-        write_to_sysfs_file("1" if CONF.enable_ssbp_patch else "0",
+        write_to_sysfs_file("1" if CONF.x86_executor_enable_ssbp_patch else "0",
                             "/sys/x86_executor/enable_ssbp_patch")
+        write_to_sysfs_file("1" if CONF.x86_executor_enable_prefetcher else "0",
+                            "/sys/x86_executor/enable_prefetcher")
         write_to_sysfs_file("1" if CONF.enable_pre_run_flush else "0",
                             "/sys/x86_executor/enable_pre_run_flush")
         write_to_sysfs_file(CONF.executor_mode, "/sys/x86_executor/measurement_mode")
@@ -92,7 +93,8 @@ class X86IntelExecutor(Executor):
                 LOGGER.error("Failure loading inputs!")
 
         # run experiments and load the results
-        all_results: np.ndarray = np.ndarray(shape=(len(inputs), repetitions, 4), dtype=np.uint64)
+        all_results: np.ndarray = np.ndarray(
+            shape=(len(inputs), repetitions, TRACE_NUM_ELEMENTS), dtype=np.uint64)
         for rep in range(repetitions):
             # executor prints results in reverse, so we begin from the end
             input_id = len(inputs) - 1
@@ -111,10 +113,8 @@ class X86IntelExecutor(Executor):
                         reading_finished = True
                         break
 
-                    all_results[input_id][rep][0] = int(row[0])
-                    all_results[input_id][rep][1] = int(row[1])
-                    all_results[input_id][rep][2] = int(row[2])
-                    all_results[input_id][rep][3] = int(row[3])
+                    for i in range(TRACE_NUM_ELEMENTS):
+                        all_results[input_id][rep][i] = int(row[i])
                     input_id -= 1
 
         # simple case - no merging required

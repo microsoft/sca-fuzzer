@@ -186,6 +186,20 @@ class X86ModelTest(unittest.TestCase):
         ctraces: List[CTrace] = model.trace_test_case(inputs, nesting)
         return ctraces
 
+    def test_gpr_tracer(self):
+        mem_base, code_base = 0x1000000, 0x8000
+        model = x86_model.X86UnicornSeq(mem_base, code_base)
+        model.tracer = core_model.GPRTracer()
+        input_ = Input()
+        input_[0] = 0
+        input_[1] = 1
+        for i in range(0, 7):
+            input_[input_.register_start + i] = 2
+        _ = self.get_traces(model, ASM_STORE_AND_LOAD, [input_])
+        full_trace = model.tracer.get_contract_trace_full()
+        expected_trace = [1 << 48, 2, 2, 2, 2, 2]
+        self.assertEqual(full_trace, expected_trace)
+
     def test_l1d_seq(self):
         model = x86_model.X86UnicornSeq(0x1000000, 0x8000)
         model.tracer = core_model.L1DTracer()
@@ -262,7 +276,7 @@ class X86ModelTest(unittest.TestCase):
                 code_base + 0x8
             ]))
         self.assertEqual(ctraces, [expected_trace])
-        
+
     def test_ct_cond_double(self):
         mem_base, code_base = 0x1000000, 0x8000
         model = x86_model.X86UnicornCond(mem_base, code_base)
@@ -277,11 +291,11 @@ class X86ModelTest(unittest.TestCase):
                 code_base + 18 , # NOP, rollback inner speculation
                 code_base + 15, mem_base, # MOV RBX, qword ptr [R14]
                 code_base + 18, # NOP, rollback outer speculation
-                code_base + 5, mem_base, # MOV RAX, qword ptr [R14] 
-                code_base + 8, # JMP .l3             
+                code_base + 5, mem_base, # MOV RAX, qword ptr [R14]
+                code_base + 8, # JMP .l3
                 code_base + 18, # NOP
             ]))
-        self.assertEqual(ctraces, [expected_trace])    
+        self.assertEqual(ctraces, [expected_trace])
 
     def test_ct_bpas(self):
         mem_base, code_base = 0x1000000, 0x8000
@@ -395,8 +409,8 @@ class X86ModelTest(unittest.TestCase):
         input_[input_.register_start + 2] = 4096
         input_[0] = 1
         input_[4096 // 8] = 3
-        ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_])                         
-        # print(model.tracer.get_contract_trace_full())  
+        ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_])
+        # print(model.tracer.get_contract_trace_full())
         expected_trace = hash(tuple([
             cbase, mbase + 4096,  # faulty load
             cbase + 4,  # next load is dependent - do not execute the mem access
@@ -418,7 +432,7 @@ class X86ModelTest(unittest.TestCase):
         ctraces = self.get_traces(model, ASM_DIV_ZERO, [input_])
         expected_trace = hash(tuple([cbase, cbase + 2, mbase + 0]))
         self.assertEqual(ctraces[0], expected_trace)
-        
+
     def test_ct_div_zero_fence(self):
         mbase, cbase = 0x1000000, 0x8000
         model = x86_model.X86UnicornDivZero(mbase, cbase)
@@ -431,7 +445,7 @@ class X86ModelTest(unittest.TestCase):
         input_[input_.register_start + 3] = 0  # rdx
         ctraces = self.get_traces(model, ASM_DIV_ZERO_FENCE, [input_])
         expected_trace = hash(tuple([cbase, cbase + 2]))
-        self.assertEqual(ctraces[0], expected_trace)    
+        self.assertEqual(ctraces[0], expected_trace)
 
     @unittest.skip("not implemented")
     def test_ct_div_overflow(self):
@@ -458,7 +472,7 @@ class X86ModelTest(unittest.TestCase):
             # terminate after rollback
             ]))   # yapf: disable
         self.assertEqual(ctraces[0], expected_trace)
-        
+
     def test_ct_meltdown_fence(self):
         mbase, cbase = 0x1000000, 0x8000
         model = x86_model.X86Meltdown(mbase, cbase)
@@ -479,7 +493,7 @@ class X86ModelTest(unittest.TestCase):
             # next instruction is not executed: speculation ended, handling of exceptions not modeled
             ]))
         self.assertEqual(ctraces[0], expected_trace)
-        
+
     def test_ct_meltdown_double(self):
         mbase, cbase = 0x1000000, 0x8000
         model = x86_model.X86Meltdown(mbase, cbase)
@@ -499,9 +513,9 @@ class X86ModelTest(unittest.TestCase):
             # no second speculative injection, fault just ignored
             cbase + 8, mbase + 2 # speculatively execute the last instruction and rollback
             # terminate after rollback
-            ])) 
-        self.assertEqual(ctraces[0], expected_trace)    
-        
+            ]))
+        self.assertEqual(ctraces[0], expected_trace)
+
     def test_ct_branch_meltdown(self):
         mbase, cbase = 0x1000000, 0x8000
         model = x86_model.X86CondMeltdown(mbase, cbase)
@@ -515,16 +529,16 @@ class X86ModelTest(unittest.TestCase):
         input_[4096 // 8] = 3
         ctraces = self.get_traces(model, ASM_BRANCH_AND_FAULT, [input_], nesting=2)
         expected_trace = hash(tuple([
-            cbase, 
+            cbase,
             cbase + 3, # speculatively do not jump
             cbase + 5, mbase + 4096,  # fault while speculating
             cbase + 5, mbase + 4096,  # speculative injection
             cbase + 9, mbase + 3,  # leak [4096]
             cbase + 13, # last instruction of speculation caused by exception, rollback
             cbase + 13, # execution of correct branch
-            ]))   # yapf: disable        
-        self.assertEqual(ctraces[0], expected_trace)  
-    
+            ]))   # yapf: disable
+        self.assertEqual(ctraces[0], expected_trace)
+
     def test_ct_meltdown_branch(self):
         mbase, cbase = 0x1000000, 0x8000
         model = x86_model.X86CondMeltdown(mbase, cbase)
@@ -543,16 +557,16 @@ class X86ModelTest(unittest.TestCase):
             cbase, mbase + 4096,  # speculative injection
             cbase + 4, # xor
             cbase + 7, # speculatively do not jump
-            cbase + 9, mbase + 3,  # leak [4096] 
+            cbase + 9, mbase + 3,  # leak [4096]
             cbase + 13, # end of branch speculation, rollback
-            cbase + 13, # execution of correct branch            
+            cbase + 13, # execution of correct branch
             # end of speculation after exception, rollback and terminate
             ]
         expected_trace = hash(tuple(expected_trace_tmp))
-        # print(expected_trace_tmp)            
-        # print(model.tracer.get_contract_trace_full())        
+        # print(expected_trace_tmp)
+        # print(model.tracer.get_contract_trace_full())
         # LOGGER.dbg_model = False
-        self.assertEqual(ctraces[0], expected_trace) 
+        self.assertEqual(ctraces[0], expected_trace)
 
     def test_ct_skip_fault(self):
         mbase, cbase = 0x1000000, 0x8000
@@ -578,6 +592,7 @@ class X86ModelTest(unittest.TestCase):
     def test_ct_gp_ooo(self):
         # TBD
         pass
+
 
 class X86TaintTrackerTest(unittest.TestCase):
 

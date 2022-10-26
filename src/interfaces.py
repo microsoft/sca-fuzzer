@@ -6,6 +6,7 @@ SPDX-License-Identifier: MIT
 """
 from __future__ import annotations
 
+import shutil
 from typing import List, Dict, Tuple, Optional, NamedTuple
 from collections import defaultdict
 from abc import ABC, abstractmethod
@@ -499,6 +500,9 @@ class TestCase:
         for func in self.functions:
             yield func
 
+    def save(self, path: str) -> None:
+        shutil.copy2(self.asm_path, path)
+
 
 class PageTableModifier(NamedTuple):
     mask_set: int = 0x0
@@ -567,6 +571,10 @@ class Input(np.ndarray):
 
     def __repr__(self):
         return str(self.seed)
+
+    def save(self, path: str) -> None:
+        with open(path, 'wb') as f:
+            f.write(self.tobytes())
 
 
 class InputTaint(np.ndarray):
@@ -760,8 +768,19 @@ class Coverage(ABC):
         pass
 
 
+class Tracer(ABC):
+    trace: List
+
+    def get_contract_trace(self) -> CTrace:
+        return hash(tuple(self.trace))
+
+    def get_contract_trace_full(self) -> List[int]:
+        return self.trace
+
+
 class Model(ABC):
     coverage: Optional[Coverage] = None
+    tracer: Tracer
 
     @abstractmethod
     def __init__(self, sandbox_base: int, code_base: int):
@@ -806,7 +825,7 @@ class Executor(ABC):
         self.coverage = coverage
 
     @abstractmethod
-    def get_last_feedback(self):
+    def get_last_feedback(self) -> List:
         pass
 
 

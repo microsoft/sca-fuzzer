@@ -10,27 +10,50 @@
 #include <asm/traps.h>
 
 #define DEBUG 0
+#define STRINGIFY(...) #__VA_ARGS__
 
-// Executor Configuration Interface
-extern long uarch_reset_rounds;
-#define UARCH_RESET_ROUNDS_DEFAULT 1
-extern uint64_t ssbp_patch_control;
-#define SSBP_PATH_DEFAULT 0b011
-extern char pre_run_flush;
-#define PRE_RUN_FLUSH_DEFAULT 1
-extern char *attack_template;
+// HW configuration
+#ifndef VENDOR_ID
+#error "Undefined VENDOR_ID"
+#define VENDOR_ID 0
+#endif
 
-// Attack configuration
 #ifndef L1D_ASSOCIATIVITY
-#error "Undefined associativity"
+#error "Undefined L1D_ASSOCIATIVITY"
+#define L1D_ASSOCIATIVITY 0
 #elif L1D_ASSOCIATIVITY != 12 && L1D_ASSOCIATIVITY != 8
 #warning "Unsupported/corrupted L1D associativity. Falling back to 8-way"
 #define L1D_ASSOCIATIVITY 8
 #endif
 
+// Model-specific constants
+#if VENDOR_ID == 1 // Intel
+#define SSBP_PATCH_ON 0b111
+#define SSBP_PATCH_OFF 0b011
+#define PREFETCHER_ON 0
+#define PREFETCHER_OFF 15
+
+#elif VENDOR_ID == 2 // AMD
+#define SSBP_PATCH_ON 0b111
+#define SSBP_PATCH_OFF 0b011
+#define PREFETCHER_ON 0b000000
+#define PREFETCHER_OFF 0b101111
+#endif
+
+// Executor Configuration Interface
+extern long uarch_reset_rounds;
+#define UARCH_RESET_ROUNDS_DEFAULT 1
+extern uint64_t ssbp_patch_control;
+#define SSBP_PATH_DEFAULT SSBP_PATCH_ON
+extern uint64_t prefetcher_control;
+#define PREFETCHER_DEFAULT PREFETCHER_OFF
+extern char pre_run_flush;
+#define PRE_RUN_FLUSH_DEFAULT 1
+extern char *attack_template;
+
 // Measurement results
 #define HTRACE_WIDTH 1
-#define NUM_PFC 3
+#define NUM_PFC 5
 
 typedef struct Measurement
 {
@@ -64,7 +87,7 @@ extern void *stack_base;
 
 #define REG_INIT_OFFSET 8192 // (MAIN_REGION_SIZE + FAULTY_REGION_SIZE)
 #define EVICT_REGION_OFFSET (EVICT_REGION_SIZE + OVERFLOW_REGION_SIZE)
-#define RSP_OFFSET 12288 // (MAIN_REGION_SIZE + FAULTY_REGION_SIZE + OVERFLOW_REGION_SIZE)
+#define RSP_OFFSET 12288         // (MAIN_REGION_SIZE + FAULTY_REGION_SIZE + OVERFLOW_REGION_SIZE)
 #define MEASUREMENT_OFFSET 12296 // RSP_OFFSET + sizeof(stored_rsp)
 
 // Test Case
@@ -94,6 +117,7 @@ int load_template(size_t tc_size);
 void template_l1d_prime_probe(void);
 void template_l1d_flush_reload(void);
 void template_l1d_evict_reload(void);
+void template_gpr(void);
 
 #define BIT_SET(a, b) ((a) |= (1ULL << (b)))
 #define BIT_CLEAR(a, b) ((a) &= ~(1ULL << (b)))

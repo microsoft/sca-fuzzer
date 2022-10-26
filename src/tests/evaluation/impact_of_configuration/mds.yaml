@@ -15,6 +15,6 @@ contract_observation_clause: ct
 contract_execution_clause:
   - cond
 
-enable_ssbp_patch: true
+x86_executor_enable_ssbp_patch: true
 permitted_faults:
   - assist-accessed

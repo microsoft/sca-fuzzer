@@ -3,10 +3,11 @@
 INPUT_SIZE=$((4096 * 3))
 NOP_OPCODE='\x90'
 
-function setup_suite {
-    sudo modprobe msr
-    sudo wrmsr -a 0x1a4 15
+setup() {
+    # get the containing directory of this file
+    DIR="$( cd "$( dirname "$BATS_TEST_FILENAME" )" >/dev/null 2>&1 && pwd )"
 }
+
 
 @test "x86 executor: Loading a test case" {
     echo -n -e $NOP_OPCODE >/sys/x86_executor/test_case
@@ -42,7 +43,7 @@ function setup_suite {
 
 function load_test_case() {
     local test_file=$1
-    
+
     tmpbin=$(mktemp /tmp/revizor-test.XXXXXX.o)
 
     as "$test_file" -o "$tmpbin"
@@ -57,6 +58,33 @@ function load_test_case() {
 
     rm "$tmpbin"
 }
+
+@test "x86 executor: Controlling patches" {
+    tmpasm=$(mktemp /tmp/revizor-test.XXXXXX.asm)
+    echo "NOP" > $tmpasm
+    load_test_case $tmpasm
+
+    run bash -c 'echo "1" > /sys/x86_executor/enable_ssbp_patch'
+    [ "$status" -eq 0 ]
+    run cat /sys/x86_executor/trace
+    [ "$status" -eq 0 ]
+
+    run bash -c 'echo "0" > /sys/x86_executor/enable_ssbp_patch'
+    [ "$status" -eq 0 ]
+    run cat /sys/x86_executor/trace
+    [ "$status" -eq 0 ]
+
+    run bash -c 'echo "1" > /sys/x86_executor/enable_prefetcher'
+    [ "$status" -eq 0 ]
+    run cat /sys/x86_executor/trace
+    [ "$status" -eq 0 ]
+
+    run bash -c 'echo "0" > /sys/x86_executor/enable_prefetcher'
+    [ "$status" -eq 0 ]
+    run cat /sys/x86_executor/trace
+    [ "$status" -eq 0 ]
+}
+
 
 @test "x86 executor: Hardware tracing with P+P" {
     echo "P+P" > /sys/x86_executor/measurement_mode
@@ -115,10 +143,23 @@ function load_test_case() {
     rm "$tmpasm"
 }
 
+@test "x86 executor: Hardware tracing with GPR" {
+    echo "GPR" > /sys/x86_executor/measurement_mode
+    tmpasm=$(mktemp /tmp/revizor-test.XXXXXX.asm)
+
+    echo "mov \$1, %rax; mov \$2, %rbx; mov \$3, %rcx; mov \$4, %rdx; mov \$5, %rsi; mov \$6, %rdi;" > $tmpasm
+    load_test_case $tmpasm
+    run cat /sys/x86_executor/trace
+    echo "Output: $output"
+    [[ "$output" == *"1,2,3,4,5,6"* ]]
+
+    rm "$tmpasm"
+}
+
 @test "x86 executor: Noise Level" {
     # execute one dummy run to set Executor into the default config and to load the test case
     nruns=10000
-    threshold=$((nruns - 2))
+    threshold=$((nruns - 10))
 
     tmpasm=$(mktemp /tmp/revizor-test.XXXXXX.asm)
     tmpbin=$(mktemp /tmp/revizor-test.XXXXXX.o)
@@ -141,9 +182,9 @@ function load_test_case() {
         cat $tmpinput > /sys/x86_executor/inputs
         run cat /sys/x86_executor/inputs
         [[ "$output" -eq "1" ]]
-        
+
         echo "" > $tmpresult
-    
+
         # START=$(date +%s.%N)
         while true; do
             run cat /sys/x86_executor/trace
@@ -154,10 +195,11 @@ function load_test_case() {
             fi
         done
         # END=$(date +%s.%N)
-        # echo "$END - $START" | bc  
+        # echo "$END - $START" | bc
 
-        # cat $tmpresult | awk '/,/{print $1}' | sort | uniq -c | sort -r | awk '//{print $1}'
-        run bash -c "cat $tmpresult | awk '/,/{print \$1}' | sort | uniq -c | sort -r | awk '//{print \$1}' | head -n1"
+        # cat $tmpresult | awk -F, '/,/{print $1, "   ", $2}' | sort | uniq -c | sort -r
+        run bash -c "cat $tmpresult | awk -F, '/,/{print \$1}' | sort | uniq -c | sort -r | awk '//{print \$1}' | head -n1"
+        echo "$mode: $output"
         [ $output -ge $threshold ]
     done
     rm $tmpasm
@@ -169,7 +211,7 @@ function load_test_case() {
 @test "x86 executor: Noisy stores" {
     # execute one dummy run to set Executor into the default config and to load the test case
     nruns=10000
-    threshold=$((nruns - 2))
+    threshold=$((nruns - 10))
 
     tmpasm=$(mktemp /tmp/revizor-test.XXXXXX.asm)
     tmpbin=$(mktemp /tmp/revizor-test.XXXXXX.o)
@@ -191,7 +233,7 @@ function load_test_case() {
     cat $tmpinput > /sys/x86_executor/inputs
     run cat /sys/x86_executor/inputs
     [[ "$output" -eq "1" ]]
-    
+
     echo "" > $tmpresult
 
     while true; do
@@ -204,6 +246,7 @@ function load_test_case() {
     done
 
     run bash -c "cat $tmpresult | awk '/,/{print \$1}' | sort | uniq -c | sort -r | awk '//{print \$1}' | head -n1"
+    echo "$mode: $output"
     [ $output -ge $threshold ]
 
     rm $tmpasm
@@ -212,16 +255,23 @@ function load_test_case() {
     rm "$tmpresult"
 }
 
-@test "x86 executor: Detection of machine clears" {
-    echo "P+P" > /sys/x86_executor/measurement_mode
-    echo "0 18446744073709551583" > /sys/x86_executor/faulty_pte_mask
-    tmpasm=$(mktemp /tmp/revizor-test.XXXXXX.asm)
+@test "x86 executor: Detection of mispredictions" {
+    if cat /proc/cpuinfo | grep "Intel" ; then
+        echo "P+P" > /sys/x86_executor/measurement_mode
+        echo "0 18446744073709551583" > /sys/x86_executor/faulty_pte_mask
+        tmpasm=$(mktemp /tmp/revizor-test.XXXXXX.asm)
 
-    echo "MOVQ %r14, %rax; add \$4096, %rax; movq (%rax), %rax" > $tmpasm
-    load_test_case $tmpasm
-    run cat /sys/x86_executor/trace
-    echo "Output: $output"
-    [[ "$output" != *",0,"* ]]
+        echo "MOVQ %r14, %rax; add \$4096, %rax; movq (%rax), %rax" > $tmpasm
+        load_test_case $tmpasm
+        run cat /sys/x86_executor/trace
+        echo "Output: $output"
+        [[ "$output" != *",0,"* ]]
 
-    rm "$tmpasm"
+        rm "$tmpasm"
+    elif grep "AMD" /proc/cpuinfo  -m1 ; then
+        # TBD
+        skip
+    else
+        skip
+    fi
 }

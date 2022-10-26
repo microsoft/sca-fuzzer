@@ -1,6 +1,13 @@
 NAME = x86_executor
 
-ccflags-y += -std=gnu11 -Wno-declaration-after-statement -DL1D_ASSOCIATIVITY=$(shell cat /sys/devices/system/cpu/cpu0/cache/index0/ways_of_associativity)
+ifneq ($(shell grep "Intel" /proc/cpuinfo),)
+	VENDOR_ID=1
+else ifneq ($(shell grep "AMD" /proc/cpuinfo),)
+	VENDOR_ID=2
+endif
+
+ccflags-y += -std=gnu11 -Wno-declaration-after-statement -DL1D_ASSOCIATIVITY=$(shell cat /sys/devices/system/cpu/cpu0/cache/index0/ways_of_associativity) \
+	\-DVENDOR_ID=$(VENDOR_ID)
 
 obj-m += $(NAME).o
 $(NAME)-objs += main.o templates.o measurement.o

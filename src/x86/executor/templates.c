@@ -116,9 +116,6 @@ int load_template(size_t tc_size)
         "shl rdx, 32; or rdx, rax                \n"      \
         "add "DEST", rdx                         \n"
 
-#define READ_SMI_START(DEST) READ_MSR_START("0x00000034", DEST)
-#define READ_SMI_END(DEST) READ_MSR_END("0x00000034", DEST)
-
 // clobber: rax, rcx, rdx
 #define READ_PFC_ONE(ID) \
         "mov rcx, "ID" \n"      \
@@ -142,6 +139,21 @@ int load_template(size_t tc_size)
         "add r9, rdx \n" \
         READ_PFC_ONE("3") \
         "add r8, rdx \n"
+
+#if VENDOR_ID == 1  // Intel
+#define READ_SMI_START(DEST) READ_MSR_START("0x00000034", DEST)
+#define READ_SMI_END(DEST) READ_MSR_END("0x00000034", DEST)
+
+#elif VENDOR_ID == 2  // AMD
+#define READ_SMI_START(DEST) \
+    READ_PFC_ONE("5") \
+    "sub "DEST", rdx \n"
+#define READ_SMI_END(DEST) \
+    READ_PFC_ONE("5") \
+    "add "DEST", rdx \n"
+
+#endif
+
 
 // clobber: none
 #define SB_FLUSH(TMP, REPS)                          \
@@ -201,7 +213,8 @@ inline void prologue(void)
         "mov r15, 0\n"
 
         // start monitoring SMIs
-        READ_SMI_START("r12"));
+        READ_SMI_START("r12")
+    );
 }
 
 inline void epilogue(void)
@@ -245,50 +258,87 @@ inline void epilogue(void)
 // =================================================================================================
 // TODO: generate this code dynamically
 #if L1D_ASSOCIATIVITY == 8
+#define PRIME_ONE_SET(BASE, OFFSET, TMP)                 \
+        "mov "TMP", "OFFSET"                ; mfence \n" \
+        "add "TMP", ["BASE" + "TMP"]        ; mfence \n" \
+        "add "TMP", ["BASE" + "TMP" + 4096] ; mfence \n" \
+        "add "TMP", ["BASE" + "TMP" + 8192] ; mfence \n" \
+        "add "TMP", ["BASE" + "TMP" + 12288]; mfence \n" \
+        "add "TMP", ["BASE" + "TMP" + 16384]; mfence \n" \
+        "add "TMP", ["BASE" + "TMP" + 20480]; mfence \n" \
+        "add "TMP", ["BASE" + "TMP" + 24576]; mfence \n" \
+        "add "TMP", ["BASE" + "TMP" + 28672]; mfence \n"
+
+#define PROBE_ONE_SET(BASE, OFFSET)                  \
+        "mov rax, "OFFSET"                       \n" \
+        "add rax, ["BASE" + rax]        ; mfence \n" \
+        "add rax, ["BASE" + rax + 4096] ; mfence \n" \
+        "add rax, ["BASE" + rax + 8192] ; mfence \n" \
+        "add rax, ["BASE" + rax + 12288]; mfence \n" \
+        "add rax, ["BASE" + rax + 16384]; mfence \n" \
+        "add rax, ["BASE" + rax + 20480]; mfence \n" \
+        "add rax, ["BASE" + rax + 24576]; mfence \n" \
+        "add rax, ["BASE" + rax + 28672]; mfence \n"
+
+#elif L1D_ASSOCIATIVITY == 12
+#define PRIME_ONE_SET(BASE, OFFSET, TMP)                 \
+        "mov "TMP", "OFFSET"                ; mfence \n" \
+        "add "TMP", ["BASE" + "TMP"]        ; mfence \n" \
+        "add "TMP", ["BASE" + "TMP" + 4096] ; mfence \n" \
+        "add "TMP", ["BASE" + "TMP" + 8192] ; mfence \n" \
+        "add "TMP", ["BASE" + "TMP" + 12288]; mfence \n" \
+        "add "TMP", ["BASE" + "TMP" + 16384]; mfence \n" \
+        "add "TMP", ["BASE" + "TMP" + 20480]; mfence \n" \
+        "add "TMP", ["BASE" + "TMP" + 24576]; mfence \n" \
+        "add "TMP", ["BASE" + "TMP" + 28672]; mfence \n" \
+        "add "TMP", ["BASE" + "TMP" + 32768]; mfence \n" \
+        "add "TMP", ["BASE" + "TMP" + 36864]; mfence \n" \
+        "add "TMP", ["BASE" + "TMP" + 40960]; mfence \n" \
+        "add "TMP", ["BASE" + "TMP" + 45056]; mfence \n"
+
+#define PROBE_ONE_SET(BASE, OFFSET)                  \
+        "mov rax, "OFFSET"                       \n" \
+        "add rax, ["BASE" + rax]        ; mfence \n" \
+        "add rax, ["BASE" + rax + 4096] ; mfence \n" \
+        "add rax, ["BASE" + rax + 8192] ; mfence \n" \
+        "add rax, ["BASE" + rax + 12288]; mfence \n" \
+        "add rax, ["BASE" + rax + 16384]; mfence \n" \
+        "add rax, ["BASE" + rax + 20480]; mfence \n" \
+        "add rax, ["BASE" + rax + 24576]; mfence \n" \
+        "add rax, ["BASE" + rax + 28672]; mfence \n" \
+        "add rax, ["BASE" + rax + 32768]; mfence \n" \
+        "add rax, ["BASE" + rax + 36864]; mfence \n" \
+        "add rax, ["BASE" + rax + 40960]; mfence \n" \
+        "add rax, ["BASE" + rax + 45056]; mfence \n"
+
+#endif
+
 // clobber: none
 #define PRIME(BASE, OFFSET, TMP, COUNTER, REPS)                 \
         "mfence                                             \n" \
         "mov "COUNTER", "REPS"                              \n" \
         "   1: mov "OFFSET", 0                              \n" \
         "       2: lfence                                   \n" \
-        "       mov "TMP", "OFFSET"                ; mfence \n" \
-        "       add "TMP", ["BASE" + "TMP"]        ; mfence \n" \
-        "       add "TMP", ["BASE" + "TMP" + 4096] ; mfence \n" \
-        "       add "TMP", ["BASE" + "TMP" + 8192] ; mfence \n" \
-        "       add "TMP", ["BASE" + "TMP" + 12288]; mfence \n" \
-        "       add "TMP", ["BASE" + "TMP" + 16384]; mfence \n" \
-        "       add "TMP", ["BASE" + "TMP" + 20480]; mfence \n" \
-        "       add "TMP", ["BASE" + "TMP" + 24576]; mfence \n" \
-        "       add "TMP", ["BASE" + "TMP" + 28672]; mfence \n" \
+                PRIME_ONE_SET(BASE, OFFSET, TMP)                \
         "       add "OFFSET", 64                            \n" \
         "   cmp "OFFSET", 4096; jl 2b                       \n" \
         "dec "COUNTER"; jnz 1b                              \n" \
         "mfence;                                            \n"
 
+
 // clobber: rax, rcx, rdx
-#define PROBE(BASE, OFFSET, TMP, DEST)                  \
+#define PROBE_INTEL(BASE, OFFSET, TMP, DEST)            \
         "xor "DEST", "DEST"                         \n" \
         "xor "OFFSET", "OFFSET"                     \n" \
         "1: lfence                                  \n" \
         "   xor "TMP", "TMP"                        \n" \
-        "   mov rcx, 0                              \n" \
-        "   mfence; rdpmc; mfence                   \n" \
-        "   shl rdx, 32; or rdx, rax                \n" \
+            READ_PFC_ONE("0")                           \
         "   sub "TMP", rdx                          \n" \
-        "   mov rax, "OFFSET"                       \n" \
-        "   add rax, ["BASE" + rax]        ; mfence \n" \
-        "   add rax, ["BASE" + rax + 4096] ; mfence \n" \
-        "   add rax, ["BASE" + rax + 8192] ; mfence \n" \
-        "   add rax, ["BASE" + rax + 12288]; mfence \n" \
-        "   add rax, ["BASE" + rax + 16384]; mfence \n" \
-        "   add rax, ["BASE" + rax + 20480]; mfence \n" \
-        "   add rax, ["BASE" + rax + 24576]; mfence \n" \
-        "   add rax, ["BASE" + rax + 28672]; mfence \n" \
-        "   mov rcx, 0                              \n" \
-        "   mfence; rdpmc; mfence                   \n" \
-        "   shl rdx, 32; or rdx, rax                \n" \
+            PROBE_ONE_SET(BASE, OFFSET)                 \
+            READ_PFC_ONE("0")                           \
         "   add "TMP", rdx                          \n" \
-        "   cmp "TMP", 8; jl 2f                     \n" \
+        "   cmp "TMP", "xstr(L1D_ASSOCIATIVITY)"    \n" \
+        "   jl 2f                                   \n" \
         "      shl "DEST", 1                        \n" \
         "      jmp 3f                               \n" \
         "   2:                                      \n" \
@@ -297,57 +347,19 @@ inline void epilogue(void)
         "   3:                                      \n" \
         "   add "OFFSET", 64                        \n" \
         "cmp "OFFSET", 4096; jl 1b                  \n"
-#elif L1D_ASSOCIATIVITY == 12
-#define PRIME(BASE, OFFSET, TMP, COUNTER, REPS)                 \
-        "mfence                                             \n" \
-        "mov "COUNTER", "REPS"                              \n" \
-        "   1: mov "OFFSET", 0                              \n" \
-        "       2: lfence                                   \n" \
-        "       mov "TMP", "OFFSET"                         \n" \
-        "       add "TMP", ["BASE" + "TMP"]                 \n" \
-        "       add "TMP", ["BASE" + "TMP" + 4096]          \n" \
-        "       add "TMP", ["BASE" + "TMP" + 8192]          \n" \
-        "       add "TMP", ["BASE" + "TMP" + 12288]         \n" \
-        "       add "TMP", ["BASE" + "TMP" + 16384]         \n" \
-        "       add "TMP", ["BASE" + "TMP" + 20480]         \n" \
-        "       add "TMP", ["BASE" + "TMP" + 24576]         \n" \
-        "       add "TMP", ["BASE" + "TMP" + 28672]         \n" \
-        "       add "TMP", ["BASE" + "TMP" + 32768]         \n" \
-        "       add "TMP", ["BASE" + "TMP" + 36864]         \n" \
-        "       add "TMP", ["BASE" + "TMP" + 40960]         \n" \
-        "       add "TMP", ["BASE" + "TMP" + 45056]         \n" \
-        "       add "OFFSET", 64                            \n" \
-        "   cmp "OFFSET", 4096; jl 2b                       \n" \
-        "dec "COUNTER"; jnz 1b                              \n" \
-        "mfence;                                            \n"
 
-#define PROBE(BASE, OFFSET, TMP, DEST)                  \
+// clobber: rax, rcx, rdx
+#define PROBE_AMD(BASE, OFFSET, TMP, DEST)              \
         "xor "DEST", "DEST"                         \n" \
         "xor "OFFSET", "OFFSET"                     \n" \
-        "1:                                         \n" \
+        "1: lfence                                  \n" \
         "   xor "TMP", "TMP"                        \n" \
-        "   mov rcx, 0                              \n" \
-        "   mfence; rdpmc; lfence                   \n" \
-        "   shl rdx, 32; or rdx, rax                \n" \
+            READ_PFC_ONE("0")                           \
         "   sub "TMP", rdx                          \n" \
-        "   mov rax, "OFFSET"                       \n" \
-        "   add rax, ["BASE" + rax]                 \n" \
-        "   add rax, ["BASE" + rax + 4096]          \n" \
-        "   add rax, ["BASE" + rax + 8192]          \n" \
-        "   add rax, ["BASE" + rax + 12288]         \n" \
-        "   add rax, ["BASE" + rax + 16384]         \n" \
-        "   add rax, ["BASE" + rax + 20480]         \n" \
-        "   add rax, ["BASE" + rax + 24576]         \n" \
-        "   add rax, ["BASE" + rax + 28672]         \n" \
-        "   add rax, ["BASE" + rax + 32768]         \n" \
-        "   add rax, ["BASE" + rax + 36864]         \n" \
-        "   add rax, ["BASE" + rax + 40960]         \n" \
-        "   add rax, ["BASE" + rax + 45056]         \n" \
-        "   mov rcx, 0                              \n" \
-        "   lfence; rdpmc; mfence                   \n" \
-        "   shl rdx, 32; or rdx, rax                \n" \
+            PROBE_ONE_SET(BASE, OFFSET)                 \
+            READ_PFC_ONE("0")                           \
         "   add "TMP", rdx                          \n" \
-        "   cmp "TMP", 12; jne 2f                    \n" \
+        "   cmp "TMP", 0; jg 2f                     \n" \
         "      shl "DEST", 1                        \n" \
         "      jmp 3f                               \n" \
         "   2:                                      \n" \
@@ -356,7 +368,13 @@ inline void epilogue(void)
         "   3:                                      \n" \
         "   add "OFFSET", 64                        \n" \
         "cmp "OFFSET", 4096; jl 1b                  \n"
+
+#if VENDOR_ID == 1
+#define PROBE(BASE, OFFSET, TMP, DEST) PROBE_INTEL(BASE, OFFSET, TMP, DEST)
+#elif VENDOR_ID == 2
+#define PROBE(BASE, OFFSET, TMP, DEST) PROBE_AMD(BASE, OFFSET, TMP, DEST)
 #endif
+
 
 void template_l1d_prime_probe(void) {
     asm volatile(".quad "xstr(TEMPLATE_ENTER));
@@ -364,7 +382,7 @@ void template_l1d_prime_probe(void) {
 
     // Prime
     // clobber: rax, rbx, rcx, rdx
-    asm_volatile_intel(""\
+    asm_volatile_intel(""
         "lea rax, [r14 - "xstr(EVICT_REGION_OFFSET)"]\n"
         PRIME("rax", "rbx", "rcx", "rdx", "32"));
 
@@ -392,7 +410,7 @@ void template_l1d_prime_probe(void) {
 
     // Probe and store the resulting eviction bitmap map into r11
     // Note: it internally clobbers rcx, rdx, rax
-    asm_volatile_intel(""\
+    asm_volatile_intel(""
         "lea r15, [r14 - "xstr(EVICT_REGION_OFFSET)"]\n"
         PROBE("r15", "rbx", "r13", "r11"));
 
@@ -412,19 +430,15 @@ void template_l1d_prime_probe(void) {
         "cmp "OFFSET", 4096; jl 1b                  \n" \
         "mfence                                     \n"
 
-#define RELOAD(BASE, OFFSET, TMP, DEST)                 \
+#define RELOAD_INTEL(BASE, OFFSET, TMP, DEST)           \
         "xor "DEST", "DEST"                         \n" \
         "xor "OFFSET", "OFFSET"                     \n" \
         "1:                                         \n" \
         "   xor "TMP", "TMP"                        \n" \
-        "   mov rcx, 0                              \n" \
-        "   mfence; rdpmc; lfence                   \n" \
-        "   shl rdx, 32; or rdx, rax                \n" \
+            READ_PFC_ONE("0")                           \
         "   sub "TMP", rdx                          \n" \
         "   mov rax, qword ptr ["BASE" + "OFFSET"]  \n" \
-        "   mov rcx, 0                              \n" \
-        "   lfence; rdpmc; mfence                   \n" \
-        "   shl rdx, 32; or rdx, rax                \n" \
+            READ_PFC_ONE("0")                           \
         "   add "TMP", rdx                          \n" \
         "   cmp "TMP", 0; jne 2f                    \n" \
         "      shl "DEST", 1                        \n" \
@@ -435,6 +449,33 @@ void template_l1d_prime_probe(void) {
         "   3:                                      \n" \
         "   add "OFFSET", 64                        \n" \
         "cmp "OFFSET", 4096; jl 1b                  \n"
+
+#define RELOAD_AMD(BASE, OFFSET, TMP, DEST)             \
+        "xor "DEST", "DEST"                         \n" \
+        "xor "OFFSET", "OFFSET"                     \n" \
+        "1:                                         \n" \
+        "   xor "TMP", "TMP"                        \n" \
+            READ_PFC_ONE("0")                           \
+        "   sub "TMP", rdx                          \n" \
+        "   mov rax, qword ptr ["BASE" + "OFFSET"]  \n" \
+            READ_PFC_ONE("0")                           \
+        "   add "TMP", rdx                          \n" \
+        "   cmp "TMP", 0; je 2f                     \n" \
+        "      shl "DEST", 1                        \n" \
+        "      jmp 3f                               \n" \
+        "   2:                                      \n" \
+        "      shl "DEST", 1                        \n" \
+        "      or "DEST", 1                         \n" \
+        "   3:                                      \n" \
+        "   add "OFFSET", 64                        \n" \
+        "cmp "OFFSET", 4096; jl 1b                  \n"
+
+#if VENDOR_ID == 1
+#define RELOAD(BASE, OFFSET, TMP, DEST) RELOAD_INTEL(BASE, OFFSET, TMP, DEST)
+#elif VENDOR_ID == 2
+#define RELOAD(BASE, OFFSET, TMP, DEST) RELOAD_AMD(BASE, OFFSET, TMP, DEST)
+#endif
+
 
 void template_l1d_flush_reload(void) {
     asm volatile(".quad "xstr(TEMPLATE_ENTER));
@@ -511,5 +552,51 @@ void template_l1d_evict_reload(void) {
         RELOAD("r15", "rbx", "r13", "r11"));
 
     epilogue();
+    asm volatile(".quad "xstr(TEMPLATE_RETURN));
+}
+
+
+// =================================================================================================
+// Register Tracer - simply returns the values of registers after execution
+// =================================================================================================
+void template_gpr(void) {
+    asm volatile(".quad "xstr(TEMPLATE_ENTER));
+    prologue();
+
+    // Initialize registers
+    SET_REGISTER_FROM_INPUT();
+
+    // Execute the test case
+    asm("lfence\n"
+        ".quad "xstr(TEMPLATE_INSERT_TC)" \n"
+        "mfence\n");
+
+    asm(".quad "xstr(TEMPLATE_JUMP_EXCEPTION));
+
+    // Read GPR values
+    asm_volatile_intel(
+        // r15 <- &latest_measurement
+        "lea r15, [r14 + "xstr(MEASUREMENT_OFFSET)"]\n"
+        "mov qword ptr [r15], rax \n"
+        "mov qword ptr [r15 + 8], rbx \n"
+        "mov qword ptr [r15 + 16], rcx \n"
+        "mov qword ptr [r15 + 24], rdx \n"
+        "mov qword ptr [r15 + 32], rsi \n"
+        "mov qword ptr [r15 + 40], rdi \n"
+
+        // rsp <- stored_rsp
+        "mov rsp, qword ptr [r14 + "xstr(RSP_OFFSET)"]\n"
+
+        // restore registers
+        "popfq\n"
+        "pop r15\n"
+        "pop r14\n"
+        "pop r13\n"
+        "pop r12\n"
+        "pop r11\n"
+        "pop r10\n"
+        "pop rbp\n"
+        "pop rbx\n"
+    );
     asm volatile(".quad "xstr(TEMPLATE_RETURN));
 }
