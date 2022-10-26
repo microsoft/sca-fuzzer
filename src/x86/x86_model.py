@@ -444,6 +444,7 @@ class X86UnicornOOO(X86FaultModelAbstract):
                 is_dependent_addr = True
 
         # remove overwritten values from dependencies
+        old_dependencies = list(model.dependencies)  # type cast to force copy
         for reg in reg_dest_operands:
             if reg not in reg_src_operands and reg in model.dependencies:
                 model.dependencies.remove(reg)
@@ -455,6 +456,15 @@ class X86UnicornOOO(X86FaultModelAbstract):
         for reg in reg_dest_operands:
             model.dependencies.add(reg)
 
+        # special case - exchange instruction swaps dependencies
+        if "XCHG" in model.current_instruction.name:
+            ops = model.current_instruction.get_reg_operands()
+            if len(ops) == 2:
+                op1, op2 = [X86TargetDesc.gpr_normalized[op.value] for op in ops]
+                if op1 in old_dependencies and op2 not in old_dependencies:
+                    model.dependencies.remove(op1)
+                elif op1 not in old_dependencies and op2 in old_dependencies:
+                    model.dependencies.remove(op2)
 
         # special case - many memory operations are implemented as two uops,
         # and one of them could be expected even if the other is data-dependent
