@@ -12,7 +12,7 @@ from typing import Tuple, Dict, List, Set
 import unicorn.x86_const as ucc
 from unicorn import Uc, UC_MEM_WRITE, UC_ARCH_X86, UC_MODE_64, UC_PROT_READ, UC_PROT_NONE
 
-from interfaces import Input, FlagsOperand, RegisterOperand, MemoryOperand
+from interfaces import Input, FlagsOperand, RegisterOperand, MemoryOperand, TestCase
 from model import UnicornModel, UnicornSpec, UnicornSeq, UnicornBpas, BaseTaintTracker
 from x86.x86_target_desc import X86UnicornTargetDesc, X86TargetDesc
 from service import UnreachableCode
@@ -34,7 +34,20 @@ class X86UnicornModel(UnicornModel):
     def __init__(self, sandbox_base, code_start):
         self.target_desc = X86UnicornTargetDesc()
         self.architecture = (UC_ARCH_X86, UC_MODE_64)
+        self.rw_fault_mask = (1 << X86TargetDesc.pte_bits["PRESENT"][0]) + \
+            (1 << X86TargetDesc.pte_bits["ACCESSED"][0])
+        self.write_fault_mask = (1 << X86TargetDesc.pte_bits["RW"][0]) + \
+            (1 << X86TargetDesc.pte_bits["DIRTY"][0])
+
         super().__init__(sandbox_base, code_start)
+
+    def load_test_case(self, test_case: TestCase) -> None:
+        # check which permissions have to be set on the pages
+        self.rw_protect = bool((0xffffffffffffffff ^ test_case.faulty_pte.mask_clear)
+                               & self.rw_fault_mask)
+        self.write_protect = bool((0xffffffffffffffff ^ test_case.faulty_pte.mask_clear)
+                                  & self.write_fault_mask)
+        return super().load_test_case(test_case)
 
     def _load_input(self, input_: Input):
         """

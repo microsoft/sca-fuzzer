@@ -15,7 +15,7 @@ import x86.x86_model as x86_model
 import model as core_model
 
 from interfaces import Instruction, RegisterOperand, MemoryOperand, InputTaint, LabelOperand, \
-    FlagsOperand, TestCase, Input, CTrace
+    FlagsOperand, TestCase, Input, CTrace, PageTableModifier
 from isa_loader import InstructionSet
 from x86.x86_generator import X86RandomGenerator
 from copy import deepcopy
@@ -150,6 +150,9 @@ MOV rax, qword ptr [R14 + RAX]
 .test_case_exit:
 """
 
+PF_MASK = 0xfffffffffffffffe
+
+
 class X86ModelTest(unittest.TestCase):
 
     @classmethod
@@ -180,8 +183,9 @@ class X86ModelTest(unittest.TestCase):
         os.unlink(asm_file.name)
         return tc
 
-    def get_traces(self, model, asm_str, inputs, nesting=1):
+    def get_traces(self, model, asm_str, inputs, nesting=1, pte_mask: int = 0xffffffffffffffff):
         tc = self.load_tc(asm_str)
+        tc.faulty_pte = PageTableModifier(0, pte_mask)
         model.load_test_case(tc)
         ctraces: List[CTrace] = model.trace_test_case(inputs, nesting)
         return ctraces
@@ -323,14 +327,11 @@ class X86ModelTest(unittest.TestCase):
         mbase, cbase = 0x1000000, 0x8000
         model = x86_model.X86UnicornSeq(mbase, cbase)
         model.tracer = core_model.CTTracer()
-        # Note that this test sets up a R/W protection to trigger a fault
-        # and enables handling of page faults (errno=12,13) to catch them on the contract level
-        model.rw_protect = True
         model.handled_faults.extend([12, 13])
         input_ = Input()
         input_[0] = 1
         input_[input_.register_start + 2] = 4096
-        ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_])
+        ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_], pte_mask=PF_MASK)
         expected_trace = hash(tuple([cbase, mbase + 4096]))
         self.assertEqual(ctraces, [expected_trace])
 
@@ -345,7 +346,7 @@ class X86ModelTest(unittest.TestCase):
             input_[input_.register_start + i] = 2
         input_[input_.register_start + 2] = 4096
         input_[4096 // 8] = 3
-        ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_])
+        ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_], pte_mask=PF_MASK)
         expected_trace = hash(tuple([
             cbase, mbase + 4096,  # fault
             cbase, mbase + 4096,  # speculative injection
@@ -368,7 +369,6 @@ class X86ModelTest(unittest.TestCase):
         mbase, cbase = 0x1000000, 0x8000
         model = x86_model.X86UnicornNullTerminating(mbase, cbase)
         model.tracer = core_model.CTTracer()
-        model.rw_protect = True
         model.handled_faults.extend([12, 13])
         input_ = Input()
         for i in range(0, 7):
@@ -376,9 +376,9 @@ class X86ModelTest(unittest.TestCase):
         input_[input_.register_start + 2] = 4096
         input_[0] = 1
         input_[4096 // 8] = 3
-        # LOGGER.dbg_model = True
-        ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_])
-        # LOGGER.dbg_model = False
+        # LOGGER.dbg_model = not LOGGER.dbg_model
+        ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_], pte_mask=PF_MASK)
+        # LOGGER.dbg_model = not LOGGER.dbg_model
         # print(model.tracer.get_contract_trace_full(), mbase, cbase)
         expected_trace = hash(tuple([
             cbase, mbase + 4096,  # fault
@@ -401,7 +401,6 @@ class X86ModelTest(unittest.TestCase):
         mbase, cbase = 0x1000000, 0x8000
         model = x86_model.X86UnicornOOO(mbase, cbase)
         model.tracer = core_model.CTTracer()
-        model.rw_protect = True
         model.handled_faults.extend([12, 13])
         input_ = Input()
         for i in range(0, 7):
@@ -409,8 +408,7 @@ class X86ModelTest(unittest.TestCase):
         input_[input_.register_start + 2] = 4096
         input_[0] = 1
         input_[4096 // 8] = 3
-        ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_])
-        # print(model.tracer.get_contract_trace_full())
+        ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_], pte_mask=PF_MASK)
         expected_trace = hash(tuple([
             cbase, mbase + 4096,  # faulty load
             cbase + 4,  # next load is dependent - do not execute the mem access
@@ -423,7 +421,6 @@ class X86ModelTest(unittest.TestCase):
         mbase, cbase = 0x1000000, 0x8000
         model = x86_model.X86UnicornDivZero(mbase, cbase)
         model.tracer = core_model.CTTracer()
-        model.rw_protect = True
         model.handled_faults.append(21)
         input_ = Input()
         input_[input_.register_start] = 2  # rax
@@ -456,14 +453,13 @@ class X86ModelTest(unittest.TestCase):
         mbase, cbase = 0x1000000, 0x8000
         model = x86_model.X86Meltdown(mbase, cbase)
         model.tracer = core_model.CTTracer()
-        model.rw_protect = True
         model.handled_faults.extend([12, 13])
         input_ = Input()
         for i in range(0, 7):
             input_[input_.register_start + i] = 2
         input_[input_.register_start + 2] = 4096
         input_[4096 // 8] = 3
-        ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_])
+        ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_], pte_mask=PF_MASK)
         expected_trace = hash(tuple([
             cbase, mbase + 4096,  # fault
             cbase, mbase + 4096,  # speculative injection
@@ -572,14 +568,13 @@ class X86ModelTest(unittest.TestCase):
         mbase, cbase = 0x1000000, 0x8000
         model = x86_model.X86FaultSkip(mbase, cbase)
         model.tracer = core_model.CTTracer()
-        model.rw_protect = True
         model.handled_faults.extend([12, 13])
         input_ = Input()
         for i in range(0, 7):
             input_[input_.register_start + i] = 2
         input_[input_.register_start + 2] = 4096
         input_[4096 // 8] = 3
-        ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_])
+        ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_], pte_mask=PF_MASK)
         expected_trace = hash(tuple([
             cbase, mbase + 4096,  # fault
             cbase + 4, mbase + 2,  # next instruction

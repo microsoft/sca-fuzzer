@@ -180,16 +180,6 @@ class UnicornModel(Model, ABC):
         if 'assist-accessed' in CONF.permitted_faults:
             self.handled_faults.extend([12, 13])
 
-        # check if the fault page needs to be protected
-        if 'PF-present' in CONF.permitted_faults:
-            self.rw_protect = True
-        if 'PF-writable' in CONF.permitted_faults:
-            self.write_protect = True
-        if 'assist-dirty' in CONF.permitted_faults:
-            self.write_protect = True
-        if 'assist-accessed' in CONF.permitted_faults:
-            self.rw_protect = True
-
     def load_test_case(self, test_case: TestCase) -> None:
         """
         Instantiate emulator and load input in registers
@@ -210,13 +200,6 @@ class UnicornModel(Model, ABC):
             sandbox_size = \
                 self.OVERFLOW_REGION_SIZE * 2 + self.MAIN_REGION_SIZE + self.FAULTY_REGION_SIZE
             emulator.mem_map(self.sandbox_base - self.OVERFLOW_REGION_SIZE, sandbox_size)
-
-            if self.rw_protect:
-                emulator.mem_protect(self.sandbox_base + self.MAIN_REGION_SIZE,
-                                     self.FAULTY_REGION_SIZE, UC_PROT_NONE)
-            elif self.write_protect:
-                emulator.mem_protect(self.sandbox_base + self.MAIN_REGION_SIZE,
-                                     self.FAULTY_REGION_SIZE, UC_PROT_READ)
 
             # write machine code to be emulated to memory
             emulator.mem_write(self.code_start, code)
