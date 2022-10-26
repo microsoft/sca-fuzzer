@@ -187,7 +187,7 @@ class Fuzzer:
 
     # ==============================================================================================
     # Single-stage interfaces
-    def generate_test_batch(self, seed: int, num_test_cases: int):
+    def generate_batch(self, seed: int, num_test_cases: int, num_inputs: int):
         LOGGER.fuzzer_start(0, datetime.today())
         STAT.test_cases = num_test_cases
         random.seed(seed)
@@ -197,10 +197,28 @@ class Fuzzer:
         if not out_dir or out_dir == "":
             out_dir = os.getcwd()
         Path(out_dir).mkdir(exist_ok=True)
+        
+        # invoke the test-case generator to create assembly files
+        if num_test_cases > 0:
+            self.generator = factory.get_generator(self.instruction_set)
+            for i in range(num_test_cases):
+                asm_path = "%s/program_%d.asm" % (out_dir, i)
+                self.generator.create_test_case(asm_path, True)
+                LOGGER.inform("fuzzer", "Created assembly test case at %s" % asm_path)
 
-        self.generator = factory.get_generator(self.instruction_set)
-        for i in range(num_test_cases):
-            self.generator.create_test_case(out_dir + "/" + str(i) + '_generated.asm', True)
+        # invoke the input generator to create inputs
+        if num_inputs > 0:
+            self.input_gen: InputGenerator = factory.get_input_generator()
+            inputs: List[Input] = self.input_gen.generate(CONF.input_gen_seed, num_inputs)
+
+            # iterate across each generated input
+            for i in range(len(inputs)):
+                inp = inputs[i]
+                inp_path = "%s/input_%d.data" % (out_dir, i)
+                inp.save(inp_path)
+                LOGGER.inform("fuzzer", "Created input with seed %d at %s" % 
+                                        (inp.seed, inp_path))
+
         LOGGER.fuzzer_finish()
 
     @staticmethod

@@ -193,11 +193,8 @@ def main():
     # Stand-alone generator
     if args.subparser_name == "generate":
         fuzzer = get_fuzzer(args.instruction_set, args.working_directory, None)
-        fuzzer.generate_test_batch(args.seed, args.num_test_cases)
+        fuzzer.generate_batch(args.seed, args.num_test_cases, args.num_inputs)
         return
-
-    # TODO: create input_generate
-    # Perhaps include input generation into generate_test?
 
     raise Exception("Unreachable")
 
