@@ -564,11 +564,32 @@ class Input(np.ndarray):
 
     def __repr__(self):
         return str(self.seed)
-
-    def save(self, path: str) -> None:
-        with open(path, 'wb') as f:
-            f.write(self.tobytes())
-
+    
+    # Takes in a 'mode' and uses it to determine the output file format.
+    #   "binary"    writes raw data bytes to a file
+    #   "hex"       writes hex byte strings into a file (one byte per line)
+    def save(self, path: str, mode=None) -> None:
+        # Internal helper function.
+        def save_binary(path: str) -> None:
+            with open(path, 'wb') as f: 
+                f.write(self.tobytes())
+    
+        # Internal helper function.
+        def save_hex(path: str) -> None:
+            with open(path, "w") as f:
+                # convert to bytes and write the bytes out in hex format
+                input_bytes = self.tobytes()
+                for b in input_bytes:
+                    f.write("%x\n" % b)
+        
+        # based on the mode, invoke the correct helper function
+        mode_handlers = {
+            "binary": save_binary,
+            "hex": save_hex
+        }
+        mode = mode.lower() if mode else list(mode_handlers.keys())[0]
+        assert mode in mode_handlers, "unknown input save mode: \"%s\"" % mode
+        mode_handlers[mode](path)
 
 class InputTaint(np.ndarray):
     """

@@ -125,9 +125,16 @@ def main():
         required=True
     )
     parser_generator.add_argument(
-        "-r", "--seed",
+        "-r", "--program-seed",
         type=int,
+        default=CONF.program_generator_seed,
         help="Add seed to generate test case.",
+    )
+    parser_generator.add_argument(
+        "-R", "--input-seed",
+        type=int,
+        default=CONF.input_gen_seed,
+        help="Add seed to generate inputs."
     )
     parser_generator.add_argument(
         "-n", "--num-test-cases",
@@ -140,6 +147,12 @@ def main():
         type=int,
         default=100,
         help="Number of inputs per test case.",
+    )
+    parser_generator.add_argument(
+        "-f", "--input-format",
+        type=str,
+        default=None,
+        help="Sets the output format for generated input files."
     )
     parser_generator.add_argument(
         "-c", "--config",
@@ -193,7 +206,9 @@ def main():
     # Stand-alone generator
     if args.subparser_name == "generate":
         fuzzer = get_fuzzer(args.instruction_set, args.working_directory, None)
-        fuzzer.generate_batch(args.seed, args.num_test_cases, args.num_inputs)
+        fuzzer.generate_batch(args.program_seed, args.input_seed,
+                              args.num_test_cases, args.num_inputs,
+                              input_format=args.input_format)
         return
 
     raise Exception("Unreachable")

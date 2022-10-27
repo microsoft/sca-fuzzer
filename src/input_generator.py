@@ -134,5 +134,5 @@ class NumpyRandomInputGenerator(InputGenerator):
         data = rng.integers(self.max_input_value, size=input_.data_size, dtype=np.uint64)
         data = data << CONF.memory_access_zeroed_bits  # type: ignore
         input_[:input_.data_size] = (data << 32) + data
-
+        
         return input_, seed + 1
