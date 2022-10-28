@@ -547,6 +547,12 @@ class Input(np.ndarray):
         obj = super().__new__(cls, (aligned_size,), np.uint64, None, 0, None, None)  # type: ignore
         obj.data_size = data_size
         obj.register_start = data_size - CONF.input_register_region_size // 8
+
+        # fill the input with zeroes initially before returning, to ensure the
+        # 'padding' bytes (created by using 'aligned_size' rather than
+        # 'data_size') deterministic across separate runs
+        for i in range(len(obj)):
+            obj[i] = 0
         return obj
 
     def __array_finalize__(self, obj):
