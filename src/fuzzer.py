@@ -229,7 +229,7 @@ class Fuzzer:
             for i in range(num_test_cases):
                 # for each program generated, we'll increase the seed by one
                 random.seed(program_seed)
-                asm_path = "%s/program_%d.asm" % (out_dir, program_seed)
+                asm_path = os.path.join(out_dir, "program_%d.asm" % program_seed)
                 self.generator.create_test_case(asm_path, True)
                 LOGGER.inform("fuzzer", "Created assembly test case with seed=%d at %s" %
                                         (program_seed, asm_path))
@@ -241,7 +241,7 @@ class Fuzzer:
             inputs: List[Input] = self.input_gen.generate(input_seed, num_inputs)
             for i in range(len(inputs)):
                 inp = inputs[i]
-                inp_path = "%s/input_%d.data" % (out_dir, inp.seed)
+                inp_path = os.path.join(out_dir, "input_%d.data" % inp.seed)
                 inp.save(inp_path, mode=input_format)
                 LOGGER.inform("fuzzer", "Created input with seed=%d, data_size=%d, "
                                         "and register_start=%d at %s" % 
