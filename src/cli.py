@@ -7,6 +7,7 @@ SPDX-License-Identifier: MIT
 """
 
 import os
+import sys
 import yaml
 from typing import Dict
 from argparse import ArgumentParser
@@ -15,13 +16,15 @@ from fuzzer import Fuzzer
 from config import CONF
 from service import LOGGER
 
-
 def main():
-    parser = ArgumentParser(description='', add_help=False)
+    parser = ArgumentParser(description='', add_help=True)
     subparsers = parser.add_subparsers(dest='subparser_name')
 
-    # Fuzzing
-    parser_fuzz = subparsers.add_parser('fuzz')
+    # ------------------------------- Fuzzing -------------------------------- #
+    parser_fuzz = subparsers.add_parser(
+        'fuzz',
+        help="Run a fuzzing campaign."
+    )
     parser_fuzz.add_argument(
         "-s", "--instruction-set",
         type=str,
@@ -67,7 +70,11 @@ def main():
         help="Don't stop after detecting an unexpected result"
     )
 
-    parser_analyser = subparsers.add_parser('analyse')
+    # ------------------------------- Analysis ------------------------------- #
+    parser_analyser = subparsers.add_parser(
+        'analyse',
+        help="Analyse existing contract traces and hardware traces."
+    )
     parser_analyser.add_argument(
         '--ctraces',
         type=str,
@@ -83,8 +90,12 @@ def main():
         type=str,
         required=False
     )
-
-    parser_mini = subparsers.add_parser('minimize')
+    
+    # ------------------------ Test Case Minimization ------------------------ #
+    parser_mini = subparsers.add_parser(
+        'minimize',
+        help="Minimize an existing test case."
+    )
     parser_mini.add_argument(
         '--infile', '-i',
         type=str,
@@ -118,7 +129,11 @@ def main():
         required=True
     )
 
-    parser_generator = subparsers.add_parser('generate')
+    # ------------------------ Standalone Generation ------------------------- #
+    parser_generator = subparsers.add_parser(
+        'generate',
+        help="Generate a batch of programs and/or inputs."
+    )
     parser_generator.add_argument(
         "-s", "--instruction-set",
         type=str,
@@ -166,6 +181,13 @@ def main():
     )
 
     args = parser.parse_args()
+
+    # if no command-line arguments were given, display a help menu
+    if len(sys.argv) < 2:
+        print("Revizor: a side-channel vulnerability fuzzer.")
+        print("You must specify a mode.\n")
+        parser.print_help()
+        sys.exit(0)
 
     # Update configuration
     if args.config:
