@@ -242,7 +242,7 @@ class Fuzzer:
             for i in range(len(inputs)):
                 inp = inputs[i]
                 inp_path = os.path.join(out_dir, "input_%d.data" % inp.seed)
-                inp.save(inp_path, mode=input_format)
+                inp_path = inp.save(inp_path, mode=input_format)
                 LOGGER.inform("fuzzer", "Created input with seed=%d, data_size=%d, "
                                         "and register_start=%d at %s" % 
                                         (inp.seed, inp.data_size, inp.register_start, inp_path))
