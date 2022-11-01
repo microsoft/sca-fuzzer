@@ -127,6 +127,7 @@ def main():
     parser_generator.add_argument(
         "-r", "--seed",
         type=int,
+        default=0,
         help="Add seed to generate test case.",
     )
     parser_generator.add_argument(
@@ -150,6 +151,10 @@ def main():
         '-w', '--working-directory',
         type=str,
         default='',
+    )
+    parser_generator.add_argument(
+        '--permit-overwrite',
+        action='store_true',
     )
 
     args = parser.parse_args()
@@ -179,6 +184,17 @@ def main():
         )
         return
 
+    # Stand-alone generator
+    if args.subparser_name == "generate":
+        fuzzer = get_fuzzer(args.instruction_set, args.working_directory, None)
+        fuzzer.generate_test_batch(
+            args.seed,
+            args.num_test_cases,
+            args.num_inputs,
+            args.permit_overwrite
+        )
+        return 0
+
     # Trace analysis
     if args.subparser_name == 'analyse':
         fuzzer = Fuzzer.analyse_traces_from_files(args.ctraces, args.htraces)
@@ -189,15 +205,6 @@ def main():
         minimizer = get_minimizer(args.instruction_set)
         minimizer.minimize(args.infile, args.outfile, args.num_inputs, args.add_fences)
         return
-
-    # Stand-alone generator
-    if args.subparser_name == "generate":
-        fuzzer = get_fuzzer(args.instruction_set, args.working_directory, None)
-        fuzzer.generate_test_batch(args.seed, args.num_test_cases)
-        return
-
-    # TODO: create input_generate
-    # Perhaps include input generation into generate_test?
 
     raise Exception("Unreachable")
 
