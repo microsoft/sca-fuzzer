@@ -77,14 +77,15 @@ def _get_from_config(options: Dict, key: str, conf_option_name: str, *args):
     raise ConfigException(f"unknown value {key} for `{conf_option_name}` configuration option")
 
 
-def get_fuzzer(instruction_set, working_directory, testcase):
+def get_fuzzer(instruction_set, working_directory, testcase, inputs):
     if CONF.fuzzer == "architectural":
         if CONF.instruction_set == "x86-64":
-            return x86_fuzzer.X86ArchitecturalFuzzer(instruction_set, working_directory, testcase)
+            return x86_fuzzer.X86ArchitecturalFuzzer(instruction_set, working_directory, testcase,
+                                                     inputs)
         raise ConfigException("unknown value of `instruction_set` configuration option")
     elif CONF.fuzzer == "basic":
         if CONF.instruction_set == "x86-64":
-            return x86_fuzzer.X86Fuzzer(instruction_set, working_directory, testcase)
+            return x86_fuzzer.X86Fuzzer(instruction_set, working_directory, testcase, inputs)
         raise ConfigException("unknown value of `instruction_set` configuration option")
     raise ConfigException("unknown value of `fuzzer` configuration option")
 

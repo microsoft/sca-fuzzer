@@ -151,7 +151,7 @@ class ConfigurableGenerator(Generator, abc.ABC):
         run(f"strip --remove-section=.note.gnu.property {bin_file}", shell=True, check=True)
         run(f"objcopy {bin_file} -O binary {bin_file}", shell=True, check=True)
 
-    def parse_existing_test_case(self, asm_file: str) -> TestCase:
+    def load(self, asm_file: str) -> TestCase:
         test_case = TestCase()
         test_case.asm_path = asm_file
 

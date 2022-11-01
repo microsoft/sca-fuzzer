@@ -53,7 +53,7 @@ def main() -> int:
         '-t', '--testcase',
         type=str,
         default=None,
-        help="Use an existing test case"
+        help="Use an existing test case [DEPRECATED - see reproduce]"
     )
     parser_fuzz.add_argument(
         '--timeout',
@@ -82,6 +82,39 @@ def main() -> int:
         "-c", "--config",
         type=str,
         required=False
+    )
+
+    parser_reproduce = subparsers.add_parser('reproduce')
+    parser_reproduce.add_argument(
+        "-s", "--instruction-set",
+        type=str,
+        required=True
+    )
+    parser_reproduce.add_argument(
+        "-c", "--config",
+        type=str,
+        required=False
+    )
+    parser_reproduce.add_argument(
+        '-t', '--testcase',
+        type=str,
+        default=None,
+        required=True,
+        help="Path to the test case",
+    )
+    parser_reproduce.add_argument(
+        '-i', '--inputs',
+        type=str,
+        nargs='*',
+        default=None,
+        help="Path to the directory with inputs"
+    )
+    parser_reproduce.add_argument(
+        "-n",
+        "--num-inputs",
+        type=int,
+        default=100,
+        help="Number of inputs per test case. [IGNORED if --input-dir is set]",
     )
 
     parser_mini = subparsers.add_parser('minimize')
@@ -175,7 +208,7 @@ def main() -> int:
             SystemExit("The working directory does not exist")
 
         # Normal fuzzing mode
-        fuzzer = get_fuzzer(args.instruction_set, args.working_directory, args.testcase)
+        fuzzer = get_fuzzer(args.instruction_set, args.working_directory, args.testcase, "")
         exit_code = fuzzer.start(
             args.num_test_cases,
             args.num_inputs,
@@ -184,9 +217,15 @@ def main() -> int:
         )
         return exit_code
 
+    # Reproducing a violation
+    if args.subparser_name == 'reproduce':
+        fuzzer = get_fuzzer(args.instruction_set, "", args.testcase, args.inputs)
+        exit_code = fuzzer.start(1, args.num_inputs, 0, False)
+        return exit_code
+
     # Stand-alone generator
     if args.subparser_name == "generate":
-        fuzzer = get_fuzzer(args.instruction_set, args.working_directory, None)
+        fuzzer = get_fuzzer(args.instruction_set, args.working_directory, None, "")
         fuzzer.generate_test_batch(
             args.seed,
             args.num_test_cases,

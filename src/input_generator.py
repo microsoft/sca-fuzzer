@@ -4,6 +4,7 @@ File: Input Generation
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
+import os
 import random
 import numpy as np
 from typing import List, Tuple
@@ -14,7 +15,25 @@ from service import LOGGER
 POW32 = pow(2, 32)
 
 
-class LegacyRandomInputGenerator(InputGenerator):
+class InputGeneratorCommon(InputGenerator):
+
+    def load(self, input_paths: List[str]) -> List[Input]:
+        inputs = []
+        for input_path in input_paths:
+            input_ = Input()
+
+            # check that the file is not corrupted
+            size = os.path.getsize(input_path)
+            if size != len(input_) * 8:
+                LOGGER.error(f"Incorrect size of input `{input_path}` "
+                             f"({size} B, expected {len(input_) * 8} B)")
+
+            input_.load(input_path)
+            inputs.append(input_)
+        return inputs
+
+
+class LegacyRandomInputGenerator(InputGeneratorCommon):
     """
     Legacy implementation. Will be deprecated in the future because of low performance.
     Simple 32-bit LCG with a=2891336453 and c=54321.
@@ -85,7 +104,7 @@ class LegacyRandomInputGenerator(InputGenerator):
         return input_, randint
 
 
-class NumpyRandomInputGenerator(InputGenerator):
+class NumpyRandomInputGenerator(InputGeneratorCommon):
     """ Numpy-based implementation of the input gen """
 
     def __init__(self):
