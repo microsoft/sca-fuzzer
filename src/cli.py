@@ -142,13 +142,13 @@ def main():
     parser_generator.add_argument(
         "-r", "--program-seed",
         type=int,
-        default=CONF.program_generator_seed,
+        default=None, # defaults to CONF.program_generator_seed below
         help="Add seed to generate test case.",
     )
     parser_generator.add_argument(
         "-R", "--input-seed",
         type=int,
-        default=CONF.input_gen_seed,
+        default=None, # defaults to CONF.input_gen_seed below
         help="Add seed to generate inputs."
     )
     parser_generator.add_argument(
@@ -230,6 +230,13 @@ def main():
 
     # Stand-alone generator
     if args.subparser_name == "generate":
+        # if no seeds were given, select the ones from our config file
+        if not args.program_seed:
+            args.program_seed = CONF.program_generator_seed
+        if not args.input_seed:
+            args.input_seed = CONF.input_gen_seed
+
+        # invoke the fuzzer to generate a batch of programs/inputs
         fuzzer = get_fuzzer(args.instruction_set, args.working_directory, None)
         fuzzer.generate_test_batch(
             args.program_seed,
