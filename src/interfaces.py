@@ -582,12 +582,14 @@ class Input(np.ndarray):
     def save(self, path: str, mode=None) -> str:
         # Internal helper function. Writes raw byte content out.
         def save_binary(path: str) -> None:
+            path = os.path.splitext(path)[0] + ".bin"
             with open(path, 'wb') as f: 
                 f.write(self.tobytes())
             return path
     
         # Internal helper function. Writes ASCII byte hex values.
         def save_hex(path: str) -> None:
+            path = os.path.splitext(path)[0] + ".hex"
             with open(path, "w") as f:
                 # convert to bytes and write the bytes out in hex format
                 input_bytes = self.tobytes()

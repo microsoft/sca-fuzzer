@@ -187,9 +187,9 @@ class Fuzzer:
 
     # ==============================================================================================
     # Single-stage interfaces
-    def generate_batch(self, program_seed: int, input_seed: int,
-                             num_test_cases: int, num_inputs: int,
-                             input_format=None):
+    def generate_test_batch(self, program_seed: int, input_seed: int,
+                            num_test_cases: int, num_inputs: int,
+                            input_format=None, permit_overwrite=False):
         """
         A function invoked as a standalone way to generate fuzzer test cases and
         inputs without running the entire fuzzer. This accepts a seed, a number
@@ -205,8 +205,14 @@ class Fuzzer:
         Optionally, this accepts an 'input_format' string that corresponds to
         one of the supported modes in the Input class' 'save()' method. If left
         as None, a default will be used.
+
+        This also accepts 'permit_overwrite', which allows for an existing set
+        of generated files to be overwritten in the same directory. By default
+        this is false.
         """
         LOGGER.fuzzer_start(0, datetime.today())
+
+        # prepare for generation
         STAT.test_cases = num_test_cases
 
         # log the given parameters
@@ -222,26 +228,46 @@ class Fuzzer:
         if not out_dir or out_dir == "":
             out_dir = os.getcwd()
         Path(out_dir).mkdir(exist_ok=True)
-        
-        # invoke the test-case generator to create assembly files
-        if num_test_cases > 0:
-            self.generator = factory.get_generator(self.instruction_set)            
-            for i in range(num_test_cases):
-                # for each program generated, we'll increase the seed by one
-                random.seed(program_seed)
-                asm_path = os.path.join(out_dir, "program_%d.asm" % program_seed)
-                self.generator.create_test_case(asm_path, True)
-                LOGGER.inform("fuzzer", "Created assembly test case with seed=%d at %s" %
-                                        (program_seed, asm_path))
-                program_seed += 1
 
-        # invoke the input generator to create inputs
-        if num_inputs > 0:
-            self.input_gen: InputGenerator = factory.get_input_generator()
+        # create the two generators
+        self.generator = factory.get_generator(self.instruction_set)
+        self.input_gen = factory.get_input_generator()
+
+        # invoke the test-case generator to create assembly files
+        for i in range(num_test_cases):
+            # attempt to create a directory for the test case
+            test_case_dir = out_dir + "/tc" + str(i)
+            try:
+                Path(test_case_dir).mkdir(exist_ok=permit_overwrite)
+            except FileExistsError:
+                LOGGER.error(f"Directory '{test_case_dir}' already exists\n"
+                             "Use --permit-overwrite to overwrite the test case")
+
+            # set the seed and generate the program. After each generated
+            # program, we'll increase the seed by one
+            CONF.program_generator_seed = program_seed
+            random.seed(program_seed)
+            asm_path = os.path.join(test_case_dir, "program_%d.asm" % program_seed)
+            self.generator.create_test_case(asm_path, True)
+            LOGGER.inform("fuzzer", "Created assembly test case with seed=%d at %s" %
+                                    (program_seed, asm_path))
+            program_seed += 1
+
+        # if NO programs were specified but some inputs were specified, we'll
+        # still generate the inputs, but they'll be in the working directory
+        # (not in any sub-directory)
+        input_loop = 0 if num_inputs == 0 else max(1, num_test_cases)
+        for t in range(input_loop):
+            # invoke the input generator to generate a number of inputs
             inputs: List[Input] = self.input_gen.generate(input_seed, num_inputs)
+
+            # choose a directory to save these inputs to (dependent on whether
+            # or not test cases were specified). Then, write each input into
+            # the directory
+            save_dir = out_dir if num_test_cases == 0 else out_dir + "/tc" + str(t)
             for i in range(len(inputs)):
                 inp = inputs[i]
-                inp_path = os.path.join(out_dir, "input_%d.data" % inp.seed)
+                inp_path = os.path.join(save_dir, "input_%d.data" % inp.seed)
                 inp_path = inp.save(inp_path, mode=input_format)
                 LOGGER.inform("fuzzer", "Created input with seed=%d, data_size=%d, "
                                         "and register_start=%d at %s" % 

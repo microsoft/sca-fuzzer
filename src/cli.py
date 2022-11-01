@@ -179,13 +179,16 @@ def main():
         type=str,
         default='',
     )
+    parser_generator.add_argument(
+        '--permit-overwrite',
+        action='store_true',
+    )
 
     args = parser.parse_args()
 
     # if no command-line arguments were given, display a help menu
     if len(sys.argv) < 2:
-        print("Revizor: a side-channel vulnerability fuzzer.")
-        print("You must specify a mode.\n")
+        print("Revizor: a side-channel vulnerability fuzzer.\n")
         parser.print_help()
         sys.exit(0)
 
@@ -228,9 +231,14 @@ def main():
     # Stand-alone generator
     if args.subparser_name == "generate":
         fuzzer = get_fuzzer(args.instruction_set, args.working_directory, None)
-        fuzzer.generate_batch(args.program_seed, args.input_seed,
-                              args.num_test_cases, args.num_inputs,
-                              input_format=args.input_format)
+        fuzzer.generate_test_batch(
+            args.program_seed,
+            args.input_seed,
+            args.num_test_cases,
+            args.num_inputs,
+            input_format=args.input_format,
+            permit_overwrite=args.permit_overwrite
+        )
         return
 
     raise Exception("Unreachable")
