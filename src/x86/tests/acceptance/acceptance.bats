@@ -296,6 +296,26 @@ EOF
     rm $tmp_config
 }
 
+@test "CLI: Storing and loading test cases" {
+    tmp_dir=$(mktemp -d)
+    tmp_config=$(mktemp)
+cat << EOF >> $tmp_config
+logging_modes:
+  -
+EOF
+
+    run bash -c "./cli.py generate -s $INSTRUCTION_SET -c $tmp_config -w $tmp_dir -n 1 -i 2"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [ "$output" = "" ]
+
+    run bash -c "./cli.py reproduce -s $INSTRUCTION_SET -c $tmp_config -t $tmp_dir/tc0/program.asm -i $tmp_dir/tc0/input*.bin"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [ "$output" = "" ]
+    rm $tmp_config
+}
+
 # ==================================================================================================
 # Extended tests - take long time, but test deeper
 # ==================================================================================================

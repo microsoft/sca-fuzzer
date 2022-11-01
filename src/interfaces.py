@@ -576,6 +576,11 @@ class Input(np.ndarray):
         with open(path, 'wb') as f:
             f.write(self.tobytes())
 
+    def load(self, path: str) -> None:
+        with open(path, 'rb') as f:
+            contents = np.fromfile(f, dtype=np.uint64)
+            self[:] = contents
+
 
 class InputTaint(np.ndarray):
     """
@@ -704,7 +709,7 @@ class Generator(ABC):
         pass
 
     @abstractmethod
-    def parse_existing_test_case(self, asm_file: str) -> TestCase:
+    def load(self, asm_file: str) -> TestCase:
         """
         Read a test case from a file and create a complete TestCase object based on it.
         Used instead of create_test_case when Revizor works with a user-provided test case.
@@ -730,6 +735,13 @@ class InputGenerator(ABC):
     @abstractmethod
     def extend_equivalence_classes(self, inputs: List[Input],
                                    taints: List[InputTaint]) -> List[Input]:
+        pass
+
+    @abstractmethod
+    def load(self, input_paths: List[str]) -> List[Input]:
+        """
+        Load a sequence of inputs from a directory with binary inputs.
+        """
         pass
 
 

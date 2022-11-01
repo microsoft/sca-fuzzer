@@ -105,7 +105,7 @@ class X86RandomGeneratorTest(unittest.TestCase):
 
         instruction_set = InstructionSet('tests/min_x86.json')
         generator = X86RandomGenerator(instruction_set)
-        tc: TestCase = generator.parse_existing_test_case("tests/asm_basic.asm")
+        tc: TestCase = generator.load("tests/asm_basic.asm")
         self.assertEqual(len(tc.functions), 1)
 
         main = tc.functions[0]

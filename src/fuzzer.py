@@ -5,7 +5,6 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 import shutil
-import random
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, List
@@ -23,6 +22,7 @@ from service import STAT, LOGGER, TWOS_COMPLEMENT_MASK_64, bit_count
 class Fuzzer:
     instruction_set: InstructionSet
     existing_test_case: str
+    input_paths: List[str]
 
     generator: Generator
     input_gen: InputGenerator
@@ -31,9 +31,14 @@ class Fuzzer:
     analyser: Analyser
     coverage: Coverage
 
-    def __init__(self, instruction_set_spec: str, work_dir: str, existing_test_case: str = ""):
+    def __init__(self,
+                 instruction_set_spec: str,
+                 work_dir: str,
+                 existing_test_case: str = "",
+                 inputs: List[str] = []):
         self._adjust_config(existing_test_case)
         self.existing_test_case = existing_test_case
+        self.input_paths = inputs
 
         self.instruction_set = InstructionSet(instruction_set_spec, CONF.instruction_categories)
         self.work_dir = work_dir
@@ -71,17 +76,22 @@ class Fuzzer:
             LOGGER.dbg_report_coverage(i, self.coverage.get_brief())
 
             # Generate a test case
-            if not self.existing_test_case:
-                test_case = self.generator.create_test_case('generated.asm')
+            test_case: TestCase
+            if self.existing_test_case:
+                test_case = self.generator.load(self.existing_test_case)
             else:
-                test_case = self.generator.parse_existing_test_case(self.existing_test_case)
+                test_case = self.generator.create_test_case('generated.asm')
             STAT.test_cases += 1
 
             # Generate the execution environment
             self.generator.create_pte(test_case)
 
             # Prepare inputs
-            inputs: List[Input] = self.input_gen.generate(CONF.input_gen_seed, num_inputs)
+            inputs: List[Input]
+            if self.input_paths:
+                inputs = self.input_gen.load(self.input_paths)
+            else:
+                inputs = self.input_gen.generate(CONF.input_gen_seed, num_inputs)
             STAT.num_inputs += len(inputs) * CONF.inputs_per_class
 
             # Check if the test case is useful
@@ -316,12 +326,16 @@ class ArchitecturalFuzzer(Fuzzer):
     of the model execution vs execution on the CPU
     """
 
-    def __init__(self, instruction_set_spec: str, work_dir: str, existing_test_case: str = ""):
+    def __init__(self,
+                 instruction_set_spec: str,
+                 work_dir: str,
+                 existing_test_case: str = "",
+                 inputs: List[str] = []):
         LOGGER.warning("fuzzer", "Running in architectural mode. "
                        "Contract violations can't be detected!")
         CONF.setattr_internal('executor_mode', "GPR")
         CONF.contract_observation_clause = 'gpr'
-        super().__init__(instruction_set_spec, work_dir, existing_test_case)
+        super().__init__(instruction_set_spec, work_dir, existing_test_case, inputs)
 
     def fuzzing_round(self, test_case: TestCase, inputs: List[Input]) -> Optional[EquivalenceClass]:
         self.model.load_test_case(test_case)

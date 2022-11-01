@@ -113,7 +113,7 @@ class X86ModelTest(unittest.TestCase):
         asm_file = tempfile.NamedTemporaryFile(delete=False)
         with open(asm_file.name, "w") as f:
             f.write(asm_str)
-        tc: TestCase = generator.parse_existing_test_case(asm_file.name)
+        tc: TestCase = generator.load(asm_file.name)
         asm_file.close()
         os.unlink(asm_file.name)
         return tc
