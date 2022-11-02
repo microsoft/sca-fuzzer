@@ -227,7 +227,7 @@ class Fuzzer:
         out_dir = self.work_dir
         if not out_dir or out_dir == "":
             out_dir = os.getcwd()
-        Path(out_dir).mkdir(exist_ok=True)
+        Path(out_dir).mkdir(exist_ok=True, mode=0o755)
 
         # create the two generators
         self.generator = factory.get_generator(self.instruction_set)
@@ -238,7 +238,7 @@ class Fuzzer:
             # attempt to create a directory for the test case
             test_case_dir = out_dir + "/tc" + str(i)
             try:
-                Path(test_case_dir).mkdir(exist_ok=permit_overwrite)
+                Path(test_case_dir).mkdir(exist_ok=permit_overwrite, mode=0o755)
             except FileExistsError:
                 LOGGER.error(f"Directory '{test_case_dir}' already exists\n"
                              "Use --permit-overwrite to overwrite the test case")
