@@ -264,7 +264,8 @@ class Fuzzer:
             # choose a directory to save these inputs to (dependent on whether
             # or not test cases were specified). Then, write each input into
             # the directory
-            save_dir = out_dir if num_test_cases == 0 else out_dir + "/tc" + str(t)
+            save_dir = os.path.join(out_dir, "tc%d" % t)
+            Path(save_dir).mkdir(exist_ok=True, mode=0o755)
             for i in range(len(inputs)):
                 inp = inputs[i]
                 inp_path = os.path.join(save_dir, "input_%d.data" % inp.seed)
