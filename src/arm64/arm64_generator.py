@@ -24,8 +24,8 @@ from arm64.arm64_target_desc import ARMTargetDesc
 
 class ARMGenerator(ConfigurableGenerator, abc.ABC):
 
-    def __init__(self, instruction_set: InstructionSet):
-        super(ARMGenerator, self).__init__(instruction_set)
+    def __init__(self, instruction_set: InstructionSet, seed: int):
+        super(ARMGenerator, self).__init__(instruction_set, seed)
         self.target_desc = ARMTargetDesc()
         self.printer = ARMPrinter()
         self.re_tokenize = re.compile(r"^([^ .]+\.?)([^ ]+)? ([^ ,]+)(,[^ ,]+)?(,[^ ,]+)?( //.*)?")
@@ -325,5 +325,5 @@ class ARMPrinter(Printer):
 
 class ARMRandomGenerator(ARMGenerator, RandomGenerator):
 
-    def __init__(self, instruction_set: InstructionSet):
-        super().__init__(instruction_set)
+    def __init__(self, instruction_set: InstructionSet, seed: int):
+        super().__init__(instruction_set, seed)

@@ -68,8 +68,8 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
     }
     memory_sizes = {"BYTE": 8, "WORD": 16, "DWORD": 32, "QWORD": 64}
 
-    def __init__(self, instruction_set: InstructionSet):
-        super(X86Generator, self).__init__(instruction_set)
+    def __init__(self, instruction_set: InstructionSet, seed):
+        super(X86Generator, self).__init__(instruction_set, seed)
         self.passes = [
             X86SandboxPass(),
             X86PatchUndefinedFlagsPass(self.instruction_set, self),
@@ -660,5 +660,5 @@ class X86Printer(Printer):
 
 class X86RandomGenerator(X86Generator, RandomGenerator):
 
-    def __init__(self, instruction_set: InstructionSet):
-        super().__init__(instruction_set)
+    def __init__(self, instruction_set: InstructionSet, seed):
+        super().__init__(instruction_set, seed)
