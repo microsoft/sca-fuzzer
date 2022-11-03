@@ -7,6 +7,7 @@ SPDX-License-Identifier: MIT
 import shutil
 import random
 import os
+import yaml
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, List
@@ -249,12 +250,14 @@ class Fuzzer:
             LOGGER.inform("fuzzer", "Created assembly test case at %s" % asm_path)
             
             # write the current configurations out to the test case's directory
-            # TODO - make sure subsequent iterations of this loop save the
-            # config file to reflect the NEW seed used for this particular
-            # program (self.generate._state). At the moment, each iteration
-            # will use the same value stored in CONF.program_generator_seed
             config_out_path = os.path.join(test_case_dir, "config.yml")
-            CONF.save(config_out_path)
+            config_fields = CONF.all()
+            # TODO - use the new seed management (PR #21) to update the seed
+            # in this loop iteration such that the correct seed is written
+            # into the config file for this particular program
+            #config_fields["program_generator_seed"] = self.generator._state
+            with open(config_out_path, "w") as fp:
+                yaml.dump(config_fields, fp)
 
         # if NO programs were specified but some inputs were specified, we'll
         # still generate the inputs and place them in 'tc0/', but there won't

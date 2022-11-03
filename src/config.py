@@ -231,7 +231,17 @@ class ConfCls:
         Takes in a file path and writes out the config's contents to a YAML file
         at the given location.
         """
-        # collect all appropriate class fields into a dictionary
+        fields = self.all()
+        # open the output file for writing and dump the collected fields/values
+        fp = open(path, "w")
+        yaml.dump(fields, fp)
+        fp.close()
+
+    def all(self):
+        """
+        Returns all non-internal, non-function fields from this class in a
+        dictionary.
+        """
         fields = {}
         for attr in dir(self):
             value = getattr(self, attr)
@@ -239,12 +249,8 @@ class ConfCls:
             if attr.startswith("_") or callable(value):
                 continue
             fields[attr] = value
-        
-        # open the output file for writing and dump the collected fields/values
-        fp = open(path, "w")
-        yaml.dump(fields, fp)
-        fp.close()
-
+        return fields
+         
 
 CONF = ConfCls()
 CONF.update_arch()
