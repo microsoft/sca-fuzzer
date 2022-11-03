@@ -230,17 +230,17 @@ def main():
 
     # Stand-alone generator
     if args.subparser_name == "generate":
-        # if no seeds were given, select the ones from our config file
-        if not args.program_seed:
-            args.program_seed = CONF.program_generator_seed
-        if not args.input_seed:
-            args.input_seed = CONF.input_gen_seed
+        # if seeds were given, update internal config fields
+        if args.program_seed:
+            CONF.program_generator_seed = args.program_seed
+        if args.input_seed:
+            CONF.input_gen_seed = args.input_seed
 
         # invoke the fuzzer to generate a batch of programs/inputs
         fuzzer = get_fuzzer(args.instruction_set, args.working_directory, None)
         fuzzer.generate_test_batch(
-            args.program_seed,
-            args.input_seed,
+            CONF.program_generator_seed,
+            CONF.input_gen_seed,
             args.num_test_cases,
             args.num_inputs,
             input_format=args.input_format,

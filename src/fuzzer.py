@@ -243,36 +243,43 @@ class Fuzzer:
                 LOGGER.error(f"Directory '{test_case_dir}' already exists\n"
                              "Use --permit-overwrite to overwrite the test case")
 
-            # set the seed and generate the program. After each generated
-            # program, we'll increase the seed by one
-            CONF.program_generator_seed = program_seed
-            random.seed(program_seed)
-            asm_path = os.path.join(test_case_dir, "program_%d.asm" % program_seed)
+            # set the seed and generate the program
+            asm_path = os.path.join(test_case_dir, "program.asm")
             self.generator.create_test_case(asm_path, True)
-            LOGGER.inform("fuzzer", "Created assembly test case with seed=%d at %s" %
-                                    (program_seed, asm_path))
-            program_seed += 1
+            LOGGER.inform("fuzzer", "Created assembly test case at %s" % asm_path)
+            
+            # write the current configurations out to the test case's directory
+            # TODO - make sure subsequent iterations of this loop save the
+            # config file to reflect the NEW seed used for this particular
+            # program (self.generate._state). At the moment, each iteration
+            # will use the same value stored in CONF.program_generator_seed
+            config_out_path = os.path.join(test_case_dir, "config.yml")
+            CONF.save(config_out_path)
 
         # if NO programs were specified but some inputs were specified, we'll
-        # still generate the inputs, but they'll be in the working directory
-        # (not in any sub-directory)
+        # still generate the inputs and place them in 'tc0/', but there won't
+        # be an assembly program in 'tc0/'
         input_loop = 0 if num_inputs == 0 else max(1, num_test_cases)
         for t in range(input_loop):
             # invoke the input generator to generate a number of inputs
             inputs: List[Input] = self.input_gen.generate(input_seed, num_inputs)
 
-            # choose a directory to save these inputs to (dependent on whether
-            # or not test cases were specified). Then, write each input into
-            # the directory
+            # select a directory to save these inputs to, then write them out
             save_dir = os.path.join(out_dir, "tc%d" % t)
             Path(save_dir).mkdir(exist_ok=True, mode=0o755)
             for i in range(len(inputs)):
                 inp = inputs[i]
-                inp_path = os.path.join(save_dir, "input_%d.data" % inp.seed)
+                inp_path = os.path.join(save_dir, "input_%d.data" % i)
                 inp_path = inp.save(inp_path, mode=input_format)
-                LOGGER.inform("fuzzer", "Created input with seed=%d, data_size=%d, "
-                                        "and register_start=%d at %s" % 
-                                        (inp.seed, inp.data_size, inp.register_start, inp_path))
+                LOGGER.inform("fuzzer", "Created input with data_size=%d, "
+                                        "register_start=%d at %s" % 
+                                        (inp.data_size, inp.register_start, inp_path))
+
+            # if we didn't save a copy of the config file in the previous loop,
+            # do so now
+            if num_test_cases == 0:
+                config_out_path = os.path.join(save_dir, "config.yml")
+                CONF.save(config_out_path)
 
         LOGGER.fuzzer_finish()
 

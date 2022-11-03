@@ -4,6 +4,7 @@ File: Fuzzing Configuration Options
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
+import yaml
 import x86.x86_config as x86_config
 import arm64.arm64_config as arm64_config
 from typing import List, Dict
@@ -224,6 +225,25 @@ class ConfCls:
     def setattr_internal(self, name, val):
         """ Bypass value checks and set an internal config variable. Use with caution! """
         super().__setattr__(name, val)
+    
+    def save(self, path: str):
+        """
+        Takes in a file path and writes out the config's contents to a YAML file
+        at the given location.
+        """
+        # collect all appropriate class fields into a dictionary
+        fields = {}
+        for attr in dir(self):
+            value = getattr(self, attr)
+            # skip fields that are functions or internals
+            if attr.startswith("_") or callable(value):
+                continue
+            fields[attr] = value
+        
+        # open the output file for writing and dump the collected fields/values
+        fp = open(path, "w")
+        yaml.dump(fields, fp)
+        fp.close()
 
 
 CONF = ConfCls()
