@@ -248,7 +248,7 @@ class Fuzzer:
                 LOGGER.error(f"Directory '{test_case_dir}' already exists\n"
                              "Use --permit-overwrite to overwrite the test case")
 
-            # set the seed and generate the program
+            # generate the program
             asm_path = os.path.join(test_case_dir, "program.asm")
             self.generator.create_test_case(asm_path, True)
             LOGGER.inform("fuzzer", "Created assembly test case at %s" % asm_path)
@@ -272,11 +272,10 @@ class Fuzzer:
             inputs: List[Input] = self.input_gen.generate(num_inputs)
 
             # select a directory to save these inputs to, then write them out
-            save_dir = os.path.join(out_dir, "tc%d" % t)
+            save_dir = os.path.join(out_dir, f"tc{t}")
             Path(save_dir).mkdir(exist_ok=True, mode=0o755)
-            for i in range(len(inputs)):
-                inp = inputs[i]
-                inp_path = os.path.join(save_dir, "input_%d.data" % i)
+            for i, inp in enumerate(inputs):
+                inp_path = os.path.join(save_dir, f"input_{i}.data")
                 inp_path = inp.save(inp_path, mode=input_format)
                 LOGGER.inform(
                     "fuzzer", "Created input with data_size=%d, "

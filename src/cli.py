@@ -7,7 +7,6 @@ SPDX-License-Identifier: MIT
 """
 
 import os
-import sys
 import yaml
 from typing import Dict
 from argparse import ArgumentParser
@@ -15,6 +14,7 @@ from factory import get_minimizer, get_fuzzer
 from fuzzer import Fuzzer
 from config import CONF
 from service import LOGGER
+
 
 def main():
     parser = ArgumentParser(description='', add_help=True)
@@ -142,13 +142,13 @@ def main():
     parser_generator.add_argument(
         "-r", "--program-seed",
         type=int,
-        default=None, # defaults to CONF.program_generator_seed below
+        default=None,  # defaults to CONF.program_generator_seed below
         help="Add seed to generate test case.",
     )
     parser_generator.add_argument(
         "-R", "--input-seed",
         type=int,
-        default=None, # defaults to CONF.input_gen_seed below
+        default=None,  # defaults to CONF.input_gen_seed below
         help="Add seed to generate inputs."
     )
     parser_generator.add_argument(
@@ -187,10 +187,10 @@ def main():
     args = parser.parse_args()
 
     # if no command-line arguments were given, display a help menu
-    if len(sys.argv) < 2:
+    if not args.subparser_name:
         print("Revizor: a side-channel vulnerability fuzzer.\n")
         parser.print_help()
-        sys.exit(0)
+        exit(0)
 
     # Update configuration
     if args.config:
