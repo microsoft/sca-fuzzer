@@ -691,7 +691,19 @@ class Generator(ABC):
         super().__init__()
 
     def set_seed(self, seed: int):
+        """Set the seed value used to generate test programs
+
+        :param seed: The seed value
+        """
         self._state = seed
+
+    def get_state(self):
+        """Get the current state of the generator.
+        The method complements and is compatible with `set_seed`.
+
+        :return: Current state of the generator
+        """
+        return self._state
 
     @abstractmethod
     def create_test_case(self, path: str, disable_assembler: bool = False) -> TestCase:
@@ -723,7 +735,19 @@ class InputGenerator(ABC):
         super().__init__()
 
     def set_seed(self, seed: int):
+        """Set the seed value used to generate inputs
+
+        :param seed: The seed value
+        """
         self._state = seed
+
+    def get_seed(self):
+        """Get the current state of the generator.
+        The method complements and is compatible with `set_seed`.
+
+        :return: Current state of the generator
+        """
+        return self._state
 
     @abstractmethod
     def generate(self, count: int) -> List[Input]:
