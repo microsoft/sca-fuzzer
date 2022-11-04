@@ -90,7 +90,7 @@ class X86ModelTest(unittest.TestCase):
     def load_tc(asm_str: str):
         min_x86_path = test_dir / "min_x86.json"
         instruction_set = InstructionSet(min_x86_path.absolute().as_posix())
-        generator = X86RandomGenerator(instruction_set)
+        generator = X86RandomGenerator(instruction_set, CONF.program_generator_seed)
 
         asm_file = tempfile.NamedTemporaryFile(delete=False)
         with open(asm_file.name, "w") as f:

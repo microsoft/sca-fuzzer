@@ -64,7 +64,7 @@ LDR x1, [x30], #0
 
 
 def tc_from_str(isa: InstructionSet, string: str):
-    generator = ARMRandomGenerator(isa)
+    generator = ARMRandomGenerator(isa, CONF.program_generator_seed)
     asm_file = tempfile.NamedTemporaryFile(delete=False)
     with open(asm_file.name, "w") as f:
         f.write(string)

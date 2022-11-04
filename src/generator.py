@@ -67,8 +67,8 @@ class ConfigurableGenerator(Generator, abc.ABC):
     printer: Printer  # set by subclasses
     target_desc: TargetDesc  # set by subclasses
 
-    def __init__(self, instruction_set: InstructionSet):
-        super().__init__(instruction_set)
+    def __init__(self, instruction_set: InstructionSet, seed: int):
+        super().__init__(instruction_set, seed)
         self.control_flow_instructions = \
             [i for i in self.instruction_set.instructions if i.control_flow]
         self.non_control_flow_instructions = \
@@ -89,8 +89,9 @@ class ConfigurableGenerator(Generator, abc.ABC):
             assert self.load_instruction and self.store_instructions, \
                 "The instruction set does not have memory accesses while `avg_mem_accesses > 0`"
 
-        if CONF.program_generator_seed:
-            random.seed(CONF.program_generator_seed)
+    def set_seed(self, seed: int):
+        self._state = seed
+        random.seed(seed)
 
     def create_test_case(self, asm_file: str, disable_assembler: bool = False) -> TestCase:
         self.test_case = TestCase()

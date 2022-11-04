@@ -12,7 +12,7 @@ import iced_x86
 sys.path.insert(0, '..')
 from x86.x86_generator import X86RandomGenerator, X86Printer, X86PatchUndefinedFlagsPass, \
     X86Generator
-from factory import get_generator
+from factory import get_program_generator
 from isa_loader import InstructionSet
 from interfaces import TestCase, Function
 from config import CONF
@@ -25,12 +25,12 @@ class X86RandomGeneratorTest(unittest.TestCase):
     def test_x86_configuration(self):
         CONF.generator = "random"
         instruction_set = InstructionSet('tests/min_x86.json', CONF.instruction_categories)
-        gen = get_generator(instruction_set)
+        gen = get_program_generator(instruction_set, CONF.program_generator_seed)
         self.assertEqual(gen.__class__, X86RandomGenerator)
 
     def test_x86_all_instructions(self):
         instruction_set = InstructionSet('tests/min_x86.json', CONF.instruction_categories)
-        generator = X86RandomGenerator(instruction_set)
+        generator = X86RandomGenerator(instruction_set, CONF.program_generator_seed)
         func = generator.generate_function(".function_main")
         printer = X86Printer()
         all_instructions = ['.intel_syntax noprefix\n']
@@ -69,7 +69,7 @@ class X86RandomGeneratorTest(unittest.TestCase):
 
     def test_create_test_case(self):
         instruction_set = InstructionSet('tests/min_x86.json', CONF.instruction_categories)
-        generator = X86RandomGenerator(instruction_set)
+        generator = X86RandomGenerator(instruction_set, CONF.program_generator_seed)
 
         asm_file = tempfile.NamedTemporaryFile(delete=False)
         name = asm_file.name
@@ -100,7 +100,7 @@ class X86RandomGeneratorTest(unittest.TestCase):
         CONF.setattr_internal("_default_instruction_blocklist", [])
 
         instruction_set = InstructionSet('tests/min_x86.json')
-        generator = X86RandomGenerator(instruction_set)
+        generator = X86RandomGenerator(instruction_set, CONF.program_generator_seed)
         tc: TestCase = generator.parse_existing_test_case("tests/asm_basic.asm")
         self.assertEqual(len(tc.functions), 1)
 
@@ -123,7 +123,7 @@ class X86RandomGeneratorTest(unittest.TestCase):
         undef_instr_spec = list(filter(lambda x: x.name == 'BSF', instruction_set.instructions))[0]
         read_instr_spec = list(filter(lambda x: x.name == 'LAHF', instruction_set.instructions))[0]
 
-        generator = X86RandomGenerator(instruction_set)
+        generator = X86RandomGenerator(instruction_set, CONF.program_generator_seed)
         undef_instr = generator.generate_instruction(undef_instr_spec)
         read_instr = generator.generate_instruction(read_instr_spec)
 
