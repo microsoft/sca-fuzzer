@@ -690,14 +690,14 @@ class Generator(ABC):
         self.set_seed(seed)
         super().__init__()
 
-    def set_seed(self, seed: int):
+    def set_seed(self, seed: int) -> None:
         """Set the seed value used to generate test programs
 
         :param seed: The seed value
         """
         self._state = seed
 
-    def get_state(self):
+    def get_state(self) -> int:
         """Get the current state of the generator.
         The method complements and is compatible with `set_seed`.
 
@@ -734,14 +734,14 @@ class InputGenerator(ABC):
         self.set_seed(seed)
         super().__init__()
 
-    def set_seed(self, seed: int):
+    def set_seed(self, seed: int) -> None:
         """Set the seed value used to generate inputs
 
         :param seed: The seed value
         """
         self._state = seed
 
-    def get_seed(self):
+    def get_seed(self) -> int:
         """Get the current state of the generator.
         The method complements and is compatible with `set_seed`.
 
