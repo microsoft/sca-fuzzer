@@ -68,6 +68,7 @@ class Fuzzer:
             # Generate a test case
             if not self.existing_test_case:
                 test_case = self.generator.create_test_case('generated.asm')
+                LOGGER.fuzzer_report_program_generation(test_case)
             else:
                 test_case = self.generator.parse_existing_test_case(self.existing_test_case)
             STAT.test_cases += 1
@@ -75,6 +76,7 @@ class Fuzzer:
             # Prepare inputs
             inputs: List[Input] = self.input_gen.generate(num_inputs)
             STAT.num_inputs += len(inputs) * CONF.inputs_per_class
+            LOGGER.fuzzer_report_input_generation(inputs)
 
             # Check if the test case is useful
             if self.filter(test_case, inputs):
@@ -231,7 +233,7 @@ class Fuzzer:
                   (num_test_cases, num_inputs, CONF.program_generator_seed, CONF.input_gen_seed)
         if input_format:
             log_msg += " (input file format: %s)" % input_format
-        LOGGER.inform("fuzzer", log_msg)
+        LOGGER.dbg("fuzzer", log_msg)
 
         # if no working directory was supplied, use the current directory
         out_dir = self.work_dir
@@ -256,18 +258,12 @@ class Fuzzer:
 
             # generate the program
             asm_path = os.path.join(test_case_dir, "program.asm")
-            self.generator.create_test_case(asm_path, True)
-            LOGGER.inform("fuzzer", "Created assembly test case at %s" % asm_path)
+            tc = self.generator.create_test_case(asm_path, True)
+            LOGGER.fuzzer_report_program_generation(tc)
 
             # write the current configurations out to the test case's directory
             config_out_path = os.path.join(test_case_dir, "config.yml")
-            config_fields = CONF.all()
-            # TODO - use the new seed management (PR #21) to update the seed
-            # in this loop iteration such that the correct seed is written
-            # into the config file for this particular program
-            # config_fields["program_generator_seed"] = self.generator._state
-            with open(config_out_path, "w") as fp:
-                yaml.dump(config_fields, fp)
+            CONF.save(config_out_path)
 
         # if NO programs were specified but some inputs were specified, we'll
         # still generate the inputs and place them in 'tc0/', but there won't
@@ -281,11 +277,9 @@ class Fuzzer:
             save_dir = os.path.join(out_dir, f"tc{t}")
             Path(save_dir).mkdir(exist_ok=True, mode=0o755)
             for i, inp in enumerate(inputs):
-                inp_path = os.path.join(save_dir, f"input_{i}.data")
-                inp_path = inp.save(inp_path, mode=input_format)
-                LOGGER.inform(
-                    "fuzzer", "Created input with data_size=%d, "
-                    "register_start=%d at %s" % (inp.data_size, inp.register_start, inp_path))
+                inp.out_path = os.path.join(save_dir, f"input_{i}.data")
+                inp.out_path = inp.save(inp.out_path, mode=input_format)
+            LOGGER.fuzzer_report_input_generation(inputs)
 
             # if we didn't save a copy of the config file in the previous loop,
             # do so now
@@ -316,6 +310,7 @@ class Fuzzer:
             "The number of hardware traces does not match the number of contract traces"
 
         dummy_inputs = factory.get_input_generator(0).generate(len(ctraces))
+        LOGGER.fuzzer_report_input_generation(dummy_inputs)
 
         # check for violations
         analyser = factory.get_analyser()

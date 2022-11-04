@@ -105,6 +105,8 @@ class Logger:
     dbg_traces: bool = False
     dbg_model: bool = False
     dbg_coverage: bool = False
+    dbg_generator: bool = False
+    dbg_input_gen: bool = False
 
     def __init__(self) -> None:
         pass
@@ -118,7 +120,9 @@ class Logger:
             setattr(self, mode, True)
 
         if not __debug__:
-            if self.dbg_timestamp or self.dbg_model or self.dbg_coverage or self.dbg_traces:
+            if self.dbg_timestamp or self.dbg_model or self.dbg_coverage or \
+               self.dbg_traces or self.dbg_violation or self.dbg_generator or \
+               self.dbg_input_gen:
                 self.warning(
                     "", "Current value of `logging_modes` requires debugging mode!\n"
                     "Remove '-O' from python arguments")
@@ -267,6 +271,36 @@ class Logger:
                 model.trace_test_case([measurements[0].input_], 1)
                 self.dbg_model = model_debug_state
                 print("\n\n")
+
+    def fuzzer_report_program_generation(self, tc):
+        """
+        If 'dbg_generator' is set, this reports information about the given test
+        case, which was recently generated.
+        """
+        if not self.dbg_generator:
+            return
+        
+        # build a message to report
+        msg = "Generated assembly test case with %d function(s) at %s" % \
+              (len(tc.functions), tc.asm_path)
+        print(msg)
+
+    def fuzzer_report_input_generation(self, inputs):
+        """
+        If 'dbg_input_gen' is set, this reports information about the given
+        inputs, which were recently generated.
+        """
+        if not self.dbg_input_gen:
+            return
+        
+        # iterate across each input
+        for inp in inputs:
+            msg = "Generated input with data_size=%d, register_start=%d" % \
+                (inp.data_size, inp.register_start)
+            # if an output path was set in the input, include it in the message
+            if hasattr(inp, "out_path"):
+                msg += " at %s" % inp.out_path
+            print(msg)
 
     # ==============================================================================================
     # Model
