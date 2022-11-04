@@ -225,11 +225,13 @@ class ConfCls:
     def setattr_internal(self, name, val):
         """ Bypass value checks and set an internal config variable. Use with caution! """
         super().__setattr__(name, val)
-    
+
     def save(self, path: str):
         """
         Takes in a file path and writes out the config's contents to a YAML file
         at the given location.
+
+        :param path: The destination file path
         """
         fields = self.all()
         # open the output file for writing and dump the collected fields/values
@@ -250,7 +252,7 @@ class ConfCls:
                 continue
             fields[attr] = value
         return fields
-         
+
 
 CONF = ConfCls()
 CONF.update_arch()

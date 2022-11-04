@@ -85,7 +85,7 @@ class Fuzzer:
 
             if violation:
                 LOGGER.fuzzer_report_violations(violation, self.model)
-                self.store_test_case(test_case, False)
+                self.store_test_case(test_case, inputs)
                 STAT.violations += 1
                 if not nonstop:
                     break
@@ -174,18 +174,24 @@ class Fuzzer:
             boosted_inputs += self.input_gen.extend_equivalence_classes(inputs, taints)
         return boosted_inputs
 
-    def store_test_case(self, test_case: TestCase, require_retires: bool):
+    def store_test_case(self, test_case: TestCase, inputs: List[Input]):
+        """ Save the complete test case (i.e., the program, its inputs, and the config file)
+        into `self.work_dir`.
+
+        :param test_case: A test case program to be stored
+        :param inputs: A list of inputs to be stored
+        """
+
         if not self.work_dir:
             return
-
-        type_ = "retry" if require_retires else "violation"
-        timestamp = datetime.today().strftime('%H%M%S-%d-%m-%y')
-        name = type_ + timestamp + ".asm"
         Path(self.work_dir).mkdir(exist_ok=True)
-        test_case.save(self.work_dir + "/" + name)
 
-        if not Path(self.work_dir + "/config.yaml").exists:
-            shutil.copy2(CONF.config_path, self.work_dir + "/config.yaml")
+        timestamp = datetime.today().strftime('%H%M%S-%d-%m-%y')
+        violation_dir = self.work_dir + "/violation" + timestamp
+        test_case.save(violation_dir + "/program.asm")
+        for i, input_ in enumerate(inputs):
+            input_.save(f"{violation_dir}/input{i}.bin")
+        CONF.save(violation_dir + "/config.yaml")
 
     # ==============================================================================================
     # Single-stage interfaces
