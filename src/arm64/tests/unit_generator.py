@@ -10,7 +10,7 @@ import os
 
 sys.path.insert(0, '..')
 from arm64.arm64_generator import ARMRandomGenerator, ARMPrinter, OT
-from factory import get_generator
+from factory import get_program_generator
 from isa_loader import InstructionSet
 from interfaces import TestCase
 from config import CONF
@@ -51,14 +51,14 @@ class ARMRandomGeneratorTest(unittest.TestCase):
 
     def test_configuration(self):
         instruction_set = InstructionSet('isa_spec/base.json', CONF.instruction_categories)
-        gen = get_generator(instruction_set)
+        gen = get_program_generator(instruction_set, CONF.program_generator_seed)
         self.assertEqual(gen.__class__, ARMRandomGenerator)
 
     def test_create_test_case(self):
         instruction_set = InstructionSet('isa_spec/base.json', CONF.instruction_categories)
         self.assertNotEqual(len(instruction_set.instructions), 0)
 
-        generator = ARMRandomGenerator(instruction_set)
+        generator = ARMRandomGenerator(instruction_set, CONF.program_generator_seed)
 
         asm_file = tempfile.NamedTemporaryFile(delete=False)
         name = asm_file.name
@@ -96,7 +96,7 @@ class ARMRandomGeneratorTest(unittest.TestCase):
         CONF.register_blocklist = gpr_blocklist_old
         CONF.instruction_blocklist = instruction_blocklist_old
 
-        generator = ARMRandomGenerator(instruction_set)
+        generator = ARMRandomGenerator(instruction_set, CONF.program_generator_seed)
         asm_file = tempfile.NamedTemporaryFile(delete=False)
         with open(asm_file.name, "w") as f:
             f.write(PARSING_TEST_CASE)
@@ -132,7 +132,7 @@ class ARMRandomGeneratorTest(unittest.TestCase):
 
     def test_arm_all_instructions(self):
         instruction_set = InstructionSet('isa_spec/base.json', CONF.instruction_blocklist)
-        generator = ARMRandomGenerator(instruction_set)
+        generator = ARMRandomGenerator(instruction_set, CONF.program_generator_seed)
         func = generator.generate_function("function_main")
         printer = ARMPrinter()
         all_instructions = []

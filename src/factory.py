@@ -79,13 +79,14 @@ def get_fuzzer(instruction_set, working_directory, testcase):
                             working_directory, testcase)
 
 
-def get_generator(instruction_set: interfaces.InstructionSetAbstract) -> interfaces.Generator:
+def get_program_generator(instruction_set: interfaces.InstructionSetAbstract,
+                          seed: int) -> interfaces.Generator:
     return _get_from_config(GENERATORS, CONF.instruction_set + "-" + CONF.generator,
-                            "instruction_set", instruction_set)
+                            "instruction_set", instruction_set, seed)
 
 
-def get_input_generator() -> interfaces.InputGenerator:
-    return _get_from_config(INPUT_GENERATORS, CONF.input_generator, "input_generator")
+def get_input_generator(seed: int) -> interfaces.InputGenerator:
+    return _get_from_config(INPUT_GENERATORS, CONF.input_generator, "input_generator", seed)
 
 
 def get_model(bases: Tuple[int, int]) -> interfaces.Model:

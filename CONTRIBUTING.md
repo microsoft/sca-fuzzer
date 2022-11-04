@@ -40,7 +40,7 @@ Python:
 * The project repository includes an .editorconfig file. We recommend using a text editor with EditorConfig support to avoid indentation and whitespace issues.
 * Use underscores, not camelCase, for variable, function and method names (i.e. poll.get_unique_voters(), not poll.getUniqueVoters()).
 * Use InitialCaps for class names (or for factory functions that return classes).
-* In docstrings, follow PEP 257.
+* In docstrings, follow PEP 257. The preferred style is based on Sphinx guidelines (https://sphinx-rtd-tutorial.readthedocs.io/en/latest/docstrings.html) but without type notations - use python3 type hints instead.
 
 C:
 * All files should be formatted using the `clang-format`. The settings are included into the `.clang-format` files in the directories with C files. Just run the formatter with: `clang-format -i *.c`

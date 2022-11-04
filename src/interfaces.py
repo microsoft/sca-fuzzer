@@ -535,7 +535,7 @@ class Input(np.ndarray):
 
     The ordering of registers:  RAX, RBX, RCX, RDX, RSI, RDI, FLAGS
     """
-    seed: int = 0
+    seed: int = 0  # deprecated?
     data_size: int = 0
     register_start: int = 0
 
@@ -746,10 +746,27 @@ class TargetDesc(ABC):
 
 class Generator(ABC):
     instruction_set: InstructionSetAbstract
+    _state: int = 0
 
-    def __init__(self, instruction_set: InstructionSetAbstract):
+    def __init__(self, instruction_set: InstructionSetAbstract, seed: int):
         self.instruction_set = instruction_set
+        self.set_seed(seed)
         super().__init__()
+
+    def set_seed(self, seed: int) -> None:
+        """Set the seed value used to generate test programs
+
+        :param seed: The seed value
+        """
+        self._state = seed
+
+    def get_state(self) -> int:
+        """Get the current state of the generator.
+        The method complements and is compatible with `set_seed`.
+
+        :return: Current state of the generator
+        """
+        return self._state
 
     @abstractmethod
     def create_test_case(self, path: str, disable_assembler: bool = False) -> TestCase:
@@ -774,9 +791,29 @@ class Generator(ABC):
 
 
 class InputGenerator(ABC):
+    _state: int = 0
+
+    def __init__(self, seed: int):
+        self.set_seed(seed)
+        super().__init__()
+
+    def set_seed(self, seed: int) -> None:
+        """Set the seed value used to generate inputs
+
+        :param seed: The seed value
+        """
+        self._state = seed
+
+    def get_seed(self) -> int:
+        """Get the current state of the generator.
+        The method complements and is compatible with `set_seed`.
+
+        :return: Current state of the generator
+        """
+        return self._state
 
     @abstractmethod
-    def generate(self, seed: int, count: int) -> List[Input]:
+    def generate(self, count: int) -> List[Input]:
         pass
 
     @abstractmethod

@@ -5,7 +5,6 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 import shutil
-import random
 import os
 import yaml
 from pathlib import Path
@@ -45,8 +44,10 @@ class Fuzzer:
 
     def initialize_modules(self):
         """ create all main modules """
-        self.generator = factory.get_generator(self.instruction_set)
-        self.input_gen: InputGenerator = factory.get_input_generator()
+        self.generator = factory.get_program_generator(self.instruction_set,
+                                                       CONF.program_generator_seed)
+        self.input_gen: InputGenerator = factory.get_input_generator(CONF.input_gen_seed)
+
         self.executor: Executor = factory.get_executor()
         self.model: Model = factory.get_model(self.executor.read_base_addresses())
         self.analyser: Analyser = factory.get_analyser()
@@ -72,7 +73,7 @@ class Fuzzer:
             STAT.test_cases += 1
 
             # Prepare inputs
-            inputs: List[Input] = self.input_gen.generate(CONF.input_gen_seed, num_inputs)
+            inputs: List[Input] = self.input_gen.generate(num_inputs)
             STAT.num_inputs += len(inputs) * CONF.inputs_per_class
 
             # Check if the test case is useful
@@ -188,9 +189,11 @@ class Fuzzer:
 
     # ==============================================================================================
     # Single-stage interfaces
-    def generate_test_batch(self, program_seed: int, input_seed: int,
-                            num_test_cases: int, num_inputs: int,
-                            input_format=None, permit_overwrite=False):
+    def generate_test_batch(self,
+                            num_test_cases: int,
+                            num_inputs: int,
+                            input_format=None,
+                            permit_overwrite=False):
         """
         A function invoked as a standalone way to generate fuzzer test cases and
         inputs without running the entire fuzzer. This accepts a seed, a number
@@ -219,7 +222,7 @@ class Fuzzer:
         # log the given parameters
         log_msg = "Generating batch of %d program(s) and %d input(s). " \
                   "(program seed: %d) (input seed: %d)" % \
-                  (num_test_cases, num_inputs, program_seed, input_seed)
+                  (num_test_cases, num_inputs, CONF.program_generator_seed, CONF.input_gen_seed)
         if input_format:
             log_msg += " (input file format: %s)" % input_format
         LOGGER.inform("fuzzer", log_msg)
@@ -231,8 +234,9 @@ class Fuzzer:
         Path(out_dir).mkdir(exist_ok=True, mode=0o755)
 
         # create the two generators
-        self.generator = factory.get_generator(self.instruction_set)
-        self.input_gen = factory.get_input_generator()
+        self.generator = factory.get_program_generator(self.instruction_set,
+                                                       CONF.program_generator_seed)
+        self.input_gen = factory.get_input_generator(CONF.input_gen_seed)
 
         # invoke the test-case generator to create assembly files
         for i in range(num_test_cases):
@@ -248,14 +252,14 @@ class Fuzzer:
             asm_path = os.path.join(test_case_dir, "program.asm")
             self.generator.create_test_case(asm_path, True)
             LOGGER.inform("fuzzer", "Created assembly test case at %s" % asm_path)
-            
+
             # write the current configurations out to the test case's directory
             config_out_path = os.path.join(test_case_dir, "config.yml")
             config_fields = CONF.all()
             # TODO - use the new seed management (PR #21) to update the seed
             # in this loop iteration such that the correct seed is written
             # into the config file for this particular program
-            #config_fields["program_generator_seed"] = self.generator._state
+            # config_fields["program_generator_seed"] = self.generator._state
             with open(config_out_path, "w") as fp:
                 yaml.dump(config_fields, fp)
 
@@ -265,7 +269,7 @@ class Fuzzer:
         input_loop = 0 if num_inputs == 0 else max(1, num_test_cases)
         for t in range(input_loop):
             # invoke the input generator to generate a number of inputs
-            inputs: List[Input] = self.input_gen.generate(input_seed, num_inputs)
+            inputs: List[Input] = self.input_gen.generate(num_inputs)
 
             # select a directory to save these inputs to, then write them out
             save_dir = os.path.join(out_dir, "tc%d" % t)
@@ -274,9 +278,9 @@ class Fuzzer:
                 inp = inputs[i]
                 inp_path = os.path.join(save_dir, "input_%d.data" % i)
                 inp_path = inp.save(inp_path, mode=input_format)
-                LOGGER.inform("fuzzer", "Created input with data_size=%d, "
-                                        "register_start=%d at %s" % 
-                                        (inp.data_size, inp.register_start, inp_path))
+                LOGGER.inform(
+                    "fuzzer", "Created input with data_size=%d, "
+                    "register_start=%d at %s" % (inp.data_size, inp.register_start, inp_path))
 
             # if we didn't save a copy of the config file in the previous loop,
             # do so now
@@ -306,7 +310,7 @@ class Fuzzer:
         assert len(ctraces) == len(htraces), \
             "The number of hardware traces does not match the number of contract traces"
 
-        dummy_inputs = factory.get_input_generator().generate(1, len(ctraces))
+        dummy_inputs = factory.get_input_generator(0).generate(len(ctraces))
 
         # check for violations
         analyser = factory.get_analyser()

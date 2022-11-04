@@ -90,7 +90,7 @@ def main():
         type=str,
         required=False
     )
-    
+
     # ------------------------ Test Case Minimization ------------------------ #
     parser_mini = subparsers.add_parser(
         'minimize',
@@ -239,8 +239,6 @@ def main():
         # invoke the fuzzer to generate a batch of programs/inputs
         fuzzer = get_fuzzer(args.instruction_set, args.working_directory, None)
         fuzzer.generate_test_batch(
-            CONF.program_generator_seed,
-            CONF.input_gen_seed,
             args.num_test_cases,
             args.num_inputs,
             input_format=args.input_format,
