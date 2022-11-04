@@ -553,8 +553,7 @@ class Input(np.ndarray):
         # fill the input with zeroes initially before returning, to ensure the
         # 'padding' bytes (created by using 'aligned_size' rather than
         # 'data_size') deterministic across separate runs
-        for i in range(len(obj)):
-            obj[i] = 0
+        obj.fill(0)
         return obj
 
     def __array_finalize__(self, obj):
@@ -585,14 +584,14 @@ class Input(np.ndarray):
         """
 
         # Internal helper function. Writes raw byte content out.
-        def save_binary(path: str) -> None:
+        def save_binary(path: str) -> str:
             path = os.path.splitext(path)[0] + ".bin"
             with open(path, 'wb') as f:
                 f.write(self.tobytes())
             return path
 
         # Internal helper function. Writes ASCII byte hex values.
-        def save_hex(path: str) -> None:
+        def save_hex(path: str) -> str:
             path = os.path.splitext(path)[0] + ".hex"
             with open(path, "w") as f:
                 # convert to bytes and write the bytes out in hex format
@@ -602,9 +601,9 @@ class Input(np.ndarray):
             return path
 
         # Internal helper function. Writes data out to a yaml file.
-        def save_yaml(path: str) -> None:
+        def save_yaml(path: str) -> str:
             # build a dictionary object to pass to pyyaml
-            data = {"registers": {}, "memory": []}
+            data: dict = {"registers": {}, "memory": []}
 
             # convert registers to individual byte integers
             for i, regval in enumerate(self.get_registers()):
@@ -625,7 +624,7 @@ class Input(np.ndarray):
             return path
 
         # based on the mode, invoke the correct helper function
-        mode_handlers = {"binary": save_binary, "hex": save_hex, "yaml": save_yaml}
+        mode_handlers: dict = {"binary": save_binary, "hex": save_hex, "yaml": save_yaml}
         mode = mode.lower() if mode else list(mode_handlers.keys())[0]
         assert mode in mode_handlers, "unknown input save mode: \"%s\"" % mode
         return mode_handlers[mode](path)
