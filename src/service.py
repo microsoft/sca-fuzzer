@@ -285,7 +285,7 @@ class Logger:
               (len(tc.functions), tc.asm_path)
         print(msg)
 
-    def fuzzer_report_input_generation(self, inputs):
+    def fuzzer_report_input_generation(self, inp, out_path=""):
         """
         If 'dbg_input_gen' is set, this reports information about the given
         inputs, which were recently generated.
@@ -294,13 +294,12 @@ class Logger:
             return
         
         # iterate across each input
-        for inp in inputs:
-            msg = "Generated input with data_size=%d, register_start=%d" % \
-                (inp.data_size, inp.register_start)
-            # if an output path was set in the input, include it in the message
-            if hasattr(inp, "out_path"):
-                msg += " at %s" % inp.out_path
-            print(msg)
+        msg = "Generated input with data_size=%d, register_start=%d" % \
+            (inp.data_size, inp.register_start)
+        # if an output path was set in the input, include it in the message
+        if len(out_path) > 0:
+            msg += " at %s" % out_path
+        print(msg)
 
     # ==============================================================================================
     # Model

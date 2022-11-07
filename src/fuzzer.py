@@ -76,7 +76,8 @@ class Fuzzer:
             # Prepare inputs
             inputs: List[Input] = self.input_gen.generate(num_inputs)
             STAT.num_inputs += len(inputs) * CONF.inputs_per_class
-            LOGGER.fuzzer_report_input_generation(inputs)
+            for inp in inputs:
+                LOGGER.fuzzer_report_input_generation(inp)
 
             # Check if the test case is useful
             if self.filter(test_case, inputs):
@@ -277,9 +278,9 @@ class Fuzzer:
             save_dir = os.path.join(out_dir, f"tc{t}")
             Path(save_dir).mkdir(exist_ok=True, mode=0o755)
             for i, inp in enumerate(inputs):
-                inp.out_path = os.path.join(save_dir, f"input_{i}.data")
-                inp.out_path = inp.save(inp.out_path, mode=input_format)
-            LOGGER.fuzzer_report_input_generation(inputs)
+                out_path = os.path.join(save_dir, f"input_{i}.data")
+                out_path = inp.save(out_path, mode=input_format)
+                LOGGER.fuzzer_report_input_generation(inp, out_path=out_path)
 
             # if we didn't save a copy of the config file in the previous loop,
             # do so now
@@ -310,7 +311,8 @@ class Fuzzer:
             "The number of hardware traces does not match the number of contract traces"
 
         dummy_inputs = factory.get_input_generator(0).generate(len(ctraces))
-        LOGGER.fuzzer_report_input_generation(dummy_inputs)
+        for inp in dummy_inputs:
+            LOGGER.fuzzer_report_input_generation(inp)
 
         # check for violations
         analyser = factory.get_analyser()
