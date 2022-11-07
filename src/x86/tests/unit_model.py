@@ -327,7 +327,7 @@ class X86ModelTest(unittest.TestCase):
         mbase, cbase = 0x1000000, 0x8000
         model = x86_model.X86UnicornSeq(mbase, cbase)
         model.tracer = core_model.CTTracer()
-        model.handled_faults.extend([12, 13])
+        model.handled_faults.update([12, 13])
         input_ = Input()
         input_[0] = 1
         input_[input_.register_start + 2] = 4096
@@ -340,7 +340,7 @@ class X86ModelTest(unittest.TestCase):
         model = x86_model.X86UnicornNull(mbase, cbase)
         model.tracer = core_model.CTTracer()
         model.rw_protect = True
-        model.handled_faults.extend([12, 13])
+        model.handled_faults.update([12, 13])
         input_ = Input()
         for i in range(0, 7):
             input_[input_.register_start + i] = 2
@@ -369,7 +369,7 @@ class X86ModelTest(unittest.TestCase):
         mbase, cbase = 0x1000000, 0x8000
         model = x86_model.X86UnicornNullTerminating(mbase, cbase)
         model.tracer = core_model.CTTracer()
-        model.handled_faults.extend([12, 13])
+        model.handled_faults.update([12, 13])
         input_ = Input()
         for i in range(0, 7):
             input_[input_.register_start + i] = 2
@@ -401,7 +401,7 @@ class X86ModelTest(unittest.TestCase):
         mbase, cbase = 0x1000000, 0x8000
         model = x86_model.X86UnicornOOO(mbase, cbase)
         model.tracer = core_model.CTTracer()
-        model.handled_faults.extend([12, 13])
+        model.handled_faults.update([12, 13])
         input_ = Input()
         for i in range(0, 7):
             input_[input_.register_start + i] = 2
@@ -421,7 +421,7 @@ class X86ModelTest(unittest.TestCase):
         mbase, cbase = 0x1000000, 0x8000
         model = x86_model.X86UnicornDivZero(mbase, cbase)
         model.tracer = core_model.CTTracer()
-        model.handled_faults.append(21)
+        model.handled_faults.update(21)
         input_ = Input()
         input_[input_.register_start] = 2  # rax
         input_[input_.register_start + 1] = 0  # rbx
@@ -435,7 +435,7 @@ class X86ModelTest(unittest.TestCase):
         model = x86_model.X86UnicornDivZero(mbase, cbase)
         model.tracer = core_model.CTTracer()
         model.rw_protect = True
-        model.handled_faults.append(21)
+        model.handled_faults.update(21)
         input_ = Input()
         input_[input_.register_start] = 2  # rax
         input_[input_.register_start + 1] = 0  # rbx
@@ -453,7 +453,7 @@ class X86ModelTest(unittest.TestCase):
         mbase, cbase = 0x1000000, 0x8000
         model = x86_model.X86Meltdown(mbase, cbase)
         model.tracer = core_model.CTTracer()
-        model.handled_faults.extend([12, 13])
+        model.handled_faults.update([12, 13])
         input_ = Input()
         for i in range(0, 7):
             input_[input_.register_start + i] = 2
@@ -474,7 +474,7 @@ class X86ModelTest(unittest.TestCase):
         model = x86_model.X86Meltdown(mbase, cbase)
         model.tracer = core_model.CTTracer()
         model.rw_protect = True
-        model.handled_faults.extend([12, 13])
+        model.handled_faults.update([12, 13])
         input_ = Input()
         for i in range(0, 7):
             input_[input_.register_start + i] = 2
@@ -495,7 +495,7 @@ class X86ModelTest(unittest.TestCase):
         model = x86_model.X86Meltdown(mbase, cbase)
         model.tracer = core_model.CTTracer()
         model.rw_protect = True
-        model.handled_faults.extend([12, 13])
+        model.handled_faults.update([12, 13])
         input_ = Input()
         for i in range(0, 7):
             input_[input_.register_start + i] = 2
@@ -517,7 +517,7 @@ class X86ModelTest(unittest.TestCase):
         model = x86_model.X86CondMeltdown(mbase, cbase)
         model.tracer = core_model.CTTracer()
         model.rw_protect = True
-        model.handled_faults.extend([12, 13])
+        model.handled_faults.update([12, 13])
         input_ = Input()
         for i in range(0, 7):
             input_[input_.register_start + i] = 2
@@ -540,7 +540,7 @@ class X86ModelTest(unittest.TestCase):
         model = x86_model.X86CondMeltdown(mbase, cbase)
         model.tracer = core_model.CTTracer()
         model.rw_protect = True
-        model.handled_faults.extend([12, 13])
+        model.handled_faults.update([12, 13])
         input_ = Input()
         for i in range(0, 7):
             input_[input_.register_start + i] = 2
@@ -568,7 +568,7 @@ class X86ModelTest(unittest.TestCase):
         mbase, cbase = 0x1000000, 0x8000
         model = x86_model.X86FaultSkip(mbase, cbase)
         model.tracer = core_model.CTTracer()
-        model.handled_faults.extend([12, 13])
+        model.handled_faults.update([12, 13])
         input_ = Input()
         for i in range(0, 7):
             input_[input_.register_start + i] = 2
