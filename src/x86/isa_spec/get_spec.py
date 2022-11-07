@@ -85,6 +85,9 @@ class X86Transformer:
         'FS': 16,
         'GS': 16,
     }
+    not_control_flow = ["INT", "INT1", "INT3", "INTO"]
+    """ a list of instructions that have RIP as an operand but should
+    not be considered as control-flow instructions by the generator"""
 
     def __init__(self) -> None:
         self.instructions = []
@@ -124,7 +127,7 @@ class X86Transformer:
                     op_type = op_node.attrib['type']
                     if op_type == 'reg':
                         parsed_op = self.parse_reg_operand(op_node)
-                        if op_node.text == "RIP":
+                        if op_node.text == "RIP" and name not in self.not_control_flow:
                             self.instruction.control_flow = True
                     elif op_type == 'mem':
                         parsed_op = self.parse_mem_operand(op_node)

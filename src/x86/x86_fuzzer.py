@@ -27,6 +27,8 @@ def update_instruction_list():
             CONF._default_instruction_blocklist.append("REX IDIV")
     if 'UD' not in CONF.permitted_faults:
         CONF._default_instruction_blocklist.extend(["UD", "UD2"])
+    if 'BP' not in CONF.permitted_faults:
+        CONF._default_instruction_blocklist.extend(["INT3"])
 
 
 class X86Fuzzer(Fuzzer):

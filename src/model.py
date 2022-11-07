@@ -12,7 +12,7 @@ import copy
 import re
 
 from unicorn import Uc, UcError, UC_MEM_WRITE, UC_MEM_READ, UC_SECOND_SCALE, UC_HOOK_MEM_READ, \
-    UC_HOOK_MEM_WRITE, UC_HOOK_CODE, UC_PROT_NONE, UC_PROT_READ
+    UC_HOOK_MEM_WRITE, UC_HOOK_CODE
 
 from interfaces import CTrace, TestCase, Model, InputTaint, Instruction, ExecutionTrace, \
      TracedInstruction, TracedMemAccess, Input, Tracer, \
@@ -168,6 +168,8 @@ class UnicornModel(Model, ABC):
 
         # update a list of handled faults based on the config
         if 'DE-zero' in CONF.permitted_faults or 'DE-overflow' in CONF.permitted_faults:
+            self.handled_faults.append(21)
+        if 'BP' in CONF.permitted_faults:
             self.handled_faults.append(21)
         if 'UD' in CONF.permitted_faults:
             self.handled_faults.append(10)
@@ -495,8 +497,6 @@ class GPRTracer(UnicornTracer):
 # ==================================================================================================
 # Implementation of Execution Clauses
 # ==================================================================================================
-
-
 class UnicornSeq(UnicornModel):
     """
     A simple, in-order contract.

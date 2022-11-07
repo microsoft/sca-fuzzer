@@ -6,8 +6,8 @@
 #ifndef X86_EXECUTOR
 #define X86_EXECUTOR
 
-#include <linux/types.h>
 #include <asm/traps.h>
+#include <linux/types.h>
 
 #define DEBUG 0
 #define STRINGIFY(...) #__VA_ARGS__
@@ -104,9 +104,12 @@ extern uint64_t *inputs;
 extern volatile size_t n_inputs;
 
 // Fault handling
+#define HANDLED_FAULTS_DEFAULT                                                                     \
+    ((1 << X86_TRAP_DE) + (1 << X86_TRAP_BP) + (1 << X86_TRAP_UD) + (1 << X86_TRAP_GP) +           \
+     (1 << X86_TRAP_PF))
+
 extern char *fault_handler;
 extern uint32_t handled_faults;
-#define HANDLED_FAULTS_DEFAULT 24641 // #DE #IO #PF #GP
 extern gate_desc *curr_idt_table;
 extern pteval_t faulty_pte_mask_set;
 extern pteval_t faulty_pte_mask_clear;
