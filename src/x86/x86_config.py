@@ -10,7 +10,7 @@ from typing import List
 x86_option_values = {
     'executor_mode': ['P+P', 'F+R', 'E+R'],  # 'GPR' is intentionally left out
     'permitted_faults': [
-        'DE-zero', 'DE-overflow', 'UD', 'PF-present', 'PF-writable', 'PF-noncanonical',
+        'DE-zero', 'DE-overflow', 'UD', 'PF-present', 'PF-writable', 'PF-noncanonical', 'BP',
         'assist-accessed', 'assist-dirty'
     ],
 }
@@ -23,7 +23,7 @@ x86_disable_div64: bool = True
 
 
 x86_instruction_categories: List[str] = [
-    # Base x86
+    # Base x86 - main instructions
     "BASE-BINARY",
     "BASE-BITBYTE",
     "BASE-CMOV",
@@ -40,6 +40,9 @@ x86_instruction_categories: List[str] = [
     "BASE-SETCC",
     "BASE-STRINGOP",
 
+    # Base x86 - system instructions
+    "BASE-INTERRUPT",
+
     # "BASE-ROTATE",      # Unknown bug in Unicorn - emulated incorrectly
     # "BASE-SHIFT",       # Unknown bug in Unicorn - emulated incorrectly
 
@@ -48,7 +51,6 @@ x86_instruction_categories: List[str] = [
     # "BASE-RET",         # Not supported: Complex control flow
 
     # "BASE-SEGOP",       # Not supported: System instructions
-    # "BASE-INTERRUPT",   # Not supported: System instructions
     # "BASE-IO",          # Not supported: System instructions
     # "BASE-IOSTRINGOP",  # Not supported: System instructions
     # "BASE-SYSCALL",     # Not supported: System instructions
@@ -95,6 +97,8 @@ x86_instruction_blocklist: List[str] = [
     "REPNE STOSB", "REPNE STOSD", "REPNE STOSW", "REPNE STOSQ",
     "REPNE CMPSB", "REPNE CMPSD", "REPNE CMPSW", "REPNE CMPSQ",
     "REPNE MOVSB", "REPNE MOVSD", "REPNE MOVSW", "REPNE MOVSQ",
+
+    "INT", "INTO", "INT1",  # under construction
 
     # - not supported
     "LFENCE", "MFENCE", "SFENCE", "CLFLUSH", "CLFLUSHOPT",
