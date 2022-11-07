@@ -77,7 +77,7 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
             X86PatchUndefinedFlagsPass(self.instruction_set, self),
             X86NonCanonicalAddressPass(),
             X86PatchUndefinedResultPass(),
-            X86AddUndefinedOpcodesPass(),
+            X86PatchOpcodesPass(),
         ]
         self.printer = X86Printer()
         self.target_desc = X86TargetDesc()
@@ -705,40 +705,46 @@ class X86PatchUndefinedResultPass(Pass):
         parent.insert_before(inst, apply_mask)
 
 
-class X86AddUndefinedOpcodesPass(Pass):
+class X86PatchOpcodesPass(Pass):
     """
-    Replaces all UD instructions with actual opcodes undefined under Intel x86 ISA
+    Replaces assembly instructions with their opcodes.
+    This is necessary to test instruction with multiple opcodes and
+    the instruction that are not supported/not permitted by the standard
+    assembler.
     """
-    opcodes: List[str] = [
-        # UD2 instruction
-        "0x0f, 0x0b",
+    opcodes: Dict[str, List[str]] = {
+        "UD2": [
+            # UD2 instruction
+            "0x0f, 0x0b",
 
-        # invalid in 64-bit mode
-        "0x37",  # AAA
-        "0xd5, 0x0a",  # AAD
-        "0xd4, 0x0a",  # AAM
-        "0x3f",  # AAS
-        "0x62",  # BOUND
-        "0x27",  # DAA
-        "0x2F",  # DAS
-        "0x61",  # POPA
+            # invalid in 64-bit mode
+            "0x37",  # AAA
+            "0xd5, 0x0a",  # AAD
+            "0xd4, 0x0a",  # AAM
+            "0x3f",  # AAS
+            "0x62",  # BOUND
+            "0x27",  # DAA
+            "0x2F",  # DAS
+            "0x61",  # POPA
 
-        # invalid in 64-bit + invalid with lock
-        "0xf0, 0x37",  # AAA
-        "0xf0, 0xd5, 0x0a",  # AAD
-        "0xf0, 0xd4, 0x0a",  # AAM
-        "0xf0, 0x3f",  # AAS
-        "0xf0, 0x62",  # BOUND
-        "0xf0, 0x27",  # DAA
-        "0xf0, 0x2F",  # DAS
-        "0xf0, 0x61",  # POPA
+            # invalid in 64-bit + invalid with lock
+            "0xf0, 0x37",  # AAA
+            "0xf0, 0xd5, 0x0a",  # AAD
+            "0xf0, 0xd4, 0x0a",  # AAM
+            "0xf0, 0x3f",  # AAS
+            "0xf0, 0x62",  # BOUND
+            "0xf0, 0x27",  # DAA
+            "0xf0, 0x2F",  # DAS
+            "0xf0, 0x61",  # POPA
 
-        # invalid with lock
-        # "0xf0, 0x48, 0x11, 0xc0",  # LOCK ADC rax, rax
+            # invalid with lock
+            # "0xf0, 0x48, 0x11, 0xc0",  # LOCK ADC rax, rax
 
-        # invalid when not in VMX operation
-        # "0xf0, 0x01, 0xc1",  # VMCALL
-    ]
+            # invalid when not in VMX operation
+            # "0xf0, 0x01, 0xc1",  # VMCALL
+        ],
+        "INT1": ["0xf1"]
+    }
 
     def run_on_test_case(self, test_case: TestCase) -> None:
         for func in test_case.functions:
@@ -747,17 +753,18 @@ class X86AddUndefinedOpcodesPass(Pass):
                     continue
 
                 # collect all UD instructions
-                undefined_inst = []
+                to_patch = []
                 for inst in bb:
-                    if inst.name in ["UD", "UD2"]:
-                        undefined_inst.append(inst)
+                    if inst.name in self.opcodes.keys():
+                        to_patch.append(inst)
 
                 # patch them
-                for inst in undefined_inst:
+                for inst in to_patch:
                     self.replace_opcode(inst, bb)
 
     def replace_opcode(self, inst: Instruction, _: BasicBlock):
-        opcode = random.choice(self.opcodes)
+        opcode_options = self.opcodes[inst.name]
+        opcode = random.choice(opcode_options)
         inst.name = ".byte " + opcode
 
 

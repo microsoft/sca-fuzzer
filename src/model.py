@@ -130,7 +130,7 @@ class UnicornModel(Model, ABC):
     execution_tracing_enabled: bool = False
 
     # fault handling
-    handled_faults: List[int]
+    handled_faults: Set[int]
     pending_fault_id: int = 0
     previous_context = None
     rw_protect: bool = False
@@ -164,25 +164,27 @@ class UnicornModel(Model, ABC):
 
         # fault handling
         self.pending_fault_id = 0
-        self.handled_faults = []
+        self.handled_faults = set()
 
         # update a list of handled faults based on the config
         if 'DE-zero' in CONF.permitted_faults or 'DE-overflow' in CONF.permitted_faults:
-            self.handled_faults.append(21)
+            self.handled_faults.add(21)
+        if 'DB-instruction' in CONF.permitted_faults:
+            self.handled_faults.add(10)
         if 'BP' in CONF.permitted_faults:
-            self.handled_faults.append(21)
+            self.handled_faults.add(21)
         if 'UD' in CONF.permitted_faults:
-            self.handled_faults.append(10)
+            self.handled_faults.add(10)
         if 'PF-present' in CONF.permitted_faults:
-            self.handled_faults.extend([12, 13])
+            self.handled_faults.update([12, 13])
         if 'PF-writable' in CONF.permitted_faults:
-            self.handled_faults.append(12)
+            self.handled_faults.add(12)
         if 'PF-noncanonical' in CONF.permitted_faults:
-            self.handled_faults.append(6)
+            self.handled_faults.add(6)
         if 'assist-dirty' in CONF.permitted_faults:
-            self.handled_faults.extend([12, 13])
+            self.handled_faults.update([12, 13])
         if 'assist-accessed' in CONF.permitted_faults:
-            self.handled_faults.extend([12, 13])
+            self.handled_faults.update([12, 13])
 
     def load_test_case(self, test_case: TestCase) -> None:
         """
