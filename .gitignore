@@ -16,3 +16,4 @@ experiments/
 src/custom_conf.yaml
 *.o
 patches/
+*.swp

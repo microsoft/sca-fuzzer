@@ -6,6 +6,8 @@ SPDX-License-Identifier: MIT
 """
 from __future__ import annotations
 
+import os
+import yaml
 import shutil
 from typing import List, Dict, Tuple, Optional, NamedTuple
 from collections import defaultdict
@@ -547,6 +549,11 @@ class Input(np.ndarray):
         obj = super().__new__(cls, (aligned_size,), np.uint64, None, 0, None, None)  # type: ignore
         obj.data_size = data_size
         obj.register_start = data_size - CONF.input_register_region_size // 8
+
+        # fill the input with zeroes initially before returning, to ensure the
+        # 'padding' bytes (created by using 'aligned_size' rather than
+        # 'data_size') deterministic across separate runs
+        obj.fill(0)
         return obj
 
     def __array_finalize__(self, obj):
@@ -565,9 +572,62 @@ class Input(np.ndarray):
     def __repr__(self):
         return str(self.seed)
 
-    def save(self, path: str) -> None:
-        with open(path, 'wb') as f:
-            f.write(self.tobytes())
+    def save(self, path: str, mode=None) -> str:
+        """
+        Takes in a 'mode' and uses it to determine the output file format.
+          "binary"    writes raw data bytes to a file
+          "hex"       writes hex byte strings into a file (one byte per line)
+          "yaml"      writes the bytes to a yaml file
+
+        :return: the path of the file saved. (The path may have its extension
+                changed depending on the chosen mode.)
+        """
+
+        # Internal helper function. Writes raw byte content out.
+        def save_binary(path: str) -> str:
+            path = os.path.splitext(path)[0] + ".bin"
+            with open(path, 'wb') as f:
+                f.write(self.tobytes())
+            return path
+
+        # Internal helper function. Writes ASCII byte hex values.
+        def save_hex(path: str) -> str:
+            path = os.path.splitext(path)[0] + ".hex"
+            with open(path, "w") as f:
+                # convert to bytes and write the bytes out in hex format
+                input_bytes = self.tobytes()
+                for b in input_bytes:
+                    f.write("%x\n" % b)
+            return path
+
+        # Internal helper function. Writes data out to a yaml file.
+        def save_yaml(path: str) -> str:
+            # build a dictionary object to pass to pyyaml
+            data: dict = {"registers": {}, "memory": []}
+
+            # convert registers to individual byte integers
+            for i, regval in enumerate(self.get_registers()):
+                regbytes = []
+                for b in regval.tobytes():
+                    regbytes.append(b)
+                data["registers"][str(i)] = regbytes
+
+            # do the same for memory
+            for byte in self.get_memory().tobytes():
+                data["memory"].append(byte)
+
+            # open the file for writing (replace the extension with 'yml') and
+            # dump the dictionary
+            path = os.path.splitext(path)[0] + ".yml"
+            with open(path, "w") as f:
+                yaml.dump(data, f)
+            return path
+
+        # based on the mode, invoke the correct helper function
+        mode_handlers: dict = {"binary": save_binary, "hex": save_hex, "yaml": save_yaml}
+        mode = mode.lower() if mode else list(mode_handlers.keys())[0]
+        assert mode in mode_handlers, "unknown input save mode: \"%s\"" % mode
+        return mode_handlers[mode](path)
 
 
 class InputTaint(np.ndarray):

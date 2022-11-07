@@ -5,6 +5,8 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 import shutil
+import os
+import yaml
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, List
@@ -66,6 +68,7 @@ class Fuzzer:
             # Generate a test case
             if not self.existing_test_case:
                 test_case = self.generator.create_test_case('generated.asm')
+                LOGGER.fuzzer_report_program_generation(test_case)
             else:
                 test_case = self.generator.parse_existing_test_case(self.existing_test_case)
             STAT.test_cases += 1
@@ -73,6 +76,8 @@ class Fuzzer:
             # Prepare inputs
             inputs: List[Input] = self.input_gen.generate(num_inputs)
             STAT.num_inputs += len(inputs) * CONF.inputs_per_class
+            for inp in inputs:
+                LOGGER.fuzzer_report_input_generation(inp)
 
             # Check if the test case is useful
             if self.filter(test_case, inputs):
@@ -83,7 +88,7 @@ class Fuzzer:
 
             if violation:
                 LOGGER.fuzzer_report_violations(violation, self.model)
-                self.store_test_case(test_case, False)
+                self.store_test_case(test_case, inputs)
                 STAT.violations += 1
                 if not nonstop:
                     break
@@ -172,47 +177,116 @@ class Fuzzer:
             boosted_inputs += self.input_gen.extend_equivalence_classes(inputs, taints)
         return boosted_inputs
 
-    def store_test_case(self, test_case: TestCase, require_retires: bool):
+    def store_test_case(self, test_case: TestCase, inputs: List[Input]):
+        """ Save the complete test case (i.e., the program, its inputs, and the config file)
+        into `self.work_dir`.
+
+        :param test_case: A test case program to be stored
+        :param inputs: A list of inputs to be stored
+        """
+
         if not self.work_dir:
             return
-
-        type_ = "retry" if require_retires else "violation"
-        timestamp = datetime.today().strftime('%H%M%S-%d-%m-%y')
-        name = type_ + timestamp + ".asm"
         Path(self.work_dir).mkdir(exist_ok=True)
-        test_case.save(self.work_dir + "/" + name)
 
-        if not Path(self.work_dir + "/config.yaml").exists:
-            shutil.copy2(CONF.config_path, self.work_dir + "/config.yaml")
+        timestamp = datetime.today().strftime('%H%M%S-%d-%m-%y')
+        violation_dir = self.work_dir + "/violation" + timestamp
+        test_case.save(violation_dir + "/program.asm")
+        for i, input_ in enumerate(inputs):
+            input_.save(f"{violation_dir}/input{i}.bin")
+        CONF.save(violation_dir + "/config.yaml")
 
     # ==============================================================================================
     # Single-stage interfaces
-    def generate_test_batch(self, program_generator_seed: int, num_test_cases: int, num_inputs: int,
-                            permit_overwrite: bool):
+    def generate_test_batch(self,
+                            num_test_cases: int,
+                            num_inputs: int,
+                            input_format=None,
+                            permit_overwrite=False):
+        """
+        A function invoked as a standalone way to generate fuzzer test cases and
+        inputs without running the entire fuzzer. This accepts a seed, a number
+        of test cases, and a number of inputs, and generates accordingly.
+
+        * To generate only assembly test cases, set 'num_inputs' to 0.
+        * To generate only inputs, set 'num_test_cases' to 0.
+
+        The test cases and inputs are saved to individual files in the
+        user-specified working directory (or the user's current directory, if no
+        directory is specified).
+
+        Optionally, this accepts an 'input_format' string that corresponds to
+        one of the supported modes in the Input class' 'save()' method. If left
+        as None, a default will be used.
+
+        This also accepts 'permit_overwrite', which allows for an existing set
+        of generated files to be overwritten in the same directory. By default
+        this is false.
+        """
         LOGGER.fuzzer_start(0, datetime.today())
 
         # prepare for generation
         STAT.test_cases = num_test_cases
-        CONF.program_generator_seed = program_generator_seed
 
-        program_gen = factory.get_program_generator(self.instruction_set,
-                                                    CONF.program_generator_seed)
-        input_gen = factory.get_input_generator(CONF.input_gen_seed)
+        # log the given parameters
+        log_msg = "Generating batch of %d program(s) and %d input(s). " \
+                  "(program seed: %d) (input seed: %d)" % \
+                  (num_test_cases, num_inputs, CONF.program_generator_seed, CONF.input_gen_seed)
+        if input_format:
+            log_msg += " (input file format: %s)" % input_format
+        LOGGER.dbg("fuzzer", log_msg)
 
-        # generate test cases
-        Path(self.work_dir).mkdir(exist_ok=True)
-        for i in range(0, num_test_cases):
-            test_case_dir = self.work_dir + "/tc" + str(i)
+        # if no working directory was supplied, use the current directory
+        out_dir = self.work_dir
+        if not out_dir or out_dir == "":
+            out_dir = os.getcwd()
+        Path(out_dir).mkdir(exist_ok=True, mode=0o755)
+
+        # create the two generators
+        self.generator = factory.get_program_generator(self.instruction_set,
+                                                       CONF.program_generator_seed)
+        self.input_gen = factory.get_input_generator(CONF.input_gen_seed)
+
+        # invoke the test-case generator to create assembly files
+        for i in range(num_test_cases):
+            # attempt to create a directory for the test case
+            test_case_dir = out_dir + "/tc" + str(i)
             try:
-                Path(test_case_dir).mkdir(exist_ok=permit_overwrite)
+                Path(test_case_dir).mkdir(exist_ok=permit_overwrite, mode=0o755)
             except FileExistsError:
                 LOGGER.error(f"Directory '{test_case_dir}' already exists\n"
-                             "       Use --permit-overwrite to overwrite the test case")
+                             "Use --permit-overwrite to overwrite the test case")
 
-            program_gen.create_test_case(test_case_dir + "/" + "program.asm", True)
-            inputs = input_gen.generate(num_inputs)
-            for j, input_ in enumerate(inputs):
-                input_.save(f"{test_case_dir}/input{j}.bin")
+            # generate the program
+            asm_path = os.path.join(test_case_dir, "program.asm")
+            tc = self.generator.create_test_case(asm_path, True)
+            LOGGER.fuzzer_report_program_generation(tc)
+
+            # write the current configurations out to the test case's directory
+            config_out_path = os.path.join(test_case_dir, "config.yml")
+            CONF.save(config_out_path)
+
+        # if NO programs were specified but some inputs were specified, we'll
+        # still generate the inputs and place them in 'tc0/', but there won't
+        # be an assembly program in 'tc0/'
+        input_loop = 0 if num_inputs == 0 else max(1, num_test_cases)
+        for t in range(input_loop):
+            # invoke the input generator to generate a number of inputs
+            inputs: List[Input] = self.input_gen.generate(num_inputs)
+
+            # select a directory to save these inputs to, then write them out
+            save_dir = os.path.join(out_dir, f"tc{t}")
+            Path(save_dir).mkdir(exist_ok=True, mode=0o755)
+            for i, inp in enumerate(inputs):
+                out_path = os.path.join(save_dir, f"input_{i}.data")
+                out_path = inp.save(out_path, mode=input_format)
+                LOGGER.fuzzer_report_input_generation(inp, out_path=out_path)
+
+            # if we didn't save a copy of the config file in the previous loop,
+            # do so now
+            if num_test_cases == 0:
+                config_out_path = os.path.join(save_dir, "config.yml")
+                CONF.save(config_out_path)
 
         LOGGER.fuzzer_finish()
 
@@ -237,6 +311,8 @@ class Fuzzer:
             "The number of hardware traces does not match the number of contract traces"
 
         dummy_inputs = factory.get_input_generator(0).generate(len(ctraces))
+        for inp in dummy_inputs:
+            LOGGER.fuzzer_report_input_generation(inp)
 
         # check for violations
         analyser = factory.get_analyser()
