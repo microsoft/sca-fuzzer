@@ -285,8 +285,10 @@ void run_experiment(long rounds)
             faulty_page_pte.pte =
                 ((faulty_page_ptep->pte | faulty_pte_mask_set) & faulty_pte_mask_clear);
             set_pte_at(current->mm, faulty_page_addr, faulty_page_ptep, faulty_page_pte);
-            asm volatile("clflush (%0)\nlfence\n" ::"r"(faulty_page_addr)
-             : "memory");
+            // When testing for #PF flushing the faulty page causes a 'soft
+            // lookup' kernel error on certain CPUs.
+            //asm volatile("clflush (%0)\nlfence\n" ::"r"(faulty_page_addr)
+            // : "memory");
             _native_page_invalidate();
         }
 
