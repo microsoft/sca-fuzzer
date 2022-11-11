@@ -175,6 +175,8 @@ class UnicornModel(Model, ABC):
             self.handled_faults.extend([12, 13])
         if 'PF-writable' in CONF.permitted_faults:
             self.handled_faults.append(12)
+        if 'PF-noncanonical' in CONF.permitted_faults:
+            self.handled_faults.append(6)
         if 'assist-dirty' in CONF.permitted_faults:
             self.handled_faults.extend([12, 13])
         if 'assist-accessed' in CONF.permitted_faults:
