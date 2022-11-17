@@ -5,14 +5,14 @@ It is a rather unconventional fuzzer as, instead of finding bugs in programs, Re
 
 What is a microarchitectural vulnerability?
 In the context of Revizor, it is a violation of out expectations about the CPU behavior, expressed as contract violations (see [Contracts](https://arxiv.org/abs/2006.03841)).
-The most prominent examples would be [Spectre](https://spectreattack.com/) and [Meltdown](https://meltdownattack.com/).
-Alternatively, a "bug" could also be in a form of a microarchitectural backdoor or an unknown optimization, although we are yet to encounter one of those.
+The most prominent examples would be [Spectre](https://spectreattack.com/), [Meltdown](https://meltdownattack.com/), and other speculative execution vulnerabilities.
+Alternatively, a "bug" could also be in a form of a microarchitectural backdoor, although we are yet to encounter one of those.
 
 See our [Paper](https://dl.acm.org/doi/10.1145/3503222.3507729) for details (also in open access [here](https://arxiv.org/abs/2105.06872)).
 
 # Getting Started
 
-**Note:** If you find missing or confusing explanations, or a bug in Revizor, don't hesitate to open an issue.
+**Note:** If you find a missing or a confusing explanation, or a bug in Revizor, don't hesitate to open an issue.
 
 **Warning**: Revizor executes randomly generated code in kernel space.
 As you can imagine, things could go wrong.
@@ -23,11 +23,13 @@ Make sure you're not running these experiments on an important machine.
 
 ### 1. Hardware Requirements
 
-So far, Revizor supports only Intel CPUs. It was tested on Intel Core i7-6700 and i7-9700, but it should work on any other Intel CPU just as well.
+Revizor supports Intel and AMD x86-64 CPUs.
+
+We also have experimental support for ARM CPUs (see `arm-port` branch); use it on your own peril.
 
 ### 2. Software Requirements
 
-* Linux v5.6+ (tested on Linux v5.6.6-300 and v5.6.13-100; there is a good chance it will work on other versions as well, but it's not guaranteed).
+* Linux v4.15 or later. Older kernels will likely work as well, but we never tried it.
 
 ```shell
 # check linux version
@@ -39,13 +41,6 @@ cat /proc/version
 ```shell
 # On Ubuntu
 sudo apt-get install linux-headers-$(uname -r)
-```
-
-* MSR Tools
-
-```shell
-# On Ubuntu
-sudo apt install msr-tools
 ```
 
 * [Python 3.9+](https://www.python.org/downloads/)
@@ -62,7 +57,15 @@ pip3 install --upgrade pip
 pip3 install --upgrade distlib
 ```
 
-* [Unicorn 1.0.2+](https://www.unicorn-engine.org/docs/)
+*Warning*: Some distributions (including Ubuntu) rely on a specific version of python,
+so updating alternatives may mess up with internal tools (e.g., `apt` may start faulting).
+In such cases, simply reset alternatives to the default python version after you've
+finished using Revizor.
+
+* [Unicorn 1.0.2+](https://www.unicorn-engine.org/docs/).
+Preferably, use version 1.0.2 or 1.0.3 as they seem to be currently the most stable.
+We've encountered several bugs when using the most recent version 2.0.
+
 
 ```shell
 sudo apt install unicorn
@@ -86,10 +89,10 @@ pip3 install --user pyyaml types-pyyaml numpy
 
 ### 3. Software Requirements for Revizor Development
 
-Tests: 
+Tests:
 * [Bash Automated Testing System](https://bats-core.readthedocs.io/en/latest/index.html)
 * [mypy](https://mypy.readthedocs.io/en/latest/getting_started.html#installing-and-running-mypy)
-* `GNU datamash`
+
 
 Documentation:
 * [pdoc3](https://pypi.org/project/pdoc3/)
@@ -99,7 +102,7 @@ Documentation:
 For more stable results, disable hyperthreading (there's usually a BIOS option for it).
 If you do not disable hyperthreading, you will see a warning every time you invoke Revizor; you can ignore it.
 
-Optionally (and it *really* is optional), you can boot the kernel on a single core by adding `-maxcpus=1` to the boot parameters ([how to add a boot parameter](https://wiki.ubuntu.com/Kernel/KernelBootParameters)). 
+Optionally (and it *really* is optional), you can boot the kernel on a single core by adding `-maxcpus=1` to the boot parameters ([how to add a boot parameter](https://wiki.ubuntu.com/Kernel/KernelBootParameters)).
 
 In addition, you might want to stop any other actively-running software on the tested machine. We never encountered issues with it, but it might be useful.
 
@@ -197,8 +200,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Trademarks
 
-This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft 
-trademarks or logos is subject to and must follow 
+This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft
+trademarks or logos is subject to and must follow
 [Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general).
 Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship.
 Any use of third-party trademarks or logos are subject to those third-party's policies.
