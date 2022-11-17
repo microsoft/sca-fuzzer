@@ -191,7 +191,7 @@ EOF
 }
 
 
-@test "Faults: Handling #DE-zero fault" {
+@test "Faults: Handling #DE-zero" {
     tmp_config=$(mktemp)
 cat << EOF >> $tmp_config
 contract_observation_clause: ct
@@ -233,7 +233,7 @@ EOF
     rm $tmp_config
 }
 
-@test "Faults: Handling #UD fault" {
+@test "Faults: Handling #UD" {
     tmp_config=$(mktemp)
 cat << EOF >> $tmp_config
 contract_observation_clause: ct
@@ -254,7 +254,7 @@ EOF
     rm $tmp_config
 }
 
-@test "Faults: Handling #PF fault" {
+@test "Faults: Handling #PF" {
     tmp_config=$(mktemp)
 cat << EOF >> $tmp_config
 contract_observation_clause: ct
@@ -273,6 +273,64 @@ EOF
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
     rm $tmp_config
+}
+
+@test "Faults: Handling #DB-instruction" {
+    tmp_config=$(mktemp)
+    tmp_asm=$(mktemp)
+cat << EOF >> $tmp_config
+contract_observation_clause: ct
+contract_execution_clause:
+  - seq
+inputs_per_class: 2
+permitted_faults:
+  - DB-instruction
+logging_modes:
+  -
+EOF
+
+cat << EOF >> $tmp_asm
+.intel_syntax noprefix
+.test_case_enter:
+.byte 0xf1  # INT1
+MOV rax, qword ptr [r14 + 256]
+.test_case_exit:
+EOF
+
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t $tmp_asm -i 10 -c $tmp_config"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [ "$output" = "" ]
+    rm $tmp_config $tmp_asm
+}
+
+@test "Faults: Handling #BP" {
+    tmp_config=$(mktemp)
+    tmp_asm=$(mktemp)
+cat << EOF >> $tmp_config
+contract_observation_clause: ct
+contract_execution_clause:
+  - seq
+inputs_per_class: 2
+permitted_faults:
+  - BP
+logging_modes:
+  -
+EOF
+
+cat << EOF >> $tmp_asm
+.intel_syntax noprefix
+.test_case_enter:
+INT3
+MOV rax, qword ptr [r14 + 256]
+.test_case_exit:
+EOF
+
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t $tmp_asm -i 10 -c $tmp_config"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [ "$output" = "" ]
+    rm $tmp_config $tmp_asm
 }
 
 @test "Contract: Handling of OOO execution" {
