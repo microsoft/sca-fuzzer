@@ -77,6 +77,8 @@ x86_instruction_blocklist: List[str] = [
     "XLAT", "XLATB",
     # - Requires complex instrumentation
     "ENTERW", "ENTER", "LEAVEW", "LEAVE",
+    # - requires support of all possible interrupts
+    "INT",
 
     # Stringops - under construction
     "LODSB", "LODSD", "LODSW", "LODSQ",
@@ -96,8 +98,6 @@ x86_instruction_blocklist: List[str] = [
     "REPNE STOSB", "REPNE STOSD", "REPNE STOSW", "REPNE STOSQ",
     "REPNE CMPSB", "REPNE CMPSD", "REPNE CMPSW", "REPNE CMPSQ",
     "REPNE MOVSB", "REPNE MOVSD", "REPNE MOVSW", "REPNE MOVSQ",
-
-    "INT", "INTO",  # under construction
 
     # - not supported
     "LFENCE", "MFENCE", "SFENCE", "CLFLUSH", "CLFLUSHOPT",
