@@ -10,6 +10,7 @@ from datetime import datetime
 from interfaces import EquivalenceClass
 from config import CONF
 from typing import NoReturn
+from pprint import pformat
 
 MASK_64BIT = pow(2, 64)
 POW2_64 = pow(2, 64)
@@ -105,6 +106,7 @@ class Logger:
     dbg_traces: bool = False
     dbg_model: bool = False
     dbg_coverage: bool = False
+    dbg_generator: bool = False
 
     def __init__(self) -> None:
         pass
@@ -118,7 +120,8 @@ class Logger:
             setattr(self, mode, True)
 
         if not __debug__:
-            if self.dbg_timestamp or self.dbg_model or self.dbg_coverage or self.dbg_traces:
+            if self.dbg_timestamp or self.dbg_model or self.dbg_coverage or self.dbg_traces\
+               or self.dbg_generator:
                 self.warning(
                     "", "Current value of `logging_modes` requires debugging mode!\n"
                     "Remove '-O' from python arguments")
@@ -144,6 +147,24 @@ class Logger:
         if self.redraw_mode:
             print("")
         print(f"DBG: [{src}] {msg}")
+
+    # ==============================================================================================
+    # Generator
+    def dbg_gen_instructions(self, instructions):
+        if not __debug__:
+            return
+
+        if not self.dbg_generator:
+            return
+
+        instructions_by_category = {i.category: set() for i in instructions}
+        for i in instructions:
+            instructions_by_category[i.category].add(i.name)
+
+        self.dbg("generator", "Instructions under test:")
+        for k, instruction_list in instructions_by_category.items():
+            print("  - " + k + ": " + pformat(sorted(instruction_list), indent=4, compact=True))
+        print("")
 
     # ==============================================================================================
     # Fuzzer
@@ -213,8 +234,11 @@ class Logger:
                         if i > 100:
                             self.warning("fuzzer", "Trace output is limited to 100 traces")
                             break
+                        ctrace = ctraces[i]
                         print("    ")
-                        print(f"CTr{i:<2} {self.pretty_bitmap(ctraces[i], ctraces[i] > pow(2, 64), '      ')}")
+                        print(
+                            f"CTr{i:<2} {self.pretty_bitmap(ctrace, ctrace > pow(2, 64), '      ')}"
+                        )
                         print(f"HTr{i:<2} {self.pretty_bitmap(htraces[i])}")
                         print(f"Feedback{i}: {hw_feedback[i]}")
 
