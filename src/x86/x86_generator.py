@@ -67,6 +67,8 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
         "SETPE": "SETP",
         "SETPO": "SETNP",
         "MOVABS": "MOV",
+        "REPNZ": "REPNE",
+        "REPZ": "REPE",
     }
     memory_sizes = {"BYTE": 8, "WORD": 16, "DWORD": 32, "QWORD": 64}
 

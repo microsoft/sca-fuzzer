@@ -89,7 +89,7 @@ class X86RandomGeneratorTest(unittest.TestCase):
                 continue
             pc = int(words[0][:-1], 16)
             inst_obj = tc.address_map[pc]
-            if inst_obj.name == "UNMAPPED":
+            if inst_obj.name == "UNMAPPED" or '.byte' in inst_obj.name:
                 continue
             disasm_name = words[1].upper()
             if disasm_name in X86Generator.asm_synonyms:
