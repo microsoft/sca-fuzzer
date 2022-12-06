@@ -9,7 +9,7 @@ import numpy as np
 from typing import Tuple, Dict, List, Set
 import copy
 
-import unicorn.x86_const as ucc
+import unicorn.x86_const as ucc  # type: ignore
 from unicorn import Uc, UC_MEM_WRITE, UC_ARCH_X86, UC_MODE_64, UC_PROT_READ, UC_PROT_NONE
 
 from interfaces import Input, FlagsOperand, RegisterOperand, MemoryOperand

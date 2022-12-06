@@ -237,7 +237,7 @@ class UnicornModel(Model, ABC):
         """
         pass
 
-    def _execute_test_case(self, inputs, nesting):
+    def _execute_test_case(self, inputs: List[Input], nesting: int):
         """
         Architecture independent code - it starts the emulator
         """
@@ -261,7 +261,10 @@ class UnicornModel(Model, ABC):
                     self.emulator.emu_start(
                         start_address, self.code_end, timeout=10 * UC_SECOND_SCALE)
                 except UcError as e:
-                    self.pending_fault_id = e.errno
+                    # the type annotation below is ignored because some
+                    # of the packaged versions of Unicorn do not have
+                    # complete type annotations
+                    self.pending_fault_id = e.errno  # type: ignore
 
                 # handle faults
                 if self.pending_fault_id:
