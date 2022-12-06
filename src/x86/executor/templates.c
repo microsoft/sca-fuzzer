@@ -162,6 +162,37 @@ int load_template(size_t tc_size)
         "dec "TMP"; jnz 1b                          \n"
 
 
+// A sequence of instructions that attempts to
+// set the pipeline to a uniform state, regardless
+// of the code that was executed before it.
+// The idea is that if we execute a whole bunch
+// fences, it will give time for the uops that are
+// currently in the reservation station to get executed,
+// and thus ensure that the test case starts with
+// an empty-ish pipeline
+// clobber: none
+#define PIPELINE_RESET() asm volatile(""\
+    "mfence; mfence; mfence; mfence; mfence \n" \
+    "mfence; mfence; mfence; mfence; mfence \n" \
+    "mfence; mfence; mfence; mfence; mfence \n" \
+    "mfence; mfence; mfence; mfence; mfence \n" \
+    "mfence; mfence; mfence; mfence; mfence \n" \
+    "mfence; mfence; mfence; mfence; mfence \n" \
+    "mfence; mfence; mfence; mfence; mfence \n" \
+    "mfence; mfence; mfence; mfence; mfence \n" \
+    "mfence; mfence; mfence; mfence; mfence \n" \
+    "mfence; mfence; mfence; mfence; mfence \n" \
+    "mfence; mfence; mfence; mfence; mfence \n" \
+    "mfence; mfence; mfence; mfence; mfence \n" \
+    "mfence; mfence; mfence; mfence; mfence \n" \
+    "mfence; mfence; mfence; mfence; mfence \n" \
+    "mfence; mfence; mfence; mfence; mfence \n" \
+    "mfence; mfence; mfence; mfence; mfence \n" \
+    "mfence; mfence; mfence; mfence; mfence \n" \
+    "mfence; mfence; mfence; mfence; mfence \n" \
+    "mfence; mfence; mfence; mfence; mfence \n");
+
+
 #define SET_REGISTER_FROM_INPUT()\
     asm volatile("\n.intel_syntax noprefix\n" \
     "lea rsp, [r14 + "xstr(REG_INIT_OFFSET)"]\n" \
@@ -395,8 +426,10 @@ void template_l1d_prime_probe(void) {
     // clobber: rax, rcx, rdx
     asm_volatile_intel(READ_PFC_START());
 
-    // // Initialize registers
+    // Initialize registers
     SET_REGISTER_FROM_INPUT();
+
+    PIPELINE_RESET();
 
     // Execute the test case
     asm("\nlfence\n"
@@ -496,6 +529,8 @@ void template_l1d_flush_reload(void) {
     // Initialize registers
     SET_REGISTER_FROM_INPUT();
 
+    PIPELINE_RESET();
+
     // Execute the test case
     asm("lfence\n"
         ".quad "xstr(TEMPLATE_INSERT_TC)"\n"
@@ -534,6 +569,8 @@ void template_l1d_evict_reload(void) {
 
     // Initialize registers
     SET_REGISTER_FROM_INPUT();
+
+    PIPELINE_RESET();
 
     // Execute the test case
     asm("lfence\n"
