@@ -158,9 +158,9 @@ static inline int pre_measurement_setup(void)
 #if VENDOR_ID == 1 // Intel
     // Configure PMU
     err |= config_pfc(0, "D1.01", 1, 1); // L1 hits - for htrace collection
-    err |= config_pfc(1, "0D.01", 1, 1); // misprediction recovery cycles - fuzzing feedback
+    err |= config_pfc(1, "0E.01", 1, 1); // 0E.01 - uops issued - fuzzing feedback
     err |= config_pfc(2, "C2.02", 1, 1); // C2.02 - uops retirement slots - fuzzing feedback
-    err |= config_pfc(3, "0E.01", 1, 1); // 0E.01 - uops issued - fuzzing feedback
+    err |= config_pfc(3, "0D.01", 1, 1); // misprediction recovery cycles - fuzzing feedback
 
     // Configure uarch patches
     wrmsr64(MSR_IA32_SPEC_CTRL, ssbp_patch_control);

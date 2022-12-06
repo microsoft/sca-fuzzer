@@ -94,7 +94,7 @@ function load_test_case() {
     load_test_case $tmpasm
     run cat /sys/x86_executor/trace
     echo "Output: $output"
-    [[ "$output" == *"9223372036854775808,0"* ]]
+    [[ "$output" == *"9223372036854775808,"* ]]
 
     echo "MOVQ %r14, %rax; add \$512, %rax; movq (%rax), %rax" > $tmpasm
     load_test_case $tmpasm
@@ -262,16 +262,16 @@ function load_test_case() {
 }
 
 @test "x86 executor: Detection of mispredictions" {
-    if cat /proc/cpuinfo | grep "Intel" ; then
+    if cat /proc/cpuinfo | grep "Intel" -m1 > /dev/null ; then
         echo "P+P" > /sys/x86_executor/measurement_mode
         echo "0 18446744073709551583" > /sys/x86_executor/faulty_pte_mask
         tmpasm=$(mktemp /tmp/revizor-test.XXXXXX.asm)
 
         echo "MOVQ %r14, %rax; add \$4096, %rax; movq (%rax), %rax" > $tmpasm
         load_test_case $tmpasm
-        run cat /sys/x86_executor/trace
+        run bash -c "cat /sys/x86_executor/trace | awk -F, '/,/{if (\$2 > \$3) {print \"Detected\"} else {print \"Not detected\"}}'"
         echo "Output: $output"
-        [[ "$output" != *",0,"* ]]
+        [[ "$output" == *"Detected"* ]]
 
         rm "$tmpasm"
     elif grep "AMD" /proc/cpuinfo  -m1 ; then
