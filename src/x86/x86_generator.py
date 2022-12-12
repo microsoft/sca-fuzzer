@@ -67,6 +67,8 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
         "SETPE": "SETP",
         "SETPO": "SETNP",
         "MOVABS": "MOV",
+        "REPE": "REPZ",
+        "REPNE": "REPNZ",
         "REPNZ": "REPNE",
         "REPZ": "REPE",
     }
