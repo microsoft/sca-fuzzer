@@ -38,6 +38,7 @@ x86_instruction_categories: List[str] = [
     "BASE-SEMAPHORE",
     "BASE-SETCC",
     "BASE-STRINGOP",
+    "BASE-WIDENOP",
 
     # Base x86 - system instructions
     "BASE-INTERRUPT",
