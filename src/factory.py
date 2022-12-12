@@ -31,6 +31,7 @@ TRACERS: Dict[str, Type[model.UnicornTracer]] = {
     "pc": model.PCTracer,
     "memory": model.MemoryTracer,
     "ct": model.CTTracer,
+    "loads+stores+pc": model.CTTracer,
     "ct-nonspecstore": model.CTNonSpecStoreTracer,
     "ctr": model.CTRTracer,
     "arch": model.ArchTracer,
@@ -39,7 +40,9 @@ TRACERS: Dict[str, Type[model.UnicornTracer]] = {
 
 X86_SIMPLE_EXECUTION_CLAUSES: Dict[str, Type[x86_model.X86UnicornModel]] = {
     "seq": x86_model.X86UnicornSeq,
+    "no_speculation": x86_model.X86UnicornSeq,
     "cond": x86_model.X86UnicornCond,
+    "conditional_br_misprediction": x86_model.X86UnicornCond,
     "bpas": x86_model.X86UnicornBpas,
     "nullinj": x86_model.X86UnicornNull,
     "nullinj-term": x86_model.X86UnicornNullTerminating,
