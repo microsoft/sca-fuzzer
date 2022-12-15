@@ -30,6 +30,8 @@ class X86UnicornModel(UnicornModel):
     Base class that serves as main interface.
     Loads inputs and executes the test case on x86
     """
+    
+    input_hash: int = 0
 
     def __init__(self, sandbox_base, code_start):
         self.target_desc = X86UnicornTargetDesc()
@@ -52,7 +54,9 @@ class X86UnicornModel(UnicornModel):
     def _load_input(self, input_: Input):
         """
         Set registers and stack before starting the emulation
-        """
+        """        
+        self.input_hash = hash(input_)
+        
         # Set memory:
         # - initialize overflows with zeroes
         self.emulator.mem_write(self.lower_overflow_base, self.overflow_region_values)
@@ -488,6 +492,183 @@ class X86UnicornOOO(X86FaultModelAbstract):
         self.dependencies = self.dependency_checkpoints.pop()
         return super().rollback()
 
+class X86UnicornVSPECUnknown(X86FaultModelAbstract):
+    """
+    Contract for value speculation with unknown values
+    """
+    reg_taints: Dict
+    flag_taints: Dict
+    address_taints: Dict
+    reg_taints_checkpoints: List[Dict]
+    curr_observation: set()
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        # DIV exceptions only for now
+        self.relevant_faults.update([21])
+        self.reg_taints = dict()
+        self.flag_taints = dict()
+        self.address_taints = dict()
+        self.reg_taints_checkpoints = []
+
+    def speculate_fault(self, errno: int) -> int:
+        if not self.fault_triggers_speculation(errno):
+            return 0
+
+        # start speculation
+        # we set the rollback address to the end of the testcase
+        # because faults are terminating execution
+        self.checkpoint(self.emulator, self.code_end)
+
+        # collect source and destination operands for initial tainting        
+        reg_src_operands = []
+        reg_dest_operands = []
+        
+        for op in self.current_instruction.get_all_operands():
+            if isinstance(op, RegisterOperand):
+                if op.src:
+                    reg_src_operands.append(X86TargetDesc.gpr_normalized[op.value])
+                if op.dest:
+                    reg_dest_operands.append(X86TargetDesc.gpr_normalized[op.value])
+            elif isinstance(op, MemoryOperand):
+                for sub_op in re.split(r'\+|-|\*| ', op.value):
+                    if sub_op and sub_op in X86TargetDesc.gpr_normalized:
+                        normalized = X86TargetDesc.gpr_normalized[sub_op]
+                        reg_src_operands.append(normalized)
+            elif isinstance(op, FlagsOperand):
+                reg_src_operands.extend(op.get_read_flags())
+                reg_dest_operands.extend(op.get_write_flags())                
+        
+        # self.reg_taints['A'] = {111}     
+        # self.reg_taints['D'] = {111}
+        # collect value of all source operands
+        source_values = set()
+        for reg in reg_src_operands:
+            reg_id = X86UnicornTargetDesc.reg_decode[reg]
+            reg_value = self.emulator.reg_read(reg_id)
+            source_values.add(reg_value)
+        
+        # taint destination registers with taints
+        for reg in reg_dest_operands:
+            self.reg_taints[reg] = source_values
+         
+        # speculatively skip the faulting instruction
+        if self.next_instruction_addr >= self.code_end:
+            return 0  # no need for speculation if we're at the end
+        else:
+            return self.next_instruction_addr
+
+    @staticmethod
+    def speculate_instruction(emulator: Uc, address, size, model) -> None:
+        """
+        Track how taints move through system and produce correct observations.
+        """
+        assert isinstance(model, X86UnicornVSPECUnknown)
+
+        # reset flag
+        model.curr_observation = set()
+        # print('current taints:', model.reg_taints)
+        # track dependencies only after faults
+        if not model.in_speculation or not model.reg_taints:
+            return
+
+        # assemble source and destination operands of instruction
+        # code duplication, with method speculate_fault(), could me moved in
+        #    into separate method at some point
+        reg_src_operands = []
+        reg_dest_operands = []
+        # if the instruction accesses the memory, these registers are used in the address
+        address_regs = []
+        for op in model.current_instruction.get_all_operands():
+            if isinstance(op, RegisterOperand):
+                if op.src:
+                    reg_src_operands.append(X86TargetDesc.gpr_normalized[op.value])
+                if op.dest:
+                    reg_dest_operands.append(X86TargetDesc.gpr_normalized[op.value])
+            elif isinstance(op, MemoryOperand):
+                for sub_op in re.split(r'\+|-|\*| ', op.value):
+                    if sub_op and sub_op in X86TargetDesc.gpr_normalized:
+                        normalized = X86TargetDesc.gpr_normalized[sub_op]
+                        reg_src_operands.append(normalized)
+                        address_regs.append(normalized)
+            elif isinstance(op, FlagsOperand):
+                reg_src_operands.extend(op.get_read_flags())
+                reg_dest_operands.extend(op.get_write_flags())                
+        
+        # print('source operands:', reg_src_operands)  
+        # print('destination operands:', reg_dest_operands)        
+              
+        # if source operands are not tainted, possible taint from destination operands 
+        #   can be removed and control flow is returned
+        # print('intersection: ', reg_src_operands | model.reg_taints.keys())
+        if not (reg_src_operands & model.reg_taints.keys()):
+            for reg in reg_dest_operands:
+                if reg in model.reg_taints:
+                    del model.reg_taints[reg]
+            return
+        
+        # check if instruction attempted load from tainted value
+        tainted_address_regs = {reg for reg in address_regs if reg in model.reg_taints}
+        if model.current_instruction.has_read() and tainted_address_regs:
+            # record observation of load as union of all taints in address
+            for reg in tainted_address_regs:
+                model.curr_observation = model.curr_observation | (model.reg_taints[reg])
+            # taint destination operands with replacement taint, to be replaced
+            # with hash of entire architecture meaning that destination could
+            # not contain anything
+            for reg in reg_dest_operands:
+                model.reg_taints[reg] = {model.input_hash}
+                # print('full input hash:', model.input_hash)
+            return
+        
+        # if model.current_instruction.has_write() and tainted_address_regs:
+            ## to be implemented
+
+        # if not a memory operation, propagate taints
+        source_taints = set()
+        for reg in reg_src_operands:
+            # if register is tainted, then value is unknown, so add taint to set
+            #   else, add value of register to taint set
+            if reg in model.reg_taints:
+                source_taints = source_taints | model.reg_taints[reg]
+            else:
+                reg_id = X86UnicornTargetDesc.reg_decode[reg]
+                reg_value = model.emulator.reg_read(reg_id)
+                source_taints.add(reg_value)
+        
+        # taint destination registers with new taints
+        #   old taint can be overwritten
+        for reg in reg_dest_operands:
+            model.reg_taints[reg] = source_taints
+            
+        
+
+    @staticmethod
+    def trace_mem_access(emulator, access, address, size, value, model) -> None:
+        assert isinstance(model, X86UnicornVSPECUnknown)
+        # print('memory access, curr observation:', model.curr_observation)
+        if model.curr_observation:
+            # print('speculative memory access, curr observation:', model.curr_observation)
+            # do not access memory, just add memory access to observations
+            # print('current taints:', model.reg_taints)            
+            observation_list = list(model.curr_observation)
+            observation_list.sort()
+            observation_hash = hash(tuple(observation_list))
+            # print('memory access with observation:', model.curr_observation)
+            # observation_hash =  model.curr_observation.pop()
+            # print('hash:', observation_hash)
+            model.tracer.observe_mem_access(access, observation_hash, size, 1, model)
+            # model.tracer.trace.append(model.sandbox_base + model.default_taint)
+        else:
+            X86FaultModelAbstract.trace_mem_access(emulator, access, address, size, value, model)
+
+    def checkpoint(self, emulator: Uc, next_instruction):
+        self.reg_taints_checkpoints.append(copy.copy(self.reg_taints))
+        return super().checkpoint(emulator, next_instruction)
+
+    def rollback(self) -> int:
+        self.reg_taints = self.reg_taints_checkpoints.pop()
+        return super().rollback()
 
 class X86UnicornDivZero(X86FaultModelAbstract):
     injected_value: int = 0
@@ -563,22 +744,28 @@ class X86UnicornDivOverflow(X86FaultModelAbstract):
             if width == 32:
                 a = self.emulator.reg_read(ucc.UC_X86_REG_EAX)
                 d = self.emulator.reg_read(ucc.UC_X86_REG_EDX)
-                trimmed_result = (((d << 32) + a) // value) % 0xffffffff
-                self.emulator.reg_write(ucc.UC_X86_REG_EAX, trimmed_result)
-                self.emulator.reg_write(ucc.UC_X86_REG_EDX, ((d << 32) + a) % value)
+                trimmed_result = (((d << 32) + a) // value) #0xffffffff% 
+                #print(hex(a), hex(d), trimmed_result, 6070540370 % 0xffffffff)
+                trimmed_remainder = (((d << 32) + a) % value) # % 0xffffffff
+                # self.emulator.reg_write(ucc.UC_X86_REG_RDX, 0)
+                # print(trimmed_remainder)
+                self.emulator.reg_write(ucc.UC_X86_REG_RAX, trimmed_result)
+                self.emulator.reg_write(ucc.UC_X86_REG_RDX, 0)
                 return self.next_instruction_addr
             if width == 16:
                 a = self.emulator.reg_read(ucc.UC_X86_REG_AX)
                 d = self.emulator.reg_read(ucc.UC_X86_REG_DX)
-                trimmed_result = (((d << 16) + a) // value) % 0xffff
-                self.emulator.reg_write(ucc.UC_X86_REG_AX, trimmed_result)
-                self.emulator.reg_write(ucc.UC_X86_REG_DX, ((d << 16) + a) % value)
+                trimmed_result = (((d << 16) + a) // value) #% 0xffff
+                self.emulator.reg_write(ucc.UC_X86_REG_RAX, trimmed_result)
+                self.emulator.reg_write(ucc.UC_X86_REG_RDX, ((d << 16) + a) % value)
                 return self.next_instruction_addr
             if width == 8:
                 a = self.emulator.reg_read(ucc.UC_X86_REG_AX)
                 trimmed_result = (a // value) % 0xff
+                trimmed_remainder = (a % value) % 0xff
+                # self.emulator.reg_write(ucc.UC_X86_REG_AX, 0)
+                self.emulator.reg_write(ucc.UC_X86_REG_AH, trimmed_remainder)
                 self.emulator.reg_write(ucc.UC_X86_REG_AL, trimmed_result)
-                self.emulator.reg_write(ucc.UC_X86_REG_AH, a % value)
                 return self.next_instruction_addr
             raise UnreachableCode()
         else:  # IDIV
@@ -587,7 +774,7 @@ class X86UnicornDivOverflow(X86FaultModelAbstract):
     @staticmethod
     def trace_mem_access(emulator: Uc, access, address: int, size, value, model):
         model.div_value = int.from_bytes(emulator.mem_read(address, size), "little")
-        X86UnicornOOO.trace_mem_access(emulator, access, address, size, value, model)
+        X86FaultModelAbstract.trace_mem_access(emulator, access, address, size, value, model)
 
 
 class X86Meltdown(X86FaultModelAbstract):
@@ -612,6 +799,9 @@ class X86Meltdown(X86FaultModelAbstract):
                                   self.FAULTY_REGION_SIZE)
 
         return self.curr_instruction_addr
+    
+class X86CondMeltdown(X86Meltdown, X86UnicornCond):
+    pass
 
 
 class X86CondMeltdown(X86Meltdown, X86UnicornCond):

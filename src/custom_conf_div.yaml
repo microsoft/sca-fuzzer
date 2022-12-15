@@ -1,0 +1,49 @@
+contract_observation_clause: ct
+contract_execution_clause:
+# - seq
+- vspec-unknown
+# - div-zero
+
+# enable_ssbp_patch: true
+# enable_assist_page: false
+
+# feedback_driven_generator: true
+# input_gen_entropy_bits: 4
+
+inputs_per_class: 4
+
+# executor_warmups: 40
+
+# coverage_type: none
+# no_priming: true
+
+input_gen_seed: 0
+
+
+  # Output
+logging_modes:
+  - info
+  # - stat
+  # - dbg_timestamp
+  # - dbg_violation
+  # - dbg_traces
+  # - dbg_model
+  # - dbg_coverage
+
+permitted_faults:
+ - DE-overflow
+ - DE-zero
+
+# avg_mem_accesses: 10
+
+instruction_categories :
+- BASE-BINARY
+
+
+instruction_blocklist:
+- IDIV
+- REX IDIV
+
+
+min_bb_per_function: 1
+max_bb_per_function: 1
