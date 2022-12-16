@@ -522,23 +522,23 @@ class X86UnicornVSPECUnknown(X86FaultModelAbstract):
         self.checkpoint(self.emulator, self.code_end)
 
         # collect source and destination operands for initial tainting        
-        reg_src_operands = []
-        reg_dest_operands = []
+        reg_src_operands = set()
+        reg_dest_operands = set()
         
         for op in self.current_instruction.get_all_operands():
             if isinstance(op, RegisterOperand):
                 if op.src:
-                    reg_src_operands.append(X86TargetDesc.gpr_normalized[op.value])
+                    reg_src_operands.add(X86TargetDesc.gpr_normalized[op.value])
                 if op.dest:
-                    reg_dest_operands.append(X86TargetDesc.gpr_normalized[op.value])
+                    reg_dest_operands.add(X86TargetDesc.gpr_normalized[op.value])
             elif isinstance(op, MemoryOperand):
                 for sub_op in re.split(r'\+|-|\*| ', op.value):
                     if sub_op and sub_op in X86TargetDesc.gpr_normalized:
                         normalized = X86TargetDesc.gpr_normalized[sub_op]
-                        reg_src_operands.append(normalized)
+                        reg_src_operands.add(normalized)
             elif isinstance(op, FlagsOperand):
-                reg_src_operands.extend(op.get_read_flags())
-                reg_dest_operands.extend(op.get_write_flags())                
+                reg_src_operands.union(op.get_read_flags())
+                reg_dest_operands.union(op.get_write_flags())
         
         # self.reg_taints['A'] = {111}     
         # self.reg_taints['D'] = {111}
@@ -576,29 +576,30 @@ class X86UnicornVSPECUnknown(X86FaultModelAbstract):
         # assemble source and destination operands of instruction
         # code duplication, with method speculate_fault(), could me moved in
         #    into separate method at some point
-        reg_src_operands = []
-        reg_dest_operands = []
+        reg_src_operands = set()
+        reg_dest_operands = set()
         # if the instruction accesses the memory, these registers are used in the address
-        address_regs = []
+        address_regs = set()
         for op in model.current_instruction.get_all_operands():
             if isinstance(op, RegisterOperand):
                 if op.src:
-                    reg_src_operands.append(X86TargetDesc.gpr_normalized[op.value])
+                    reg_src_operands.add(X86TargetDesc.gpr_normalized[op.value])
                 if op.dest:
-                    reg_dest_operands.append(X86TargetDesc.gpr_normalized[op.value])
+                    reg_dest_operands.add(X86TargetDesc.gpr_normalized[op.value])
             elif isinstance(op, MemoryOperand):
                 for sub_op in re.split(r'\+|-|\*| ', op.value):
                     if sub_op and sub_op in X86TargetDesc.gpr_normalized:
                         normalized = X86TargetDesc.gpr_normalized[sub_op]
-                        reg_src_operands.append(normalized)
-                        address_regs.append(normalized)
+                        reg_src_operands.add(normalized)
+                        address_regs.add(normalized)
             elif isinstance(op, FlagsOperand):
-                reg_src_operands.extend(op.get_read_flags())
-                reg_dest_operands.extend(op.get_write_flags())                
+                reg_src_operands.union(op.get_read_flags())
+                reg_dest_operands.union(op.get_write_flags())
         
         # print('source operands:', reg_src_operands)
         # print('destination operands:', reg_dest_operands)
-              
+        # print('Tainted:', model.reg_taints)
+
         # if source operands are not tainted, possible taint from destination operands 
         #   can be removed and control flow is returned
         # print('intersection: ', reg_src_operands & model.reg_taints.keys())
@@ -649,7 +650,7 @@ class X86UnicornVSPECUnknown(X86FaultModelAbstract):
         if model.curr_observation:
             # print('speculative memory access, curr observation:', model.curr_observation)
             # do not access memory, just add memory access to observations
-            # print('current taints:', model.reg_taints)            
+            # print('current taints:', model.reg_taints)
             observation_list = list(model.curr_observation)
             observation_list.sort()
             observation_hash = hash(tuple(observation_list))
