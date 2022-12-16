@@ -552,6 +552,7 @@ class X86UnicornVSPECUnknown(X86FaultModelAbstract):
         # taint destination registers with taints
         for reg in reg_dest_operands:
             self.reg_taints[reg] = source_values
+        # print(f"Dest taints:{self.reg_taints}")
          
         # speculatively skip the faulting instruction
         if self.next_instruction_addr >= self.code_end:
@@ -565,7 +566,6 @@ class X86UnicornVSPECUnknown(X86FaultModelAbstract):
         Track how taints move through system and produce correct observations.
         """
         assert isinstance(model, X86UnicornVSPECUnknown)
-
         # reset flag
         model.curr_observation = set()
         # print('current taints:', model.reg_taints)
@@ -637,11 +637,13 @@ class X86UnicornVSPECUnknown(X86FaultModelAbstract):
                 reg_id = X86UnicornTargetDesc.reg_decode[reg]
                 reg_value = model.emulator.reg_read(reg_id)
                 source_taints.add(reg_value)
+            # print(f"Source taints:{source_taints}")
         
         # taint destination registers with new taints
         #   old taint can be overwritten
         for reg in reg_dest_operands:
             model.reg_taints[reg] = source_taints
+        # print(f"Dest taints:{model.reg_taints}")
             
     @staticmethod
     def trace_mem_access(emulator, access, address, size, value, model) -> None:
@@ -657,8 +659,8 @@ class X86UnicornVSPECUnknown(X86FaultModelAbstract):
             # print('memory access with observation:', model.curr_observation)
             # observation_hash =  model.curr_observation.pop()
             # print('hash:', observation_hash)
-            model.tracer.observe_mem_access(access, observation_hash, size, 1, model)
-            # model.tracer.trace.append(model.sandbox_base + model.default_taint)
+            model.tracer.observe_mem_access(access, address, size, 1, model)
+            model.tracer.trace.append(observation_hash)
         else:
             X86FaultModelAbstract.trace_mem_access(emulator, access, address, size, value, model)
 
