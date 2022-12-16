@@ -501,7 +501,7 @@ class X86UnicornVSPECUnknown(X86FaultModelAbstract):
     flag_taints: Dict
     address_taints: Dict
     reg_taints_checkpoints: List[Dict]
-    curr_observation: set()
+    curr_observation : Set = set()
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -627,7 +627,7 @@ class X86UnicornVSPECUnknown(X86FaultModelAbstract):
             ## to be implemented
 
         # if not a memory operation, propagate taints
-        source_taints = set()
+        source_taints : Set = set()
         for reg in reg_src_operands:
             # if register is tainted, then value is unknown, so add taint to set
             #   else, add value of register to taint set
