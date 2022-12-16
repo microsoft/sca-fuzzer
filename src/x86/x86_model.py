@@ -670,6 +670,191 @@ class X86UnicornVSPECUnknown(X86FaultModelAbstract):
         self.reg_taints = self.reg_taints_checkpoints.pop()
         return super().rollback()
 
+class X86UnicornVSPECUnknown(X86FaultModelAbstract):
+    """
+    Contract for value speculation with unknown values
+    """
+    reg_taints: Dict
+    flag_taints: Dict
+    reg_taints_checkpoints: List[Dict]
+    curr_observation : Set = set()
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        # DIV exceptions only for now
+        self.relevant_faults.update([21])
+        self.reg_taints = dict()
+        self.flag_taints = dict()
+        self.reg_taints_checkpoints = []
+
+    def _load_input(self, input_: Input):
+        self.curr_observation.clear()
+        assert(len(self.reg_taints) == 0)
+        assert(len(self.flag_taints) == 0)
+        assert(len(self.reg_taints_checkpoints) == 0)
+        return super()._load_input(input_)
+
+    def speculate_fault(self, errno: int) -> int:
+        if not self.fault_triggers_speculation(errno):
+            return 0
+
+        # start speculation
+        # we set the rollback address to the end of the testcase
+        # because faults are terminating execution
+        self.checkpoint(self.emulator, self.code_end)
+
+        # collect source and destination operands for initial tainting        
+        reg_src_operands = set()
+        reg_dest_operands = set()
+        
+        for op in self.current_instruction.get_all_operands():
+            if isinstance(op, RegisterOperand):
+                if op.src:
+                    reg_src_operands.add(X86TargetDesc.gpr_normalized[op.value])
+                if op.dest:
+                    reg_dest_operands.add(X86TargetDesc.gpr_normalized[op.value])
+            elif isinstance(op, MemoryOperand):
+                for sub_op in re.split(r'\+|-|\*| ', op.value):
+                    if sub_op and sub_op in X86TargetDesc.gpr_normalized:
+                        normalized = X86TargetDesc.gpr_normalized[sub_op]
+                        reg_src_operands.add(normalized)
+            elif isinstance(op, FlagsOperand):
+                reg_src_operands.union(op.get_read_flags())
+                reg_dest_operands.union(op.get_write_flags())
+        
+        # self.reg_taints['A'] = {111}     
+        # self.reg_taints['D'] = {111}
+        # collect value of all source operands
+        source_values = set()
+        for reg in reg_src_operands:
+            reg_id = X86UnicornTargetDesc.reg_decode[reg]
+            reg_value = self.emulator.reg_read(reg_id)
+            source_values.add(reg_value)
+        
+        # taint destination registers with taints
+        for reg in reg_dest_operands:
+            self.reg_taints[reg] = source_values
+        # print(f"Dest taints:{self.reg_taints}")
+         
+        # speculatively skip the faulting instruction
+        if self.next_instruction_addr >= self.code_end:
+            return 0  # no need for speculation if we're at the end
+        else:
+            return self.next_instruction_addr
+
+    @staticmethod
+    def speculate_instruction(emulator: Uc, address, size, model) -> None:
+        """
+        Track how taints move through system and produce correct observations.
+        """
+        assert isinstance(model, X86UnicornVSPECUnknown)
+        # reset flag
+        model.curr_observation = set()
+        # print('current taints:', model.reg_taints)
+        # track dependencies only after faults
+        if not model.in_speculation or not model.reg_taints:
+            return
+
+        # assemble source and destination operands of instruction
+        # code duplication, with method speculate_fault(), could me moved in
+        #    into separate method at some point
+        reg_src_operands = set()
+        reg_dest_operands = set()
+        # if the instruction accesses the memory, these registers are used in the address
+        address_regs = set()
+        for op in model.current_instruction.get_all_operands():
+            if isinstance(op, RegisterOperand):
+                if op.src:
+                    reg_src_operands.add(X86TargetDesc.gpr_normalized[op.value])
+                if op.dest:
+                    reg_dest_operands.add(X86TargetDesc.gpr_normalized[op.value])
+            elif isinstance(op, MemoryOperand):
+                for sub_op in re.split(r'\+|-|\*| ', op.value):
+                    if sub_op and sub_op in X86TargetDesc.gpr_normalized:
+                        normalized = X86TargetDesc.gpr_normalized[sub_op]
+                        reg_src_operands.add(normalized)
+                        address_regs.add(normalized)
+            elif isinstance(op, FlagsOperand):
+                reg_src_operands.union(op.get_read_flags())
+                reg_dest_operands.union(op.get_write_flags())
+        
+        # print('source operands:', reg_src_operands)
+        # print('destination operands:', reg_dest_operands)
+        # print('Tainted:', model.reg_taints)
+
+        # if source operands are not tainted, possible taint from destination operands 
+        #   can be removed and control flow is returned
+        # print('intersection: ', reg_src_operands & model.reg_taints.keys())
+        if not (reg_src_operands & model.reg_taints.keys()):
+            for reg in reg_dest_operands:
+                if reg in model.reg_taints:
+                    del model.reg_taints[reg]
+            return
+        
+        # check if instruction attempted load from tainted value
+        tainted_address_regs = {reg for reg in address_regs if reg in model.reg_taints}
+        if model.current_instruction.has_read() and tainted_address_regs:
+            # record observation of load as union of all taints in address
+            for reg in tainted_address_regs:
+                model.curr_observation = model.curr_observation | (model.reg_taints[reg])
+            # taint destination operands with replacement taint, to be replaced
+            # with hash of entire architecture meaning that destination could
+            # not contain anything
+            for reg in reg_dest_operands:
+                model.reg_taints[reg] = {model.input_hash}
+                # print('full input hash:', model.input_hash)
+            return
+        
+        # if model.current_instruction.has_write() and tainted_address_regs:
+            ## to be implemented
+
+        # if not a memory operation, propagate taints
+        source_taints : Set = set()
+        for reg in reg_src_operands:
+            # if register is tainted, then value is unknown, so add taint to set
+            #   else, add value of register to taint set
+            if reg in model.reg_taints:
+                source_taints = source_taints | model.reg_taints[reg]
+            else:
+                reg_id = X86UnicornTargetDesc.reg_decode[reg]
+                reg_value = model.emulator.reg_read(reg_id)
+                source_taints.add(reg_value)
+            # print(f"Source taints:{source_taints}")
+        
+        # taint destination registers with new taints
+        #   old taint can be overwritten
+        for reg in reg_dest_operands:
+            model.reg_taints[reg] = source_taints
+        # print(f"Dest taints:{model.reg_taints}")
+            
+    @staticmethod
+    def trace_mem_access(emulator, access, address, size, value, model) -> None:
+        assert isinstance(model, X86UnicornVSPECUnknown)
+        # print('memory access, curr observation:', model.curr_observation)
+        if model.curr_observation:
+            # print('speculative memory access, curr observation:', model.curr_observation)
+            # do not access memory, just add memory access to observations
+            # print('current taints:', model.reg_taints)
+            observation_list = list(model.curr_observation)
+            observation_list.sort()
+            observation_hash = hash(tuple(observation_list))
+            # print('memory access with observation:', model.curr_observation)
+            # observation_hash =  model.curr_observation.pop()
+            # print('hash:', observation_hash)
+            model.tracer.observe_mem_access(access, address, size, 1, model)
+            model.tracer.trace.append(observation_hash)
+        else:
+            X86FaultModelAbstract.trace_mem_access(emulator, access, address, size, value, model)
+
+    def checkpoint(self, emulator: Uc, next_instruction):
+        self.reg_taints_checkpoints.append(copy.copy(self.reg_taints))
+        return super().checkpoint(emulator, next_instruction)
+
+    def rollback(self) -> int:
+        self.reg_taints = self.reg_taints_checkpoints.pop()
+        return super().rollback()
+
+
 class X86UnicornDivZero(X86FaultModelAbstract):
     injected_value: int = 0
 

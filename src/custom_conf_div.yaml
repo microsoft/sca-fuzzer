@@ -29,7 +29,7 @@ logging_modes:
   # - dbg_timestamp
   # - dbg_violation
   # - dbg_traces
-  - dbg_model
+  # - dbg_model
   # - dbg_coverage
 
 permitted_faults:
