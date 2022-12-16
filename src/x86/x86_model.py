@@ -492,6 +492,7 @@ class X86UnicornOOO(X86FaultModelAbstract):
         self.dependencies = self.dependency_checkpoints.pop()
         return super().rollback()
 
+
 class X86UnicornVSPECUnknown(X86FaultModelAbstract):
     """
     Contract for value speculation with unknown values
@@ -595,12 +596,12 @@ class X86UnicornVSPECUnknown(X86FaultModelAbstract):
                 reg_src_operands.extend(op.get_read_flags())
                 reg_dest_operands.extend(op.get_write_flags())                
         
-        # print('source operands:', reg_src_operands)  
-        # print('destination operands:', reg_dest_operands)        
+        # print('source operands:', reg_src_operands)
+        # print('destination operands:', reg_dest_operands)
               
         # if source operands are not tainted, possible taint from destination operands 
         #   can be removed and control flow is returned
-        # print('intersection: ', reg_src_operands | model.reg_taints.keys())
+        # print('intersection: ', reg_src_operands & model.reg_taints.keys())
         if not (reg_src_operands & model.reg_taints.keys()):
             for reg in reg_dest_operands:
                 if reg in model.reg_taints:
@@ -641,8 +642,6 @@ class X86UnicornVSPECUnknown(X86FaultModelAbstract):
         for reg in reg_dest_operands:
             model.reg_taints[reg] = source_taints
             
-        
-
     @staticmethod
     def trace_mem_access(emulator, access, address, size, value, model) -> None:
         assert isinstance(model, X86UnicornVSPECUnknown)
@@ -669,6 +668,7 @@ class X86UnicornVSPECUnknown(X86FaultModelAbstract):
     def rollback(self) -> int:
         self.reg_taints = self.reg_taints_checkpoints.pop()
         return super().rollback()
+
 
 class X86UnicornDivZero(X86FaultModelAbstract):
     injected_value: int = 0
@@ -799,9 +799,6 @@ class X86Meltdown(X86FaultModelAbstract):
                                   self.FAULTY_REGION_SIZE)
 
         return self.curr_instruction_addr
-    
-class X86CondMeltdown(X86Meltdown, X86UnicornCond):
-    pass
 
 
 class X86CondMeltdown(X86Meltdown, X86UnicornCond):
