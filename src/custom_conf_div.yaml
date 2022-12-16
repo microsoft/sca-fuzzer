@@ -5,19 +5,21 @@ contract_execution_clause:
 # - div-zero
 
 # enable_ssbp_patch: true
-# enable_assist_page: false
+# enable_assist_page: true
+enable_speculation_filter: true
+enable_observation_filter: true
 
 # feedback_driven_generator: true
 # input_gen_entropy_bits: 4
 
-inputs_per_class: 4
+inputs_per_class: 2
 
 # executor_warmups: 40
 
 # coverage_type: none
 # no_priming: true
 
-input_gen_seed: 0
+input_gen_seed: 0 # 132368418
 
 
   # Output
@@ -27,7 +29,7 @@ logging_modes:
   # - dbg_timestamp
   # - dbg_violation
   # - dbg_traces
-  # - dbg_model
+  - dbg_model
   # - dbg_coverage
 
 permitted_faults:
