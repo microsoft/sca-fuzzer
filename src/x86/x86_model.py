@@ -499,7 +499,6 @@ class X86UnicornVSPECUnknown(X86FaultModelAbstract):
     """
     reg_taints: Dict
     flag_taints: Dict
-    address_taints: Dict
     reg_taints_checkpoints: List[Dict]
     curr_observation : Set = set()
 
@@ -509,8 +508,14 @@ class X86UnicornVSPECUnknown(X86FaultModelAbstract):
         self.relevant_faults.update([21])
         self.reg_taints = dict()
         self.flag_taints = dict()
-        self.address_taints = dict()
         self.reg_taints_checkpoints = []
+
+    def _load_input(self, input_: Input):
+        self.curr_observation.clear()
+        assert(len(self.reg_taints) == 0)
+        assert(len(self.flag_taints) == 0)
+        assert(len(self.reg_taints_checkpoints) == 0)
+        return super()._load_input(input_)
 
     def speculate_fault(self, errno: int) -> int:
         if not self.fault_triggers_speculation(errno):
