@@ -647,7 +647,9 @@ class X86Printer(Printer):
 
     def instruction_to_str(self, inst: Instruction):
         operands = ", ".join([self.operand_to_str(op) for op in inst.operands])
-        comment = "# instrumentation" if inst.is_instrumentation else ""
+        if inst.is_instrumentation:
+            inst.set_comment("instrumentation")
+        comment = ("# %s" % inst.comment) if inst.comment is not None else ""
         return f"{inst.name} {operands} {comment}"
 
     def operand_to_str(self, op: Operand) -> str:

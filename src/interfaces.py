@@ -192,6 +192,7 @@ class Instruction:
     implicit_operands: List[Operand]
     category: str
     control_flow = False
+    comment: str = None
 
     next: Optional[Instruction] = None
     previous: Optional[Instruction] = None
@@ -348,6 +349,13 @@ class Instruction:
                 res.append(o)
 
         return res
+
+    def set_comment(self, comment: str):
+        """
+        Sets the instruction's comment value, to be added to the end of its line
+        during printing.
+        """
+        self.comment = comment
 
 
 class BasicBlock:
@@ -719,7 +727,7 @@ class InstructionSetAbstract(ABC):
     has_writes: bool = False
 
     @abstractmethod
-    def __init__(self, filename: str, include_categories=None):
+    def __init__(self, filename=None, include_categories=None):
         pass
 
 

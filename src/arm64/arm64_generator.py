@@ -310,7 +310,9 @@ class ARMPrinter(Printer):
             operands = inst.operands
 
         operands_str = ", ".join([self.operand_to_str(op) for op in operands])
-        comment = "// instrumentation" if inst.is_instrumentation else ""
+        if inst.is_instrumentation:
+            inst.set_comment("instrumentation")
+        comment = ("// %s" % inst.comment) if inst.comment is not None else ""
         return f"{inst.name}{cond} {operands_str} {comment}"
 
     def operand_to_str(self, op: Operand) -> str:

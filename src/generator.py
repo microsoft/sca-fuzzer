@@ -9,6 +9,7 @@ from __future__ import annotations
 import random
 import abc
 import re
+import json
 from typing import List, Dict
 from subprocess import CalledProcessError, run
 from collections import OrderedDict
@@ -66,6 +67,7 @@ class ConfigurableGenerator(Generator, abc.ABC):
     passes: List[Pass]  # set by subclasses
     printer: Printer  # set by subclasses
     target_desc: TargetDesc  # set by subclasses
+    gadgets: []
 
     def __init__(self, instruction_set: InstructionSet, seed: int):
         super().__init__(instruction_set, seed)
@@ -89,6 +91,15 @@ class ConfigurableGenerator(Generator, abc.ABC):
             assert self.load_instruction and self.store_instructions, \
                 "The instruction set does not have memory accesses while `avg_mem_accesses > 0`"
 
+        if len(CONF.gadget_file) > 0:
+            self.gadgets = []
+            with open(CONF.gadget_file, "r") as fp:
+                gdata = json.loads(fp.read())
+                for entry in gdata:
+                    self.gadgets.append(CodeGadget.from_dict(entry))
+            # sort the gadgets by length (descending) to make searching easier
+            self.gadgets = sorted(self.gadgets, key=lambda g: len(g), reverse=True)
+    
     def set_seed(self, seed: int):
         self._state = seed
         random.seed(seed)
@@ -556,13 +567,49 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
                 raise NotSupportedException()
 
     def add_instructions_in_function(self, func: Function):
-        # evenly fill all BBs with random instructions
+        # in this function, we evenly fill all BBs with random instructions by
+        # randomly choosing basic blocks and adding one instruction (or gadget)
+        # at a time
         basic_blocks_to_fill = func.get_all()[1:-1]
-        for _ in range(0, CONF.program_size):
+
+        # our gagdet list is in sorted order by length (descending), so we'll
+        # use an index to track which of the gadgets is small enough to fit
+        # within 'instructions_remaining' in the below loop. The gadgets that
+        # fit may be selected during the process
+        gadget_idx = 0
+        gadget_count = len(self.gadgets)
+
+        instructions_remaining = CONF.program_size
+        while instructions_remaining > 0:
             bb = random.choice(basic_blocks_to_fill)
-            spec = self._pick_random_instruction_spec()
-            inst = self.generate_instruction(spec)
-            bb.insert_after(bb.get_last(), inst)
+
+            # decrease the gadget index until we land on the first gadget that
+            # fits 'instructions_remaining'
+            while gadget_idx < gadget_count and \
+                  len(self.gadgets[gadget_idx]) > instructions_remaining:
+                gadget_idx += 1
+
+            # decide between placing a code gadget or a random instruction
+            use_gadget = gadget_idx < gadget_count and \
+                         random.randrange(0, 100) < CONF.gadget_chance
+
+            # CASE 1: we choose to use a gadget. Select one at random and place
+            # *all* of its instructions into the basic block
+            if use_gadget:
+                g = self.gadgets[random.randrange(gadget_idx, gadget_count)]
+                for (i, ispec) in enumerate(g):
+                    # generate an instruction and add comments
+                    inst = self.generate_instruction(ispec)
+                    inst.set_comment("%s[%d]" % (g.name, i))
+                    # insert into the basic block
+                    bb.insert_after(bb.get_last(), inst)
+                    instructions_remaining -= 1
+            # CASE 2: we choose *not* to use a gadget, and instead to use a
+            # single random instruction
+            else:
+                ispec = self._pick_random_instruction_spec()
+                bb.insert_after(bb.get_last(), self.generate_instruction(ispec))
+                instructions_remaining -= 1
 
     def _pick_random_instruction_spec(self) -> InstructionSpec:
         instruction_spec: InstructionSpec
@@ -596,3 +643,78 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
     @abc.abstractmethod
     def get_unconditional_jump_instruction(self) -> Instruction:
         pass
+
+
+# ==================================================================================================
+# Generator Gadgets
+# ==================================================================================================
+# In the security world, a 'gadget' represents a small snippet of code (made up
+# of one or more machine instructions) that may invoke interesting, unexpected,
+# or even exploit-inducing behavior in a target that executes it.
+# This class represents one such 'gadget'. Revizor's program generator can use
+# user-defined gadgets to make generated test cases more interesting.
+#
+# A gadget is specified in the same format as the ISA specification JSON file
+# the InstructionSet class parses. In this case, this class parses the
+# specifications exactly was the main generator does.
+class CodeGadget():
+    # Constructor. Accepts a name for the gadget and a list of instruction
+    # specification (InstructionSpec) objects.
+    def __init__(self, name: str):
+        self.name = name
+        self.instruction_set = InstructionSet()
+
+    # Computes the length of the gadget's instruction list.
+    def __len__(self):
+        return len(self.instruction_set.instructions)
+    
+    # Allows for iteration through the gadget's instruction.
+    def __iter__(self):
+        for ispec in self.instruction_set.instructions:
+            yield ispec
+    
+    # Returns a list of instructions contained in the gadget.
+    def get_instructions(self, generator: Generator):
+        # for each instruction specification in the gadget, generate an
+        # instruction using the given program generator
+        instructions = []
+        for spec in self.instruction_set.instructions:
+            i = generator.generate_instruction(spec)
+            instructions.append(i)
+        return instructions
+    
+    # Takes in a dictionary and attempts to create a CodeGadget object from
+    # the dictionary's entries. An exception is thrown if the dictionary's data
+    # is not in the correct format. Otherwise, a new CodeGadget object is
+    # returned.
+    @staticmethod
+    def from_dict(data: dict):
+        g = CodeGadget("gadget")
+
+        # check a number of expected and/or optional dictionary fields
+        fields = {
+            "name":             {"type": str,   "required": True},
+            "instructions":     {"type": list,  "required": True}
+        }
+        for f in fields:
+            fdata = fields[f]
+            ftype = fdata["type"]
+
+            # if the field is required, enforce it
+            if fdata["required"]:
+                assert f in data, "the given dictionary must contain \"%s\" (%s)" % \
+                                  (f, ftype)
+            # if the field isn't present, set its default
+            if f not in data:
+                data[f] = fdata["default"]
+
+            # type-check the field and add it to the object
+            assert type(data[f]) == ftype, "the given dictionary's \"%s\" must be a %s" % \
+                                           (f, ftype)
+            setattr(g, f, data[f])
+
+        # finally, parse the instructions as InstructionSpec objects (stored
+        # inside an InstructionSet object)
+        g.instruction_set.init_from_list(data["instructions"])
+        return g
+
