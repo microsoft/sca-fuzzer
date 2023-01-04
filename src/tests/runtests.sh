@@ -5,7 +5,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 echo ""
 echo "===== Type Checking with mypy ====="
 cd $SCRIPT_DIR/.. || exit
-python3 -m mypy cli.py --ignore-missing-imports 
+python3 -m mypy cli.py
 cd - > /dev/null || exit
 
 echo ""

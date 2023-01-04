@@ -5,11 +5,11 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 import re
-import copy
 import numpy as np
 from typing import Tuple, Dict, List, Set
+import copy
 
-import unicorn.x86_const as ucc
+import unicorn.x86_const as ucc  # type: ignore
 from unicorn import Uc, UC_MEM_WRITE, UC_ARCH_X86, UC_MODE_64, UC_PROT_READ, UC_PROT_NONE
 
 from interfaces import Input, FlagsOperand, RegisterOperand, MemoryOperand, TestCase
@@ -30,7 +30,7 @@ class X86UnicornModel(UnicornModel):
     Base class that serves as main interface.
     Loads inputs and executes the test case on x86
     """
-    
+
     input_hash: int = 0
 
     def __init__(self, sandbox_base, code_start):
@@ -54,9 +54,9 @@ class X86UnicornModel(UnicornModel):
     def _load_input(self, input_: Input):
         """
         Set registers and stack before starting the emulation
-        """        
+        """
         self.input_hash = hash(input_)
-        
+
         # Set memory:
         # - initialize overflows with zeroes
         self.emulator.mem_write(self.lower_overflow_base, self.overflow_region_values)
@@ -526,10 +526,10 @@ class X86UnicornVSPECUnknown(X86FaultModelAbstract):
         # because faults are terminating execution
         self.checkpoint(self.emulator, self.code_end)
 
-        # collect source and destination operands for initial tainting        
+        # collect source and destination operands for initial tainting
         reg_src_operands = set()
         reg_dest_operands = set()
-        
+
         for op in self.current_instruction.get_all_operands():
             if isinstance(op, RegisterOperand):
                 if op.src:
@@ -544,8 +544,8 @@ class X86UnicornVSPECUnknown(X86FaultModelAbstract):
             elif isinstance(op, FlagsOperand):
                 reg_src_operands.union(op.get_read_flags())
                 reg_dest_operands.union(op.get_write_flags())
-        
-        # self.reg_taints['A'] = {111}     
+
+        # self.reg_taints['A'] = {111}
         # self.reg_taints['D'] = {111}
         # collect value of all source operands
         source_values = set()
@@ -553,12 +553,12 @@ class X86UnicornVSPECUnknown(X86FaultModelAbstract):
             reg_id = X86UnicornTargetDesc.reg_decode[reg]
             reg_value = self.emulator.reg_read(reg_id)
             source_values.add(reg_value)
-        
+
         # taint destination registers with taints
         for reg in reg_dest_operands:
             self.reg_taints[reg] = source_values
         # print(f"Dest taints:{self.reg_taints}")
-         
+
         # speculatively skip the faulting instruction
         if self.next_instruction_addr >= self.code_end:
             return 0  # no need for speculation if we're at the end
@@ -600,12 +600,12 @@ class X86UnicornVSPECUnknown(X86FaultModelAbstract):
             elif isinstance(op, FlagsOperand):
                 reg_src_operands.union(op.get_read_flags())
                 reg_dest_operands.union(op.get_write_flags())
-        
+
         # print('source operands:', reg_src_operands)
         # print('destination operands:', reg_dest_operands)
         # print('Tainted:', model.reg_taints)
 
-        # if source operands are not tainted, possible taint from destination operands 
+        # if source operands are not tainted, possible taint from destination operands
         #   can be removed and control flow is returned
         # print('intersection: ', reg_src_operands & model.reg_taints.keys())
         if not (reg_src_operands & model.reg_taints.keys()):
@@ -613,7 +613,7 @@ class X86UnicornVSPECUnknown(X86FaultModelAbstract):
                 if reg in model.reg_taints:
                     del model.reg_taints[reg]
             return
-        
+
         # check if instruction attempted load from tainted value
         tainted_address_regs = {reg for reg in address_regs if reg in model.reg_taints}
         if model.current_instruction.has_read() and tainted_address_regs:
@@ -627,7 +627,7 @@ class X86UnicornVSPECUnknown(X86FaultModelAbstract):
                 model.reg_taints[reg] = {model.input_hash}
                 # print('full input hash:', model.input_hash)
             return
-        
+
         # if model.current_instruction.has_write() and tainted_address_regs:
             ## to be implemented
 
@@ -643,13 +643,13 @@ class X86UnicornVSPECUnknown(X86FaultModelAbstract):
                 reg_value = model.emulator.reg_read(reg_id)
                 source_taints.add(reg_value)
             # print(f"Source taints:{source_taints}")
-        
+
         # taint destination registers with new taints
         #   old taint can be overwritten
         for reg in reg_dest_operands:
             model.reg_taints[reg] = source_taints
         # print(f"Dest taints:{model.reg_taints}")
-            
+
     @staticmethod
     def trace_mem_access(emulator, access, address, size, value, model) -> None:
         assert isinstance(model, X86UnicornVSPECUnknown)
@@ -752,7 +752,7 @@ class X86UnicornDivOverflow(X86FaultModelAbstract):
             if width == 32:
                 a = self.emulator.reg_read(ucc.UC_X86_REG_EAX)
                 d = self.emulator.reg_read(ucc.UC_X86_REG_EDX)
-                trimmed_result = (((d << 32) + a) // value) #0xffffffff% 
+                trimmed_result = (((d << 32) + a) // value) #0xffffffff%
                 #print(hex(a), hex(d), trimmed_result, 6070540370 % 0xffffffff)
                 trimmed_remainder = (((d << 32) + a) % value) # % 0xffffffff
                 # self.emulator.reg_write(ucc.UC_X86_REG_RDX, 0)

@@ -67,20 +67,24 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
         "SETPE": "SETP",
         "SETPO": "SETNP",
         "MOVABS": "MOV",
+        "REPE": "REPZ",
+        "REPNE": "REPNZ",
+        "REPNZ": "REPNE",
+        "REPZ": "REPE",
     }
     memory_sizes = {"BYTE": 8, "WORD": 16, "DWORD": 32, "QWORD": 64}
 
     def __init__(self, instruction_set: InstructionSet):
         super(X86Generator, self).__init__(instruction_set)
+        self.target_desc = X86TargetDesc()
         self.passes = [
-            X86SandboxPass(),
+            X86SandboxPass(self.target_desc),
             X86PatchUndefinedFlagsPass(self.instruction_set, self),
             X86NonCanonicalAddressPass(),
             X86PatchUndefinedResultPass(),
             X86PatchOpcodesPass(),
         ]
         self.printer = X86Printer()
-        self.target_desc = X86TargetDesc()
 
         # select PTE bits that could be set
         self.pte_bit_choices: List[Tuple[int, bool]] = []
@@ -346,11 +350,12 @@ class X86SandboxPass(Pass):
     mask_3bits = "0b111"
     bit_test_names = ["BT", "BTC", "BTR", "BTS", "LOCK BT", "LOCK BTC", "LOCK BTR", "LOCK BTS"]
 
-    def __init__(self):
+    def __init__(self, target_desc: X86TargetDesc):
         super().__init__()
         input_memory_size = CONF.input_main_region_size + CONF.input_faulty_region_size
         mask_size = int(math.log(input_memory_size, 2)) - CONF.memory_access_zeroed_bits
         self.sandbox_address_mask = "0b" + "1" * mask_size + "0" * CONF.memory_access_zeroed_bits
+        self.target_desc = target_desc
 
     def run_on_test_case(self, test_case: TestCase) -> None:
         for func in test_case.functions:
@@ -397,7 +402,8 @@ class X86SandboxPass(Pass):
         mem_operands = instr.get_mem_operands()
         implicit_mem_operands = instr.get_implicit_mem_operands()
         if mem_operands and not implicit_mem_operands:
-            assert len(mem_operands) == 1, f"Unexpected instruction format {instr.name}"
+            assert len(mem_operands) == 1, \
+                f"Instructions with multiple memory accesses are not yet supported: {instr.name}"
             mem_operand: Operand = mem_operands[0]
             address_reg = mem_operand.value
             imm_width = mem_operand.width if mem_operand.width <= 32 else 32
@@ -410,18 +416,25 @@ class X86SandboxPass(Pass):
 
         mem_operands = implicit_mem_operands
         if mem_operands:
-            assert len(mem_operands) == 1, f"Unexpected instruction format {instr.name}"
-            mem_operand = mem_operands[0]
-            address_reg = mem_operand.value
-            imm_width = mem_operand.width if mem_operand.width <= 32 else 32
-            apply_mask = Instruction("AND", True) \
-                .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
-                .add_op(ImmediateOperand(self.sandbox_address_mask, imm_width))
-            add_base = Instruction("ADD", True) \
-                .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
-                .add_op(RegisterOperand("R14", 64, True, False))
-            parent.insert_before(instr, apply_mask)
-            parent.insert_before(instr, add_base)
+            # deduplicate operands
+            uniq_operands: Dict[str, MemoryOperand] = {}
+            for o in mem_operands:
+                if o.value not in uniq_operands:
+                    uniq_operands[o.value] = o
+
+            # instrument each operand to sandbox the memory accesses
+            for address_reg, mem_operand in uniq_operands.items():
+                imm_width = mem_operand.width if mem_operand.width <= 32 else 32
+                assert address_reg in self.target_desc.registers[64], \
+                    f"Unexpected address register {address_reg} used in {instr}"
+                apply_mask = Instruction("AND", True) \
+                    .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
+                    .add_op(ImmediateOperand(self.sandbox_address_mask, imm_width))
+                add_base = Instruction("ADD", True) \
+                    .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
+                    .add_op(RegisterOperand("R14", 64, True, False))
+                parent.insert_before(instr, apply_mask)
+                parent.insert_before(instr, add_base)
             return
 
         raise GeneratorException("Attempt to sandbox an instruction without memory operands")
@@ -444,7 +457,7 @@ class X86SandboxPass(Pass):
         divisor = inst.operands[0]
 
         # TODO: remove me - avoids a certain violation
-        if divisor.width == 64 and CONF.x86_disable_div64:
+        if divisor.width == 64 and CONF.x86_disable_div64:  # type: ignore
             parent.delete(inst)
             return
 

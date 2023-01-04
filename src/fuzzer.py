@@ -53,12 +53,12 @@ class Fuzzer:
     def initialize_modules(self):
         """ create all main modules """
         self.generator = factory.get_generator(self.instruction_set)
-        self.input_gen: InputGenerator = factory.get_input_generator()
-        self.executor: Executor = factory.get_executor()
-        self.model: Model = factory.get_model(self.executor.read_base_addresses())
-        self.analyser: Analyser = factory.get_analyser()
-        self.coverage: Coverage = factory.get_coverage(self.instruction_set, self.executor,
-                                                       self.model, self.analyser)
+        self.input_gen = factory.get_input_generator()
+        self.executor = factory.get_executor()
+        self.model = factory.get_model(self.executor.read_base_addresses())
+        self.analyser = factory.get_analyser()
+        self.coverage = factory.get_coverage(self.instruction_set, self.executor, self.model,
+                                             self.analyser)
 
     def start(self,
               num_test_cases: int,
@@ -199,7 +199,7 @@ class Fuzzer:
         Path(self.work_dir).mkdir(exist_ok=True)
         test_case.save(self.work_dir + "/" + name)
 
-        if not Path(self.work_dir + "/config.yaml").exists:
+        if not Path(self.work_dir + "/config.yaml").exists():
             shutil.copy2(CONF.config_path, self.work_dir + "/config.yaml")
 
     # ==============================================================================================

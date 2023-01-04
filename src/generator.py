@@ -17,7 +17,7 @@ from isa_loader import InstructionSet
 from interfaces import Generator, TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
     ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, Function, \
     OperandSpec, InstructionSpec, CondOperand, TargetDesc
-from service import NotSupportedException
+from service import NotSupportedException, LOGGER
 from config import CONF
 
 
@@ -58,10 +58,10 @@ class Printer(abc.ABC):
 
 
 class ConfigurableGenerator(Generator, abc.ABC):
-    instruction_set: InstructionSet
     """
     The interface description for Generator classes.
     """
+    instruction_set: InstructionSet
     test_case: TestCase
     passes: List[Pass]  # set by subclasses
     printer: Printer  # set by subclasses
@@ -69,6 +69,7 @@ class ConfigurableGenerator(Generator, abc.ABC):
 
     def __init__(self, instruction_set: InstructionSet):
         super().__init__(instruction_set)
+        LOGGER.dbg_gen_instructions(instruction_set.instructions)
         self.control_flow_instructions = \
             [i for i in self.instruction_set.instructions if i.control_flow]
         self.non_control_flow_instructions = \

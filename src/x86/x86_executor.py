@@ -29,7 +29,7 @@ class X86IntelExecutor(Executor):
     def __init__(self):
         super().__init__()
         # check the execution environment: is SMT disabled?
-        smt_on: Optional[bool] = None
+        smt_on = None
         try:
             out = subprocess.run("lscpu", shell=True, check=True, capture_output=True)
         except subprocess.CalledProcessError:

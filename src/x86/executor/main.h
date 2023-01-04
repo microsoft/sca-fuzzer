@@ -6,8 +6,8 @@
 #ifndef X86_EXECUTOR
 #define X86_EXECUTOR
 
-#include <asm/traps.h>
 #include <linux/types.h>
+#include <asm/traps.h>
 
 #define DEBUG 0
 #define STRINGIFY(...) #__VA_ARGS__
