@@ -500,7 +500,7 @@ class X86UnicornVSPECUnknown(X86FaultModelAbstract):
     reg_taints: Dict
     flag_taints: Dict
     reg_taints_checkpoints: List[Dict]
-    curr_observation : Set = set()
+    curr_observation: Set = set()
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -512,9 +512,9 @@ class X86UnicornVSPECUnknown(X86FaultModelAbstract):
 
     def _load_input(self, input_: Input):
         self.curr_observation.clear()
-        assert(len(self.reg_taints) == 0)
-        assert(len(self.flag_taints) == 0)
-        assert(len(self.reg_taints_checkpoints) == 0)
+        assert len(self.reg_taints) == 0
+        assert len(self.flag_taints) == 0
+        assert len(self.reg_taints_checkpoints) == 0
         return super()._load_input(input_)
 
     def speculate_fault(self, errno: int) -> int:
@@ -629,10 +629,10 @@ class X86UnicornVSPECUnknown(X86FaultModelAbstract):
             return
 
         # if model.current_instruction.has_write() and tainted_address_regs:
-            ## to be implemented
+        # # to be implemented
 
         # if not a memory operation, propagate taints
-        source_taints : Set = set()
+        source_taints: Set = set()
         for reg in reg_src_operands:
             # if register is tainted, then value is unknown, so add taint to set
             #   else, add value of register to taint set
@@ -752,9 +752,9 @@ class X86UnicornDivOverflow(X86FaultModelAbstract):
             if width == 32:
                 a = self.emulator.reg_read(ucc.UC_X86_REG_EAX)
                 d = self.emulator.reg_read(ucc.UC_X86_REG_EDX)
-                trimmed_result = (((d << 32) + a) // value) #0xffffffff%
-                #print(hex(a), hex(d), trimmed_result, 6070540370 % 0xffffffff)
-                trimmed_remainder = (((d << 32) + a) % value) # % 0xffffffff
+                trimmed_result = (((d << 32) + a) // value)  # 0xffffffff%
+                # print(hex(a), hex(d), trimmed_result, 6070540370 % 0xffffffff)
+                trimmed_remainder = (((d << 32) + a) % value)  # % 0xffffffff
                 # self.emulator.reg_write(ucc.UC_X86_REG_RDX, 0)
                 # print(trimmed_remainder)
                 self.emulator.reg_write(ucc.UC_X86_REG_RAX, trimmed_result)
@@ -763,7 +763,7 @@ class X86UnicornDivOverflow(X86FaultModelAbstract):
             if width == 16:
                 a = self.emulator.reg_read(ucc.UC_X86_REG_AX)
                 d = self.emulator.reg_read(ucc.UC_X86_REG_DX)
-                trimmed_result = (((d << 16) + a) // value) #% 0xffff
+                trimmed_result = (((d << 16) + a) // value)  # % 0xffff
                 self.emulator.reg_write(ucc.UC_X86_REG_RAX, trimmed_result)
                 self.emulator.reg_write(ucc.UC_X86_REG_RDX, ((d << 16) + a) % value)
                 return self.next_instruction_addr

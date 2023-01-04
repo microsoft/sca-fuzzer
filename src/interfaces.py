@@ -122,15 +122,15 @@ class FlagsOperand(Operand):
 
     def __str__(self):
         return "FLAGS: " \
-                f"{self._flag_names[0]}{self._flag_values[0]}|" \
-                f"{self._flag_names[1]}{self._flag_values[1]}|" \
-                f"{self._flag_names[2]}{self._flag_values[2]}|" \
-                f"{self._flag_names[3]}{self._flag_values[3]}|" \
-                f"{self._flag_names[4]}{self._flag_values[4]}|" \
-                f"{self._flag_names[5]}{self._flag_values[5]}|" \
-                f"{self._flag_names[6]}{self._flag_values[6]}|" \
-                f"{self._flag_names[7]}{self._flag_values[7]}|" \
-                f"{self._flag_names[8]}{self._flag_values[8]}"
+               f"{self._flag_names[0]}{self._flag_values[0]}|" \
+               f"{self._flag_names[1]}{self._flag_values[1]}|" \
+               f"{self._flag_names[2]}{self._flag_values[2]}|" \
+               f"{self._flag_names[3]}{self._flag_values[3]}|" \
+               f"{self._flag_names[4]}{self._flag_values[4]}|" \
+               f"{self._flag_names[5]}{self._flag_values[5]}|" \
+               f"{self._flag_names[6]}{self._flag_values[6]}|" \
+               f"{self._flag_names[7]}{self._flag_values[7]}|" \
+               f"{self._flag_names[8]}{self._flag_values[8]}"
 
     def _get_flag_list(self, types) -> List[str]:
         flags = []
@@ -548,8 +548,8 @@ class Input(np.ndarray):
         pass  # unreachable; defined only for type checking
 
     def __new__(cls):
-        data_size = (CONF.input_main_region_size + CONF.input_faulty_region_size +
-                     CONF.input_register_region_size) // 8
+        data_size = (CONF.input_main_region_size + CONF.input_faulty_region_size
+                     + CONF.input_register_region_size) // 8
         aligned_size = data_size + (4096 - CONF.input_register_region_size) // 8
         obj = super().__new__(cls, (aligned_size,), np.uint64, None, 0, None, None)  # type: ignore
         obj.data_size = data_size
@@ -559,11 +559,11 @@ class Input(np.ndarray):
     def __array_finalize__(self, obj):
         if obj is None:
             return
-        
+
     def __hash__(self) -> int:
         # hash of input is hash of input data, registers and memory
-        return hash(tuple(self[0:self.data_size-1]))
-    
+        return hash(tuple(self[0:self.data_size - 1]))
+
     def get_registers(self):
         return list(self[self.register_start:self.data_size - 1])
 
@@ -599,8 +599,8 @@ class InputTaint(np.ndarray):
         pass  # unreachable; defined only for type checking
 
     def __new__(cls):
-        size = (CONF.input_main_region_size + CONF.input_faulty_region_size +
-                CONF.input_register_region_size) // 8
+        size = (CONF.input_main_region_size + CONF.input_faulty_region_size
+                + CONF.input_register_region_size) // 8
         obj = super().__new__(cls, (size,), bool, None, 0, None, None)  # type: ignore
         obj.register_start = (CONF.input_main_region_size + CONF.input_faulty_region_size) // 8
         return obj

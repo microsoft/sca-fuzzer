@@ -9,7 +9,7 @@ from typing import Dict, Set, List, Optional
 
 from isa_loader import InstructionSet
 from interfaces import Coverage, EquivalenceClass, TestCase, Executor, Model, Analyser, \
-     ExecutionTrace, TracedInstruction, Instruction, RegisterOperand, OT
+    ExecutionTrace, TracedInstruction, Instruction, RegisterOperand, OT
 from x86.x86_generator import X86TargetDesc
 
 from service import STAT

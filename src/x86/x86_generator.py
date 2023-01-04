@@ -16,7 +16,7 @@ from interfaces import TestCase, Operand, RegisterOperand, FlagsOperand, MemoryO
     ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, InstructionSpec, \
     PageTableModifier
 from generator import ConfigurableGenerator, RandomGenerator, Pass, \
-     parser_assert, Printer, GeneratorException, AsmParserException
+    parser_assert, Printer, GeneratorException, AsmParserException
 from x86.x86_target_desc import X86TargetDesc
 from config import CONF
 

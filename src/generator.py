@@ -263,7 +263,7 @@ class ConfigurableGenerator(Generator, abc.ABC):
                 if previous_bb:  # skip the first BB
                     # there is a fallthrough only if the last terminator is not a direct jump
                     if not previous_bb.terminators or \
-                          not self.target_desc.is_unconditional_branch(previous_bb.terminators[-1]):
+                       not self.target_desc.is_unconditional_branch(previous_bb.terminators[-1]):
                         previous_bb.successors.append(bb)
                 previous_bb = bb
 
@@ -565,8 +565,6 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
             bb.insert_after(bb.get_last(), inst)
 
     def _pick_random_instruction_spec(self) -> InstructionSpec:
-        instruction_spec: InstructionSpec
-
         # ensure the requested avg. number of mem. accesses
         search_for_memory_access = False
         memory_access_probability = CONF.avg_mem_accesses / CONF.program_size

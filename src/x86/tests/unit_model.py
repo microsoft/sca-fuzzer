@@ -21,7 +21,7 @@ from x86.x86_generator import X86RandomGenerator
 from copy import deepcopy
 
 from config import CONF
-from service import LOGGER
+# from service import LOGGER
 
 test_path = Path(__file__).resolve()
 test_dir = test_path.parent
@@ -356,7 +356,7 @@ class X86ModelTest(unittest.TestCase):
             cbase + 4, mbase + 0,  # re-execute the instruction after setting the permissions
             cbase + 8, mbase + 2,  # speculatively execute the last instruction and rollback
             cbase, mbase + 4096, cbase + 4, mbase + 3, cbase + 8, mbase + 2,  # after rollback
-            ]))   # yapf: disable
+        ]))   # yapf: disable
         # on newer versions of Unicorn, the instruction may
         # not be re-executed after changing permissions
         # hence, an alternative trace would be
@@ -390,7 +390,7 @@ class X86ModelTest(unittest.TestCase):
             cbase + 4, mbase + 0,  # re-execute the instruction after setting the permissions
             cbase + 8, mbase + 2,  # speculatively execute the last instruction and rollback
             # terminate after rollback
-            ]))   # yapf: disable
+        ]))   # yapf: disable
         # on newer versions of Unicorn, the instruction may
         # not be re-executed after changing permissions
         # hence, an alternative trace would be
@@ -418,7 +418,7 @@ class X86ModelTest(unittest.TestCase):
             cbase + 4,  # next load is dependent - do not execute the mem access
             cbase + 8, mbase + 2,  # speculatively execute the last instruction and rollback
             # terminate after rollback
-            ]))   # yapf: disable
+        ]))   # yapf: disable
         self.assertEqual(ctraces[0], expected_trace)
 
     def test_ct_div_zero(self):
@@ -470,7 +470,7 @@ class X86ModelTest(unittest.TestCase):
             cbase + 4, mbase + 3,  # next instruction
             cbase + 8, mbase + 2,  # speculatively execute the last instruction and rollback
             # terminate after rollback
-            ]))   # yapf: disable
+        ]))   # yapf: disable
         self.assertEqual(ctraces[0], expected_trace)
 
     def test_ct_meltdown_fence(self):
@@ -537,7 +537,7 @@ class X86ModelTest(unittest.TestCase):
             cbase + 9, mbase + 3,  # leak [4096]
             cbase + 13,  # last instruction of speculation caused by exception, rollback
             cbase + 13,  # execution of correct branch
-            ]))   # yapf: disable
+        ]))   # yapf: disable
         self.assertEqual(ctraces[0], expected_trace)
 
     def test_ct_meltdown_branch(self):
@@ -554,11 +554,15 @@ class X86ModelTest(unittest.TestCase):
         ctraces = self.get_traces(
             model, ASM_FAULT_AND_BRANCH, [input_], nesting=2, pte_mask=PF_MASK)
         expected_trace_tmp = [
-            cbase, mbase + 4096, mbase + 4088,  # faulty access
-            cbase, mbase + 4096,  # speculative injection
+            cbase,
+            mbase + 4096,
+            mbase + 4088,  # faulty access
+            cbase,
+            mbase + 4096,  # speculative injection
             cbase + 4,  # xor
             cbase + 7,  # speculatively do not jump
-            cbase + 9, mbase + 3,  # leak [4096]
+            cbase + 9,
+            mbase + 3,  # leak [4096]
             cbase + 13,  # end of branch speculation, rollback
             cbase + 13,  # execution of correct branch
             # end of speculation after exception, rollback and terminate
@@ -585,7 +589,7 @@ class X86ModelTest(unittest.TestCase):
             cbase + 4, mbase + 2,  # next instruction
             cbase + 8, mbase + 2,  # speculatively execute the last instruction and rollback
             # terminate after rollback
-            ]))   # yapf: disable
+        ]))   # yapf: disable
         self.assertEqual(ctraces[0], expected_trace)
 
     @unittest.skip("not implemented")

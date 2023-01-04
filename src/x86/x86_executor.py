@@ -4,7 +4,7 @@ import csv
 import numpy as np
 from collections import Counter
 from typing import List
-from interfaces import CombinedHTrace, Input, TestCase, Executor, Optional
+from interfaces import CombinedHTrace, Input, TestCase, Executor
 
 from config import CONF
 from service import LOGGER

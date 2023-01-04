@@ -8,7 +8,6 @@ import x86.x86_model as x86_model
 import x86.x86_executor as x86_executor
 
 import x86.x86_fuzzer as x86_fuzzer
-import fuzzer
 import input_generator
 import analyser
 import coverage

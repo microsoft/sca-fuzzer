@@ -15,8 +15,8 @@ from unicorn import Uc, UcError, UC_MEM_WRITE, UC_MEM_READ, UC_SECOND_SCALE, UC_
     UC_HOOK_MEM_WRITE, UC_HOOK_CODE
 
 from interfaces import CTrace, TestCase, Model, InputTaint, Instruction, ExecutionTrace, \
-     TracedInstruction, TracedMemAccess, Input, Tracer, \
-     RegisterOperand, FlagsOperand, MemoryOperand, TaintTrackerInterface, TargetDesc
+    TracedInstruction, TracedMemAccess, Input, Tracer, \
+    RegisterOperand, FlagsOperand, MemoryOperand, TaintTrackerInterface, TargetDesc
 from config import CONF
 from service import LOGGER, NotSupportedException
 
@@ -856,7 +856,7 @@ class BaseTaintTracker(TaintTrackerInterface):
                 reg = self.unicorn_target_desc.reg_decode[label]
                 if reg in self._registers:
                     input_offset = register_start + \
-                          self._registers.index(self.unicorn_target_desc.reg_decode[label])
+                        self._registers.index(self.unicorn_target_desc.reg_decode[label])
             if input_offset >= 0:
                 tainted_positions.append(input_offset)
 
