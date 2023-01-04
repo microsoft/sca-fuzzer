@@ -12,7 +12,7 @@
 #include <linux/version.h>
 #include <linux/kobject.h>
 // clang-format on
-#include <cpuid.h>
+#include <../arch/x86/include/asm/processor.h>
 
 #include "main.h"
 
@@ -450,13 +450,8 @@ static int __init executor_init(void)
 #endif
 
     // Check CPU vendor
-    unsigned eax, ebx, ecx, edx;
-    char vendor_name[17] = {0};
-    __cpuid(0, eax, ebx, ecx, edx);
-    memcpy(vendor_name, (char *)&ebx, 4);
-    memcpy(vendor_name + 4, (char *)&edx, 4);
-    memcpy(vendor_name + 8, (char *)&ecx, 4);
-    if (strcmp(vendor_name, "GenuineIntel") != 0 && strcmp(vendor_name, "AuthenticAMD") != 0)
+    struct cpuinfo_x86 *c = &cpu_data(0);
+    if (c->x86_vendor != X86_VENDOR_INTEL && c->x86_vendor != X86_VENDOR_AMD)
     {
         printk(KERN_ERR "x86_executor: This CPU vendor is not supported\n");
         return -1;
