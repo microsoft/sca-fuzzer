@@ -107,6 +107,7 @@ pip3 install --user pyyaml types-pyyaml numpy  # skip --user if you're installin
 Tests:
 * [Bash Automated Testing System](https://bats-core.readthedocs.io/en/latest/index.html)
 * [mypy](https://mypy.readthedocs.io/en/latest/getting_started.html#installing-and-running-mypy)
+* [flake8](https://flake8.pycqa.org/en/latest/index.html)
 
 
 Documentation:
