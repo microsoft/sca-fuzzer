@@ -696,8 +696,19 @@ class X86UnicornDivZero(X86FaultModelAbstract):
         self.checkpoint(self.emulator, self.code_end)
 
         # inject zero into both destination operands of division
-        self.emulator.reg_write(ucc.UC_X86_REG_RAX, 0)
-        self.emulator.reg_write(ucc.UC_X86_REG_RDX, 0)
+        size = self.current_instruction.operands[0].width
+        if size == 64:
+            self.emulator.reg_write(ucc.UC_X86_REG_RAX, 0)
+            self.emulator.reg_write(ucc.UC_X86_REG_RDX, 0)
+        elif size == 32:
+            self.emulator.reg_write(ucc.UC_X86_REG_EAX, 0)
+            self.emulator.reg_write(ucc.UC_X86_REG_EDX, 0)
+        elif size == 16:
+            self.emulator.reg_write(ucc.UC_X86_REG_AX, 0)
+            self.emulator.reg_write(ucc.UC_X86_REG_DX, 0)
+        elif size == 8:
+            self.emulator.reg_write(ucc.UC_X86_REG_AX, 0)
+            # 8-bit division does not use RDX
 
         return self.next_instruction_addr
 
