@@ -7,6 +7,7 @@ import tempfile
 import sys
 import subprocess
 import os
+from pathlib import Path
 
 sys.path.insert(0, '..')
 from x86.x86_generator import X86RandomGenerator, X86Printer, X86PatchUndefinedFlagsPass, \
@@ -17,9 +18,33 @@ from interfaces import TestCase, Function
 from config import CONF
 
 CONF.instruction_set = "x86-64"
+test_path = Path(__file__).resolve()
+test_dir = test_path.parent
+
+
+ASM_OPCODE = """
+.intel_syntax noprefix
+.test_case_enter:
+.byte 0x90, 0x90
+.test_case_exit:
+"""
 
 
 class X86RandomGeneratorTest(unittest.TestCase):
+
+    @staticmethod
+    def load_tc(asm_str: str):
+        min_x86_path = test_dir / "min_x86.json"
+        instruction_set = InstructionSet(min_x86_path.absolute().as_posix())
+        generator = X86RandomGenerator(instruction_set)
+
+        asm_file = tempfile.NamedTemporaryFile(delete=False)
+        with open(asm_file.name, "w") as f:
+            f.write(asm_str)
+        tc: TestCase = generator.load(asm_file.name)
+        asm_file.close()
+        os.unlink(asm_file.name)
+        return tc
 
     def test_x86_configuration(self):
         CONF.generator = "random"
@@ -121,6 +146,16 @@ class X86RandomGeneratorTest(unittest.TestCase):
         self.assertEqual(entry.successors[0], bb0)
         self.assertEqual(bb0.successors[0], bb1)
         self.assertEqual(bb1.successors[0], exit_)
+
+    def test_x86_asm_parsing_opcode(self):
+        CONF.register_blocklist = []
+        CONF.setattr_internal("_default_instruction_blocklist", [])
+
+        tc = self.load_tc(ASM_OPCODE)
+
+        main_iter = iter(tc.functions[0])
+        bb0 = next(main_iter)
+        self.assertEqual(bb0.get_first().name, "OPCODE")
 
     def test_x86_undef_flag_patch(self):
         instruction_set = InstructionSet('tests/min_x86.json', CONF.instruction_categories)

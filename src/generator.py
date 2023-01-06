@@ -167,6 +167,12 @@ class ConfigurableGenerator(Generator, abc.ABC):
             else:
                 instruction_map[spec.name] = [spec]
 
+            # add an entry for direct opcodes
+            dummy_spec = InstructionSpec()
+            dummy_spec.name = "OPCODE"
+            dummy_spec.category = "OPCODE"
+            instruction_map["OPCODE"] = [dummy_spec]
+
         # load the text and clean it up
         lines = []
         started = False
@@ -200,6 +206,12 @@ class ConfigurableGenerator(Generator, abc.ABC):
         current_bb = ".bb_main.entry"
         test_case_map: Dict[str, Dict[str, List[str]]] = OrderedDict()
         for line in lines:
+            # opcode
+            if line[:4] == ".bcd " or line[:5] in [".byte", ".long", ".quad"] \
+               or line[6:] in [".value", ".2byte", ".4byte", ".8byte"]:
+                test_case_map[current_function][current_bb].append("OPCODE")
+                continue
+
             # instruction
             if not line.startswith("."):
                 test_case_map[current_function][current_bb].append(line)
