@@ -322,7 +322,7 @@ class Logger:
         if not self.dbg_model:
             return
 
-        name = model.test_case.address_map[normalized_address].name
+        name = model.test_case.address_map[normalized_address]
         if model.in_speculation:
             print(f"transient 0x{normalized_address:<2x}: {name}")
         else:

@@ -11,6 +11,7 @@ from typing import List, Tuple, Type, Optional, Set, Dict
 import copy
 import re
 
+import unicorn as uc
 from unicorn import Uc, UcError, UC_MEM_WRITE, UC_MEM_READ, UC_SECOND_SCALE, UC_HOOK_MEM_READ, \
     UC_HOOK_MEM_WRITE, UC_HOOK_CODE
 
@@ -331,6 +332,53 @@ class UnicornModel(Model, ABC):
         pass
 
     @staticmethod
+    def errno_to_str(errno: int) -> str:
+        if errno == uc.UC_ERR_OK:
+            return "OK (UC_ERR_OK)"
+        elif errno == uc.UC_ERR_NOMEM:
+            return "No memory available or memory not present (UC_ERR_NOMEM)"
+        elif errno == uc.UC_ERR_ARCH:
+            return "Invalid/unsupported architecture (UC_ERR_ARCH)"
+        elif errno == uc.UC_ERR_HANDLE:
+            return "Invalid handle (UC_ERR_HANDLE)"
+        elif errno == uc.UC_ERR_MODE:
+            return "Invalid mode (UC_ERR_MODE)"
+        elif errno == uc.UC_ERR_VERSION:
+            return "Different API version between core & binding (UC_ERR_VERSION)"
+        elif errno == uc.UC_ERR_READ_UNMAPPED:
+            return "Invalid memory read (UC_ERR_READ_UNMAPPED)"
+        elif errno == uc.UC_ERR_WRITE_UNMAPPED:
+            return "Invalid memory write (UC_ERR_WRITE_UNMAPPED)"
+        elif errno == uc.UC_ERR_FETCH_UNMAPPED:
+            return "Invalid memory fetch (UC_ERR_FETCH_UNMAPPED)"
+        elif errno == uc.UC_ERR_HOOK:
+            return "Invalid hook type (UC_ERR_HOOK)"
+        elif errno == uc.UC_ERR_INSN_INVALID:
+            return "Invalid instruction (UC_ERR_INSN_INVALID)"
+        elif errno == uc.UC_ERR_MAP:
+            return "Invalid memory mapping (UC_ERR_MAP)"
+        elif errno == uc.UC_ERR_WRITE_PROT:
+            return "Write to write-protected memory (UC_ERR_WRITE_PROT)"
+        elif errno == uc.UC_ERR_READ_PROT:
+            return "Read from non-readable memory (UC_ERR_READ_PROT)"
+        elif errno == uc.UC_ERR_FETCH_PROT:
+            return "Fetch from non-executable memory (UC_ERR_FETCH_PROT)"
+        elif errno == uc.UC_ERR_ARG:
+            return "Invalid argument (UC_ERR_ARG)"
+        elif errno == uc.UC_ERR_READ_UNALIGNED:
+            return "Read from unaligned memory (UC_ERR_READ_UNALIGNED)"
+        elif errno == uc.UC_ERR_WRITE_UNALIGNED:
+            return "Write to unaligned memory (UC_ERR_WRITE_UNALIGNED)"
+        elif errno == uc.UC_ERR_FETCH_UNALIGNED:
+            return "Fetch from unaligned memory (UC_ERR_FETCH_UNALIGNED)"
+        elif errno == uc.UC_ERR_RESOURCE:
+            return "Insufficient resource (UC_ERR_RESOURCE)"
+        elif errno == uc.UC_ERR_EXCEPTION:
+            return "Unhandled CPU exception (UC_ERR_EXCEPTION)"
+        else:
+            return "Unknown error code"
+
+    @staticmethod
     def instruction_hook(emulator: Uc, address: int, size: int, model: UnicornModel) -> None:
         """
         Invoked when an instruction is executed.
@@ -355,7 +403,7 @@ class UnicornModel(Model, ABC):
 
         # unexpected fault - throw an error
         self.print_state()
-        LOGGER.error("[UnicornModel:trace_test_case] %s" % errno)
+        LOGGER.error(f"[UnicornModel:trace_test_case] {errno} {self.errno_to_str(errno)}")
 
     @staticmethod
     @abstractmethod
