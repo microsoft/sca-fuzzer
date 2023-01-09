@@ -409,7 +409,8 @@ class X86SandboxPass(Pass):
             imm_width = mem_operand.width if mem_operand.width <= 32 else 32
             apply_mask = Instruction("AND", True) \
                 .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
-                .add_op(ImmediateOperand(self.sandbox_address_mask, imm_width))
+                .add_op(ImmediateOperand(self.sandbox_address_mask, imm_width)) \
+                .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
             parent.insert_before(instr, apply_mask)
             instr.get_mem_operands()[0].value = "R14 + " + address_reg
             return
@@ -429,10 +430,12 @@ class X86SandboxPass(Pass):
                     f"Unexpected address register {address_reg} used in {instr}"
                 apply_mask = Instruction("AND", True) \
                     .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
-                    .add_op(ImmediateOperand(self.sandbox_address_mask, imm_width))
+                    .add_op(ImmediateOperand(self.sandbox_address_mask, imm_width)) \
+                    .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
                 add_base = Instruction("ADD", True) \
                     .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
-                    .add_op(RegisterOperand("R14", 64, True, False))
+                    .add_op(RegisterOperand("R14", 64, True, False)) \
+                    .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
                 parent.insert_before(instr, apply_mask)
                 parent.insert_before(instr, add_base)
             return
@@ -463,9 +466,10 @@ class X86SandboxPass(Pass):
 
         if 'DE-zero' not in CONF.permitted_faults:
             # Prevent div by zero
-            instrumentation = Instruction("OR", True).\
-                add_op(divisor).\
-                add_op(ImmediateOperand("1", 8))
+            instrumentation = Instruction("OR", True) \
+                .add_op(divisor) \
+                .add_op(ImmediateOperand("1", 8)) \
+                .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
             parent.insert_before(inst, instrumentation)
 
         if 'DE-overflow' in CONF.permitted_faults:
@@ -493,13 +497,15 @@ class X86SandboxPass(Pass):
         # Normal case
         # D = (D & divisor) >> 1
         d_register = {64: "RDX", 32: "EDX", 16: "DX"}[divisor.width]
-        instrumentation = Instruction("AND", True).\
-            add_op(RegisterOperand(d_register, divisor.width, False, True)).\
-            add_op(divisor)
+        instrumentation = Instruction("AND", True) \
+            .add_op(RegisterOperand(d_register, divisor.width, False, True)) \
+            .add_op(divisor) \
+            .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
         parent.insert_before(inst, instrumentation)
-        instrumentation = Instruction("SHR", True).\
-            add_op(RegisterOperand(d_register, divisor.width, False, True)).\
-            add_op(ImmediateOperand("1", 8))
+        instrumentation = Instruction("SHR", True) \
+            .add_op(RegisterOperand(d_register, divisor.width, False, True)) \
+            .add_op(ImmediateOperand("1", 8)) \
+            .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "undef"]), True)
         parent.insert_before(inst, instrumentation)
 
     def sandbox_bit_test(self, inst: Instruction, parent: BasicBlock):
@@ -526,7 +532,8 @@ class X86SandboxPass(Pass):
         if address.value != offset.value:
             apply_mask = Instruction("AND", True) \
                 .add_op(offset) \
-                .add_op(ImmediateOperand(self.mask_3bits, 8))
+                .add_op(ImmediateOperand(self.mask_3bits, 8)) \
+                .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
             parent.insert_before(inst, apply_mask)
             return
 
@@ -537,15 +544,18 @@ class X86SandboxPass(Pass):
     def sandbox_repeated_instruction(self, inst: Instruction, parent: BasicBlock):
         apply_mask = Instruction("AND", True) \
             .add_op(RegisterOperand("RCX", 64, True, True)) \
-            .add_op(ImmediateOperand("0xff", 8))
+            .add_op(ImmediateOperand("0xff", 8)) \
+            .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
         add_base = Instruction("ADD", True) \
             .add_op(RegisterOperand("RCX", 64, True, True)) \
-            .add_op(ImmediateOperand("1", 1))
+            .add_op(ImmediateOperand("1", 1)) \
+            .add_op(FlagsOperand(["w", "w", "w", "w", "w", "", "", "", "w"]), True)
         parent.insert_before(inst, apply_mask)
         parent.insert_before(inst, add_base)
 
     def sandbox_corrupted_cf(self, inst: Instruction, parent: BasicBlock):
-        set_cf = Instruction("STC", True)
+        set_cf = Instruction("STC", True) \
+            .add_op(FlagsOperand(["w", "", "", "", "", "", "", "", ""]), True)
         parent.insert_after(inst, set_cf)
 
     @staticmethod
@@ -608,9 +618,6 @@ class X86PatchUndefinedFlagsPass(Pass):
                             has_write = True
             if not has_read and has_write:
                 self.patch_candidates.append(instruction_spec)
-
-        if not self.patch_candidates:
-            raise GeneratorException("The instruction set is insufficient to patch undef flags")
 
     def run_on_test_case(self, test_case: TestCase) -> None:
         for func in test_case.functions:
@@ -714,7 +721,8 @@ class X86PatchUndefinedResultPass(Pass):
             mask_size = 32
         apply_mask = Instruction("OR", True) \
             .add_op(source) \
-            .add_op(ImmediateOperand(mask, mask_size))
+            .add_op(ImmediateOperand(mask, mask_size)) \
+            .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
         parent.insert_before(inst, apply_mask)
 
 
