@@ -176,6 +176,8 @@ class UnicornModel(Model, ABC):
             self.handled_faults.add(21)
         if 'UD' in CONF.permitted_faults:
             self.handled_faults.add(10)
+        if 'UD-sgx' in CONF.permitted_faults:
+            self.handled_faults.add(10)
         if 'PF-present' in CONF.permitted_faults:
             self.handled_faults.update([12, 13])
         if 'PF-writable' in CONF.permitted_faults:

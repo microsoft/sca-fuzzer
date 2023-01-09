@@ -369,6 +369,7 @@ class X86SandboxPass(Pass):
                 bit_tests = []
                 repeated_instructions = []
                 corrupted_cf = []
+                enclu = []
                 for inst in bb:
                     if inst.has_mem_operand(True):
                         memory_instructions.append(inst)
@@ -380,6 +381,8 @@ class X86SandboxPass(Pass):
                         repeated_instructions.append(inst)
                     elif inst.category == "BASE-ROTATE" or inst.category == "BASE-SHIFT":
                         corrupted_cf.append(inst)
+                    elif inst.name == "ENCLU":
+                        enclu.append(inst)
 
                 # sandbox them
                 for inst in memory_instructions:
@@ -396,6 +399,9 @@ class X86SandboxPass(Pass):
 
                 for inst in corrupted_cf:
                     self.sandbox_corrupted_cf(inst, bb)
+
+                for inst in enclu:
+                    self.sandbox_enclu(inst, bb)
 
     def sandbox_memory_access(self, instr: Instruction, parent: BasicBlock):
         """ Force the memory accesses into the page starting from R14 """
@@ -557,6 +563,20 @@ class X86SandboxPass(Pass):
         set_cf = Instruction("STC", True) \
             .add_op(FlagsOperand(["w", "", "", "", "", "", "", "", ""]), True)
         parent.insert_after(inst, set_cf)
+
+    def sandbox_enclu(self, inst: Instruction, parent: BasicBlock):
+        options = [
+            "0",  # ereport
+            "1",  # egetkey
+            "4",  # eexit
+            "5",  # eaccept
+            "6",  # emodpe
+            "7",  # eacceptcopy
+        ]
+        set_rax = Instruction("MOV", True) \
+            .add_op(RegisterOperand("EAX", 32, True, True)) \
+            .add_op(ImmediateOperand(random.choice(options), 1))
+        parent.insert_before(inst, set_rax)
 
     @staticmethod
     def requires_sandbox(inst: InstructionSpec):

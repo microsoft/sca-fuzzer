@@ -27,6 +27,8 @@ def update_instruction_list():
             CONF._default_instruction_blocklist.append("REX IDIV")
     if 'UD' not in CONF.permitted_faults:
         CONF._default_instruction_blocklist.extend(["UD", "UD2"])
+    if 'UD-sgx' not in CONF.permitted_faults:
+        CONF._default_instruction_blocklist.extend(["ENCLU"])
     if 'DB-instruction' not in CONF.permitted_faults:
         CONF._default_instruction_blocklist.append("INT1")
     if 'BP' not in CONF.permitted_faults:
@@ -39,6 +41,8 @@ def check_instruction_list(instruction_set: InstructionSetAbstract):
         assert "IDIV" in all_instruction_names or "IDIV" in all_instruction_names
     if 'UD' in CONF.permitted_faults:
         assert "UD" in all_instruction_names or "UD2" in all_instruction_names
+    if 'UD-sgx' in CONF.permitted_faults:
+        assert "ENCLU" in all_instruction_names
     if 'DB-instruction' in CONF.permitted_faults:
         assert "INT1" in all_instruction_names
     if 'BP' in CONF.permitted_faults:
