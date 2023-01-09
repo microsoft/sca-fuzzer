@@ -855,7 +855,7 @@ class X86NonCanonicalAddress(X86FaultModelAbstract):
     """
      Load from non-canonical addresss
     """
-    fault_inst_addr: int
+    last_faulty_addr: int
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -865,6 +865,7 @@ class X86NonCanonicalAddress(X86FaultModelAbstract):
         if not self.fault_triggers_speculation(errno):
             return 0
 
+        print(f"Checkpoint at {self.code_end:x}")
         self.checkpoint(self.emulator, self.code_end)
         self.last_faulty_addr = self.curr_instruction_addr
         return self.curr_instruction_addr
