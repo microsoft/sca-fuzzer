@@ -758,31 +758,30 @@ class X86PatchOpcodesPass(Pass):
             # UD2 instruction
             "0x0f, 0x0b",
 
-            # invalid in 64-bit mode
-            "0x37",  # AAA
-            "0xd5, 0x0a",  # AAD
-            "0xd4, 0x0a",  # AAM
-            "0x3f",  # AAS
-            "0x62",  # BOUND
-            "0x27",  # DAA
-            "0x2F",  # DAS
-            "0x61",  # POPA
-
-            # invalid in 64-bit + invalid with lock
-            "0xf0, 0x37",  # AAA
-            "0xf0, 0xd5, 0x0a",  # AAD
-            "0xf0, 0xd4, 0x0a",  # AAM
-            "0xf0, 0x3f",  # AAS
-            "0xf0, 0x62",  # BOUND
-            "0xf0, 0x27",  # DAA
-            "0xf0, 0x2F",  # DAS
-            "0xf0, 0x61",  # POPA
-
-            # invalid with lock
-            # "0xf0, 0x48, 0x11, 0xc0",  # LOCK ADC rax, rax
-
-            # invalid when not in VMX operation
-            # "0xf0, 0x01, 0xc1",  # VMCALL
+            # invalid in 64-bit mode;
+            # all the following opcodes are padded
+            # with NOP to prevent misinterpretation by objdump
+            "0x06, 0x90",  # 32-bit encoding of PUSH
+            "0x07, 0x90",  # 32-bit encoding of POP
+            "0x0E, 0x90",  # alternative 32-bit encoding of PUSH
+            "0x16, 0x90",  # alternative 32-bit encoding of PUSH
+            "0x17, 0x90",  # alternative 32-bit encoding of POP
+            "0x1E, 0x90",  # alternative 32-bit encoding of PUSH
+            "0x1F, 0x90",  # alternative 32-bit encoding of POP
+            "0x27, 0x90",  # DAA
+            "0x2F, 0x90",  # DAS
+            "0x37, 0x90",  # AAA
+            "0x3f, 0x90",  # AAS
+            "0x60, 0x90",  # PUSHA
+            "0x61, 0x90",  # POPA
+            "0x62, 0x90",  # BOUND
+            "0x82, 0x90",  # 32-bit aliases for logical instructions
+            "0x9A, 0x90",  # 32-bit encoding of CALLF
+            "0xC4, 0x90",  # LES
+            "0xD4, 0x90",  # AAM
+            "0xD5, 0x90",  # AAD
+            "0xD6, 0x90",  # reserved
+            "0xEA, 0x90",  # 32-bit encoding of JMPF
         ],
         "INT1": ["0xf1"]
     }
