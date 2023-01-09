@@ -43,6 +43,9 @@ def check_instruction_list(instruction_set: InstructionSetAbstract):
         assert "UD" in all_instruction_names or "UD2" in all_instruction_names
     if 'UD-sgx' in CONF.permitted_faults:
         assert "ENCLU" in all_instruction_names
+        cpu_flags = run(
+            "grep 'flags' /proc/cpuinfo", shell=True, capture_output=True).stdout.decode()
+        assert "sgx" in cpu_flags
     if 'DB-instruction' in CONF.permitted_faults:
         assert "INT1" in all_instruction_names
     if 'BP' in CONF.permitted_faults:
