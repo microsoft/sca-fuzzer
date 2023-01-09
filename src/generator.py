@@ -87,7 +87,7 @@ class ConfigurableGenerator(Generator, abc.ABC):
                 [i for i in self.non_control_flow_instructions if i.has_mem_operand]
             self.load_instruction = [i for i in memory_access_instructions if not i.has_write]
             self.store_instructions = [i for i in memory_access_instructions if i.has_write]
-            assert self.load_instruction and self.store_instructions, \
+            assert self.load_instruction or self.store_instructions, \
                 "The instruction set does not have memory accesses while `avg_mem_accesses > 0`"
 
         if CONF.program_generator_seed:
@@ -145,7 +145,7 @@ class ConfigurableGenerator(Generator, abc.ABC):
                 if not line_num_str:
                     print(msg)
                 else:
-                    line = lines[int(line_num_str.group(1))]
+                    line = lines[int(line_num_str.group(1)) - 1]
                     print(msg + " -> " + line)
             raise e
 
@@ -588,7 +588,10 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
             search_for_memory_access = True
             self.had_recent_memory_access = not self.had_recent_memory_access
 
-        search_for_store = random.random() < 0.5  # 50% probability of stores
+        if self.store_instructions:
+            search_for_store = random.random() < 0.5  # 50% probability of stores
+        else:
+            search_for_store = False
 
         # select a random instruction spec for generation
         if not search_for_memory_access:
