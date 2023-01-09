@@ -859,7 +859,7 @@ class X86NonCanonicalAddress(X86FaultModelAbstract):
 
     def __init__(self, *args):
         super().__init__(*args)
-        self.relevant_faults.update([6])
+        self.relevant_faults.update([6,7])
 
     def speculate_fault(self, errno: int) -> int:
         if not self.fault_triggers_speculation(errno):
