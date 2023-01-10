@@ -859,13 +859,12 @@ class X86NonCanonicalAddress(X86FaultModelAbstract):
 
     def __init__(self, *args):
         super().__init__(*args)
-        self.relevant_faults.update([6,7])
+        self.relevant_faults.update([6, 7])
 
     def speculate_fault(self, errno: int) -> int:
         if not self.fault_triggers_speculation(errno):
             return 0
 
-        print(f"Checkpoint at {self.code_end:x}")
         self.checkpoint(self.emulator, self.code_end)
         self.last_faulty_addr = self.curr_instruction_addr
         return self.curr_instruction_addr
@@ -881,15 +880,19 @@ class X86NonCanonicalAddress(X86FaultModelAbstract):
             registers = re.split(r'\+|-|\*| ', mem_op.value)
             if len(registers) > 1:
                 continue
-            uc_reg = X86UnicornTargetDesc.reg_str_to_constant[registers[0]]
-            low = 0x00007fffffffffff
-            high = 0xffff800000000000
-            address = model.emulator.reg_read(uc_reg)  # load address
-            if address > low and address < high:
-                canonical = address ^ 0x1000000000000
-                model.emulator.reg_write(uc_reg, canonical)
 
+            uc_reg = X86UnicornTargetDesc.reg_str_to_constant[registers[0]]
+            address = model.emulator.reg_read(uc_reg)  # load address
+
+            print(f"old: {address:x}")
+            if address & (1 << 48):  # bit 48 is 1 => high address
+                address = address | 0xFFFF800000000000
+            else:  # bit 48 is 0 => low address
+                address = address & 0x00007FFFFFFFFFF
+                print(f"Canonical: {address:x}")
+                model.emulator.reg_write(uc_reg, address)
                 return  # Continue execution with canonical address
+
         return
 
 
