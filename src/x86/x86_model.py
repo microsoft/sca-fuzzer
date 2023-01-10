@@ -883,15 +883,14 @@ class X86NonCanonicalAddress(X86FaultModelAbstract):
 
             uc_reg = X86UnicornTargetDesc.reg_str_to_constant[registers[0]]
             address = model.emulator.reg_read(uc_reg)  # load address
-
-            print(f"old: {address:x}")
-            if address & (1 << 48):  # bit 48 is 1 => high address
+            if address & (1 << 47):  # bit 48 is 1 => high address
+                # print(f"High address {address:x}")
                 address = address | 0xFFFF800000000000
             else:  # bit 48 is 0 => low address
+                # print(f"Low address: {address:x}")
                 address = address & 0x00007FFFFFFFFFF
-                print(f"Canonical: {address:x}")
-                model.emulator.reg_write(uc_reg, address)
-                return  # Continue execution with canonical address
+            model.emulator.reg_write(uc_reg, address)
+            return  # Continue execution with canonical address
 
         return
 
