@@ -10,7 +10,7 @@ from typing import List
 x86_option_values = {
     'executor_mode': ['P+P', 'F+R', 'E+R'],  # 'GPR' is intentionally left out
     'permitted_faults': [
-        'DE-zero', 'DE-overflow', 'UD', 'UD-sgx', 'PF-present', 'PF-writable', 'PF-noncanonical',
+        'DE-zero', 'DE-overflow', 'UD', 'UD-sgx', 'PF-present', 'PF-writable', 'GP-noncanonical',
         'BP', 'DB-instruction', 'assist-accessed', 'assist-dirty'
     ],
 }

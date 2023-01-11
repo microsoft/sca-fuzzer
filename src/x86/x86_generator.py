@@ -285,7 +285,7 @@ class X86LFENCEPass(Pass):
 class X86NonCanonicalAddressPass(Pass):
 
     def run_on_test_case(self, test_case: TestCase) -> None:
-        if 'PF-noncanonical' not in CONF.permitted_faults:
+        if 'GP-noncanonical' not in CONF.permitted_faults:
             return
 
         for func in test_case.functions:
