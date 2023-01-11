@@ -374,6 +374,7 @@ class X86SandboxPass(Pass):
                 bit_tests = []
                 repeated_instructions = []
                 corrupted_cf = []
+                enclu = []
                 for inst in bb:
                     if inst.has_mem_operand(True):
                         memory_instructions.append(inst)
@@ -385,6 +386,8 @@ class X86SandboxPass(Pass):
                         repeated_instructions.append(inst)
                     elif inst.category == "BASE-ROTATE" or inst.category == "BASE-SHIFT":
                         corrupted_cf.append(inst)
+                    elif inst.name == "ENCLU":
+                        enclu.append(inst)
 
                 # sandbox them
                 for inst in memory_instructions:
@@ -401,6 +404,9 @@ class X86SandboxPass(Pass):
 
                 for inst in corrupted_cf:
                     self.sandbox_corrupted_cf(inst, bb)
+
+                for inst in enclu:
+                    self.sandbox_enclu(inst, bb)
 
     def sandbox_memory_access(self, instr: Instruction, parent: BasicBlock):
         """ Force the memory accesses into the page starting from R14 """
@@ -562,6 +568,20 @@ class X86SandboxPass(Pass):
         set_cf = Instruction("STC", True) \
             .add_op(FlagsOperand(["w", "", "", "", "", "", "", "", ""]), True)
         parent.insert_after(inst, set_cf)
+
+    def sandbox_enclu(self, inst: Instruction, parent: BasicBlock):
+        options = [
+            "0",  # ereport
+            "1",  # egetkey
+            "4",  # eexit
+            "5",  # eaccept
+            "6",  # emodpe
+            "7",  # eacceptcopy
+        ]
+        set_rax = Instruction("MOV", True) \
+            .add_op(RegisterOperand("EAX", 32, True, True)) \
+            .add_op(ImmediateOperand(random.choice(options), 1))
+        parent.insert_before(inst, set_rax)
 
     @staticmethod
     def requires_sandbox(inst: InstructionSpec):
@@ -743,31 +763,30 @@ class X86PatchOpcodesPass(Pass):
             # UD2 instruction
             "0x0f, 0x0b",
 
-            # invalid in 64-bit mode
-            "0x37",  # AAA
-            "0xd5, 0x0a",  # AAD
-            "0xd4, 0x0a",  # AAM
-            "0x3f",  # AAS
-            "0x62",  # BOUND
-            "0x27",  # DAA
-            "0x2F",  # DAS
-            "0x61",  # POPA
-
-            # invalid in 64-bit + invalid with lock
-            "0xf0, 0x37",  # AAA
-            "0xf0, 0xd5, 0x0a",  # AAD
-            "0xf0, 0xd4, 0x0a",  # AAM
-            "0xf0, 0x3f",  # AAS
-            "0xf0, 0x62",  # BOUND
-            "0xf0, 0x27",  # DAA
-            "0xf0, 0x2F",  # DAS
-            "0xf0, 0x61",  # POPA
-
-            # invalid with lock
-            # "0xf0, 0x48, 0x11, 0xc0",  # LOCK ADC rax, rax
-
-            # invalid when not in VMX operation
-            # "0xf0, 0x01, 0xc1",  # VMCALL
+            # invalid in 64-bit mode;
+            # all the following opcodes are padded
+            # with NOP to prevent misinterpretation by objdump
+            "0x06, 0x90",  # 32-bit encoding of PUSH
+            "0x07, 0x90",  # 32-bit encoding of POP
+            "0x0E, 0x90",  # alternative 32-bit encoding of PUSH
+            "0x16, 0x90",  # alternative 32-bit encoding of PUSH
+            "0x17, 0x90",  # alternative 32-bit encoding of POP
+            "0x1E, 0x90",  # alternative 32-bit encoding of PUSH
+            "0x1F, 0x90",  # alternative 32-bit encoding of POP
+            "0x27, 0x90",  # DAA
+            "0x2F, 0x90",  # DAS
+            "0x37, 0x90",  # AAA
+            "0x3f, 0x90",  # AAS
+            "0x60, 0x90",  # PUSHA
+            "0x61, 0x90",  # POPA
+            "0x62, 0x90",  # BOUND
+            "0x82, 0x90",  # 32-bit aliases for logical instructions
+            "0x9A, 0x90",  # 32-bit encoding of CALLF
+            "0xC4, 0x90",  # LES
+            "0xD4, 0x90",  # AAM
+            "0xD5, 0x90",  # AAD
+            "0xD6, 0x90",  # reserved
+            "0xEA, 0x90",  # 32-bit encoding of JMPF
         ],
         "INT1": ["0xf1"]
     }
