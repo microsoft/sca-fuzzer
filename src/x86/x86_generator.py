@@ -285,7 +285,7 @@ class X86LFENCEPass(Pass):
 class X86NonCanonicalAddressPass(Pass):
 
     def run_on_test_case(self, test_case: TestCase) -> None:
-        if 'PF-noncanonical' not in CONF.permitted_faults:
+        if 'GP-noncanonical' not in CONF.permitted_faults:
             return
 
         for func in test_case.functions:
@@ -329,13 +329,14 @@ class X86NonCanonicalAddressPass(Pass):
                                X86TargetDesc.gpr_normalized[reg.value]:
                                 mask_reg = masks[1]
 
+                        mask = hex((random.getrandbits(16) << 48))
                         lea = Instruction("LEA", True) \
                             .add_op(RegisterOperand(offset_reg, 64, False, True)) \
                             .add_op(MemoryOperand(registers, 64, True, False))
                         bb.insert_before(instr, lea)
                         mov = Instruction("MOV", True) \
                             .add_op(RegisterOperand(mask_reg, 64, True, True)) \
-                            .add_op(ImmediateOperand("0x1000000000000", 64))
+                            .add_op(ImmediateOperand(mask, 64))
                         bb.insert_before(instr, mov)
                         mask = Instruction("XOR", True) \
                             .add_op(RegisterOperand(offset_reg, 64, True, True)) \
@@ -344,6 +345,10 @@ class X86NonCanonicalAddressPass(Pass):
                         for idx, op in enumerate(instr.operands):
                             if op == mem_operand:
                                 instr.operands[idx].value = offset_reg
+
+                    # Make sure #GP only once. Otherwise Unicorn keeps raising an exception
+                    # when rolling back to the end of the code
+                    return
 
 
 class X86SandboxPass(Pass):
