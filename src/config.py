@@ -47,11 +47,11 @@ class ConfCls:
     """ max_bb_per_function: maximum number of basic blocks per function in generated programs """
     register_blocklist: List[str] = []
     """ register_blocklist: list of registers that will NOT be used for generating programs """
-    place_adjacent_unconditional_branches: bool = False
+    place_adjacent_unconditional_branches: bool = True
     """ place_adjacent_unconditional_branches: decides whether or not unconditional branches between
     two adjacent basic blocks should be placed.
     (Example: placing an unconditional branch from BB2 --> BB3 at the end of BB2) """
-    conditional_branch_selection_attempts: int = 2
+    conditional_branch_selection_attempts: int = 1
     """ conditional_branch_selection_attempts: the number of times to attempt randomly generating
     a conditional branch instruction (instead of an UNconditional branch) for extra basic block
     terminators that aren't "adjacent unconditional branches" (see
