@@ -49,8 +49,8 @@ class ConfCls:
     """ register_blocklist: list of registers that will NOT be used for generating programs """
     gadget_file: str = ""
     """ JSON file defining ordered assembly gadgets (in the same format as InstructionSpecs) """
-    gadget_chance: int = 7
-    """ Percent chance (out of 100) to place a random gadget instead of a random instruction during generation. """
+    gadget_chance: float = 0.03
+    """ Percent chance (out of 1.0) to place a random gadget instead of a random instruction during generation. """
     avoid_data_dependencies: bool = False
     """ [DEPRECATED] avoid_data_dependencies: """
     generate_memory_accesses_in_pairs: bool = False

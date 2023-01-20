@@ -591,7 +591,7 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
 
             # decide between placing a code gadget or a random instruction
             use_gadget = gadget_idx < gadget_count and \
-                         random.randrange(0, 100) < CONF.gadget_chance
+                         random.uniform(0, 1) < CONF.gadget_chance
 
             # CASE 1: we choose to use a gadget. Select one at random and place
             # *all* of its instructions into the basic block
@@ -600,7 +600,7 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
                 for (i, ispec) in enumerate(g):
                     # generate an instruction and add comments
                     inst = self.generate_instruction(ispec)
-                    inst.set_comment("%s[%d]" % (g.name, i))
+                    inst.set_comment("%s (%d/%d)" % (g.name, (i + 1), len(g)))
                     # insert into the basic block
                     bb.insert_after(bb.get_last(), inst)
                     instructions_remaining -= 1
@@ -656,13 +656,13 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
 #
 # A gadget is specified in the same format as the ISA specification JSON file
 # the InstructionSet class parses. In this case, this class parses the
-# specifications exactly was the main generator does.
+# specifications exactly as the main generator does.
 class CodeGadget():
     # Constructor. Accepts a name for the gadget and a list of instruction
     # specification (InstructionSpec) objects.
-    def __init__(self, name: str):
+    def __init__(self, name: str, instructions=InstructionSet()):
         self.name = name
-        self.instruction_set = InstructionSet()
+        self.instruction_set = instructions
 
     # Computes the length of the gadget's instruction list.
     def __len__(self):
@@ -711,10 +711,10 @@ class CodeGadget():
             # type-check the field and add it to the object
             assert type(data[f]) == ftype, "the given dictionary's \"%s\" must be a %s" % \
                                            (f, ftype)
-            setattr(g, f, data[f])
 
-        # finally, parse the instructions as InstructionSpec objects (stored
-        # inside an InstructionSet object)
-        g.instruction_set.init_from_list(data["instructions"])
+        # create a gadget object with the name and instructions and return
+        iset = InstructionSet()
+        iset.init_from_list(data["instructions"])
+        g = CodeGadget(data["name"], instructions=iset)
         return g
 
