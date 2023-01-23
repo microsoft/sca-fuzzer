@@ -72,13 +72,14 @@ class ConfigurableGenerator(Generator, abc.ABC):
         LOGGER.dbg_gen_instructions(instruction_set.instructions)
         self.control_flow_instructions = \
             [i for i in self.instruction_set.instructions if i.control_flow]
+        if CONF.max_bb_per_function > 1:
+            assert self.control_flow_instructions, \
+                "The instruction set is insufficient to generate a test case"
+
         self.non_control_flow_instructions = \
             [i for i in self.instruction_set.instructions if not i.control_flow]
         assert self.non_control_flow_instructions, \
             "The instruction set is insufficient to generate a test case"
-        if CONF.max_bb_per_function > 1:
-            assert self.control_flow_instructions, \
-                "The instruction set is insufficient to generate a test case"
 
         self.non_memory_access_instructions = \
             [i for i in self.non_control_flow_instructions if not i.has_mem_operand]
@@ -378,6 +379,12 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
     """
     had_recent_memory_access: bool = False
 
+    def __init__(self, instruction_set: InstructionSet):
+        super().__init__(instruction_set)
+        uncond_name = self.get_unconditional_jump_instruction().name.lower()
+        self.cond_branches = \
+            [i for i in self.control_flow_instructions if i.name.lower() != uncond_name]
+
     def generate_function(self, label: str):
         """ Generates a random DAG of basic blocks within a function """
         func = Function(label)
@@ -406,7 +413,7 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
                 # the number is adjusted to the position when close to the end
                 successor_count = node_count - i
 
-            # one of the targets is always the next node - to avoid dead code
+            # one of the targets (the first successor) is always the next node - to avoid dead code
             current_bb.successors.append(nodes[i + 1])
 
             # all other successors are random, selected from next nodes
@@ -542,35 +549,36 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         return CondOperand(cond)
 
     def add_terminators_in_function(self, func: Function):
+        def add_fallthrough(bb: BasicBlock, destination: BasicBlock):
+            # create an unconditional branch and add it
+            terminator = self.get_unconditional_jump_instruction()
+            terminator.operands = [LabelOperand(destination.name)]
+            bb.terminators.append(terminator)
+
         for bb in func:
             if len(bb.successors) == 0:
                 # Return instruction
                 continue
 
             elif len(bb.successors) == 1:
-                # the last basic block simply falls through
-                if bb.successors[0] == func.exit:
-                    continue
-
                 # Unconditional branch
-                terminator = self.get_unconditional_jump_instruction()
-                terminator.operands = [LabelOperand(bb.successors[0].name)]
-                bb.terminators.append(terminator)
+                dest = bb.successors[0]
+                if dest == func.exit:
+                    # DON'T insert a branch to the exit
+                    # the last basic block always falls through implicitly
+                    continue
+                add_fallthrough(bb, dest)
 
             elif len(bb.successors) == 2:
                 # Conditional branch
-                spec = random.choice(self.control_flow_instructions)
-
+                spec = random.choice(self.cond_branches)
                 terminator = self.generate_instruction(spec)
                 label = terminator.get_label_operand()
                 assert label
                 label.value = bb.successors[0].name
-
                 bb.terminators.append(terminator)
 
-                terminator = self.get_unconditional_jump_instruction()
-                terminator.operands = [LabelOperand(bb.successors[1].name)]
-                bb.terminators.append(terminator)
+                add_fallthrough(bb, bb.successors[1])
             else:
                 # Indirect jump
                 raise NotSupportedException()
