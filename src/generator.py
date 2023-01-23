@@ -390,8 +390,13 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         func = Function(label)
 
         # Define the maximum allowed number of successors for any BB
-        max_successors = 2 if self.instruction_set.has_conditional_branch else 1
-        min_successors = 1
+        if self.instruction_set.has_conditional_branch:
+            max_successors = CONF.max_successors_per_bb if CONF.max_successors_per_bb < 2 else 2
+            min_successors = CONF.min_successors_per_bb \
+                if CONF.min_successors_per_bb < max_successors else max_successors
+        else:
+            max_successors = 1
+            min_successors = 1
 
         # Create basic blocks
         node_count = random.randint(CONF.min_bb_per_function, CONF.max_bb_per_function)
