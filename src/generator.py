@@ -71,13 +71,14 @@ class ConfigurableGenerator(Generator, abc.ABC):
         super().__init__(instruction_set, seed)
         self.control_flow_instructions = \
             [i for i in self.instruction_set.instructions if i.control_flow]
+        if CONF.max_bb_per_function > 1:
+            assert self.control_flow_instructions, \
+                "The instruction set is insufficient to generate a test case"
+
         self.non_control_flow_instructions = \
             [i for i in self.instruction_set.instructions if not i.control_flow]
         assert self.non_control_flow_instructions, \
             "The instruction set is insufficient to generate a test case"
-        if CONF.max_bb_per_function > 1:
-            assert self.control_flow_instructions, \
-                "The instruction set is insufficient to generate a test case"
 
         self.non_memory_access_instructions = \
             [i for i in self.non_control_flow_instructions if not i.has_mem_operand]
@@ -90,6 +91,8 @@ class ConfigurableGenerator(Generator, abc.ABC):
                 "The instruction set does not have memory accesses while `avg_mem_accesses > 0`"
 
     def set_seed(self, seed: int):
+        if not seed:
+            seed = random.randint(1, 1000000)
         self._state = seed
         random.seed(seed)
 
@@ -358,6 +361,15 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
     """
     had_recent_memory_access: bool = False
 
+    def __init__(self, instruction_set: InstructionSet, seed: int):
+        super().__init__(instruction_set, seed)
+        uncond_name = self.get_unconditional_jump_instruction().name.lower()
+        self.cond_branches = \
+            [i for i in self.control_flow_instructions if i.name.lower() != uncond_name]
+        if CONF.max_successors_per_bb > 1:
+            assert self.cond_branches, \
+                "The instruction set does not contain cond branches while max_successors_per_bb > 1"
+
     def generate_function(self, label: str):
         """ Generates a random DAG of basic blocks within a function """
         func = Function(label)
@@ -391,7 +403,7 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
                 # the number is adjusted to the position when close to the end
                 successor_count = node_count - i
 
-            # one of the targets is always the next node - to avoid dead code
+            # one of the targets (the first successor) is always the next node - to avoid dead code
             current_bb.successors.append(nodes[i + 1])
 
             # all other successors are random, selected from next nodes
@@ -527,63 +539,39 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         return CondOperand(cond)
 
     def add_terminators_in_function(self, func: Function):
-        for (i, bb) in enumerate(func):
-            # iterate across the basic block's successors in reverse order, so
-            # any conditional branches are placed before the unconditional
-            # branch to the next adjacent BB
-            for j in reversed(range(0, len(bb.successors))):
-                successor = bb.successors[j]
-                # the first successor is the next basic block - always place an
-                # unconditional branch here
-                if j == 0:
-                    # DON'T insert a branch to the exit (the last basic block
-                    # will simply fall through)
-                    if successor == func.exit:
-                        continue
-                    
-                    # optionally, the placement of these branches to the
-                    # next adjacent basic block can be disabled
-                    if CONF.place_adjacent_unconditional_branches:
-                        # create an unconditional branch and add it
-                        terminator = self.get_unconditional_jump_instruction()
-                        terminator.operands = [LabelOperand(successor.name)]
-                        bb.terminators.append(terminator)
-                # all other successors are *not* the next basic block, and can
-                # be either a conditional branch or unconditional branch
-                else:
-                    uncond_term = self.get_unconditional_jump_instruction()
-                    terminator = self.get_unconditional_jump_instruction()
-                    terminator.operands = [LabelOperand(successor.name)]
+        def add_fallthrough(bb: BasicBlock, destination: BasicBlock):
+            # create an unconditional branch and add it
+            terminator = self.get_unconditional_jump_instruction()
+            terminator.operands = [LabelOperand(destination.name)]
+            bb.terminators.append(terminator)
 
-                    # depending on the config entry specified, this loop will
-                    # either:
-                    #   1. Search for a conditional branch, but give up after a
-                    #      number of attempts and default to an unconditional
-                    #      branch.
-                    #      (if a positive integer)
-                    #   2. Search for a conditional branch, forever, until one
-                    #      is generated.
-                    #      (if -1)
-                    #   3. Not execute at all and choose an unconditional branch
-                    #      by default.
-                    #      (if 0)
-                    cbsa = CONF.conditional_branch_selection_attempts
-                    attempts = cbsa
-                    term_is_uncond = lambda term : term.name.lower() == uncond_term.name.lower()
-                    term_is_cond = lambda term : not term_is_uncond(term)
-                    while (cbsa > 0 and term_is_uncond(terminator) and attempts > 0) or \
-                          (cbsa <= -1 and term_is_uncond(terminator)) or \
-                          (cbsa == 0 and term_is_cond(terminator)):
-                        # generate a random branch instruction
-                        spec = random.choice(self.control_flow_instructions)
-                        terminator = self.generate_instruction(spec)
-                        attempts -= 1
-                    
-                    # add the taget label to the branch instruction and append
-                    label = terminator.get_label_operand()
-                    assert label
-                    label.value = successor.name
-                    bb.terminators.append(terminator)
+        for bb in func:
+            if len(bb.successors) == 0:
+                # Return instruction
+                continue
+
+            elif len(bb.successors) == 1:
+                # Unconditional branch
+                dest = bb.successors[0]
+                if dest == func.exit:
+                    # DON'T insert a branch to the exit
+                    # the last basic block always falls through implicitly
+                    continue
+                add_fallthrough(bb, dest)
+
+            elif len(bb.successors) == 2:
+                # Conditional branch
+                spec = random.choice(self.cond_branches)
+                terminator = self.generate_instruction(spec)
+                label = terminator.get_label_operand()
+                assert label
+                label.value = bb.successors[0].name
+                bb.terminators.append(terminator)
+
+                add_fallthrough(bb, bb.successors[1])
+            else:
+                # Indirect jump
+                raise NotSupportedException()
 
     def add_instructions_in_function(self, func: Function):
         # evenly fill all BBs with random instructions
