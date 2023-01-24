@@ -42,6 +42,16 @@ class X86TargetDesc(TargetDesc):
         "FLAGS": "FLAGS",
         "RIP": "RIP",
         "RSP": "RSP",
+        "CF": "CF",
+        "PF": "PF",
+        "AF": "AF",
+        "ZF": "ZF",
+        "SF": "SF",
+        "TF": "TF",
+        "IF": "IF",
+        "DF": "DF",
+        "OF": "OF",
+        "AC": "AC",
     }  # yapf: disable
     registers = {
         8: ["AL", "BL", "CL", "DL", "SIL", "DIL", "R8B", "R9B", "R10B", "R11B", "R12B", "R13B",

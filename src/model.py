@@ -139,6 +139,7 @@ class UnicornModel(Model, ABC):
 
     # set by subclasses
     architecture: Tuple[int, int]
+    flags_id: int
 
     def __init__(self, sandbox_base, code_start):
         super().__init__(sandbox_base, code_start)
@@ -264,6 +265,9 @@ class UnicornModel(Model, ABC):
                     # we need to restore some pre-exception context. otherwise,
                     # the emulator becomes corrupted
                     self.emulator.context_restore(self.previous_context)
+                    # another workaround, specifically for flags
+                    self.emulator.reg_write(self.flags_id, self.emulator.reg_read(self.flags_id))
+
                     start_address = self.handle_fault(self.pending_fault_id)
                     self.pending_fault_id = 0
                     if start_address:

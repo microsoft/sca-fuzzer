@@ -41,6 +41,8 @@ class X86UnicornModel(UnicornModel):
         self.write_fault_mask = (1 << X86TargetDesc.pte_bits["RW"][0]) + \
             (1 << X86TargetDesc.pte_bits["DIRTY"][0])
 
+        self.flags_id = ucc.UC_X86_REG_EFLAGS
+
         super().__init__(sandbox_base, code_start)
 
     def load_test_case(self, test_case: TestCase) -> None:
