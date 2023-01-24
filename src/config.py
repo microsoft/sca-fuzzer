@@ -18,10 +18,14 @@ class ConfCls:
     # Fuzzer
     fuzzer: str = "basic"
     """ fuzzer: type of the fuzzing algorithm """
+    ignore_flaky_violations: bool = True
+    """ ignore_flaky_violations: if True, don't report non-reproducible violations """
     enable_priming: bool = True
     """ enable_priming: whether to check violations with priming """
     enable_speculation_filter: bool = False
+    """ enable_speculation_filter: if True, discard test cases that don't trigger speculation"""
     enable_observation_filter: bool = False
+    """ enable_observation_filter: if True,discard test cases that don't leave speculative traces"""
 
     # ==============================================================================================
     # Execution Environment

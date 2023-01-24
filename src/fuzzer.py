@@ -154,7 +154,13 @@ class Fuzzer:
             if not violations:
                 return None
 
-        # 3. Check if the violation survives priming
+        # 3. Check if the violation is reproducible
+        if self.check_if_reproducible(violations, boosted_inputs, htraces):
+            STAT.flaky_violations += 1
+            if CONF.ignore_flaky_violations:
+                return None
+
+        # 4. Check if the violation survives priming
         if not CONF.enable_priming:
             return violations[-1]
         STAT.required_priming += 1
@@ -167,10 +173,6 @@ class Fuzzer:
                 break
         else:
             # All violations were cleared by priming.
-            # Check whether it was actually successful priming
-            # or the measurement are just flaky
-            if self.check_if_reproducible(violations, boosted_inputs, htraces):
-                STAT.flaky_violations += 1
             return None
 
         # Violation survived priming. Report it
@@ -267,15 +269,15 @@ class Fuzzer:
     # Priming and reproducibility
     def check_if_reproducible(self, violations: List[EquivalenceClass], inputs: List[Input],
                               org_htraces: List[HTrace]) -> bool:
+        # re-collect htraces
+        htraces: List[HTrace] = self.executor.trace_test_case(inputs, CONF.executor_repetitions)
+
+        # check if all htraces that had a violation match
         violating_input_ids = []
         for violation in violations:
             for measurement in violation.measurements:
                 violating_input_ids.append(measurement.input_id)
 
-        # re-collect htraces
-        htraces: List[HTrace] = self.executor.trace_test_case(inputs, CONF.executor_repetitions)
-
-        # check if all htraces that had a violation match
         for i in violating_input_ids:
             if htraces[i] != org_htraces[i]:
                 return True
