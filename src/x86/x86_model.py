@@ -299,6 +299,7 @@ class X86UnicornNull(X86FaultModelAbstract):
     Contract describing zero injection on faults
     """
     curr_load: Tuple[int, int]
+    pending_re_execution: bool = False
     pending_restore_protection: bool = False
 
     def __init__(self, *args):
@@ -309,7 +310,7 @@ class X86UnicornNull(X86FaultModelAbstract):
     def speculate_instruction(emulator: Uc, address, size, model) -> None:
         assert isinstance(model, X86UnicornNull)
         # restore permissions after speculation - we might have nested injections
-        if address != model.curr_instruction_addr and model.pending_restore_protection:
+        if model.pending_restore_protection:
             model.pending_restore_protection = False
             if model.rw_protect:
                 model.emulator.mem_protect(model.sandbox_base + model.MAIN_REGION_SIZE,
@@ -317,9 +318,11 @@ class X86UnicornNull(X86FaultModelAbstract):
             elif model.write_protect:
                 model.emulator.mem_protect(model.sandbox_base + model.MAIN_REGION_SIZE,
                                            model.FAULTY_REGION_SIZE, UC_PROT_READ)
+        elif model.pending_re_execution:
+            model.pending_re_execution = False
+            model.pending_restore_protection = True
 
         # store the address for checkpointing (see speculate_fault)
-        model.curr_instruction_addr = address
         model.curr_load = (0, 0)
 
     @staticmethod
@@ -346,7 +349,7 @@ class X86UnicornNull(X86FaultModelAbstract):
             self.emulator.mem_write(address, bytes([0 for _ in range(size)]))
 
         # repeat the instruction
-        self.pending_restore_protection = True
+        self.pending_re_execution = True
         self.emulator.mem_protect(self.sandbox_base + self.MAIN_REGION_SIZE,
                                   self.FAULTY_REGION_SIZE)
         return self.curr_instruction_addr
