@@ -204,6 +204,8 @@ static inline int uarch_flush(void)
     static const u16 ds = __KERNEL_DS;
     asm volatile("verw %[ds]" : : [ds] "m"(ds) : "cc");
     wrmsr64(MSR_IA32_FLUSH_CMD, L1D_FLUSH);
+    asm volatile("wbinvd\n" : : :);
+    asm volatile("lfence\n" : : :);
 #elif VENDOR_ID == 2 // AMD
     // TBD
 #endif
@@ -275,10 +277,6 @@ void run_experiment(long rounds)
         // - RSP and RBP
         ((uint64_t *)register_initialization_base)[7] = (uint64_t)stack_base;
 
-        // flush some of the uarch state
-        if (pre_run_flush == 1)
-            uarch_flush();
-
         // Set page table entry for the faulty region
         if ((faulty_pte_mask_set != 0) || (faulty_pte_mask_clear != 0xffffffffffffffff))
         {
@@ -293,6 +291,10 @@ void run_experiment(long rounds)
         }
 
         setup_idt();
+
+        // flush some of the uarch state
+        if (pre_run_flush == 1)
+            uarch_flush();
 
         // execute
         ((void (*)(char *))measurement_code)(&sandbox->main_region[0]);

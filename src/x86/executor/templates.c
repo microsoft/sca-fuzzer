@@ -172,25 +172,33 @@ int load_template(size_t tc_size)
 // an empty-ish pipeline
 // clobber: none
 #define PIPELINE_RESET() asm volatile(""\
-    "mfence; mfence; mfence; mfence; mfence \n" \
-    "mfence; mfence; mfence; mfence; mfence \n" \
-    "mfence; mfence; mfence; mfence; mfence \n" \
-    "mfence; mfence; mfence; mfence; mfence \n" \
-    "mfence; mfence; mfence; mfence; mfence \n" \
-    "mfence; mfence; mfence; mfence; mfence \n" \
-    "mfence; mfence; mfence; mfence; mfence \n" \
-    "mfence; mfence; mfence; mfence; mfence \n" \
-    "mfence; mfence; mfence; mfence; mfence \n" \
-    "mfence; mfence; mfence; mfence; mfence \n" \
-    "mfence; mfence; mfence; mfence; mfence \n" \
-    "mfence; mfence; mfence; mfence; mfence \n" \
-    "mfence; mfence; mfence; mfence; mfence \n" \
-    "mfence; mfence; mfence; mfence; mfence \n" \
-    "mfence; mfence; mfence; mfence; mfence \n" \
-    "mfence; mfence; mfence; mfence; mfence \n" \
-    "mfence; mfence; mfence; mfence; mfence \n" \
-    "mfence; mfence; mfence; mfence; mfence \n" \
-    "mfence; mfence; mfence; mfence; mfence \n");
+    "lfence; lfence; lfence; lfence; lfence \n" \
+    "lfence; lfence; lfence; lfence; lfence \n" \
+    "lfence; lfence; lfence; lfence; lfence \n" \
+    "lfence; lfence; lfence; lfence; lfence \n" \
+    "lfence; lfence; lfence; lfence; lfence \n" \
+    "lfence; lfence; lfence; lfence; lfence \n" \
+    "lfence; lfence; lfence; lfence; lfence \n" \
+    "lfence; lfence; lfence; lfence; lfence \n" \
+    "lfence; lfence; lfence; lfence; lfence \n" \
+    "lfence; lfence; lfence; lfence; lfence \n" \
+    "lfence; lfence; lfence; lfence; lfence \n" \
+    "lfence; lfence; lfence; lfence; lfence \n" \
+    "lfence; lfence; lfence; lfence; lfence \n" \
+    "lfence; lfence; lfence; lfence; lfence \n" \
+    "lfence; lfence; lfence; lfence; lfence \n" \
+    "lfence; lfence; lfence; lfence; lfence \n" \
+    "lfence; lfence; lfence; lfence; lfence \n" \
+    "lfence; lfence; lfence; lfence; lfence \n" \
+    "lfence; lfence; lfence; lfence; lfence \n" \
+    "lfence; lfence; lfence; lfence; lfence \n" \
+    "lfence; lfence; lfence; lfence; lfence \n" \
+    "lfence; lfence; lfence; lfence; lfence \n" \
+    "lfence; lfence; lfence; lfence; lfence \n" \
+    "lfence; lfence; lfence; lfence; lfence \n" \
+    "lfence; lfence; lfence; lfence; lfence \n" \
+    "lfence; lfence; lfence; lfence; lfence \n" \
+    "lfence; lfence; lfence; lfence; lfence \n");
 
 
 #define SET_REGISTER_FROM_INPUT()\
