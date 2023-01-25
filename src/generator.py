@@ -719,6 +719,11 @@ class CodeGadget():
         self.instruction_set = instructions
         self.num_mem_accesses = self.count_mem_accesses()
 
+        # forbid the use of control-flow instructions in Revizor gadgets
+        for ispec in self.instruction_set.instructions:
+            assert not ispec.control_flow, "gadgets cannot contain control-flow instructions " \
+                                           "(such as \"%s\")" % ispec.name
+
     # Computes the length of the gadget's instruction list.
     def __len__(self):
         return len(self.instruction_set.instructions)
