@@ -1,0 +1,297 @@
+[
+    {
+        "name": "spectre_v1_double_load_x0",
+        "weight": 1.0,
+        "instructions":
+        [
+            {
+                "name": "LDR",
+                "category": "general",
+                "control_flow": false,
+                "operands": [
+                    {"dest": true, "src": false, "comment": "", "type_": "REG", "width": 64, "values": ["X0"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "MEM", "width": 64},
+                    {"dest": false, "src": true, "comment": "", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+                ],
+                "implicit_operands": []
+            },
+            {
+                "name": "LDR",
+                "category": "general",
+                "control_flow": false,
+                "operands": [
+                    {"dest": true, "src": false, "comment": "", "type_": "REG", "width": 64, "values": ["GPR"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "MEM", "width": 64, "values": ["X0"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+                ],
+                "implicit_operands": []
+            }
+        ]
+    },
+    {
+        "name": "spectre_v1_double_load_x1",
+        "weight": 1.0,
+        "instructions":
+        [
+            {
+                "name": "LDR",
+                "category": "general",
+                "control_flow": false,
+                "operands": [
+                    {"dest": true, "src": false, "comment": "", "type_": "REG", "width": 64, "values": ["X1"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "MEM", "width": 64},
+                    {"dest": false, "src": true, "comment": "", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+                ],
+                "implicit_operands": []
+            },
+            {
+                "name": "LDR",
+                "category": "general",
+                "control_flow": false,
+                "operands": [
+                    {"dest": true, "src": false, "comment": "", "type_": "REG", "width": 64, "values": ["GPR"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "MEM", "width": 64, "values": ["X1"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+                ],
+                "implicit_operands": []
+            }
+        ]
+    },
+    {
+        "name": "spectre_v1_double_load_x2",
+        "weight": 1.0,
+        "instructions":
+        [
+            {
+                "name": "LDR",
+                "category": "general",
+                "control_flow": false,
+                "operands": [
+                    {"dest": true, "src": false, "comment": "", "type_": "REG", "width": 64, "values": ["X2"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "MEM", "width": 64},
+                    {"dest": false, "src": true, "comment": "", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+                ],
+                "implicit_operands": []
+            },
+            {
+                "name": "LDR",
+                "category": "general",
+                "control_flow": false,
+                "operands": [
+                    {"dest": true, "src": false, "comment": "", "type_": "REG", "width": 64, "values": ["GPR"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "MEM", "width": 64, "values": ["X2"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+                ],
+                "implicit_operands": []
+            }
+        ]
+    },
+    {
+        "name": "spectre_v1_double_load_x3",
+        "weight": 1.0,
+        "instructions":
+        [
+            {
+                "name": "LDR",
+                "category": "general",
+                "control_flow": false,
+                "operands": [
+                    {"dest": true, "src": false, "comment": "", "type_": "REG", "width": 64, "values": ["X3"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "MEM", "width": 64},
+                    {"dest": false, "src": true, "comment": "", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+                ],
+                "implicit_operands": []
+            },
+            {
+                "name": "LDR",
+                "category": "general",
+                "control_flow": false,
+                "operands": [
+                    {"dest": true, "src": false, "comment": "", "type_": "REG", "width": 64, "values": ["GPR"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "MEM", "width": 64, "values": ["X3"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+                ],
+                "implicit_operands": []
+            }
+        ]
+    },
+    {
+        "name": "spectre_v1_double_load_x4",
+        "weight": 1.0,
+        "instructions":
+        [
+            {
+                "name": "LDR",
+                "category": "general",
+                "control_flow": false,
+                "operands": [
+                    {"dest": true, "src": false, "comment": "", "type_": "REG", "width": 64, "values": ["X4"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "MEM", "width": 64},
+                    {"dest": false, "src": true, "comment": "", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+                ],
+                "implicit_operands": []
+            },
+            {
+                "name": "LDR",
+                "category": "general",
+                "control_flow": false,
+                "operands": [
+                    {"dest": true, "src": false, "comment": "", "type_": "REG", "width": 64, "values": ["GPR"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "MEM", "width": 64, "values": ["X4"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+                ],
+                "implicit_operands": []
+            }
+        ]
+    },
+    {
+        "name": "spectre_v1_double_load_x5",
+        "weight": 1.0,
+        "instructions":
+        [
+            {
+                "name": "LDR",
+                "category": "general",
+                "control_flow": false,
+                "operands": [
+                    {"dest": true, "src": false, "comment": "", "type_": "REG", "width": 64, "values": ["X5"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "MEM", "width": 64},
+                    {"dest": false, "src": true, "comment": "", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+                ],
+                "implicit_operands": []
+            },
+            {
+                "name": "LDR",
+                "category": "general",
+                "control_flow": false,
+                "operands": [
+                    {"dest": true, "src": false, "comment": "", "type_": "REG", "width": 64, "values": ["GPR"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "MEM", "width": 64, "values": ["X5"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+                ],
+                "implicit_operands": []
+            }
+        ]
+    },
+    {
+        "name": "spectre_v1_double_load_x6",
+        "weight": 1.0,
+        "instructions":
+        [
+            {
+                "name": "LDR",
+                "category": "general",
+                "control_flow": false,
+                "operands": [
+                    {"dest": true, "src": false, "comment": "", "type_": "REG", "width": 64, "values": ["X6"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "MEM", "width": 64},
+                    {"dest": false, "src": true, "comment": "", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+                ],
+                "implicit_operands": []
+            },
+            {
+                "name": "LDR",
+                "category": "general",
+                "control_flow": false,
+                "operands": [
+                    {"dest": true, "src": false, "comment": "", "type_": "REG", "width": 64, "values": ["GPR"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "MEM", "width": 64, "values": ["X6"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+                ],
+                "implicit_operands": []
+            }
+        ]
+    },
+    {
+        "name": "triple_bitwise_or",
+        "weight": 0.75,
+        "instructions":
+        [
+            {
+                "name": "ORR", "category": "general", "control_flow": false,
+                "operands": [
+                    {"dest": true, "src": false, "comment": "", "type_": "REG", "width": 32, "values": ["GPR", "SP"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "REG", "width": 32, "values": ["GPR"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "IMM", "values": ["bitmask"], "width": 32}
+                ],
+                "implicit_operands": [
+                    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+                ]
+            },
+            {
+                "name": "ORR", "category": "general", "control_flow": false,
+                "operands": [
+                    {"dest": true, "src": false, "comment": "", "type_": "REG", "width": 32, "values": ["GPR", "SP"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "REG", "width": 32, "values": ["GPR"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "IMM", "values": ["bitmask"], "width": 32}
+                ],
+                "implicit_operands": [
+                    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+                ]
+            },
+            {
+                "name": "ORR", "category": "general", "control_flow": false,
+                "operands": [
+                    {"dest": true, "src": false, "comment": "", "type_": "REG", "width": 32, "values": ["GPR", "SP"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "REG", "width": 32, "values": ["GPR"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "IMM", "values": ["bitmask"], "width": 32}
+                ],
+                "implicit_operands": [
+                    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+                ]
+            }
+        ]
+    },
+    {
+        "name": "quadruple_subtraction",
+        "weight": 0.5,
+        "instructions":
+        [
+            {
+                "name": "SUB", "category": "general", "control_flow": false,
+                "operands": [
+                    {"dest": true, "src": false, "comment": "", "type_": "REG", "width": 32, "values": ["GPR", "SP"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "REG", "width": 32, "values": ["GPR", "SP"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "REG", "width": 32, "values": ["GPR"]}
+                ],
+                "implicit_operands": [
+                    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+                ]
+            },
+            {
+                "name": "SUB", "category": "general", "control_flow": false,
+                "operands": [
+                    {"dest": true, "src": false, "comment": "", "type_": "REG", "width": 32, "values": ["GPR", "SP"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "REG", "width": 32, "values": ["GPR", "SP"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "REG", "width": 32, "values": ["GPR"]}
+                ],
+                "implicit_operands": [
+                    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+                ]
+            },
+            {
+                "name": "SUB", "category": "general", "control_flow": false,
+                "operands": [
+                    {"dest": true, "src": false, "comment": "", "type_": "REG", "width": 32, "values": ["GPR", "SP"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "REG", "width": 32, "values": ["GPR", "SP"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "REG", "width": 32, "values": ["GPR"]}
+                ],
+                "implicit_operands": [
+                    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+                ]
+            },
+            {
+                "name": "SUB", "category": "general", "control_flow": false,
+                "operands": [
+                    {"dest": true, "src": false, "comment": "", "type_": "REG", "width": 32, "values": ["GPR", "SP"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "REG", "width": 32, "values": ["GPR", "SP"]},
+                    {"dest": false, "src": true, "comment": "", "type_": "REG", "width": 32, "values": ["GPR"]}
+                ],
+                "implicit_operands": [
+                    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+                ]
+            }
+        ]
+    }
+]
+
