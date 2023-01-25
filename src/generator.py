@@ -591,14 +591,25 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         # at a time
         basic_blocks_to_fill = func.get_all()[1:-1]
 
+        # compute a probability of a gadget being selected, based on the average
+        # length of a gadget and 'CONF.avg_gadgets_per_bb'
+        gadget_counts = {}
+        avg_gadget_size = sum(len(g) for g in self.gadgets) / len(self.gadgets)
+        gadget_chance = (avg_gadget_size * CONF.avg_gadgets_per_bb * len(basic_blocks_to_fill)) / CONF.program_size
+
         instructions_remaining = CONF.program_size
         while instructions_remaining > 0:
             bb = random.choice(basic_blocks_to_fill)
 
+            # track the number of gadgets placed in each basic block
+            if bb.name not in gadget_counts:
+                gadget_counts[bb.name] = 0
+
             # decide between placing a code gadget or a random instruction
             # (don't interrupt the placement of two memory-access instructions)
-            use_gadget = random.uniform(0, 1) < CONF.gadget_chance and \
-                         not self.had_recent_memory_access
+            use_gadget = random.uniform(0, 1) < gadget_chance and \
+                         not self.had_recent_memory_access and \
+                         gadget_counts[bb.name] < CONF.max_gadgets_per_bb
 
             # CASE 1: we choose to use a gadget. Select one at random and place
             # all of its instructions, in order, into the basic block
@@ -619,6 +630,7 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
                         instructions_remaining -= 1
                         if ispec.has_mem_operand:
                             self.mem_access_count += 1
+                    gadget_counts[bb.name] += 1
                     continue
 
             # CASE 2: we choose *not* to use a gadget (or we failed to find an
@@ -627,7 +639,7 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
             ispec = self._pick_random_instruction_spec()
             bb.insert_after(bb.get_last(), self.generate_instruction(ispec))
             instructions_remaining -= 1
-
+        
     def _pick_random_instruction_spec(self) -> InstructionSpec:
         instruction_spec: InstructionSpec
 
@@ -671,24 +683,31 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         if gadget_min == gadget_max:
             return None
 
-        # select a random index from within the acceptable range
+        # select a random index from within the acceptable range, and iterate
+        # (circularly) until we find a suitable gadget
         idx = random.randrange(gadget_min, gadget_max)
-        if mem_access_limit is not None:
-            # iterate, circularly, through the available gadgets until we find
-            # a gadget that has the same (or less) number of memory access
-            # instructions as the limit we've been given
-            for i in range(gadget_max - gadget_min):
-                if self.gadgets[idx].count_mem_accesses() <= mem_access_limit:
-                    return self.gadgets[idx]
-                idx = (idx + 1) % (gadget_max - gadget_min)
+        circular_increment = lambda _idx : (_idx + 1) % (gadget_max - gadget_min)
+        chance = random.random()
+        for i in range(gadget_max - gadget_min):
+            g = self.gadgets[idx]
 
-            # if we made it through the loop without returning, there must not
-            # be a fitting gadget
-            return None
-        # in ordinary cases with no mem-access limit, return the gadget at the
-        # index we generated
-        return self.gadgets[idx]
+            # if the gadget's probability isn't met, move onto the next one
+            if chance >= g.probability:
+                idx = circular_increment(idx)
+                continue
 
+            # if memory access limits are in place, make sure this gadget won't
+            # exceed the limit
+            if mem_access_limit is not None and \
+               g.count_mem_accesses() > mem_access_limit:
+                idx = circular_increment(idx)
+                continue
+
+            # otherwise, return the chosen gadget
+            return g
+
+        # if nothing was returned above, then no suitable gadget was found
+        return None
 
     @abc.abstractmethod
     def get_return_instruction(self) -> Instruction:
@@ -711,12 +730,15 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
 # A gadget is specified in the same format as the ISA specification JSON file
 # the InstructionSet class parses. In this case, this class parses the
 # specifications exactly as the main generator does.
-class CodeGadget():
+class CodeGadget:
     # Constructor. Accepts a name for the gadget and a list of instruction
-    # specification (InstructionSpec) objects.
-    def __init__(self, name: str, instructions=InstructionSet()):
+    # specification (InstructionSpec) objects. Optionally accepts a proability
+    # (from 0.0 to 1.0) of how likely the gadget is to be selected, compared to
+    # other gadgets. (default for all is 1.0)
+    def __init__(self, name: str, instructions=InstructionSet(), probability=1.0):
         self.name = name
         self.instruction_set = instructions
+        self.probability = max(0.0, min(1.0, probability))
         self.num_mem_accesses = self.count_mem_accesses()
 
         # forbid the use of control-flow instructions in Revizor gadgets
@@ -764,7 +786,8 @@ class CodeGadget():
         # check a number of expected and/or optional dictionary fields
         fields = {
             "name":             {"type": str,   "required": True},
-            "instructions":     {"type": list,  "required": True}
+            "instructions":     {"type": list,  "required": True},
+            "probability":      {"type": float, "required": False, "default": 1.0}
         }
         for f in fields:
             fdata = fields[f]
@@ -785,6 +808,6 @@ class CodeGadget():
         # create a gadget object with the name and instructions and return
         iset = InstructionSet()
         iset.init_from_list(data["instructions"])
-        g = CodeGadget(data["name"], instructions=iset)
+        g = CodeGadget(data["name"], instructions=iset, probability=data["probability"])
         return g
 
