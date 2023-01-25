@@ -8,6 +8,7 @@ import abc
 import math
 import re
 import random
+import copy
 
 from subprocess import run, CalledProcessError
 from typing import Dict, List
@@ -18,6 +19,7 @@ from interfaces import TestCase, Operand, RegisterOperand, MemoryOperand, LabelO
 from generator import ConfigurableGenerator, RandomGenerator, Pass, \
     Printer, GeneratorException, AsmParserException, parser_assert
 from config import CONF
+from service import LOGGER
 
 from arm64.arm64_target_desc import ARMTargetDesc
 
@@ -34,6 +36,45 @@ class ARMGenerator(ConfigurableGenerator, abc.ABC):
             ARMPatchUndefinedLoadsPass(self.target_desc),
             ARMSandboxPass(),
         ]
+
+    def generate_instruction(self, spec: InstructionSpec) -> Instruction:
+        """
+        ARMGenerator overrides the default instruction generation algorithm
+        because ARM ISA imposes an additional constraint that does
+        not exist on some other architectures.
+        Namely, on ARM, the same register cannot be used as both
+        as a memory address and a source/destination for stores/loads
+        (see Issue #34) with pre-index or with post-index with writeback.
+        To simplify the implementation, we avoid re-using registers for
+        all loads and stores.
+        """
+        inst = super().generate_instruction(spec)
+
+        if not inst.has_mem_operand():
+            return inst
+
+        memory_ops = inst.get_mem_operands()
+        assert len(memory_ops) == 1
+        memory_register = self.target_desc.gpr_normalized[memory_ops[0].value]
+        for i, operand in enumerate(inst.operands):
+            if not isinstance(operand, RegisterOperand):
+                continue
+            if self.target_desc.gpr_normalized[operand.value] != memory_register:
+                continue
+
+            # make a copy as we are going to make changes to the spec
+            operand_spec = copy.deepcopy(spec.operands[i])
+
+            # patch the list of registers usable by this operand
+            org_values = operand_spec.values
+            if org_values == ["GPR"]:
+                org_values = self.target_desc.registers[operand_spec.width]
+            elif org_values == ["SIMD"]:
+                org_values = self.target_desc.simd_registers[operand_spec.width]
+            operand_spec.values = [v for v in org_values if v != operand.value]
+            inst.operands[i] = self.generate_operand(operand_spec, inst)
+
+        return inst
 
     def map_addresses(self, test_case: TestCase, bin_file: str) -> None:
         # get a list of relative instruction addresses
@@ -71,21 +112,35 @@ class ARMGenerator(ConfigurableGenerator, abc.ABC):
     @staticmethod
     def assemble(asm_file: str, bin_file: str) -> None:
         """Assemble the test case into a stripped binary"""
+        def pretty_error_msg(error_msg):
+            with open(asm_file, "r") as f:
+                lines = f.read().split("\n")
+
+            msg = "Error appeared while assembling the test case:\n"
+            for line in error_msg.split("\n"):
+                line = line.removeprefix(asm_file + ":")
+                line_num_str = re.search(r"(\d+):", line)
+                if not line_num_str:
+                    msg += line
+                else:
+                    parsed = lines[int(line_num_str.group(1)) - 1]
+                    msg += f"\n  Line {line}\n    (the line was parsed as {parsed})"
+            return msg
         try:
-            run(f"aarch64-linux-gnu-as {asm_file} -o {bin_file}",
-                shell=True,
-                check=True,
-                capture_output=True)
+            out = run(f"aarch64-linux-gnu-as {asm_file} -o {bin_file}",
+                      shell=True,
+                      check=True,
+                      capture_output=True)
         except CalledProcessError as e:
             error_msg = e.stderr.decode()
             if "Assembler messages:" not in error_msg:
                 print(error_msg)
                 raise e
+            LOGGER.error(pretty_error_msg(error_msg))
 
-            for msg in error_msg.split("\n"):
-                msg = msg.removeprefix(asm_file + ":")
-                print(msg)
-            raise e
+        output = out.stderr.decode()
+        if "Assembler messages:" in output:
+            LOGGER.warning("generator", pretty_error_msg(output))
 
         run(f"aarch64-linux-gnu-strip --remove-section=.note.gnu.property {bin_file}",
             shell=True,
