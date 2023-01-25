@@ -594,7 +594,9 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         # compute a probability of a gadget being selected, based on the average
         # length of a gadget and 'CONF.avg_gadgets_per_bb'
         gadget_counts = {}
-        avg_gadget_size = sum(len(g) for g in self.gadgets) / len(self.gadgets)
+        avg_gadget_size = 0
+        if len(self.gadgets) > 0:
+            avg_gadget_size = sum(len(g) for g in self.gadgets) / len(self.gadgets)
         gadget_chance = (avg_gadget_size * CONF.avg_gadgets_per_bb * len(basic_blocks_to_fill)) / CONF.program_size
 
         instructions_remaining = CONF.program_size
@@ -691,8 +693,8 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         for i in range(gadget_max - gadget_min):
             g = self.gadgets[idx]
 
-            # if the gadget's probability isn't met, move onto the next one
-            if chance >= g.probability:
+            # if the gadget's weight isn't met, move onto the next one
+            if chance >= g.weight:
                 idx = circular_increment(idx)
                 continue
 
@@ -735,10 +737,10 @@ class CodeGadget:
     # specification (InstructionSpec) objects. Optionally accepts a proability
     # (from 0.0 to 1.0) of how likely the gadget is to be selected, compared to
     # other gadgets. (default for all is 1.0)
-    def __init__(self, name: str, instructions=InstructionSet(), probability=1.0):
+    def __init__(self, name: str, instructions=InstructionSet(), weight=1.0):
         self.name = name
         self.instruction_set = instructions
-        self.probability = max(0.0, min(1.0, probability))
+        self.weight = max(0.0, min(1.0, weight))
         self.num_mem_accesses = self.count_mem_accesses()
 
         # forbid the use of control-flow instructions in Revizor gadgets
@@ -787,7 +789,7 @@ class CodeGadget:
         fields = {
             "name":             {"type": str,   "required": True},
             "instructions":     {"type": list,  "required": True},
-            "probability":      {"type": float, "required": False, "default": 1.0}
+            "weight":           {"type": float, "required": False, "default": 1.0}
         }
         for f in fields:
             fdata = fields[f]
@@ -808,6 +810,6 @@ class CodeGadget:
         # create a gadget object with the name and instructions and return
         iset = InstructionSet()
         iset.init_from_list(data["instructions"])
-        g = CodeGadget(data["name"], instructions=iset, probability=data["probability"])
+        g = CodeGadget(data["name"], instructions=iset, weight=data["weight"])
         return g
 
