@@ -92,8 +92,8 @@ class ConfigurableGenerator(Generator, abc.ABC):
             assert self.load_instruction and self.store_instructions, \
                 "The instruction set does not have memory accesses while `avg_mem_accesses > 0`"
 
+        self.gadgets = []
         if len(CONF.gadget_file) > 0:
-            self.gadgets = []
             with open(CONF.gadget_file, "r") as fp:
                 gdata = json.loads(fp.read())
                 for entry in gdata:
@@ -380,6 +380,7 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         if CONF.max_successors_per_bb > 1:
             assert self.cond_branches, \
                 "The instruction set does not contain cond branches while max_successors_per_bb > 1"
+        self.mem_access_count = 0 # counts the number of generated memory-accessing instructions
 
     def generate_function(self, label: str):
         """ Generates a random DAG of basic blocks within a function """
@@ -590,44 +591,42 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         # at a time
         basic_blocks_to_fill = func.get_all()[1:-1]
 
-        # our gagdet list is in sorted order by length (descending), so we'll
-        # use an index to track which of the gadgets is small enough to fit
-        # within 'instructions_remaining' in the below loop. The gadgets that
-        # fit may be selected during the process
-        gadget_idx = 0
-        gadget_count = len(self.gadgets)
-
         instructions_remaining = CONF.program_size
         while instructions_remaining > 0:
             bb = random.choice(basic_blocks_to_fill)
 
-            # decrease the gadget index until we land on the first gadget that
-            # fits 'instructions_remaining'
-            while gadget_idx < gadget_count and \
-                  len(self.gadgets[gadget_idx]) > instructions_remaining:
-                gadget_idx += 1
-
             # decide between placing a code gadget or a random instruction
-            use_gadget = gadget_idx < gadget_count and \
-                         random.uniform(0, 1) < CONF.gadget_chance
+            # (don't interrupt the placement of two memory-access instructions)
+            use_gadget = random.uniform(0, 1) < CONF.gadget_chance and \
+                         not self.had_recent_memory_access
 
             # CASE 1: we choose to use a gadget. Select one at random and place
-            # *all* of its instructions into the basic block
+            # all of its instructions, in order, into the basic block
             if use_gadget:
-                g = self.gadgets[random.randrange(gadget_idx, gadget_count)]
-                for (i, ispec) in enumerate(g):
-                    # generate an instruction and add comments
-                    inst = self.generate_instruction(ispec)
-                    inst.set_comment("%s (%d/%d)" % (g.name, (i + 1), len(g)))
-                    # insert into the basic block
-                    bb.insert_after(bb.get_last(), inst)
-                    instructions_remaining -= 1
-            # CASE 2: we choose *not* to use a gadget, and instead to use a
-            # single random instruction
-            else:
-                ispec = self._pick_random_instruction_spec()
-                bb.insert_after(bb.get_last(), self.generate_instruction(ispec))
-                instructions_remaining -= 1
+                # compute the number of memory accesses that need to be placed
+                # and generate an appropriate gadget
+                remaining_mem_accesses = CONF.avg_mem_accesses - self.mem_access_count
+                g = self._pick_random_gadget(max_len=instructions_remaining,
+                                             mem_access_limit=remaining_mem_accesses)
+                
+                # if we found a gadget to place, iterate and place all of its
+                # instructions
+                if g is not None:
+                    for (i, ispec) in enumerate(g):
+                        inst = self.generate_instruction(ispec)
+                        inst.set_comment("gadget: %s (%d/%d)" % (g.name, (i + 1), len(g)))
+                        bb.insert_after(bb.get_last(), inst)
+                        instructions_remaining -= 1
+                        if ispec.has_mem_operand:
+                            self.mem_access_count += 1
+                    continue
+
+            # CASE 2: we choose *not* to use a gadget (or we failed to find an
+            # appropriate gadget), and instead choose to use a single random
+            # instruction
+            ispec = self._pick_random_instruction_spec()
+            bb.insert_after(bb.get_last(), self.generate_instruction(ispec))
+            instructions_remaining -= 1
 
     def _pick_random_instruction_spec(self) -> InstructionSpec:
         instruction_spec: InstructionSpec
@@ -648,11 +647,48 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         # select a random instruction spec for generation
         if not search_for_memory_access:
             return random.choice(self.non_memory_access_instructions)
-
+        
+        self.mem_access_count += 1
         if search_for_store:
             return random.choice(self.store_instructions)
 
         return random.choice(self.load_instruction)
+    
+    # Looks for a gadget given the optional limits. Returns a CodeGadget object
+    # on success. On failure to find an appropriate gadget, None is returned.
+    def _pick_random_gadget(self, max_len=None, mem_access_limit=None) -> CodeGadget:
+        gadget_max = len(self.gadgets)
+        gadget_min = 0
+        if max_len is not None:
+            # our gagdet list is in sorted order by length (descending), so we'll
+            # walk and index down the list until we hit the first gadget that
+            # fits within the maximum length specified by the caller
+            while gadget_min < gadget_max and \
+                  len(self.gadgets[gadget_min]) > max_len:
+                gadget_min += 1
+
+        # if the range is too tight, give up
+        if gadget_min == gadget_max:
+            return None
+
+        # select a random index from within the acceptable range
+        idx = random.randrange(gadget_min, gadget_max)
+        if mem_access_limit is not None:
+            # iterate, circularly, through the available gadgets until we find
+            # a gadget that has the same (or less) number of memory access
+            # instructions as the limit we've been given
+            for i in range(gadget_max - gadget_min):
+                if self.gadgets[idx].count_mem_accesses() <= mem_access_limit:
+                    return self.gadgets[idx]
+                idx = (idx + 1) % (gadget_max - gadget_min)
+
+            # if we made it through the loop without returning, there must not
+            # be a fitting gadget
+            return None
+        # in ordinary cases with no mem-access limit, return the gadget at the
+        # index we generated
+        return self.gadgets[idx]
+
 
     @abc.abstractmethod
     def get_return_instruction(self) -> Instruction:
@@ -681,6 +717,7 @@ class CodeGadget():
     def __init__(self, name: str, instructions=InstructionSet()):
         self.name = name
         self.instruction_set = instructions
+        self.num_mem_accesses = self.count_mem_accesses()
 
     # Computes the length of the gadget's instruction list.
     def __len__(self):
@@ -690,6 +727,16 @@ class CodeGadget():
     def __iter__(self):
         for ispec in self.instruction_set.instructions:
             yield ispec
+    
+    # Counts and returns the number of memory-accessing instructions in the
+    # gadget.
+    def count_mem_accesses(self):
+        # this only has to be computed once
+        if not hasattr(self, "num_mem_accesses"):
+            self.num_mem_accesses = 0
+            for i in self.instruction_set.instructions:
+                self.num_mem_accesses += 1 if i.has_mem_operand else 0
+        return self.num_mem_accesses
     
     # Returns a list of instructions contained in the gadget.
     def get_instructions(self, generator: Generator):
