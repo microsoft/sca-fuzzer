@@ -866,6 +866,10 @@ class X86NonCanonicalAddress(X86FaultModelAbstract):
         super().__init__(*args)
         self.relevant_faults.update([6, 7])
 
+    def _load_input(self, input_: Input):
+        self.last_faulty_addr = -1
+        return super()._load_input(input_)
+
     def speculate_fault(self, errno: int) -> int:
         if not self.fault_triggers_speculation(errno):
             return 0
@@ -889,10 +893,8 @@ class X86NonCanonicalAddress(X86FaultModelAbstract):
             uc_reg = X86UnicornTargetDesc.reg_str_to_constant[registers[0]]
             address = model.emulator.reg_read(uc_reg)  # load address
             if address & (1 << 47):  # bit 48 is 1 => high address
-                # print(f"High address {address:x}")
                 address = address | 0xFFFF800000000000
             else:  # bit 48 is 0 => low address
-                # print(f"Low address: {address:x}")
                 address = address & 0x00007FFFFFFFFFF
             model.emulator.reg_write(uc_reg, address)
             return  # Continue execution with canonical address
