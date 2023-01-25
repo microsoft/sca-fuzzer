@@ -128,26 +128,34 @@ class ConfigurableGenerator(Generator, abc.ABC):
     @staticmethod
     def assemble(asm_file: str, bin_file: str) -> None:
         """Assemble the test case into a stripped binary"""
+
+        def pretty_error_msg(error_msg):
+            with open(asm_file, "r") as f:
+                lines = f.read().split("\n")
+
+            msg = "Error appeared while assembling the test case:\n"
+            for line in error_msg.split("\n"):
+                line = line.removeprefix(asm_file + ":")
+                line_num_str = re.search(r"(\d+):", line)
+                if not line_num_str:
+                    msg += line
+                else:
+                    parsed = lines[int(line_num_str.group(1)) - 1]
+                    msg += f"\n  Line {line}\n    (the line was parsed as {parsed})"
+            return msg
+
         try:
-            run(f"as {asm_file} -o {bin_file}", shell=True, check=True, capture_output=True)
+            out = run(f"as {asm_file} -o {bin_file}", shell=True, check=True, capture_output=True)
         except CalledProcessError as e:
             error_msg = e.stderr.decode()
             if "Assembler messages:" not in error_msg:
                 print(error_msg)
                 raise e
+            LOGGER.error(pretty_error_msg(error_msg))
 
-            with open(asm_file, "r") as f:
-                lines = f.read().split("\n")
-
-            for msg in error_msg.split("\n"):
-                msg = msg.removeprefix(asm_file + ":")
-                line_num_str = re.search(r"(\d+):", msg)
-                if not line_num_str:
-                    print(msg)
-                else:
-                    line = lines[int(line_num_str.group(1)) - 1]
-                    print(msg + " -> " + line)
-            raise e
+        output = out.stderr.decode()
+        if "Assembler messages:" in output:
+            LOGGER.warning("generator", pretty_error_msg(output))
 
         run(f"strip --remove-section=.note.gnu.property {bin_file}", shell=True, check=True)
         run(f"objcopy {bin_file} -O binary {bin_file}", shell=True, check=True)
