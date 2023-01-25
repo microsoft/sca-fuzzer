@@ -72,7 +72,15 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
         "REPNZ": "REPNE",
         "REPZ": "REPE",
     }
-    memory_sizes = {"BYTE": 8, "WORD": 16, "DWORD": 32, "QWORD": 64}
+    memory_sizes = {
+        "BYTE": 8,
+        "WORD": 16,
+        "DWORD": 32,
+        "QWORD": 64,
+        "XMMWORD": 128,
+        "YMMWORD": 256,
+        "ZMMWORD": 512
+    }
 
     def __init__(self, instruction_set: InstructionSet):
         super(X86Generator, self).__init__(instruction_set)
@@ -814,7 +822,15 @@ class X86PatchOpcodesPass(Pass):
 
 
 class X86Printer(Printer):
-    memory_prefixes = {8: "byte ptr", 16: "word ptr", 32: "dword ptr", 64: "qword ptr", 512: ""}
+    memory_prefixes = {
+        8: "byte ptr",
+        16: "word ptr",
+        32: "dword ptr",
+        64: "qword ptr",
+        128: "xmmword ptr",
+        256: "ymmword ptr",
+        512: "zmmword ptr"
+    }
     prologue_template = [
         ".intel_syntax noprefix\n",
         "MFENCE # instrumentation\n",

@@ -10,8 +10,8 @@ from typing import List
 x86_option_values = {
     'executor_mode': ['P+P', 'F+R', 'E+R'],  # 'GPR' is intentionally left out
     'permitted_faults': [
-        'DE-zero', 'DE-overflow', 'UD', 'UD-sgx', 'PF-present', 'PF-writable', 'GP-noncanonical',
-        'BP', 'DB-instruction', 'assist-accessed', 'assist-dirty'
+        'DE-zero', 'DE-overflow', 'UD', 'UD-vtx', 'UD-svm', 'PF-present', 'PF-writable',
+        'GP-noncanonical', 'BP', 'DB-instruction', 'assist-accessed', 'assist-dirty'
     ],
 }
 
@@ -63,6 +63,8 @@ x86_instruction_categories: List[str] = [
     # "CLFSH-MISC",
     # "BMI1",
     "SGX-SGX",
+    "VTX-VTX",
+    "SVM-SYSTEM",
 ]
 
 x86_instruction_blocklist: List[str] = [
@@ -81,7 +83,7 @@ x86_instruction_blocklist: List[str] = [
     # - requires support of all possible interrupts
     "INT",
     # - system management instruction
-    "ENCLS",
+    "ENCLS", "VMXON", "STGI", "SKINIT",
 
     # - not supported
     "LFENCE", "MFENCE", "SFENCE", "CLFLUSH", "CLFLUSHOPT",

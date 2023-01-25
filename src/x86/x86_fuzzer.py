@@ -29,6 +29,14 @@ def update_instruction_list():
         CONF._default_instruction_blocklist.extend(["UD", "UD2"])
     if 'UD-sgx' not in CONF.permitted_faults:
         CONF._default_instruction_blocklist.extend(["ENCLU"])
+    if 'UD-vtx' not in CONF.permitted_faults:
+        CONF._default_instruction_blocklist.extend([
+            'INVEPT', 'INVVPID', 'VMCALL', 'VMCLEAR', 'VMLAUNCH', 'VMPTRLD', 'VMPTRST', 'VMREAD',
+            'VMRESUME', 'VMWRITE', 'VMXOFF'
+        ])
+    if 'UD-svm' not in CONF.permitted_faults:
+        CONF._default_instruction_blocklist.extend(
+            ["VMRUN", "VMLOAD", "VMSAVE", "CLGI", "VMMCALL", "INVLPGA"])
     if 'DB-instruction' not in CONF.permitted_faults:
         CONF._default_instruction_blocklist.append("INT1")
     if 'BP' not in CONF.permitted_faults:
@@ -46,6 +54,10 @@ def check_instruction_list(instruction_set: InstructionSetAbstract):
         cpu_flags = run(
             "grep 'flags' /proc/cpuinfo", shell=True, capture_output=True).stdout.decode()
         assert "sgx" in cpu_flags
+    if 'UD-vtx' in CONF.permitted_faults:
+        assert "VMCALL" in all_instruction_names
+    if 'UD-svm' in CONF.permitted_faults:
+        assert "VMMCALL" in all_instruction_names
     if 'DB-instruction' in CONF.permitted_faults:
         assert "INT1" in all_instruction_names
     if 'BP' in CONF.permitted_faults:
