@@ -460,6 +460,60 @@ void template_l1d_prime_probe(void) {
 }
 
 // =================================================================================================
+// L1D Prime+Probe applied to a subset of L1D instead the whole cache
+// =================================================================================================
+
+#define PRIME_PARTIAL(BASE, OFFSET, TMP, COUNTER, REPS)         \
+        "mfence                                             \n" \
+        "mov "COUNTER", "REPS"                              \n" \
+        "   1: mov "OFFSET", 0                              \n" \
+        "       2: lfence                                   \n" \
+                PRIME_ONE_SET(BASE, OFFSET, TMP)                \
+        "       add "OFFSET", 64                            \n" \
+        "   cmp "OFFSET", 3840; jl 2b                       \n" \
+        "dec "COUNTER"; jnz 1b                              \n" \
+        "mfence;                                            \n"
+
+void template_l1d_prime_probe_partial(void) {
+    asm volatile(".quad "xstr(TEMPLATE_ENTER));
+    prologue();
+
+    // Prime
+    // clobber: rax, rbx, rcx, rdx
+    asm_volatile_intel(""
+        "lea rax, [r14 - "xstr(EVICT_REGION_OFFSET)"]\n"
+        PRIME_PARTIAL("rax", "rbx", "rcx", "rdx", "32"));
+
+    // PFC
+    // clobber: rax, rcx, rdx
+    asm_volatile_intel(READ_PFC_START());
+
+    // Initialize registers
+    SET_REGISTER_FROM_INPUT();
+
+    PIPELINE_RESET();
+
+    // Execute the test case
+    asm("\nlfence\n"
+        ".quad "xstr(TEMPLATE_INSERT_TC)" \n"
+        "mfence\n");
+
+    asm(".quad "xstr(TEMPLATE_JUMP_EXCEPTION));
+
+    // PFC
+    asm_volatile_intel(READ_PFC_END());
+
+    // Probe and store the resulting eviction bitmap map into r11
+    // Note: it internally clobbers rcx, rdx, rax
+    asm_volatile_intel(""
+        "lea r15, [r14 - "xstr(EVICT_REGION_OFFSET)"]\n"
+        PROBE("r15", "rbx", "r13", "r11"));
+
+    epilogue();
+    asm volatile(".quad "xstr(TEMPLATE_RETURN));
+}
+
+// =================================================================================================
 // L1D Flush+Reload
 // =================================================================================================
 #define FLUSH(BASE, OFFSET) \

@@ -418,7 +418,10 @@ static ssize_t measurement_mode_store(struct kobject *kobj, struct kobj_attribut
     }
     else if (buf[0] == 'P')
     {
-        measurement_template = (char *)&template_l1d_prime_probe;
+        if (buf[1] == '+')
+            measurement_template = (char *)&template_l1d_prime_probe;
+        else
+            measurement_template = (char *)&template_l1d_prime_probe_partial;
     }
     else if (buf[0] == 'E')
     {
