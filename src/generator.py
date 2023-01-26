@@ -586,9 +586,8 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
                 raise NotSupportedException()
 
     def add_instructions_in_function(self, func: Function):
-        # in this function, we evenly fill all BBs with random instructions by
-        # randomly choosing basic blocks and adding one instruction (or gadget)
-        # at a time
+        # evenly fill all BBs with random instructions by randomly choosing
+        # basic blocks and adding one instruction (or gadget) at a time
         basic_blocks_to_fill = func.get_all()[1:-1]
 
         # compute a probability of a gadget being selected, based on the average
@@ -608,7 +607,8 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
                 gadget_counts[bb.name] = 0
 
             # decide between placing a code gadget or a random instruction
-            # (don't interrupt the placement of two memory-access instructions)
+            #  - don't interrupt the placement of two memory-access instructions
+            #  - don't exceed the maximum number of gadgets for a BB
             use_gadget = random.uniform(0, 1) < gadget_chance and \
                          not self.had_recent_memory_access and \
                          gadget_counts[bb.name] < CONF.max_gadgets_per_bb
