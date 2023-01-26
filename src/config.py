@@ -60,7 +60,7 @@ class ConfCls:
     register_blocklist: List[str] = []
     """ register_blocklist: list of registers that will NOT be used for generating programs """
     gadget_file: str = ""
-    """ gadget_file: JSON file defining ordered assembly gadgets (in the same format as InstructionSpecs) """
+    """ gadget_file: JSON file defining ordered assembly gadgets"""
     avg_gadgets_per_bb: float = 0.5
     """ avg_gadgets_per_bb: average number of gadgets placed in each basic block of generated
         programs (can be a non-integer value)"""
