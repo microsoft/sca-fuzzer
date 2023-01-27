@@ -118,6 +118,7 @@ extern pteval_t faulty_pte_mask_clear;
 int trace_test_case(void);
 int load_template(size_t tc_size);
 void template_l1d_prime_probe(void);
+void template_l1d_prime_probe_partial(void);
 void template_l1d_flush_reload(void);
 void template_l1d_evict_reload(void);
 void template_gpr(void);

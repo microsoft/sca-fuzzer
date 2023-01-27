@@ -246,7 +246,7 @@ void run_experiment(long rounds)
         long i_ = (i < 0) ? 0 : i;
         uint64_t *current_input = &inputs[i_ * INPUT_SIZE / 8];
 
-        // Initialize memory:
+        // Initialize the areas surrounding the sandbox
         // NOTE: memset is not used intentionally! somehow, it messes up with P+P measurements
         // - overflows are initialized with zeroes
         memset(&sandbox->lower_overflow[0], 0, OVERFLOW_REGION_SIZE * sizeof(char));
@@ -256,6 +256,14 @@ void run_experiment(long rounds)
             ((uint64_t *)sandbox->upper_overflow)[j] = 0;
         }
 
+        // Try to reset the uarch state
+        // (we do it here because from this point on
+        // the execution is expected to be deterministic
+        // and depend solely on the test case and the input to it)
+        if (pre_run_flush == 1)
+            uarch_flush();
+
+        // Initialize the rest of the memory
         // - sandbox: main and faulty regions
         uint64_t *main_page_values = &current_input[0];
         uint64_t *main_base = (uint64_t *)&sandbox->main_region[0];
@@ -302,10 +310,6 @@ void run_experiment(long rounds)
         }
 
         setup_idt();
-
-        // flush some of the uarch state
-        if (pre_run_flush == 1)
-            uarch_flush();
 
         // execute
         ((void (*)(char *))measurement_code)(&sandbox->main_region[0]);
