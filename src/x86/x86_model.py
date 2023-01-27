@@ -899,10 +899,6 @@ class X86NonCanonicalAddress(X86FaultModelAbstract):
         super().__init__(*args)
         self.relevant_faults.update([6, 7])
 
-    def _load_input(self, input_: Input):
-        self.last_faulty_addr = -1
-        return super()._load_input(input_)
-
     def speculate_fault(self, errno: int) -> int:
         if not self.fault_triggers_speculation(errno):
             return 0
@@ -934,6 +930,9 @@ class X86NonCanonicalAddress(X86FaultModelAbstract):
 
         return
 
+    def reset_model(self):
+        self.last_faulty_addr = -1
+        return super().reset_model()
 
 # ==================================================================================================
 # Taint tracker
