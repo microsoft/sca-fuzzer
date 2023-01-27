@@ -893,7 +893,7 @@ class X86NonCanonicalAddress(X86FaultModelAbstract):
     """
      Load from non-canonical addresss
     """
-    last_faulty_addr: int
+    fauty_instruction_addr: int
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -904,14 +904,14 @@ class X86NonCanonicalAddress(X86FaultModelAbstract):
             return 0
 
         self.checkpoint(self.emulator, self.code_end)
-        self.last_faulty_addr = self.curr_instruction_addr
+        self.fauty_instruction_addr = self.curr_instruction_addr
         return self.curr_instruction_addr
 
     @staticmethod
     def speculate_instruction(emulator: Uc, address, size, model) -> None:
         assert isinstance(model, X86NonCanonicalAddress)
 
-        if not model.in_speculation or model.last_faulty_addr != address:
+        if not model.in_speculation or model.fauty_instruction_addr != address:
             return
 
         for mem_op in model.current_instruction.get_mem_operands():
@@ -931,8 +931,9 @@ class X86NonCanonicalAddress(X86FaultModelAbstract):
         return
 
     def reset_model(self):
-        self.last_faulty_addr = -1
+        self.fauty_instruction_addr = -1
         return super().reset_model()
+
 
 # ==================================================================================================
 # Taint tracker
