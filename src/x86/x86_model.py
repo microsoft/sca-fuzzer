@@ -294,6 +294,22 @@ class X86FaultModelAbstract(X86UnicornSpec):
         X86UnicornSpec.trace_instruction(emulator, address, size, model)
 
 
+class X86SequentialAssist(X86FaultModelAbstract):
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.relevant_faults.update([12, 13])
+
+    def speculate_fault(self, errno: int) -> int:
+        if not self.fault_triggers_speculation(errno):
+            return 0
+
+        # no speculation - simply reset the permissions
+        self.emulator.mem_protect(self.sandbox_base + self.MAIN_REGION_SIZE,
+                                  self.FAULTY_REGION_SIZE)
+        return self.curr_instruction_addr
+
+
 class X86UnicornNull(X86FaultModelAbstract):
     """
     Contract describing zero injection on faults
