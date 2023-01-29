@@ -293,6 +293,9 @@ class X86FaultModelAbstract(X86UnicornSpec):
         model.next_instruction_addr = address + size
         X86UnicornSpec.trace_instruction(emulator, address, size, model)
 
+    def get_rollback_address(self) -> int:
+        return self.code_end
+
 
 class X86SequentialAssist(X86FaultModelAbstract):
 
@@ -375,15 +378,11 @@ class X86UnicornNull(X86FaultModelAbstract):
                                   self.FAULTY_REGION_SIZE)
         return super().rollback()
 
+
+class X86UnicornNullAssist(X86UnicornNull):
+
     def get_rollback_address(self) -> int:
-        """ This function exists so that we can overwrite the rollback in subclasses """
         return self.curr_instruction_addr
-
-
-class X86UnicornNullTerminating(X86UnicornNull):
-
-    def get_rollback_address(self) -> int:
-        return self.code_end
 
 
 class X86UnicornOOO(X86FaultModelAbstract):
@@ -407,7 +406,7 @@ class X86UnicornOOO(X86FaultModelAbstract):
         # start speculation
         # we set the rollback address to the end of the testcase
         # because faults are terminating execution
-        self.checkpoint(self.emulator, self.code_end)
+        self.checkpoint(self.emulator, self.get_rollback_address())
 
         # add destinations to the dependency list
         for op in self.current_instruction.get_dest_operands(True):

@@ -44,8 +44,9 @@ X86_SIMPLE_EXECUTION_CLAUSES: Dict[str, Type[x86_model.X86UnicornModel]] = {
     "cond": x86_model.X86UnicornCond,
     "conditional_br_misprediction": x86_model.X86UnicornCond,
     "bpas": x86_model.X86UnicornBpas,
-    "nullinj": x86_model.X86UnicornNull,
-    "nullinj-term": x86_model.X86UnicornNullTerminating,
+    "nullinj": x86_model.X86UnicornNullAssist,  # keyword is to be deprecated
+    "nullinj-assist": x86_model.X86UnicornNullAssist,
+    "nullinj-term": x86_model.X86UnicornNull,
     "ooo": x86_model.X86UnicornOOO,
     "vspec-unknown": x86_model.X86UnicornVSPECUnknown,
     "div-zero": x86_model.X86UnicornDivZero,

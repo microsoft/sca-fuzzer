@@ -339,7 +339,7 @@ class X86ModelTest(unittest.TestCase):
 
     def test_ct_nullinj(self):
         mbase, cbase = 0x1000000, 0x8000
-        model = x86_model.X86UnicornNull(mbase, cbase)
+        model = x86_model.X86UnicornNullAssist(mbase, cbase)
         model.tracer = core_model.CTTracer()
         model.rw_protect = True
         model.handled_faults.update([12, 13])
@@ -370,7 +370,7 @@ class X86ModelTest(unittest.TestCase):
 
     def test_ct_nullinj_term(self):
         mbase, cbase = 0x1000000, 0x8000
-        model = x86_model.X86UnicornNullTerminating(mbase, cbase)
+        model = x86_model.X86UnicornNull(mbase, cbase)
         model.tracer = core_model.CTTracer()
         model.handled_faults.update([12, 13])
         input_ = Input()
