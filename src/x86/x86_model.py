@@ -894,10 +894,12 @@ class X86NonCanonicalAddress(X86FaultModelAbstract):
      Load from non-canonical addresss
     """
     fauty_instruction_addr: int
+    address_register : int
+    register_value: int    
 
     def __init__(self, *args):
         super().__init__(*args)
-        self.relevant_faults.update([6, 7])
+        self.relevant_faults.update([6,7])
 
     def speculate_fault(self, errno: int) -> int:
         if not self.fault_triggers_speculation(errno):
@@ -911,27 +913,44 @@ class X86NonCanonicalAddress(X86FaultModelAbstract):
     def speculate_instruction(emulator: Uc, address, size, model) -> None:
         assert isinstance(model, X86NonCanonicalAddress)
 
-        if not model.in_speculation or model.fauty_instruction_addr != address:
+        if not model.in_speculation:
             return
 
+        if model.address_register != -1:
+            print(f"write in {model.address_register} value {model.register_value:x}")
+            model.emulator.reg_write(model.address_register, model.register_value)
+            model.address_register = -1
+            return
+
+        if model.fauty_instruction_addr != address:
+            return
+        
+        ## Fix non-canonical address
         for mem_op in model.current_instruction.get_mem_operands():
             registers = re.split(r'\+|-|\*| ', mem_op.value)
             if len(registers) > 1:
                 continue
-
+            
             uc_reg = X86UnicornTargetDesc.reg_str_to_constant[registers[0]]
-            address = model.emulator.reg_read(uc_reg)  # load address
-            if address & (1 << 47):  # bit 48 is 1 => high address
-                address = address | 0xFFFF800000000000
-            else:  # bit 48 is 0 => low address
-                address = address & 0x00007FFFFFFFFFF
-            model.emulator.reg_write(uc_reg, address)
-            return  # Continue execution with canonical address
-
+            load_address = model.emulator.reg_read(uc_reg)  # load address
+            isCanonical : bool = load_address > 0xFFFF800000000000 \
+                or load_address < 0x00007FFFFFFFFFFF
+            if not isCanonical:
+                model.address_register  = uc_reg
+                model.register_value = load_address
+                
+                if load_address & (1 << 47):  # bit 48 is 1 => high address
+                    load_address = load_address | 0xFFFF800000000000
+                else:  # bit 48 is 0 => low address
+                    load_address = load_address & 0x00007FFFFFFFFFF
+                model.emulator.reg_write(uc_reg, load_address)
+                return
         return
 
     def reset_model(self):
         self.fauty_instruction_addr = -1
+        self.address_register = -1
+        self.register_value = -1
         return super().reset_model()
 
 
