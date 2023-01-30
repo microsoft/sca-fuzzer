@@ -324,18 +324,20 @@ class X86NonCanonicalAddressPass(Pass):
                         assert len(mem_operands) == 1, f"Unexpected instruction format {instr.name}"
                         mem_operand: Operand = mem_operands[0]
                         registers = mem_operand.value
-
+                        
                         offsets = ["RCX", "RDX"]
                         masks = ["RAX", "RBX"]
                         offset_reg = offsets[0]
                         mask_reg = masks[0]
-                        for reg in src_operands:
-                            if X86TargetDesc.gpr_normalized[offset_reg] == \
-                               X86TargetDesc.gpr_normalized[reg.value]:
-                                offset_reg = offsets[1]
-                            if X86TargetDesc.gpr_normalized[mask_reg] == \
-                               X86TargetDesc.gpr_normalized[reg.value]:
-                                mask_reg = masks[1]
+                        for operands in src_operands:
+                            offset_regs = re.split(r'\+|-|\*| ', operands.value)
+                            for reg in offset_regs:
+                                if X86TargetDesc.gpr_normalized[offset_reg] == \
+                                X86TargetDesc.gpr_normalized[reg]:
+                                    offset_reg = offsets[1]
+                                if X86TargetDesc.gpr_normalized[mask_reg] == \
+                                X86TargetDesc.gpr_normalized[reg]:
+                                    mask_reg = masks[1]
 
                         mask = hex((random.getrandbits(16) << 48))
                         lea = Instruction("LEA", True) \
