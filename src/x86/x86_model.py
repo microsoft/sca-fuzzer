@@ -917,7 +917,6 @@ class X86NonCanonicalAddress(X86FaultModelAbstract):
             return
 
         if model.address_register != -1:
-            print(f"write in {model.address_register} value {model.register_value:x}")
             model.emulator.reg_write(model.address_register, model.register_value)
             model.address_register = -1
             return
