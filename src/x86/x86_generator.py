@@ -306,6 +306,9 @@ class X86NonCanonicalAddressPass(Pass):
                 for instr in bb:
                     if instr.is_instrumentation:
                         continue
+                    if instr.name in ["DIV", "IDIV"]:
+                    # Instrumentation is difficult to combine
+                        continue
                     if instr.has_mem_operand(True):
                         memory_instructions.append(instr)
 
