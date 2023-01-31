@@ -88,8 +88,8 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
         self.passes = [
             X86SandboxPass(self.target_desc),
             X86PatchUndefinedFlagsPass(self.instruction_set, self),
-            X86NonCanonicalAddressPass(),
             X86PatchUndefinedResultPass(),
+            X86NonCanonicalAddressPass(),
             X86PatchOpcodesPass(),
         ]
         self.printer = X86Printer()
