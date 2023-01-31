@@ -338,11 +338,11 @@ class X86NonCanonicalAddressPass(Pass):
                         offsetList = ["RCX", "RDX"]
                         offset_reg = offsetList[0]
                         # Do not reuse destination register
-                        for dest in instr.get_dest_operands():
-                            if not isinstance(dest, RegisterOperand):
+                        for op in instr.get_all_operands():
+                            if not isinstance(op, RegisterOperand):
                                 continue
                             if X86TargetDesc.gpr_normalized[offset_reg] == \
-                                X86TargetDesc.gpr_normalized[dest.value]:
+                                X86TargetDesc.gpr_normalized[op.value]:
                                 offset_reg = offsetList[1]
 
                         mask = hex((random.getrandbits(16) << 48))
