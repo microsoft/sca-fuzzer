@@ -302,9 +302,9 @@ class X86NonCanonicalAddressPass(Pass):
                     continue
 
                 memory_instructions = []
-                for inst in bb:
-                    if inst.has_mem_operand(True):
-                        memory_instructions.append(inst)
+                for instr in bb:
+                    if instr.has_mem_operand(True):
+                        memory_instructions.append(instr)
 
                 # Collect src operands
                 for instr in memory_instructions:
@@ -325,19 +325,25 @@ class X86NonCanonicalAddressPass(Pass):
                         mem_operand: Operand = mem_operands[0]
                         registers = mem_operand.value
                         
-                        offsets = ["RCX", "RDX"]
-                        masks = ["RAX", "RBX"]
-                        offset_reg = offsets[0]
-                        mask_reg = masks[0]
+                        masksList = ["RAX", "RBX"]
+                        mask_reg = masksList[0]
+                        # Do not overwrite offset register with mask
                         for operands in src_operands:
-                            offset_regs = re.split(r'\+|-|\*| ', operands.value)
-                            for reg in offset_regs:
-                                if X86TargetDesc.gpr_normalized[offset_reg] == \
-                                X86TargetDesc.gpr_normalized[reg]:
-                                    offset_reg = offsets[1]
+                            usedRegs = re.split(r'\+|-|\*| ', operands.value)
+                            for reg in usedRegs:
                                 if X86TargetDesc.gpr_normalized[mask_reg] == \
-                                X86TargetDesc.gpr_normalized[reg]:
-                                    mask_reg = masks[1]
+                                    X86TargetDesc.gpr_normalized[reg]:
+                                    mask_reg = masksList[1]
+
+                        offsetList = ["RCX", "RDX"]
+                        offset_reg = offsetList[0]
+                        # Do not reuse destination register
+                        for dest in instr.get_dest_operands():
+                            if not isinstance(dest, RegisterOperand):
+                                continue
+                            if X86TargetDesc.gpr_normalized[offset_reg] == \
+                                X86TargetDesc.gpr_normalized[dest.value]:
+                                offset_reg = offsetList[1]
 
                         mask = hex((random.getrandbits(16) << 48))
                         lea = Instruction("LEA", True) \
