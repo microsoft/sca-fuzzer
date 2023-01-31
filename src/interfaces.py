@@ -76,6 +76,11 @@ class Operand(ABC):
     def get_width(self) -> int:
         return self.width
 
+    def __deecopy__(self):
+        copy = Operand(self.value[:], self.type, self.src, self.dest)
+        copy.width = self.width
+        copy.magic_value = self.magic_value
+
 
 class RegisterOperand(Operand):
 
