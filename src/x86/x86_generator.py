@@ -303,6 +303,8 @@ class X86NonCanonicalAddressPass(Pass):
 
                 memory_instructions = []
                 for instr in bb:
+                    if instr.is_instrumentation:
+                        continue
                     if instr.has_mem_operand(True):
                         memory_instructions.append(instr)
 
