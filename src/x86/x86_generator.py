@@ -10,6 +10,7 @@ import re
 import random
 from typing import List, Dict, Set, Optional, Tuple
 from subprocess import run
+from copy import deepcopy
 
 from isa_loader import InstructionSet
 from interfaces import TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
@@ -486,7 +487,7 @@ class X86SandboxPass(Pass):
         The second corner case is 8-bit division, when the divisor is the AX register alone.
         Here the instrumentation become too complicated, and we simply set AX to 1.
         """
-        divisor = inst.operands[0]
+        divisor = deepcopy(inst.operands[0])
 
         # TODO: remove me - avoids a certain violation
         if divisor.width == 64 and CONF.x86_disable_div64:  # type: ignore
@@ -756,7 +757,7 @@ class X86PatchUndefinedResultPass(Pass):
         Bit Scan instructions give an undefined result when the source operand is zero.
         To avoid it, set the most significant bit.
         """
-        source = inst.operands[1]
+        source = deepcopy(inst.operands[1])
         mask = bin(1 << (source.width - 1))
         mask_size = source.width
         if source.width in [64, 32]:
