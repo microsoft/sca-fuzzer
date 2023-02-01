@@ -307,7 +307,7 @@ class X86NonCanonicalAddressPass(Pass):
                     if instr.is_instrumentation:
                         continue
                     if instr.name in ["DIV", "IDIV"]:
-                    # Instrumentation is difficult to combine
+                        # Instrumentation is difficult to combine
                         continue
                     if instr.has_mem_operand(True):
                         memory_instructions.append(instr)
@@ -330,26 +330,26 @@ class X86NonCanonicalAddressPass(Pass):
                         assert len(mem_operands) == 1, f"Unexpected instruction format {instr.name}"
                         mem_operand: Operand = mem_operands[0]
                         registers = mem_operand.value
-                        
-                        masksList = ["RAX", "RBX"]
-                        mask_reg = masksList[0]
-                        # Do not overwrite offset register with mask
-                        for operands in src_operands:
-                            usedRegs = re.split(r'\+|-|\*| ', operands.value)
-                            for reg in usedRegs:
-                                if X86TargetDesc.gpr_normalized[mask_reg] == \
-                                    X86TargetDesc.gpr_normalized[reg]:
-                                    mask_reg = masksList[1]
 
-                        offsetList = ["RCX", "RDX"]
-                        offset_reg = offsetList[0]
+                        masks_list = ["RAX", "RBX"]
+                        mask_reg = masks_list[0]
+                        # Do not overwritmasks_liste offset register with mask
+                        for operands in src_operands:
+                            op_regs = re.split(r'\+|-|\*| ', operands.value)
+                            for reg in op_regs:
+                                if X86TargetDesc.gpr_normalized[mask_reg] == \
+                                   X86TargetDesc.gpr_normalized[reg]:
+                                    mask_reg = masks_list[1]
+
+                        offset_list = ["RCX", "RDX"]
+                        offset_reg = offset_list[0]
                         # Do not reuse destination register
                         for op in instr.get_all_operands():
                             if not isinstance(op, RegisterOperand):
                                 continue
                             if X86TargetDesc.gpr_normalized[offset_reg] == \
-                                X86TargetDesc.gpr_normalized[op.value]:
-                                offset_reg = offsetList[1]
+                               X86TargetDesc.gpr_normalized[op.value]:
+                                offset_reg = offset_list[1]
 
                         mask = hex((random.getrandbits(16) << 48))
                         lea = Instruction("LEA", True) \
