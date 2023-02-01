@@ -88,8 +88,8 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
         self.passes = [
             X86SandboxPass(self.target_desc),
             X86PatchUndefinedFlagsPass(self.instruction_set, self),
-            X86NonCanonicalAddressPass(),
             X86PatchUndefinedResultPass(),
+            X86NonCanonicalAddressPass(),
             X86PatchOpcodesPass(),
         ]
         self.printer = X86Printer()
@@ -302,9 +302,14 @@ class X86NonCanonicalAddressPass(Pass):
                     continue
 
                 memory_instructions = []
-                for inst in bb:
-                    if inst.has_mem_operand(True):
-                        memory_instructions.append(inst)
+                for instr in bb:
+                    if instr.is_instrumentation:
+                        continue
+                    if instr.name in ["DIV", "IDIV"]:
+                        # Instrumentation is difficult to combine
+                        continue
+                    if instr.has_mem_operand(True):
+                        memory_instructions.append(instr)
 
                 # Collect src operands
                 for instr in memory_instructions:
@@ -325,17 +330,25 @@ class X86NonCanonicalAddressPass(Pass):
                         mem_operand: Operand = mem_operands[0]
                         registers = mem_operand.value
 
-                        offsets = ["RCX", "RDX"]
-                        masks = ["RAX", "RBX"]
-                        offset_reg = offsets[0]
-                        mask_reg = masks[0]
-                        for reg in src_operands:
+                        masks_list = ["RAX", "RBX"]
+                        mask_reg = masks_list[0]
+                        # Do not overwrite offset register with mask
+                        for operands in src_operands:
+                            op_regs = re.split(r'\+|-|\*| ', operands.value)
+                            for reg in op_regs:
+                                if X86TargetDesc.gpr_normalized[mask_reg] == \
+                                   X86TargetDesc.gpr_normalized[reg]:
+                                    mask_reg = masks_list[1]
+
+                        offset_list = ["RCX", "RDX"]
+                        offset_reg = offset_list[0]
+                        # Do not reuse destination register
+                        for op in instr.get_all_operands():
+                            if not isinstance(op, RegisterOperand):
+                                continue
                             if X86TargetDesc.gpr_normalized[offset_reg] == \
-                               X86TargetDesc.gpr_normalized[reg.value]:
-                                offset_reg = offsets[1]
-                            if X86TargetDesc.gpr_normalized[mask_reg] == \
-                               X86TargetDesc.gpr_normalized[reg.value]:
-                                mask_reg = masks[1]
+                               X86TargetDesc.gpr_normalized[op.value]:
+                                offset_reg = offset_list[1]
 
                         mask = hex((random.getrandbits(16) << 48))
                         lea = Instruction("LEA", True) \
@@ -352,7 +365,10 @@ class X86NonCanonicalAddressPass(Pass):
                         bb.insert_before(instr, mask)
                         for idx, op in enumerate(instr.operands):
                             if op == mem_operand:
-                                instr.operands[idx].value = offset_reg
+                                old_op = instr.operands[idx]
+                                addr_op = MemoryOperand(offset_reg, old_op.get_width(),
+                                                        old_op.src, old_op.dest)
+                                instr.operands[idx] = addr_op
 
                     # Make sure #GP only once. Otherwise Unicorn keeps raising an exception
                     # when rolling back to the end of the code
