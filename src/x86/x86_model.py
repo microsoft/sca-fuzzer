@@ -894,12 +894,12 @@ class X86NonCanonicalAddress(X86FaultModelAbstract):
      Load from non-canonical addresss
     """
     fauty_instruction_addr: int
-    address_register : int
-    register_value: int    
+    address_register: int
+    register_value: int
 
     def __init__(self, *args):
         super().__init__(*args)
-        self.relevant_faults.update([6,7])
+        self.relevant_faults.update([6, 7])
 
     def speculate_fault(self, errno: int) -> int:
         if not self.fault_triggers_speculation(errno):
@@ -923,21 +923,21 @@ class X86NonCanonicalAddress(X86FaultModelAbstract):
 
         if model.fauty_instruction_addr != address:
             return
-        
-        ## Fix non-canonical address
+
+        # Fix non-canonical address
         for mem_op in model.current_instruction.get_mem_operands():
             registers = re.split(r'\+|-|\*| ', mem_op.value)
             if len(registers) > 1:
                 continue
-            
+
             uc_reg = X86UnicornTargetDesc.reg_str_to_constant[registers[0]]
             load_address = model.emulator.reg_read(uc_reg)  # load address
-            isCanonical : bool = load_address > 0xFFFF800000000000 \
+            isCanonical: bool = load_address > 0xFFFF800000000000 \
                 or load_address < 0x00007FFFFFFFFFFF
             if not isCanonical:
-                model.address_register  = uc_reg
+                model.address_register = uc_reg
                 model.register_value = load_address
-                
+
                 if load_address & (1 << 47):  # bit 48 is 1 => high address
                     load_address = load_address | 0xFFFF800000000000
                 else:  # bit 48 is 0 => low address
