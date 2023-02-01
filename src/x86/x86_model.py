@@ -870,6 +870,8 @@ class X86UnicornVspecOps(X86FaultModelAbstract):
         # assemble value of all src regs, use taint if tainted
         model.curr_taint, model.curr_src_tainted = model.assemble_reg_values(src_regs)
         model.update_reg_taints()
+        print(f"Mem taints: {model.mem_taints}")
+        print(f"Reg taints: {model.reg_taints}")
 
     @staticmethod
     def trace_mem_access(emulator: Uc, access: int, address: int, size: int, value: int,
@@ -1041,8 +1043,8 @@ class X86UnicornVspecAllMemoryFaults(X86UnicornVspecOps):
 
             # taint destination registers with hash of full input (represents architectural state)
             for reg in self.curr_dest_regs:
+                pc = self.curr_instruction_addr - self.code_start
                 self.reg_taints[reg] = {self.full_input_taint}
-
         # speculatively skip the faulting instruction
         if self.next_instruction_addr >= self.code_end:
             return 0  # no need for speculation if we're at the end
@@ -1378,7 +1380,8 @@ class x86UnicornVpecOpsGP(X86UnicornVspecOps, X86NonCanonicalAddress):
             self.curr_src_tainted = True
             self.update_reg_taints()
 
-        # speculatively skip the faulting instruction
+        print(f"Mem taints: {self.mem_taints}")
+        print(f"Reg taints: {self.reg_taints}")
         return self.curr_instruction_addr
 
     @staticmethod
@@ -1415,6 +1418,93 @@ class x86UnicornVpecOpsGP(X86UnicornVspecOps, X86NonCanonicalAddress):
         self.register_value = -1
         return super().reset_model()
 
+
+class x86UnicornVpecAllGP(X86UnicornVspecOps, X86NonCanonicalAddress):
+    address_register : int
+    register_value: int
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.relevant_faults.update([6, 7])
+
+    def speculate_fault(self, errno: int) -> int:
+        if not self.fault_triggers_speculation(errno):
+            return 0
+
+        self.checkpoint(self.emulator, self.code_end)
+        self.fauty_instruction_addr = self.curr_instruction_addr
+        return self.curr_instruction_addr
+
+    def _speculate_fault(self, errno: int) -> int:
+        if not self.fault_triggers_speculation(errno):
+            return 0
+
+        # only collect new taints if none of the src operands in the faulting instruction are
+        # tainted if they are, the taints have been propagated correctly already,
+        # so just ignore fault
+        if not self.curr_src_tainted:
+
+            for op in self.current_instruction.get_all_operands():
+                if isinstance(op, RegisterOperand):
+                    if op.dest:
+                        self.curr_dest_regs.append(X86TargetDesc.gpr_normalized[op.value])
+                elif isinstance(op, FlagsOperand):
+                    self.curr_dest_regs.extend(op.get_write_flags())
+
+            pc = self.curr_instruction_addr - self.code_start
+            if self.current_instruction.has_write():
+                address = self.curr_mem_store[0]
+                size = self.curr_mem_store[1]
+                for i in range(size):
+                    self.mem_taints[address + i] = {self.full_input_taint}
+            # taint destination registers with hash of full input (represents architectural state)
+
+            if self.current_instruction.has_read():
+                for reg in self.curr_dest_regs:
+                    address = self.curr_mem_load[0]
+                    self.reg_taints[reg] = {self.full_input_taint}
+
+        # need to set curr_src_tainted to make update_reg_taints call work
+        self.curr_src_tainted = True
+        self.update_reg_taints()
+
+        print(f"Mem taints: {self.mem_taints}")
+        print(f"Reg taints: {self.reg_taints}")
+        return self.curr_instruction_addr
+
+    @staticmethod
+    def trace_mem_access(emulator: Uc, access: int, address: int, size: int, value: int,
+                         model: UnicornModel) -> None:
+        assert isinstance(model, x86UnicornVpecAllGP)
+        if model.curr_instruction_addr == model.fauty_instruction_addr:
+            if access != UC_MEM_WRITE:
+                model.curr_mem_load = (address, size)
+            else:
+                model.curr_mem_store = (address, size)
+            model._speculate_fault(6)
+        X86UnicornVspecOps.trace_mem_access(emulator, access, address, size, value, model)
+
+    @staticmethod
+    def speculate_instruction(emulator: Uc, address, size, model) -> None:
+        X86NonCanonicalAddress.speculate_instruction(emulator, address, size, model)
+        if address != model.fauty_instruction_addr:
+            X86UnicornVspecOps.speculate_instruction(emulator, address, size, model)
+
+    def canonical(self, address: int):
+        if address & (1 << 47):  # bit 48 is 1 => high address
+            address = address | 0xFFFF800000000000
+        else:  # bit 48 is 0 => low address
+            address = address & 0x00007FFFFFFFFFF
+        return address
+
+    def get_rollback_address(self) -> int:
+            return self.code_end
+
+    def reset_model(self):
+        self.fauty_instruction_addr = -1
+        self.address_register = -1
+        self.register_value = -1
+        return super().reset_model()
 
 # ==================================================================================================
 # Taint tracker
