@@ -332,7 +332,7 @@ class X86NonCanonicalAddressPass(Pass):
 
                         masks_list = ["RAX", "RBX"]
                         mask_reg = masks_list[0]
-                        # Do not overwritmasks_liste offset register with mask
+                        # Do not overwrite offset register with mask
                         for operands in src_operands:
                             op_regs = re.split(r'\+|-|\*| ', operands.value)
                             for reg in op_regs:

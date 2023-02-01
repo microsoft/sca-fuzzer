@@ -891,11 +891,11 @@ class X86FaultSkip(X86FaultModelAbstract):
 
 class X86NonCanonicalAddress(X86FaultModelAbstract):
     """
-     Load from non-canonical addresss
+     Load from non-canonical address
     """
-    fauty_instruction_addr: int
-    address_register: int
-    register_value: int
+    faulty_instruction_addr: int = -1
+    address_register: int = -1
+    register_value: int = -1
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -906,7 +906,7 @@ class X86NonCanonicalAddress(X86FaultModelAbstract):
             return 0
 
         self.checkpoint(self.emulator, self.code_end)
-        self.fauty_instruction_addr = self.curr_instruction_addr
+        self.faulty_instruction_addr = self.curr_instruction_addr
         return self.curr_instruction_addr
 
     @staticmethod
@@ -921,7 +921,7 @@ class X86NonCanonicalAddress(X86FaultModelAbstract):
             model.address_register = -1
             return
 
-        if model.fauty_instruction_addr != address:
+        if model.faulty_instruction_addr != address:
             return
 
         # Fix non-canonical address
@@ -931,10 +931,10 @@ class X86NonCanonicalAddress(X86FaultModelAbstract):
                 continue
 
             uc_reg = X86UnicornTargetDesc.reg_str_to_constant[registers[0]]
-            load_address = model.emulator.reg_read(uc_reg)  # load address
-            isCanonical: bool = load_address > 0xFFFF800000000000 \
+            load_address: int = model.emulator.reg_read(uc_reg)  # type: ignore
+            is_canonical: bool = load_address > 0xFFFF800000000000 \
                 or load_address < 0x00007FFFFFFFFFFF
-            if not isCanonical:
+            if not is_canonical:
                 model.address_register = uc_reg
                 model.register_value = load_address
 
@@ -947,7 +947,7 @@ class X86NonCanonicalAddress(X86FaultModelAbstract):
         return
 
     def reset_model(self):
-        self.fauty_instruction_addr = -1
+        self.faulty_instruction_addr = -1
         self.address_register = -1
         self.register_value = -1
         return super().reset_model()
