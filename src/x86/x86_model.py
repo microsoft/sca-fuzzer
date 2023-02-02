@@ -954,6 +954,15 @@ class X86UnicornVspecOps(X86FaultModelAbstract):
         # faults end program execution
         return self.code_end
 
+
+class x86UnicornVspecOpsDIV(X86UnicornVspecOps):
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        # DIV exceptions only
+        self.relevant_faults.add(21)
+
+
 class X86UnicornDivZero(X86FaultModelAbstract):
     injected_value: int = 0
 
