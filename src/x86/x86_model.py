@@ -999,6 +999,57 @@ class x86UnicornVpecOpsMemoryAssists(x86UnicornVpecOpsMemoryFaults):
         else:
             return self.curr_instruction_addr
 
+
+class X86UnicornVspecAllMemoryFaults(X86UnicornVspecOps):
+    """
+    Most permissive contract.
+    Uses vspec-unknown contract but destination operands in case of
+    exception depends on full architectural state (= on full input)
+    instead of value of src operands.
+    """
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        # Page faults and other memory errors
+        self.relevant_faults = {6, 7, 12, 13}
+
+    def speculate_fault(self, errno: int) -> int:
+        if not self.fault_triggers_speculation(errno):
+            return 0
+
+        # start speculation
+        # store a checkpoint
+        self.checkpoint(self.emulator, self.get_rollback_address())
+
+        # only collect new taints if none of the src operands in the faulting instruction are
+        # tainted if they are, the taints have been propagated correctly already,
+        # so just ignore fault
+        if not self.curr_src_tainted:
+
+            for op in self.current_instruction.get_all_operands():
+                if isinstance(op, RegisterOperand):
+                    if op.dest:
+                        self.curr_dest_regs.append(X86TargetDesc.gpr_normalized[op.value])
+                elif isinstance(op, FlagsOperand):
+                    self.curr_dest_regs.extend(op.get_write_flags())
+
+            if self.current_instruction.has_write():
+                address = self.curr_mem_store[0]
+                size = self.curr_mem_store[1]
+                for i in range(size):
+                    self.mem_taints[address + i] = {self.full_input_taint}
+
+            # taint destination registers with hash of full input (represents architectural state)
+            for reg in self.curr_dest_regs:
+                self.reg_taints[reg] = {self.full_input_taint}
+
+        # speculatively skip the faulting instruction
+        if self.next_instruction_addr >= self.code_end:
+            return 0  # no need for speculation if we're at the end
+        else:
+            return self.next_instruction_addr
+
+
 class X86UnicornDivZero(X86FaultModelAbstract):
     injected_value: int = 0
 
