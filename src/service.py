@@ -250,7 +250,7 @@ class Logger:
                     if i > 100:
                         self.warning("fuzzer", "Trace output is limited to 100 traces")
                         break
-                    ctrace_full = model.dbg_get_trace_detailed(inputs[i], 1)
+                    ctrace_full = model.dbg_get_trace_detailed(inputs[i], 30)
                     print("    ")
                     print(f"CTr{i}: {ctrace_full}")
                     print(f"HTr{i}: {self.pretty_bitmap(htraces[i])}")
