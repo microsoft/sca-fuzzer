@@ -870,8 +870,8 @@ class X86UnicornVspecOps(X86FaultModelAbstract):
         # assemble value of all src regs, use taint if tainted
         model.curr_taint, model.curr_src_tainted = model.assemble_reg_values(src_regs)
         model.update_reg_taints()
-        print(f"Mem taints: {model.mem_taints}")
-        print(f"Reg taints: {model.reg_taints}")
+        # print(f"Mem taints: {model.mem_taints}")
+        # print(f"Reg taints: {model.reg_taints}")
 
     @staticmethod
     def trace_mem_access(emulator: Uc, access: int, address: int, size: int, value: int,
@@ -965,7 +965,7 @@ class x86UnicornVspecOpsDIV(X86UnicornVspecOps):
         self.relevant_faults.add(21)
 
 
-class x86UnicornVpecOpsMemoryFaults(X86UnicornVspecOps):
+class x86UnicornVspecOpsMemoryFaults(X86UnicornVspecOps):
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -980,7 +980,7 @@ class x86UnicornVpecOpsMemoryFaults(X86UnicornVspecOps):
         return TaintedValue(pc, address, 0)
 
 
-class x86UnicornVpecOpsMemoryAssists(x86UnicornVpecOpsMemoryFaults):
+class x86UnicornVspecOpsMemoryAssists(x86UnicornVspecOpsMemoryFaults):
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -1310,7 +1310,7 @@ class X86NonCanonicalAddress(X86FaultModelAbstract):
         return super().reset_model()
 
 
-class x86UnicornVpecOpsGP(X86UnicornVspecOps, X86NonCanonicalAddress):
+class x86UnicornVspecOpsGP(X86UnicornVspecOps, X86NonCanonicalAddress):
     address_register: int
     register_value: int
 
@@ -1379,14 +1379,14 @@ class x86UnicornVpecOpsGP(X86UnicornVspecOps, X86NonCanonicalAddress):
             self.curr_src_tainted = True
             self.update_reg_taints()
 
-        print(f"Mem taints: {self.mem_taints}")
-        print(f"Reg taints: {self.reg_taints}")
+        # print(f"Mem taints: {self.mem_taints}")
+        # print(f"Reg taints: {self.reg_taints}")
         return self.curr_instruction_addr
 
     @staticmethod
     def trace_mem_access(emulator: Uc, access: int, address: int, size: int, value: int,
                          model: UnicornModel) -> None:
-        assert isinstance(model, x86UnicornVpecOpsGP)
+        assert isinstance(model, x86UnicornVspecOpsGP)
         if model.curr_instruction_addr == model.faulty_instruction_addr:
             if access != UC_MEM_WRITE:
                 model.curr_mem_load = (address, size)
@@ -1420,7 +1420,7 @@ class x86UnicornVpecOpsGP(X86UnicornVspecOps, X86NonCanonicalAddress):
         return super().reset_model()
 
 
-class x86UnicornVpecAllGP(x86UnicornVpecOpsGP):
+class x86UnicornVspecAllGP(x86UnicornVspecOpsGP):
 
     def _speculate_fault(self, errno: int) -> int:
         if not self.fault_triggers_speculation(errno):
@@ -1454,8 +1454,8 @@ class x86UnicornVpecAllGP(x86UnicornVpecOpsGP):
         self.curr_src_tainted = True
         self.update_reg_taints()
 
-        print(f"Mem taints: {self.mem_taints}")
-        print(f"Reg taints: {self.reg_taints}")
+        # print(f"Mem taints: {self.mem_taints}")
+        # print(f"Reg taints: {self.reg_taints}")
         return self.curr_instruction_addr
 
 
