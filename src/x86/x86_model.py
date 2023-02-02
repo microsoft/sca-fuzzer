@@ -1050,6 +1050,28 @@ class X86UnicornVspecAllMemoryFaults(X86UnicornVspecOps):
             return self.next_instruction_addr
 
 
+class X86UnicornVspecAllMemoryAssists(X86UnicornVspecAllMemoryFaults):
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.relevant_faults = {12, 13}
+
+    def rollback(self) -> int:
+        next_instruction = super().rollback()
+        if not self.in_speculation:
+            # remove protection after the assists has completed
+            self.emulator.mem_protect(self.sandbox_base + self.MAIN_REGION_SIZE,
+                                      self.FAULTY_REGION_SIZE)
+
+        return next_instruction
+
+    def get_rollback_address(self) -> int:
+        if self.in_speculation:
+            return self.code_end
+        else:
+            return self.curr_instruction_addr
+
+
 class X86UnicornDivZero(X86FaultModelAbstract):
     injected_value: int = 0
 
