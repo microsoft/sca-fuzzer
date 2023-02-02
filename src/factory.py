@@ -51,6 +51,7 @@ X86_SIMPLE_EXECUTION_CLAUSES: Dict[str, Type[x86_model.X86UnicornModel]] = {
     "vspec-ops-div": x86_model.x86UnicornVspecOpsDIV,
     "vspec-ops-memory-faults": x86_model.x86UnicornVpecOpsMemoryFaults,
     "vspec-ops-memory-assists": x86_model.x86UnicornVpecOpsMemoryAssists,
+    "vspec-all-memory-faults": x86_model.X86UnicornVspecAllMemoryFaults,
     "div-zero": x86_model.X86UnicornDivZero,
     "div-overflow": x86_model.X86UnicornDivOverflow,
     "meltdown": x86_model.X86Meltdown,
