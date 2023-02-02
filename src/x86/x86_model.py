@@ -489,7 +489,9 @@ class X86UnicornOOO(X86FaultModelAbstract):
             if isinstance(dest, MemoryOperand) or \
                X86TargetDesc.gpr_normalized[dest.value] not in old_dependencies:
                 model.dependencies.remove(X86TargetDesc.gpr_normalized["RAX"])
-                for flag in model.current_instruction.get_flags_operand().get_write_flags():
+                flags = model.current_instruction.get_flags_operand()
+                assert flags
+                for flag in flags.get_write_flags():
                     model.dependencies.remove(flag)
 
         # special case 2 - exchange instruction swaps dependencies
