@@ -38,6 +38,7 @@ class X86UnicornModel(UnicornModel):
         self.architecture = (UC_ARCH_X86, UC_MODE_64)
         self.rw_fault_mask = (1 << X86TargetDesc.pte_bits["PRESENT"][0]) + \
             (1 << X86TargetDesc.pte_bits["ACCESSED"][0])
+        self.rw_fault_mask_unset = (1 << X86TargetDesc.pte_bits["USER"][0])
         self.write_fault_mask = (1 << X86TargetDesc.pte_bits["RW"][0]) + \
             (1 << X86TargetDesc.pte_bits["DIRTY"][0])
 
@@ -49,6 +50,7 @@ class X86UnicornModel(UnicornModel):
         # check which permissions have to be set on the pages
         self.rw_protect = bool((0xffffffffffffffff ^ test_case.faulty_pte.mask_clear)
                                & self.rw_fault_mask)
+        self.rw_protect |= bool(test_case.faulty_pte.mask_set & self.rw_fault_mask_unset)
         self.write_protect = bool((0xffffffffffffffff ^ test_case.faulty_pte.mask_clear)
                                   & self.write_fault_mask)
         return super().load_test_case(test_case)

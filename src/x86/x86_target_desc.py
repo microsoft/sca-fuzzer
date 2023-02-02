@@ -74,7 +74,7 @@ class X86TargetDesc(TargetDesc):
         # NAME: (position, default value)
         "PRESENT": (0, True),  # is present
         "RW": (1, True),  # writeable
-        "USER": (2, True),  # userspace addressable
+        "USER": (2, False),  # userspace addressable
         "PWT": (3, False),  # page write through
         "PCD": (4, False),  # page cache disabled
         "ACCESSED": (5, True),  # was accessed
