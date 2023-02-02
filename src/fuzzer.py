@@ -150,6 +150,8 @@ class Fuzzer:
             boosted_inputs = self.boost_inputs(inputs, CONF.model_max_nesting)
             ctraces = self.model.trace_test_case(boosted_inputs, CONF.model_max_nesting)
             htraces = self.executor.trace_test_case(boosted_inputs, CONF.executor_repetitions)
+            LOGGER.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces,
+                                          self.executor.get_last_feedback())
             violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces, True)
             if not violations:
                 return None
