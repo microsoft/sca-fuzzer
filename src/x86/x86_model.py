@@ -39,8 +39,8 @@ cmov_condition = {
     "CMOVNBE": lambda flag: (((flag & FLAGS_CF) == 0)
                              and ((flag & FLAGS_ZF) == 0)),                         # CF=0 and ZF=0
     "CMOVNL": lambda flag: (((flag & FLAGS_SF) != 0) == ((flag & FLAGS_OF) != 0)),  # SF=OF
-    "CMOVNLE": lambda flag: (((flag & FLAGS_ZF) == 0)
-                             and ((flag & FLAGS_OF) == 0)),                         # ZF=0 and SF=OF
+    "CMOVNLE": lambda flag: (((flag & FLAGS_ZF) == 0)                               # ZF=0 and SF=OF
+                             and ((flag & FLAGS_SF) != 0) == ((flag & FLAGS_OF) != 0)),
     "CMOVNO": lambda flag: ((flag & FLAGS_OF) == 0),                                # OF=0
     "CMOVNP": lambda flag: ((flag & FLAGS_PF) == 0),                                # PF=0
     "CMOVNS": lambda flag: ((flag & FLAGS_SF) == 0),                                # SF=0
@@ -1005,8 +1005,21 @@ class X86UnicornVspecOps(X86FaultModelAbstract):
             elif "CMOVLE" == name:
                 if "ZF" in tainted_flags:
                     flag |= FLAGS_ZF
-                else:
-                    flag ^= FLAGS_SF if ("SF" in tainted_flags) else FLAGS_OF
+                elif ((FLAGS_SF & current) != 0) == ((FLAGS_OF & current) != 0):
+                    # SF=OF than flip one of them
+                    if "SF" in tainted_flags:
+                        flag ^= FLAGS_SF
+                    elif "OF" in tainted_flags:
+                        flag ^= FLAGS_OF
+            elif "CMOVNLE" == name:
+                if "ZF" in tainted_flags:
+                    flag &= ~FLAGS_ZF
+                if ((FLAGS_SF & current) != 0) != ((FLAGS_OF & current) != 0):
+                    # SF<>OF than flip one of them
+                    if "SF" in tainted_flags:
+                        flag ^= FLAGS_SF
+                    elif "OF" in tainted_flags:
+                        flag ^= FLAGS_OF
             elif "CMOVNBE" == name:
                 if "CF" in tainted_flags:
                     flag &= ~FLAGS_CF
@@ -1017,11 +1030,6 @@ class X86UnicornVspecOps(X86FaultModelAbstract):
                     flag ^= FLAGS_SF
                 elif "OF" in tainted_flags:
                     flag ^= FLAGS_OF
-            elif "CMOVNLE" == name:
-                if "ZF" in tainted_flags:
-                    flag &= ~FLAGS_ZF
-                if "OF" in tainted_flags:
-                    flag &= ~FLAGS_OF
 
         if flag != current:
             model.emulator.reg_write(ucc.UC_X86_REG_EFLAGS, flag)
