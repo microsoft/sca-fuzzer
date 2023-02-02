@@ -1452,7 +1452,6 @@ class x86UnicornVspecAllGP(x86UnicornVspecOpsGP):
 
         # need to set curr_src_tainted to make update_reg_taints call work
         self.curr_src_tainted = True
-        self.update_reg_taints()
 
         # print(f"Mem taints: {self.mem_taints}")
         # print(f"Reg taints: {self.reg_taints}")
