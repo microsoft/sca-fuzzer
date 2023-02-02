@@ -963,6 +963,20 @@ class x86UnicornVspecOpsDIV(X86UnicornVspecOps):
         self.relevant_faults.add(21)
 
 
+class x86UnicornVpecOpsMemoryFaults(X86UnicornVspecOps):
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        # Page faults and other memory errors
+        self.relevant_faults = {6, 7, 12, 13}
+
+    def _get_curr_load_taint(self) -> TaintedValue:
+        # The loaded value is undefined for faulting loads,
+        # hence the memory value should not be included in dependencies
+        address = self.curr_mem_load[0]
+        pc = self.curr_instruction_addr - self.code_start
+        return TaintedValue(pc, address, 0)
+
 class X86UnicornDivZero(X86FaultModelAbstract):
     injected_value: int = 0
 
