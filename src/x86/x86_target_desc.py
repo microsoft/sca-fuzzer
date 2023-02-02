@@ -105,6 +105,10 @@ class X86TargetDesc(TargetDesc):
     def is_call(inst: Instruction) -> bool:
         return inst.category == "BASE-CALL"
 
+    @staticmethod
+    def is_conditional_move(inst: Instruction) -> bool:
+        return inst.category == "BASE-CMOV"
+
 
 class X86UnicornTargetDesc(UnicornTargetDesc):
     reg_str_to_constant = {
