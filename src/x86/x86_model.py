@@ -612,6 +612,8 @@ class X86UnicornVspecOps(X86FaultModelAbstract):
     curr_taint: Taint = set()
     # remember if any source operand was tainted in speculate_instruction()
     curr_src_tainted: bool = False
+    tainted_cmov: bool = False
+    tainted_flags = set()
 
     flags_translate = {
         "CF": FLAGS_CF,
@@ -645,6 +647,8 @@ class X86UnicornVspecOps(X86FaultModelAbstract):
         self.curr_mem_load = (-1, -1)
         self.curr_taint = set()
         self.curr_src_tainted = False
+        self.tainted_cmov = False
+        self.ainted_flags = set()
         assert len(self.reg_taints) == 0
         assert len(self.reg_taints_checkpoints) == 0
         assert len(self.mem_taints) == 0
@@ -782,6 +786,9 @@ class X86UnicornVspecOps(X86FaultModelAbstract):
             self.curr_src_tainted = True
             self.update_reg_taints()
 
+        print(f"[Speculate] reg_taints={self.reg_taints}")
+        print(f"[Speculate] mem_taints={self.mem_taints}")
+
         # speculatively skip the faulting instruction
         if self.next_instruction_addr >= self.code_end:
             return 0  # no need for speculation if we're at the end
@@ -895,7 +902,17 @@ class X86UnicornVspecOps(X86FaultModelAbstract):
 
         # assemble value of all src regs, use taint if tainted
         model.curr_taint, model.curr_src_tainted = model.assemble_reg_values(src_regs)
+        if model.tainted_cmov:
+            # The cmov
+            dest_taint, _ = model.assemble_reg_values(model.curr_dest_regs)
+            model.curr_taint |= dest_taint
+            for f in model.tainted_flags:
+                model.curr_observation = model.curr_observation | model.reg_taints[f]
+
         model.update_reg_taints()
+
+        # print(f"Reg taints: {model.reg_taints}")
+        # print(f"Mem_taints={model.mem_taints}\n")
 
     @staticmethod
     def trace_mem_access(emulator: Uc, access: int, address: int, size: int, value: int,
@@ -963,6 +980,7 @@ class X86UnicornVspecOps(X86FaultModelAbstract):
         # if not, do normal memory access
         else:
             X86FaultModelAbstract.trace_mem_access(emulator, access, address, size, value, model)
+        # print(f"Reg taints: {model.reg_taints}")
 
     def checkpoint(self, emulator: Uc, next_instruction: int):
         self.reg_taints_checkpoints.append(copy.copy(self.reg_taints))
@@ -1034,9 +1052,10 @@ class X86UnicornVspecOps(X86FaultModelAbstract):
                 elif "OF" in tainted_flags:
                     flag ^= FLAGS_OF
 
-        if flag != current:
+        if flag != current and condition(flag):
             model.emulator.reg_write(ucc.UC_X86_REG_EFLAGS, flag)
-
+            model.tainted_cmov = True
+            # model.checkpoint(model.emulator, model.curr_instruction_addr)
 
 class x86UnicornVspecOpsDIV(X86UnicornVspecOps):
 
