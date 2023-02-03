@@ -813,6 +813,9 @@ class X86UnicornVspecOps(X86FaultModelAbstract):
         if not model.in_speculation or (not model.reg_taints and not model.mem_taints):
             return
 
+        if X86TargetDesc.is_conditional_move(model.current_instruction):
+            X86UnicornVspecOps.try_enable_conditional_move(model)
+
         src_regs = set()
         mem_src_regs = set()
         mem_dest_regs = set()
