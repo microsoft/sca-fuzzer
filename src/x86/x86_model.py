@@ -1000,18 +1000,13 @@ class x86UnicornVspecOpsMemoryAssists(x86UnicornVspecOpsMemoryFaults):
             return self.curr_instruction_addr
 
 
-class X86UnicornVspecAllMemoryFaults(X86UnicornVspecOps):
+class X86UnicornVspecAll(X86UnicornVspecOps):
     """
     Most permissive contract.
     Uses vspec-unknown contract but destination operands in case of
     exception depends on full architectural state (= on full input)
     instead of value of src operands.
     """
-
-    def __init__(self, *args):
-        super().__init__(*args)
-        # Page faults and other memory errors
-        self.relevant_faults = {6, 7, 12, 13}
 
     def speculate_fault(self, errno: int) -> int:
         if not self.fault_triggers_speculation(errno):
@@ -1050,7 +1045,23 @@ class X86UnicornVspecAllMemoryFaults(X86UnicornVspecOps):
             return self.next_instruction_addr
 
 
-class X86UnicornVspecAllMemoryAssists(X86UnicornVspecAllMemoryFaults):
+class x86UnicornVspecAllDIV(X86UnicornVspecAll):
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        # DIV exceptions only
+        self.relevant_faults = {21}
+
+
+class X86UnicornVspecAllMemoryFaults(X86UnicornVspecAll):
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        # Page faults and other memory errors
+        self.relevant_faults = {6, 7, 12, 13}
+
+
+class X86UnicornVspecAllMemoryAssists(X86UnicornVspecAll):
 
     def __init__(self, *args):
         super().__init__(*args)
