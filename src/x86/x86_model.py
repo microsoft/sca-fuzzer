@@ -1043,7 +1043,7 @@ class x86UnicornVspecOpsDIV(X86UnicornVspecOps):
         self.relevant_faults.add(21)
 
 
-class x86UnicornVpecOpsMemoryFaults(X86UnicornVspecOps):
+class x86UnicornVspecOpsMemoryFaults(X86UnicornVspecOps):
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -1058,7 +1058,7 @@ class x86UnicornVpecOpsMemoryFaults(X86UnicornVspecOps):
         return TaintedValue(pc, address, 0)
 
 
-class x86UnicornVpecOpsMemoryAssists(x86UnicornVpecOpsMemoryFaults):
+class x86UnicornVspecOpsMemoryAssists(x86UnicornVspecOpsMemoryFaults):
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -1080,18 +1080,13 @@ class x86UnicornVpecOpsMemoryAssists(x86UnicornVpecOpsMemoryFaults):
             return self.curr_instruction_addr
 
 
-class X86UnicornVspecAllMemoryFaults(X86UnicornVspecOps):
+class X86UnicornVspecAll(X86UnicornVspecOps):
     """
     Most permissive contract.
     Uses vspec-unknown contract but destination operands in case of
     exception depends on full architectural state (= on full input)
     instead of value of src operands.
     """
-
-    def __init__(self, *args):
-        super().__init__(*args)
-        # Page faults and other memory errors
-        self.relevant_faults = {6, 7, 12, 13}
 
     def speculate_fault(self, errno: int) -> int:
         if not self.fault_triggers_speculation(errno):
@@ -1130,7 +1125,23 @@ class X86UnicornVspecAllMemoryFaults(X86UnicornVspecOps):
             return self.next_instruction_addr
 
 
-class X86UnicornVspecAllMemoryAssists(X86UnicornVspecAllMemoryFaults):
+class x86UnicornVspecAllDIV(X86UnicornVspecAll):
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        # DIV exceptions only
+        self.relevant_faults = {21}
+
+
+class X86UnicornVspecAllMemoryFaults(X86UnicornVspecAll):
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        # Page faults and other memory errors
+        self.relevant_faults = {6, 7, 12, 13}
+
+
+class X86UnicornVspecAllMemoryAssists(X86UnicornVspecAll):
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -1389,7 +1400,7 @@ class X86NonCanonicalAddress(X86FaultModelAbstract):
         return super().reset_model()
 
 
-class x86UnicornVpecOpsGP(X86UnicornVspecOps, X86NonCanonicalAddress):
+class x86UnicornVspecOpsGP(X86UnicornVspecOps, X86NonCanonicalAddress):
     address_register: int
     register_value: int
 
@@ -1464,7 +1475,7 @@ class x86UnicornVpecOpsGP(X86UnicornVspecOps, X86NonCanonicalAddress):
     @staticmethod
     def trace_mem_access(emulator: Uc, access: int, address: int, size: int, value: int,
                          model: UnicornModel) -> None:
-        assert isinstance(model, x86UnicornVpecOpsGP)
+        assert isinstance(model, x86UnicornVspecOpsGP)
         if model.curr_instruction_addr == model.faulty_instruction_addr:
             if access != UC_MEM_WRITE:
                 model.curr_mem_load = (address, size)
