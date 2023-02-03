@@ -963,7 +963,7 @@ class x86UnicornVspecOpsDIV(X86UnicornVspecOps):
         self.relevant_faults.add(21)
 
 
-class x86UnicornVpecOpsMemoryFaults(X86UnicornVspecOps):
+class x86UnicornVspecOpsMemoryFaults(X86UnicornVspecOps):
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -978,7 +978,7 @@ class x86UnicornVpecOpsMemoryFaults(X86UnicornVspecOps):
         return TaintedValue(pc, address, 0)
 
 
-class x86UnicornVpecOpsMemoryAssists(x86UnicornVpecOpsMemoryFaults):
+class x86UnicornVspecOpsMemoryAssists(x86UnicornVspecOpsMemoryFaults):
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -1309,7 +1309,7 @@ class X86NonCanonicalAddress(X86FaultModelAbstract):
         return super().reset_model()
 
 
-class x86UnicornVpecOpsGP(X86UnicornVspecOps, X86NonCanonicalAddress):
+class x86UnicornVspecOpsGP(X86UnicornVspecOps, X86NonCanonicalAddress):
     address_register: int
     register_value: int
 
@@ -1384,7 +1384,7 @@ class x86UnicornVpecOpsGP(X86UnicornVspecOps, X86NonCanonicalAddress):
     @staticmethod
     def trace_mem_access(emulator: Uc, access: int, address: int, size: int, value: int,
                          model: UnicornModel) -> None:
-        assert isinstance(model, x86UnicornVpecOpsGP)
+        assert isinstance(model, x86UnicornVspecOpsGP)
         if model.curr_instruction_addr == model.faulty_instruction_addr:
             if access != UC_MEM_WRITE:
                 model.curr_mem_load = (address, size)
