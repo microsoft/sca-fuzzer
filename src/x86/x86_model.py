@@ -968,6 +968,8 @@ class x86UnicornVspecOpsDIV(X86UnicornVspecOps):
 
 
 class x86UnicornVspecOpsMemoryFaults(X86UnicornVspecOps):
+    pending_restore_protection: bool = False
+    pending_re_execution: bool = False
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -980,6 +982,33 @@ class x86UnicornVspecOpsMemoryFaults(X86UnicornVspecOps):
         address = self.curr_mem_load[0]
         pc = self.curr_instruction_addr - self.code_start
         return TaintedValue(pc, address, 0)
+
+    @staticmethod
+    def speculate_instruction(emulator: Uc, address, size, model) -> None:
+        if model.pending_restore_protection:
+            model.pending_restore_protection = False
+            if model.rw_protect:
+                model.emulator.mem_protect(model.sandbox_base + model.MAIN_REGION_SIZE,
+                                           model.FAULTY_REGION_SIZE, UC_PROT_NONE)
+            elif model.write_protect:
+                model.emulator.mem_protect(model.sandbox_base + model.MAIN_REGION_SIZE,
+                                           model.FAULTY_REGION_SIZE, UC_PROT_READ)
+        elif model.pending_re_execution:
+            model.pending_re_execution = False
+            model.pending_restore_protection = True
+        X86UnicornVspecOps.speculate_instruction(emulator, address, size, model)
+
+    def get_next_instruction(self):
+        if self.next_instruction_addr >= self.code_end:
+            return 0  # no need for speculation if we're at the end
+        elif self.pending_fault_id == UC_ERR_WRITE_PROT and self.write_protect:
+            # remove protection
+            self.emulator.mem_protect(self.sandbox_base + self.MAIN_REGION_SIZE,
+                                      self.FAULTY_REGION_SIZE)
+            self.pending_re_execution = True
+            return self.curr_instruction_addr
+        else:
+            return self.next_instruction_addr
 
 
 class x86UnicornVspecOpsMemoryAssists(x86UnicornVspecOpsMemoryFaults):
