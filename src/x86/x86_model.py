@@ -1151,7 +1151,7 @@ class X86UnicornDivOverflow(X86FaultModelAbstract):
         # start speculation
         self.checkpoint(self.emulator, self.code_end)
 
-        if self.current_instruction.name == "DIV":
+        if self.current_instruction.name in ["DIV", "IDIV"]:
             # set carry flag
             # flags = self.emulator.reg_read(ucc.UC_X86_REG_EFLAGS)
             # self.emulator.reg_write(ucc.UC_X86_REG_EFLAGS, flags | FLAGS_CF)
@@ -1191,8 +1191,6 @@ class X86UnicornDivOverflow(X86FaultModelAbstract):
                 self.emulator.reg_write(ucc.UC_X86_REG_AH, trimmed_remainder)
                 self.emulator.reg_write(ucc.UC_X86_REG_AL, trimmed_result)
                 return self.next_instruction_addr
-            raise UnreachableCode()
-        else:  # IDIV
             raise UnreachableCode()
 
     @staticmethod
