@@ -203,6 +203,40 @@
         ]
     },
     {
+        "name": "reg_randomizer_add-rotate-or_x0",
+        "weight": 1.0,
+        "instructions":
+        [
+            {
+                "name": "ADD",
+                "category": "general",
+                "control_flow": false,
+                "operands": [
+                    {"dest": true, "src": false, "type_": "REG", "width": 32, "values": ["W0"]},
+                    {"dest": false, "src": true, "type_": "REG", "width": 32, "values": ["W0"]},
+                    {"dest": false, "src": true, "type_": "IMM", "values": ["[13-13]"], "width": 0}
+                ],
+                "implicit_operands": [
+                    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+                ]
+            },
+            {
+                "name": "EOR",
+                "category": "general",
+                "control_flow": false,
+                "operands": [
+                    {"dest": true, "src": false, "type_": "REG", "width": 32, "values": ["W0"]},
+                    {"dest": false, "src": true, "type_": "REG", "width": 32, "values": ["W0"]},
+                    {"dest": false, "src": true, "type_": "REG", "width": 32, "values": ["W0"]},
+                    {"type_": "LITERAL", "values": ["ROR #9"]}
+                ],
+                "implicit_operands": [
+                    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+                ]
+            }
+        ]
+    },
+    {
         "name": "triple_bitwise_or",
         "weight": 0.75,
         "instructions":

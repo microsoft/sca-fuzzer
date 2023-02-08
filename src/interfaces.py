@@ -30,6 +30,7 @@ class OT(Enum):
     AGEN = 5  # memory address in LEA instructions
     FLAGS = 6
     COND = 7
+    LITERAL = 8 # literal string operand, parsed and placed exactly as specified
 
     def __str__(self):
         return str(self._name_)
@@ -162,6 +163,10 @@ class CondOperand(Operand):
 
     def __init__(self, value):
         super().__init__(value, OT.COND, True, False)
+
+class LiteralOperand(Operand):
+    def __init__(self, value):
+        super().__init__(value, OT.LITERAL, False, False)
 
 
 class InstructionSpec:

@@ -19,6 +19,7 @@ class InstructionSet(InstructionSetAbstract):
         "AGEN": OT.AGEN,
         "FLAGS": OT.FLAGS,
         "COND": OT.COND,
+        "LITERAL": OT.LITERAL
     }
 
     def __init__(self, filename=None, include_categories=None):
@@ -60,8 +61,14 @@ class InstructionSet(InstructionSetAbstract):
         op_values = op.get("values", [])
         if op_type == "REG":
             op_values = sorted(op_values)
-        spec = OperandSpec(op_values, op_type, op["src"], op["dest"])
-        spec.width = op["width"]
+
+        # assume defaults for some fields if none are specified
+        is_src = False if "src" not in op else op["src"]
+        is_dest = False if "dest" not in op else op["dest"]
+        width = 0 if "width" not in op else op["width"]
+
+        spec = OperandSpec(op_values, op_type, is_src, is_dest)
+        spec.width = width
 
         if op_type == OT.MEM:
             parent.has_mem_operand = True

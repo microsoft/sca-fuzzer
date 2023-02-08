@@ -17,7 +17,7 @@ from collections import OrderedDict
 from isa_loader import InstructionSet
 from interfaces import Generator, TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
     ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, Function, \
-    OperandSpec, InstructionSpec, CondOperand, TargetDesc
+    OperandSpec, InstructionSpec, CondOperand, LiteralOperand, TargetDesc
 from service import NotSupportedException
 from config import CONF
 
@@ -97,7 +97,11 @@ class ConfigurableGenerator(Generator, abc.ABC):
             with open(CONF.gadget_file, "r") as fp:
                 gdata = json.loads(fp.read())
                 for entry in gdata:
-                    self.gadgets.append(CodeGadget.from_dict(entry))
+                    gdgt = CodeGadget.from_dict(entry)
+                    assert gdgt.name not in [g.name for g in self.gadgets], \
+                           "at least two gadgets share the same name: \"%s\" " \
+                           "(gadget names must be unique)" % gdgt.name
+                    self.gadgets.append(gdgt)
             # sort the gadgets by length (descending) to make searching easier
             self.gadgets = sorted(self.gadgets, key=lambda g: len(g), reverse=True)
     
@@ -322,6 +326,7 @@ class ConfigurableGenerator(Generator, abc.ABC):
             OT.AGEN: self.generate_agen_operand,
             OT.FLAGS: self.generate_flags_operand,
             OT.COND: self.generate_cond_operand,
+            OT.LITERAL: self.generate_literal_operand
         }
         return generators[spec.type](spec, parent)
 
@@ -351,6 +356,10 @@ class ConfigurableGenerator(Generator, abc.ABC):
 
     @abc.abstractmethod
     def generate_cond_operand(self, spec: OperandSpec, _: Instruction) -> Operand:
+        pass
+
+    @abc.abstractmethod
+    def generate_literal_operand(self, spec: OperandSpec, _: Instruction) -> Operand:
         pass
 
     @abc.abstractmethod
@@ -549,6 +558,10 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
     def generate_cond_operand(self, spec: OperandSpec, _: Instruction) -> Operand:
         cond = random.choice(list(self.target_desc.branch_conditions))
         return CondOperand(cond)
+
+    def generate_literal_operand(self, spec: OperandSpec, _: Instruction) -> Operand:
+        value = random.choice(spec.values)
+        return LiteralOperand(value)
 
     def add_terminators_in_function(self, func: Function):
         def add_fallthrough(bb: BasicBlock, destination: BasicBlock):
