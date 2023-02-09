@@ -561,7 +561,7 @@ class Input(np.ndarray):
             return
 
     def get_registers(self):
-        return list(self[self.register_start:self.data_size - 1])
+        return list(self[self.register_start:self.data_size])
 
     def get_memory(self):
         return self[0:self.register_start]
