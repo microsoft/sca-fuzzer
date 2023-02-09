@@ -1,0 +1,25 @@
+instruction_set: arm64
+instruction_categories:
+  - general
+contract_observation_clause: l1d
+
+program_size: 32
+min_bb_per_function: 4
+max_bb_per_function: 6
+avg_mem_accesses: 8
+input_gen_entropy_bits: 9
+
+enable_ssbp_patch: true
+enable_faulty_page: false
+
+logging_modes:
+  - dbg_generator
+  - dbg_generator_gadgets
+  - dbg_input_gen
+
+executor_repetitions: 1
+
+gadget_file: /path/to/sca-fuzzer/src/arm64/tests/example_gadgets.json
+avg_gadgets_per_bb: 0.5
+max_gadgets_per_bb: 2
+

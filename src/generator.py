@@ -18,7 +18,7 @@ from isa_loader import InstructionSet
 from interfaces import Generator, TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
     ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, Function, \
     OperandSpec, InstructionSpec, CondOperand, LiteralOperand, TargetDesc
-from service import NotSupportedException
+from service import NotSupportedException, LOGGER
 from config import CONF
 
 
@@ -638,14 +638,19 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
                 # if we found a gadget to place, iterate and place all of its
                 # instructions
                 if g is not None:
-                    for (i, ispec) in enumerate(g):
-                        inst = self.generate_instruction(ispec)
+                    instrs = g.get_instructions(self)
+                    for (i, inst) in enumerate(instrs):
                         inst.set_comment("gadget: %s (%d/%d)" % (g.name, (i + 1), len(g)))
                         bb.insert_after(bb.get_last(), inst)
                         instructions_remaining -= 1
+                        
+                        # if the instruction makes a memory access, increase the
+                        # access counter
+                        ispec = g.instruction_set.instructions[i]
                         if ispec.has_mem_operand:
                             self.mem_access_count += 1
                     gadget_counts[bb.name] += 1
+                    LOGGER.fuzzer_report_gadget_placement(g, bb)
                     continue
 
             # CASE 2: we choose *not* to use a gadget (or we failed to find an
@@ -747,19 +752,33 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
 # specifications exactly as the main generator does.
 class CodeGadget:
     # Constructor. Accepts a name for the gadget and a list of instruction
-    # specification (InstructionSpec) objects. Optionally accepts a proability
-    # (from 0.0 to 1.0) of how likely the gadget is to be selected, compared to
-    # other gadgets. (default for all is 1.0)
-    def __init__(self, name: str, instructions=InstructionSet(), weight=1.0):
+    # specification (InstructionSpec) objects. 
+    # Other parameters:
+    #   weight              A probability (from 0.0 to 1.0) of how likely the
+    #                       gadget is to be selected, compared to other gadgets.
+    #                       (Default for all is 1.0)
+    #   operand_aliases     A list of CodeGadgetOperandAlias objects defining
+    #                       aliases used by the gadget's instruction specs.
+    #   description         A brief description of the gadget.
+    def __init__(self, name: str, instructions=InstructionSet(), weight=1.0,
+                 operand_aliases=[], description=None):
         self.name = name
+        self.description = None
         self.instruction_set = instructions
         self.weight = max(0.0, min(1.0, weight))
+        self.operand_aliases = operand_aliases
         self.num_mem_accesses = self.count_mem_accesses()
 
         # forbid the use of control-flow instructions in Revizor gadgets
         for ispec in self.instruction_set.instructions:
             assert not ispec.control_flow, "gadgets cannot contain control-flow instructions " \
                                            "(such as \"%s\")" % ispec.name
+
+        # make sure all operand aliases have unique names
+        oa_names = []
+        for oa in self.operand_aliases:
+            assert oa.name not in oa_names, "gadget operand aliases must have unique names"
+            oa_names.append(oa.name)
 
     # Computes the length of the gadget's instruction list.
     def __len__(self):
@@ -782,12 +801,38 @@ class CodeGadget:
     
     # Returns a list of instructions contained in the gadget.
     def get_instructions(self, generator: Generator):
+        used_registers = []
+        instructions = []
+
         # for each instruction specification in the gadget, generate an
         # instruction using the given program generator
-        instructions = []
         for spec in self.instruction_set.instructions:
-            i = generator.generate_instruction(spec)
-            instructions.append(i)
+            inst = generator.generate_instruction(spec)
+
+            # before appending, search the instruction's operand for any aliases
+            for oa in self.operand_aliases:
+                for op in inst.operands:
+                    if not oa.match(op):
+                        continue
+                    
+                    # if this particular operand's value matches the alias name,
+                    # replace its value with the alias' operand value
+                    real_op = oa.get_operand(generator, inst,
+                                             register_blacklist=used_registers)
+                    op.value = op.value.replace(oa.name, real_op.value)
+
+                    # if we generated a register operand, add the register's
+                    # value to our list of already-used registers (we don't want
+                    # two different register aliases to use the same GPR)
+                    if oa.spec.type == OT.REG and real_op.value not in used_registers:
+                        used_registers.append(real_op.value)
+
+            instructions.append(inst)
+
+        # reset all operand aliases used during generation
+        for oa in self.operand_aliases:
+            oa.reset()
+
         return instructions
     
     # Takes in a dictionary and attempts to create a CodeGadget object from
@@ -796,13 +841,15 @@ class CodeGadget:
     # returned.
     @staticmethod
     def from_dict(data: dict):
-        g = CodeGadget("gadget")
-
         # check a number of expected and/or optional dictionary fields
         fields = {
             "name":             {"type": str,   "required": True},
             "instructions":     {"type": list,  "required": True},
-            "weight":           {"type": float, "required": False, "default": 1.0}
+            "weight":           {"type": float, "required": False, "default": 1.0},
+            "operand_aliases":  {"type": list,  "required": False, "default": []},
+            "description":      {"type": str,   "required": False, "default": None},
+            "repeat_min":       {"type": int,   "required": False, "default": 0},
+            "repeat_max":       {"type": int,   "required": False, "default": 0}
         }
         for f in fields:
             fdata = fields[f]
@@ -820,9 +867,137 @@ class CodeGadget:
             assert type(data[f]) == ftype, "the given dictionary's \"%s\" must be a %s" % \
                                            (f, ftype)
 
+        # if any operand aliases are specified parse them
+        operand_aliases = []
+        for oa in data["operand_aliases"]:
+            operand_aliases.append(CodeGadgetOperandAlias.from_dict(oa))
+
         # create a gadget object with the name and instructions and return
         iset = InstructionSet()
         iset.init_from_list(data["instructions"])
-        g = CodeGadget(data["name"], instructions=iset, weight=data["weight"])
+        g = CodeGadget(data["name"], instructions=iset, weight=data["weight"],
+                       operand_aliases=operand_aliases)
         return g
+
+# Operand Aliasing in gadgets allow for the renaming of randomized instruction
+# operand to have more control over the gadget's individual instructions. They
+# each have a unique name and an associated operand specification. When the
+# generator selects a gadget to place in the code, any occurrences of the alias'
+# name in any instruction operand will be replaced with the alias' operand.
+# For example:
+#
+#   {
+#       "name": "REG_A",
+#       "operand": {"dest": false, "src": true, "type_": "REG", "width": 32, "values": ["GPR"]}
+#   }
+#
+# This operand alias (in JSON form) represents a register. The operand's values
+# are "GPR", which means a random register will be selected when this is used by
+# the generator to generate an operand.
+# Now, consider a gadget that has two memory load instructions:
+#
+#   "instructions":
+#   [
+#       {
+#           "name": "LOAD",
+#           "category": "general",
+#           "control_flow": false,
+#           "operands": [
+#               {"dest": true, "src": false, "comment": "", "type_": "REG", "width": 64, "values": ["REG_A"]},
+#               {"dest": false, "src": true, "comment": "", "type_": "MEM", "width": 64},
+#               {"dest": false, "src": true, "comment": "", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+#           ],
+#           "implicit_operands": []
+#       },
+#       {
+#           "name": "LOAD",
+#           "category": "general",
+#           "control_flow": false,
+#           "operands": [
+#               {"dest": true, "src": false, "comment": "", "type_": "REG", "width": 64, "values": ["GPR"]},
+#               {"dest": false, "src": true, "comment": "", "type_": "MEM", "width": 64, "values": ["REG_A"]},
+#               {"dest": false, "src": true, "comment": "", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+#           ],
+#           "implicit_operands": []
+#       }
+#   ]
+#
+# The two LOAD instructions use "REG_A" is part of its operand list. When this
+# gadget is chosen, a random register will be generated for "REG_A" and the
+# mentions of "REG_A" will be replaced with the generated register. This allows
+# for the same random register to be used in two different instructions in the
+# gadget.
+class CodeGadgetOperandAlias:
+    # Constructor. Accepts the alias' name and operand spec.
+    def __init__(self, name: str, spec: OperandSpec):
+        self.name = name
+        self.spec = spec
+        self.operand = None
+    
+    # String representation of an operand alias.
+    def __str__(self):
+        return "%s: %s" % (self.name, self.spec)
+    
+    # Compares a given Operand object's value against the alias' name. If the
+    # values match, True is returned. Otherwise, False is returned.
+    def match(self, op: Operand):
+        return op.value == self.name
+    
+    # Throws away the alias' last-generated operand.
+    def reset(self):
+        self.operand = None
+    
+    # Returns a generated operand using the alias' operand spec. Generation
+    # occurs only the first time this function is called. In subsequent calls,
+    # the same operand object is returned.
+    def get_operand(self, generator: Generator, parent: Instruction, register_blacklist=[]):
+        if self.operand is not None:
+            return self.operand
+        self.operand = generator.generate_operand(self.spec, parent)
+        
+        # if the operand is a register, make sure the register we've selected
+        # isn't on the blacklist. Choose another if it is
+        if self.spec.type == OT.REG:
+            # grab all appropriate registers and remove those on the blacklist
+            regs = generator.target_desc.registers[self.spec.width].copy()
+            for entry in register_blacklist:
+                regs.remove(entry)
+
+            # if the generated operand's value isn't on the list of available
+            # regs, choose another
+            assert len(regs) > 0, "a gadget is using too many register operand aliases. " \
+                                  "Your current config settings allow you to have at most %d." % \
+                                  len(generator.target_desc.registers[self.spec.width])
+            if self.operand.value not in regs:
+                self.operand.value = random.choice(regs)
+
+        return self.operand
+
+    # Converts the JSON format for operand aliases into an operand alias object.
+    @staticmethod
+    def from_dict(data: dict):
+        # check a number of expected and/or optional dictionary fields
+        fields = {
+            "name":             {"type": str,   "required": True},
+            "operand":          {"type": dict,  "required": True}
+        }
+        for f in fields:
+            fdata = fields[f]
+            ftype = fdata["type"]
+
+            # if the field is required, enforce it
+            if fdata["required"]:
+                assert f in data, "every gadget operand alias must contain \"%s\" (%s)" % \
+                                  (f, ftype)
+            # if the field isn't present, set its default
+            if f not in data:
+                data[f] = fdata["default"]
+
+            # type-check the field and add it to the object
+            assert type(data[f]) == ftype, "the gadget operand alias' \"%s\" must be a %s" % \
+                                           (f, ftype)
+
+        # parse the operand
+        ospec = InstructionSet().parse_operand(data["operand"], InstructionSpec())
+        return CodeGadgetOperandAlias(data["name"], ospec)
 
