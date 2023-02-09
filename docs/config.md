@@ -47,6 +47,8 @@ For a complete list, see `src/config.py`.
   Will use a random seed if set to zero.
 * `min_bb_per_function` [int]: Minimum number of basic blocks per test case.
 * `max_bb_per_function` [int]: Maximum number of basic blocks per test case.
+* `min_successors_per_bb` [int]: Minimum number of successors for each basic block.
+* `max_successors_per_bb` [int]: Maximum number of successors for each basic block.
 * `program_size` [int]: Number of instructions per test case.
   The actual size might be larger because of the instrumentation.
 * `avg_mem_accesses` [int]: Average number of memory accesses per test case.
@@ -54,6 +56,27 @@ For a complete list, see `src/config.py`.
   Used to filter out instructions from the instruction set file passed via command line (`--instruction-set`).
 * `instruction_blocklist` [list(str)]: List of instructions to be excluded by the generator.
   Used to filter out instructions from the instruction set file passed via command line (`--instruction-set`).
+* `gadget_file` [str]: The path to a user-defined "gadget" file.  See below for a description of gadgets.
+* `avg_gadgets_per_bb` [float]: A number used to increase or decrease the amount of gadgets that are placed into generated programs.
+* `max_gadgets_per_bb` [int]: A hard maximum for the number of gadgets to be placed inside each basic block.
+
+## Gadgets
+
+Revizor's program generator allows for the optional specification of a "gadget file" containing
+user-defined code gadgets. A **gadget** is a small collection of assembly instructions in a specific
+order. Certain combinations of assembly instructions may create interesting behavior on the target
+CPU, but it's often very rare for this combination to be generated with the program generator's
+purely-random instruction placement. This is why gadgets are supported.
+
+The gadget file allows for the user of Revizor to specify one or more interseting combinations of
+instructions (**gadgets**) that Revizor will use during program generation. Randomly, the program
+generator will place a gadget into a basic block, rather than a random instruction.
+
+The frequency of gadgets in generated programs can be tuned with the `avg_gadgets_per_bb` and
+`max_gadgets_per_bb` config fields. Gadgets are specified as JSON, in the same format as the Revizor
+ISA specification JSON file. Each gadget has a name, and optionally, a weight used to further tune
+the appearance of specific gadgets in generated programs.
+See `src/arm64/tests/example_gadgets.json` for an example of what a gadget file looks like.
 
 # Input Generator Configuration
 

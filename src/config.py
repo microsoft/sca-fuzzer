@@ -59,6 +59,13 @@ class ConfCls:
     for correctness """
     register_blocklist: List[str] = []
     """ register_blocklist: list of registers that will NOT be used for generating programs """
+    gadget_file: str = ""
+    """ gadget_file: JSON file defining ordered assembly gadgets"""
+    avg_gadgets_per_bb: float = 0.5
+    """ avg_gadgets_per_bb: average number of gadgets placed in each basic block of generated
+        programs (can be a non-integer value)"""
+    max_gadgets_per_bb: int = 2
+    """ max_gadgets_per_bb: maximum number of gadgets allowed to be placed into a single basic block """
     avoid_data_dependencies: bool = False
     """ [DEPRECATED] avoid_data_dependencies: """
     generate_memory_accesses_in_pairs: bool = False

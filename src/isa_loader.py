@@ -19,19 +19,20 @@ class InstructionSet(InstructionSetAbstract):
         "AGEN": OT.AGEN,
         "FLAGS": OT.FLAGS,
         "COND": OT.COND,
+        "LITERAL": OT.LITERAL
     }
 
-    def __init__(self, filename: str, include_categories=None):
+    def __init__(self, filename=None, include_categories=None):
         self.instructions = []
-        self.init_from_file(filename)
-        self.reduce(include_categories)
-        self.dedup()
+        if filename is not None:
+            self.init_from_file(filename)
+            self.reduce(include_categories)
+            self.dedup()
         super().__init__(filename, include_categories)
-
-    def init_from_file(self, filename: str):
-        with open(filename, "r") as f:
-            root = json.load(f)
-        for instruction_node in root:
+    
+    # Initializes the InstructionSet from a parsed JSON dictionary.
+    def init_from_list(self, data: list):
+        for instruction_node in data:
             instruction = InstructionSpec()
             instruction.name = instruction_node["name"]
             instruction.category = instruction_node["category"]
@@ -48,14 +49,26 @@ class InstructionSet(InstructionSetAbstract):
                 instruction.implicit_operands.append(op)
 
             self.instructions.append(instruction)
-
+ 
+    # Initializes the InstructionSet from a given file.
+    def init_from_file(self, filename: str):
+        with open(filename, "r") as f:
+            root = json.load(f)
+        self.init_from_list(root)
+        
     def parse_operand(self, op: Dict, parent: InstructionSpec) -> OperandSpec:
         op_type = self.ot_str_to_enum[op["type_"]]
         op_values = op.get("values", [])
         if op_type == "REG":
             op_values = sorted(op_values)
-        spec = OperandSpec(op_values, op_type, op["src"], op["dest"])
-        spec.width = op["width"]
+
+        # assume defaults for some fields if none are specified
+        is_src = False if "src" not in op else op["src"]
+        is_dest = False if "dest" not in op else op["dest"]
+        width = 0 if "width" not in op else op["width"]
+
+        spec = OperandSpec(op_values, op_type, is_src, is_dest)
+        spec.width = width
 
         if op_type == OT.MEM:
             parent.has_mem_operand = True

@@ -9,6 +9,7 @@ from __future__ import annotations
 import random
 import abc
 import re
+import json
 from typing import List, Dict
 from subprocess import CalledProcessError, run
 from collections import OrderedDict
@@ -16,8 +17,8 @@ from collections import OrderedDict
 from isa_loader import InstructionSet
 from interfaces import Generator, TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
     ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, Function, \
-    OperandSpec, InstructionSpec, CondOperand, TargetDesc
-from service import NotSupportedException
+    OperandSpec, InstructionSpec, CondOperand, LiteralOperand, TargetDesc
+from service import NotSupportedException, LOGGER
 from config import CONF
 
 
@@ -66,6 +67,7 @@ class ConfigurableGenerator(Generator, abc.ABC):
     passes: List[Pass]  # set by subclasses
     printer: Printer  # set by subclasses
     target_desc: TargetDesc  # set by subclasses
+    gadgets: []
 
     def __init__(self, instruction_set: InstructionSet, seed: int):
         super().__init__(instruction_set, seed)
@@ -90,6 +92,19 @@ class ConfigurableGenerator(Generator, abc.ABC):
             assert self.load_instruction and self.store_instructions, \
                 "The instruction set does not have memory accesses while `avg_mem_accesses > 0`"
 
+        self.gadgets = []
+        if len(CONF.gadget_file) > 0:
+            with open(CONF.gadget_file, "r") as fp:
+                gdata = json.loads(fp.read())
+                for entry in gdata:
+                    gdgt = CodeGadget.from_dict(entry)
+                    assert gdgt.name not in [g.name for g in self.gadgets], \
+                           "at least two gadgets share the same name: \"%s\" " \
+                           "(gadget names must be unique)" % gdgt.name
+                    self.gadgets.append(gdgt)
+            # sort the gadgets by length (descending) to make searching easier
+            self.gadgets = sorted(self.gadgets, key=lambda g: len(g), reverse=True)
+    
     def set_seed(self, seed: int):
         if not seed:
             seed = random.randint(1, 1000000)
@@ -311,6 +326,7 @@ class ConfigurableGenerator(Generator, abc.ABC):
             OT.AGEN: self.generate_agen_operand,
             OT.FLAGS: self.generate_flags_operand,
             OT.COND: self.generate_cond_operand,
+            OT.LITERAL: self.generate_literal_operand
         }
         return generators[spec.type](spec, parent)
 
@@ -343,6 +359,10 @@ class ConfigurableGenerator(Generator, abc.ABC):
         pass
 
     @abc.abstractmethod
+    def generate_literal_operand(self, spec: OperandSpec, _: Instruction) -> Operand:
+        pass
+
+    @abc.abstractmethod
     def add_terminators_in_function(self, func: Function):
         pass
 
@@ -369,6 +389,7 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         if CONF.max_successors_per_bb > 1:
             assert self.cond_branches, \
                 "The instruction set does not contain cond branches while max_successors_per_bb > 1"
+        self.mem_access_count = 0 # counts the number of generated memory-accessing instructions
 
     def generate_function(self, label: str):
         """ Generates a random DAG of basic blocks within a function """
@@ -538,6 +559,10 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         cond = random.choice(list(self.target_desc.branch_conditions))
         return CondOperand(cond)
 
+    def generate_literal_operand(self, spec: OperandSpec, _: Instruction) -> Operand:
+        value = random.choice(spec.values)
+        return LiteralOperand(value)
+
     def add_terminators_in_function(self, func: Function):
         def add_fallthrough(bb: BasicBlock, destination: BasicBlock):
             # create an unconditional branch and add it
@@ -574,14 +599,67 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
                 raise NotSupportedException()
 
     def add_instructions_in_function(self, func: Function):
-        # evenly fill all BBs with random instructions
+        # evenly fill all BBs with random instructions by randomly choosing
+        # basic blocks and adding one instruction (or gadget) at a time
         basic_blocks_to_fill = func.get_all()[1:-1]
-        for _ in range(0, CONF.program_size):
-            bb = random.choice(basic_blocks_to_fill)
-            spec = self._pick_random_instruction_spec()
-            inst = self.generate_instruction(spec)
-            bb.insert_after(bb.get_last(), inst)
 
+        # compute a probability of a gadget being selected, based on the average
+        # length of a gadget and 'CONF.avg_gadgets_per_bb'
+        gadget_counts = {}
+        avg_gadget_size = 0
+        if len(self.gadgets) > 0:
+            avg_gadget_size = sum(len(g) for g in self.gadgets) / len(self.gadgets)
+        gadget_chance = (avg_gadget_size * CONF.avg_gadgets_per_bb * len(basic_blocks_to_fill)) / CONF.program_size
+
+        instructions_remaining = CONF.program_size
+        while instructions_remaining > 0:
+            bb = random.choice(basic_blocks_to_fill)
+
+            # track the number of gadgets placed in each basic block
+            if bb.name not in gadget_counts:
+                gadget_counts[bb.name] = 0
+
+            # decide between placing a code gadget or a random instruction
+            #  - don't interrupt the placement of two memory-access instructions
+            #  - don't exceed the maximum number of gadgets for a BB
+            use_gadget = random.uniform(0, 1) < gadget_chance and \
+                         not self.had_recent_memory_access and \
+                         gadget_counts[bb.name] < CONF.max_gadgets_per_bb
+
+            # CASE 1: we choose to use a gadget. Select one at random and place
+            # all of its instructions, in order, into the basic block
+            if use_gadget:
+                # compute the number of memory accesses that need to be placed
+                # and generate an appropriate gadget
+                remaining_mem_accesses = CONF.avg_mem_accesses - self.mem_access_count
+                g = self._pick_random_gadget(max_len=instructions_remaining,
+                                             mem_access_limit=remaining_mem_accesses)
+                
+                # if we found a gadget to place, iterate and place all of its
+                # instructions
+                if g is not None:
+                    instrs = g.get_instructions(self)
+                    for (i, inst) in enumerate(instrs):
+                        inst.set_comment("gadget: %s (%d/%d)" % (g.name, (i + 1), len(g)))
+                        bb.insert_after(bb.get_last(), inst)
+                        instructions_remaining -= 1
+                        
+                        # if the instruction makes a memory access, increase the
+                        # access counter
+                        ispec = g.instruction_set.instructions[i]
+                        if ispec.has_mem_operand:
+                            self.mem_access_count += 1
+                    gadget_counts[bb.name] += 1
+                    LOGGER.fuzzer_report_gadget_placement(g, bb)
+                    continue
+
+            # CASE 2: we choose *not* to use a gadget (or we failed to find an
+            # appropriate gadget), and instead choose to use a single random
+            # instruction
+            ispec = self._pick_random_instruction_spec()
+            bb.insert_after(bb.get_last(), self.generate_instruction(ispec))
+            instructions_remaining -= 1
+        
     def _pick_random_instruction_spec(self) -> InstructionSpec:
         instruction_spec: InstructionSpec
 
@@ -601,11 +679,55 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         # select a random instruction spec for generation
         if not search_for_memory_access:
             return random.choice(self.non_memory_access_instructions)
-
+        
+        self.mem_access_count += 1
         if search_for_store:
             return random.choice(self.store_instructions)
 
         return random.choice(self.load_instruction)
+    
+    # Looks for a gadget given the optional limits. Returns a CodeGadget object
+    # on success. On failure to find an appropriate gadget, None is returned.
+    def _pick_random_gadget(self, max_len=None, mem_access_limit=None) -> CodeGadget:
+        gadget_max = len(self.gadgets)
+        gadget_min = 0
+        if max_len is not None:
+            # our gagdet list is in sorted order by length (descending), so we'll
+            # walk and index down the list until we hit the first gadget that
+            # fits within the maximum length specified by the caller
+            while gadget_min < gadget_max and \
+                  len(self.gadgets[gadget_min]) > max_len:
+                gadget_min += 1
+
+        # if the range is too tight, give up
+        if gadget_min == gadget_max:
+            return None
+
+        # select a random index from within the acceptable range, and iterate
+        # (circularly) until we find a suitable gadget
+        idx = random.randrange(gadget_min, gadget_max)
+        circular_increment = lambda _idx : (_idx + 1) % (gadget_max - gadget_min)
+        chance = random.random()
+        for i in range(gadget_max - gadget_min):
+            g = self.gadgets[idx]
+
+            # if the gadget's weight isn't met, move onto the next one
+            if chance >= g.weight:
+                idx = circular_increment(idx)
+                continue
+
+            # if memory access limits are in place, make sure this gadget won't
+            # exceed the limit
+            if mem_access_limit is not None and \
+               g.count_mem_accesses() > mem_access_limit:
+                idx = circular_increment(idx)
+                continue
+
+            # otherwise, return the chosen gadget
+            return g
+
+        # if nothing was returned above, then no suitable gadget was found
+        return None
 
     @abc.abstractmethod
     def get_return_instruction(self) -> Instruction:
@@ -614,3 +736,268 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
     @abc.abstractmethod
     def get_unconditional_jump_instruction(self) -> Instruction:
         pass
+
+
+# ==================================================================================================
+# Generator Gadgets
+# ==================================================================================================
+# In the security world, a 'gadget' represents a small snippet of code (made up
+# of one or more machine instructions) that may invoke interesting, unexpected,
+# or even exploit-inducing behavior in a target that executes it.
+# This class represents one such 'gadget'. Revizor's program generator can use
+# user-defined gadgets to make generated test cases more interesting.
+#
+# A gadget is specified in the same format as the ISA specification JSON file
+# the InstructionSet class parses. In this case, this class parses the
+# specifications exactly as the main generator does.
+class CodeGadget:
+    # Constructor. Accepts a name for the gadget and a list of instruction
+    # specification (InstructionSpec) objects. 
+    # Other parameters:
+    #   weight              A probability (from 0.0 to 1.0) of how likely the
+    #                       gadget is to be selected, compared to other gadgets.
+    #                       (Default for all is 1.0)
+    #   operand_aliases     A list of CodeGadgetOperandAlias objects defining
+    #                       aliases used by the gadget's instruction specs.
+    #   description         A brief description of the gadget.
+    def __init__(self, name: str, instructions=InstructionSet(), weight=1.0,
+                 operand_aliases=[], description=None):
+        self.name = name
+        self.description = None
+        self.instruction_set = instructions
+        self.weight = max(0.0, min(1.0, weight))
+        self.operand_aliases = operand_aliases
+        self.num_mem_accesses = self.count_mem_accesses()
+
+        # forbid the use of control-flow instructions in Revizor gadgets
+        for ispec in self.instruction_set.instructions:
+            assert not ispec.control_flow, "gadgets cannot contain control-flow instructions " \
+                                           "(such as \"%s\")" % ispec.name
+
+        # make sure all operand aliases have unique names
+        oa_names = []
+        for oa in self.operand_aliases:
+            assert oa.name not in oa_names, "gadget operand aliases must have unique names"
+            oa_names.append(oa.name)
+
+    # Computes the length of the gadget's instruction list.
+    def __len__(self):
+        return len(self.instruction_set.instructions)
+    
+    # Allows for iteration through the gadget's instruction.
+    def __iter__(self):
+        for ispec in self.instruction_set.instructions:
+            yield ispec
+    
+    # Counts and returns the number of memory-accessing instructions in the
+    # gadget.
+    def count_mem_accesses(self):
+        # this only has to be computed once
+        if not hasattr(self, "num_mem_accesses"):
+            self.num_mem_accesses = 0
+            for i in self.instruction_set.instructions:
+                self.num_mem_accesses += 1 if i.has_mem_operand else 0
+        return self.num_mem_accesses
+    
+    # Returns a list of instructions contained in the gadget.
+    def get_instructions(self, generator: Generator):
+        used_registers = []
+        instructions = []
+
+        # for each instruction specification in the gadget, generate an
+        # instruction using the given program generator
+        for spec in self.instruction_set.instructions:
+            inst = generator.generate_instruction(spec)
+
+            # before appending, search the instruction's operand for any aliases
+            for oa in self.operand_aliases:
+                for op in inst.operands:
+                    if not oa.match(op):
+                        continue
+                    
+                    # if this particular operand's value matches the alias name,
+                    # replace its value with the alias' operand value
+                    real_op = oa.get_operand(generator, inst,
+                                             register_blacklist=used_registers)
+                    op.value = op.value.replace(oa.name, real_op.value)
+
+                    # if we generated a register operand, add the register's
+                    # value to our list of already-used registers (we don't want
+                    # two different register aliases to use the same GPR)
+                    if oa.spec.type == OT.REG and real_op.value not in used_registers:
+                        used_registers.append(real_op.value)
+
+            instructions.append(inst)
+
+        # reset all operand aliases used during generation
+        for oa in self.operand_aliases:
+            oa.reset()
+
+        return instructions
+    
+    # Takes in a dictionary and attempts to create a CodeGadget object from
+    # the dictionary's entries. An exception is thrown if the dictionary's data
+    # is not in the correct format. Otherwise, a new CodeGadget object is
+    # returned.
+    @staticmethod
+    def from_dict(data: dict):
+        # check a number of expected and/or optional dictionary fields
+        fields = {
+            "name":             {"type": str,   "required": True},
+            "instructions":     {"type": list,  "required": True},
+            "weight":           {"type": float, "required": False, "default": 1.0},
+            "operand_aliases":  {"type": list,  "required": False, "default": []},
+            "description":      {"type": str,   "required": False, "default": None},
+            "repeat_min":       {"type": int,   "required": False, "default": 0},
+            "repeat_max":       {"type": int,   "required": False, "default": 0}
+        }
+        for f in fields:
+            fdata = fields[f]
+            ftype = fdata["type"]
+
+            # if the field is required, enforce it
+            if fdata["required"]:
+                assert f in data, "the given dictionary must contain \"%s\" (%s)" % \
+                                  (f, ftype)
+            # if the field isn't present, set its default
+            if f not in data:
+                data[f] = fdata["default"]
+
+            # type-check the field and add it to the object
+            assert type(data[f]) == ftype, "the given dictionary's \"%s\" must be a %s" % \
+                                           (f, ftype)
+
+        # if any operand aliases are specified parse them
+        operand_aliases = []
+        for oa in data["operand_aliases"]:
+            operand_aliases.append(CodeGadgetOperandAlias.from_dict(oa))
+
+        # create a gadget object with the name and instructions and return
+        iset = InstructionSet()
+        iset.init_from_list(data["instructions"])
+        g = CodeGadget(data["name"], instructions=iset, weight=data["weight"],
+                       operand_aliases=operand_aliases)
+        return g
+
+# Operand Aliasing in gadgets allow for the renaming of randomized instruction
+# operand to have more control over the gadget's individual instructions. They
+# each have a unique name and an associated operand specification. When the
+# generator selects a gadget to place in the code, any occurrences of the alias'
+# name in any instruction operand will be replaced with the alias' operand.
+# For example:
+#
+#   {
+#       "name": "REG_A",
+#       "operand": {"dest": false, "src": true, "type_": "REG", "width": 32, "values": ["GPR"]}
+#   }
+#
+# This operand alias (in JSON form) represents a register. The operand's values
+# are "GPR", which means a random register will be selected when this is used by
+# the generator to generate an operand.
+# Now, consider a gadget that has two memory load instructions:
+#
+#   "instructions":
+#   [
+#       {
+#           "name": "LOAD",
+#           "category": "general",
+#           "control_flow": false,
+#           "operands": [
+#               {"dest": true, "src": false, "comment": "", "type_": "REG", "width": 64, "values": ["REG_A"]},
+#               {"dest": false, "src": true, "comment": "", "type_": "MEM", "width": 64},
+#               {"dest": false, "src": true, "comment": "", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+#           ],
+#           "implicit_operands": []
+#       },
+#       {
+#           "name": "LOAD",
+#           "category": "general",
+#           "control_flow": false,
+#           "operands": [
+#               {"dest": true, "src": false, "comment": "", "type_": "REG", "width": 64, "values": ["GPR"]},
+#               {"dest": false, "src": true, "comment": "", "type_": "MEM", "width": 64, "values": ["REG_A"]},
+#               {"dest": false, "src": true, "comment": "", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+#           ],
+#           "implicit_operands": []
+#       }
+#   ]
+#
+# The two LOAD instructions use "REG_A" is part of its operand list. When this
+# gadget is chosen, a random register will be generated for "REG_A" and the
+# mentions of "REG_A" will be replaced with the generated register. This allows
+# for the same random register to be used in two different instructions in the
+# gadget.
+class CodeGadgetOperandAlias:
+    # Constructor. Accepts the alias' name and operand spec.
+    def __init__(self, name: str, spec: OperandSpec):
+        self.name = name
+        self.spec = spec
+        self.operand = None
+    
+    # String representation of an operand alias.
+    def __str__(self):
+        return "%s: %s" % (self.name, self.spec)
+    
+    # Compares a given Operand object's value against the alias' name. If the
+    # values match, True is returned. Otherwise, False is returned.
+    def match(self, op: Operand):
+        return op.value == self.name
+    
+    # Throws away the alias' last-generated operand.
+    def reset(self):
+        self.operand = None
+    
+    # Returns a generated operand using the alias' operand spec. Generation
+    # occurs only the first time this function is called. In subsequent calls,
+    # the same operand object is returned.
+    def get_operand(self, generator: Generator, parent: Instruction, register_blacklist=[]):
+        if self.operand is not None:
+            return self.operand
+        self.operand = generator.generate_operand(self.spec, parent)
+        
+        # if the operand is a register, make sure the register we've selected
+        # isn't on the blacklist. Choose another if it is
+        if self.spec.type == OT.REG:
+            # grab all appropriate registers and remove those on the blacklist
+            regs = generator.target_desc.registers[self.spec.width].copy()
+            for entry in register_blacklist:
+                regs.remove(entry)
+
+            # if the generated operand's value isn't on the list of available
+            # regs, choose another
+            assert len(regs) > 0, "a gadget is using too many register operand aliases. " \
+                                  "Your current config settings allow you to have at most %d." % \
+                                  len(generator.target_desc.registers[self.spec.width])
+            if self.operand.value not in regs:
+                self.operand.value = random.choice(regs)
+
+        return self.operand
+
+    # Converts the JSON format for operand aliases into an operand alias object.
+    @staticmethod
+    def from_dict(data: dict):
+        # check a number of expected and/or optional dictionary fields
+        fields = {
+            "name":             {"type": str,   "required": True},
+            "operand":          {"type": dict,  "required": True}
+        }
+        for f in fields:
+            fdata = fields[f]
+            ftype = fdata["type"]
+
+            # if the field is required, enforce it
+            if fdata["required"]:
+                assert f in data, "every gadget operand alias must contain \"%s\" (%s)" % \
+                                  (f, ftype)
+            # if the field isn't present, set its default
+            if f not in data:
+                data[f] = fdata["default"]
+
+            # type-check the field and add it to the object
+            assert type(data[f]) == ftype, "the gadget operand alias' \"%s\" must be a %s" % \
+                                           (f, ftype)
+
+        # parse the operand
+        ospec = InstructionSet().parse_operand(data["operand"], InstructionSpec())
+        return CodeGadgetOperandAlias(data["name"], ospec)
+

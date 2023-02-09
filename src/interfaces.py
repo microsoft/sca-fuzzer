@@ -30,6 +30,7 @@ class OT(Enum):
     AGEN = 5  # memory address in LEA instructions
     FLAGS = 6
     COND = 7
+    LITERAL = 8 # literal string operand, parsed and placed exactly as specified
 
     def __str__(self):
         return str(self._name_)
@@ -163,6 +164,10 @@ class CondOperand(Operand):
     def __init__(self, value):
         super().__init__(value, OT.COND, True, False)
 
+class LiteralOperand(Operand):
+    def __init__(self, value):
+        super().__init__(value, OT.LITERAL, False, False)
+
 
 class InstructionSpec:
     name: str
@@ -192,6 +197,7 @@ class Instruction:
     implicit_operands: List[Operand]
     category: str
     control_flow = False
+    comment: str = None
 
     next: Optional[Instruction] = None
     previous: Optional[Instruction] = None
@@ -348,6 +354,13 @@ class Instruction:
                 res.append(o)
 
         return res
+
+    def set_comment(self, comment: str):
+        """
+        Sets the instruction's comment value, to be added to the end of its line
+        during printing.
+        """
+        self.comment = comment
 
 
 class BasicBlock:
@@ -719,7 +732,7 @@ class InstructionSetAbstract(ABC):
     has_writes: bool = False
 
     @abstractmethod
-    def __init__(self, filename: str, include_categories=None):
+    def __init__(self, filename=None, include_categories=None):
         pass
 
 

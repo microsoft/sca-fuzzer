@@ -106,6 +106,7 @@ class Logger:
     dbg_model: bool = False
     dbg_coverage: bool = False
     dbg_generator: bool = False
+    dbg_generator_gadgets: bool = False
     dbg_input_gen: bool = False
 
     def __init__(self) -> None:
@@ -122,7 +123,7 @@ class Logger:
         if not __debug__:
             if self.dbg_timestamp or self.dbg_model or self.dbg_coverage or \
                self.dbg_traces or self.dbg_violation or self.dbg_generator or \
-               self.dbg_input_gen:
+               self.dbg_generator_gadgets or self.dbg_input_gen:
                 self.warning(
                     "", "Current value of `logging_modes` requires debugging mode!\n"
                     "Remove '-O' from python arguments")
@@ -299,6 +300,18 @@ class Logger:
         # if an output path was set in the input, include it in the message
         if len(out_path) > 0:
             msg += " at %s" % out_path
+        print(msg)
+
+    def fuzzer_report_gadget_placement(self, gadget, bb):
+        """
+        If 'dbg_generator_gadgets' is set, this reports when gadgets are
+        selected and placed into a generated program.
+        """
+        if not self.dbg_generator_gadgets:
+            return
+
+        msg = "Placed gadget \"%s\" (%d instructions) into \"%s\"." % \
+              (gadget.name, len(gadget), bb.name)
         print(msg)
 
     # ==============================================================================================
