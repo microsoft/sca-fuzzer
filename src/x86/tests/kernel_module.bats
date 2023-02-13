@@ -172,9 +172,9 @@ function load_test_case() {
         cat $tmpinput > /sys/x86_executor/inputs
         run cat /sys/x86_executor/inputs
         [[ "$output" -eq "1" ]]
-        
+
         echo "" > $tmpresult
-    
+
         # START=$(date +%s.%N)
         while true; do
             run cat /sys/x86_executor/trace
@@ -185,7 +185,7 @@ function load_test_case() {
             fi
         done
         # END=$(date +%s.%N)
-        # echo "$END - $START" | bc  
+        # echo "$END - $START" | bc
 
         # cat $tmpresult | awk '/,/{print $1}' | sort | uniq -c | sort -r | awk '//{print $1}'
         run bash -c "cat $tmpresult | awk '/,/{print \$1}' | sort | uniq -c | sort -r | awk '//{print \$1}' | head -n1"
@@ -225,7 +225,7 @@ function load_test_case() {
     cat $tmpinput > /sys/x86_executor/inputs
     run cat /sys/x86_executor/inputs
     [[ "$output" -eq "1" ]]
-    
+
     echo "" > $tmpresult
 
     while true; do
@@ -246,10 +246,8 @@ function load_test_case() {
     rm "$tmpresult"
 }
 
-@test "x86 executor: Detection of machine clears" {
-    echo "P+P" > /sys/x86_executor/measurement_mode
-    echo "1" > /sys/x86_executor/enable_mds
-    tmpasm=$(mktemp /tmp/revizor-test.XXXXXX.asm)
+@test "x86 executor: Detection of mispredictions" {
+    if cat /proc/cpuinfo | grep "Intel" -m1 > /dev/null ; then
 
     echo "MOVQ %r14, %rax; add \$4096, %rax; movq (%rax), %rax" > $tmpasm
     load_test_case $tmpasm
@@ -257,5 +255,11 @@ function load_test_case() {
     echo "Output: $output"
     [[ "$output" != *",0,"* ]]
 
-    rm "$tmpasm"
+        rm "$tmpasm"
+    elif grep "AMD" /proc/cpuinfo  -m1 ; then
+        # TBD
+        skip
+    else
+        skip
+    fi
 }

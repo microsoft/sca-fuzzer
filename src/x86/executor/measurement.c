@@ -41,9 +41,8 @@ inline void wrmsr64(unsigned int msr, uint64_t value)
 // =================================================================================================
 static inline int pre_measurement_setup(void)
 {
-    // on some microarchitectures (e.g., Broadwell), some events
-    // (e.g., L1 misses) are not counted properly if only the OS field is set
     int err = 0;
+#if VENDOR_ID == 1 // Intel
     // Configure PMU
     err |= config_pfc(0, "D1.01", 1, 1); // L1 hits - for htrace collection
     err |= config_pfc(1, "0E.01", 1, 1); // 0E.01 - uops issued - fuzzing feedback
@@ -56,10 +55,23 @@ static inline int pre_measurement_setup(void)
     // Disable prefetchers
     wrmsr64(0x1a4, prefetcher_control);
 
-    // uops
-    err |= config_pfc(1, "0D.01", 1, 1); // misprediction recovery cycles - fuzzing feedback
-    err |= config_pfc(2, "C2.02", 1, 1); // C2.02 - uops retirement slots
-    err |= config_pfc(3, "0E.01", 1, 1); // 0E.01 - uops issued
+#elif VENDOR_ID == 2 // AMD
+    // Configure PMU
+    err |= config_pfc(0, "044.ff", 1, 1); // Local L2->L1 cache fills - htrace collection
+    err |= config_pfc(5, "02c.00", 1, 1); // SMI monitoring
+
+    err |= config_pfc(1, "0AB.88", 1, 1); // dispatched ops - fuzzing feedback
+    err |= config_pfc(2, "0C1.00", 1, 1); // retired ops - fuzzing feedback
+    err |= config_pfc(3, "091.00", 1, 1); // decode redirects - fuzzing feedback
+    // err |= config_pfc(1, "05A.ff", 1, 1); // decode redirects - fuzzing feedback
+
+    // Configure uarch patches
+    wrmsr64(MSR_IA32_SPEC_CTRL, ssbp_patch_control);
+
+    // Disable prefetchers
+    wrmsr64(0xc0000108, prefetcher_control);
+
+#endif
 
     if (err)
         return err;
@@ -241,29 +253,43 @@ int config_pfc(unsigned int id, char *pfc_code_org, unsigned int usr, unsigned i
         return err;
 
     // Configure the counter
+    uint64_t perf_configuration;
+#if VENDOR_ID == 1
     uint64_t global_ctrl = native_read_msr(0x38F);
     global_ctrl |= ((uint64_t)7 << 32) | 15;
     wrmsr64(0x38F, global_ctrl);
 
-    uint64_t perfevtselx = native_read_msr(0x186 + id);
+    perf_configuration = native_read_msr(0x186 + id);
 
     // disable the counter
-    perfevtselx &= ~(((uint64_t)1 << 32) - 1);
-    wrmsr64(0x186 + id, perfevtselx);
+    perf_configuration &= ~(((uint64_t)1 << 32) - 1);
+    wrmsr64(0x186 + id, perf_configuration);
 
     // clear
     wrmsr64(0x0C1 + id, 0);
 
-    perfevtselx |= ((config.cmask & 0xFF) << 24);
-    perfevtselx |= (config.inv << 23);
-    perfevtselx |= (1ULL << 22);
-    perfevtselx |= (config.any << 21);
-    perfevtselx |= (config.edge << 18);
-    perfevtselx |= (os << 17);
-    perfevtselx |= (usr << 16);
-    perfevtselx |= ((config.umask & 0xFF) << 8);
-    perfevtselx |= (config.evt_num & 0xFF);
-    wrmsr64(0x186 + id, perfevtselx);
+    perf_configuration |= ((config.cmask & 0xFF) << 24);
+    perf_configuration |= (config.inv << 23);
+    perf_configuration |= (1ULL << 22);
+    perf_configuration |= (config.any << 21);
+    perf_configuration |= (config.edge << 18);
+    perf_configuration |= (os << 17);
+    perf_configuration |= (usr << 16);
+    perf_configuration |= ((config.umask & 0xFF) << 8);
+    perf_configuration |= (config.evt_num & 0xFF);
+    wrmsr64(0x186 + id, perf_configuration);
+#elif VENDOR_ID == 2
+    perf_configuration |= ((config.evt_num) & 0xF00) << 24;
+    perf_configuration |= (config.evt_num) & 0xFF;
+    perf_configuration |= ((config.umask) & 0xFF) << 8;
+    perf_configuration |= ((config.cmask) & 0x7F) << 24;
+    perf_configuration |= (config.inv << 23);
+    perf_configuration |= (1ULL << 22);
+    perf_configuration |= (config.edge << 18);
+    perf_configuration |= (os << 17);
+    perf_configuration |= (usr << 16);
+    wrmsr64(0xC0010200 + 2 * id, perf_configuration);
+#endif
     return 0;
 }
 
