@@ -17,7 +17,7 @@ from isa_loader import InstructionSet
 from interfaces import Generator, TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
     ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, Function, \
     OperandSpec, InstructionSpec, CondOperand, TargetDesc
-from service import NotSupportedException
+from service import NotSupportedException, LOGGER
 from config import CONF
 
 
@@ -69,6 +69,7 @@ class ConfigurableGenerator(Generator, abc.ABC):
 
     def __init__(self, instruction_set: InstructionSet):
         super().__init__(instruction_set)
+        LOGGER.dbg_gen_instructions(instruction_set.instructions)
         self.control_flow_instructions = \
             [i for i in self.instruction_set.instructions if i.control_flow]
         self.non_control_flow_instructions = \

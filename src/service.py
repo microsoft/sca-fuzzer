@@ -105,6 +105,7 @@ class Logger:
     dbg_traces: bool = False
     dbg_model: bool = False
     dbg_coverage: bool = False
+    dbg_generator: bool = False
 
     def __init__(self) -> None:
         pass
@@ -118,7 +119,8 @@ class Logger:
             setattr(self, mode, True)
 
         if not __debug__:
-            if self.dbg_timestamp or self.dbg_model or self.dbg_coverage or self.dbg_traces:
+            if self.dbg_timestamp or self.dbg_model or self.dbg_coverage or self.dbg_traces\
+               or self.dbg_generator:
                 self.warning(
                     "", "Current value of `logging_modes` requires debugging mode!\n"
                     "Remove '-O' from python arguments")
@@ -144,6 +146,24 @@ class Logger:
         if self.redraw_mode:
             print("")
         print(f"DBG: [{src}] {msg}")
+
+    # ==============================================================================================
+    # Generator
+    def dbg_gen_instructions(self, instructions):
+        if not __debug__:
+            return
+
+        if not self.dbg_generator:
+            return
+
+        instructions_by_category = {i.category: set() for i in instructions}
+        for i in instructions:
+            instructions_by_category[i.category].add(i.name)
+
+        self.dbg("generator", "Instructions under test:")
+        for k, instruction_list in instructions_by_category.items():
+            print("  - " + k + ": " + pformat(sorted(instruction_list), indent=4, compact=True))
+        print("")
 
     # ==============================================================================================
     # Fuzzer
