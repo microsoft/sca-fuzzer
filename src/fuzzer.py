@@ -104,8 +104,6 @@ class Fuzzer:
         self.coverage.load_test_case(test_case)
 
         # 1. Test for contract violations with nesting=1
-        # Test against the most basic contract - seq with no nesting - to check
-        # if the traces contain *any* speculative information
         ctraces: List[CTrace]
         htraces: List[HTrace]
 
@@ -123,9 +121,7 @@ class Fuzzer:
         if not violations:  # nothing detected? -> we are done here, move to next test case
             return None
 
-        # 4. Repeat with with max nesting
-        # Test against the target contract to check if the speculative information
-        # is already exposed in the contract. If it isn't - we found a violation
+        # 2. Repeat with with max nesting
         if 'seq' not in CONF.contract_execution_clause:
             LOGGER.fuzzer_nesting_increased()
             boosted_inputs = self.boost_inputs(inputs, CONF.model_max_nesting)

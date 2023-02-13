@@ -406,8 +406,6 @@ class ArchTracer(CTRTracer):
 # ==================================================================================================
 # Implementation of Execution Clauses
 # ==================================================================================================
-
-
 class UnicornSeq(UnicornModel):
     """
     A simple, in-order contract.
@@ -748,7 +746,7 @@ class BaseTaintTracker(TaintTrackerInterface):
                 reg = self.unicorn_target_desc.reg_decode[label]
                 if reg in self._registers:
                     input_offset = register_start + \
-                          self._registers.index(self.unicorn_target_desc.reg_decode[label])
+                        self._registers.index(self.unicorn_target_desc.reg_decode[label])
             if input_offset >= 0:
                 tainted_positions.append(input_offset)
 

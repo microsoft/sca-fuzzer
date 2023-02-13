@@ -20,7 +20,8 @@ basic = """
     {"type_": "REG", "values": ["AX"], "src": true, "dest": false, "width": 16}
   ],
   "implicit_operands": [
-    {"type_": "FLAGS", "values": ["w", "r", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
+    {"type_": "FLAGS", "values": ["w", "r", "undef", "w", "w", "", "", "", "w"],
+     "src": false, "dest": false, "width": 0}
   ]
 }
 ]

@@ -5,7 +5,7 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 from typing import List
-import unicorn.x86_const as ucc
+import unicorn.x86_const as ucc  # type: ignore
 
 from interfaces import Instruction, TargetDesc
 from model import UnicornTargetDesc

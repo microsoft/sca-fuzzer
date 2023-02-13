@@ -537,8 +537,8 @@ class Input(np.ndarray):
         pass  # unreachable; defined only for type checking
 
     def __new__(cls):
-        data_size = (CONF.input_main_region_size + CONF.input_faulty_region_size +
-                     CONF.input_register_region_size) // 8
+        data_size = (CONF.input_main_region_size + CONF.input_faulty_region_size
+                     + CONF.input_register_region_size) // 8
         aligned_size = data_size + (4096 - CONF.input_register_region_size) // 8
         obj = super().__new__(cls, (aligned_size,), np.uint64, None, 0, None, None)  # type: ignore
         obj.data_size = data_size
@@ -575,8 +575,8 @@ class InputTaint(np.ndarray):
         pass  # unreachable; defined only for type checking
 
     def __new__(cls):
-        size = (CONF.input_main_region_size + CONF.input_faulty_region_size +
-                CONF.input_register_region_size) // 8
+        size = (CONF.input_main_region_size + CONF.input_faulty_region_size
+                + CONF.input_register_region_size) // 8
         obj = super().__new__(cls, (size,), bool, None, 0, None, None)  # type: ignore
         obj.register_start = (CONF.input_main_region_size + CONF.input_faulty_region_size) // 8
         return obj
@@ -795,7 +795,7 @@ class Executor(ABC):
         self.coverage = coverage
 
     @abstractmethod
-    def get_last_feedback(self):
+    def get_last_feedback(self) -> List:
         pass
 
 
