@@ -53,12 +53,12 @@ class Fuzzer:
     def initialize_modules(self):
         """ create all main modules """
         self.generator = factory.get_generator(self.instruction_set)
-        self.input_gen: InputGenerator = factory.get_input_generator()
-        self.executor: Executor = factory.get_executor()
-        self.model: Model = factory.get_model(self.executor.read_base_addresses())
-        self.analyser: Analyser = factory.get_analyser()
-        self.coverage: Coverage = factory.get_coverage(self.instruction_set, self.executor,
-                                                       self.model, self.analyser)
+        self.input_gen = factory.get_input_generator()
+        self.executor = factory.get_executor()
+        self.model = factory.get_model(self.executor.read_base_addresses())
+        self.analyser = factory.get_analyser()
+        self.coverage = factory.get_coverage(self.instruction_set, self.executor, self.model,
+                                             self.analyser)
 
     def start(self,
               num_test_cases: int,
@@ -82,6 +82,9 @@ class Fuzzer:
             else:
                 test_case = self.generator.create_test_case('generated.asm')
             STAT.test_cases += 1
+
+            # Generate the execution environment
+            self.generator.create_pte(test_case)
 
             # Prepare inputs
             inputs: List[Input]

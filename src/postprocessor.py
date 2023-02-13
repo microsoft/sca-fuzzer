@@ -54,6 +54,7 @@ class MinimizerViolation(Minimizer):
                 f.write(line)
             f.truncate()  # is it necessary??
         tc = fuzzer.generator.load(minimized_asm)
+        fuzzer.generator.create_pte(tc)
         return tc
 
     def _probe_test_case(self, fuzzer: Fuzzer, test_case: TestCase, inputs: List[Input],
@@ -114,6 +115,7 @@ class MinimizerViolation(Minimizer):
         inputs: List[Input] = fuzzer.input_gen.generate(CONF.input_gen_seed, num_inputs)
 
         # Load, boost inputs, and trace
+        fuzzer.generator.create_pte(test_case)
         fuzzer.model.load_test_case(test_case)
         boosted_inputs: List[Input] = fuzzer.boost_inputs(inputs, CONF.model_max_nesting)
 
