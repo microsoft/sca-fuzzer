@@ -342,18 +342,27 @@ class X86SandboxPass(Pass):
 
         mem_operands = implicit_mem_operands
         if mem_operands:
-            assert len(mem_operands) == 1, f"Unexpected instruction format {instr.name}"
-            mem_operand = mem_operands[0]
-            address_reg = mem_operand.value
-            imm_width = mem_operand.width if mem_operand.width <= 32 else 32
-            apply_mask = Instruction("AND", True) \
-                .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
-                .add_op(ImmediateOperand(self.sandbox_address_mask, imm_width))
-            add_base = Instruction("ADD", True) \
-                .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
-                .add_op(RegisterOperand("R14", 64, True, False))
-            parent.insert_before(instr, apply_mask)
-            parent.insert_before(instr, add_base)
+            # deduplicate operands
+            uniq_operands: Dict[str, MemoryOperand] = {}
+            for o in mem_operands:
+                if o.value not in uniq_operands:
+                    uniq_operands[o.value] = o
+
+            # instrument each operand to sandbox the memory accesses
+            for address_reg, mem_operand in uniq_operands.items():
+                imm_width = mem_operand.width if mem_operand.width <= 32 else 32
+                assert address_reg in self.target_desc.registers[64], \
+                    f"Unexpected address register {address_reg} used in {instr}"
+                apply_mask = Instruction("AND", True) \
+                    .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
+                    .add_op(ImmediateOperand(self.sandbox_address_mask, imm_width)) \
+                    .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
+                add_base = Instruction("ADD", True) \
+                    .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
+                    .add_op(RegisterOperand("R14", 64, True, False)) \
+                    .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
+                parent.insert_before(instr, apply_mask)
+                parent.insert_before(instr, add_base)
             return
 
         raise GeneratorException("Attempt to sandbox an instruction without memory operands")

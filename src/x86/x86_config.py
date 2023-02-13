@@ -78,24 +78,6 @@ x86_instruction_blocklist: List[str] = [
     # - Requires complex instrumentation
     "ENTERW", "ENTER", "LEAVEW", "LEAVE",
 
-    # Stringops - under construction
-    "LODSB", "LODSD", "LODSW", "LODSQ",
-    "SCASB", "SCASD", "SCASW", "SCASQ",
-    "STOSB", "STOSD", "STOSW", "STOSQ",
-    "CMPSB", "CMPSD", "CMPSW", "CMPSQ",
-    "MOVSB", "MOVSD", "MOVSW", "MOVSQ",
-
-    "REPE LODSB", "REPE LODSD", "REPE LODSW", "REPE LODSQ",
-    "REPE SCASB", "REPE SCASD", "REPE SCASW", "REPE SCASQ",
-    "REPE STOSB", "REPE STOSD", "REPE STOSW", "REPE STOSQ",
-    "REPE CMPSB", "REPE CMPSD", "REPE CMPSW", "REPE CMPSQ",
-    "REPE MOVSB", "REPE MOVSD", "REPE MOVSW", "REPE MOVSQ",
-
-    "REPNE LODSB", "REPNE LODSD", "REPNE LODSW", "REPNE LODSQ",
-    "REPNE SCASB", "REPNE SCASD", "REPNE SCASW", "REPNE SCASQ",
-    "REPNE STOSB", "REPNE STOSD", "REPNE STOSW", "REPNE STOSQ",
-    "REPNE CMPSB", "REPNE CMPSD", "REPNE CMPSW", "REPNE CMPSQ",
-    "REPNE MOVSB", "REPNE MOVSD", "REPNE MOVSW", "REPNE MOVSQ",
 
     # - not supported
     "LFENCE", "MFENCE", "SFENCE", "CLFLUSH", "CLFLUSHOPT",
