@@ -4,15 +4,18 @@ File: x86-specific model implementation
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
+import re
 import numpy as np
-from typing import Tuple, Dict
+from typing import Tuple, Dict, List, Set
+import copy
 
-import unicorn.x86_const as ucc
-from unicorn import Uc, UC_MEM_WRITE, UC_ARCH_X86, UC_MODE_64
+import unicorn.x86_const as ucc  # type: ignore
+from unicorn import Uc, UC_MEM_WRITE, UC_ARCH_X86, UC_MODE_64, UC_PROT_READ, UC_PROT_NONE
 
-from interfaces import Input
+from interfaces import Input, FlagsOperand, RegisterOperand, MemoryOperand, TestCase
 from model import UnicornModel, UnicornSpec, UnicornSeq, UnicornBpas, BaseTaintTracker
 from x86.x86_target_desc import X86UnicornTargetDesc, X86TargetDesc
+from service import UnreachableCode
 
 FLAGS_CF = 0b000000000001
 FLAGS_PF = 0b000000000100

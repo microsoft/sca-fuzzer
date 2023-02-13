@@ -60,6 +60,22 @@ class X86TargetDesc(TargetDesc):
         512: [f"ZMM{i}" for i in range(0, 32)],
     }  # yapf: disable
 
+    pte_bits = {
+        # NAME: (position, default value)
+        "PRESENT": (0, True),  # is present
+        "RW": (1, True),  # writeable
+        "USER": (2, False),  # userspace addressable
+        "PWT": (3, False),  # page write through
+        "PCD": (4, False),  # page cache disabled
+        "ACCESSED": (5, True),  # was accessed
+        "DIRTY": (6, True),  # was written to
+        "PKEY_BIT0": (59, False),  # Protection Keys, bit 1/4
+        "PKEY_BIT1": (60, False),  # Protection Keys, bit 2/4
+        "PKEY_BIT2": (61, False),  # Protection Keys, bit 3/4
+        "PKEY_BIT3": (62, False),  # Protection Keys, bit 4/4
+        "NX": (63, False),  # No execute: only valid after cpuid check
+    }
+
     def __init__(self):
         super().__init__()
         # remove blocked registers
