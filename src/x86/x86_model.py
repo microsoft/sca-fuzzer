@@ -311,6 +311,170 @@ class X86SequentialAssist(X86FaultModelAbstract):
         return self.curr_instruction_addr
 
 
+class X86UnicornDEH(X86FaultModelAbstract):
+    """
+    Contract for delayed exception handling (DEH).
+    Models typical handling of exceptions on out-of-order CPUs
+    """
+    dependencies: Set[str]
+    dependency_checkpoints: List[Set[str]]
+    curr_is_dependent: bool = False
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.relevant_faults.update([6, 12, 13, 21])
+        self.dependencies = set()
+        self.dependency_checkpoints = []
+
+    def speculate_fault(self, errno: int) -> int:
+        if not self.fault_triggers_speculation(errno):
+            return 0
+
+        # start speculation
+        # we set the rollback address to the end of the testcase
+        # because faults are terminating execution
+        self.checkpoint(self.emulator, self.get_rollback_address())
+
+        # add destinations to the dependency list
+        for op in self.current_instruction.get_dest_operands(True):
+            if isinstance(op, RegisterOperand):
+                self.dependencies.add(X86TargetDesc.gpr_normalized[op.value])
+            elif isinstance(op, FlagsOperand):
+                for flag in op.get_write_flags():
+                    self.dependencies.add(flag)
+
+        # speculatively skip the faulting instruction
+        if self.next_instruction_addr >= self.code_end:
+            return 0  # no need for speculation if we're at the end
+        else:
+            return self.next_instruction_addr
+
+    @staticmethod
+    def speculate_instruction(emulator: Uc, address, size, model) -> None:
+        """
+        Track instruction dependencies to skip those instructions that are dependent
+        on a faulting instruction
+        """
+        assert isinstance(model, X86UnicornDEH)
+
+        # reset flag
+        model.curr_is_dependent = False
+
+        # track dependencies only after faults
+        if not model.in_speculation or not model.dependencies:
+            return
+
+        # check if the instruction should be skipped due to a dependency on a faulting instr
+        reg_src_operands = []
+        reg_dest_operands = []
+        address_regs = []
+        for op in model.current_instruction.get_all_operands():
+            if isinstance(op, RegisterOperand):
+                if op.src:
+                    reg_src_operands.append(X86TargetDesc.gpr_normalized[op.value])
+                if op.dest:
+                    reg_dest_operands.append(X86TargetDesc.gpr_normalized[op.value])
+            elif isinstance(op, MemoryOperand):
+                for sub_op in re.split(r'\+|-|\*| ', op.value):
+                    if sub_op and sub_op in X86TargetDesc.gpr_normalized:
+                        normalized = X86TargetDesc.gpr_normalized[sub_op]
+                        reg_src_operands.append(normalized)
+                        address_regs.append(normalized)
+            elif isinstance(op, FlagsOperand):
+                reg_src_operands.extend(op.get_read_flags())
+                reg_dest_operands.extend(op.get_write_flags())
+
+        is_dependent = False
+        is_dependent_addr = False
+        for reg in reg_src_operands:
+            if reg in model.dependencies:
+                is_dependent = True
+                break
+        for reg in address_regs:
+            if reg in model.dependencies:
+                is_dependent_addr = True
+
+        # remove overwritten values from dependencies
+        old_dependencies = list(model.dependencies)  # type cast to force copy
+        for reg in reg_dest_operands:
+            if reg not in reg_src_operands and reg in model.dependencies:
+                model.dependencies.remove(reg)
+
+        if not is_dependent:
+            return
+
+        # update dependencies
+        for reg in reg_dest_operands:
+            model.dependencies.add(reg)
+
+        # special case 1 - cmpxchg does not always taint RAX
+        name = model.current_instruction.name
+        if "CMPXCHG" in name:
+            dest = model.current_instruction.operands[0]
+            if isinstance(dest, MemoryOperand) or \
+               X86TargetDesc.gpr_normalized[dest.value] not in old_dependencies:
+                model.dependencies.remove(X86TargetDesc.gpr_normalized["RAX"])
+                flags = model.current_instruction.get_flags_operand()
+                assert flags
+                for flag in flags.get_write_flags():
+                    model.dependencies.remove(flag)
+
+        # special case 2 - exchange instruction swaps dependencies
+        elif "XCHG" in name:
+            assert len(model.current_instruction.operands) == 2
+            op1, op2 = model.current_instruction.operands
+            if isinstance(op1, RegisterOperand):
+                # swap dependencies
+                op1_val, op2_val = [X86TargetDesc.gpr_normalized[op.value] for op in [op1, op2]]
+                if op1_val in old_dependencies and op2_val not in old_dependencies:
+                    model.dependencies.remove(op1_val)
+                elif op1_val not in old_dependencies and op2_val in old_dependencies:
+                    model.dependencies.remove(op2_val)
+            else:
+                # memory is never tainted -> override the src dependency
+                op2_val = X86TargetDesc.gpr_normalized[op2.value]
+                if op2_val in old_dependencies:
+                    model.dependencies.remove(op2_val)
+
+        # special case 3 - XADD overrides the src taint with the dest taint
+        elif "XADD" in name:
+            assert len(model.current_instruction.operands) == 2
+            op1, op2 = model.current_instruction.operands
+            if isinstance(op1, MemoryOperand) or \
+               X86TargetDesc.gpr_normalized[op1.value] not in old_dependencies:
+                model.dependencies.remove(X86TargetDesc.gpr_normalized[op2.value])
+
+        # special case 4 - zeroing and reset patterns
+        elif name in ["SUB", "LOCK SUB", "SBB", "LOCK SBB", "XOR", "LOCK XOR", "CMP"]:
+            assert len(model.current_instruction.operands) == 2
+            op1, op2 = model.current_instruction.operands
+            if op1.value == op2.value:
+                for reg in reg_dest_operands:
+                    model.dependencies.remove(reg)
+
+        # special case - many memory operations are implemented as two uops,
+        # and one of them could be expected even if the other is data-dependent
+        # we approximate it by simply not skipping the dependent stores
+        if model.current_instruction.has_mem_operand() and not is_dependent_addr:
+            return
+
+        # skip the dependent instruction
+        model.curr_is_dependent = True
+
+    @staticmethod
+    def trace_mem_access(emulator, access, address, size, value, model) -> None:
+        if not model.curr_is_dependent:
+            X86FaultModelAbstract.trace_mem_access(emulator, access, address, size, value, model)
+
+    def checkpoint(self, emulator: Uc, next_instruction):
+        self.dependency_checkpoints.append(copy.copy(self.dependencies))
+        return super().checkpoint(emulator, next_instruction)
+
+    def rollback(self) -> int:
+        self.dependencies = self.dependency_checkpoints.pop()
+        return super().rollback()
+
+
 
 # ==================================================================================================
 # Taint tracker

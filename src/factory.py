@@ -41,6 +41,7 @@ X86_SIMPLE_EXECUTION_CLAUSES: Dict[str, Type[x86_model.X86UnicornModel]] = {
     "seq-assist": x86_model.X86SequentialAssist,
     "cond": x86_model.X86UnicornCond,
     "bpas": x86_model.X86UnicornBpas,
+    "delayed-exception-handling": x86_model.X86UnicornDEH,
 }
 
 EXECUTORS = {
