@@ -169,6 +169,11 @@ class UnicornModel(Model, ABC):
         self.handled_faults = set()
 
         # update a list of handled faults based on the config
+        if 'assist-dirty' in CONF.permitted_faults:
+            self.handled_faults.update([12, 13])
+        if 'assist-accessed' in CONF.permitted_faults:
+            self.handled_faults.update([12, 13])
+
     def load_test_case(self, test_case: TestCase) -> None:
         """
         Instantiate emulator and load input in registers
