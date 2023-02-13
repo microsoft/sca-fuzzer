@@ -110,6 +110,9 @@ extern volatile size_t n_inputs;
 extern char *fault_handler;
 extern uint32_t handled_faults;
 extern gate_desc *curr_idt_table;
+extern pteval_t faulty_pte_mask_set;
+extern pteval_t faulty_pte_mask_clear;
+
 // Shared functions
 int trace_test_case(void);
 int load_template(size_t tc_size);

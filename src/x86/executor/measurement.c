@@ -51,6 +51,13 @@ inline void wrmsr64(unsigned int msr, uint64_t value)
     native_write_msr(msr, (uint32_t)value, (uint32_t)(value >> 32));
 }
 
+inline unsigned long long rdmsr64(unsigned int msr) { return native_read_msr(msr); }
+
+inline void _native_page_invalidate(void)
+{
+    asm volatile("invlpg (%0)" ::"r"(faulty_page_addr) : "memory");
+}
+
 // =================================================================================================
 // Fault Handling
 // =================================================================================================
@@ -194,6 +201,18 @@ static inline int pre_measurement_setup(void)
     return 0;
 }
 
+static inline int uarch_flush(void)
+{
+#if VENDOR_ID == 1 // Intel
+    static const u16 ds = __KERNEL_DS;
+    asm volatile("verw %[ds]" : : [ds] "m"(ds) : "cc");
+    wrmsr64(MSR_IA32_FLUSH_CMD, L1D_FLUSH);
+#elif VENDOR_ID == 2 // AMD
+    // TBD
+#endif
+    return 0;
+}
+
 void run_experiment(long rounds)
 {
     get_cpu();
@@ -204,6 +223,9 @@ void run_experiment(long rounds)
     local_store_idt(&idtr);
     orig_idt_table = (gate_desc *)idtr.address;
     idt_copy();
+
+    // save the current value of the faulty page PTE
+    pteval_t orig_pte = faulty_page_ptep->pte;
 
     // Zero-initialize the region of memory used by Prime+Probe
     memset(&sandbox->eviction_region[0], 0, EVICT_REGION_SIZE * sizeof(char));
@@ -224,6 +246,14 @@ void run_experiment(long rounds)
             ((uint64_t *)sandbox->upper_overflow)[j] = 0;
         }
 
+        // Try to reset the uarch state
+        // (we do it here because from this point on
+        // the execution is expected to be deterministic
+        // and depend solely on the test case and the input to it)
+        if (pre_run_flush == 1)
+            uarch_flush();
+
+        // Initialize the rest of the memory
         // - sandbox: main and faulty regions
         uint64_t *main_page_values = &current_input[0];
         uint64_t *main_base = (uint64_t *)&sandbox->main_region[0];
@@ -256,23 +286,18 @@ void run_experiment(long rounds)
         // - RSP and RBP
         ((uint64_t *)register_initialization_base)[7] = (uint64_t)stack_base;
 
-        // flush some of the uarch state
-        if (pre_run_flush == 1)
+        // Set page table entry for the faulty region
+        if ((faulty_pte_mask_set != 0) || (faulty_pte_mask_clear != 0xffffffffffffffff))
         {
-            static const u16 ds = __KERNEL_DS;
-            asm volatile("verw %[ds]" : : [ds] "m"(ds) : "cc");
-            wrmsr64(MSR_IA32_FLUSH_CMD, L1D_FLUSH);
-        }
-
-        // clear the ACCESSED bit and flush the corresponding TLB entry
-        if (enable_faulty_page)
-        {
-            faulty_page_pte.pte = faulty_page_ptep->pte & ~_PAGE_ACCESSED;
+            faulty_page_pte.pte =
+                ((faulty_page_ptep->pte | faulty_pte_mask_set) & faulty_pte_mask_clear);
             set_pte_at(current->mm, faulty_page_addr, faulty_page_ptep, faulty_page_pte);
-            asm volatile("clflush (%0)\nlfence\n" ::"r"(faulty_page_addr) : "memory");
-            asm volatile("invlpg (%0)" ::"r"(faulty_page_addr) : "memory");
+            // When testing for #PF flushing the faulty page causes a 'soft
+            // lookup' kernel error on certain CPUs.
+            // asm volatile("clflush (%0)\nlfence\n" ::"r"(faulty_page_addr)
+            // : "memory");
+            _native_page_invalidate();
         }
-
 
         setup_idt();
 
@@ -280,7 +305,15 @@ void run_experiment(long rounds)
         ((void (*)(char *))measurement_code)(&sandbox->main_region[0]);
 
         reset_idt();
-        
+
+        // restore the original value of the faulty page PTE
+        if ((faulty_pte_mask_set != 0) || (faulty_pte_mask_clear != 0xffffffffffffffff))
+        {
+            faulty_page_pte.pte = orig_pte;
+            set_pte_at(current->mm, faulty_page_addr, faulty_page_ptep, faulty_page_pte);
+            _native_page_invalidate();
+        }
+
         // store the measurement results
         measurement_t result = sandbox->latest_measurement;
         // printk(KERN_ERR "x86_executor: measurement %llu\n", result.htrace[0]);
