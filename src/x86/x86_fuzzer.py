@@ -62,10 +62,6 @@ class X86Fuzzer(Fuzzer):
             if fenced_htraces == non_fenced_htraces:
                 return True
 
-            # check for corrupted measurements
-            fenced_htraces2 = self.executor.trace_test_case(inputs, repetitions=1)
-            if fenced_htraces != fenced_htraces2:
-                return True
             STAT.observ_filter += 1
 
         return False

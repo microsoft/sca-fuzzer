@@ -18,6 +18,8 @@ class ConfCls:
     # Fuzzer
     fuzzer: str = "basic"
     """ fuzzer: type of the fuzzing algorithm """
+    ignore_flaky_violations: bool = True
+    """ ignore_flaky_violations: if True, don't report non-reproducible violations """
     enable_priming: bool = True
     """ enable_priming: whether to check violations with priming """
     enable_speculation_filter: bool = False
