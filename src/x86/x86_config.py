@@ -61,6 +61,7 @@ x86_instruction_categories: List[str] = [
     # "CLFLUSHOPT-CLFLUSHOPT",
     # "CLFSH-MISC",
     # "BMI1",
+    "SGX-SGX",
 ]
 
 x86_instruction_blocklist: List[str] = [
@@ -80,6 +81,8 @@ x86_instruction_blocklist: List[str] = [
     "ENTERW", "ENTER", "LEAVEW", "LEAVE",
     # - requires support of all possible interrupts
     "INT",
+    # - system management instruction
+    "ENCLS", "VMXON", "STGI", "SKINIT",
 
     # - not supported
     "LFENCE", "MFENCE", "SFENCE", "CLFLUSH", "CLFLUSHOPT",
