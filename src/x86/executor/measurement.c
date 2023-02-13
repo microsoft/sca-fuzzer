@@ -323,6 +323,8 @@ void run_experiment(long rounds)
         measurements[i_].pfc[0] = result.pfc[0];
         measurements[i_].pfc[1] = result.pfc[1];
         measurements[i_].pfc[2] = result.pfc[2];
+        measurements[i_].pfc[3] = result.pfc[3];
+        measurements[i_].pfc[4] = result.pfc[4];
     }
 
     raw_local_irq_restore(flags);

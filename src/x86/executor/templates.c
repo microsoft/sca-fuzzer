@@ -599,3 +599,49 @@ void template_l1d_evict_reload(void) {
     epilogue();
     asm volatile(".quad "xstr(TEMPLATE_RETURN));
 }
+
+
+// =================================================================================================
+// Register Tracer - simply returns the values of registers after execution
+// =================================================================================================
+void template_gpr(void) {
+    asm volatile(".quad "xstr(TEMPLATE_ENTER));
+    prologue();
+
+    // Initialize registers
+    SET_REGISTER_FROM_INPUT();
+
+    // Execute the test case
+    asm("lfence\n"
+        ".quad "xstr(TEMPLATE_INSERT_TC)" \n"
+        "mfence\n");
+
+    asm(".quad "xstr(TEMPLATE_JUMP_EXCEPTION));
+
+    // Read GPR values
+    asm_volatile_intel(
+        // r15 <- &latest_measurement
+        "lea r15, [r14 + "xstr(MEASUREMENT_OFFSET)"]\n"
+        "mov qword ptr [r15], rax \n"
+        "mov qword ptr [r15 + 8], rbx \n"
+        "mov qword ptr [r15 + 16], rcx \n"
+        "mov qword ptr [r15 + 24], rdx \n"
+        "mov qword ptr [r15 + 32], rsi \n"
+        "mov qword ptr [r15 + 40], rdi \n"
+
+        // rsp <- stored_rsp
+        "mov rsp, qword ptr [r14 + "xstr(RSP_OFFSET)"]\n"
+
+        // restore registers
+        "popfq\n"
+        "pop r15\n"
+        "pop r14\n"
+        "pop r13\n"
+        "pop r12\n"
+        "pop r11\n"
+        "pop r10\n"
+        "pop rbp\n"
+        "pop rbx\n"
+    );
+    asm volatile(".quad "xstr(TEMPLATE_RETURN));
+}

@@ -7,7 +7,7 @@ SPDX-License-Identifier: MIT
 from subprocess import run
 from typing import List
 
-from fuzzer import Fuzzer
+from fuzzer import Fuzzer, ArchitecturalFuzzer
 from interfaces import TestCase, Input, InstructionSetAbstract
 from service import STAT
 from config import CONF
@@ -65,3 +65,16 @@ class X86Fuzzer(Fuzzer):
             STAT.observ_filter += 1
 
         return False
+
+
+class X86ArchitecturalFuzzer(ArchitecturalFuzzer):
+
+    def _adjust_config(self, existing_test_case):
+        super()._adjust_config(existing_test_case)
+
+    def start(self,
+              num_test_cases: int,
+              num_inputs: int,
+              timeout: int,
+              nonstop: bool = False) -> bool:
+        return super().start(num_test_cases, num_inputs, timeout, nonstop)

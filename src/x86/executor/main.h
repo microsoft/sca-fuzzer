@@ -53,7 +53,7 @@ extern char *attack_template;
 
 // Measurement results
 #define HTRACE_WIDTH 1
-#define NUM_PFC 3
+#define NUM_PFC 5
 
 typedef struct Measurement
 {
@@ -120,6 +120,7 @@ int load_template(size_t tc_size);
 void template_l1d_prime_probe(void);
 void template_l1d_flush_reload(void);
 void template_l1d_evict_reload(void);
+void template_gpr(void);
 
 #define BIT_SET(a, b) ((a) |= (1ULL << (b)))
 #define BIT_CLEAR(a, b) ((a) &= ~(1ULL << (b)))

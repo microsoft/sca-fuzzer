@@ -29,6 +29,31 @@ cli_opt="python3 -OO ./cli.py"
     rm $tmpfile
 }
 
+@test "Architectural Fuzzing" {
+    tmp_config=$(mktemp)
+cat << EOF >> $tmp_config
+fuzzer: architectural
+contract_observation_clause: ct
+contract_execution_clause:
+  - seq
+enable_priming: false
+input_gen_entropy_bits: 20
+memory_access_zeroed_bits: 0
+inputs_per_class: 1
+program_size: 300
+avg_mem_accesses: 150
+max_bb_per_function: 3
+min_bb_per_function: 3
+logging_modes:
+  -
+EOF
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -c $tmp_config -n 10 -i 100"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"=== Violations detected ==="* ]]
+    rm $tmp_config
+}
+
 function run_without_violation {
     local cmd=$1
     tmp_config=$(mktemp)

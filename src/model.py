@@ -515,6 +515,23 @@ class ArchTracer(CTRTracer):
         super(ArchTracer, self).observe_mem_access(access, address, size, value, model)
 
 
+class GPRTracer(UnicornTracer):
+    """
+    This is a special type of tracer, primarily used for debugging the model.
+    It returns the values of all GPRs after the test case finished its execution.
+    """
+
+    def init_trace(self, emulator: Uc, target_desc: UnicornTargetDesc) -> None:
+        self.emulator = emulator
+        self.target_desc = target_desc
+        return super().init_trace(emulator, target_desc)
+
+    def get_contract_trace(self) -> CTrace:
+        self.trace = [self.emulator.reg_read(reg) for reg in self.target_desc.registers]
+        self.trace = self.trace[:-1]  # exclude flags
+        return self.trace[0]
+
+
 # ==================================================================================================
 # Implementation of Execution Clauses
 # ==================================================================================================
