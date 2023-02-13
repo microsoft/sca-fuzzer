@@ -42,6 +42,7 @@ int (*set_memory_nx)(unsigned long, int) = 0;
 // Global Variables
 long uarch_reset_rounds = UARCH_RESET_ROUNDS_DEFAULT;
 uint64_t ssbp_patch_control = SSBP_PATH_DEFAULT;
+uint64_t prefetcher_control = PREFETCHER_DEFAULT;
 char pre_run_flush = PRE_RUN_FLUSH_DEFAULT;
 char enable_faulty_page = ENABLE_FAULTY_DEFAULT;
 char *measurement_template = (char *)&template_l1d_prime_probe;
@@ -139,6 +140,14 @@ static ssize_t enable_mds_store(struct kobject *kobj, struct kobj_attribute *att
 static struct kobj_attribute enable_mds_attribute =
     __ATTR(enable_mds, 0666, NULL, enable_mds_store);
 
+/// Control prefetchers
+///
+static ssize_t enable_prefetcher_store(struct kobject *kobj, struct kobj_attribute *attr,
+                                       const char *buf, size_t count);
+static struct kobj_attribute enable_prefetcher_attribute =
+    __ATTR(enable_prefetcher, 0666, NULL, enable_prefetcher_store);
+
+
 /// Control flushing
 ///
 static ssize_t enable_pre_run_flush_store(struct kobject *kobj, struct kobj_attribute *attr,
@@ -163,6 +172,7 @@ static struct attribute *sysfs_attributes[] = {
     &print_code_base_attribute.attr,
     &enable_ssbp_patch_attribute.attr,
     &enable_mds_attribute.attr,
+    &enable_prefetcher_attribute.attr,
     &enable_pre_run_flush_attribute.attr,
     &measurement_mode_attribute.attr,
     NULL, /* need to NULL terminate the list of attributes */
@@ -368,7 +378,7 @@ static ssize_t enable_ssbp_patch_store(struct kobject *kobj, struct kobj_attribu
 {
     unsigned value = 0;
     sscanf(buf, "%u", &value);
-    ssbp_patch_control = (value == 0) ? 0b011 : 0b111;
+    ssbp_patch_control = (value == 0) ? SSBP_PATCH_OFF : SSBP_PATCH_ON;
     return count;
 }
 
@@ -378,6 +388,15 @@ static ssize_t enable_mds_store(struct kobject *kobj, struct kobj_attribute *att
     unsigned value = 0;
     sscanf(buf, "%u", &value);
     enable_faulty_page = (value == 0) ? 0 : 1;
+    return count;
+}
+
+static ssize_t enable_prefetcher_store(struct kobject *kobj, struct kobj_attribute *attr,
+                                       const char *buf, size_t count)
+{
+    unsigned value = 0;
+    sscanf(buf, "%u", &value);
+    prefetcher_control = (value == 0) ? PREFETCHER_OFF : PREFETCHER_ON;
     return count;
 }
 

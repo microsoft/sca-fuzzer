@@ -50,6 +50,11 @@ static inline int pre_measurement_setup(void)
     err |= config_pfc(2, "C2.02", 1, 1); // C2.02 - uops retirement slots - fuzzing feedback
     err |= config_pfc(3, "0D.01", 1, 1); // misprediction recovery cycles - fuzzing feedback
 
+    // Configure uarch patches
+    wrmsr64(MSR_IA32_SPEC_CTRL, ssbp_patch_control);
+
+    // Disable prefetchers
+    wrmsr64(0x1a4, prefetcher_control);
 
     // uops
     err |= config_pfc(1, "0D.01", 1, 1); // misprediction recovery cycles - fuzzing feedback
@@ -58,8 +63,6 @@ static inline int pre_measurement_setup(void)
 
     if (err)
         return err;
-
-    wrmsr64(MSR_IA32_SPEC_CTRL, ssbp_patch_control);
 
     faulty_page_addr = (unsigned long)&sandbox->faulty_region[0];
     faulty_page_ptep = get_pte(faulty_page_addr);

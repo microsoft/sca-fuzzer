@@ -11,8 +11,12 @@ x86_option_values = {
     'executor_mode': ['P+P', 'F+R', 'E+R'],
 }
 
+x86_executor_enable_prefetcher: bool = False
+""" x86_executor_enable_prefetcher: enable all prefetchers"""
+x86_executor_enable_ssbp_patch: bool = True
+""" x86_executor_enable_ssbp_patch: enable a patch against Speculative Store Bypass"""
 x86_instruction_categories: List[str] = [
-    # Base x86
+    # Base x86 - main instructions
     "BASE-BINARY",
     "BASE-BITBYTE",
     "BASE-CMOV",

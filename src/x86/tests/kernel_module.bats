@@ -3,10 +3,11 @@
 INPUT_SIZE=$((4096 * 3))
 NOP_OPCODE='\x90'
 
-function setup_suite {
-    sudo modprobe msr
-    sudo wrmsr -a 0x1a4 15
+setup() {
+    # get the containing directory of this file
+    DIR="$( cd "$( dirname "$BATS_TEST_FILENAME" )" >/dev/null 2>&1 && pwd )"
 }
+
 
 @test "x86 executor: Loading a test case" {
     echo -n -e $NOP_OPCODE >/sys/x86_executor/test_case
@@ -42,7 +43,7 @@ function setup_suite {
 
 function load_test_case() {
     local test_file=$1
-    
+
     tmpbin=$(mktemp /tmp/revizor-test.XXXXXX.o)
 
     as "$test_file" -o "$tmpbin"
@@ -57,6 +58,33 @@ function load_test_case() {
 
     rm "$tmpbin"
 }
+
+@test "x86 executor: Controlling patches" {
+    tmpasm=$(mktemp /tmp/revizor-test.XXXXXX.asm)
+    echo "NOP" > $tmpasm
+    load_test_case $tmpasm
+
+    run bash -c 'echo "1" > /sys/x86_executor/enable_ssbp_patch'
+    [ "$status" -eq 0 ]
+    run cat /sys/x86_executor/trace
+    [ "$status" -eq 0 ]
+
+    run bash -c 'echo "0" > /sys/x86_executor/enable_ssbp_patch'
+    [ "$status" -eq 0 ]
+    run cat /sys/x86_executor/trace
+    [ "$status" -eq 0 ]
+
+    run bash -c 'echo "1" > /sys/x86_executor/enable_prefetcher'
+    [ "$status" -eq 0 ]
+    run cat /sys/x86_executor/trace
+    [ "$status" -eq 0 ]
+
+    run bash -c 'echo "0" > /sys/x86_executor/enable_prefetcher'
+    [ "$status" -eq 0 ]
+    run cat /sys/x86_executor/trace
+    [ "$status" -eq 0 ]
+}
+
 
 @test "x86 executor: Hardware tracing with P+P" {
     echo "P+P" > /sys/x86_executor/measurement_mode
@@ -116,6 +144,9 @@ function load_test_case() {
 }
 
 @test "x86 executor: Noise Level" {
+    echo "1" > /sys/x86_executor/enable_ssbp_patch
+    echo "0" > /sys/x86_executor/enable_prefetcher
+
     # execute one dummy run to set Executor into the default config and to load the test case
     nruns=10000
     threshold=$((nruns - 2))
@@ -167,6 +198,9 @@ function load_test_case() {
 }
 
 @test "x86 executor: Noisy stores" {
+    echo "1" > /sys/x86_executor/enable_ssbp_patch
+    echo "0" > /sys/x86_executor/enable_prefetcher
+
     # execute one dummy run to set Executor into the default config and to load the test case
     nruns=10000
     threshold=$((nruns - 2))

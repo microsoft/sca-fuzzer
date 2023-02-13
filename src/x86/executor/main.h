@@ -9,14 +9,20 @@
 #include <linux/types.h>
 
 #define DEBUG 0
+#define STRINGIFY(...) #__VA_ARGS__
+
+#define SSBP_PATCH_ON 0b111
+#define SSBP_PATCH_OFF 0b011
+#define PREFETCHER_ON 0
+#define PREFETCHER_OFF 15
 
 // Executor Configuration Interface
 extern long uarch_reset_rounds;
 #define UARCH_RESET_ROUNDS_DEFAULT 1
 extern uint64_t ssbp_patch_control;
-#define SSBP_PATH_DEFAULT 0b011
-extern char enable_faulty_page;
-#define ENABLE_FAULTY_DEFAULT 0
+#define SSBP_PATH_DEFAULT SSBP_PATCH_ON
+extern uint64_t prefetcher_control;
+#define PREFETCHER_DEFAULT PREFETCHER_OFF
 extern char pre_run_flush;
 #define PRE_RUN_FLUSH_DEFAULT 1
 extern char *attack_template;
@@ -65,7 +71,7 @@ extern void *stack_base;
 
 #define REG_INIT_OFFSET 8192 // (MAIN_REGION_SIZE + FAULTY_REGION_SIZE)
 #define EVICT_REGION_OFFSET (EVICT_REGION_SIZE + OVERFLOW_REGION_SIZE)
-#define RSP_OFFSET 12288 // (MAIN_REGION_SIZE + FAULTY_REGION_SIZE + OVERFLOW_REGION_SIZE)
+#define RSP_OFFSET 12288         // (MAIN_REGION_SIZE + FAULTY_REGION_SIZE + OVERFLOW_REGION_SIZE)
 #define MEASUREMENT_OFFSET 12296 // RSP_OFFSET + sizeof(stored_rsp)
 
 // Test Case

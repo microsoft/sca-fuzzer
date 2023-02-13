@@ -43,18 +43,16 @@ class X86IntelExecutor(Executor):
         if smt_on:
             LOGGER.warning("executor", "SMT is on! You may experience false positives.")
 
-        # disable prefetching
-        subprocess.run('sudo modprobe msr', shell=True, check=True)
-        subprocess.run('sudo wrmsr -a 0x1a4 15', shell=True, check=True)
-
         # is kernel module ready?
         if not os.path.isfile("/sys/x86_executor/trace"):
             LOGGER.error("x86 executor: kernel module not loaded")
 
         # initialize the kernel module
         write_to_sysfs_file(CONF.executor_warmups, '/sys/x86_executor/warmups')
-        write_to_sysfs_file("1" if CONF.enable_ssbp_patch else "0",
+        write_to_sysfs_file("1" if CONF.x86_executor_enable_ssbp_patch else "0",
                             "/sys/x86_executor/enable_ssbp_patch")
+        write_to_sysfs_file("1" if CONF.x86_executor_enable_prefetcher else "0",
+                            "/sys/x86_executor/enable_prefetcher")
         write_to_sysfs_file("1" if CONF.enable_pre_run_flush else "0",
                             "/sys/x86_executor/enable_pre_run_flush")
         write_to_sysfs_file("1" if CONF.enable_faulty_page else "0", "/sys/x86_executor/enable_mds")
