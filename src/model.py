@@ -134,6 +134,8 @@ class UnicornModel(Model, ABC):
     handled_faults: Set[int]
     pending_fault_id: int = 0
     previous_context = None
+    rw_protect: bool = False
+    write_protect: bool = False
 
     # set by subclasses
     architecture: Tuple[int, int]

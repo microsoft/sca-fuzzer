@@ -34,7 +34,24 @@ class X86UnicornModel(UnicornModel):
     def __init__(self, sandbox_base, code_start):
         self.target_desc = X86UnicornTargetDesc()
         self.architecture = (UC_ARCH_X86, UC_MODE_64)
+        self.rw_fault_mask = (1 << X86TargetDesc.pte_bits["PRESENT"][0]) + \
+            (1 << X86TargetDesc.pte_bits["ACCESSED"][0])
+        self.rw_fault_mask_unset = (1 << X86TargetDesc.pte_bits["USER"][0])
+        self.write_fault_mask = (1 << X86TargetDesc.pte_bits["RW"][0]) + \
+            (1 << X86TargetDesc.pte_bits["DIRTY"][0])
+
+        self.flags_id = ucc.UC_X86_REG_EFLAGS
+
         super().__init__(sandbox_base, code_start)
+
+    def load_test_case(self, test_case: TestCase) -> None:
+        # check which permissions have to be set on the pages
+        self.rw_protect = bool((0xffffffffffffffff ^ test_case.faulty_pte.mask_clear)
+                               & self.rw_fault_mask)
+        self.rw_protect |= bool(test_case.faulty_pte.mask_set & self.rw_fault_mask_unset)
+        self.write_protect = bool((0xffffffffffffffff ^ test_case.faulty_pte.mask_clear)
+                                  & self.write_fault_mask)
+        return super().load_test_case(test_case)
 
     def _load_input(self, input_: Input):
         """
@@ -63,6 +80,13 @@ class X86UnicornModel(UnicornModel):
             reg_init_address += 8
         self.emulator.mem_write(reg_init_address,
                                 self.stack_base.to_bytes(8, byteorder='little', signed=False))
+
+        if self.rw_protect:
+            self.emulator.mem_protect(self.sandbox_base + self.MAIN_REGION_SIZE,
+                                      self.FAULTY_REGION_SIZE, UC_PROT_NONE)
+        elif self.write_protect:
+            self.emulator.mem_protect(self.sandbox_base + self.MAIN_REGION_SIZE,
+                                      self.FAULTY_REGION_SIZE, UC_PROT_READ)
 
         self.emulator.reg_write(ucc.UC_X86_REG_RSP, self.stack_base)
         self.emulator.reg_write(ucc.UC_X86_REG_RBP, self.stack_base)
