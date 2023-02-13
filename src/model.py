@@ -169,6 +169,10 @@ class UnicornModel(Model, ABC):
         self.handled_faults = set()
 
         # update a list of handled faults based on the config
+        if 'DE-zero' in CONF.permitted_faults or 'DE-overflow' in CONF.permitted_faults:
+            self.handled_faults.add(21)
+        if 'DB-instruction' in CONF.permitted_faults:
+            self.handled_faults.add(10)
         if 'BP' in CONF.permitted_faults:
             self.handled_faults.add(21)
         if 'UD' in CONF.permitted_faults or 'UD-vtx' in CONF.permitted_faults or \

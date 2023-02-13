@@ -20,6 +20,11 @@ def update_instruction_list():
     This functionality is implemented as a module-level function
     to avoid code duplication between X86Fuzzer and X86ArchitecturalFuzzer
     """
+    if 'DE-overflow' not in CONF.permitted_faults:
+        if "IDIV" not in CONF._default_instruction_blocklist:
+            CONF._default_instruction_blocklist.append("IDIV")
+        if "REX IDIV" not in CONF._default_instruction_blocklist:
+            CONF._default_instruction_blocklist.append("REX IDIV")
     if 'UD' not in CONF.permitted_faults:
         CONF._default_instruction_blocklist.extend(["UD", "UD2"])
     if 'UD-sgx' not in CONF.permitted_faults:
@@ -40,6 +45,8 @@ def update_instruction_list():
 
 def check_instruction_list(instruction_set: InstructionSetAbstract):
     all_instruction_names = set([i.name for i in instruction_set.instructions])
+    if 'DE-overflow' in CONF.permitted_faults:
+        assert "DIV" in all_instruction_names or "IDIV" in all_instruction_names
     if 'UD' in CONF.permitted_faults:
         assert "UD" in all_instruction_names or "UD2" in all_instruction_names
     if 'UD-sgx' in CONF.permitted_faults:
