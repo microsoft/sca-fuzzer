@@ -39,7 +39,7 @@ EOF
     run bash -c "$cmd -c $tmp_config"
     echo "$output"
     [ "$status" -eq 0 ]
-    [ "$output" = "" ]
+    [[ "$output" != *"=== Violations detected ==="* ]]
     rm $tmp_config
 }
 
@@ -58,7 +58,7 @@ EOF
 @test "Detection: Spectre V1 - BCB load - P" {
     run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/spectre_v1.asm -i 20"
     echo "$output"
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 1 ]
     [[ "$output" = *"=== Violations detected ==="* ]]
 }
 
@@ -72,21 +72,21 @@ EOF
 @test "Detection: Spectre V1.1 - BCB store" {
     run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/spectre_v1.1.asm -i 100"
     echo "$output"
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 1 ]
     [[ "$output" = *"=== Violations detected ==="* ]]
 }
 
 @test "Detection: Spectre V2 - BTI - P" {
     run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/spectre_v2.asm -i 20"
     echo "$output"
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 1 ]
     [[ "$output" = *"=== Violations detected ==="* ]]
 }
 
 @test "Detection: Spectre V4 - SSBP - P" {
     run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/spectre_v4.asm -c x86/tests/acceptance/ct-seq-ssbp-patch-off.yaml -i 200"
     echo "$output"
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 1 ]
     [[ "$output" = *"=== Violations detected ==="* ]]
 }
 
@@ -107,14 +107,14 @@ EOF
 @test "Detection: Spectre V5-ret" {
     run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/spectre_ret.asm -i 10"
     echo "$output"
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 1 ]
     [[ "$output" = *"=== Violations detected ==="* ]]
 }
 
 @test "Detection: Nested misprediction" {
     run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/spectre_v4_n2.asm -i 200 -c x86/tests/acceptance/ct-bpas-n1-ssbp-patch-off.yaml"
     echo "$output"
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 1 ]
     [[ "$output" = *"=== Violations detected ==="* ]]
 
     run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/spectre_v4_n2.asm -i 200 -c x86/tests/acceptance/ct-bpas-ssbp-patch-off.yaml"
@@ -127,12 +127,12 @@ EOF
     if cat /proc/cpuinfo | grep "mds" ; then
         run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/mds.asm -i 100 -c x86/tests/acceptance/mds.yaml"
         echo "$output"
-        [ "$status" -eq 0 ]
+        [ "$status" -eq 1 ]
         [[ "$output" = *"=== Violations detected ==="* ]]
     else
         run bash -c "$cli_opt fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/lvi.asm -i 100 -c x86/tests/acceptance/mds.yaml"
         echo "$output"
-        [ "$status" -eq 0 ]
+        [ "$status" -eq 1 ]
         [[ "$output" = *"=== Violations detected ==="* ]]
     fi
 }
