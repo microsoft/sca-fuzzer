@@ -475,6 +475,78 @@ class X86UnicornDEH(X86FaultModelAbstract):
         return super().rollback()
 
 
+class X86UnicornNull(X86FaultModelAbstract):
+    """
+    Contract describing zero injection on faults
+    """
+    curr_load: Tuple[int, int]
+    pending_re_execution: bool = False
+    pending_restore_protection: bool = False
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.relevant_faults.update([12, 13])
+
+    @staticmethod
+    def speculate_instruction(emulator: Uc, address, size, model) -> None:
+        assert isinstance(model, X86UnicornNull)
+        # restore permissions after speculation - we might have nested injections
+        if model.pending_restore_protection:
+            model.pending_restore_protection = False
+            if model.rw_protect:
+                model.emulator.mem_protect(model.sandbox_base + model.MAIN_REGION_SIZE,
+                                           model.FAULTY_REGION_SIZE, UC_PROT_NONE)
+            elif model.write_protect:
+                model.emulator.mem_protect(model.sandbox_base + model.MAIN_REGION_SIZE,
+                                           model.FAULTY_REGION_SIZE, UC_PROT_READ)
+        elif model.pending_re_execution:
+            model.pending_re_execution = False
+            model.pending_restore_protection = True
+
+        # store the address for checkpointing (see speculate_fault)
+        model.curr_load = (0, 0)
+
+    @staticmethod
+    def speculate_mem_access(emulator, access, address, size, value, model):
+        assert isinstance(model, X86UnicornNull)
+        # save load address for zero injection
+        if access != UC_MEM_WRITE:
+            model.curr_load = (address, size)
+
+    def speculate_fault(self, errno: int) -> int:
+        if not self.fault_triggers_speculation(errno):
+            return 0
+
+        # store a checkpoint
+        self.checkpoint(self.emulator, self.get_rollback_address())
+
+        # inject zero in loads
+        address, size = self.curr_load
+        if address != 0:
+            # log old value before injecting zero value
+            self.store_logs[-1].append((address, self.emulator.mem_read(address, 8)))
+
+            # inject zeros
+            self.emulator.mem_write(address, bytes([0 for _ in range(size)]))
+
+        # repeat the instruction
+        self.pending_re_execution = True
+        self.emulator.mem_protect(self.sandbox_base + self.MAIN_REGION_SIZE,
+                                  self.FAULTY_REGION_SIZE)
+        return self.curr_instruction_addr
+
+    def rollback(self) -> int:
+        self.emulator.mem_protect(self.sandbox_base + self.MAIN_REGION_SIZE,
+                                  self.FAULTY_REGION_SIZE)
+        return super().rollback()
+
+
+class X86UnicornNullAssist(X86UnicornNull):
+
+    def get_rollback_address(self) -> int:
+        return self.curr_instruction_addr
+
+
 
 # ==================================================================================================
 # Taint tracker
