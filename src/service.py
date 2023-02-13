@@ -10,6 +10,7 @@ from datetime import datetime
 from interfaces import EquivalenceClass
 from config import CONF
 from typing import NoReturn
+from pprint import pformat
 
 MASK_64BIT = pow(2, 64)
 POW2_64 = pow(2, 64)
@@ -340,7 +341,13 @@ class Logger:
         else:
             s = f"{bits % MASK_64BIT:064b} [ns]\n" \
                 f"{offset}{(bits >> 64) % MASK_64BIT:064b} [s]"
-        s = s.replace("0", "_").replace("1", "^")
+        s = s.replace("0", ".").replace("1", "^")
+        if CONF.color:
+            s = '\033[33;34m' + s[0:8] + '\033[33;32m' + s[8:16] \
+                + '\033[33;34m' + s[16:24] + '\033[33;32m' + s[24:32] \
+                + '\033[33;34m' + s[32:40] + '\033[33;32m' + s[40:48] \
+                + '\033[33;34m' + s[48:56] + '\033[33;32m' + s[56:64] \
+                + "\033[0m" + s[64:]
         return s
 
 
