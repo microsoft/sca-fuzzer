@@ -234,9 +234,12 @@ class Logger:
                         if i > 100:
                             self.warning("fuzzer", "Trace output is limited to 100 traces")
                             break
+                        ctrace = ctraces[i]
                         print("    ")
-                        print(f"CTr{i}: {self.pretty_bitmap(ctraces[i], ctraces[i] > pow(2, 64))}")
-                        print(f"HTr{i}: {self.pretty_bitmap(htraces[i])}")
+                        print(
+                            f"CTr{i:<2} {self.pretty_bitmap(ctrace, ctrace > pow(2, 64), '      ')}"
+                        )
+                        print(f"HTr{i:<2} {self.pretty_bitmap(htraces[i])}")
                         print(f"Feedback{i}: {hw_feedback[i]}")
 
                     return
@@ -291,6 +294,15 @@ class Logger:
 
     # ==============================================================================================
     # Model
+    def dbg_model_header(self, input_id):
+        if not __debug__:
+            return
+
+        if not self.dbg_model:
+            return
+
+        print(f"\n                     ##### Input {input_id} #####")
+
     def dbg_model_mem_access(self, normalized_address, value, address, size, is_store, model):
         if not __debug__:
             return
@@ -310,7 +322,7 @@ class Logger:
         if not self.dbg_model:
             return
 
-        name = model.test_case.address_map[normalized_address].name
+        name = model.test_case.address_map[normalized_address]
         if model.in_speculation:
             print(f"transient 0x{normalized_address:<2x}: {name}")
         else:
