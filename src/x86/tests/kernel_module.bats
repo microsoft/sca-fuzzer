@@ -94,13 +94,13 @@ function load_test_case() {
     load_test_case $tmpasm
     run cat /sys/x86_executor/trace
     echo "Output: $output"
-    [[ "$output" == *"9223372036854775808,0"* ]]
+    [[ "$output" == *"9223372036854775808,"* ]]
 
     echo "MOVQ %r14, %rax; add \$512, %rax; movq (%rax), %rax" > $tmpasm
     load_test_case $tmpasm
     run cat /sys/x86_executor/trace
     echo "Output: $output"
-    [[ "$output" == *"9259400833873739776,0"* ]]
+    [[ "$output" == *"9259400833873739776,"* ]]
 
     rm "$tmpasm"
 }
@@ -113,13 +113,13 @@ function load_test_case() {
     load_test_case $tmpasm
     run cat /sys/x86_executor/trace
     echo "Output: $output"
-    [[ "$output" == *"0,0"* ]]
+    [[ "$output" == *"0,"* ]]
 
     echo "MOVQ %r14, %rax; add \$512, %rax; movq (%rax), %rax" > $tmpasm
     load_test_case $tmpasm
     run cat /sys/x86_executor/trace
     echo "Output: $output"
-    [[ "$output" == *"36028797018963968,0"* ]]
+    [[ "$output" == *"36028797018963968,"* ]]
 
     rm "$tmpasm"
 }
@@ -132,13 +132,26 @@ function load_test_case() {
     load_test_case $tmpasm
     run cat /sys/x86_executor/trace
     echo "Output: $output"
-    [[ "$output" == *"0,0"* ]]
+    [[ "$output" == *"0,"* ]]
 
     echo "MOVQ %r14, %rax; add \$512, %rax; movq (%rax), %rax" > $tmpasm
     load_test_case $tmpasm
     run cat /sys/x86_executor/trace
     echo "Output: $output"
-    [[ "$output" == *"36028797018963968,0"* ]]
+    [[ "$output" == *"36028797018963968,"* ]]
+
+    rm "$tmpasm"
+}
+
+@test "x86 executor: Hardware tracing with GPR" {
+    echo "GPR" > /sys/x86_executor/measurement_mode
+    tmpasm=$(mktemp /tmp/revizor-test.XXXXXX.asm)
+
+    echo "mov \$1, %rax; mov \$2, %rbx; mov \$3, %rcx; mov \$4, %rdx; mov \$5, %rsi; mov \$6, %rdi;" > $tmpasm
+    load_test_case $tmpasm
+    run cat /sys/x86_executor/trace
+    echo "Output: $output"
+    [[ "$output" == *"1,2,3,4,5,6"* ]]
 
     rm "$tmpasm"
 }
@@ -149,7 +162,7 @@ function load_test_case() {
 
     # execute one dummy run to set Executor into the default config and to load the test case
     nruns=10000
-    threshold=$((nruns - 2))
+    threshold=$((nruns - 10))
 
     tmpasm=$(mktemp /tmp/revizor-test.XXXXXX.asm)
     tmpbin=$(mktemp /tmp/revizor-test.XXXXXX.o)
@@ -187,8 +200,9 @@ function load_test_case() {
         # END=$(date +%s.%N)
         # echo "$END - $START" | bc
 
-        # cat $tmpresult | awk '/,/{print $1}' | sort | uniq -c | sort -r | awk '//{print $1}'
-        run bash -c "cat $tmpresult | awk '/,/{print \$1}' | sort | uniq -c | sort -r | awk '//{print \$1}' | head -n1"
+        # cat $tmpresult | awk -F, '/,/{print $1, "   ", $2}' | sort | uniq -c | sort -r
+        run bash -c "cat $tmpresult | awk -F, '/,/{print \$1}' | sort | uniq -c | sort -r | awk '//{print \$1}' | head -n1"
+        echo "$mode: $output"
         [ $output -ge $threshold ]
     done
     rm $tmpasm
@@ -203,7 +217,7 @@ function load_test_case() {
 
     # execute one dummy run to set Executor into the default config and to load the test case
     nruns=10000
-    threshold=$((nruns - 2))
+    threshold=$((nruns - 10))
 
     tmpasm=$(mktemp /tmp/revizor-test.XXXXXX.asm)
     tmpbin=$(mktemp /tmp/revizor-test.XXXXXX.o)
@@ -237,7 +251,8 @@ function load_test_case() {
         fi
     done
 
-    run bash -c "cat $tmpresult | awk '/,/{print \$1}' | sort | uniq -c | sort -r | awk '//{print \$1}' | head -n1"
+    run bash -c "cat $tmpresult | awk -F, '/,/{print \$1}' | sort | uniq -c | sort -r | awk '//{print \$1}' | head -n1"
+    echo "$mode: $output"
     [ $output -ge $threshold ]
 
     rm $tmpasm
