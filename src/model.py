@@ -169,6 +169,10 @@ class UnicornModel(Model, ABC):
         self.handled_faults = set()
 
         # update a list of handled faults based on the config
+        if 'PF-present' in CONF.permitted_faults:
+            self.handled_faults.update([12, 13])
+        if 'PF-writable' in CONF.permitted_faults:
+            self.handled_faults.add(12)
         if 'assist-dirty' in CONF.permitted_faults:
             self.handled_faults.update([12, 13])
         if 'assist-accessed' in CONF.permitted_faults:
