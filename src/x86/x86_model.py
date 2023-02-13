@@ -719,6 +719,71 @@ class X86UnicornDivOverflow(X86FaultModelAbstract):
         model.div_value = int.from_bytes(emulator.mem_read(address, size), "little")
         X86FaultModelAbstract.trace_mem_access(emulator, access, address, size, value, model)
 
+
+class X86NonCanonicalAddress(X86FaultModelAbstract):
+    """
+     Load from non-canonical address
+    """
+    faulty_instruction_addr: int = -1
+    address_register: int = -1
+    register_value: int = -1
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.relevant_faults.update([6, 7])
+
+    def speculate_fault(self, errno: int) -> int:
+        if not self.fault_triggers_speculation(errno):
+            return 0
+
+        self.checkpoint(self.emulator, self.code_end)
+        self.faulty_instruction_addr = self.curr_instruction_addr
+        return self.curr_instruction_addr
+
+    @staticmethod
+    def speculate_instruction(emulator: Uc, address, size, model) -> None:
+        assert isinstance(model, X86NonCanonicalAddress)
+
+        if not model.in_speculation:
+            return
+
+        if model.address_register != -1:
+            model.emulator.reg_write(model.address_register, model.register_value)
+            model.address_register = -1
+            return
+
+        if model.faulty_instruction_addr != address:
+            return
+
+        # Fix non-canonical address
+        for mem_op in model.current_instruction.get_mem_operands():
+            registers = re.split(r'\+|-|\*| ', mem_op.value)
+            if len(registers) > 1:
+                continue
+
+            uc_reg = X86UnicornTargetDesc.reg_str_to_constant[registers[0]]
+            load_address: int = model.emulator.reg_read(uc_reg)  # type: ignore
+            is_canonical: bool = load_address > 0xFFFF800000000000 \
+                or load_address < 0x00007FFFFFFFFFFF
+            if not is_canonical:
+                model.address_register = uc_reg
+                model.register_value = load_address
+
+                if load_address & (1 << 47):  # bit 48 is 1 => high address
+                    load_address = load_address | 0xFFFF800000000000
+                else:  # bit 48 is 0 => low address
+                    load_address = load_address & 0x00007FFFFFFFFFF
+                model.emulator.reg_write(uc_reg, load_address)
+                return
+        return
+
+    def reset_model(self):
+        self.faulty_instruction_addr = -1
+        self.address_register = -1
+        self.register_value = -1
+        return super().reset_model()
+
+
 # ==================================================================================================
 # Taint tracker
 # ==================================================================================================

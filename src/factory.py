@@ -48,6 +48,7 @@ X86_SIMPLE_EXECUTION_CLAUSES: Dict[str, Type[x86_model.X86UnicornModel]] = {
     "div-overflow": x86_model.X86UnicornDivOverflow,
     "meltdown": x86_model.X86Meltdown,
     "fault-skip": x86_model.X86FaultSkip,
+    "noncanonical": x86_model.X86NonCanonicalAddress,
 }
 
 EXECUTORS = {
