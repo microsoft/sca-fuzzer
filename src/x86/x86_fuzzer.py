@@ -8,7 +8,7 @@ from subprocess import run
 from typing import List
 
 from fuzzer import Fuzzer
-from interfaces import TestCase, Input
+from interfaces import TestCase, Input, InstructionSetAbstract
 from service import STAT
 from config import CONF
 from x86.x86_executor import X86IntelExecutor
@@ -16,6 +16,16 @@ from x86.x86_executor import X86IntelExecutor
 
 class X86Fuzzer(Fuzzer):
     executor: X86IntelExecutor
+
+    def _adjust_config(self, existing_test_case):
+        super()._adjust_config(existing_test_case)
+
+    def start(self,
+              num_test_cases: int,
+              num_inputs: int,
+              timeout: int,
+              nonstop: bool = False) -> bool:
+        return super().start(num_test_cases, num_inputs, timeout, nonstop)
 
     def filter(self, test_case: TestCase, inputs: List[Input]) -> bool:
         """ This function implements a multi-stage algorithm that gradually filters out

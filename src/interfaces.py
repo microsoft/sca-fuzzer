@@ -6,6 +6,7 @@ SPDX-License-Identifier: MIT
 """
 from __future__ import annotations
 
+import shutil
 from typing import List, Dict, Tuple, Optional, NamedTuple
 from collections import defaultdict
 from abc import ABC, abstractmethod
@@ -121,15 +122,15 @@ class FlagsOperand(Operand):
 
     def __str__(self):
         return "FLAGS: " \
-                f"{self._flag_names[0]}{self._flag_values[0]}|" \
-                f"{self._flag_names[1]}{self._flag_values[1]}|" \
-                f"{self._flag_names[2]}{self._flag_values[2]}|" \
-                f"{self._flag_names[3]}{self._flag_values[3]}|" \
-                f"{self._flag_names[4]}{self._flag_values[4]}|" \
-                f"{self._flag_names[5]}{self._flag_values[5]}|" \
-                f"{self._flag_names[6]}{self._flag_values[6]}|" \
-                f"{self._flag_names[7]}{self._flag_values[7]}|" \
-                f"{self._flag_names[8]}{self._flag_values[8]}"
+               f"{self._flag_names[0]}{self._flag_values[0]}|" \
+               f"{self._flag_names[1]}{self._flag_values[1]}|" \
+               f"{self._flag_names[2]}{self._flag_values[2]}|" \
+               f"{self._flag_names[3]}{self._flag_values[3]}|" \
+               f"{self._flag_names[4]}{self._flag_values[4]}|" \
+               f"{self._flag_names[5]}{self._flag_values[5]}|" \
+               f"{self._flag_names[6]}{self._flag_values[6]}|" \
+               f"{self._flag_names[7]}{self._flag_values[7]}|" \
+               f"{self._flag_names[8]}{self._flag_values[8]}"
 
     def _get_flag_list(self, types) -> List[str]:
         flags = []
@@ -568,6 +569,12 @@ class Input(np.ndarray):
         with open(path, 'wb') as f:
             f.write(self.tobytes())
 
+    def load(self, path: str) -> None:
+        with open(path, 'rb') as f:
+            contents = np.fromfile(f, dtype=np.uint64)
+            self[:] = contents
+
+
 class InputTaint(np.ndarray):
     """
     An array that represents which input elements influence contract traces.
@@ -717,6 +724,13 @@ class InputGenerator(ABC):
     @abstractmethod
     def extend_equivalence_classes(self, inputs: List[Input],
                                    taints: List[InputTaint]) -> List[Input]:
+        pass
+
+    @abstractmethod
+    def load(self, input_paths: List[str]) -> List[Input]:
+        """
+        Load a sequence of inputs from a directory with binary inputs.
+        """
         pass
 
 

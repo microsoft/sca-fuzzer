@@ -22,6 +22,7 @@ from service import STAT, LOGGER, TWOS_COMPLEMENT_MASK_64, bit_count
 class Fuzzer:
     instruction_set: InstructionSet
     existing_test_case: str
+    input_paths: List[str]
 
     generator: Generator
     input_gen: InputGenerator
@@ -30,15 +31,24 @@ class Fuzzer:
     analyser: Analyser
     coverage: Coverage
 
-    def __init__(self, instruction_set_spec: str, work_dir: str, existing_test_case: str = ""):
+    def __init__(self,
+                 instruction_set_spec: str,
+                 work_dir: str,
+                 existing_test_case: str = "",
+                 inputs: List[str] = []):
+        self._adjust_config(existing_test_case)
         self.existing_test_case = existing_test_case
+        self.input_paths = inputs
+
+        self.instruction_set = InstructionSet(instruction_set_spec, CONF.instruction_categories)
+        self.work_dir = work_dir
+
+    def _adjust_config(self, existing_test_case):
         if existing_test_case:
             CONF.setattr_internal("_no_generation", True)
             CONF.setattr_internal("_default_instruction_blocklist", [])
             CONF.register_blocklist = []
-
-        self.instruction_set = InstructionSet(instruction_set_spec, CONF.instruction_categories)
-        self.work_dir = work_dir
+        # more adjustments could be implemented by subclasses!
 
     def initialize_modules(self):
         """ create all main modules """
