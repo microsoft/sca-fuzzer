@@ -13,7 +13,7 @@ import re
 
 import unicorn as uc
 from unicorn import Uc, UcError, UC_MEM_WRITE, UC_MEM_READ, UC_SECOND_SCALE, UC_HOOK_MEM_READ, \
-    UC_HOOK_MEM_WRITE, UC_HOOK_CODE
+    UC_HOOK_MEM_WRITE, UC_HOOK_CODE, UC_HOOK_MEM_UNMAPPED
 
 from interfaces import CTrace, TestCase, Model, InputTaint, Instruction, ExecutionTrace, \
     TracedInstruction, TracedMemAccess, Input, Tracer, \
@@ -184,6 +184,8 @@ class UnicornModel(Model, ABC):
             self.handled_faults.add(12)
         if 'PF-smap' in CONF.permitted_faults:
             self.handled_faults.update([12, 13])
+        if 'GP-noncanonical' in CONF.permitted_faults:
+            self.handled_faults.update([6, 7])
         if 'assist-dirty' in CONF.permitted_faults:
             self.handled_faults.update([12, 13])
         if 'assist-accessed' in CONF.permitted_faults:
@@ -215,6 +217,7 @@ class UnicornModel(Model, ABC):
 
             # set up callbacks
             emulator.hook_add(UC_HOOK_MEM_READ | UC_HOOK_MEM_WRITE, self.trace_mem_access, self)
+            emulator.hook_add(UC_HOOK_MEM_UNMAPPED, self.trace_mem_access, self)
             emulator.hook_add(UC_HOOK_CODE, self.instruction_hook, self)
 
             self.emulator = emulator

@@ -89,6 +89,7 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
             X86SandboxPass(self.target_desc),
             X86PatchUndefinedFlagsPass(self.instruction_set, self),
             X86PatchUndefinedResultPass(),
+            X86NonCanonicalAddressPass(),
             X86PatchOpcodesPass(),
         ]
         self.printer = X86Printer()
@@ -289,6 +290,91 @@ class X86LFENCEPass(Pass):
 
                 for instr in insertion_points:
                     bb.insert_after(instr, Instruction("LFENCE", True))
+
+
+class X86NonCanonicalAddressPass(Pass):
+
+    def run_on_test_case(self, test_case: TestCase) -> None:
+        if 'GP-noncanonical' not in CONF.permitted_faults:
+            return
+
+        for func in test_case.functions:
+            for bb in func:
+                if bb == func.entry:
+                    continue
+
+                memory_instructions = []
+                for instr in bb:
+                    if instr.is_instrumentation:
+                        continue
+                    if instr.name in ["DIV", "IDIV"]:
+                        # Instrumentation is difficult to combine
+                        continue
+                    if instr.has_mem_operand(True):
+                        memory_instructions.append(instr)
+
+                # Collect src operands
+                for instr in memory_instructions:
+                    n = len(memory_instructions)
+                    rand_bool = random.randint(0, n) == 0
+                    if not rand_bool:
+                        continue
+
+                    src_operands = []
+                    for o in instr.get_src_operands():
+                        if isinstance(o, RegisterOperand):
+                            src_operands.append(o)
+
+                    mem_operands = instr.get_mem_operands()
+                    implicit_mem_operands = instr.get_implicit_mem_operands()
+                    if mem_operands and not implicit_mem_operands:
+                        assert len(mem_operands) == 1, f"Unexpected instruction format {instr.name}"
+                        mem_operand: Operand = mem_operands[0]
+                        registers = mem_operand.value
+
+                        masks_list = ["RAX", "RBX"]
+                        mask_reg = masks_list[0]
+                        # Do not overwrite offset register with mask
+                        for operands in src_operands:
+                            op_regs = re.split(r'\+|-|\*| ', operands.value)
+                            for reg in op_regs:
+                                if X86TargetDesc.gpr_normalized[mask_reg] == \
+                                   X86TargetDesc.gpr_normalized[reg]:
+                                    mask_reg = masks_list[1]
+
+                        offset_list = ["RCX", "RDX"]
+                        offset_reg = offset_list[0]
+                        # Do not reuse destination register
+                        for op in instr.get_all_operands():
+                            if not isinstance(op, RegisterOperand):
+                                continue
+                            if X86TargetDesc.gpr_normalized[offset_reg] == \
+                               X86TargetDesc.gpr_normalized[op.value]:
+                                offset_reg = offset_list[1]
+
+                        mask = hex((random.getrandbits(16) << 48))
+                        lea = Instruction("LEA", True) \
+                            .add_op(RegisterOperand(offset_reg, 64, False, True)) \
+                            .add_op(MemoryOperand(registers, 64, True, False))
+                        bb.insert_before(instr, lea)
+                        mov = Instruction("MOV", True) \
+                            .add_op(RegisterOperand(mask_reg, 64, True, True)) \
+                            .add_op(ImmediateOperand(mask, 64))
+                        bb.insert_before(instr, mov)
+                        mask = Instruction("XOR", True) \
+                            .add_op(RegisterOperand(offset_reg, 64, True, True)) \
+                            .add_op(RegisterOperand(mask_reg, 64, True, False))
+                        bb.insert_before(instr, mask)
+                        for idx, op in enumerate(instr.operands):
+                            if op == mem_operand:
+                                old_op = instr.operands[idx]
+                                addr_op = MemoryOperand(offset_reg, old_op.get_width(),
+                                                        old_op.src, old_op.dest)
+                                instr.operands[idx] = addr_op
+
+                    # Make sure #GP only once. Otherwise Unicorn keeps raising an exception
+                    # when rolling back to the end of the code
+                    return
 
 
 class X86SandboxPass(Pass):
