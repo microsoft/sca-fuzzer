@@ -131,6 +131,7 @@ class ConfCls:
     """ multiline_output: """
     logging_modes: List[str] = ["info", "stat"]
     """ logging_modes: """
+    color: bool = False
 
     # ==============================================================================================
     # Internal

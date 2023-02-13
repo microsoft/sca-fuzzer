@@ -84,7 +84,11 @@ class Fuzzer:
             STAT.test_cases += 1
 
             # Prepare inputs
-            inputs: List[Input] = self.input_gen.generate(CONF.input_gen_seed, num_inputs)
+            inputs: List[Input]
+            if self.input_paths:
+                inputs = self.input_gen.load(self.input_paths)
+            else:
+                inputs = self.input_gen.generate(CONF.input_gen_seed, num_inputs)
             STAT.num_inputs += len(inputs) * CONF.inputs_per_class
 
             # Check if the test case is useful
@@ -96,7 +100,7 @@ class Fuzzer:
 
             if violation:
                 LOGGER.fuzzer_report_violations(violation, self.model)
-                self.store_test_case(test_case, False)
+                self.store_test_case(test_case, violation)
                 STAT.violations += 1
                 if not nonstop:
                     break
@@ -184,18 +188,27 @@ class Fuzzer:
             boosted_inputs += self.input_gen.extend_equivalence_classes(inputs, taints)
         return boosted_inputs
 
-    def store_test_case(self, test_case: TestCase, require_retires: bool):
+    def store_test_case(self, test_case: TestCase, violation: EquivalenceClass):
         if not self.work_dir:
             return
-
-        type_ = "retry" if require_retires else "violation"
-        timestamp = datetime.today().strftime('%H%M%S-%d-%m-%y')
-        name = type_ + timestamp + ".asm"
         Path(self.work_dir).mkdir(exist_ok=True)
-        shutil.copy2(test_case.asm_path, self.work_dir + "/" + name)
 
-        if not Path(self.work_dir + "/config.yaml").exists:
-            shutil.copy2(CONF.config_path, self.work_dir + "/config.yaml")
+        # store test case
+        timestamp = datetime.today().strftime('%y%m%d-%H%M%S')
+        test_case.save(f"{self.work_dir}/violation-{timestamp}.asm")
+
+        # store config file
+        shutil.copy2(CONF.config_path, f"{self.work_dir}/config-{timestamp}.yaml")
+
+        # store the violation report
+        with open(f"{self.work_dir}/report-{timestamp}.txt", "w") as f:
+            f.write("# Violation Report\n\n")
+            f.write(f"Detected: {datetime.today().strftime('%d.%m.%y at %H:%M:%S')}\n\n")
+            f.write("## Counterexample Inputs\n")
+            for m in violation.measurements:
+                f.write(f"\nInput #{m.input_id}\n")
+                f.write(f"* Contract trace hash: {m.ctrace}\n")
+                f.write(f"* Hardware trace: {LOGGER.pretty_bitmap(m.htrace)}\n")
 
     # ==============================================================================================
     # Single-stage interfaces
