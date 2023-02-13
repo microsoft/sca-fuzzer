@@ -44,6 +44,8 @@ X86_SIMPLE_EXECUTION_CLAUSES: Dict[str, Type[x86_model.X86UnicornModel]] = {
     "nullinj-fault": x86_model.X86UnicornNull,
     "nullinj-assist": x86_model.X86UnicornNullAssist,
     "delayed-exception-handling": x86_model.X86UnicornDEH,
+    "div-zero": x86_model.X86UnicornDivZero,
+    "div-overflow": x86_model.X86UnicornDivOverflow,
     "meltdown": x86_model.X86Meltdown,
     "fault-skip": x86_model.X86FaultSkip,
 }
