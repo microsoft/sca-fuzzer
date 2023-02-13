@@ -497,6 +497,9 @@ class TestCase:
         for func in self.functions:
             yield func
 
+    def save(self, path: str) -> None:
+        shutil.copy2(self.asm_path, path)
+
 
 # ==================================================================================================
 # Custom Data Types
@@ -561,6 +564,9 @@ class Input(np.ndarray):
     def __repr__(self):
         return str(self.seed)
 
+    def save(self, path: str) -> None:
+        with open(path, 'wb') as f:
+            f.write(self.tobytes())
 
 class InputTaint(np.ndarray):
     """
@@ -681,7 +687,7 @@ class Generator(ABC):
         super().__init__()
 
     @abstractmethod
-    def create_test_case(self, path: str) -> TestCase:
+    def create_test_case(self, path: str, disable_assembler: bool = False) -> TestCase:
         """
         Create a simple test case with a single BB
         Run instrumentation passes and print the result into a file
@@ -689,7 +695,7 @@ class Generator(ABC):
         pass
 
     @abstractmethod
-    def parse_existing_test_case(self, asm_file: str) -> TestCase:
+    def load(self, asm_file: str) -> TestCase:
         """
         Read a test case from a file and create a complete TestCase object based on it.
         Used instead of create_test_case when Revizor works with a user-provided test case.

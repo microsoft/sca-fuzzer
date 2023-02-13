@@ -12,7 +12,7 @@ from copy import copy
 
 import factory
 from interfaces import CTrace, HTrace, Input, InputTaint, EquivalenceClass, TestCase, Generator, \
-    InputGenerator, Model, Executor, Analyser, Coverage, InputID
+    InputGenerator, Model, Executor, Analyser, Coverage, InputID, Measurement
 from isa_loader import InstructionSet
 
 from config import CONF
@@ -66,10 +66,11 @@ class Fuzzer:
             LOGGER.dbg_report_coverage(i, self.coverage.get_brief())
 
             # Generate a test case
-            if not self.existing_test_case:
-                test_case = self.generator.create_test_case('generated.asm')
+            test_case: TestCase
+            if self.existing_test_case:
+                test_case = self.generator.load(self.existing_test_case)
             else:
-                test_case = self.generator.parse_existing_test_case(self.existing_test_case)
+                test_case = self.generator.create_test_case('generated.asm')
             STAT.test_cases += 1
 
             # Prepare inputs
@@ -186,6 +187,33 @@ class Fuzzer:
 
     # ==============================================================================================
     # Single-stage interfaces
+    def generate_test_batch(self, program_generator_seed: int, num_test_cases: int, num_inputs: int,
+                            permit_overwrite: bool):
+        LOGGER.fuzzer_start(0, datetime.today())
+
+        # prepare for generation
+        STAT.test_cases = num_test_cases
+        CONF.program_generator_seed = program_generator_seed
+        program_gen = factory.get_generator(self.instruction_set)
+        input_gen = factory.get_input_generator()
+
+        # generate test cases
+        Path(self.work_dir).mkdir(exist_ok=True)
+        for i in range(0, num_test_cases):
+            test_case_dir = self.work_dir + "/tc" + str(i)
+            try:
+                Path(test_case_dir).mkdir(exist_ok=permit_overwrite)
+            except FileExistsError:
+                LOGGER.error(f"Directory '{test_case_dir}' already exists\n"
+                             "       Use --permit-overwrite to overwrite the test case")
+
+            program_gen.create_test_case(test_case_dir + "/" + "program.asm", True)
+            inputs = input_gen.generate(CONF.input_gen_seed, num_inputs)
+            for j, input_ in enumerate(inputs):
+                input_.save(f"{test_case_dir}/input{j}.bin")
+
+        LOGGER.fuzzer_finish()
+
     @staticmethod
     def analyse_traces_from_files(ctrace_file: str, htrace_file: str):
         LOGGER.dbg_violation = False  # make sure we don't try to call the model

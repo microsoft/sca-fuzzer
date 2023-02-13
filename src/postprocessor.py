@@ -53,7 +53,8 @@ class MinimizerViolation(Minimizer):
             for line in instructions:
                 f.write(line)
             f.truncate()  # is it necessary??
-        return fuzzer.generator.parse_existing_test_case(minimized_asm)
+        tc = fuzzer.generator.load(minimized_asm)
+        return tc
 
     def _probe_test_case(self, fuzzer: Fuzzer, test_case: TestCase, inputs: List[Input],
                          modifier) -> TestCase:
@@ -109,7 +110,7 @@ class MinimizerViolation(Minimizer):
         fuzzer.initialize_modules()
 
         # Parse the test case and inputs
-        test_case: TestCase = fuzzer.generator.parse_existing_test_case(test_case_asm)
+        test_case: TestCase = fuzzer.generator.load(test_case_asm)
         inputs: List[Input] = fuzzer.input_gen.generate(CONF.input_gen_seed, num_inputs)
 
         # Load, boost inputs, and trace

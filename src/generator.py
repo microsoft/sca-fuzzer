@@ -58,10 +58,10 @@ class Printer(abc.ABC):
 
 
 class ConfigurableGenerator(Generator, abc.ABC):
-    instruction_set: InstructionSet
     """
     The interface description for Generator classes.
     """
+    instruction_set: InstructionSet
     test_case: TestCase
     passes: List[Pass]  # set by subclasses
     printer: Printer  # set by subclasses
@@ -92,7 +92,7 @@ class ConfigurableGenerator(Generator, abc.ABC):
         if CONF.program_generator_seed:
             random.seed(CONF.program_generator_seed)
 
-    def create_test_case(self, asm_file: str) -> TestCase:
+    def create_test_case(self, asm_file: str, disable_assembler: bool = False) -> TestCase:
         self.test_case = TestCase()
 
         # create the main function
@@ -112,6 +112,9 @@ class ConfigurableGenerator(Generator, abc.ABC):
 
         self.printer.print(self.test_case, asm_file)
         self.test_case.asm_path = asm_file
+
+        if disable_assembler:
+            return self.test_case
 
         bin_file = asm_file[:-4] + ".o"
         self.assemble(asm_file, bin_file)
@@ -148,7 +151,7 @@ class ConfigurableGenerator(Generator, abc.ABC):
         run(f"strip --remove-section=.note.gnu.property {bin_file}", shell=True, check=True)
         run(f"objcopy {bin_file} -O binary {bin_file}", shell=True, check=True)
 
-    def parse_existing_test_case(self, asm_file: str) -> TestCase:
+    def load(self, asm_file: str) -> TestCase:
         test_case = TestCase()
         test_case.asm_path = asm_file
 
@@ -259,7 +262,7 @@ class ConfigurableGenerator(Generator, abc.ABC):
                 if previous_bb:  # skip the first BB
                     # there is a fallthrough only if the last terminator is not a direct jump
                     if not previous_bb.terminators or \
-                          not self.target_desc.is_unconditional_branch(previous_bb.terminators[-1]):
+                       not self.target_desc.is_unconditional_branch(previous_bb.terminators[-1]):
                         previous_bb.successors.append(bb)
                 previous_bb = bb
 

@@ -8,14 +8,14 @@ import abc
 import math
 import re
 import random
-from typing import List, Dict, Set, Optional
+from typing import List, Dict, Set, Optional, Tuple
 from subprocess import run
 
 from isa_loader import InstructionSet
 from interfaces import TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
     ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, InstructionSpec
 from generator import ConfigurableGenerator, RandomGenerator, Pass, \
-     parser_assert, Printer, GeneratorException, AsmParserException
+    parser_assert, Printer, GeneratorException, AsmParserException
 from x86.x86_target_desc import X86TargetDesc
 from config import CONF
 
