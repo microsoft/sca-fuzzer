@@ -88,6 +88,7 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
             X86SandboxPass(),
             X86PatchUndefinedFlagsPass(self.instruction_set, self),
             X86PatchUndefinedResultPass(),
+            X86PatchOpcodesPass(),
         ]
         self.printer = X86Printer()
 
@@ -554,9 +555,6 @@ class X86PatchUndefinedFlagsPass(Pass):
             if not has_read and has_write:
                 self.patch_candidates.append(instruction_spec)
 
-        if not self.patch_candidates:
-            raise GeneratorException("The instruction set is insufficient to patch undef flags")
-
     def run_on_test_case(self, test_case: TestCase) -> None:
         for func in test_case.functions:
             for bb in func:
@@ -662,6 +660,68 @@ class X86PatchUndefinedResultPass(Pass):
             .add_op(ImmediateOperand(mask, mask_size)) \
             .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
         parent.insert_before(inst, apply_mask)
+
+
+class X86PatchOpcodesPass(Pass):
+    """
+    Replaces assembly instructions with their opcodes.
+    This is necessary to test instruction with multiple opcodes and
+    the instruction that are not supported/not permitted by the standard
+    assembler.
+    """
+    opcodes: Dict[str, List[str]] = {
+        "UD2": [
+            # UD2 instruction
+            "0x0f, 0x0b",
+
+            # invalid in 64-bit mode;
+            # all the following opcodes are padded
+            # with NOP to prevent misinterpretation by objdump
+            "0x06, 0x90",  # 32-bit encoding of PUSH
+            "0x07, 0x90",  # 32-bit encoding of POP
+            "0x0E, 0x90",  # alternative 32-bit encoding of PUSH
+            "0x16, 0x90",  # alternative 32-bit encoding of PUSH
+            "0x17, 0x90",  # alternative 32-bit encoding of POP
+            "0x1E, 0x90",  # alternative 32-bit encoding of PUSH
+            "0x1F, 0x90",  # alternative 32-bit encoding of POP
+            "0x27, 0x90",  # DAA
+            "0x2F, 0x90",  # DAS
+            "0x37, 0x90",  # AAA
+            "0x3f, 0x90",  # AAS
+            "0x60, 0x90",  # PUSHA
+            "0x61, 0x90",  # POPA
+            "0x62, 0x90",  # BOUND
+            "0x82, 0x90",  # 32-bit aliases for logical instructions
+            "0x9A, 0x90",  # 32-bit encoding of CALLF
+            "0xC4, 0x90",  # LES
+            "0xD4, 0x90",  # AAM
+            "0xD5, 0x90",  # AAD
+            "0xD6, 0x90",  # reserved
+            "0xEA, 0x90",  # 32-bit encoding of JMPF
+        ],
+        "INT1": ["0xf1"]
+    }
+
+    def run_on_test_case(self, test_case: TestCase) -> None:
+        for func in test_case.functions:
+            for bb in func:
+                if bb == func.entry:
+                    continue
+
+                # collect all UD instructions
+                to_patch = []
+                for inst in bb:
+                    if inst.name in self.opcodes.keys():
+                        to_patch.append(inst)
+
+                # patch them
+                for inst in to_patch:
+                    self.replace_opcode(inst, bb)
+
+    def replace_opcode(self, inst: Instruction, _: BasicBlock):
+        opcode_options = self.opcodes[inst.name]
+        opcode = random.choice(opcode_options)
+        inst.name = ".byte " + opcode
 
 
 class X86Printer(Printer):

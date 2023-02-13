@@ -38,6 +38,9 @@ x86_instruction_categories: List[str] = [
     "BASE-SETCC",
     "BASE-STRINGOP",
 
+    # Base x86 - system instructions
+    "BASE-INTERRUPT",
+
     # "BASE-ROTATE",      # Unknown bug in Unicorn - emulated incorrectly
     # "BASE-SHIFT",       # Unknown bug in Unicorn - emulated incorrectly
 
@@ -69,15 +72,14 @@ x86_instruction_blocklist: List[str] = [
     "CMPXCHG8B", "LOCK CMPXCHG8B",
     # - Incorrect emulation
     "CPUID",
-        # - requires support of all possible interrupts
-    "INT",
     # - Requires support of segment registers
     "XLAT", "XLATB",
     # - Requires special instrumentation to avoid #DE faults
     "IDIV", "REX IDIV",
     # - Requires complex instrumentation
     "ENTERW", "ENTER", "LEAVEW", "LEAVE",
-
+    # - requires support of all possible interrupts
+    "INT",
 
     # - not supported
     "LFENCE", "MFENCE", "SFENCE", "CLFLUSH", "CLFLUSHOPT",
