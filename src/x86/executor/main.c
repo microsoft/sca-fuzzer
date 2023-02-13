@@ -55,6 +55,7 @@ char *test_case = NULL;
 uint64_t *inputs = NULL;
 volatile size_t n_inputs = 1;
 
+uint32_t handled_faults = HANDLED_FAULTS_DEFAULT;
 measurement_t *measurements;
 
 // =================================================================================================
@@ -146,7 +147,6 @@ static ssize_t enable_prefetcher_store(struct kobject *kobj, struct kobj_attribu
                                        const char *buf, size_t count);
 static struct kobj_attribute enable_prefetcher_attribute =
     __ATTR(enable_prefetcher, 0666, NULL, enable_prefetcher_store);
-
 
 /// Control flushing
 ///
@@ -525,6 +525,14 @@ static int __init executor_init(void)
         printk(KERN_ERR "x86_executor: Failed to create a sysfs group\n");
         kobject_put(kobj_interface);
         return err;
+    }
+
+    // Allocate memory for new IDT
+    curr_idt_table = kmalloc(sizeof(gate_desc) * 256, GFP_KERNEL);
+    if (!curr_idt_table)
+    {
+        printk(KERN_ERR "x86_executor: Could not allocate memory for IDT\n");
+        return -ENOMEM;
     }
 
     return 0;
