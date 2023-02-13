@@ -32,6 +32,13 @@ def update_instruction_list():
     if 'UD-svm' not in CONF.permitted_faults:
         CONF._default_instruction_blocklist.extend(
             ["VMRUN", "VMLOAD", "VMSAVE", "CLGI", "VMMCALL", "INVLPGA"])
+    if 'DB-instruction' not in CONF.permitted_faults:
+        CONF._default_instruction_blocklist.append("INT1")
+    if 'BP' not in CONF.permitted_faults:
+        CONF._default_instruction_blocklist.append("INT3")
+
+
+def check_instruction_list(instruction_set: InstructionSetAbstract):
     all_instruction_names = set([i.name for i in instruction_set.instructions])
     if 'UD' in CONF.permitted_faults:
         assert "UD" in all_instruction_names or "UD2" in all_instruction_names
@@ -44,6 +51,10 @@ def update_instruction_list():
         assert "VMCALL" in all_instruction_names
     if 'UD-svm' in CONF.permitted_faults:
         assert "VMMCALL" in all_instruction_names
+    if 'DB-instruction' in CONF.permitted_faults:
+        assert "INT1" in all_instruction_names
+    if 'BP' in CONF.permitted_faults:
+        assert "INT3" in all_instruction_names
 
 
 class X86Fuzzer(Fuzzer):
