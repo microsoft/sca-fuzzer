@@ -186,6 +186,14 @@ static inline int pre_measurement_setup(void)
     // Disable prefetchers
     wrmsr64(0xc0000108, prefetcher_control);
 
+    // Ensure SVM is disabled
+    unsigned long long int msr_efer = rdmsr64(0xc0000080);
+    if (msr_efer & EFER_SVME)
+    {
+        printk(KERN_ERR "x86_executor: ERROR: SVME is on. \nThis testing configuration is not "
+                        "supported by Revizor yet.");
+        return -1;
+    }
 #endif
 
     if (err)

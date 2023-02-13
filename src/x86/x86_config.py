@@ -10,7 +10,7 @@ from typing import List
 x86_option_values = {
     'executor_mode': ['P+P', 'F+R', 'E+R', 'PP+P'],  # 'GPR' is intentionally left out
     'permitted_faults': [
-        'UD', 'PF-present', 'PF-writable', 'assist-accessed', 'assist-dirty'
+        'UD', 'UD-vtx', 'UD-svm', 'PF-present', 'PF-writable', 'assist-accessed', 'assist-dirty'
     ],
 }
 
@@ -62,6 +62,8 @@ x86_instruction_categories: List[str] = [
     # "CLFSH-MISC",
     # "BMI1",
     "SGX-SGX",
+    "VTX-VTX",
+    "SVM-SYSTEM",
 ]
 
 x86_instruction_blocklist: List[str] = [
