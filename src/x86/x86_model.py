@@ -547,6 +547,61 @@ class X86UnicornNullAssist(X86UnicornNull):
         return self.curr_instruction_addr
 
 
+class X86Meltdown(X86FaultModelAbstract):
+    """
+    Loads from the faulty region speculatively return the in-memory value
+    """
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.relevant_faults.update([12, 13])
+
+    def speculate_fault(self, errno: int) -> int:
+        self.curr_instruction_addr
+        if not self.fault_triggers_speculation(errno):
+            return 0
+
+        # store a checkpoint
+        self.checkpoint(self.emulator, self.code_end)
+
+        # remove protection
+        self.emulator.mem_protect(self.sandbox_base + self.MAIN_REGION_SIZE,
+                                  self.FAULTY_REGION_SIZE)
+
+        return self.curr_instruction_addr
+
+
+class X86CondMeltdown(X86Meltdown, X86UnicornCond):
+    pass
+
+
+class X86FaultSkip(X86FaultModelAbstract):
+    """
+    As Meltdown but we skip the faulty load.
+    """
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.relevant_faults.update([12, 13])
+
+    def speculate_fault(self, errno: int) -> int:
+        if not self.fault_triggers_speculation(errno):
+            return 0
+
+        # store a checkpoint
+        self.checkpoint(self.emulator, self.code_end)
+
+        # remove protection
+        self.emulator.mem_protect(self.sandbox_base + self.MAIN_REGION_SIZE,
+                                  self.FAULTY_REGION_SIZE)
+
+        # speculatively skip the faulting instruction
+        if self.next_instruction_addr >= self.code_end:
+            return 0  # no need for speculation if we're at the end
+        else:
+            return self.next_instruction_addr
+
+
 
 # ==================================================================================================
 # Taint tracker
