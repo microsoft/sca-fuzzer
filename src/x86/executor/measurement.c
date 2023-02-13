@@ -207,6 +207,8 @@ static inline int uarch_flush(void)
     static const u16 ds = __KERNEL_DS;
     asm volatile("verw %[ds]" : : [ds] "m"(ds) : "cc");
     wrmsr64(MSR_IA32_FLUSH_CMD, L1D_FLUSH);
+    asm volatile("wbinvd\n" : : :);
+    asm volatile("lfence\n" : : :);
 #elif VENDOR_ID == 2 // AMD
     // TBD
 #endif
