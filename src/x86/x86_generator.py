@@ -8,6 +8,7 @@ import abc
 import math
 import re
 import random
+import copy
 from typing import List, Dict, Set, Optional, Tuple
 from subprocess import run
 
@@ -494,13 +495,15 @@ class X86SandboxPass(Pass):
         The second corner case is 8-bit division, when the divisor is the AX register alone.
         Here the instrumentation become too complicated, and we simply set AX to 1.
         """
-        divisor = inst.operands[0]
+        # Copy div source operand.
+        # It is the destination operand of the OR (instrumentation)
+        divisor = copy.deepcopy(inst.operands[0])
 
         # TODO: remove me - avoids a certain violation
         if divisor.width == 64 and CONF.x86_disable_div64:  # type: ignore
             parent.delete(inst)
             return
-
+        divisor.dest = True
         if 'DE-zero' not in CONF.permitted_faults:
             # Prevent div by zero
             instrumentation = Instruction("OR", True) \
@@ -557,7 +560,7 @@ class X86SandboxPass(Pass):
             # no need for sandboxing
             return
 
-        offset = inst.operands[1]
+        offset = copy.deepcopy(inst.operands[1])
         if isinstance(offset, ImmediateOperand):
             # The offset is an immediate
             # Simply replace it with a smaller value
@@ -567,6 +570,7 @@ class X86SandboxPass(Pass):
         # The offset is in a register
         # Mask its upper bits to reduce the stored value to at most 7
         if address.value != offset.value:
+            offset.dest = True
             apply_mask = Instruction("AND", True) \
                 .add_op(offset) \
                 .add_op(ImmediateOperand(self.mask_3bits, 8)) \
@@ -764,14 +768,17 @@ class X86PatchUndefinedResultPass(Pass):
         Bit Scan instructions give an undefined result when the source operand is zero.
         To avoid it, set the most significant bit.
         """
-        source = inst.operands[1]
-        mask = bin(1 << (source.width - 1))
-        mask_size = source.width
-        if source.width in [64, 32]:
+        # Copy bit-scan source operand
+        # and use it as destination of the OR instruction
+        op = copy.deepcopy(inst.operands[1])
+        mask = bin(1 << (op.width - 1))
+        mask_size = op.width
+        if op.width in [64, 32]:
             mask = "0b1000000000000000000000000000000"
             mask_size = 32
+        op.dest = True
         apply_mask = Instruction("OR", True) \
-            .add_op(source) \
+            .add_op(op) \
             .add_op(ImmediateOperand(mask, mask_size)) \
             .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
         parent.insert_before(inst, apply_mask)
