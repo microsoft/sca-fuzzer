@@ -10,9 +10,6 @@ instruction_categories:
   - BASE-CMOV
   - BASE-LOGICAL
 
-# environment
-enable_faulty_page: false
-
 # fuzzing configuration
 enable_speculation_filter: true
 enable_observation_filter: true

@@ -39,6 +39,7 @@ For a complete list, see `src/config.py`.
 
 * `instruction_set`  [str]: Tested ISA.
   Only one option is currently supported - "x86-64" (default).
+* `permitted_faults` [list(str)]: a list of faults that are permitted to happen during testing.
 * `generator` [str]: Test case generator type.
   Only one option is currently supported - "random" (default).
 * `program_generator_seed` [int]: Test case generation seed.
