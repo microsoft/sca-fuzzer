@@ -191,6 +191,168 @@ EOF
 }
 
 
+@test "Faults: Handling #DE-zero" {
+    tmp_config=$(mktemp)
+cat << EOF >> $tmp_config
+contract_observation_clause: ct
+contract_execution_clause:
+  - seq
+input_gen_entropy_bits: 24
+inputs_per_class: 3
+permitted_faults:
+  - DE-zero
+logging_modes:
+  -
+EOF
+
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/fault_DE_zero.asm -i 100 -c $tmp_config"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [ "$output" = "" ]
+    rm $tmp_config
+}
+
+@test "Faults: Handling #DE-overflow" {
+    tmp_config=$(mktemp)
+cat << EOF >> $tmp_config
+contract_observation_clause: ct
+contract_execution_clause:
+  - seq
+input_gen_entropy_bits: 24
+inputs_per_class: 3
+permitted_faults:
+  - DE-overflow
+logging_modes:
+  -
+EOF
+
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/fault_DE_overflow.asm -i 20 -c $tmp_config"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [ "$output" = "" ]
+    rm $tmp_config
+}
+
+@test "Faults: Handling #UD" {
+    tmp_config=$(mktemp)
+cat << EOF >> $tmp_config
+contract_observation_clause: ct
+contract_execution_clause:
+  - seq
+input_gen_entropy_bits: 24
+inputs_per_class: 3
+permitted_faults:
+  - UD
+logging_modes:
+  -
+EOF
+
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/fault_UD.asm -i 100 -c $tmp_config"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [ "$output" = "" ]
+    rm $tmp_config
+}
+
+@test "Faults: Handling #PF" {
+    tmp_config=$(mktemp)
+cat << EOF >> $tmp_config
+contract_observation_clause: ct
+contract_execution_clause:
+  - seq
+input_gen_entropy_bits: 24
+inputs_per_class: 3
+permitted_faults:
+  - PF-present
+logging_modes:
+  -
+EOF
+
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/fault_PF.asm -i 100 -c $tmp_config"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [ "$output" = "" ]
+    rm $tmp_config
+}
+
+@test "Faults: Handling #DB-instruction" {
+    tmp_config=$(mktemp)
+    tmp_asm=$(mktemp)
+cat << EOF >> $tmp_config
+contract_observation_clause: ct
+contract_execution_clause:
+  - seq
+inputs_per_class: 2
+permitted_faults:
+  - DB-instruction
+logging_modes:
+  -
+EOF
+
+cat << EOF >> $tmp_asm
+.intel_syntax noprefix
+.test_case_enter:
+.byte 0xf1  # INT1
+MOV rax, qword ptr [r14 + 256]
+.test_case_exit:
+EOF
+
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t $tmp_asm -i 10 -c $tmp_config"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [ "$output" = "" ]
+    rm $tmp_config $tmp_asm
+}
+
+@test "Faults: Handling #BP" {
+    tmp_config=$(mktemp)
+    tmp_asm=$(mktemp)
+cat << EOF >> $tmp_config
+contract_observation_clause: ct
+contract_execution_clause:
+  - seq
+inputs_per_class: 2
+permitted_faults:
+  - BP
+logging_modes:
+  -
+EOF
+
+cat << EOF >> $tmp_asm
+.intel_syntax noprefix
+.test_case_enter:
+INT3
+MOV rax, qword ptr [r14 + 256]
+.test_case_exit:
+EOF
+
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t $tmp_asm -i 10 -c $tmp_config"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [ "$output" = "" ]
+    rm $tmp_config $tmp_asm
+}
+
+@test "Contract: Delayed Handling Execution" {
+    tmp_config=$(mktemp)
+cat << EOF >> $tmp_config
+contract_observation_clause: ct
+contract_execution_clause:
+  - delayed-exception-handling
+input_gen_entropy_bits: 24
+inputs_per_class: 3
+permitted_faults:
+  - PF-present
+logging_modes:
+  -
+EOF
+
+    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/fault_ooo_mem_access.asm -i 100 -c $tmp_config"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [ "$output" = "" ]
+    rm $tmp_config
+}
 
 @test "CLI: Storing and loading test cases" {
     tmp_dir=$(mktemp -d)
