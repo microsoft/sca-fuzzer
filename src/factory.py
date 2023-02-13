@@ -16,7 +16,6 @@ import postprocessor
 import interfaces
 from config import CONF, ConfigException
 
-
 GENERATORS: Dict[str, Type[interfaces.Generator]] = {
     "x86-64-random": x86_generator.X86RandomGenerator
 }
@@ -34,6 +33,11 @@ TRACERS: Dict[str, Type[model.UnicornTracer]] = {
     "ct-nonspecstore": model.CTNonSpecStoreTracer,
     "ctr": model.CTRTracer,
     "arch": model.ArchTracer,
+
+X86_SIMPLE_EXECUTION_CLAUSES: Dict[str, Type[x86_model.X86UnicornModel]] = {
+    "seq": x86_model.X86UnicornSeq,
+    "cond": x86_model.X86UnicornCond,
+    "bpas": x86_model.X86UnicornBpas,
 }
 
 EXECUTORS = {
@@ -83,14 +87,10 @@ def get_model(bases: Tuple[int, int]) -> interfaces.Model:
     if CONF.instruction_set == 'x86-64':
         if "cond" in CONF.contract_execution_clause and "bpas" in CONF.contract_execution_clause:
             model_instance = x86_model.X86UnicornCondBpas(bases[0], bases[1])
-        elif "cond" in CONF.contract_execution_clause:
-            model_instance = x86_model.X86UnicornCond(bases[0], bases[1])
-        elif "bpas" in CONF.contract_execution_clause:
-            model_instance = x86_model.X86UnicornBpas(bases[0], bases[1])
-        elif "null-injection" in CONF.contract_execution_clause:
-            model_instance = x86_model.X86UnicornNull(bases[0], bases[1])
-        elif "seq" in CONF.contract_execution_clause:
-            model_instance = x86_model.X86UnicornSeq(bases[0], bases[1])
+        elif len(CONF.contract_execution_clause) == 1:
+            model_instance = _get_from_config(X86_SIMPLE_EXECUTION_CLAUSES,
+                                              CONF.contract_execution_clause[0],
+                                              "contract_execution_clause", bases[0], bases[1])
         else:
             raise ConfigException(
                 "unknown value of `contract_execution_clause` configuration option")
