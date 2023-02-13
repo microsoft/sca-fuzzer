@@ -103,6 +103,8 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
             self.pte_bit_choices.append(self.target_desc.pte_bits["PRESENT"])
         if 'PF-writable' in CONF.permitted_faults:
             self.pte_bit_choices.append(self.target_desc.pte_bits["RW"])
+        if 'PF-smap' in CONF.permitted_faults:
+            self.pte_bit_choices.append(self.target_desc.pte_bits["USER"])
 
     def map_addresses(self, test_case: TestCase, bin_file: str) -> None:
         # get a list of relative instruction addresses
@@ -293,7 +295,7 @@ class X86SandboxPass(Pass):
     mask_3bits = "0b111"
     bit_test_names = ["BT", "BTC", "BTR", "BTS", "LOCK BT", "LOCK BTC", "LOCK BTR", "LOCK BTS"]
 
-    def __init__(self):
+    def __init__(self, target_desc: X86TargetDesc):
         super().__init__()
         input_memory_size = CONF.input_main_region_size + CONF.input_faulty_region_size
         mask_size = int(math.log(input_memory_size, 2)) - CONF.memory_access_zeroed_bits
@@ -312,6 +314,7 @@ class X86SandboxPass(Pass):
                 bit_tests = []
                 repeated_instructions = []
                 corrupted_cf = []
+                enclu = []
                 for inst in bb:
                     if inst.has_mem_operand(True):
                         memory_instructions.append(inst)
