@@ -479,11 +479,6 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
                     imms_zero_pos = random.randint(1, 5)
                 imms_ones = random.randint(1, 2 ** imms_zero_pos - 1)
 
-                if imms_zero_pos == 6:
-                    n = 1
-                else:
-                    n = 0
-                imms = ((0b111110 << imms_zero_pos) & 0b111111) + imms_ones
                 immr = random.randint(0, spec.width - 1)
 
                 pattern = "0" * (2 ** imms_zero_pos - imms_ones) + "1" * imms_ones
@@ -491,12 +486,6 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
                 value_str = pattern * multiplier
                 value = int(value_str, 2)
                 value = (value >> immr)|(value << (spec.width - immr)) & (2 ** spec.width - 1)
-
-                # Debug:
-                # print(f"N: {n}, imms: {imms:06b}, immr: {immr:06b}, imms_zero_pos: {imms_zero_pos}, imms_ones: {imms_ones:06b}")
-                # print(f"pattern: {pattern}")
-                # print(f"multiplier: {multiplier}")
-                # print(f"value: 0b{value:064b}")
 
                 if spec.width == 64:
                     value = f"0x{value:016x}"
