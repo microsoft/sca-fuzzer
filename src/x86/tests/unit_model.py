@@ -15,7 +15,7 @@ import x86.x86_model as x86_model
 import model as core_model
 
 from interfaces import Instruction, RegisterOperand, MemoryOperand, InputTaint, LabelOperand, \
-    FlagsOperand, TestCase, Input, CTrace
+    FlagsOperand, TestCase, Input, CTrace, PageTableModifier
 from isa_loader import InstructionSet
 from x86.x86_generator import X86RandomGenerator
 from copy import deepcopy
@@ -43,6 +43,24 @@ JNZ .l1
 .l0:
 MOV RAX, qword ptr [R14]
 .l1:
+NOP
+.test_case_exit:
+"""
+
+ASM_DOUBLE_BRANCH = """
+.intel_syntax noprefix
+.test_case_enter:
+XOR rax, rax
+JNZ .l1
+.l0:
+MOV RAX, qword ptr [R14]
+JMP .l3
+.l1:
+XOR rbx, rbx
+JNZ .l3
+.l2:
+MOV RBX, qword ptr [R14]
+.l3:
 NOP
 .test_case_exit:
 """
@@ -96,16 +114,16 @@ class X86ModelTest(unittest.TestCase):
         asm_file = tempfile.NamedTemporaryFile(delete=False)
         with open(asm_file.name, "w") as f:
             f.write(asm_str)
-        tc: TestCase = generator.parse_existing_test_case(asm_file.name)
+        tc: TestCase = generator.load(asm_file.name)
         asm_file.close()
         os.unlink(asm_file.name)
         return tc
 
-    def get_traces(self, model, asm_str, inputs):
+    def get_traces(self, model, asm_str, inputs, nesting=1, pte_mask: int = 0xffffffffffffffff):
         tc = self.load_tc(asm_str)
+        tc.faulty_pte = PageTableModifier(0, pte_mask)
         model.load_test_case(tc)
-        # LOGGER.dbg_model = True
-        ctraces: List[CTrace] = model.trace_test_case(inputs, 1)
+        ctraces: List[CTrace] = model.trace_test_case(inputs, nesting)
         return ctraces
 
     def test_l1d_seq(self):
@@ -150,7 +168,6 @@ class X86ModelTest(unittest.TestCase):
         for i in range(0, 7):
             input_[input_.register_start + i] = 2
         ctraces = self.get_traces(model, ASM_BRANCH_AND_LOAD, [input_])
-        # print(model.tracer.get_contract_trace_full())
         expected_trace = hash(
             tuple([
                 2, 2, 2, 2, 2, 2, 2, code_base + 0x0, code_base + 0x3, code_base + 0x5,
@@ -183,6 +200,27 @@ class X86ModelTest(unittest.TestCase):
             tuple([
                 code_base + 0x0, code_base + 0x3, code_base + 0x8, code_base + 0x5, mem_base + 0,
                 code_base + 0x8
+            ]))
+        self.assertEqual(ctraces, [expected_trace])
+
+    def test_ct_cond_double(self):
+        mem_base, code_base = 0x1000000, 0x8000
+        model = x86_model.X86UnicornCond(mem_base, code_base)
+        model.tracer = core_model.CTTracer()
+        ctraces = self.get_traces(model, ASM_DOUBLE_BRANCH, [Input()], nesting=2)
+        expected_trace = hash(
+            tuple([
+                code_base + 3,  # JNZ .l1
+                code_base + 10,  # XOR rbx, rbx
+                code_base + 13,  # JNZ .l3
+                code_base + 18,  # NOP, rollback inner speculation
+                code_base + 15,
+                mem_base,  # MOV RBX, qword ptr [R14]
+                code_base + 18,  # NOP, rollback outer speculation
+                code_base + 5,
+                mem_base,  # MOV RAX, qword ptr [R14]
+                code_base + 8,  # JMP .l3
+                code_base + 18,  # NOP
             ]))
         self.assertEqual(ctraces, [expected_trace])
 

@@ -136,13 +136,6 @@ static ssize_t enable_ssbp_patch_store(struct kobject *kobj, struct kobj_attribu
 static struct kobj_attribute enable_ssbp_patch_attribute =
     __ATTR(enable_ssbp_patch, 0666, NULL, enable_ssbp_patch_store);
 
-/// Control the faulty page
-///
-static ssize_t enable_mds_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf,
-                                size_t count);
-static struct kobj_attribute enable_mds_attribute =
-    __ATTR(enable_mds, 0666, NULL, enable_mds_store);
-
 /// Control prefetchers
 ///
 static ssize_t enable_prefetcher_store(struct kobject *kobj, struct kobj_attribute *attr,
@@ -395,15 +388,6 @@ static ssize_t enable_ssbp_patch_store(struct kobject *kobj, struct kobj_attribu
     unsigned value = 0;
     sscanf(buf, "%u", &value);
     ssbp_patch_control = (value == 0) ? SSBP_PATCH_OFF : SSBP_PATCH_ON;
-    return count;
-}
-
-static ssize_t enable_mds_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf,
-                                size_t count)
-{
-    unsigned value = 0;
-    sscanf(buf, "%u", &value);
-    enable_faulty_page = (value == 0) ? 0 : 1;
     return count;
 }
 
