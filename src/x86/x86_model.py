@@ -253,49 +253,63 @@ class X86UnicornBpas(UnicornBpas, X86UnicornModel):
     pass
 
 
-class X86UnicornNull(X86UnicornSpec):
-    instruction_address: int
-
-    @staticmethod
-    def speculate_mem_access(emulator, access, address, size, _, model):
-        assert isinstance(model, X86UnicornNull)
-
-        # reached max spec. window? skip
-        if len(model.checkpoints) >= model.nesting:
-            return
-
-        # applicable only to loads
-        if access == UC_MEM_WRITE:
-            return
-
-        # make sure we do not repeat the same injection all over again
-        if model.instruction_address == model.latest_rollback_address:
-            return
-
-        # store a checkpoint
-        model.checkpoint(emulator, model.instruction_address)
-        model.store_logs[-1].append((address, emulator.mem_read(address, 8)))
-
-        # emulate zero-injection by writing zero to the target address of the load
-        zero_value = bytes([0 for _ in range(size)])
-        emulator.mem_write(address, zero_value)
-
-    @staticmethod
-    def speculate_instruction(emulator: Uc, address, _, model) -> None:
-        assert isinstance(model, X86UnicornNull)
-        model.instruction_address = address
-
-
 class X86UnicornCondBpas(X86UnicornSpec):
 
     @staticmethod
-    def speculate_mem_access(emulator, access, address, size, value, model: UnicornSpec):
+    def speculate_mem_access(emulator, access, address, size, value, model):
         X86UnicornBpas.speculate_mem_access(emulator, access, address, size, value, model)
 
     @staticmethod
     def speculate_instruction(emulator: Uc, address, size, model) -> None:
         X86UnicornCond.speculate_instruction(emulator, address, size, model)
         X86UnicornBpas.speculate_instruction(emulator, address, size, model)
+
+
+class X86FaultModelAbstract(X86UnicornSpec):
+    relevant_faults: Set[int]
+    curr_instruction_addr: int = 0
+    next_instruction_addr: int = 0
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.relevant_faults = set()
+
+    def fault_triggers_speculation(self, errno: int) -> bool:
+        # we speculate only on a subset of faults
+        if errno not in self.relevant_faults:
+            return False
+
+        # reached max spec. window? skip
+        if len(self.checkpoints) >= self.nesting:
+            return False
+        return True
+
+    @staticmethod
+    def trace_instruction(emulator, address, size, model: UnicornModel) -> None:
+        assert isinstance(model, X86FaultModelAbstract)
+        model.curr_instruction_addr = address
+        model.next_instruction_addr = address + size
+        X86UnicornSpec.trace_instruction(emulator, address, size, model)
+
+    def get_rollback_address(self) -> int:
+        return self.code_end
+
+
+class X86SequentialAssist(X86FaultModelAbstract):
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.relevant_faults.update([12, 13])
+
+    def speculate_fault(self, errno: int) -> int:
+        if not self.fault_triggers_speculation(errno):
+            return 0
+
+        # no speculation - simply reset the permissions
+        self.emulator.mem_protect(self.sandbox_base + self.MAIN_REGION_SIZE,
+                                  self.FAULTY_REGION_SIZE)
+        return self.curr_instruction_addr
+
 
 
 # ==================================================================================================
