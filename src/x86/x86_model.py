@@ -201,6 +201,11 @@ class X86UnicornCond(X86UnicornSpec):
         if len(model.checkpoints) >= model.nesting:
             return
 
+        # if the instruction is undefined, Unicorn will return a huge value as size
+        # skip those
+        if size > 15:  # 15 bytes is max instr size on Intel
+            return
+
         # decode the instruction
         code = emulator.mem_read(address, size)
         flags = emulator.reg_read(ucc.UC_X86_REG_EFLAGS)

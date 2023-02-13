@@ -10,7 +10,7 @@ from typing import List
 x86_option_values = {
     'executor_mode': ['P+P', 'F+R', 'E+R', 'PP+P'],  # 'GPR' is intentionally left out
     'permitted_faults': [
-        'PF-present', 'PF-writable', 'assist-accessed', 'assist-dirty'
+        'UD', 'PF-present', 'PF-writable', 'assist-accessed', 'assist-dirty'
     ],
 }
 
@@ -46,7 +46,6 @@ x86_instruction_categories: List[str] = [
     # "BASE-RET",         # Not supported: Complex control flow
 
     # "BASE-SEGOP",       # Not supported: System instructions
-    # "BASE-INTERRUPT",   # Not supported: System instructions
     # "BASE-IO",          # Not supported: System instructions
     # "BASE-IOSTRINGOP",  # Not supported: System instructions
     # "BASE-SYSCALL",     # Not supported: System instructions
@@ -68,10 +67,10 @@ x86_instruction_blocklist: List[str] = [
     # - CMPXCHG8B - Unicorn doesn't execute the mem. access hook
     #   bug: https://github.com/unicorn-engine/unicorn/issues/990
     "CMPXCHG8B", "LOCK CMPXCHG8B",
-    # - Undefined instructions are, well, undefined
-    "UD", "UD2",
     # - Incorrect emulation
     "CPUID",
+        # - requires support of all possible interrupts
+    "INT",
     # - Requires support of segment registers
     "XLAT", "XLATB",
     # - Requires special instrumentation to avoid #DE faults

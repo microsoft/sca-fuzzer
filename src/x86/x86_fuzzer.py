@@ -14,17 +14,32 @@ from config import CONF
 from x86.x86_executor import X86IntelExecutor
 
 
+def update_instruction_list():
+    """
+    Remove those instructions that trigger unhandled exceptions.
+    This functionality is implemented as a module-level function
+    to avoid code duplication between X86Fuzzer and X86ArchitecturalFuzzer
+    """
+    if 'UD' not in CONF.permitted_faults:
+        CONF._default_instruction_blocklist.extend(["UD", "UD2"])
+    all_instruction_names = set([i.name for i in instruction_set.instructions])
+    if 'UD' in CONF.permitted_faults:
+        assert "UD" in all_instruction_names or "UD2" in all_instruction_names
+
+
 class X86Fuzzer(Fuzzer):
     executor: X86IntelExecutor
 
     def _adjust_config(self, existing_test_case):
         super()._adjust_config(existing_test_case)
+        update_instruction_list()
 
     def start(self,
               num_test_cases: int,
               num_inputs: int,
               timeout: int,
               nonstop: bool = False) -> bool:
+        check_instruction_list(self.instruction_set)
         return super().start(num_test_cases, num_inputs, timeout, nonstop)
 
     def filter(self, test_case: TestCase, inputs: List[Input]) -> bool:
@@ -71,10 +86,12 @@ class X86ArchitecturalFuzzer(ArchitecturalFuzzer):
 
     def _adjust_config(self, existing_test_case):
         super()._adjust_config(existing_test_case)
+        update_instruction_list()
 
     def start(self,
               num_test_cases: int,
               num_inputs: int,
               timeout: int,
               nonstop: bool = False) -> bool:
+        check_instruction_list(self.instruction_set)
         return super().start(num_test_cases, num_inputs, timeout, nonstop)

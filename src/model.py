@@ -169,6 +169,9 @@ class UnicornModel(Model, ABC):
         self.handled_faults = set()
 
         # update a list of handled faults based on the config
+        if 'UD' in CONF.permitted_faults or 'UD-vtx' in CONF.permitted_faults or \
+           'UD-svm' in CONF.permitted_faults:
+            self.handled_faults.add(10)
         if 'PF-present' in CONF.permitted_faults:
             self.handled_faults.update([12, 13])
         if 'PF-writable' in CONF.permitted_faults:
