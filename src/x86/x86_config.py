@@ -8,6 +8,7 @@ from typing import List
 
 # x86_option_values attribute MUST be the first attribute in the file
 x86_option_values = {
+    'executor_mode': ['P+P', 'F+R', 'E+R', 'PP+P'],  # 'GPR' is intentionally left out
     'permitted_faults': [
     ],
 }
