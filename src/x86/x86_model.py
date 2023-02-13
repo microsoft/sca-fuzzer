@@ -621,6 +621,7 @@ class X86UnicornVspecOps(X86FaultModelAbstract):
         self.curr_dest_regs = []
         self.curr_dest_regs_sizes = {}
         self.curr_mem_load = (-1, -1)
+        self.curr_mem_store = (-1, -1)
         self.curr_taint = set()
         self.curr_src_tainted = False
         assert len(self.reg_taints) == 0
@@ -894,14 +895,20 @@ class X86UnicornVspecOps(X86FaultModelAbstract):
 
         if access != UC_MEM_WRITE:
             # for loads, check if address is tainted
-            # TODO: strictly speaking I think we should test if any address in the range of
-            # address+size is tainted
-            if address in model.mem_taints or model.whole_memory_tainted:
+            # Test if any address in the range of address+size is tainted
+            is_tainted: bool = False
+            taints = set()
+            for i in range(size):
+                if (address + i) in model.mem_taints:
+                    is_tainted = True
+                    taints.update(model.mem_taints[address + i])
+
+            if is_tainted or model.whole_memory_tainted:
                 # add address taint to current taint
                 if model.whole_memory_tainted:
                     model.curr_taint.add(model.full_input_taint)
                 else:
-                    model.curr_taint.update(model.mem_taints[address])
+                    model.curr_taint.update(taints)
                 # remember that instruction used tainted src value
                 model.curr_src_tainted = True
                 # update taint of dest registers with address taint
@@ -929,7 +936,7 @@ class X86UnicornVspecOps(X86FaultModelAbstract):
         # check if the memory access creates a tainted observation
         if model.curr_observation:
             # if current observation contains full architectural state info, then only leak the hash
-            if (None, None, model.input_hash) in model.curr_observation:
+            if model.full_input_taint in model.curr_observation:
                 model.curr_observation = {model.full_input_taint}
             observation_list = list(model.curr_observation)
             observation_list.sort()
@@ -1104,6 +1111,7 @@ class X86UnicornVspecAllMemoryFaults(X86UnicornVspecAll):
         elif model.pending_re_execution:
             model.pending_re_execution = False
             model.pending_restore_protection = True
+            return
         X86UnicornVspecAll.speculate_instruction(emulator, address, size, model)
 
     def get_next_instruction(self):
