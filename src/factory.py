@@ -77,7 +77,8 @@ def _get_from_config(options: Dict, key: str, conf_option_name: str, *args):
     if GenCls:
         return GenCls(*args)
 
-    raise ConfigException(f"unknown value {key} for `{conf_option_name}` configuration option")
+    raise ConfigException(
+        f"ERROR: unknown value {key} of `{conf_option_name}` configuration option")
 
 
 def get_fuzzer(instruction_set, working_directory, testcase, inputs):
@@ -85,12 +86,12 @@ def get_fuzzer(instruction_set, working_directory, testcase, inputs):
         if CONF.instruction_set == "x86-64":
             return x86_fuzzer.X86ArchitecturalFuzzer(instruction_set, working_directory, testcase,
                                                      inputs)
-        raise ConfigException("unknown value of `instruction_set` configuration option")
+        raise ConfigException("ERROR: unknown value of `instruction_set` configuration option")
     elif CONF.fuzzer == "basic":
         if CONF.instruction_set == "x86-64":
             return x86_fuzzer.X86Fuzzer(instruction_set, working_directory, testcase, inputs)
-        raise ConfigException("unknown value of `instruction_set` configuration option")
-    raise ConfigException("unknown value of `fuzzer` configuration option")
+        raise ConfigException("ERROR: unknown value of `instruction_set` configuration option")
+    raise ConfigException("ERROR: unknown value of `fuzzer` configuration option")
 
 
 def get_generator(instruction_set: interfaces.InstructionSetAbstract) -> interfaces.Generator:
@@ -114,12 +115,12 @@ def get_model(bases: Tuple[int, int]) -> interfaces.Model:
                                               "contract_execution_clause", bases[0], bases[1])
         else:
             raise ConfigException(
-                "unknown value of `contract_execution_clause` configuration option")
+                "ERROR: unknown value of `contract_execution_clause` configuration option")
 
         model_instance.taint_tracker_cls = x86_model.X86TaintTracker
 
     else:
-        raise ConfigException("unknown value of `model` configuration option")
+        raise ConfigException("ERROR: unknown value of `model` configuration option")
 
     # observational part of the contract
     model_instance.tracer = _get_from_config(TRACERS, CONF.contract_observation_clause,
@@ -130,7 +131,7 @@ def get_model(bases: Tuple[int, int]) -> interfaces.Model:
 
 def get_executor() -> interfaces.Executor:
     if CONF.executor != 'default':
-        raise ConfigException("unknown value of `executor` configuration option")
+        raise ConfigException("ERROR: unknown value of `executor` configuration option")
     return _get_from_config(EXECUTORS, CONF.instruction_set, "instruction_set")
 
 

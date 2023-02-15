@@ -168,12 +168,13 @@ class ConfCls:
 
         # Sanity checks
         if name[0] == "_":
-            raise ConfigException(f"Attempting to set an internal configuration variable {name}.")
+            raise ConfigException(
+                f"ERROR: Attempting to set an internal configuration variable {name}.")
         if getattr(self, name, None) is None:
-            raise ConfigException(f"Unknown configuration variable {name}.\n"
+            raise ConfigException(f"ERROR: Unknown configuration variable {name}.\n"
                                   f"It's likely a typo in the configuration file.")
         if type(self.__getattribute__(name)) != type(value):
-            raise ConfigException(f"Wrong type of the configuration variable {name}.\n"
+            raise ConfigException(f"ERROR: Wrong type of the configuration variable {name}.\n"
                                   f"It's likely a typo in the configuration file.")
         if name == "executor_max_outliers" and value > 20:
             print(f"WARNING: Configuration: Are you sure you want to"
@@ -192,14 +193,16 @@ class ConfCls:
             else:
                 invalid = value not in self._option_values[name]
             if invalid:
-                raise ConfigException(f"Unknown value '{value}' of config variable '{name}'\n"
-                                      f"Possible options: {self._option_values[name]}")
+                raise ConfigException(
+                    f"ERROR: Unknown value '{value}' of config variable '{name}'\n"
+                    f"Possible options: {self._option_values[name]}")
         if (self.input_main_region_size % 4096 != 0) or \
                 (self.input_faulty_region_size % 4096 != 0):
-            raise ConfigException("Inputs must be page-aligned")
+            raise ConfigException("ERROR: Inputs must be page-aligned")
         if self.input_gen_entropy_bits + self.memory_access_zeroed_bits > 32:
-            raise ConfigException("The sum of input_gen_entropy_bits and memory_access_zeroed_bits"
-                                  " must be less or equal to 32 bits")
+            raise ConfigException(
+                "ERROR: The sum of input_gen_entropy_bits and memory_access_zeroed_bits"
+                " must be less or equal to 32 bits")
 
         # special handling
         if name == "instruction_set":
@@ -219,7 +222,7 @@ class ConfCls:
             config = x86_config
             prefix = "x86_"
         else:
-            raise ConfigException(f"Unknown architecture {self.instruction_set}")
+            raise ConfigException(f"ERROR: Unknown architecture {self.instruction_set}")
         options = [i for i in dir(config) if i.startswith(prefix)]
 
         for option in options:
