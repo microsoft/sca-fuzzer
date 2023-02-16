@@ -1422,6 +1422,72 @@ class X86UnicornVspecAll(X86UnicornVspecOps):
         return self.get_next_instruction()
 
 
+class x86UnicornVspecAllDIV(X86UnicornVspecAll):
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        # DIV exceptions only
+        self.relevant_faults = {21}
+
+
+class X86UnicornVspecAllMemoryFaults(X86UnicornVspecAll):
+    pending_restore_protection: bool = False
+    pending_re_execution: bool = False
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        # Page faults and other memory errors
+        self.relevant_faults = {6, 7, 12, 13}
+
+    @staticmethod
+    def speculate_instruction(emulator: Uc, address, size, model) -> None:
+        if model.pending_restore_protection:
+            model.pending_restore_protection = False
+            if model.rw_protect:
+                model.emulator.mem_protect(model.sandbox_base + model.MAIN_REGION_SIZE,
+                                           model.FAULTY_REGION_SIZE, UC_PROT_NONE)
+            elif model.write_protect:
+                model.emulator.mem_protect(model.sandbox_base + model.MAIN_REGION_SIZE,
+                                           model.FAULTY_REGION_SIZE, UC_PROT_READ)
+        elif model.pending_re_execution:
+            model.pending_re_execution = False
+            model.pending_restore_protection = True
+        X86UnicornVspecAll.speculate_instruction(emulator, address, size, model)
+
+    def get_next_instruction(self):
+        if self.next_instruction_addr >= self.code_end:
+            return 0  # no need for speculation if we're at the end
+        elif self.pending_fault_id == UC_ERR_WRITE_PROT and self.write_protect:
+            # remove protection
+            self.emulator.mem_protect(self.sandbox_base + self.MAIN_REGION_SIZE,
+                                      self.FAULTY_REGION_SIZE)
+            self.pending_re_execution = True
+            return self.curr_instruction_addr
+        else:
+            return self.next_instruction_addr
+
+
+class X86UnicornVspecAllMemoryAssists(X86UnicornVspecAll):
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.relevant_faults = {12, 13}
+
+    def rollback(self) -> int:
+        next_instruction = super().rollback()
+        if not self.in_speculation:
+            # remove protection after the assists has completed
+            self.emulator.mem_protect(self.sandbox_base + self.MAIN_REGION_SIZE,
+                                      self.FAULTY_REGION_SIZE)
+        return next_instruction
+
+    def get_rollback_address(self) -> int:
+        if self.in_speculation:
+            return self.code_end
+        else:
+            return self.curr_instruction_addr
+
+
 # ==================================================================================================
 # Taint tracker
 # ==================================================================================================
