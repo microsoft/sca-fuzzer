@@ -100,7 +100,7 @@ class ConfCls:
     """ contract_execution_clause: """
     contract_observation_clause: str = 'ct'
     """ contract_observation_clause: """
-    model_max_nesting: int = 5
+    model_max_nesting: int = 30
     """ model_max_nesting: """
     model_max_spec_window: int = 250
     """ model_max_spec_window: """
