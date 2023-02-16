@@ -55,6 +55,7 @@ X86_SIMPLE_EXECUTION_CLAUSES: Dict[str, Type[x86_model.X86UnicornModel]] = {
     "vspec-ops-div": x86_model.x86UnicornVspecOpsDIV,
     "vspec-ops-memory-faults": x86_model.x86UnicornVspecOpsMemoryFaults,
     "vspec-ops-memory-assists": x86_model.x86UnicornVspecOpsMemoryAssists,
+    "vspec-ops-gp": x86_model.x86UnicornVspecOpsGP,
 }
 
 EXECUTORS = {
