@@ -1381,6 +1381,47 @@ class x86UnicornVspecOpsGP(X86UnicornVspecOps, X86NonCanonicalAddress):
         return super().reset_model()
 
 
+class X86UnicornVspecAll(X86UnicornVspecOps):
+    """
+    Most permissive contract.
+    Uses vspec-unknown contract but destination operands in case of
+    exception depends on full architectural state (= on full input)
+    instead of value of src operands.
+    """
+
+    def speculate_fault(self, errno: int) -> int:
+        if not self.fault_triggers_speculation(errno):
+            return 0
+
+        # start speculation
+        # store a checkpoint
+        self.checkpoint(self.emulator, self.get_rollback_address())
+
+        # only collect new taints if none of the src operands in the faulting instruction are
+        # tainted if they are, the taints have been propagated correctly already,
+        # so just ignore fault
+        if not self.curr_src_tainted:
+
+            for op in self.current_instruction.get_all_operands():
+                if isinstance(op, RegisterOperand):
+                    if op.dest:
+                        self.curr_dest_regs.append(X86TargetDesc.gpr_normalized[op.value])
+                elif isinstance(op, FlagsOperand):
+                    self.curr_dest_regs.extend(op.get_write_flags())
+
+            if self.current_instruction.has_write():
+                address = self.curr_mem_store[0]
+                size = self.curr_mem_store[1]
+                for i in range(size):
+                    self.mem_taints[address + i] = {self.full_input_taint}
+
+            # taint destination registers with hash of full input (represents architectural state)
+            for reg in self.curr_dest_regs:
+                self.reg_taints[reg] = {self.full_input_taint}
+
+        return self.get_next_instruction()
+
+
 # ==================================================================================================
 # Taint tracker
 # ==================================================================================================
