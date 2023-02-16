@@ -6,14 +6,16 @@ SPDX-License-Identifier: MIT
 """
 import re
 import numpy as np
-from typing import Tuple, Dict, List, Set
+from typing import Tuple, Dict, List, Set, NamedTuple
 import copy
 
 import unicorn.x86_const as ucc  # type: ignore
-from unicorn import Uc, UC_MEM_WRITE, UC_ARCH_X86, UC_MODE_64, UC_PROT_READ, UC_PROT_NONE
+from unicorn import Uc, UC_MEM_WRITE, UC_ARCH_X86, UC_MODE_64, UC_PROT_READ, UC_PROT_NONE,\
+    UC_ERR_WRITE_PROT
 
-from interfaces import Input, FlagsOperand, RegisterOperand, MemoryOperand, TestCase
-from model import UnicornModel, UnicornSpec, UnicornSeq, UnicornBpas, BaseTaintTracker
+from interfaces import Input, FlagsOperand, RegisterOperand, MemoryOperand, AgenOperand, TestCase
+from model import UnicornModel, UnicornTracer, UnicornSpec, UnicornSeq, UnicornBpas, \
+    BaseTaintTracker
 from x86.x86_target_desc import X86UnicornTargetDesc, X86TargetDesc
 from service import UnreachableCode
 
@@ -22,6 +24,9 @@ FLAGS_PF = 0b000000000100
 FLAGS_AF = 0b000000010000
 FLAGS_ZF = 0b000001000000
 FLAGS_SF = 0b000010000000
+FLAGS_TF = 0b000100000000
+FLAGS_IF = 0b001000000000
+FLAGS_DF = 0b010000000000
 FLAGS_OF = 0b100000000000
 
 
@@ -782,6 +787,417 @@ class X86NonCanonicalAddress(X86FaultModelAbstract):
         self.address_register = -1
         self.register_value = -1
         return super().reset_model()
+
+
+# ==================================================================================================
+# Unknown-value Contracts
+# ==================================================================================================
+class TaintedValue(NamedTuple):
+    po: int
+    label: int
+    value: int
+
+
+Taint = Set[TaintedValue]
+
+
+class X86UnicornVspecOps(X86FaultModelAbstract):
+    """
+    Contract for value speculation with unknown values.
+    Needs instantiations in subclasses depending on faults.
+    """
+    input_hash: int = 0
+    full_input_taint: TaintedValue
+    # taints of registers
+    reg_taints: Dict[str, Taint]
+    reg_taints_checkpoints: List[Dict[str, Taint]]
+    # taints of memory locations
+    mem_taints: Dict[int, Taint]
+    mem_taints_checkpoints: List[Dict[int, Taint]]
+    # overapproximation recording whole memory as being corrupted/tainted
+    whole_memory_tainted: bool
+    whole_memory_tainted_checkpoints: List[bool]
+    # taints+values that need to be leaked if current instruction is a memory access
+    curr_observation: Taint = set()
+    # address and size of last memory load (needed in case of exception)
+    curr_mem_load: Tuple[int, int] = (-1, -1)
+    # address and size of last memory store (needed in case of exception)
+    curr_mem_store: Tuple[int, int] = (-1, -1)
+    # current destination registers
+    curr_dest_regs: List[str] = []
+    # width of current destination registers, i.e., whether only part of register gets overwritten
+    curr_dest_regs_sizes: Dict = dict()
+    # current taint+values that are propagated from speculate_instruction() to trace_mem_access()
+    curr_taint: Taint = set()
+    # remember if any source operand was tainted in speculate_instruction()
+    curr_src_tainted: bool = False
+
+    flags_translate = {
+        "CF": FLAGS_CF,
+        "PF": FLAGS_PF,
+        "AF": FLAGS_AF,
+        "ZF": FLAGS_ZF,
+        "SF": FLAGS_SF,
+        "TF": FLAGS_TF,
+        "IF": FLAGS_IF,
+        "DF": FLAGS_DF,
+        "OF": FLAGS_OF
+    }
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        # self.relevant_faults.update([6, 7, 12, 13, 21])
+        self.reg_taints = {}
+        self.reg_taints_checkpoints = []
+        self.mem_taints = {}
+        self.mem_taints_checkpoints = []
+        self.whole_memory_tainted = False
+        self.whole_memory_tainted_checkpoints = []
+        self.full_input_taint = TaintedValue(0, 0, self.input_hash)
+
+    def _load_input(self, input_: Input) -> None:
+        self.input_hash = hash(input_)
+        self.full_input_taint = TaintedValue(0, 0, self.input_hash)
+        self.curr_observation = set()
+        self.curr_dest_regs = []
+        self.curr_dest_regs_sizes = {}
+        self.curr_mem_load = (-1, -1)
+        self.curr_taint = set()
+        self.curr_src_tainted = False
+        assert len(self.reg_taints) == 0
+        assert len(self.reg_taints_checkpoints) == 0
+        assert len(self.mem_taints) == 0
+        assert len(self.mem_taints_checkpoints) == 0
+        assert not self.whole_memory_tainted
+        assert len(self.whole_memory_tainted_checkpoints) == 0
+        super()._load_input(input_)
+
+    def assemble_reg_values(self, regs: Set[str]) -> Tuple[Taint, bool]:
+        """
+        Aggregate value of all registers in regs.
+        If register is tainted, use taint instead.
+        Set curr_src_tainted to true if one of the registers was tainted.
+        Returns set of register values (usable as taints) and Boolean flag
+          to indicate if one of the registers was tainted.
+        """
+
+        reg_values = set()
+        reg_values_tainted = False
+
+        for reg in regs:
+            if reg in self.reg_taints:
+                reg_values.update(self.reg_taints[reg])
+                # remember that one of registers was tainted
+                reg_values_tainted = True
+            else:
+                reg_id = X86UnicornTargetDesc.reg_decode[reg]
+                reg_value: int = self.emulator.reg_read(reg_id)  # type: ignore
+                # if register is a flag, project flags register on flag
+                if reg in {"CF", "PF", "AF", "ZF", "SF", "TF", "IF", "DF", "OF"}:
+                    reg_value = int((reg_value & self.flags_translate[reg]) != 0)
+                pc = self.curr_instruction_addr - self.code_start
+                reg_values.add(TaintedValue(pc, reg_id, reg_value))
+
+        return reg_values, reg_values_tainted
+
+    def set_taint(self, reg: str, taint: Taint) -> None:
+        # sets reg to taint, only uses input hash if included in taint
+        if self.full_input_taint in taint:
+            self.reg_taints[reg] = {self.full_input_taint}
+        else:
+            self.reg_taints[reg] = taint
+
+    def update_reg_taints(self) -> None:
+        """
+        update current destination registers according to current taint
+        special cases:
+          1) only lower bits of register are updated, so also keep old taint
+          2) current source is not tainted, but destination is tainted,
+             so update taint of destination with current values of register
+        """
+        for reg in self.curr_dest_regs:
+            # check if destination reg is already tainted
+            if reg in self.reg_taints:
+                # check if reg is a register, not a flag, and whether only lower bits are
+                # overwritten if this is the case, we need to keep the old taint of reg
+                if reg in self.curr_dest_regs_sizes and self.curr_dest_regs_sizes[reg] < 64:
+                    new_taint = self.reg_taints[reg] | self.curr_taint
+                    self.set_taint(reg, new_taint)
+                # else, old taint is overwritten if the source is currently tainted
+                elif self.curr_src_tainted:
+                    self.set_taint(reg, self.curr_taint)
+                # if source is not tainted and destination is overwritten, remove old taint
+                else:
+                    self.reg_taints.pop(reg, None)
+            # if destination is not tainted already, only need to propagate source taints
+            elif self.curr_src_tainted:
+                # check if reg is a register, not a flag, and whether only lower bits are
+                # overwritten if yes, then keep value currently in register as taint
+                if reg in self.curr_dest_regs_sizes and self.curr_dest_regs_sizes[reg] < 64:
+                    reg_id = X86UnicornTargetDesc.reg_decode[reg]
+                    reg_value: int = self.emulator.reg_read(reg_id)  # type: ignore
+                    pc = self.curr_instruction_addr - self.code_start
+                    new_taint = {TaintedValue(pc, reg_id, reg_value)} | self.curr_taint
+                    self.set_taint(reg, new_taint)
+                # if not, just set current taint as taint of reg
+                else:
+                    self.set_taint(reg, self.curr_taint)
+
+    def _get_curr_load_taint(self) -> TaintedValue:
+        address = self.curr_mem_load[0]
+        size = self.curr_mem_load[1]
+        mem_value = self.emulator.mem_read(address, size)
+        mem_value = int.from_bytes(mem_value, 'little')
+        pc = self.curr_instruction_addr - self.code_start
+        return TaintedValue(pc, address, mem_value)
+
+    def speculate_fault(self, errno: int) -> int:
+        if not self.fault_triggers_speculation(errno):
+            return 0
+
+        # start speculation
+        # set the rollback address
+        self.checkpoint(self.emulator, self.get_rollback_address())
+
+        # only collect new taints if none of the src operands in the faulting instruction are
+        # tainted if they are, the taints have been propagated correctly already,code_start
+        # so just ignore fault
+        if not self.curr_src_tainted:
+
+            # collect registers occurring in src and destination operands
+            # src_regs = src registers occurring outside memory load
+            # dest_regs = dest registers occurring outside memory store
+            # mem_src_regs = src registers occurring as part of address
+            # mem_dest_regs = dest registers occurring as part of store
+            src_regs = set()
+            for op in self.current_instruction.get_all_operands():
+                if isinstance(op, RegisterOperand):
+                    if op.src:
+                        op_normalized = X86TargetDesc.gpr_normalized[op.value]
+                        src_regs.add(op_normalized)
+                        # src_regs_sizes[op_normalized] = op.width
+                    if op.dest:
+                        op_normalized = X86TargetDesc.gpr_normalized[op.value]
+                        self.curr_dest_regs.append(op_normalized)
+                        self.curr_dest_regs_sizes[op_normalized] = op.width
+                elif isinstance(op, FlagsOperand):
+                    src_regs.update(op.get_read_flags())
+                    self.curr_dest_regs.extend(op.get_write_flags())
+
+            # source_values = evaluated load address + values of src regs
+            # these are all the values the faulting instruction depends on
+            self.curr_taint, _ = self.assemble_reg_values(src_regs)
+
+            if self.current_instruction.has_read():
+                self.curr_taint.add(self._get_curr_load_taint())
+
+            if self.current_instruction.has_write():
+                address = self.curr_mem_store[0]
+                size = self.curr_mem_store[1]
+                for i in range(size):
+                    self.mem_taints[address + i] = self.curr_taint
+
+            # need to set curr_src_tainted to make update_reg_taints call work
+            self.curr_src_tainted = True
+            self.update_reg_taints()
+
+        return self.get_next_instruction()
+
+    def get_next_instruction(self):
+        # speculatively skip the faulting instruction
+        if self.next_instruction_addr >= self.code_end:
+            return 0  # no need for speculation if we're at the end
+        else:
+            return self.next_instruction_addr
+
+    @staticmethod
+    def speculate_instruction(emulator: Uc, address, size, model) -> None:
+        """
+        Track how taints move through system and produce correct observations.
+        """
+        assert isinstance(model, X86UnicornVspecOps)
+
+        # print('current taints:', model.reg_taints, model.mem_taints)
+        # print('current instruction:', model.current_instruction)
+
+        # reset observation set and src/dest registers
+        # this must happen before we check if we can skip, otherwise trace_mem_access might
+        # use old values
+        model.curr_observation = set()
+        model.curr_taint = set()
+        model.curr_dest_regs = []
+        model.curr_dest_regs_sizes = {}
+        model.curr_src_tainted = False
+        # might be needed when contract is refined recording which part of register is tainted
+        # src_regs_sizes = dict()
+
+        # track taints only after faults with non-empty taints
+        if not model.in_speculation or (not model.reg_taints and not model.mem_taints):
+            return
+
+        src_regs = set()
+        mem_src_regs = set()
+        mem_dest_regs = set()
+
+        # assemble source and destination registers of instruction
+        # distinguish between normal registers and registers used in memory access
+        # some code duplication, with method speculate_fault()
+        for op in model.current_instruction.get_all_operands():
+            if isinstance(op, RegisterOperand):
+                if op.src:
+                    op_normalized = X86TargetDesc.gpr_normalized[op.value]
+                    src_regs.add(op_normalized)
+                    # src_regs_sizes[op_normalized] = op.width
+                if op.dest:
+                    op_normalized = X86TargetDesc.gpr_normalized[op.value]
+                    model.curr_dest_regs.append(op_normalized)
+                    model.curr_dest_regs_sizes[op_normalized] = op.width
+            elif isinstance(op, MemoryOperand):
+                for sub_op in re.split(r'\+|-|\*| ', op.value):
+                    if sub_op and sub_op in X86TargetDesc.gpr_normalized:
+                        normalized = X86TargetDesc.gpr_normalized[sub_op]
+                        if op.src:
+                            mem_src_regs.add(normalized)
+                        if op.dest:
+                            mem_dest_regs.add(normalized)
+            elif isinstance(op, FlagsOperand):
+                # print('read flags:', op.get_read_flags())
+                # print('write flags:', op.get_write_flags())
+                src_regs.update(op.get_read_flags())
+                model.curr_dest_regs.extend(op.get_write_flags())
+            elif isinstance(op, AgenOperand):
+                assert model.current_instruction.name == "LEA"
+                assert op.src
+                for sub_op in re.split(r'\[|\]|\+|-|\*| ', op.value):
+                    if sub_op and sub_op in X86TargetDesc.gpr_normalized:
+                        normalized = X86TargetDesc.gpr_normalized[sub_op]
+                        src_regs.add(normalized)
+
+        # assemble values of memory dest registers. if tainted, use taint instead
+        mem_dest_reg_values, _ = model.assemble_reg_values(mem_dest_regs)
+
+        # check if instruction attempted store using tainted register
+        #     => location of store unknown
+        tainted_mem_dest_regs = mem_dest_regs & model.reg_taints.keys()
+        if tainted_mem_dest_regs:
+            assert model.current_instruction.has_write()
+            # record observation of store
+            # leaks taint if tainted register is used
+            model.curr_observation = model.curr_observation | mem_dest_reg_values
+            # as destination is not known, whole memory is tainted (implicitly with input hash)
+            model.whole_memory_tainted = True
+            # TODO: can we write to registers and memory within one instruction? if not, return
+            # if yes, other destination registers might get tainted, so continue
+
+        # assemble values of memory src registers. if tainted, use taint instead
+        mem_src_reg_values, _ = model.assemble_reg_values(mem_src_regs)
+
+        # check if instruction attempted load using tainted register
+        #     => location of load unknown
+        tainted_mem_src_regs = mem_src_regs & model.reg_taints.keys()
+
+        if tainted_mem_src_regs and not model.current_instruction.name == "LEA":
+            assert model.current_instruction.has_read()
+            # record observation of load
+            # leaks taint if tainted register is used
+            model.curr_observation = model.curr_observation | mem_src_reg_values
+            # load from tainted value returns content of unknown address
+            #     => taint dest registers with input hash (represents full architectural state)
+            # remember current taint in case store address needs to be tainted in trace_mem_access()
+            model.curr_taint = {model.full_input_taint}
+            for reg in model.curr_dest_regs:
+                model.reg_taints[reg] = model.curr_taint
+            # remember that instruction depended on tainted operand
+            model.curr_src_tainted = True
+            # all dest regs are tainted with maximal taint, we can return
+            return
+
+        # assemble value of all src regs, use taint if tainted
+        model.curr_taint, model.curr_src_tainted = model.assemble_reg_values(src_regs)
+        model.update_reg_taints()
+
+    @staticmethod
+    def trace_mem_access(emulator: Uc, access: int, address: int, size: int, value: int,
+                         model: UnicornModel) -> None:
+        assert isinstance(model, X86UnicornVspecOps)
+
+        # remember last address and size in case of exception
+        if access != UC_MEM_WRITE:
+            model.curr_mem_load = (address, size)
+        else:
+            model.curr_mem_store = (address, size)
+
+        if not model.in_speculation:
+            X86FaultModelAbstract.trace_mem_access(emulator, access, address, size, value, model)
+            return
+
+        mem_value = model.emulator.mem_read(address, size)
+
+        if access != UC_MEM_WRITE:
+            # for loads, check if address is tainted
+            # TODO: strictly speaking I think we should test if any address in the range of
+            # address+size is tainted
+            if address in model.mem_taints or model.whole_memory_tainted:
+                # add address taint to current taint
+                if model.whole_memory_tainted:
+                    model.curr_taint.add(model.full_input_taint)
+                else:
+                    model.curr_taint.update(model.mem_taints[address])
+                # remember that instruction used tainted src value
+                model.curr_src_tainted = True
+                # update taint of dest registers with address taint
+                model.update_reg_taints()
+            # if address itself is not tainted, value stored at address to current taint
+            #     and potentially add to taints
+            else:
+                mem_value = int.from_bytes(mem_value, 'little')
+                pc = model.curr_instruction_addr - model.code_start
+                model.curr_taint.add(TaintedValue(pc, address, mem_value))
+                model.update_reg_taints()
+
+        if access == UC_MEM_WRITE:
+            # check if any src operand was tainted (memory location or register)
+            if not model.curr_src_tainted:
+                # if there is no current taint, remove possible taint from current address range
+                for i in range(size):
+                    model.mem_taints.pop(address + i, None)
+            # if src was tainted, add current taint to current address range
+            #     check if whole memory is already tainted, then nothing has to be done
+            elif not model.whole_memory_tainted:
+                for i in range(size):
+                    model.mem_taints[address + i] = model.curr_taint
+
+        # check if the memory access creates a tainted observation
+        if model.curr_observation:
+            # if current observation contains full architectural state info, then only leak the hash
+            if (None, None, model.input_hash) in model.curr_observation:
+                model.curr_observation = {model.full_input_taint}
+            observation_list = list(model.curr_observation)
+            observation_list.sort()
+            # print('leaking observation', observation_list)
+            observation_hash = hash(tuple(observation_list))
+            # just append hash to trace, don't do normal memory access
+            assert isinstance(model.tracer, UnicornTracer)
+            model.tracer.add_dependencies_to_trace(address, observation_hash, model)
+        # if not, do normal memory access
+        else:
+            X86FaultModelAbstract.trace_mem_access(emulator, access, address, size, value, model)
+
+    def checkpoint(self, emulator: Uc, next_instruction: int):
+        self.reg_taints_checkpoints.append(copy.copy(self.reg_taints))
+        self.mem_taints_checkpoints.append(copy.copy(self.mem_taints))
+        self.whole_memory_tainted_checkpoints.append(copy.copy(self.whole_memory_tainted))
+        return super().checkpoint(emulator, next_instruction)
+
+    def rollback(self) -> int:
+        self.reg_taints = self.reg_taints_checkpoints.pop()
+        self.mem_taints = self.mem_taints_checkpoints.pop()
+        self.whole_memory_tainted = self.whole_memory_tainted_checkpoints.pop()
+        return super().rollback()
+
+    def get_rollback_address(self) -> int:
+        # faults end program execution
+        return self.code_end
 
 
 # ==================================================================================================

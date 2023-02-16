@@ -66,6 +66,10 @@ class UnicornTracer(Tracer):
         self.trace.append(address)
         model.taint_tracker.taint_pc()
 
+    def add_dependencies_to_trace(self, address, dependency_hash, model):
+        self.trace.append(dependency_hash)
+        model.taint_tracker.taint_memory_access_address()
+
     def observe_mem_access(self, access, address: int, size: int, value: int,
                            model: UnicornModel) -> None:
         normalized_address = address - model.sandbox_base
@@ -815,8 +819,6 @@ class BaseTaintTracker(TaintTrackerInterface):
         for addr in self.src_mems:
             src_labels.update(self.mem_dependencies.get(addr, {addr}))
 
-        # print(src_labels)
-
         # Propagate label to all targets
         uniq_labels = src_labels
         for reg in self.dest_regs:
@@ -909,6 +911,8 @@ class BaseTaintTracker(TaintTrackerInterface):
                 # we taint the 64-bits block that contains the address
                 input_offset = (int(label, 16)) // 8
             else:
+                # uncomment if to create violations of vspec-ops-div
+                # if not label == 'D':
                 reg = self.unicorn_target_desc.reg_decode[label]
                 if reg in self._registers:
                     input_offset = register_start + \
