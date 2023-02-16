@@ -568,6 +568,10 @@ class Input(np.ndarray):
         if obj is None:
             return
 
+    def __hash__(self) -> int:
+        # hash of input is hash of input data, registers and memory
+        return hash(tuple(self[0:self.data_size - 1]))
+
     def get_registers(self):
         return list(self[self.register_start:self.data_size - 1])
 

@@ -47,6 +47,13 @@ X86_SIMPLE_EXECUTION_CLAUSES: Dict[str, Type[x86_model.X86UnicornModel]] = {
     "meltdown": x86_model.X86Meltdown,
     "fault-skip": x86_model.X86FaultSkip,
     "noncanonical": x86_model.X86NonCanonicalAddress,
+    "vspec-ops-div": x86_model.x86UnicornVspecOpsDIV,
+    "vspec-ops-memory-faults": x86_model.x86UnicornVspecOpsMemoryFaults,
+    "vspec-ops-memory-assists": x86_model.x86UnicornVspecOpsMemoryAssists,
+    "vspec-ops-gp": x86_model.x86UnicornVspecOpsGP,
+    "vspec-all-div": x86_model.x86UnicornVspecAllDIV,
+    "vspec-all-memory-faults": x86_model.X86UnicornVspecAllMemoryFaults,
+    "vspec-all-memory-assists": x86_model.X86UnicornVspecAllMemoryAssists,
 }
 
 EXECUTORS = {
@@ -109,6 +116,9 @@ def get_model(bases: Tuple[int, int]) -> interfaces.Model:
     if CONF.instruction_set == 'x86-64':
         if "cond" in CONF.contract_execution_clause and "bpas" in CONF.contract_execution_clause:
             model_instance = x86_model.X86UnicornCondBpas(bases[0], bases[1])
+        elif "conditional_br_misprediction" in CONF.contract_execution_clause and \
+             "nullinj-fault" in CONF.contract_execution_clause:
+            model_instance = x86_model.X86NullInjCond(bases[0], bases[1])
         elif len(CONF.contract_execution_clause) == 1:
             model_instance = _get_from_config(X86_SIMPLE_EXECUTION_CLAUSES,
                                               CONF.contract_execution_clause[0],
