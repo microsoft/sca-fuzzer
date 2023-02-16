@@ -11,7 +11,6 @@ instruction_categories:
   - BASE-LOGICAL
 
 # environment
-enable_faulty_page: false
 x86_executor_enable_ssbp_patch: false
 
 # fuzzing configuration
