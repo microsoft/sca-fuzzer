@@ -8,15 +8,18 @@ In the context of Revizor, it is a violation of out expectations about the CPU b
 The most prominent examples would be [Spectre](https://spectreattack.com/), [Meltdown](https://meltdownattack.com/), and other speculative execution vulnerabilities.
 Alternatively, a "bug" could also be in a form of a microarchitectural backdoor, although we are yet to encounter one of those.
 
-See our [Paper](https://dl.acm.org/doi/10.1145/3503222.3507729) for details (also in open access [here](https://arxiv.org/abs/2105.06872)).
+For more details, see our [Paper](https://dl.acm.org/doi/10.1145/3503222.3507729) (open access [here](https://arxiv.org/abs/2105.06872)), and the [follow-up paper](https://arxiv.org/pdf/2301.07642.pdf).
 
 # Getting Started
 
-**Note:** If you find a missing or a confusing explanation, or a bug in Revizor, don't hesitate to open an issue.
+If you find a bug in Revizor, don't hesitate to [open an issue](https://github.com/microsoft/sca-fuzzer/issues).
+If something is confusing or you need help in using Revizor, we have a [discussion page](https://github.com/microsoft/sca-fuzzer/discussions).
 
-**Warning**: Revizor executes randomly generated code in kernel space.
+## Before you use Revizor
+
+Keep in mind that Revizor executes randomly-generated code in kernel space.
 As you can imagine, things could go wrong.
-We did our best to avoid it and to make Revizor stable, but still, no software is perfect.
+We are doing our best to avoid it by thoroughly testing the tool and making sure it is stable, but still, no software is perfect.
 Make sure you're not running these experiments on an important machine.
 
 ## Requirements & Dependencies
@@ -25,14 +28,19 @@ Make sure you're not running these experiments on an important machine.
 
 Revizor supports Intel and AMD x86-64 CPUs.
 
-We also have experimental support for ARM CPUs (see `arm-port` branch); use it on your own peril.
+We also have experimental support for ARM CPUs (see `arm-port` branch) but use it on your own peril.
 
 ### 2. Software Requirements
 
-* Linux v4.15 or later. Older kernels will likely work as well, but we never tried it.
+* OS and virtualization:
+You will need a Linux bare-metal installation.
+Other operating systems and testing from inside a VM is not (yet) supported.
 
+* Linux kernel: v4.15 or later.
+Older kernels may or may not work - we have not tested on them.
+
+To check your current Linux kernel version:
 ```shell
-# check linux version
 cat /proc/version
 ```
 
@@ -45,34 +53,16 @@ sudo apt-get install linux-headers-$(uname -r)
 
 * [Python 3.9+](https://www.python.org/downloads/)
 
-Install it:
+If your distribution has an older python by default, the best practice is to use a virtual environment.
 ```shell
 # On Ubuntu 18
 sudo apt install python3.9 python3.9-distutils
-```
 
-To switch to python3.9 temporary, you can use [venv](https://docs.python.org/3/library/venv.html):
-```shell
 python3.9 -m venv venv
+
+# re-run this command every time you open a new terminal session
 source ./venv/bin/activate
 ```
-
-Alternatively, you can globally switch the python version, but keep it mind
-that it may lead to problems with `apt`:
-```
-sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 2
-sudo update-alternatives --config python3
-
-# you may also need
-pip3 install --upgrade setuptools
-pip3 install --upgrade pip
-pip3 install --upgrade distlib
-```
-
-*Warning*: Some distributions (including Ubuntu) rely on a specific version of python,
-so updating alternatives may mess up with internal tools (e.g., `apt` may start faulting).
-In such cases, simply reset alternatives to the default python version after you've
-finished using Revizor.
 
 * [Unicorn 1.0.2+](https://www.unicorn-engine.org/docs/).
 Preferably, use version 1.0.2 or 1.0.3 as they seem to be currently the most stable.
@@ -173,9 +163,9 @@ A violation should be detected within a few minutes, with a message similar to t
     0111010000011100111000001010010011110101110011110100000111010110
   Hardware traces:
    Inputs [907599882]:
-    _____^______^______^___________________________________________^
+    .....^......^......^...........................................^
    Inputs [2282448906]:
-    ___________________^_____^___________________________________^_^
+    ...................^.....^...................................^.^
 
 ```
 
