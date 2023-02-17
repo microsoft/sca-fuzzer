@@ -167,6 +167,9 @@ static inline int pre_measurement_setup(void)
     // Configure uarch patches
     wrmsr64(MSR_IA32_SPEC_CTRL, ssbp_patch_control);
 
+    // Configure extensions
+    wrmsr64(MSR_IA32_BNDCFGS, mpx_control);
+
     // Disable prefetchers
     wrmsr64(0x1a4, prefetcher_control);
 
@@ -207,6 +210,13 @@ static inline int pre_measurement_setup(void)
         return -1;
     }
     return 0;
+}
+
+static inline void post_measurement(void)
+{
+#if VENDOR_ID == 1 // Intel
+    wrmsr64(MSR_IA32_BNDCFGS, 0);
+#endif
 }
 
 static inline int uarch_flush(void)
@@ -363,6 +373,7 @@ int trace_test_case(void)
     if (pre_measurement_setup())
         return -1;
     run_experiment((long)n_inputs);
+    post_measurement();
 
     kernel_fpu_end();
     return 0;
