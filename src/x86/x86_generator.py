@@ -8,7 +8,7 @@ import abc
 import math
 import re
 import random
-import copy
+from copy import deepcopy
 from typing import List, Dict, Set, Optional, Tuple
 from subprocess import run
 
@@ -405,7 +405,7 @@ class X86SandboxPass(Pass):
                 for inst in bb:
                     if inst.has_mem_operand(True):
                         memory_instructions.append(inst)
-                    if inst.name in ["DIV", "REX DIV"]:
+                    if inst.name in ["DIV", "REX DIV", "IDIV", "REX IDIV"]:
                         divisions.append(inst)
                     elif inst.name in self.bit_test_names:
                         bit_tests.append(inst)
@@ -482,69 +482,149 @@ class X86SandboxPass(Pass):
 
     def sandbox_division(self, inst: Instruction, parent: BasicBlock):
         """
-        We do not support handling of division faults so far, so we have to prevent them.
-        Specifically, we need to prevent two types of faults:
+        In the experiments where division errors are not permitted, we prevent them
+        through code instrumentation.
+        Specifically, we may need to prevent two types of faults:
         - division by zero
         - division overflow (i.e., quotient is larger than the destination register)
-        For this, we ensure that the *D register (upper half of the dividend) is always
-        less than the divisor with a bit trick like this ( D & divisor >> 1).
 
-        The first corner case when it won't work is when the divisor is D. This case
-        is impossible to resolve, as far as I can tell. We just give up.
+        To prevent div by zero we OR the divider with a non-zero value:
+            divisor = divisor | 1
 
-        The second corner case is 8-bit division, when the divisor is the AX register alone.
-        Here the instrumentation become too complicated, and we simply set AX to 1.
+        The mechanism for preventing div overflows depends on the division type:
+        * for unsigned division, we first mask the upper half of the dividend with the divisor,
+        which makes the quotient at most one bit larger then the destination, and then shift
+        the result by one, thus compensating for the last one overflow bit.
+            D = (D & divisor) >> 1
+        * for signed division, we make set its lower bits to 0b10000, which ensures that
+        all positive divider values are larger or equal to 15, and all negative values
+        are smaller or equal to -15.
+            divisor[0:3] = 0b1000
+        We further constraint the division by clearing the sign bit of the dividend.
+        Under these two constraints, an overflow is possible only when the dividend
+        is larger  or equal to (15 << div_size, e.g., for 32-bit division 15 * (2 ** 32)).
+        Since, the dividend is a combination of two registers (D << div_size + A),
+        an overflow happens when D is larger or equal to 15. We ensure that it does not
+        happen by masking the upper bits of D:
+            D = D & 0b11
+
+        There are also two corner cases:
+            1) The divisor is D. This case is impossible to resolve, as far as I can tell,
+            because our instrumentation would have to modify both the divisor and the dividend
+            at the same time. We just give up in this case and delete the instruction.
+            2) 8-bit division, when the divisor is the AX register alone.
+            Here the instrumentation becomes too complicated, so we simply set AX to 1.
+
+        This instrumentation has a side effect of reducing the entropy of the division operands:
+        For unsigned division:
+            * entropy of the divisor is reduced by 1 bit
+            * entropy of D is reduced by (divisor_value_size + 1) bits
+        For signed division:
+            * entropy of the divisor is reduced by 4 bits
+            * entropy of D is reduced by (division_size - 2) bits (i.e., the resulting
+              entropy of D is 2 bits, with the sign bit cleared)
         """
         divisor = inst.operands[0]
+        size = divisor.width
 
-        # TODO: remove me - avoids a certain violation
-        if divisor.width == 64 and CONF.x86_disable_div64:  # type: ignore
+        # This option prevents triggering of Zero Division Injection in the tests
+        if size == 64 and CONF.x86_disable_div64:  # type: ignore
             parent.delete(inst)
             return
 
+        # Prevent div by zero
         if 'DE-zero' not in CONF.permitted_faults:
-            # Prevent div by zero
-            instrumentation = Instruction("OR", True) \
-                .add_op(divisor) \
-                .add_op(ImmediateOperand("1", 8)) \
-                .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
-            parent.insert_before(inst, instrumentation)
+            if "IDIV" not in inst.name or 'DE-overflow' in CONF.permitted_faults:
+                # for unsigned division and signed divisions with overflow permitted,
+                # it is sufficient to OR the divisor with 1 to prevent div by zero
+                instrumentation = Instruction("OR", True) \
+                    .add_op(divisor) \
+                    .add_op(ImmediateOperand("1", 8)) \
+                    .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
+                parent.insert_before(inst, instrumentation)
+            else:
+                # for signed divisions with overflows forbidden,
+                # we need to modify the divisor to make it both non-zero
+                # and large enough to avoid overflows.
+                # We have two cases here, positive and negative divider values:
 
+                # For positive dividers, we OR the divisor with 0b10000 to make sure
+                # that the divider is at least 15
+                # (the value 15 comes from the instrumentation below, where
+                # we make the dividend at most `4 << div_size - 1`)
+                instrumentation = Instruction("OR", True) \
+                    .add_op(divisor) \
+                    .add_op(ImmediateOperand("0b1000", 8)) \
+                    .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
+                parent.insert_before(inst, instrumentation)
+
+                # For negative dividers, we clear the lower 4 bits of the divider,
+                # thus making the value at most -15. To this end, we AND
+                # the lower 8 bits of the divider bit a bit mask 0b11110000
+                divider_8_bit = deepcopy(divisor)
+                divider_8_bit.width = 8
+                if isinstance(divisor, RegisterOperand):
+                    reg_normalized = self.target_desc.gpr_normalized[divisor.value]
+                    reg_8_bit = self.target_desc.gpr_denormalized[reg_normalized][8]
+                    divider_8_bit.value = reg_8_bit
+                instrumentation = Instruction("AND", True) \
+                    .add_op(divider_8_bit) \
+                    .add_op(ImmediateOperand("0b11111000", 8)) \
+                    .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
+                parent.insert_before(inst, instrumentation)
+
+        # Prevent div overflows
         if 'DE-overflow' in CONF.permitted_faults:
             return
 
-        # divisor in D or in memory with RDX offset? Impossible case, give up
-        if divisor.value in ["RDX", "EDX", "DX", "DH", "DL"] or "RDX" in divisor.value:
+        # Check for the cases that are impossible to instrument:
+        # - division by D register
+        # - division by a memory value with the RDX offset
+        # - division where AX is both the dividend and the offset in memory
+        if divisor.value in ["RDX", "EDX", "DX", "DH", "DL"] \
+           or "RDX" in divisor.value \
+           or ("RAX" in divisor.value and size == 8):
             parent.delete(inst)
             return
 
-        # dividend in AX?
-        if divisor.width == 8:
-            if "RAX" not in divisor.value:
-                instrumentation = Instruction("MOV", True).\
-                    add_op(RegisterOperand("AX", 16, False, True)).\
-                    add_op(ImmediateOperand("1", 16))
-                parent.insert_before(inst, instrumentation)
-                return
-            else:
-                # AX is both the dividend and the offset in memory.
-                # Too complex (impossible?). Giving up
-                parent.delete(inst)
-                return
+        # Special case: dividend in AX
+        # instrumentation: ax = 1
+        if size == 8:
+            instrumentation = Instruction("MOV", True).\
+                add_op(RegisterOperand("AX", 16, False, True)).\
+                add_op(ImmediateOperand("1", 16))
+            parent.insert_before(inst, instrumentation)
+            return
 
         # Normal case
-        # D = (D & divisor) >> 1
-        d_register = {64: "RDX", 32: "EDX", 16: "DX"}[divisor.width]
-        instrumentation = Instruction("AND", True) \
-            .add_op(RegisterOperand(d_register, divisor.width, False, True)) \
-            .add_op(divisor) \
-            .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
-        parent.insert_before(inst, instrumentation)
-        instrumentation = Instruction("SHR", True) \
-            .add_op(RegisterOperand(d_register, divisor.width, False, True)) \
-            .add_op(ImmediateOperand("1", 8)) \
-            .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "undef"]), True)
-        parent.insert_before(inst, instrumentation)
+        d_register = {64: "RDX", 32: "EDX", 16: "DX"}[size]
+
+        # signed div
+        if "IDIV" in inst.name:
+            # it's extremely hard to prevent overflows with large signed divisions
+            # that's why we simplify the case by assigning zero to the upper bits of the dividend
+            # instrumentation, thus making the dividend at most `4 << div_size - 1`
+            # D = D & 3
+            instrumentation = Instruction("AND", True) \
+                .add_op(RegisterOperand(d_register, size, True, True)) \
+                .add_op(ImmediateOperand("0b11", 8)) \
+                .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
+            parent.insert_before(inst, instrumentation)
+
+        # unsigned div
+        else:
+            # instrumentation:
+            # D = (D & divisor) >> 1  # ensure that D is always smaller than the divisor
+            instrumentation = Instruction("AND", True) \
+                .add_op(RegisterOperand(d_register, size, True, True)) \
+                .add_op(divisor) \
+                .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
+            parent.insert_before(inst, instrumentation)
+            instrumentation = Instruction("SHR", True) \
+                .add_op(RegisterOperand(d_register, size, True, True)) \
+                .add_op(ImmediateOperand("1", 8)) \
+                .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "undef"]), True)
+            parent.insert_before(inst, instrumentation)
 
     def sandbox_bit_test(self, inst: Instruction, parent: BasicBlock):
         """

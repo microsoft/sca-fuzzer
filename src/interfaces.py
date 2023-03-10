@@ -693,6 +693,7 @@ class TargetDesc(ABC):
     simd_registers: Dict[int, List[str]]
     branch_conditions: Dict[str, List[str]]
     gpr_normalized: Dict[str, str]
+    gpr_denormalized: Dict[str, Dict[int, str]]
 
     @staticmethod
     @abstractmethod

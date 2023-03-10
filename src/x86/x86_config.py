@@ -79,8 +79,6 @@ x86_instruction_blocklist: List[str] = [
     "CPUID",
     # - Requires support of segment registers
     "XLAT", "XLATB",
-    # - Requires special instrumentation to avoid #DE faults
-    "IDIV", "REX IDIV",
     # - Requires complex instrumentation
     "ENTERW", "ENTER", "LEAVEW", "LEAVE",
     # - requires support of all possible interrupts
