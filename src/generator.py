@@ -471,9 +471,26 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
     def generate_imm_operand(self, spec: OperandSpec, _: Instruction) -> Operand:
         if spec.values:
             if spec.values[0] == "bitmask":
-                # FIXME: this implementation always returns the same bitmask
-                # make it random
-                value = str(pow(2, spec.width) - 2)
+                assert CONF.instruction_set == "arm64"
+
+                if spec.width == 64:
+                    imms_zero_pos = random.randint(1, 6)
+                else:
+                    imms_zero_pos = random.randint(1, 5)
+                imms_ones = random.randint(1, 2 ** imms_zero_pos - 1)
+
+                immr = random.randint(0, spec.width - 1)
+
+                pattern = "0" * (2 ** imms_zero_pos - imms_ones) + "1" * imms_ones
+                multiplier = spec.width // (2 ** imms_zero_pos)
+                value_str = pattern * multiplier
+                value = int(value_str, 2)
+                value = (value >> immr)|(value << (spec.width - immr)) & (2 ** spec.width - 1)
+
+                if spec.width == 64:
+                    value = f"0x{value:016x}"
+                else:
+                    value = f"0x{value:08x}"
             else:
                 assert "[" in spec.values[0], spec.values
                 range_ = spec.values[0][1:-1].split("-")
@@ -481,6 +498,21 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
                     range_ = range_[1:]
                     range_[0] = "-" + range_[0]
                 assert len(range_) == 2
+
+                # Constrain the immediate value to the maximum value allowed
+                # by using input_gen_entropy_bits of the immediate
+                if CONF.input_entropy_for_imm:
+                    max_imm_vals = 2 ** CONF.input_gen_entropy_bits
+                    op_imm_max = int(range_[1]) - int(range_[0]) + 1
+                    if op_imm_max > max_imm_vals:
+                        if int(range_[0]) < 0:
+                            # Signed imm
+                            range_[0] = f"-{max_imm_vals // 2}"
+                            range_[1] = f"{max_imm_vals // 2 - 1}"
+                        else:
+                            # Unsigned imm
+                            range_[1] = f"{max_imm_vals - 1}"
+
                 value = str(random.randint(int(range_[0]), int(range_[1])))
         else:
             value = str(random.randint(pow(2, spec.width - 1) * -1, pow(2, spec.width - 1) - 1))

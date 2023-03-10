@@ -59,6 +59,9 @@ class ConfCls:
     for correctness """
     register_blocklist: List[str] = []
     """ register_blocklist: list of registers that will NOT be used for generating programs """
+    input_entropy_for_imm: bool = False
+    """ Applies bounds on immediate values based on the entropy parameter applied to inputs,
+    Note: this does not apply to bitmasks """
     avoid_data_dependencies: bool = False
     """ [DEPRECATED] avoid_data_dependencies: """
     generate_memory_accesses_in_pairs: bool = False
