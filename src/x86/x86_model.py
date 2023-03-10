@@ -679,49 +679,46 @@ class X86UnicornDivOverflow(X86FaultModelAbstract):
         # start speculation
         self.checkpoint(self.emulator, self.code_end)
 
-        if self.current_instruction.name == "DIV":
-            # set carry flag
-            # flags = self.emulator.reg_read(ucc.UC_X86_REG_EFLAGS)
-            # self.emulator.reg_write(ucc.UC_X86_REG_EFLAGS, flags | FLAGS_CF)
+        # set carry flag
+        # flags = self.emulator.reg_read(ucc.UC_X86_REG_EFLAGS)
+        # self.emulator.reg_write(ucc.UC_X86_REG_EFLAGS, flags | FLAGS_CF)
 
-            # execute division with trimming
-            width = divider.width
-            if width == 64:
-                a = self.emulator.reg_read(ucc.UC_X86_REG_RAX)
-                d = self.emulator.reg_read(ucc.UC_X86_REG_RDX)
-                trimmed_result = (((d << 64) + a) // value) % 0xffffffffffffffff
-                self.emulator.reg_write(ucc.UC_X86_REG_RAX, trimmed_result)
-                self.emulator.reg_write(ucc.UC_X86_REG_RDX, ((d << 64) + a) % value)
-                return self.next_instruction_addr
-            if width == 32:
-                a = self.emulator.reg_read(ucc.UC_X86_REG_EAX)
-                d = self.emulator.reg_read(ucc.UC_X86_REG_EDX)
-                trimmed_result = (((d << 32) + a) // value)  # 0xffffffff%
-                # print(hex(a), hex(d), trimmed_result, 6070540370 % 0xffffffff)
-                trimmed_remainder = (((d << 32) + a) % value)  # % 0xffffffff
-                # self.emulator.reg_write(ucc.UC_X86_REG_RDX, 0)
-                # print(trimmed_remainder)
-                self.emulator.reg_write(ucc.UC_X86_REG_RAX, trimmed_result)
-                self.emulator.reg_write(ucc.UC_X86_REG_RDX, 0)
-                return self.next_instruction_addr
-            if width == 16:
-                a = self.emulator.reg_read(ucc.UC_X86_REG_AX)
-                d = self.emulator.reg_read(ucc.UC_X86_REG_DX)
-                trimmed_result = (((d << 16) + a) // value)  # % 0xffff
-                self.emulator.reg_write(ucc.UC_X86_REG_RAX, trimmed_result)
-                self.emulator.reg_write(ucc.UC_X86_REG_RDX, ((d << 16) + a) % value)
-                return self.next_instruction_addr
-            if width == 8:
-                a = self.emulator.reg_read(ucc.UC_X86_REG_AX)
-                trimmed_result = (a // value) % 0xff
-                trimmed_remainder = (a % value) % 0xff
-                # self.emulator.reg_write(ucc.UC_X86_REG_AX, 0)
-                self.emulator.reg_write(ucc.UC_X86_REG_AH, trimmed_remainder)
-                self.emulator.reg_write(ucc.UC_X86_REG_AL, trimmed_result)
-                return self.next_instruction_addr
-            raise UnreachableCode()
-        else:  # IDIV
-            raise UnreachableCode()
+        # execute division with trimming
+        width = divider.width
+        if width == 64:
+            a = self.emulator.reg_read(ucc.UC_X86_REG_RAX)
+            d = self.emulator.reg_read(ucc.UC_X86_REG_RDX)
+            trimmed_result = (((d << 64) + a) // value) % 0xffffffffffffffff
+            self.emulator.reg_write(ucc.UC_X86_REG_RAX, trimmed_result)
+            self.emulator.reg_write(ucc.UC_X86_REG_RDX, ((d << 64) + a) % value)
+            return self.next_instruction_addr
+        if width == 32:
+            a = self.emulator.reg_read(ucc.UC_X86_REG_EAX)
+            d = self.emulator.reg_read(ucc.UC_X86_REG_EDX)
+            trimmed_result = (((d << 32) + a) // value)  # 0xffffffff%
+            # print(hex(a), hex(d), trimmed_result, 6070540370 % 0xffffffff)
+            trimmed_remainder = (((d << 32) + a) % value)  # % 0xffffffff
+            # self.emulator.reg_write(ucc.UC_X86_REG_RDX, 0)
+            # print(trimmed_remainder)
+            self.emulator.reg_write(ucc.UC_X86_REG_RAX, trimmed_result)
+            self.emulator.reg_write(ucc.UC_X86_REG_RDX, 0)
+            return self.next_instruction_addr
+        if width == 16:
+            a = self.emulator.reg_read(ucc.UC_X86_REG_AX)
+            d = self.emulator.reg_read(ucc.UC_X86_REG_DX)
+            trimmed_result = (((d << 16) + a) // value)  # % 0xffff
+            self.emulator.reg_write(ucc.UC_X86_REG_RAX, trimmed_result)
+            self.emulator.reg_write(ucc.UC_X86_REG_RDX, ((d << 16) + a) % value)
+            return self.next_instruction_addr
+        if width == 8:
+            a = self.emulator.reg_read(ucc.UC_X86_REG_AX)
+            trimmed_result = (a // value) % 0xff
+            trimmed_remainder = (a % value) % 0xff
+            # self.emulator.reg_write(ucc.UC_X86_REG_AX, 0)
+            self.emulator.reg_write(ucc.UC_X86_REG_AH, trimmed_remainder)
+            self.emulator.reg_write(ucc.UC_X86_REG_AL, trimmed_result)
+            return self.next_instruction_addr
+        raise UnreachableCode()
 
     @staticmethod
     def trace_mem_access(emulator: Uc, access, address: int, size, value, model):

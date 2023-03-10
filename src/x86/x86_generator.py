@@ -404,7 +404,7 @@ class X86SandboxPass(Pass):
                 for inst in bb:
                     if inst.has_mem_operand(True):
                         memory_instructions.append(inst)
-                    if inst.name in ["DIV", "REX DIV"]:
+                    if inst.name in ["DIV", "REX DIV", "IDIV", "REX IDIV"]:
                         divisions.append(inst)
                     elif inst.name in self.bit_test_names:
                         bit_tests.append(inst)
