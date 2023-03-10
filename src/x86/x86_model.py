@@ -249,25 +249,9 @@ class X86UnicornCond(X86UnicornSpec):
             return target[0], will_jump, is_loop
         return int.from_bytes(target, byteorder='little'), will_jump, is_loop
 
-    @staticmethod
-    def speculate_mem_access(emulator, access, address, size, value, model):
-        pass  # cond does not need to speculate mem accesses
-
 
 class X86UnicornBpas(UnicornBpas, X86UnicornModel):
     pass
-
-
-class X86UnicornCondBpas(X86UnicornSpec):
-
-    @staticmethod
-    def speculate_mem_access(emulator, access, address, size, value, model):
-        X86UnicornBpas.speculate_mem_access(emulator, access, address, size, value, model)
-
-    @staticmethod
-    def speculate_instruction(emulator: Uc, address, size, model) -> None:
-        X86UnicornCond.speculate_instruction(emulator, address, size, model)
-        X86UnicornBpas.speculate_instruction(emulator, address, size, model)
 
 
 class X86FaultModelAbstract(X86UnicornSpec):
@@ -787,6 +771,32 @@ class X86NonCanonicalAddress(X86FaultModelAbstract):
         self.address_register = -1
         self.register_value = -1
         return super().reset_model()
+
+
+# ==================================================================================================
+# Contract Combinations
+# ==================================================================================================
+class X86UnicornCondBpas(X86UnicornSpec):
+
+    @staticmethod
+    def speculate_mem_access(emulator, access, address, size, value, model):
+        X86UnicornBpas.speculate_mem_access(emulator, access, address, size, value, model)
+
+    @staticmethod
+    def speculate_instruction(emulator: Uc, address, size, model) -> None:
+        X86UnicornCond.speculate_instruction(emulator, address, size, model)
+        X86UnicornBpas.speculate_instruction(emulator, address, size, model)
+
+
+class X86NullInjCond(X86UnicornNull, X86UnicornCond):
+    @staticmethod
+    def speculate_mem_access(emulator, access, address, size, value, model):
+        X86UnicornNull.speculate_mem_access(emulator, access, address, size, value, model)
+
+    @staticmethod
+    def speculate_instruction(emulator: Uc, address, size, model) -> None:
+        X86UnicornCond.speculate_instruction(emulator, address, size, model)
+        X86UnicornNull.speculate_instruction(emulator, address, size, model)
 
 
 # ==================================================================================================

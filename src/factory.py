@@ -116,6 +116,9 @@ def get_model(bases: Tuple[int, int]) -> interfaces.Model:
     if CONF.instruction_set == 'x86-64':
         if "cond" in CONF.contract_execution_clause and "bpas" in CONF.contract_execution_clause:
             model_instance = x86_model.X86UnicornCondBpas(bases[0], bases[1])
+        elif "conditional_br_misprediction" in CONF.contract_execution_clause and \
+             "nullinj-fault" in CONF.contract_execution_clause:
+            model_instance = x86_model.X86NullInjCond(bases[0], bases[1])
         elif len(CONF.contract_execution_clause) == 1:
             model_instance = _get_from_config(X86_SIMPLE_EXECUTION_CLAUSES,
                                               CONF.contract_execution_clause[0],
