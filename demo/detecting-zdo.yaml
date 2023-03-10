@@ -1,3 +1,8 @@
+# This demo illustrates detection of a previously-unknown vulnerability
+# Zero Division Injection, described
+# in [Hide&Seek with Spectres](https://arxiv.org/abs/2301.07642)
+# Run it with: ./cli.py fuzz -s x86/isa_spec/base.json -n 1000 -i 100 -c ../demo/detecting-zdo.yaml
+
 # contract
 contract_observation_clause: loads+stores+pc
 contract_execution_clause:
@@ -25,9 +30,10 @@ enable_speculation_filter: true
 enable_observation_filter: true
 input_gen_entropy_bits: 16
 memory_access_zeroed_bits: 0
-min_bb_per_function: 2
-max_bb_per_function: 2
+min_bb_per_function: 1
+max_bb_per_function: 1
 program_size: 64
 avg_mem_accesses: 24
 inputs_per_class: 2
+executor_warmups: 2
 x86_disable_div64: false
