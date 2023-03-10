@@ -75,6 +75,13 @@ class Fuzzer:
             LOGGER.fuzzer_start_round(i)
             LOGGER.dbg_report_coverage(i, self.coverage.get_brief())
 
+            # terminate the fuzzer if the timeout has expired
+            if timeout:
+                now = datetime.today()
+                if (now - start_time).total_seconds() > timeout:
+                    LOGGER.fuzzer_timeout()
+                    break
+
             # Generate a test case
             test_case: TestCase
             if self.existing_test_case:
@@ -106,13 +113,6 @@ class Fuzzer:
                 self.store_test_case(test_case, violation)
                 STAT.violations += 1
                 if not nonstop:
-                    break
-
-            # stop fuzzing after a timeout
-            if timeout:
-                now = datetime.today()
-                if (now - start_time).total_seconds() > timeout:
-                    LOGGER.fuzzer_timeout()
                     break
 
         LOGGER.fuzzer_finish()
