@@ -297,6 +297,21 @@ class X86Transformer:
             inst.implicit_operands = [op1, op2]
             self.instructions.append(inst)
 
+        if not extensions or "MPX" in extensions:
+            for name in ["BNDCL", "BNDCU"]:
+                inst = InstructionSpec()
+                inst.name = name
+                inst.category = "MPX-MPX"
+                inst.control_flow = False
+                op1 = OperandSpec()
+                op1.type_, op1.src, op1.dest, op1.width = "REG", True, False, 128
+                op1.values = ["BND0", "BND1", "BND2", "BND3"]
+                op2 = OperandSpec()
+                op2.type_, op2.src, op2.dest, op2.width = "MEM", True, False, 64
+                op2.values = []
+                inst.operands = [op1, op2]
+                self.instructions.append(inst)
+
 
 def main():
     parser = ArgumentParser(description='', add_help=False)
