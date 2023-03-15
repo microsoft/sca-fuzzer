@@ -86,6 +86,9 @@ class MinimizerViolation(Minimizer):
 
             # Create a test case with one line missing
             tmp_instructions = modifier(instructions, cursor)
+            if not tmp_instructions:
+                continue
+
             tmp_test_case = self._get_test_case_from_instructions(fuzzer, tmp_instructions)
 
             # Run and check if the vuln. is still there
@@ -139,14 +142,17 @@ class MinimizerViolation(Minimizer):
     def minimize_test_case(self, fuzzer: Fuzzer, test_case: TestCase,
                            inputs: List[Input]) -> TestCase:
 
-        def skip_instruction(instructions, i):
+        def skip_instruction(instructions, i) -> List:
             return instructions[:i] + instructions[i + 1:]
 
         return self._probe_test_case(fuzzer, test_case, inputs, skip_instruction)
 
     def add_fences(self, fuzzer: Fuzzer, test_case: TestCase, inputs: List[Input]) -> TestCase:
 
-        def push_fence(instructions, i):
+        def push_fence(instructions, i) -> List:
+            curr_instr = instructions[i].upper()
+            if curr_instr[0] == "J" or curr_instr[0:3] == "LOOP":
+                return []  # skip control-flow instructions - their target is already fenced
             return instructions[:i] + ["LFENCE\n"] + instructions[i:]
 
         return self._probe_test_case(fuzzer, test_case, inputs, push_fence)
