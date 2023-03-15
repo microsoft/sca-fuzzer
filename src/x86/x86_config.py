@@ -11,7 +11,7 @@ x86_option_values = {
     'executor_mode': ['P+P', 'F+R', 'E+R', 'PP+P'],  # 'GPR' is intentionally left out
     'permitted_faults': [
         'DE-zero', 'DE-overflow', 'UD', 'UD-vtx', 'UD-svm', 'PF-present', 'PF-writable', 'PF-smap',
-        'GP-noncanonical', 'BP', 'DB-instruction', 'assist-accessed', 'assist-dirty'
+        'GP-noncanonical', 'BP', 'BR', 'DB-instruction', 'assist-accessed', 'assist-dirty'
     ],
 }
 
@@ -66,6 +66,7 @@ x86_instruction_categories: List[str] = [
     "SGX-SGX",
     "VTX-VTX",
     "SVM-SYSTEM",
+    "MPX-MPX",
 ]
 
 x86_instruction_blocklist: List[str] = [

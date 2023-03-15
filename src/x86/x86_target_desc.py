@@ -52,6 +52,10 @@ class X86TargetDesc(TargetDesc):
         "DF": "DF",
         "OF": "OF",
         "AC": "AC",
+        "BND0": "BND0",
+        "BND1": "BND1",
+        "BND2": "BND2",
+        "BND3": "BND3",
     }  # yapf: disable
     gpr_denormalized = {
         "A": {64: "RAX", 32: "EAX", 16: "AX", 8: "AL"},
@@ -80,6 +84,7 @@ class X86TargetDesc(TargetDesc):
              "R13D", "R14D", "R15D"],
         64: ["RAX", "RBX", "RCX", "RDX", "RSI", "RDI", "R8", "R9", "R10", "R11", "R12", "R13",
              "R14", "R15", "RSP", "RBP"],
+        128: ["BND0", "BND1", "BND2", "BND3"]
     }  # yapf: disable
     simd_registers = {
         64: [f"MM{i}" for i in range(0, 8)],

@@ -38,6 +38,8 @@ def update_instruction_list():
         CONF._default_instruction_blocklist.append("INT1")
     if 'BP' not in CONF.permitted_faults:
         CONF._default_instruction_blocklist.append("INT3")
+    if 'BR' not in CONF.permitted_faults:
+        CONF._default_instruction_blocklist.extend(['BNDCL', 'BNDCU'])
 
 
 def check_instruction_list(instruction_set: InstructionSetAbstract):
@@ -59,6 +61,10 @@ def check_instruction_list(instruction_set: InstructionSetAbstract):
         assert "INT1" in all_instruction_names
     if 'BP' in CONF.permitted_faults:
         assert "INT3" in all_instruction_names
+    if 'BR' in CONF.permitted_faults:
+        cpu_flags = run(
+            "grep 'flags' /proc/cpuinfo", shell=True, capture_output=True).stdout.decode()
+        assert "mpx" in cpu_flags and "BNDCU" in all_instruction_names
 
 
 class X86Fuzzer(Fuzzer):

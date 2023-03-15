@@ -132,6 +132,20 @@ class X86UnicornModel(UnicornModel):
                   f"rdi={rdi} \n"
                   f"  fl={emulator.reg_read(ucc.UC_X86_REG_EFLAGS):012b}")
 
+    def post_execution_patch(self) -> None:
+        # workaround for Unicorn not enabling MPX
+        if self.current_instruction.name == "BNDCU":
+            mem_op = self.current_instruction.get_mem_operands()[0]
+            mem_regs = re.split(r'\+|-|\*', mem_op.value)
+            assert len(mem_regs) == 2 and "R14" in mem_regs[0].upper(), "Invalid format of BNDCU"
+            offset_reg = self.target_desc.reg_str_to_constant.get(mem_regs[1].upper().strip(), None)
+            if offset_reg and (self.emulator.reg_read(offset_reg) + 8) > 0x1000:  # type: ignore
+                self.pending_fault_id = 13
+                self.emulator.emu_stop()
+            elif re.match("(0[bx])?[0-9]+", mem_regs[1]) and int(mem_regs[1]) > 0x1000:
+                self.pending_fault_id = 13
+                self.emulator.emu_stop()
+
 
 # ==================================================================================================
 # Implementation of Execution Clauses
@@ -566,7 +580,7 @@ class X86CondMeltdown(X86Meltdown, X86UnicornCond):
 
 class X86FaultSkip(X86FaultModelAbstract):
     """
-    As Meltdown but we skip the faulty load.
+    As Meltdown but we skip the faulty instruction.
     """
 
     def __init__(self, *args):
@@ -579,10 +593,6 @@ class X86FaultSkip(X86FaultModelAbstract):
 
         # store a checkpoint
         self.checkpoint(self.emulator, self.code_end)
-
-        # remove protection
-        self.emulator.mem_protect(self.sandbox_base + self.MAIN_REGION_SIZE,
-                                  self.FAULTY_REGION_SIZE)
 
         # speculatively skip the faulting instruction
         if self.next_instruction_addr >= self.code_end:

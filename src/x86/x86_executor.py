@@ -22,7 +22,7 @@ def write_to_sysfs_file_bytes(value: bytes, path: str) -> None:
 TRACE_NUM_ELEMENTS = 6
 
 
-class X86IntelExecutor(Executor):
+class X86Executor(Executor):
     previous_num_inputs: int = 0
     feedback: List[int]
 
@@ -55,6 +55,7 @@ class X86IntelExecutor(Executor):
                            "installation instructions.")
 
         # initialize the kernel module
+        self.set_vendor_specific_features()
         write_to_sysfs_file(CONF.executor_warmups, '/sys/x86_executor/warmups')
         write_to_sysfs_file("1" if CONF.x86_executor_enable_ssbp_patch else "0",
                             "/sys/x86_executor/enable_ssbp_patch")
@@ -63,6 +64,9 @@ class X86IntelExecutor(Executor):
         write_to_sysfs_file("1" if CONF.enable_pre_run_flush else "0",
                             "/sys/x86_executor/enable_pre_run_flush")
         write_to_sysfs_file(CONF.executor_mode, "/sys/x86_executor/measurement_mode")
+
+    def set_vendor_specific_features(self):
+        pass
 
     def load_test_case(self, test_case: TestCase):
         masks = f"{test_case.faulty_pte.mask_set} {test_case.faulty_pte.mask_clear}"
@@ -157,3 +161,14 @@ class X86IntelExecutor(Executor):
 
     def get_last_feedback(self) -> List:
         return self.feedback
+
+
+class X86IntelExecutor(X86Executor):
+    def set_vendor_specific_features(self):
+        write_to_sysfs_file("1" if "BR" in CONF.permitted_faults else "0",
+                            "/sys/x86_executor/enable_mpx")
+
+
+class X86AMDExecutor(X86Executor):
+    def set_vendor_specific_features(self):
+        pass

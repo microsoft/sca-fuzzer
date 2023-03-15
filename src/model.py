@@ -30,6 +30,7 @@ class UnicornTargetDesc(ABC):
     barriers: List[str]
     flags_register: int
     reg_decode: Dict[str, int]
+    reg_str_to_constant: Dict[str, int]
 
 
 class UnicornTracer(Tracer):
@@ -192,6 +193,8 @@ class UnicornModel(Model, ABC):
             self.handled_faults.add(10)
         if 'BP' in CONF.permitted_faults:
             self.handled_faults.add(21)
+        if 'BR' in CONF.permitted_faults:
+            self.handled_faults.add(13)
         if 'UD' in CONF.permitted_faults or 'UD-vtx' in CONF.permitted_faults or \
            'UD-svm' in CONF.permitted_faults:
             self.handled_faults.add(10)
@@ -289,7 +292,7 @@ class UnicornModel(Model, ABC):
 
                     start_address = self.handle_fault(self.pending_fault_id)
                     self.pending_fault_id = 0
-                    if start_address:
+                    if start_address and start_address != self.code_end:
                         continue
 
                 # if we use one of the speculative contracts, we might have some residual simulation
@@ -452,6 +455,9 @@ class UnicornModel(Model, ABC):
     def speculate_instruction(emulator: Uc, address, size, model: UnicornModel) -> None:
         pass
 
+    def post_execution_patch(self) -> None:
+        pass
+
     def speculate_fault(self, errno: int) -> int:
         """
         return the address of the first speculative instruction
@@ -586,14 +592,19 @@ class UnicornSeq(UnicornModel):
     """
 
     @staticmethod
-    def trace_instruction(_, address, size, model) -> None:
+    def trace_instruction(emulator, address, size, model) -> None:
         model.taint_tracker.start_instruction(model.current_instruction)
         model.tracer.observe_instruction(address, size, model)
+        # speculate_instruction is empty for seq, nonempty in subclasses
+        model.speculate_instruction(emulator, address, size, model)
+        model.post_execution_patch()
 
     @staticmethod
-    def trace_mem_access(_, access, address: int, size, value, model):
+    def trace_mem_access(emulator, access, address: int, size, value, model):
         model.taint_tracker.track_memory_access(address, size, access == UC_MEM_WRITE)
         model.tracer.observe_mem_access(access, address, size, value, model)
+        # speculate_mem_access is empty for seq, nonempty in subclasses
+        model.speculate_mem_access(emulator, access, address, size, value, model)
 
     def handle_fault(self, errno: int) -> int:
         # when a fault is triggered, CPU stores the PC and the fault type
@@ -622,7 +633,6 @@ class UnicornSpec(UnicornModel):
             model.store_logs[-1].append((address, emulator.mem_read(address, 8)))
 
         UnicornSeq.trace_mem_access(emulator, access, address, size, value, model)
-        model.speculate_mem_access(emulator, access, address, size, value, model)
 
     @staticmethod
     def trace_instruction(emulator, address, size, model: UnicornModel) -> None:
@@ -637,7 +647,6 @@ class UnicornSpec(UnicornModel):
                 emulator.emu_stop()
 
         UnicornSeq.trace_instruction(emulator, address, size, model)
-        model.speculate_instruction(emulator, address, size, model)
 
     def handle_fault(self, errno: int) -> int:
         # when a fault is triggered, CPU stores the PC and the fault type

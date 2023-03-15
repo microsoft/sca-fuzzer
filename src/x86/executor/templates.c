@@ -79,9 +79,10 @@ int load_template(size_t tc_size)
         if (*(uint64_t *)&measurement_template[template_pos] == TEMPLATE_RETURN)
             break;
 
-       if (*(uint64_t *) &measurement_template[template_pos] == TEMPLATE_JUMP_EXCEPTION) {
+        if (*(uint64_t *)&measurement_template[template_pos] == TEMPLATE_JUMP_EXCEPTION)
+        {
             template_pos += 7;
-            fault_handler = (char *) measurement_code + code_pos;
+            fault_handler = (char *)measurement_code + code_pos;
             code_pos--;
             continue;
         }
@@ -201,6 +202,26 @@ int load_template(size_t tc_size)
     "lfence; lfence; lfence; lfence; lfence \n");
 
 
+#if VENDOR_ID == 1 // Intel
+#define SET_REGISTER_FROM_INPUT()\
+    asm volatile("\n.intel_syntax noprefix\n" \
+    "lea rsp, [r14 + "xstr(REG_INIT_OFFSET)"]\n" \
+    "popq rax \n" \
+    "popq rbx \n" \
+    "popq rcx \n" \
+    "popq rdx \n" \
+    "popq rsi \n" \
+    "popq rdi \n" \
+    "popfq \n" \
+    "popq rsp \n" \
+    "mov rbp, rsp \n" \
+    "bndmk bnd0, [r14 + 0x1000]\n" \
+    "bndmk bnd1, [r14 + 0x1000]\n" \
+    "bndmk bnd2, [r14 + 0x1000]\n" \
+    "bndmk bnd3, [r14 + 0x1000]\n" \
+    ".att_syntax noprefix");
+
+#elif VENDOR_ID == 2 // AMD
 #define SET_REGISTER_FROM_INPUT()\
     asm volatile("\n.intel_syntax noprefix\n" \
     "lea rsp, [r14 + "xstr(REG_INIT_OFFSET)"]\n" \
@@ -214,6 +235,7 @@ int load_template(size_t tc_size)
     "popq rsp \n" \
     "mov rbp, rsp \n" \
     ".att_syntax noprefix");
+#endif
 
 inline void prologue(void)
 {
