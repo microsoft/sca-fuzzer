@@ -105,7 +105,7 @@ class X86UnicornModel(UnicornModel):
             elif val >= self.sandbox_base - self.OVERFLOW_REGION_SIZE and val < self.sandbox_base:
                 return f"+0x{val - self.sandbox_base:<15x}"
             else:
-                return f"0x{val:<15x}"
+                return f"0x{val:015x}"
 
         emulator = self.emulator
         rax = compressed(emulator.reg_read(ucc.UC_X86_REG_RAX))
