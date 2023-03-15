@@ -49,6 +49,8 @@ extern uint64_t prefetcher_control;
 #define PREFETCHER_DEFAULT PREFETCHER_OFF
 extern char pre_run_flush;
 #define PRE_RUN_FLUSH_DEFAULT 1
+extern char mpx_control; // MPX - unused on AMD
+#define MPX_DEFAULT 0
 extern char *attack_template;
 
 // Measurement results
@@ -105,8 +107,8 @@ extern volatile size_t n_inputs;
 
 // Fault handling
 #define HANDLED_FAULTS_DEFAULT                                                                     \
-    ((1 << X86_TRAP_DE) + (1 << X86_TRAP_DB) + (1 << X86_TRAP_BP) + (1 << X86_TRAP_UD) +           \
-     (1 << X86_TRAP_GP) + (1 << X86_TRAP_PF))
+    ((1 << X86_TRAP_DE) + (1 << X86_TRAP_DB) + (1 << X86_TRAP_BP) + (1 << X86_TRAP_BR) +           \
+     (1 << X86_TRAP_UD) + (1 << X86_TRAP_GP) + (1 << X86_TRAP_PF))
 
 extern char *fault_handler;
 extern uint32_t handled_faults;
