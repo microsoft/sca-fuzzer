@@ -16,6 +16,15 @@ MASK_64BIT = pow(2, 64)
 POW2_64 = pow(2, 64)
 TWOS_COMPLEMENT_MASK_64 = pow(2, 64) - 1
 
+RED = '\033[33;31m'
+GREEN = '\033[33;32m'
+YELLOW = '\033[33;33m'
+BLUE = '\033[33;34m'
+PURPLE = '\033[33;35m'
+CYAN = '\033[33;36m'
+GRAY = '\033[33;37m'
+COL_RESET = "\033[0m"
+
 
 class StatisticsCls:
     test_cases = 0
@@ -224,6 +233,20 @@ class Logger:
             print(datetime.today().strftime('Finished at %H:%M:%S'))
 
     def trc_fuzzer_dump_traces(self, model, inputs, htraces, ctraces, hw_feedback, nesting):
+
+        def ctrace_colorize(ctrace):
+            res = "["
+            for item in ctrace:
+                res += "'"
+                if "mem" in item:
+                    res += PURPLE + item + COL_RESET
+                elif "pc" in item:
+                    res += item
+                else:
+                    res += CYAN + item + COL_RESET
+                res += "', "
+            return res + "]"
+
         if __debug__:
             if self.dbg_traces:
                 print("\n================================ Collected Traces "
@@ -251,6 +274,13 @@ class Logger:
                         self.warning("fuzzer", "Trace output is limited to 100 traces")
                         break
                     ctrace_full = model.dbg_get_trace_detailed(inputs[i], nesting)
+                    print(f"- Input {i}:")
+                    print(f"  CTr: {ctrace_colorize(ctrace_full) if CONF.color else ctrace_full}")
+                    print(f"  HTr: {self.pretty_bitmap(htraces[i])}")
+                    if CONF.color and hw_feedback[i][0] > hw_feedback[i][1]:
+                        print(f"  Feedback: {YELLOW}{hw_feedback[i]}{COL_RESET}")
+                    else:
+                        print(f"  Feedback: {hw_feedback[i]}")
                 self.dbg_model = org_debug_state
 
     def fuzzer_report_violations(self, violation: EquivalenceClass, model):
@@ -309,7 +339,12 @@ class Logger:
         val = value if is_store else int.from_bytes(
             model.emulator.mem_read(address, size), byteorder='little')
         type_ = "store to" if is_store else "load from"
-        print(f"  > {type_} +0x{normalized_address:x} value 0x{val:x}")
+        if CONF.color:
+            msg = f"    > {CYAN}{type_}{COL_RESET} +0x{normalized_address:x} {CYAN}value {COL_RESET}0x{val:x}"
+        else:
+            msg = f"    > {type_} +0x{normalized_address:x} value 0x{val:x}"
+
+        print(msg)
 
     def dbg_model_instruction(self, normalized_address, model):
         if not __debug__:
@@ -318,11 +353,18 @@ class Logger:
         if not self.dbg_model:
             return
 
-        name = model.test_case.address_map[normalized_address]
+        name = str(model.test_case.address_map[normalized_address])
+        if CONF.color:
+            if model.in_speculation:
+                name = YELLOW + name + COL_RESET
+            else:
+                name = GREEN + name + COL_RESET
+
         if model.in_speculation:
-            print(f"transient 0x{normalized_address:<2x}: {name}")
-        else:
-            print(f"0x{normalized_address:<2x}: {name}")
+            name = f"[transient, nesting = {len(model.checkpoints)}] " + name
+        name = f"0x{normalized_address:<2x}: {name}"
+
+        print(name)
         model.print_state(oneline=True)
 
     def dbg_model_rollback(self, address, base):
@@ -332,7 +374,22 @@ class Logger:
         if not self.dbg_model:
             return
 
-        print(f"ROLLBACK to 0x{address - base:x}")
+        msg = f"ROLLBACK to 0x{address - base:x}"
+        if CONF.color:
+            msg = YELLOW + msg + COL_RESET
+        print(msg)
+
+    def dbg_model_exception(self, errno, descr):
+        if not __debug__:
+            return
+
+        if not self.dbg_model:
+            return
+
+        msg = f"EXCEPTION #{errno}: {descr}"
+        if CONF.color:
+            msg = RED + msg + COL_RESET
+        print(msg)
 
     # ==============================================================================================
     # Coverage
@@ -351,11 +408,11 @@ class Logger:
                 f"{offset}{(bits >> 64) % MASK_64BIT:064b} [s]"
         s = s.replace("0", ".").replace("1", "^")
         if CONF.color:
-            s = '\033[33;34m' + s[0:8] + '\033[33;32m' + s[8:16] \
-                + '\033[33;34m' + s[16:24] + '\033[33;32m' + s[24:32] \
-                + '\033[33;34m' + s[32:40] + '\033[33;32m' + s[40:48] \
-                + '\033[33;34m' + s[48:56] + '\033[33;32m' + s[56:64] \
-                + "\033[0m" + s[64:]
+            s = COL_RESET + s[0:8] + YELLOW + s[8:16] \
+                + COL_RESET + s[16:24] + YELLOW + s[24:32] \
+                + COL_RESET + s[32:40] + YELLOW + s[40:48] \
+                + COL_RESET + s[48:56] + YELLOW + s[56:64] \
+                + COL_RESET + s[64:]
         return s
 
 
