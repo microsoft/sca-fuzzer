@@ -138,10 +138,10 @@ class Fuzzer:
         # check for violations
         ctraces = self.model.trace_test_case(boosted_inputs, 1)
         htraces = self.executor.trace_test_case(boosted_inputs, CONF.executor_repetitions)
-        LOGGER.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces,
-                                      self.executor.get_last_feedback())
         violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces, True)
         if not violations:  # nothing detected? -> we are done here, move to next test case
+            LOGGER.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces,
+                                          self.executor.get_last_feedback(), 1)
             return None
 
         # 2. Repeat with with max nesting
@@ -151,7 +151,7 @@ class Fuzzer:
             ctraces = self.model.trace_test_case(boosted_inputs, CONF.model_max_nesting)
             htraces = self.executor.trace_test_case(boosted_inputs, CONF.executor_repetitions)
             LOGGER.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces,
-                                          self.executor.get_last_feedback())
+                                          self.executor.get_last_feedback(), CONF.model_max_nesting)
             violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces, True)
             if not violations:
                 return None

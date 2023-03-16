@@ -223,7 +223,7 @@ class Logger:
             print(f"Duration: {(now - self.start_time).total_seconds():.1f}")
             print(datetime.today().strftime('Finished at %H:%M:%S'))
 
-    def trc_fuzzer_dump_traces(self, model, inputs, htraces, ctraces, hw_feedback):
+    def trc_fuzzer_dump_traces(self, model, inputs, htraces, ctraces, hw_feedback, nesting):
         if __debug__:
             if self.dbg_traces:
                 print("\n================================ Collected Traces "
@@ -250,11 +250,7 @@ class Logger:
                     if i > 100:
                         self.warning("fuzzer", "Trace output is limited to 100 traces")
                         break
-                    ctrace_full = model.dbg_get_trace_detailed(inputs[i], 30)
-                    print("    ")
-                    print(f"CTr{i}: {ctrace_full}")
-                    print(f"HTr{i}: {self.pretty_bitmap(htraces[i])}")
-                    print(f"Feedback{i}: {hw_feedback[i]}")
+                    ctrace_full = model.dbg_get_trace_detailed(inputs[i], nesting)
                 self.dbg_model = org_debug_state
 
     def fuzzer_report_violations(self, violation: EquivalenceClass, model):
@@ -283,12 +279,12 @@ class Logger:
 
         if self.dbg_violation:
             # print details
-            print("================================ Debug Trace ==================================")
+            print("================================ Violation Traces =============================")
             for htrace, measurements in violation.htrace_map.items():
                 print(f"                      ##### Input {measurements[0].input_id} #####")
                 model_debug_state = self.dbg_model
                 self.dbg_model = True
-                model.trace_test_case([measurements[0].input_], 1)
+                model.trace_test_case([measurements[0].input_], CONF.model_max_nesting)
                 self.dbg_model = model_debug_state
                 print("\n\n")
 
