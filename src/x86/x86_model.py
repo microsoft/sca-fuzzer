@@ -16,8 +16,9 @@ from unicorn import Uc, UC_MEM_WRITE, UC_ARCH_X86, UC_MODE_64, UC_PROT_READ, UC_
 from ..interfaces import Input, FlagsOperand, RegisterOperand, MemoryOperand, AgenOperand, TestCase
 from ..model import UnicornModel, UnicornTracer, UnicornSpec, UnicornSeq, UnicornBpas, \
     BaseTaintTracker
-from ..util import UnreachableCode
+from ..util import UnreachableCode, BLUE, COL_RESET
 from .x86_target_desc import X86UnicornTargetDesc, X86TargetDesc
+from ..config import CONF
 
 FLAGS_CF = 0b000000000001
 FLAGS_PF = 0b000000000100
@@ -105,7 +106,7 @@ class X86UnicornModel(UnicornModel):
             elif val >= self.sandbox_base - self.OVERFLOW_REGION_SIZE and val < self.sandbox_base:
                 return f"+0x{val - self.sandbox_base:<15x}"
             else:
-                return f"0x{val:015x}"
+                return f"0x{val:016x}"
 
         emulator = self.emulator
         rax = compressed(emulator.reg_read(ucc.UC_X86_REG_RAX))
@@ -124,13 +125,22 @@ class X86UnicornModel(UnicornModel):
             print(f"RSI: {rsi}")
             print(f"RDI: {rdi}")
         else:
-            print(f"  rax={rax} "
-                  f"rbx={rbx} "
-                  f"rcx={rcx} \n"
-                  f"  rdx={rdx} "
-                  f"rsi={rsi} "
-                  f"rdi={rdi} \n"
-                  f"  fl={emulator.reg_read(ucc.UC_X86_REG_EFLAGS):012b}")
+            if CONF.color:
+                print(f"  {BLUE}rax={COL_RESET}{rax} "
+                      f"{BLUE}rbx={COL_RESET}{rbx} "
+                      f"{BLUE}rcx={COL_RESET}{rcx} \n"
+                      f"  {BLUE}rdx={COL_RESET}{rdx} "
+                      f"{BLUE}rsi={COL_RESET}{rsi} "
+                      f"{BLUE}rdi={COL_RESET}{rdi} \n"
+                      f"  {BLUE}fl={COL_RESET}0b{emulator.reg_read(ucc.UC_X86_REG_EFLAGS):012b}")
+            else:
+                print(f"  rax={rax} "
+                      f"rbx={rbx} "
+                      f"rcx={rcx} \n"
+                      f"  rdx={rdx} "
+                      f"rsi={rsi} "
+                      f"rdi={rdi} \n"
+                      f"  fl=0b{emulator.reg_read(ucc.UC_X86_REG_EFLAGS):012b}")
 
     def post_execution_patch(self) -> None:
         # workaround for Unicorn not enabling MPX
