@@ -300,25 +300,24 @@ class X86Transformer:
 
 def main():
     parser = ArgumentParser(description='', add_help=False)
-    parser.add_argument(
-        "--extensions",
-        nargs="*",
-        default=[]
-    )
+    parser.add_argument("--extensions", nargs="*", default=[])
     args = parser.parse_args()
 
-    subprocess.run("wget "
-                   "https://uops.info/instructions_Jan2022.xml", shell=True, check=True)
+    subprocess.run(
+        "wget "
+        "https://github.com/microsoft/sca-fuzzer/releases/download/v1.2/x86_instructions.xml",
+        shell=True,
+        check=True)
 
     try:
         transformer = X86Transformer()
-        transformer.load_files("instructions_Jan2022.xml")
+        transformer.load_files("x86_instructions.xml")
         transformer.parse_tree(args.extensions)
         transformer.add_missing(args.extensions)
         print(f"Produced base.json with {len(transformer.instructions)} instructions")
         transformer.save("base.json")
     finally:
-        subprocess.run("rm instructions_Jan2022.xml", shell=True, check=True)
+        subprocess.run("rm x86_instructions.xml", shell=True, check=True)
 
 
 if __name__ == "__main__":
