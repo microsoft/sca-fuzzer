@@ -174,9 +174,6 @@ class ConfCls:
         if type(self.__getattribute__(name)) != type(value):
             raise ConfigException(f"ERROR: Wrong type of the configuration variable {name}.\n"
                                   f"It's likely a typo in the configuration file.")
-        if name == "executor_max_outliers" and value > 20:
-            print(f"WARNING: Configuration: Are you sure you want to"
-                  f" ignore {self.executor_max_outliers} outliers?")
         if name == "coverage_type" and value > "none":
             super().__setattr__("feedback_driven_generator", "False")
 
