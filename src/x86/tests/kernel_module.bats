@@ -169,7 +169,7 @@ function load_test_case() {
     tmpinput=$(mktemp /tmp/revizor-test.XXXXXX.bin)
     tmpresult=$(mktemp /tmp/revizor-test.XXXXXX.txt)
 
-    echo "NOP" > $tmpasm
+    echo "movq (%r14), %rax" > $tmpasm
     as "$tmpasm" -o "$tmpbin"
 
     strip --remove-section=.note.gnu.property "$tmpbin"
@@ -200,8 +200,8 @@ function load_test_case() {
         # END=$(date +%s.%N)
         # echo "$END - $START" | bc
 
-        # cat $tmpresult | awk -F, '/,/{print $1, "   ", $2}' | sort | uniq -c | sort -r
-        run bash -c "cat $tmpresult | awk -F, '/,/{print \$1}' | sort | uniq -c | sort -r | awk '//{print \$1}' | head -n1"
+        # cat $tmpresult | awk -F, '/,/{print $1}' | sort | uniq -c | sort -r -b -n
+        run bash -c "cat $tmpresult | awk -F, '/,/{print \$1}' | sort | uniq -c | sort -r -b -n | awk '//{print \$1}' | head -n1"
         echo "$mode: $output"
         [ $output -ge $threshold ]
     done
