@@ -9,6 +9,7 @@
 #include <linux/seq_file.h>
 #include <linux/irqflags.h>
 #include <linux/version.h>
+#include <../arch/x86/include/asm/desc.h>
 #include <../arch/x86/include/asm/fpu/api.h>
 #include <../arch/x86/include/asm/pgtable.h>
 #include <../arch/x86/include/asm/tlbflush.h>
