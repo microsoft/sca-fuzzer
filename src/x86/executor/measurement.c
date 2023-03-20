@@ -180,6 +180,11 @@ static inline int pre_measurement_setup(void)
     //   from resteered path following branch misprediction or machine clear events.
     err |= config_pfc(3, "0D.01", 1, 1); // misprediction recovery cycles - fuzzing feedback
 
+    // #4: Interrupt detection
+    //    HW_INTERRUPTS.RECEIVED: Counts the number of hardware interruptions received
+    //    by the processor.
+    err |= config_pfc(4, "CB.01", 1, 1); // detection of interrupts
+
     // Configure uarch patches
     wrmsr64(MSR_IA32_SPEC_CTRL, ssbp_patch_control);
 
