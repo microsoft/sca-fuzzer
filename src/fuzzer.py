@@ -137,7 +137,7 @@ class Fuzzer:
 
         # check for violations
         ctraces = self.model.trace_test_case(boosted_inputs, 1)
-        htraces = self.executor.trace_test_case(boosted_inputs, CONF.executor_repetitions)
+        htraces = self.executor.trace_test_case(boosted_inputs)
         violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces, True)
         if not violations:  # nothing detected? -> we are done here, move to next test case
             LOGGER.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces,
@@ -149,7 +149,7 @@ class Fuzzer:
             LOGGER.fuzzer_nesting_increased()
             boosted_inputs = self.boost_inputs(inputs, CONF.model_max_nesting)
             ctraces = self.model.trace_test_case(boosted_inputs, CONF.model_max_nesting)
-            htraces = self.executor.trace_test_case(boosted_inputs, CONF.executor_repetitions)
+            htraces = self.executor.trace_test_case(boosted_inputs)
             LOGGER.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces,
                                           self.executor.get_last_feedback(), CONF.model_max_nesting)
             violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces, True)
@@ -281,7 +281,7 @@ class Fuzzer:
     def check_if_reproducible(self, violations: List[EquivalenceClass], inputs: List[Input],
                               org_htraces: List[HTrace]) -> bool:
         # re-collect htraces
-        htraces: List[HTrace] = self.executor.trace_test_case(inputs, CONF.executor_repetitions)
+        htraces: List[HTrace] = self.executor.trace_test_case(inputs)
 
         # check if all htraces that had a violation match
         violating_input_ids = []
@@ -318,8 +318,7 @@ class Fuzzer:
                 primer[current_input_id] = all_inputs[input_id]
 
                 # try priming
-                htraces: List[HTrace] = self.executor.trace_test_case(primer,
-                                                                      CONF.executor_repetitions)
+                htraces: List[HTrace] = self.executor.trace_test_case(primer)
                 primed_htrace = htraces[current_input_id]
                 if primed_htrace == current_htrace:
                     continue

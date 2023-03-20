@@ -26,7 +26,7 @@ class MinimizerViolation(Minimizer):
         fuzzer.model.load_test_case(test_case)
         fuzzer.executor.load_test_case(test_case)
         ctraces = fuzzer.model.trace_test_case(inputs, CONF.model_max_nesting)
-        htraces: List[HTrace] = fuzzer.executor.trace_test_case(inputs, CONF.executor_repetitions)
+        htraces: List[HTrace] = fuzzer.executor.trace_test_case(inputs)
 
         # Check for violations
         violations: List[EquivalenceClass] = fuzzer.analyser.filter_violations(
