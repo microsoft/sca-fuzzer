@@ -340,7 +340,8 @@ class Logger:
             model.emulator.mem_read(address, size), byteorder='little')
         type_ = "store to" if is_store else "load from"
         if CONF.color:
-            msg = f"    > {CYAN}{type_}{COL_RESET} +0x{normalized_address:x} {CYAN}value {COL_RESET}0x{val:x}"
+            msg = f"    > {CYAN}{type_}{COL_RESET} +0x{normalized_address:x} " \
+                  f"{CYAN}value {COL_RESET}0x{val:x}"
         else:
             msg = f"    > {type_} +0x{normalized_address:x} value 0x{val:x}"
 
@@ -408,10 +409,10 @@ class Logger:
                 f"{offset}{(bits >> 64) % MASK_64BIT:064b} [s]"
         s = s.replace("0", ".").replace("1", "^")
         if CONF.color:
-            s = COL_RESET + s[0:8] + YELLOW + s[8:16] \
-                + COL_RESET + s[16:24] + YELLOW + s[24:32] \
-                + COL_RESET + s[32:40] + YELLOW + s[40:48] \
-                + COL_RESET + s[48:56] + YELLOW + s[56:64] \
+            s = CYAN + s[0:8] + YELLOW + s[8:16] \
+                + CYAN + s[16:24] + YELLOW + s[24:32] \
+                + CYAN + s[32:40] + YELLOW + s[40:48] \
+                + CYAN + s[48:56] + YELLOW + s[56:64] \
                 + COL_RESET + s[64:]
         return s
 
