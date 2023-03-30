@@ -48,6 +48,7 @@ char pre_run_flush = PRE_RUN_FLUSH_DEFAULT;
 char *measurement_template = (char *)&template_l1d_prime_probe;
 char *measurement_code = NULL;
 
+void *sandbox_unaligned = NULL;
 sandbox_t *sandbox = NULL;
 void *stack_base = NULL;
 
@@ -503,15 +504,20 @@ static int __init executor_init(void)
     }
 
     // allocate working memory
-    sandbox = vmalloc(sizeof(sandbox_t));
-    if (!sandbox)
+    sandbox_unaligned = vmalloc(sizeof(sandbox_t) + 0x1000);
+    if (!sandbox_unaligned)
     {
         printk(KERN_ERR "x86_executor: Could not allocate memory for sandbox\n");
         return -ENOMEM;
     }
-    stack_base = &(sandbox->main_region[MAIN_REGION_SIZE - 8]);
 
-    // make sure the sandbox is aligned as we expect
+    // align sandbox to 2 pages (vmalloc guarantees 1 page alignment)
+    if ((unsigned long)sandbox_unaligned % 0x2000 == 0)
+        sandbox = (sandbox_t *)sandbox_unaligned;
+    else
+        sandbox = (sandbox_t *)((unsigned long)sandbox_unaligned + 0x1000);
+
+    // make sure the fields of the sandbox are aligned as we expect
     if ((&sandbox->main_region[0] - &sandbox->eviction_region[0]) != EVICT_REGION_OFFSET ||
         ((char *)&sandbox->stored_rsp - &sandbox->main_region[0]) != RSP_OFFSET ||
         ((char *)&sandbox->latest_measurement - &sandbox->main_region[0]) != MEASUREMENT_OFFSET ||
@@ -520,6 +526,8 @@ static int __init executor_init(void)
         printk(KERN_ERR "x86_executor: Sandbox alignment error\n");
         return -1;
     }
+
+    stack_base = &(sandbox->main_region[MAIN_REGION_SIZE - 8]);
 
     // allocate memory for measurements
     measurements = vmalloc(n_inputs * sizeof(measurement_t));
@@ -589,8 +597,8 @@ static void __exit executor_exit(void)
     if (inputs)
         vfree(inputs);
 
-    if (sandbox)
-        vfree(sandbox);
+    if (sandbox_unaligned)
+        vfree(sandbox_unaligned);
 
     if (measurements)
         vfree(measurements);
