@@ -16,7 +16,6 @@ instruction_categories:
   - BASE-COND_BR
   - BASE-CONVERT
   - BASE-DATAXFER
-  - BASE-FLAGOP
   - BASE-LOGICAL
   - BASE-MISC
   - BASE-NOP
@@ -25,7 +24,7 @@ instruction_categories:
   - BASE-SEMAPHORE
   - BASE-SETCC
 
-# misc. fuzzing configuration
+# fuzzing configuration
 enable_speculation_filter: true
 enable_observation_filter: true
 input_gen_entropy_bits: 16
@@ -34,6 +33,7 @@ min_bb_per_function: 1
 max_bb_per_function: 1
 program_size: 64
 avg_mem_accesses: 24
-inputs_per_class: 2
+inputs_per_class: 3
 executor_warmups: 2
+executor_max_outliers: 0
 x86_disable_div64: false
