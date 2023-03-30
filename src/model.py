@@ -49,8 +49,18 @@ class UnicornTracer(Tracer):
         self.trace = []
         self.execution_trace = []
 
-    def get_contract_trace(self) -> CTrace:
-        return hash(tuple(self.trace))
+    def get_contract_trace(self, model: Model) -> CTrace:
+        # make the trace reproducible by normalizing the addresses
+        normalized_trace: List[int] = []
+        for val in self.trace:
+            if model.code_start <= val and val < (model.code_start + 0x1000):
+                normalized_trace.append(val - model.code_start)
+            elif model.lower_overflow_base < val and val < (model.upper_overflow_base + 0x1000):
+                normalized_trace.append(val - model.sandbox_base)
+            else:
+                normalized_trace.append(val)
+
+        return hash(tuple(normalized_trace))
 
     def get_contract_trace_full(self) -> List[int]:
         return self.trace
@@ -112,9 +122,7 @@ class UnicornModel(Model, ABC):
 
     test_case: TestCase
     current_instruction: Instruction
-    code_start: int
     code_end: int
-    sandbox_base: int
     main_region: int
     faulty_region: int
     nesting: int = 0
@@ -287,7 +295,7 @@ class UnicornModel(Model, ABC):
 
             # store the results
             assert self.tracer
-            contract_traces.append(self.tracer.get_contract_trace())
+            contract_traces.append(self.tracer.get_contract_trace(self))
             execution_traces.append(self.tracer.get_execution_trace())
             taints.append(self.taint_tracker.get_taint())
 
@@ -318,7 +326,7 @@ class UnicornModel(Model, ABC):
         for val in trace:
             if self.code_start <= val and val < self.code_start + 0x1000:
                 normalized_trace.append(f"pc:0x{val - self.code_start:x}")
-            elif self.lower_overflow_base < val and val < self.upper_overflow_base:
+            elif self.lower_overflow_base < val and val < (self.upper_overflow_base + 0x1000):
                 normalized_trace.append(f"mem:0x{val - self.sandbox_base:x}")
             else:
                 normalized_trace.append(f"val:{val}")
@@ -472,7 +480,7 @@ class L1DTracer(UnicornTracer):
     def observe_instruction(self, address: int, size: int, model):
         super(L1DTracer, self).observe_instruction(address, size, model)
 
-    def get_contract_trace(self) -> CTrace:
+    def get_contract_trace(self, _) -> CTrace:
         return (self.trace[1] << 64) + self.trace[0]
 
 
@@ -549,7 +557,7 @@ class GPRTracer(UnicornTracer):
         self.target_desc = target_desc
         return super().init_trace(emulator, target_desc)
 
-    def get_contract_trace(self) -> CTrace:
+    def get_contract_trace(self, _) -> CTrace:
         self.trace = [self.emulator.reg_read(reg) for reg in self.target_desc.registers]
         self.trace = self.trace[:-1]  # exclude flags
         return self.trace[0]

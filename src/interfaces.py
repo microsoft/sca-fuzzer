@@ -825,8 +825,9 @@ class Coverage(ABC):
 class Tracer(ABC):
     trace: List
 
-    def get_contract_trace(self) -> CTrace:
-        return hash(tuple(self.trace))
+    @abstractmethod
+    def get_contract_trace(self, model: Model) -> CTrace:
+        pass
 
     def get_contract_trace_full(self) -> List[int]:
         return self.trace
@@ -834,6 +835,10 @@ class Tracer(ABC):
 
 class Model(ABC):
     coverage: Optional[Coverage] = None
+    sandbox_base: int = 0
+    code_start: int = 0
+    lower_overflow_base: int = 0
+    upper_overflow_base: int = 0
     tracer: Tracer
 
     @abstractmethod
