@@ -160,9 +160,24 @@ static inline int pre_measurement_setup(void)
     int err = 0;
 #if VENDOR_ID == 1 // Intel
     // Configure PMU
-    err |= config_pfc(0, "D1.01", 1, 1); // L1 hits - for htrace collection
+    // #0:  Htrace collection
+    //   MEM_LOAD_RETIRED.L1_HIT: Counts retired load instructions with at least one uop that hit
+    //   in the L1 data cache. This event includes all SW prefetches and lock instructions
+    //   regardless of the data source.
+    err |= config_pfc(0, "D1.01", 1, 1);
+
+    // #1: Fuzzing feedback
+    //   UOPS_ISSUED.ANY: Counts the number of uops that the Resource Allocation Table (RAT)
+    //   issues to the Reservation Station (RS).
     err |= config_pfc(1, "0E.01", 1, 1); // 0E.01 - uops issued - fuzzing feedback
+
+    // #2: Fuzzing feeback
+    //   UOPS_RETIRED.RETIRE_SLOTS: Counts the retirement slots used.
     err |= config_pfc(2, "C2.02", 1, 1); // C2.02 - uops retirement slots - fuzzing feedback
+
+    // #3: Fuzzing feedback
+    //   INT_MISC.CLEAR_RESTEER_CYCLES: Cycles the issue-stage is waiting for front-end to fetch
+    //   from resteered path following branch misprediction or machine clear events.
     err |= config_pfc(3, "0D.01", 1, 1); // misprediction recovery cycles - fuzzing feedback
 
     // Configure uarch patches

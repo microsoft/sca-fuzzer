@@ -12,7 +12,6 @@
 //   R10 - performance counter #1
 //   R11 - hardware trace
 //   R12 - SMI counter
-//   R13 - input seed
 //   R14 - sandbox base address
 //
 
