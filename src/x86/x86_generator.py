@@ -82,8 +82,8 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
         "ZMMWORD": 512
     }
 
-    def __init__(self, instruction_set: InstructionSet):
-        super(X86Generator, self).__init__(instruction_set)
+    def __init__(self, instruction_set: InstructionSet, seed: int):
+        super(X86Generator, self).__init__(instruction_set, seed)
         self.target_desc = X86TargetDesc()
         self.passes = [
             X86SandboxPass(self.target_desc),
@@ -901,5 +901,5 @@ class X86Printer(Printer):
 
 class X86RandomGenerator(X86Generator, RandomGenerator):
 
-    def __init__(self, instruction_set: InstructionSet):
-        super().__init__(instruction_set)
+    def __init__(self, instruction_set: InstructionSet, seed: int):
+        super().__init__(instruction_set, seed)

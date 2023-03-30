@@ -67,8 +67,8 @@ class ConfigurableGenerator(Generator, abc.ABC):
     printer: Printer  # set by subclasses
     target_desc: TargetDesc  # set by subclasses
 
-    def __init__(self, instruction_set: InstructionSet):
-        super().__init__(instruction_set)
+    def __init__(self, instruction_set: InstructionSet, seed: int):
+        super().__init__(instruction_set, seed)
         LOGGER.dbg_gen_instructions(instruction_set.instructions)
         self.control_flow_instructions = \
             [i for i in self.instruction_set.instructions if i.control_flow]
@@ -91,8 +91,9 @@ class ConfigurableGenerator(Generator, abc.ABC):
             assert self.load_instruction or self.store_instructions, \
                 "The instruction set does not have memory accesses while `avg_mem_accesses > 0`"
 
-        if CONF.program_generator_seed:
-            random.seed(CONF.program_generator_seed)
+    def set_seed(self, seed: int) -> None:
+        if seed:
+            random.seed(seed)
 
     def create_test_case(self, asm_file: str, disable_assembler: bool = False) -> TestCase:
         self.test_case = TestCase()
@@ -379,8 +380,8 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
     """
     had_recent_memory_access: bool = False
 
-    def __init__(self, instruction_set: InstructionSet):
-        super().__init__(instruction_set)
+    def __init__(self, instruction_set: InstructionSet, seed: int):
+        super().__init__(instruction_set, seed)
         uncond_name = self.get_unconditional_jump_instruction().name.lower()
         self.cond_branches = \
             [i for i in self.control_flow_instructions if i.name.lower() != uncond_name]
@@ -554,6 +555,7 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         return CondOperand(cond)
 
     def add_terminators_in_function(self, func: Function):
+
         def add_fallthrough(bb: BasicBlock, destination: BasicBlock):
             # create an unconditional branch and add it
             terminator = self.get_unconditional_jump_instruction()

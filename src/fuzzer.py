@@ -52,8 +52,9 @@ class Fuzzer:
 
     def initialize_modules(self):
         """ create all main modules """
-        self.generator = factory.get_generator(self.instruction_set)
-        self.input_gen = factory.get_input_generator()
+        self.generator = factory.get_program_generator(self.instruction_set,
+                                                       CONF.program_generator_seed)
+        self.input_gen = factory.get_input_generator(CONF.input_gen_seed)
         self.executor = factory.get_executor()
         self.model = factory.get_model(self.executor.read_base_addresses())
         self.analyser = factory.get_analyser()
@@ -98,7 +99,7 @@ class Fuzzer:
             if self.input_paths:
                 inputs = self.input_gen.load(self.input_paths)
             else:
-                inputs = self.input_gen.generate(CONF.input_gen_seed, num_inputs)
+                inputs = self.input_gen.generate(num_inputs)
             STAT.num_inputs += len(inputs) * CONF.inputs_per_class
 
             # Check if the test case is useful
@@ -222,8 +223,9 @@ class Fuzzer:
         # prepare for generation
         STAT.test_cases = num_test_cases
         CONF.program_generator_seed = program_generator_seed
-        program_gen = factory.get_generator(self.instruction_set)
-        input_gen = factory.get_input_generator()
+        program_gen = factory.get_program_generator(self.instruction_set,
+                                                    CONF.program_generator_seed)
+        input_gen = factory.get_input_generator(CONF.input_gen_seed)
 
         # generate test cases
         Path(self.work_dir).mkdir(exist_ok=True)
@@ -236,7 +238,7 @@ class Fuzzer:
                              "       Use --permit-overwrite to overwrite the test case")
 
             program_gen.create_test_case(test_case_dir + "/" + "program.asm", True)
-            inputs = input_gen.generate(CONF.input_gen_seed, num_inputs)
+            inputs = input_gen.generate(num_inputs)
             for j, input_ in enumerate(inputs):
                 input_.save(f"{test_case_dir}/input{j}.bin")
 
@@ -262,7 +264,7 @@ class Fuzzer:
         assert len(ctraces) == len(htraces), \
             "The number of hardware traces does not match the number of contract traces"
 
-        dummy_inputs = factory.get_input_generator().generate(1, len(ctraces))
+        dummy_inputs = factory.get_input_generator(0).generate(len(ctraces))
 
         # check for violations
         analyser = factory.get_analyser()
