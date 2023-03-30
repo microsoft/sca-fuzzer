@@ -113,13 +113,13 @@ function load_test_case() {
     load_test_case $tmpasm
     run cat /sys/x86_executor/trace
     echo "Output: $output"
-    [[ "$output" == *"0,"* ]]
+    [[ "$output" == *"9223372036854775808,"* ]]
 
     echo "MOVQ %r14, %rax; add \$512, %rax; movq (%rax), %rax" > $tmpasm
     load_test_case $tmpasm
     run cat /sys/x86_executor/trace
     echo "Output: $output"
-    [[ "$output" == *"36028797018963968,"* ]]
+    [[ "$output" == *"9259400833873739776,"* ]]
 
     rm "$tmpasm"
 }
@@ -132,13 +132,13 @@ function load_test_case() {
     load_test_case $tmpasm
     run cat /sys/x86_executor/trace
     echo "Output: $output"
-    [[ "$output" == *"0,"* ]]
+    [[ "$output" == *"9223372036854775808,"* ]]
 
     echo "MOVQ %r14, %rax; add \$512, %rax; movq (%rax), %rax" > $tmpasm
     load_test_case $tmpasm
     run cat /sys/x86_executor/trace
     echo "Output: $output"
-    [[ "$output" == *"36028797018963968,"* ]]
+    [[ "$output" == *"9259400833873739776,"* ]]
 
     rm "$tmpasm"
 }

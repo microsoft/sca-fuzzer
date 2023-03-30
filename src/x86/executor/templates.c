@@ -278,9 +278,14 @@ inline void epilogue(void)
         // rax <- &latest_measurement
         "lea rax, [r14 + "xstr(MEASUREMENT_OFFSET)"]\n"
 
-        // if we see no SMI interrupts, store the hardware trace (r11)
+        // if we see no interrupts, store the hardware trace (r11)
         // otherwise, store zero
         "cmp r12, 0; jne 1f \n"
+            // set the upper bit of r11 to mark the measurement as non-corrupted
+        "   mov rbx, 1\n"
+        "   shl rbx, 63\n"
+        "   or r11, rbx\n"
+
         "   mov qword ptr [rax], r11 \n"
         "   mov qword ptr [rax + 8], r10 \n"
         "   mov qword ptr [rax + 16], r9 \n"
