@@ -54,7 +54,7 @@ class StatisticsCls:
             if self.analysed_test_cases else 0
         iptc = self.num_inputs / self.test_cases if self.test_cases else 0
 
-        s = "================================ Statistics ===================================\n"
+        s = ""
         s += f"Test Cases: {self.test_cases}\n"
         s += f"Inputs per test case: {iptc:.1f}\n"
         s += f"Flaky violations: {self.flaky_violations}\n"
@@ -120,6 +120,7 @@ class Logger:
     dbg_timestamp: bool = False
     dbg_violation: bool = False
     dbg_traces: bool = False
+    dbg_traces_all: bool = False
     dbg_model: bool = False
     dbg_coverage: bool = False
     dbg_generator: bool = False
@@ -247,6 +248,8 @@ class Logger:
             now = datetime.today()
             print("")  # new line after the progress bar
             if self.stat:
+                print("================================ Statistics ================================"
+                      "===\n")
                 print(STAT)
             print(f"Duration: {(now - self.start_time).total_seconds():.1f}")
             print(datetime.today().strftime('Finished at %H:%M:%S'))
@@ -287,12 +290,13 @@ class Logger:
                 org_debug_state = self.dbg_model
                 self.dbg_model = False
                 for i in range(len(htraces)):
-                    if i > 100:
+                    if i > 100 and not self.dbg_traces_all:
                         self.warning("fuzzer", "Trace output is limited to 100 traces")
                         break
                     ctrace_full = model.dbg_get_trace_detailed(inputs[i], nesting)
                     print(f"- Input {i}:")
-                    print(f"  CTr: {ctrace_colorize(ctrace_full) if CONF.color else ctrace_full}")
+                    print(f"  CTr: {ctrace_colorize(ctrace_full) if CONF.color else ctrace_full} "
+                          f"| Hash: {ctraces[i]}")
                     print(f"  HTr: {self.pretty_bitmap(htraces[i])}")
                     if CONF.color and hw_feedback[i][0] > hw_feedback[i][1]:
                         print(f"  Feedback: {YELLOW}{hw_feedback[i]}{COL_RESET}")
