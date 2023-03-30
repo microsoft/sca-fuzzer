@@ -166,7 +166,7 @@ class X86RandomGeneratorTest(unittest.TestCase):
         undef_instr = generator.generate_instruction(undef_instr_spec)
         read_instr = generator.generate_instruction(read_instr_spec)
 
-        test_case = TestCase()
+        test_case = TestCase(0)
         test_case.functions = [Function(".function_main")]
         bb = test_case.functions[0].entry
         bb.insert_after(bb.get_last(), undef_instr)

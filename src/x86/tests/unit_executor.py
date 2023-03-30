@@ -18,7 +18,7 @@ class ExecutorTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.tc: TestCase = TestCase()
+        cls.tc: TestCase = TestCase(0)
         asm_file = tempfile.NamedTemporaryFile(delete=False)
         bin_file = tempfile.NamedTemporaryFile(delete=False)
 

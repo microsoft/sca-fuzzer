@@ -72,13 +72,13 @@ class ConfigurableGenerator(Generator, abc.ABC):
         LOGGER.dbg_gen_instructions(instruction_set.instructions)
         self.control_flow_instructions = \
             [i for i in self.instruction_set.instructions if i.control_flow]
+        assert self.control_flow_instructions or CONF.max_bb_per_function <= 1, \
+               "The instruction set is insufficient to generate a test case"
+
         self.non_control_flow_instructions = \
             [i for i in self.instruction_set.instructions if not i.control_flow]
         assert self.non_control_flow_instructions, \
             "The instruction set is insufficient to generate a test case"
-        if CONF.max_bb_per_function > 1:
-            assert self.control_flow_instructions, \
-                "The instruction set is insufficient to generate a test case"
 
         self.non_memory_access_instructions = \
             [i for i in self.non_control_flow_instructions if not i.has_mem_operand]
@@ -91,11 +91,18 @@ class ConfigurableGenerator(Generator, abc.ABC):
                 "The instruction set does not have memory accesses while `avg_mem_accesses > 0`"
 
     def set_seed(self, seed: int) -> None:
-        if seed:
-            random.seed(seed)
+        self._state = seed
 
     def create_test_case(self, asm_file: str, disable_assembler: bool = False) -> TestCase:
-        self.test_case = TestCase()
+        self.test_case = TestCase(self._state)
+
+        # set seeds
+        if self._state == 0:
+            self._state = random.randint(1, 1000000)
+            LOGGER.inform("prog_gen",
+                          f"Setting program_generator_seed to random value: {self._state}")
+        random.seed(self._state)
+        self._state += 1
 
         # create the main function
         func = self.generate_function(".function_main")
@@ -162,7 +169,7 @@ class ConfigurableGenerator(Generator, abc.ABC):
         run(f"objcopy {bin_file} -O binary {bin_file}", shell=True, check=True)
 
     def load(self, asm_file: str) -> TestCase:
-        test_case = TestCase()
+        test_case = TestCase(0)
         test_case.asm_path = asm_file
 
         # prepare regexes

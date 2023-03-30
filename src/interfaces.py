@@ -490,8 +490,10 @@ class TestCase:
     address_map: Dict[int, Instruction]
     num_prologue_instructions: int = 0
     faulty_pte: PageTableModifier
+    seed: int
 
-    def __init__(self):
+    def __init__(self, seed: int):
+        self.seed = seed
         self.functions = []
         self.address_map = {}
         self.faulty_pte = PageTableModifier()
