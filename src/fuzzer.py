@@ -111,7 +111,7 @@ class Fuzzer:
 
             if violation:
                 LOGGER.fuzzer_report_violations(violation, self.model)
-                self.store_test_case(test_case, violation)
+                self.store_test_case(test_case, inputs, violation)
                 STAT.violations += 1
                 if not nonstop:
                     break
@@ -146,7 +146,8 @@ class Fuzzer:
             return None
 
         # 2. Repeat with with max nesting
-        if 'seq' not in CONF.contract_execution_clause:
+        if "seq" not in CONF.contract_execution_clause and \
+           "no_speculation" not in CONF.contract_execution_clause:
             LOGGER.fuzzer_nesting_increased()
             boosted_inputs = self.boost_inputs(inputs, CONF.model_max_nesting)
             ctraces = self.model.trace_test_case(boosted_inputs, CONF.model_max_nesting)
@@ -194,27 +195,49 @@ class Fuzzer:
             boosted_inputs += self.input_gen.extend_equivalence_classes(inputs, taints)
         return boosted_inputs
 
-    def store_test_case(self, test_case: TestCase, violation: EquivalenceClass):
+    def store_test_case(self, test_case: TestCase, inputs: List[Input],
+                        violation: EquivalenceClass):
         if not self.work_dir:
             return
-        Path(self.work_dir).mkdir(exist_ok=True)
-
-        # store test case
         timestamp = datetime.today().strftime('%y%m%d-%H%M%S')
-        test_case.save(f"{self.work_dir}/violation-{timestamp}.asm")
+        violation_dir = f"{self.work_dir}/violation-{timestamp}"
+        Path(self.work_dir).mkdir(exist_ok=True)
+        Path(violation_dir).mkdir()
 
-        # store config file
-        shutil.copy2(CONF.config_path, f"{self.work_dir}/config-{timestamp}.yaml")
+        # store violation and the config file
+        test_case.save(f"{violation_dir}/program.asm")
+        for i, input_ in enumerate(inputs):
+            input_.save(f"{violation_dir}/input_{i}.bin")
+        shutil.copy2(CONF.config_path, f"{violation_dir}/config.yaml")
+
+        # we're about to store in a file - disable colors
+        color_on = CONF.color
+        CONF.color = False
 
         # store the violation report
-        with open(f"{self.work_dir}/report-{timestamp}.txt", "w") as f:
+        with open(f"{violation_dir}/report.txt", "w") as f:
             f.write("# Violation Report\n\n")
-            f.write(f"Detected: {datetime.today().strftime('%d.%m.%y at %H:%M:%S')}\n\n")
-            f.write("## Counterexample Inputs\n")
+            f.write(f"* Test Case ID: {STAT.test_cases - 1}\n")
+            f.write(f"* Detected: {datetime.today().strftime('%d.%m.%y at %H:%M:%S')}\n\n")
+            f.write(
+                f"* Time to detection: {(datetime.today() - LOGGER.start_time).total_seconds()}\n")
+            f.write("* Statistics:\n")
+            f.write(str(STAT) + "\n")
+
+            f.write("\n## Generation Seeds\n")
+            f.write(f"* Program seed: {test_case.seed}\n")
+            f.write(f"* Input seed: {inputs[0].seed}\n")
+
+            f.write("\n## Counterexample Inputs\n")
             for m in violation.measurements:
                 f.write(f"\nInput #{m.input_id}\n")
-                f.write(f"* Contract trace hash: {m.ctrace}\n")
                 f.write(f"* Hardware trace: {LOGGER.pretty_bitmap(m.htrace)}\n")
+                f.write(f"* Contract trace (hash): {m.ctrace}\n")
+                ctrace_full = self.model.dbg_get_trace_detailed(m.input_, CONF.model_max_nesting)
+                f.write(f"* Contract trace (detailed): {ctrace_full}\n")
+
+        # re-enable colors if enabled previously
+        CONF.color = color_on
 
     # ==============================================================================================
     # Single-stage interfaces
