@@ -125,6 +125,8 @@ function fuzz() {
     if [ $exit_code -eq $expected ]; then
         if grep "ERROR" $work_dir/$name-log.txt &> /dev/null ; then
             printf "\033[33;31merror\033[0m\n"
+        elif grep "Errno" $work_dir/$name-log.txt &> /dev/null ; then
+            printf "\033[33;31merror\033[0m\n"
         else
             printf "\033[33;32mok\033[0m [%s sec]\n" $(awk '/Duration/{print $2}' $work_dir/$name-log.txt)
         fi
@@ -133,19 +135,45 @@ function fuzz() {
     fi
 }
 
-function fuzz_and_verify() {
+
+function reproduce() {
     local name=$1
     local expected=$2
 
-    fuzz $name $expected
-
+    printf "    reproducing ... "
     set +e
-    config="$work_dir/${name}-verify.yaml"
-    python ${revizor} reproduce -s $instructions -c $config -n $NUM_INPUTS -t $work_dir/$name/violation-*.asm &>> "$work_dir/$name-log.txt"
+    violation_dir="$work_dir/$name"
+    config="$work_dir/${name}.yaml"
+    python ${revizor} reproduce -s $instructions -c $config -n $NUM_INPUTS -t $violation_dir/violation-*/program.asm  -i $(ls $violation_dir/violation-*/input*.bin | sort -t _ -k2 -n )  &>> "$work_dir/$name-log.txt"
     exit_code=$?
     set -e
 
-    printf "    validation ... "
+    if [ $exit_code -eq $expected ]; then
+        if grep "ERROR" $work_dir/$name-log.txt &> /dev/null ; then
+            printf "\033[33;31merror\033[0m\n"
+        elif grep "Errno" $work_dir/$name-log.txt &> /dev/null ; then
+            printf "\033[33;31merror\033[0m\n"
+        else
+            printf "\033[33;32mok\033[0m\n"
+        fi
+    else
+        printf "\033[33;31mfail\033[0m\n"
+    fi
+}
+
+
+function verify() {
+    local name=$1
+    local expected=$2
+
+    printf "    validating ... "
+    set +e
+    violation_dir="$work_dir/$name"
+    config="$work_dir/${name}-verify.yaml"
+    python ${revizor} reproduce -s $instructions -c $config -n $NUM_INPUTS -t $violation_dir/violation-*/program.asm  -i $(ls $violation_dir/violation-*/input*.bin | sort -t _ -k2 -n ) &>> "$work_dir/$name-log.txt"
+    exit_code=$?
+    set -e
+
     if [ $exit_code -ne $expected ]; then
         if grep "ERROR" $work_dir/$name-log.txt &> /dev/null ; then
             printf "\033[33;31merror\033[0m\n"
@@ -157,11 +185,21 @@ function fuzz_and_verify() {
     fi
 }
 
+function fuzz_and_verify() {
+    local name=$1
+    local expected=$2
+
+    fuzz $name $expected
+    reproduce $name $expected
+    verify $name $expected
+}
+
 function fuzz_no_verify() {
     local name=$1
     local expected=$2
 
     fuzz $name $expected
+    reproduce $name $expected
 
     printf "    no validation\n"
 }
