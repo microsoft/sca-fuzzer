@@ -155,13 +155,6 @@ int load_template(size_t tc_size)
 #endif
 
 
-// clobber: none
-#define SB_FLUSH(TMP, REPS)                          \
-        "mov "TMP", "REPS"                          \n" \
-        "1: sfence                                  \n" \
-        "dec "TMP"; jnz 1b                          \n"
-
-
 // A sequence of instructions that attempts to
 // set the pipeline to a uniform state, regardless
 // of the code that was executed before it.
@@ -446,11 +439,6 @@ void template_l1d_prime_probe(void) {
         "lea rax, [r14 - "xstr(EVICT_REGION_OFFSET)"]\n"
         PRIME("rax", "rbx", "rcx", "rdx", "32"));
 
-    // Deprecated?
-    // Push empty values into the store buffer (just in case)
-    // clobber: rax
-    // asm_volatile_intel(SB_FLUSH("rax", "60"));
-
     // PFC
     // clobber: rax, rcx, rdx
     asm_volatile_intel(READ_PFC_START());
@@ -602,10 +590,6 @@ void template_l1d_flush_reload(void) {
         "mov rbx, r14\n" \
         FLUSH("rbx", "rax"));
 
-    // Deprecated?
-    // Push empty values into the store buffer (just in case)
-    // asm_volatile_intel(SB_FLUSH("rax", "60"));
-
     // PFC
     asm_volatile_intel(READ_PFC_START());
 
@@ -642,10 +626,6 @@ void template_l1d_evict_reload(void) {
     asm_volatile_intel(""\
         "lea rax, [r14 - "xstr(EVICT_REGION_OFFSET)"]\n"
         PRIME("rax", "rbx", "rcx", "rdx", "32"));
-
-    // Deprecated?
-    // Push empty values into the store buffer (just in case)
-    // asm_volatile_intel(SB_FLUSH("rax", "60"));
 
     // PFC
     asm_volatile_intel(READ_PFC_START());
