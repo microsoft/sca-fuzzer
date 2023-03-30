@@ -106,7 +106,7 @@ class X86Fuzzer(Fuzzer):
             run('awk \'//{print $0, "\\nlfence"}\' ' + test_case.asm_path + '> fenced.asm',
                 shell=True)
             self.generator.assemble('fenced.asm', 'fenced.o')
-            fenced_test_case = TestCase()
+            fenced_test_case = TestCase(0)
             fenced_test_case.bin_path = 'fenced.o'
             self.executor.load_test_case(fenced_test_case)
             fenced_htraces = self.executor.trace_test_case(inputs, repetitions=1)
