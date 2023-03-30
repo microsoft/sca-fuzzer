@@ -115,7 +115,7 @@ class MinimizerViolation(Minimizer):
 
         # Parse the test case and inputs
         test_case: TestCase = fuzzer.generator.load(test_case_asm)
-        inputs: List[Input] = fuzzer.input_gen.generate(CONF.input_gen_seed, num_inputs)
+        inputs: List[Input] = fuzzer.input_gen.generate(num_inputs)
 
         # Load, boost inputs, and trace
         fuzzer.generator.create_pte(test_case)
