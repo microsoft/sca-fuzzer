@@ -1,0 +1,918 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A security-oriented tool for detecting microarchitectural leaks in CPUs, such as Spectre and Meltdown.">
+      
+      
+        <meta name="author" content="Microsoft">
+      
+      
+        <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/fuzzing-guide/">
+      
+      
+        <link rel="prev" href="../architecture/">
+      
+      
+      <link rel="icon" href="../assets/ms_icon.png">
+      <meta name="generator" content="mkdocs-1.4.2, mkdocs-material-9.1.4">
+    
+    
+      
+        <title>Fuzzing Guide - Revizor</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.240905d7.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.a0c5b2b5.min.css">
+      
+      
+
+    
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="">
+  
+    
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#guide-on-running-a-testing-campaign-and-analyzing-a-violation" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Revizor" class="md-header__button md-logo" aria-label="Revizor" data-md-component="logo">
+      
+  <img src="../assets/ms_icon.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Revizor
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Fuzzing Guide
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7 0-.24-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91 1.61 0 2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08Z"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/microsoft/sca-fuzzer" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.3.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    microsoft/sca-fuzzer
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+
+
+  <li class="md-tabs__item">
+    <a href=".." class="md-tabs__link">
+      Home
+    </a>
+  </li>
+
+      
+        
+  
+  
+
+
+  <li class="md-tabs__item">
+    <a href="../quick-start/" class="md-tabs__link">
+      Quick Start
+    </a>
+  </li>
+
+      
+        
+  
+  
+
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../install/" class="md-tabs__link">
+        Documentation
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+    
+  
+
+
+  <li class="md-tabs__item">
+    <a href="./" class="md-tabs__link md-tabs__link--active">
+      Fuzzing Guide
+    </a>
+  </li>
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Revizor" class="md-nav__button md-logo" aria-label="Revizor" data-md-component="logo">
+      
+  <img src="../assets/ms_icon.png" alt="logo">
+
+    </a>
+    Revizor
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/microsoft/sca-fuzzer" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.3.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    microsoft/sca-fuzzer
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        Home
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quick-start/" class="md-nav__link">
+        Quick Start
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          Documentation
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_3">
+          <span class="md-nav__icon md-icon"></span>
+          Documentation
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../install/" class="md-nav__link">
+        Installation
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-revizor-works/" class="md-nav__link">
+        How Revizor Works
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli/" class="md-nav__link">
+        Command Line Interface
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../config/" class="md-nav__link">
+        Configuration Files
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modules/" class="md-nav__link">
+        Modules and Interfaces
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        Architecture
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Fuzzing Guide
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        Fuzzing Guide
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#preparation" class="md-nav__link">
+    Preparation
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fuzzing-campaign" class="md-nav__link">
+    Fuzzing Campaign
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#analyzing-the-violation" class="md-nav__link">
+    Analyzing The Violation
+  </a>
+  
+    <nav class="md-nav" aria-label="Analyzing The Violation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-remove-irrelevant-instructions-from-the-program" class="md-nav__link">
+    1. Remove irrelevant instructions from the program
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-add-speculation-fences-to-narrow-down-the-part-of-the-program-that-causes-leakage" class="md-nav__link">
+    2. Add speculation fences to narrow down the part of the program that causes leakage
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-use-the-statistics-reported-by-revizor-to-find-the-specific-instruction-that-triggers-speculation" class="md-nav__link">
+    3. Use the statistics reported by Revizor to find the specific instruction that triggers speculation
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-to-be-continued" class="md-nav__link">
+    4. TO BE CONTINUED...
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#preparation" class="md-nav__link">
+    Preparation
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fuzzing-campaign" class="md-nav__link">
+    Fuzzing Campaign
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#analyzing-the-violation" class="md-nav__link">
+    Analyzing The Violation
+  </a>
+  
+    <nav class="md-nav" aria-label="Analyzing The Violation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-remove-irrelevant-instructions-from-the-program" class="md-nav__link">
+    1. Remove irrelevant instructions from the program
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-add-speculation-fences-to-narrow-down-the-part-of-the-program-that-causes-leakage" class="md-nav__link">
+    2. Add speculation fences to narrow down the part of the program that causes leakage
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-use-the-statistics-reported-by-revizor-to-find-the-specific-instruction-that-triggers-speculation" class="md-nav__link">
+    3. Use the statistics reported by Revizor to find the specific instruction that triggers speculation
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-to-be-continued" class="md-nav__link">
+    4. TO BE CONTINUED...
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="guide-on-running-a-testing-campaign-and-analyzing-a-violation">Guide on running a testing campaign and analyzing a violation</h1>
+<p>In this guide, we will walk through the process of testing a CPU for unexpected speculative leaks with Revizor.
+We will also show how to analyze a contract violation discovered by this campaign.</p>
+<p>This example is based on a real testing campaign that led to a discovery of Zero Division Injection, described in <a href="https://arxiv.org/abs/2301.07642">Hide&amp;Seek with Spectres</a>.</p>
+<h2 id="preparation">Preparation</h2>
+<p>We perform a fuzzing campaign in which we test arithmetic operations on an x86-64 CPUs.
+As the source of side channel information (i.e., the source of hardware traces), we chose L1D cache.
+In other words, this campaign will test the information that arithmetic operations can expose through an L1D cache.</p>
+<p>For the sake of this example, let's assume that we do not know of any speculative vulnerabilities that could be triggered by these instructions.
+Accordingly, our expected contract is going to be <code>ct-seq</code>, a contract that describes cache leakage for non-speculating instructions.</p>
+<p>We encode this setup in the following configuration file:
+<div class="highlight"><pre><span></span><code><span class="nt">instruction_set</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">x86-64</span><span class="w"> </span><span class="c1"># target instruction set</span>
+
+<span class="c1"># define a pool of tested instructions</span>
+<span class="nt">instruction_categories</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">BASE-BINARY</span><span class="w">  </span><span class="c1"># BINARY is a keyword for arithmetic operations</span>
+
+<span class="c1"># by default, Revizor will not generate 64-bit divisions</span>
+<span class="c1"># we disable this behavior</span>
+<span class="nt">x86_disable_div64</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+
+<span class="c1"># since we are relying on a cache side channel to collect hardware traces,</span>
+<span class="c1"># we expect to observe the addresses of loads and stores in the traces,</span>
+<span class="c1"># as well as the changes in the PC</span>
+<span class="nt">contract_observation_clause</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">loads+stores+pc</span>
+
+<span class="c1"># we expect to see not speculation in this fuzzing campaign</span>
+<span class="nt">contract_execution_clause</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">no_speculation</span>
+
+<span class="c1"># use Prime+Probe to collect hardware traces</span>
+<span class="nt">executor_mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">P+P</span>
+
+<span class="c1"># enable some optimization features to make fuzzing faster</span>
+<span class="nt">enable_speculation_filter</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="nt">enable_observation_filter</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+
+<span class="c1"># by default Revizor adds conditional branches to all test cases</span>
+<span class="c1"># since we are not interested in branches in this experiment,</span>
+<span class="c1"># disable them</span>
+<span class="nt">min_bb_per_function</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="nt">max_bb_per_function</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+</code></pre></div></p>
+<p>We save the configuration into a file (<code>config.yaml</code>) and start a fuzzing campaign.</p>
+<h2 id="fuzzing-campaign">Fuzzing Campaign</h2>
+<p>We start Revizor with the following command:</p>
+<div class="highlight"><pre><span></span><code>./cli.py<span class="w"> </span>fuzz<span class="w"> </span>-s<span class="w"> </span>x86/isa_spec/base.json<span class="w"> </span>-c<span class="w"> </span>config.yaml<span class="w"> </span>-n<span class="w"> </span><span class="m">100000</span><span class="w"> </span>-i<span class="w"> </span><span class="m">100</span><span class="w"> </span>-w<span class="w"> </span>./results
+</code></pre></div>
+<p>Here
+* <code>-s x86/isa_spec/base.json</code> - tells Revizor where to find a description of the tested instructions
+* <code>-c config.yaml</code> - points Revizor to the configuration file described above
+* <code>-n 100000</code> - number of randomly-generated programs to be tested. Note that 100k programs will be tested only if none of them surfaces a contract violation; otherwise, Revizor will stop as soon as it detects a violation
+* <code>-i 100</code> - number of inputs per test case
+* <code>-w ./results</code> - directory where the detected violations will be stored.</p>
+<p>After about an hour of fuzzing, Revizor finds a violation, saves the corresponding program into <code>./results/violation&lt;timestamp&gt;.asm</code>, and terminates.</p>
+<p>The violation on its own is already a sign that something unexpected is going on:
+Since we were testing against a contract that does not permit speculation (<code>no_speculation</code> in <code>config.yaml</code>), this violation indicates that Revizor found a program that speculatively leaks information.
+This is a new finding because there has been previously no reports of speculative leaks caused by arithmetic instructions.</p>
+<h2 id="analyzing-the-violation">Analyzing The Violation</h2>
+<p>The next step is to find out what caused this violation.
+The program that surfaced a violation looks like this:</p>
+<p><div class="highlight"><pre><span></span><code>.intel_syntax noprefix
+MFENCE # instrumentation
+.test_case_enter:
+.function_main:
+.bb_main.entry:
+JMP .bb_main.0
+.bb_main.0:
+AND RAX, 0b1111111111111 # instrumentation
+LOCK SBB word ptr [R14 + RAX], DX
+SUB RAX, -63
+NEG BX
+INC DL
+AND RAX, 0b1111111111111 # instrumentation
+LOCK ADC dword ptr [R14 + RAX], -12
+AND RBX, 0b1111111111111 # instrumentation
+SUB CL, byte ptr [R14 + RBX]
+AND RDI, 0b1111111111111 # instrumentation
+CMP word ptr [R14 + RDI], -24
+CMP RAX, 382711631
+AND RBX, 0b1111111111111 # instrumentation
+LOCK DEC byte ptr [R14 + RBX]
+IMUL CL
+SBB AL, -106
+CMP RAX, 383545172
+AND RBX, 0b1111111111111 # instrumentation
+SBB DL, byte ptr [R14 + RBX]
+AND RBX, 0b1111111111111 # instrumentation
+ADD word ptr [R14 + RBX], -102
+AND RBX, 0b1111111111111 # instrumentation
+LOCK INC dword ptr [R14 + RBX]
+AND RSI, 0b1111111111111 # instrumentation
+ADD EDX, dword ptr [R14 + RSI]
+SUB AL, 66
+OR RBX, 1 # instrumentation
+AND RDX, RBX # instrumentation
+SHR RDX, 1 # instrumentation
+DIV RBX
+IMUL ESI, EBX
+AND RDX, 0b1111111111111 # instrumentation
+MUL dword ptr [R14 + RDX]
+AND RAX, 0b1111111111111 # instrumentation
+LOCK SBB byte ptr [R14 + RAX], CL
+ADC DIL, 32
+SBB BL, DL
+OR RSI, 1 # instrumentation
+AND RDX, RSI # instrumentation
+SHR RDX, 1 # instrumentation
+DIV RSI
+.bb_main.exit:
+.test_case_exit:
+MFENCE # instrumentation
+</code></pre></div>
+(Note: if you're following along this guide, your detected violation is going to contain a completely different assembly. But don't worry about it, the analysis process is going to be the same.)</p>
+<p>This is a randomly-generated sequence of assembly instructions, so if we try to find out the source of the unexpected leakage in it, we will have to put a very considerable effort.
+Fortunately, we don't have to do it, as there are several techniques that can significantly simplify the analysis.</p>
+<h3 id="1-remove-irrelevant-instructions-from-the-program">1. Remove irrelevant instructions from the program</h3>
+<div class="highlight"><pre><span></span><code>./cli.py<span class="w"> </span>minimize<span class="w"> </span>-s<span class="w"> </span>x86/isa_spec/base.json<span class="w"> </span>-c<span class="w"> </span>config.yaml<span class="w"> </span>-i<span class="w"> </span>/results/violation&lt;timestamp&gt;.asm<span class="w"> </span>-o<span class="w"> </span>min.asm<span class="w"> </span>-n<span class="w"> </span><span class="m">100</span>
+</code></pre></div>
+<p>It simplifies the program and stores the result into <code>min.asm</code>. The result is:</p>
+<div class="highlight"><pre><span></span><code>.intel_syntax noprefix
+MFENCE # instrumentation
+.test_case_enter:
+.function_main:
+.bb_main.entry:
+.bb_main.0:
+AND RAX, 0b1111111111111 # instrumentation
+LOCK SBB word ptr [R14 + RAX], DX
+INC DL
+AND RBX, 0b1111111111111 # instrumentation
+LOCK DEC byte ptr [R14 + RBX]
+AND RBX, 0b1111111111111 # instrumentation
+SBB DL, byte ptr [R14 + RBX]
+OR RBX, 1 # instrumentation
+AND RDX, RBX # instrumentation
+SHR RDX, 1 # instrumentation
+DIV RBX
+AND RDX, 0b1111111111111 # instrumentation
+MUL dword ptr [R14 + RDX]
+AND RAX, 0b1111111111111 # instrumentation
+LOCK SBB byte ptr [R14 + RAX], CL
+.bb_main.exit:
+.test_case_exit:
+MFENCE # instrumentation
+</code></pre></div>
+<p>We can further simplify the test case manually, by removing the unused labels (e.g., <code>bb_main.0</code>).
+Note that <code>.test_case_enter:</code> and <code>.test_case_exit:</code> have to remain because Revizor's automation scripts use it to define the start and the end of the test case.</p>
+<p>As a result, we get a minimal version of the program:</p>
+<div class="highlight"><pre><span></span><code>.intel_syntax noprefix
+MFENCE # instrumentation
+.test_case_enter:
+AND RAX, 0b1111111111111 # instrumentation
+LOCK SBB word ptr [R14 + RAX], DX
+INC DL
+AND RBX, 0b1111111111111 # instrumentation
+LOCK DEC byte ptr [R14 + RBX]
+AND RBX, 0b1111111111111 # instrumentation
+SBB DL, byte ptr [R14 + RBX]
+OR RBX, 1 # instrumentation
+AND RDX, RBX # instrumentation
+SHR RDX, 1 # instrumentation
+DIV RBX
+AND RDX, 0b1111111111111 # instrumentation
+MUL dword ptr [R14 + RDX]
+AND RAX, 0b1111111111111 # instrumentation
+LOCK SBB byte ptr [R14 + RAX], CL
+.test_case_exit:
+MFENCE # instrumentation
+</code></pre></div>
+<p>To make sure that we didn't make a mistake while modifying the program, we can verify the result by reproducing the violation:</p>
+<div class="highlight"><pre><span></span><code>./cli.py<span class="w"> </span>fuzz<span class="w"> </span>-s<span class="w"> </span>x86/isa_spec/base.json<span class="w"> </span>-c<span class="w"> </span>config.yaml<span class="w"> </span>-t<span class="w"> </span>min.asm<span class="w"> </span>-i<span class="w"> </span><span class="m">100</span>
+</code></pre></div>
+<h3 id="2-add-speculation-fences-to-narrow-down-the-part-of-the-program-that-causes-leakage">2. Add speculation fences to narrow down the part of the program that causes leakage</h3>
+<div class="highlight"><pre><span></span><code>./cli.py<span class="w"> </span>minimize<span class="w"> </span>-s<span class="w"> </span>x86/isa_spec/base.json<span class="w"> </span>-c<span class="w"> </span>config.yaml<span class="w"> </span>-i<span class="w"> </span>min.asm<span class="w"> </span>-o<span class="w"> </span>min.asm<span class="w"> </span>-n<span class="w"> </span><span class="m">100</span><span class="w"> </span>--add-fences
+</code></pre></div>
+<p>This command iteratively attempts to add an <code>LFENCE</code> before every instruction in the program while checking if the violation persists. The result is:</p>
+<div class="highlight"><pre><span></span><code>.intel_syntax noprefix
+MFENCE # instrumentation
+.test_case_enter:
+LFENCE
+AND RAX, 0b1111111111111 # instrumentation
+LFENCE
+LOCK SBB word ptr [R14 + RAX], DX
+AND RBX, 0b1111111111111 # instrumentation
+LOCK DEC byte ptr [R14 + RBX]
+AND RBX, 0b1111111111111 # instrumentation
+SBB DL, byte ptr [R14 + RBX]
+OR RBX, 1 # instrumentation
+AND RDX, RBX # instrumentation
+SHR RDX, 1 # instrumentation
+DIV RBX
+AND RDX, 0b1111111111111 # instrumentation
+MUL dword ptr [R14 + RDX]
+AND RAX, 0b1111111111111 # instrumentation
+LOCK SBB byte ptr [R14 + RAX], CL
+.test_case_exit:
+MFENCE # instrumentation
+</code></pre></div>
+<p>Only two fences were inserted, after <code>.test_case_enter:</code> and after <code>AND RAX, 0b1111111111111</code>.
+It means that all the remaining instructions are somehow involved in the speculative leak (although we cannot yet tell how exactly).</p>
+<h3 id="3-use-the-statistics-reported-by-revizor-to-find-the-specific-instruction-that-triggers-speculation">3. Use the statistics reported by Revizor to find the specific instruction that triggers speculation</h3>
+<p>At this point, we start making manual changes to the program.
+We go through the program, try removing instructions one at a time, execute the modified program on Revizor, and check the statistic from the speculation filter.</p>
+<p>For example, let's say we start from the bottom.
+We first try to remove the last line (<code>LOCK SBB byte ptr [R14 + RAX], CL</code>), and execute the program on Revizor:
+<div class="highlight"><pre><span></span><code>./cli.py<span class="w"> </span>fuzz<span class="w"> </span>-s<span class="w"> </span>x86/isa_spec/base.json<span class="w"> </span>-c<span class="w"> </span>config.yaml<span class="w"> </span>-t<span class="w"> </span>min.asm<span class="w"> </span>-i<span class="w"> </span><span class="m">100</span>
+
+INFO:<span class="w"> </span><span class="o">[</span>fuzzer<span class="o">]</span><span class="w"> </span>Starting<span class="w"> </span>at<span class="w"> </span><span class="m">17</span>:16:52
+<span class="m">0</span><span class="w">     </span><span class="o">(</span><span class="w"> </span><span class="m">0</span>%<span class="o">)</span><span class="p">|</span><span class="w"> </span>Stats:
+<span class="o">================================</span><span class="w"> </span><span class="nv">Statistics</span><span class="w"> </span><span class="o">===================================</span>
+Test<span class="w"> </span>Cases:<span class="w"> </span><span class="m">1</span>
+Inputs<span class="w"> </span>per<span class="w"> </span><span class="nb">test</span><span class="w"> </span><span class="k">case</span>:<span class="w"> </span><span class="m">200</span>.0
+Flaky<span class="w"> </span>violations:<span class="w"> </span><span class="m">0</span>
+Required<span class="w"> </span>priming:<span class="w"> </span><span class="m">0</span>
+Violations:<span class="w"> </span><span class="m">0</span>
+Effectiveness:
+<span class="w">  </span>Effectiveness:<span class="w"> </span><span class="m">1</span>.0
+<span class="w">  </span>Total<span class="w"> </span>Cls:<span class="w"> </span><span class="m">20</span>.0
+<span class="w">  </span>Effective<span class="w"> </span>Cls:<span class="w"> </span><span class="m">20</span>.0
+Filters:
+<span class="w">  </span>Speculation<span class="w"> </span>Filter:<span class="w"> </span><span class="m">1</span>
+<span class="w">  </span>Observation<span class="w"> </span>Filter:<span class="w"> </span><span class="m">1</span>
+</code></pre></div></p>
+<p>Even though Revizor did not report a violation, the line <code>Speculation Filter: 1</code> tells us that Revizor detected some speculation. Accordingly, we deduce that the instruction we removed (<code>LOCK SBB</code>) is <em>not</em> the source of speculation.</p>
+<p>We continue the process with one instruction at a time, and we see the same result with the next three instructions (<code>AND</code>, <code>MUL</code>, and <code>AND</code>).
+However, when we try removing <code>DIV</code> from the program, we Revizor produces the following output:</p>
+<div class="highlight"><pre><span></span><code><span class="o">================================</span><span class="w"> </span><span class="nv">Statistics</span><span class="w"> </span><span class="o">===================================</span>
+Test<span class="w"> </span>Cases:<span class="w"> </span><span class="m">1</span>
+Inputs<span class="w"> </span>per<span class="w"> </span><span class="nb">test</span><span class="w"> </span><span class="k">case</span>:<span class="w"> </span><span class="m">200</span>.0
+Flaky<span class="w"> </span>violations:<span class="w"> </span><span class="m">0</span>
+Required<span class="w"> </span>priming:<span class="w"> </span><span class="m">0</span>
+Violations:<span class="w"> </span><span class="m">0</span>
+Effectiveness:
+<span class="w">  </span>Effectiveness:<span class="w"> </span><span class="m">0</span>.0
+<span class="w">  </span>Total<span class="w"> </span>Cls:<span class="w"> </span><span class="m">0</span>.0
+<span class="w">  </span>Effective<span class="w"> </span>Cls:<span class="w"> </span><span class="m">0</span>.0
+Filters:
+<span class="w">  </span>Speculation<span class="w"> </span>Filter:<span class="w"> </span><span class="m">0</span>
+<span class="w">  </span>Observation<span class="w"> </span>Filter:<span class="w"> </span><span class="m">0</span>
+</code></pre></div>
+<p>The line <code>Speculation Filter: 0</code> tells us that Revizor did not detect any speculation while executing the version of the program without <code>DIV</code>. It means that this division was the source of speculative leakage.</p>
+<h3 id="4-to-be-continued">4. TO BE CONTINUED...</h3>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2023 Microsoft
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.instant", "navigation.tabs", "search.share"], "search": "../assets/javascripts/workers/search.208ed371.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.19047be9.min.js"></script>
+      
+    
+  </body>
+</html>

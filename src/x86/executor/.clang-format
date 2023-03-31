@@ -1,4 +1,0 @@
-ColumnLimit: 100
-IndentWidth: 4
-BreakBeforeBraces: Allman
-AllowShortIfStatementsOnASingleLine: false

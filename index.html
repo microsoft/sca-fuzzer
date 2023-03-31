@@ -1,0 +1,974 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A security-oriented tool for detecting microarchitectural leaks in CPUs, such as Spectre and Meltdown.">
+      
+      
+        <meta name="author" content="Microsoft">
+      
+      
+        <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/">
+      
+      
+      
+        <link rel="next" href="quick-start/">
+      
+      <link rel="icon" href="assets/ms_icon.png">
+      <meta name="generator" content="mkdocs-1.4.2, mkdocs-material-9.1.4">
+    
+    
+      
+        <title>Revizor - Revizor</title>
+      
+    
+    
+      <link rel="stylesheet" href="assets/stylesheets/main.240905d7.min.css">
+      
+        
+        <link rel="stylesheet" href="assets/stylesheets/palette.a0c5b2b5.min.css">
+      
+      
+
+    
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="">
+  
+    
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="." title="Revizor" class="md-header__button md-logo" aria-label="Revizor" data-md-component="logo">
+      
+  <img src="assets/ms_icon.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Revizor
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Revizor
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7 0-.24-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91 1.61 0 2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08Z"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/microsoft/sca-fuzzer" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.3.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    microsoft/sca-fuzzer
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+  
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+    
+  
+
+
+  <li class="md-tabs__item">
+    <a href="." class="md-tabs__link md-tabs__link--active">
+      Home
+    </a>
+  </li>
+
+      
+        
+  
+  
+
+
+  <li class="md-tabs__item">
+    <a href="quick-start/" class="md-tabs__link">
+      Quick Start
+    </a>
+  </li>
+
+      
+        
+  
+  
+
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="install/" class="md-tabs__link">
+        Documentation
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+
+
+  <li class="md-tabs__item">
+    <a href="fuzzing-guide/" class="md-tabs__link">
+      Fuzzing Guide
+    </a>
+  </li>
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+
+  <style>
+
+    .md-content { display: none; }
+
+    .md-typeset .get-started {
+        color: white;
+        background-color: black;
+        border-color: black;
+        margin: .2rem;
+    }
+    .md-typeset .get-started:hover {
+        color: black;
+        background-color: white;
+        border-color: black;
+        margin: .2rem;
+    }
+
+    .md-typeset .learn {
+        color: black;
+        background-color: white;
+        border-color: rgb(228, 228, 228);
+        margin: .2rem;
+    }
+    .md-typeset .learn:hover {
+        color: black;
+        background-color: white;
+        border-color: rgb(228, 228, 228);
+        margin: .2rem;
+    }
+
+    .title {
+        max-width: 700px;
+        display: flex;
+        padding: .4rem;
+        margin: 0 auto;
+        text-align: center;
+    }
+    .title h1 {
+        font-weight: 700;
+        font-size: 38px;
+        line-height: 46px;
+        color: rgb(0, 0, 0);
+    }
+    .title p {
+        color: rgb(100, 100, 100);
+        font-weight: 400;
+        font-size: 20px;
+        line-height: 32px;
+    }
+
+    .demo {
+        max-width: 800px;
+        min-width: 600px;
+        width: 100%;
+        height: auto;
+        margin: 0 auto;
+        display: flex;
+        align-items: stretch;
+        padding: .4rem;
+        text-align: center;
+    }
+
+    .demo .asciicast {
+        width: 100%;
+        height: 100%;
+        margin: 0 auto;
+        display: flex;
+        align-items: stretch;
+        padding: .4rem;
+        text-align: center;
+    }
+
+    .secondary-section {
+        background: rgb(245, 245, 245) none repeat scroll 0% 0%;
+        border-top: 1px solid rgb(222, 222, 222);
+        border-bottom: 1px solid rgb(222, 222, 222)
+    }
+
+    .secondary-section .g {
+        position: relative;
+        margin-left: auto;
+        margin-right: auto;
+        padding: 0px 40px;
+        max-width: 1280px;
+    }
+
+    .secondary-section .g .section {
+        font-size: 18px;
+        font-weight: 400;
+        line-height: 30px;
+        letter-spacing: normal;
+        padding: 88px 0px 60px;
+    }
+
+    .secondary-section .g .section .component-wrapper {
+        display: flex;
+        -moz-box-align: center;
+        align-items: center;
+    }
+
+    .secondary-section .g .section .component-wrapper h3 {
+        color: rgb(38, 38, 38);
+        font-size: 36px;
+        font-weight: 700;
+        line-height: 46px;
+        letter-spacing: normal;
+        margin-bottom: 12px;
+    }
+
+    .secondary-section .g .section .component-wrapper p {
+        color: rgb(92, 92, 92);
+        font-size: 18px;
+        font-weight: 400;
+        line-height: 30px;
+        letter-spacing: normal;
+        margin-bottom: 16px;
+    }
+
+    .secondary-section .g .section .component-wrapper .image-wrapper {
+        overflow: hidden;
+        border-radius: 8px;
+        border: 3px solid rgb(222, 222, 222);
+        max-width: 600px;
+        margin: 0 auto;
+        display: flex;
+        align-items: stretch;
+        /* height: auto; */
+        width: 100%;
+        height: 100%;
+        min-width: 0;
+    }
+
+    .secondary-section .g .section .component-wrapper .first-column {
+        padding-right: 100px;
+        flex: 0 1 auto;
+        height: auto;
+        width: 50%;
+    }
+
+    .secondary-section .g .section .component-wrapper .second-column {
+        flex: 0 1 auto;
+        height: auto;
+        width: 50%;
+    }
+
+
+    .secondary-section .g .section .component-wrapper .responsive-grid {
+        display: grid;
+        width: 100%;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 2rem;
+    }
+
+    .secondary-section .g .section .component-wrapper .responsive-grid a.card-wrapper {
+        text-decoration: none;
+        transition: none;
+        background: none;
+        padding: 0;
+    }
+
+    .secondary-section .g .section .component-wrapper .responsive-grid .card {
+        position: relative;
+        background-color:  #fff none repeat scroll 0% 0%;
+        padding: 0.5rem;
+        display: flex;
+        flex-direction: row;
+        -moz-box-align: center;
+        align-items: center;
+        height: 100%;
+        -moz-box-pack: start;
+        justify-content: flex-start;
+        box-shadow: rgba(0, 0, 0, 0.09) 0.3125rem 0.3125rem 0px -0.0625rem, rgba(0, 0, 0, 0.15) 0px 0.25rem 0.5rem 0px;
+    }
+
+    .secondary-section .g .section .component-wrapper .responsive-grid .logo {
+        margin-right: 0.75rem;
+        width: 1.2rem;
+        min-width: 1.2rem;
+    }
+
+    .secondary-section .g .section .component-wrapper .responsive-grid .card .card-content {
+        display: flex;
+        flex: 1 1 0%;
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .secondary-section .g .section .component-wrapper .responsive-grid .card .card-content p {
+        margin-top: 0.25em;
+        margin-bottom: 0;
+        color: rgb(92, 92, 92);
+        font-size: 0.65rem;
+        font-weight: 300;
+        line-height: normal;
+    }
+
+    .trophies p {
+        width: 100%;
+        color: black;
+        font-size: 20px;
+        font-weight: 400;
+        line-height: 30px;
+        letter-spacing: normal;
+        margin-bottom: 16px;
+        text-align: left;
+    }
+
+    .trophies ul {
+        width: 100%;
+        position: relative;
+        margin-left: none;
+        color: black;
+        font-size: 16px;
+        font-weight: 400;
+        line-height: 30px;
+        letter-spacing: normal;
+        margin-bottom: 16px;
+        text-align: left;
+    }
+
+  </style>
+
+  <div class="md-container title">
+    <div class="md-grid md-typeset">
+      <div class="md-main__inner">
+        <div>
+          <!-- <h1 style="text-align:center; margin-bottom: 0pt;">Revizor</h1> -->
+          <p>Revizor is a security-oriented fuzzer for detecting information leaks in CPUs, such as <a href="https://meltdownattack.com/">Spectre and Meltdown</a>.
+            It tests CPUs against <a href="https://arxiv.org/abs/2006.03841">Leakage Contracts</a> and searches for unexpected leaks.</p>
+          <!-- <a href="#overview" title="Learn More" class="md-button learn">Learn More</a> -->
+          <a href="quick-start/" title="Get Started" class="md-button get-started">Get started</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="md-container">
+    <div class="demo">
+        <!-- <a href="https://asciinema.org/a/7PyftNhrWB5pivuSYLTbBHcuy"><img src="https://asciinema.org/a/7PyftNhrWB5pivuSYLTbBHcuy.png" width="836"/></a> -->
+        <script src="https://asciinema.org/a/7PyftNhrWB5pivuSYLTbBHcuy.js" id="asciicast-7PyftNhrWB5pivuSYLTbBHcuy" async width="0"></script>
+      <!-- <img src="https://github.com/microsoft/sca-fuzzer/assets/detection.png"> -->
+    </div>
+  </div>
+
+<div class="md-container secondary-section">
+    <div class="g">
+        <div class="section">
+            <div class="component-wrapper" >
+                <div class="first-column">
+                    <a id="overview" name="overview"></a>
+                    <h3 id="overview">Overview</h3>
+                    <p>
+                        Speculative execution attacks such as Spectre and Meltdown exploit microarchitectural optimizations to leak information across security domains.
+                        These vulnerabilities often stay undetected for years because few tools exits for systematic analysis of CPUs to find them.
+                    </p>
+                    <p>
+                        Revizor targets this problem by automatically testing for microarchitectural leakage in black-box CPUs.
+                        The key idea is to employ speculation contracts to model the expected information leaks, and then to use randomized testing to
+                        compare the CPU's leakage against the model and thus detect unexpected leaks.
+                    </p>
+                </div>
+                <div class="second-column">
+                    <div class="image-wrapper">
+                        <img src="https://github.com/microsoft/sca-fuzzer/assets/pretty-arch.png">
+                    </div>
+                </div>
+            </div>
+
+            <div class="component-wrapper" style="display: block;">
+
+                <h4>Research Papers</h4>
+                <div class="responsive-grid">
+                    <a href="https://www.microsoft.com/en-us/research/publication/hardware-software-contracts-for-secure-speculation/" class="card-wrapper">
+                        <div class="card">
+                            <div class="logo">
+                                <span class="twemoji">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.3.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M64 464h32v48H64c-35.3 0-64-28.7-64-64V64C0 28.7 28.7 0 64 0h165.5c17 0 33.3 6.7 45.3 18.7l90.5 90.5c12 12 18.7 28.3 18.7 45.3V288h-48V160h-80c-17.7 0-32-14.3-32-32V48H64c-8.8 0-16 7.2-16 16v384c0 8.8 7.2 16 16 16zm96-112h24c30.9 0 56 25.1 56 56s-25.1 56-56 56h-8v32c0 8.8-7.2 16-16 16s-16-7.2-16-16V368c0-8.8 7.2-16 16-16zm24 80c13.3 0 24-10.7 24-24s-10.7-24-24-24h-8v48h8zm72-64c0-8.8 7.2-16 16-16h24c26.5 0 48 21.5 48 48v64c0 26.5-21.5 48-48 48h-24c-8.8 0-16-7.2-16-16V368zm32 112h8c8.8 0 16-7.2 16-16v-64c0-8.8-7.2-16-16-16h-8v96zm96-128h48c8.8 0 16 7.2 16 16s-7.2 16-16 16h-32v32h32c8.8 0 16 7.2 16 16s-7.2 16-16 16h-32v48c0 8.8-7.2 16-16 16s-16-7.2-16-16V368c0-8.8 7.2-16 16-16z"/></svg>
+                                </span>
+                            </div>
+                            <div class="card-content">
+                                <p>
+                                    Hardware-Software Contracts for Secure Speculation
+                                </p>
+                            </div>
+                        </div>
+                    </a>
+
+                    <a href="https://www.microsoft.com/en-us/research/publication/revizor-testing-black-box-cpus-against-speculation-contracts/">
+                        <div class="card">
+                            <div class="logo">
+                                <span class="twemoji">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.3.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M64 464h32v48H64c-35.3 0-64-28.7-64-64V64C0 28.7 28.7 0 64 0h165.5c17 0 33.3 6.7 45.3 18.7l90.5 90.5c12 12 18.7 28.3 18.7 45.3V288h-48V160h-80c-17.7 0-32-14.3-32-32V48H64c-8.8 0-16 7.2-16 16v384c0 8.8 7.2 16 16 16zm96-112h24c30.9 0 56 25.1 56 56s-25.1 56-56 56h-8v32c0 8.8-7.2 16-16 16s-16-7.2-16-16V368c0-8.8 7.2-16 16-16zm24 80c13.3 0 24-10.7 24-24s-10.7-24-24-24h-8v48h8zm72-64c0-8.8 7.2-16 16-16h24c26.5 0 48 21.5 48 48v64c0 26.5-21.5 48-48 48h-24c-8.8 0-16-7.2-16-16V368zm32 112h8c8.8 0 16-7.2 16-16v-64c0-8.8-7.2-16-16-16h-8v96zm96-128h48c8.8 0 16 7.2 16 16s-7.2 16-16 16h-32v32h32c8.8 0 16 7.2 16 16s-7.2 16-16 16h-32v48c0 8.8-7.2 16-16 16s-16-7.2-16-16V368c0-8.8 7.2-16 16-16z"/></svg>
+                                </span>
+                            </div>
+                            <div class="card-content">
+                                <p class="card-content">
+                                    Revizor: Testing Black-box CPUs against Speculation Contracts
+                                </p>
+                            </div>
+                        </div>
+                    </a>
+
+                    <a href="https://www.microsoft.com/en-us/research/publication/hide-and-seek-with-spectres-efficient-discovery-of-speculative-information-leaks-with-random-testing/">
+                        <div class="card">
+                            <div class="logo">
+                                <span class="twemoji">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.3.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M64 464h32v48H64c-35.3 0-64-28.7-64-64V64C0 28.7 28.7 0 64 0h165.5c17 0 33.3 6.7 45.3 18.7l90.5 90.5c12 12 18.7 28.3 18.7 45.3V288h-48V160h-80c-17.7 0-32-14.3-32-32V48H64c-8.8 0-16 7.2-16 16v384c0 8.8 7.2 16 16 16zm96-112h24c30.9 0 56 25.1 56 56s-25.1 56-56 56h-8v32c0 8.8-7.2 16-16 16s-16-7.2-16-16V368c0-8.8 7.2-16 16-16zm24 80c13.3 0 24-10.7 24-24s-10.7-24-24-24h-8v48h8zm72-64c0-8.8 7.2-16 16-16h24c26.5 0 48 21.5 48 48v64c0 26.5-21.5 48-48 48h-24c-8.8 0-16-7.2-16-16V368zm32 112h8c8.8 0 16-7.2 16-16v-64c0-8.8-7.2-16-16-16h-8v96zm96-128h48c8.8 0 16 7.2 16 16s-7.2 16-16 16h-32v32h32c8.8 0 16 7.2 16 16s-7.2 16-16 16h-32v48c0 8.8-7.2 16-16 16s-16-7.2-16-16V368c0-8.8 7.2-16 16-16z"/></svg>
+                                </span>
+                            </div>
+                            <div class="card-content">
+                                <p>
+                                    Hide and Seek with Spectres: Efficient discovery of speculative information leaks with random testing
+                                </p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="section" style="padding: 0px 0px 116px;">
+            <div class="component-wrapper">
+                <div class="first-column">
+                    <h3>Features</h3>
+                    <div style="display: grid; column-gap: 1rem; padding: 1rem; grid-template-columns: 4rem auto;">
+                        <div class="logo">
+                            <span class="twemoji">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2a9 9 0 0 0-9 9v11l3-3 3 3 3-3 3 3 3-3 3 3V11a9 9 0 0 0-9-9m7 15.17-1-1-1.41 1.42L15 19.17l-1.59-1.58L12 16.17l-1.41 1.42L9 19.17l-1.59-1.58L6 16.17l-1 1V11c0-3.86 3.14-7 7-7s7 3.14 7 7v6.17M11 10c0 1.11-.89 2-2 2s-2-.89-2-2 .9-2 2-2 2 .9 2 2m6 0c0 1.11-.89 2-2 2s-2-.89-2-2 .9-2 2-2 2 .9 2 2Z"/></svg>
+                            </span>
+                        </div>
+                        <div>
+                            <p>
+                                Finds unknown leaks in CPUs, automatically.
+                            </p>
+                        </div>
+                    </div>
+                    <div style="display: grid; column-gap: 1rem; padding: 1rem;  grid-template-columns: 4rem auto;">
+                        <div class="logo">
+                            <span class="twemoji">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.3.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M384 96v224H64V96h320zM64 32C28.7 32 0 60.7 0 96v224c0 35.3 28.7 64 64 64h117.3l-10.7 32H96c-17.7 0-32 14.3-32 32s14.3 32 32 32h256c17.7 0 32-14.3 32-32s-14.3-32-32-32h-74.7l-10.7-32H384c35.3 0 64-28.7 64-64V96c0-35.3-28.7-64-64-64H64zm464 0c-26.5 0-48 21.5-48 48v352c0 26.5 21.5 48 48 48h64c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48h-64zm16 64h32c8.8 0 16 7.2 16 16s-7.2 16-16 16h-32c-8.8 0-16-7.2-16-16s7.2-16 16-16zm-16 80c0-8.8 7.2-16 16-16h32c8.8 0 16 7.2 16 16s-7.2 16-16 16h-32c-8.8 0-16-7.2-16-16zm32 160a32 32 0 1 1 0 64 32 32 0 1 1 0-64z"/></svg>
+                            </span>
+                        </div>
+                        <p>
+                            No special setup required; works on off-the-shelf PCs.
+                        </p>
+                    </div>
+                </div>
+                <div class="second-column">
+                    <h3>&nbsp;</h3>
+                    <div style="display: grid; column-gap: 1rem; padding: 1rem;  grid-template-columns: 4rem auto;">
+                        <div class="logo">
+                            <span class="twemoji">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 7h-2.81c-.45-.8-1.07-1.5-1.82-2L16 3.41 14.59 2l-2.17 2.17a6.002 6.002 0 0 0-2.83 0L7.41 2 6 3.41 7.62 5c-.75.5-1.36 1.21-1.81 2H3v2h2.09c-.06.33-.09.66-.09 1v1H3v2h2v1c0 .34.03.67.09 1H3v2h2.81A6.002 6.002 0 0 0 13 19.65V19c0-2.54 1.61-4.8 4-5.65V13h2v-2h-2v-1c0-.34-.03-.67-.09-1H19V7m-6 8H9v-2h4v2m0-4H9V9h4v2m4.75 11.16-2.75-3L16.16 18l1.59 1.59L21.34 16l1.16 1.41-4.75 4.75Z"/></svg>
+                            </span>
+                        </div>
+                        <p>
+                            Detects a broad range of leaks: from classic side channels to speculative execution attacks, and more.
+                        </p>
+                    </div>
+                    <div style="display: grid; column-gap: 1rem; padding: 1rem;  grid-template-columns: 4rem auto;">
+                        <div class="logo">
+                            <span class="twemoji">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15 4a8 8 0 0 1 8 8 8 8 0 0 1-8 8 8 8 0 0 1-8-8 8 8 0 0 1 8-8m0 2a6 6 0 0 0-6 6 6 6 0 0 0 6 6 6 6 0 0 0 6-6 6 6 0 0 0-6-6m-1 2h1.5v3.78l2.33 2.33-1.06 1.06L14 12.4V8M2 18a1 1 0 0 1-1-1 1 1 0 0 1 1-1h3.83c.31.71.71 1.38 1.17 2H2m1-5a1 1 0 0 1-1-1 1 1 0 0 1 1-1h2.05L5 12l.05 1H3m1-5a1 1 0 0 1-1-1 1 1 0 0 1 1-1h3c-.46.62-.86 1.29-1.17 2H4Z"/></svg>
+                            </span>
+                        </div>
+                        <p>
+                            Fast detection: Spectre V1 detected in ~5 minutes, MDS in ~7 minutes.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="md-container md-typeset title" style="max-width: 1280px;">
+    <div>
+        <h1>Trophies</h1>
+        <div class="trophies" style="display: grid; column-gap: 5rem; grid-template-columns: 2fr 1fr;">
+            <div>
+                <p>Newly discovered vulnerabilities:</p>
+                <ul>
+                    <li><b>String Comparison Overrun (SCO)</b>:
+                        Revizor discovered that string operations on Intel and AMD CPUs (in particular, string comparison and string scan) can speculatively bypass the bounds of their target strings, which permits the attacker to leak data from out-of-bounds memory locations.
+                        (More details in <a href="https://www.microsoft.com/en-us/research/publication/hide-and-seek-with-spectres-efficient-discovery-of-speculative-information-leaks-with-random-testing/"> Hide & Seek with Spectres</a>)
+                    </li>
+                    <li><b>Zero Dividend Injection (ZDI):</b>
+                        Revizor discovered that 64-bit division operation on Intel CPus can speculative ignore the upper bits of the divisor, thus producing an incorrect computational result.
+                        This speculation can potentially impact the security of cryptographic algorithms that use division to implement modulo operations.
+                        (More details in <a href="https://www.microsoft.com/en-us/research/publication/hide-and-seek-with-spectres-efficient-discovery-of-speculative-information-leaks-with-random-testing/"> Hide & Seek with Spectres</a>)
+                    </li>
+                    <li><b>Spectre Var:</b>
+                        Revizor discovered that the original investigations of Spectre vulnerabilities missed one form of leakage, which we call Spectre Var.
+                        This form of leakage is caused by the race condition that appears when a speculative memory access is data-dependent on a variable-latency instruction.
+                        This race condition can expose the operands of the variable-latency instruction.
+                        (More details in <a href="https://www.microsoft.com/en-us/research/publication/revizor-testing-black-box-cpus-against-speculation-contracts/">the Revizor paper</a>)
+                    </li>
+                    <li><b>Store-based Spectre V1:</b>
+                        Several defense proposals (e.g., STT, KLEESpectre) assumed that stores do not modify the cache state until they retire.
+                        We used Revizor to validate this assumption, and discovered that is not true on recent Intel CPUs (e.g., CoffeeLake).
+                        (More details in <a href="https://www.microsoft.com/en-us/research/publication/revizor-testing-black-box-cpus-against-speculation-contracts/">the Revizor paper</a>)
+                    </li>
+                    <li><b>Speculative Store with Forwarding:</b>
+                        Revizor discovered that two consecutive loads from the same address can speculatively return two different values if one of them receives a forwarded value from a store while the other load experiences a speculative store bypass.
+                        This combination exposes more information to the attacker compared to the original store bypass.
+                        (More details in <a href="https://www.microsoft.com/en-us/research/publication/revizor-testing-black-box-cpus-against-speculation-contracts/">the appendix to the Revizor paper</a>)
+                    </li>
+                </ul>
+            </div>
+            <div>
+                <p>Known vulnerabilities reproduced by Revizor:</p>
+                <ul>
+                    <li><a href="https://spectreattack.com/">Spectre V1 (Bounds Check Bypass, BCB)</a></li>
+                    <li><a href="https://www.intel.com/content/www/us/en/developer/articles/technical/software-security-guidance/advisory-guidance/speculative-store-bypass.html">Spectre V4 (Speculative Store Bypass, SSBP)</a></li>
+                    <li><a href="https://meltdownattack.com/">Meltdown (SMAP variant)</a></li>
+                    <li><a href="https://foreshadowattack.eu/">Foreshadow (L1TF)</a></li>
+                    <li><a href="https://www.intel.com/content/www/us/en/developer/articles/technical/software-security-guidance/advisory-guidance/microarchitectural-data-sampling.html">Microarchitectural Data Sampling (MDS)</a></li>
+                    <li><a href="https://www.intel.com/content/www/us/en/developer/articles/technical/software-security-guidance/technical-documentation/load-value-injection.html">Load Value Injection (LVI), including LVI-Null</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- <div class="md-container md-typeset title" style="max-width: 1280px;">
+    <div>
+        <h1>Trophies</h1>
+        <div class="trophies" style="display: grid; column-gap: 1rem; grid-template-columns: 1fr 1fr;">
+            <div>
+                <p>Newly discovered vulnerabilities:</p>
+                <ul>
+                    <li><a href="trophies/#string-comparison-overrun-sco">String Comparison Overrun (SCO)</a></li>
+                    <li><a href="trophies/#zero-dividend-injection-zdi">Zero Dividend Injection (ZDI)</a></li>
+                    <li><a href="trophies/#spectre-v1-var-and-v4-var">Spectre V1-Var and V4-Var</a></li>
+                    <li><a href="trophies/#store-based-spectre-v1">Store-based Spectre V1</a></li>
+                    <li><a href="trophies/#speculative-store-with-forwarding">Speculative Store with Forwarding</a></li>
+                </ul>
+            </div>
+            <div>
+                <p>Known vulnerabilities reproduced by Revizor:</p>
+                <ul>
+                    <li><a href="trophies/#spectre-v1-bounds-check-bypass-bcb">Spectre V1 (Bounds Check Bypass, BCB)</a></li>
+                    <li><a href="trophies/#spectre-v4-speculative-store-bypass-ssbp">Spectre V4 (Speculative Store Bypass, SSBP)</a></li>
+                    <li><a href="trophies/#meltdown-smap-variant">Meltdown (SMAP variant)</a></li>
+                    <li><a href="trophies/#foreshadow-l1tf">Foreshadow (L1TF)</a></li>
+                    <li><a href="trophies/#microarchitectural-data-sampling-mds">Microarchitectural Data Sampling (MDS)</a></li>
+                    <li><a href="trophies/#load-value-injection-lvi-including-lvi-null">Load Value Injection (LVI), including LVI-Null</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+ -->
+
+
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="." title="Revizor" class="md-nav__button md-logo" aria-label="Revizor" data-md-component="logo">
+      
+  <img src="assets/ms_icon.png" alt="logo">
+
+    </a>
+    Revizor
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/microsoft/sca-fuzzer" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.3.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    microsoft/sca-fuzzer
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+      <a href="." class="md-nav__link md-nav__link--active">
+        Home
+      </a>
+      
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="quick-start/" class="md-nav__link">
+        Quick Start
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          Documentation
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_3">
+          <span class="md-nav__icon md-icon"></span>
+          Documentation
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="install/" class="md-nav__link">
+        Installation
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="how-revizor-works/" class="md-nav__link">
+        How Revizor Works
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="cli/" class="md-nav__link">
+        Command Line Interface
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="config/" class="md-nav__link">
+        Configuration Files
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="modules/" class="md-nav__link">
+        Modules and Interfaces
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="architecture/" class="md-nav__link">
+        Architecture
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="fuzzing-guide/" class="md-nav__link">
+        Fuzzing Guide
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+              </article>
+            </div>
+          
+          
+        </div>
+        
+      </main>
+      
+  
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2023 Microsoft
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    <script id="__config" type="application/json">{"base": ".", "features": ["navigation.instant", "navigation.tabs", "search.share"], "search": "assets/javascripts/workers/search.208ed371.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="assets/javascripts/bundle.19047be9.min.js"></script>
+      
+    
+  </body>
+</html>
