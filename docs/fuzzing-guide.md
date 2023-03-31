@@ -1,4 +1,4 @@
-# Guide: Running a testing campaign and analyzing a violation
+# Guide on running a testing campaign and analyzing a violation
 
 In this guide, we will walk through the process of testing a CPU for unexpected speculative leaks with Revizor.
 We will also show how to analyze a contract violation discovered by this campaign.
@@ -51,7 +51,7 @@ max_bb_per_function: 1
 
 We save the configuration into a file (`config.yaml`) and start a fuzzing campaign.
 
-# Fuzzing Campaign
+## Fuzzing Campaign
 
 We start Revizor with the following command:
 
@@ -135,7 +135,7 @@ MFENCE # instrumentation
 This is a randomly-generated sequence of assembly instructions, so if we try to find out the source of the unexpected leakage in it, we will have to put a very considerable effort.
 Fortunately, we don't have to do it, as there are several techniques that can significantly simplify the analysis.
 
-1) Remove irrelevant instructions from the program:
+### 1. Remove irrelevant instructions from the program
 
 ```shell
 ./cli.py minimize -s x86/isa_spec/base.json -c config.yaml -i /results/violation<timestamp>.asm -o min.asm -n 100
@@ -204,7 +204,7 @@ To make sure that we didn't make a mistake while modifying the program, we can v
 ./cli.py fuzz -s x86/isa_spec/base.json -c config.yaml -t min.asm -i 100
 ```
 
-2) Add speculation fences to narrow down the part of the program that causes leakage:
+### 2. Add speculation fences to narrow down the part of the program that causes leakage
 
 ```shell
 ./cli.py minimize -s x86/isa_spec/base.json -c config.yaml -i min.asm -o min.asm -n 100 --add-fences
@@ -240,7 +240,7 @@ Only two fences were inserted, after `.test_case_enter:` and after `AND RAX, 0b1
 It means that all the remaining instructions are somehow involved in the speculative leak (although we cannot yet tell how exactly).
 
 
-3) Use the statistics reported by Revizor to find the specific instruction that triggers speculation.
+### 3. Use the statistics reported by Revizor to find the specific instruction that triggers speculation
 
 At this point, we start making manual changes to the program.
 We go through the program, try removing instructions one at a time, execute the modified program on Revizor, and check the statistic from the speculation filter.
@@ -290,4 +290,4 @@ Filters:
 
 The line `Speculation Filter: 0` tells us that Revizor did not detect any speculation while executing the version of the program without `DIV`. It means that this division was the source of speculative leakage.
 
-4) TO BE CONTINUED...
+### 4. TO BE CONTINUED...

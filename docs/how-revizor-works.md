@@ -1,13 +1,13 @@
 # How Revizor works
 
-Table of Contents:
+<!-- Table of Contents:
 - [How Revizor works](#how-revizor-works)
   - [Revizor in a nutshell](#revizor-in-a-nutshell)
   - [Speculation Contracts](#speculation-contracts)
     - [Microarchitectural Leakage and Hardware Traces](#microarchitectural-leakage-and-hardware-traces)
     - [What's a Speculation Contract?](#whats-a-speculation-contract)
   - [Model-based Relational Testing](#model-based-relational-testing)
-  - [Revizor](#revizor)
+  - [Revizor](#revizor) -->
 
 
 ## Revizor in a nutshell
@@ -16,7 +16,7 @@ Revizor is a tool for detecting unexpected microarchitectural leakage in CPUs.
 Microarchitectural leakage means the information that an attacker could learn by launching a microarchitectural side-channel attack (e.g., [Spectre or Meltdown](https://meltdownattack.com/)).
 The *expected* microarchitectural leakage is the leakage that we already know about (i.e., known microarchitectural vulnerabilities).
 We describe the expected leakage in a form of a Speculation Contract (see below).
-Accordingly, the *unexpected* leakage is any leakage not described by a contract - we call it a *contract violation*.
+Accordingly, the *unexpected* leakage is any leakage not described pby a contract - we call it a *contract violation*.
 Revizor's task is to find such violations.
 
 
@@ -33,7 +33,7 @@ In other words, hardware trace is the result for a side-channel attack.
 
 We abstractly represent the hardware trace as the output of a function
 
-𝐻𝑇𝑟𝑎𝑐𝑒 =𝐴𝑡𝑡𝑎𝑐𝑘(𝑃𝑟𝑜𝑔,𝐷𝑎𝑡𝑎,𝐶𝑡𝑥)
+𝐻𝑇𝑟𝑎𝑐𝑒 = 𝐴𝑡𝑡𝑎𝑐𝑘(𝑃𝑟𝑜𝑔,𝐷𝑎𝑡𝑎,𝐶𝑡𝑥)
 
 that takes three input parameters:
 (1) the victim program 𝑃𝑟𝑜𝑔;
@@ -81,7 +81,7 @@ z = array1[x] # base of array1 is 0x100
 if y < 10:
     z = array2[y] # base of array2 is 0x200
 ```
-It is executed with an input `data={x=10,y=20}`. 
+It is executed with an input `data={x=10,y=20}`.
 The MEM-COND contract trace is `ctrace=[0x110,0x220]`, representing that the load at line 1 exposes the accessed address during normal execution, and the load at line 3 exposes its address during speculative execution triggered by the branch at line 2.
 
 A CPU complies with a contract when its hardware traces (collected on the actual CPU) leak at most as much information as the contract traces.
@@ -103,7 +103,7 @@ To find contract violations, we use the following approach, which we call Model-
 
 The next figure show the main components of MRT:
 
-![MRT](./diagrams/Arch.png)
+![MRT](assets/arch.png)
 
 **Test case and input generation**.
 We sample the search space of programs, inputs and microarchitectural states to find counterexamples.
@@ -125,7 +125,7 @@ Namely, we search for pairs of inputs that match the following:
 
 ```
 ContractTrace1 == ContractTrace2
-               and 
+               and
 HardwareTrace1 != HardwareTrace2
 ```
 

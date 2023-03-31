@@ -1,6 +1,6 @@
 # Revizor's Architecture
 
-![architecture](diagrams/arch.png)
+![architecture](assets/arch.png)
 
 Revizor has **five** chief components:
 

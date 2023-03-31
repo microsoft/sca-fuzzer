@@ -1,7 +1,7 @@
 # Configuration File
 
 Below is a list of the available configuration options for Revizor, which are passed down to Revizor via a config file.
-For an example of how to write the config file, see [src/tests/big-fuzz.yaml](src/tests/big-fuzz.yaml).
+For an example of how to write the config file, see [src/tests/big-fuzz.yaml](https://github.com/microsoft/sca-fuzzer/tree/main/src/tests/big-fuzz.yaml).
 
 Some of the options are omitted from the list as they should not be used in a normal fuzzing campaign.
 For a complete list, see `src/config.py`.

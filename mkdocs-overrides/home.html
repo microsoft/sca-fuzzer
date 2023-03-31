@@ -1,0 +1,470 @@
+{% extends "main.html" %}
+
+{% block tabs %}
+  {{ super() }}
+
+  <style>
+
+    .md-content { display: none; }
+
+    .md-typeset .get-started {
+        color: white;
+        background-color: black;
+        border-color: black;
+        margin: .2rem;
+    }
+    .md-typeset .get-started:hover {
+        color: black;
+        background-color: white;
+        border-color: black;
+        margin: .2rem;
+    }
+
+    .md-typeset .learn {
+        color: black;
+        background-color: white;
+        border-color: rgb(228, 228, 228);
+        margin: .2rem;
+    }
+    .md-typeset .learn:hover {
+        color: black;
+        background-color: white;
+        border-color: rgb(228, 228, 228);
+        margin: .2rem;
+    }
+
+    .title {
+        max-width: 700px;
+        display: flex;
+        padding: .4rem;
+        margin: 0 auto;
+        text-align: center;
+    }
+    .title h1 {
+        font-weight: 700;
+        font-size: 38px;
+        line-height: 46px;
+        color: rgb(0, 0, 0);
+    }
+    .title p {
+        color: rgb(100, 100, 100);
+        font-weight: 400;
+        font-size: 20px;
+        line-height: 32px;
+    }
+
+    .demo {
+        max-width: 800px;
+        min-width: 600px;
+        width: 100%;
+        height: auto;
+        margin: 0 auto;
+        display: flex;
+        align-items: stretch;
+        padding: .4rem;
+        text-align: center;
+    }
+
+    .demo .asciicast {
+        width: 100%;
+        height: 100%;
+        margin: 0 auto;
+        display: flex;
+        align-items: stretch;
+        padding: .4rem;
+        text-align: center;
+    }
+
+    .secondary-section {
+        background: rgb(245, 245, 245) none repeat scroll 0% 0%;
+        border-top: 1px solid rgb(222, 222, 222);
+        border-bottom: 1px solid rgb(222, 222, 222)
+    }
+
+    .secondary-section .g {
+        position: relative;
+        margin-left: auto;
+        margin-right: auto;
+        padding: 0px 40px;
+        max-width: 1280px;
+    }
+
+    .secondary-section .g .section {
+        font-size: 18px;
+        font-weight: 400;
+        line-height: 30px;
+        letter-spacing: normal;
+        padding: 88px 0px 60px;
+    }
+
+    .secondary-section .g .section .component-wrapper {
+        display: flex;
+        -moz-box-align: center;
+        align-items: center;
+    }
+
+    .secondary-section .g .section .component-wrapper h3 {
+        color: rgb(38, 38, 38);
+        font-size: 36px;
+        font-weight: 700;
+        line-height: 46px;
+        letter-spacing: normal;
+        margin-bottom: 12px;
+    }
+
+    .secondary-section .g .section .component-wrapper p {
+        color: rgb(92, 92, 92);
+        font-size: 18px;
+        font-weight: 400;
+        line-height: 30px;
+        letter-spacing: normal;
+        margin-bottom: 16px;
+    }
+
+    .secondary-section .g .section .component-wrapper .image-wrapper {
+        overflow: hidden;
+        border-radius: 8px;
+        border: 3px solid rgb(222, 222, 222);
+        max-width: 600px;
+        margin: 0 auto;
+        display: flex;
+        align-items: stretch;
+        /* height: auto; */
+        width: 100%;
+        height: 100%;
+        min-width: 0;
+    }
+
+    .secondary-section .g .section .component-wrapper .first-column {
+        padding-right: 100px;
+        flex: 0 1 auto;
+        height: auto;
+        width: 50%;
+    }
+
+    .secondary-section .g .section .component-wrapper .second-column {
+        flex: 0 1 auto;
+        height: auto;
+        width: 50%;
+    }
+
+
+    .secondary-section .g .section .component-wrapper .responsive-grid {
+        display: grid;
+        width: 100%;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 2rem;
+    }
+
+    .secondary-section .g .section .component-wrapper .responsive-grid a.card-wrapper {
+        text-decoration: none;
+        transition: none;
+        background: none;
+        padding: 0;
+    }
+
+    .secondary-section .g .section .component-wrapper .responsive-grid .card {
+        position: relative;
+        background-color:  #fff none repeat scroll 0% 0%;
+        padding: 0.5rem;
+        display: flex;
+        flex-direction: row;
+        -moz-box-align: center;
+        align-items: center;
+        height: 100%;
+        -moz-box-pack: start;
+        justify-content: flex-start;
+        box-shadow: rgba(0, 0, 0, 0.09) 0.3125rem 0.3125rem 0px -0.0625rem, rgba(0, 0, 0, 0.15) 0px 0.25rem 0.5rem 0px;
+    }
+
+    .secondary-section .g .section .component-wrapper .responsive-grid .logo {
+        margin-right: 0.75rem;
+        width: 1.2rem;
+        min-width: 1.2rem;
+    }
+
+    .secondary-section .g .section .component-wrapper .responsive-grid .card .card-content {
+        display: flex;
+        flex: 1 1 0%;
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .secondary-section .g .section .component-wrapper .responsive-grid .card .card-content p {
+        margin-top: 0.25em;
+        margin-bottom: 0;
+        color: rgb(92, 92, 92);
+        font-size: 0.65rem;
+        font-weight: 300;
+        line-height: normal;
+    }
+
+    .trophies p {
+        width: 100%;
+        color: black;
+        font-size: 20px;
+        font-weight: 400;
+        line-height: 30px;
+        letter-spacing: normal;
+        margin-bottom: 16px;
+        text-align: left;
+    }
+
+    .trophies ul {
+        width: 100%;
+        position: relative;
+        margin-left: none;
+        color: black;
+        font-size: 16px;
+        font-weight: 400;
+        line-height: 30px;
+        letter-spacing: normal;
+        margin-bottom: 16px;
+        text-align: left;
+    }
+
+  </style>
+
+  <div class="md-container title">
+    <div class="md-grid md-typeset">
+      <div class="md-main__inner">
+        <div>
+          <!-- <h1 style="text-align:center; margin-bottom: 0pt;">Revizor</h1> -->
+          <p>Revizor is a security-oriented fuzzer for detecting information leaks in CPUs, such as <a href="https://meltdownattack.com/">Spectre and Meltdown</a>.
+            It tests CPUs against <a href="https://arxiv.org/abs/2006.03841">Leakage Contracts</a> and searches for unexpected leaks.</p>
+          <!-- <a href="#overview" title="Learn More" class="md-button learn">Learn More</a> -->
+          <a href="quick-start/" title="Get Started" class="md-button get-started">Get started</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="md-container">
+    <div class="demo">
+        <!-- <a href="https://asciinema.org/a/7PyftNhrWB5pivuSYLTbBHcuy"><img src="https://asciinema.org/a/7PyftNhrWB5pivuSYLTbBHcuy.png" width="836"/></a> -->
+        <script src="https://asciinema.org/a/7PyftNhrWB5pivuSYLTbBHcuy.js" id="asciicast-7PyftNhrWB5pivuSYLTbBHcuy" async width="0"></script>
+      <!-- <img src="{{config.site_url}}assets/detection.png"> -->
+    </div>
+  </div>
+
+<div class="md-container secondary-section">
+    <div class="g">
+        <div class="section">
+            <div class="component-wrapper" >
+                <div class="first-column">
+                    <a id="overview" name="overview"></a>
+                    <h3 id="overview">Overview</h3>
+                    <p>
+                        Speculative execution attacks such as Spectre and Meltdown exploit microarchitectural optimizations to leak information across security domains.
+                        These vulnerabilities often stay undetected for years because few tools exits for systematic analysis of CPUs to find them.
+                    </p>
+                    <p>
+                        Revizor targets this problem by automatically testing for microarchitectural leakage in black-box CPUs.
+                        The key idea is to employ speculation contracts to model the expected information leaks, and then to use randomized testing to
+                        compare the CPU's leakage against the model and thus detect unexpected leaks.
+                    </p>
+                </div>
+                <div class="second-column">
+                    <div class="image-wrapper">
+                        <img src="{{config.site_url}}assets/pretty-arch.png">
+                    </div>
+                </div>
+            </div>
+
+            <div class="component-wrapper" style="display: block;">
+
+                <h4>Research Papers</h4>
+                <div class="responsive-grid">
+                    <a href="https://www.microsoft.com/en-us/research/publication/hardware-software-contracts-for-secure-speculation/" class="card-wrapper">
+                        <div class="card">
+                            <div class="logo">
+                                <span class="twemoji">
+                                    {% include ".icons/fontawesome/regular/file-pdf.svg" %}
+                                </span>
+                            </div>
+                            <div class="card-content">
+                                <p>
+                                    Hardware-Software Contracts for Secure Speculation
+                                </p>
+                            </div>
+                        </div>
+                    </a>
+
+                    <a href="https://www.microsoft.com/en-us/research/publication/revizor-testing-black-box-cpus-against-speculation-contracts/">
+                        <div class="card">
+                            <div class="logo">
+                                <span class="twemoji">
+                                    {% include ".icons/fontawesome/regular/file-pdf.svg" %}
+                                </span>
+                            </div>
+                            <div class="card-content">
+                                <p class="card-content">
+                                    Revizor: Testing Black-box CPUs against Speculation Contracts
+                                </p>
+                            </div>
+                        </div>
+                    </a>
+
+                    <a href="https://www.microsoft.com/en-us/research/publication/hide-and-seek-with-spectres-efficient-discovery-of-speculative-information-leaks-with-random-testing/">
+                        <div class="card">
+                            <div class="logo">
+                                <span class="twemoji">
+                                    {% include ".icons/fontawesome/regular/file-pdf.svg" %}
+                                </span>
+                            </div>
+                            <div class="card-content">
+                                <p>
+                                    Hide and Seek with Spectres: Efficient discovery of speculative information leaks with random testing
+                                </p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="section" style="padding: 0px 0px 116px;">
+            <div class="component-wrapper">
+                <div class="first-column">
+                    <h3>Features</h3>
+                    <div style="display: grid; column-gap: 1rem; padding: 1rem; grid-template-columns: 4rem auto;">
+                        <div class="logo">
+                            <span class="twemoji">
+                                {% include ".icons/material/ghost-outline.svg" %}
+                            </span>
+                        </div>
+                        <div>
+                            <p>
+                                Finds unknown leaks in CPUs, automatically.
+                            </p>
+                        </div>
+                    </div>
+                    <div style="display: grid; column-gap: 1rem; padding: 1rem;  grid-template-columns: 4rem auto;">
+                        <div class="logo">
+                            <span class="twemoji">
+                                {% include ".icons/fontawesome/solid/computer.svg" %}
+                            </span>
+                        </div>
+                        <p>
+                            No special setup required; works on off-the-shelf PCs.
+                        </p>
+                    </div>
+                </div>
+                <div class="second-column">
+                    <h3>&nbsp;</h3>
+                    <div style="display: grid; column-gap: 1rem; padding: 1rem;  grid-template-columns: 4rem auto;">
+                        <div class="logo">
+                            <span class="twemoji">
+                                {% include ".icons/material/bug-check.svg" %}
+                            </span>
+                        </div>
+                        <p>
+                            Detects a broad range of leaks: from classic side channels to speculative execution attacks, and more.
+                        </p>
+                    </div>
+                    <div style="display: grid; column-gap: 1rem; padding: 1rem;  grid-template-columns: 4rem auto;">
+                        <div class="logo">
+                            <span class="twemoji">
+                                {% include ".icons/material/clock-fast.svg" %}
+                            </span>
+                        </div>
+                        <p>
+                            Fast detection: Spectre V1 detected in ~5 minutes, MDS in ~7 minutes.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="md-container md-typeset title" style="max-width: 1280px;">
+    <div>
+        <h1>Trophies</h1>
+        <div class="trophies" style="display: grid; column-gap: 5rem; grid-template-columns: 2fr 1fr;">
+            <div>
+                <p>Newly discovered vulnerabilities:</p>
+                <ul>
+                    <li><b>String Comparison Overrun (SCO)</b>:
+                        Revizor discovered that string operations on Intel and AMD CPUs (in particular, string comparison and string scan) can speculatively bypass the bounds of their target strings, which permits the attacker to leak data from out-of-bounds memory locations.
+                        (More details in <a href="https://www.microsoft.com/en-us/research/publication/hide-and-seek-with-spectres-efficient-discovery-of-speculative-information-leaks-with-random-testing/"> Hide & Seek with Spectres</a>)
+                    </li>
+                    <li><b>Zero Dividend Injection (ZDI):</b>
+                        Revizor discovered that 64-bit division operation on Intel CPus can speculative ignore the upper bits of the divisor, thus producing an incorrect computational result.
+                        This speculation can potentially impact the security of cryptographic algorithms that use division to implement modulo operations.
+                        (More details in <a href="https://www.microsoft.com/en-us/research/publication/hide-and-seek-with-spectres-efficient-discovery-of-speculative-information-leaks-with-random-testing/"> Hide & Seek with Spectres</a>)
+                    </li>
+                    <li><b>Spectre Var:</b>
+                        Revizor discovered that the original investigations of Spectre vulnerabilities missed one form of leakage, which we call Spectre Var.
+                        This form of leakage is caused by the race condition that appears when a speculative memory access is data-dependent on a variable-latency instruction.
+                        This race condition can expose the operands of the variable-latency instruction.
+                        (More details in <a href="https://www.microsoft.com/en-us/research/publication/revizor-testing-black-box-cpus-against-speculation-contracts/">the Revizor paper</a>)
+                    </li>
+                    <li><b>Store-based Spectre V1:</b>
+                        Several defense proposals (e.g., STT, KLEESpectre) assumed that stores do not modify the cache state until they retire.
+                        We used Revizor to validate this assumption, and discovered that is not true on recent Intel CPUs (e.g., CoffeeLake).
+                        (More details in <a href="https://www.microsoft.com/en-us/research/publication/revizor-testing-black-box-cpus-against-speculation-contracts/">the Revizor paper</a>)
+                    </li>
+                    <li><b>Speculative Store with Forwarding:</b>
+                        Revizor discovered that two consecutive loads from the same address can speculatively return two different values if one of them receives a forwarded value from a store while the other load experiences a speculative store bypass.
+                        This combination exposes more information to the attacker compared to the original store bypass.
+                        (More details in <a href="https://www.microsoft.com/en-us/research/publication/revizor-testing-black-box-cpus-against-speculation-contracts/">the appendix to the Revizor paper</a>)
+                    </li>
+                </ul>
+            </div>
+            <div>
+                <p>Known vulnerabilities reproduced by Revizor:</p>
+                <ul>
+                    <li><a href="https://spectreattack.com/">Spectre V1 (Bounds Check Bypass, BCB)</a></li>
+                    <li><a href="https://www.intel.com/content/www/us/en/developer/articles/technical/software-security-guidance/advisory-guidance/speculative-store-bypass.html">Spectre V4 (Speculative Store Bypass, SSBP)</a></li>
+                    <li><a href="https://meltdownattack.com/">Meltdown (SMAP variant)</a></li>
+                    <li><a href="https://foreshadowattack.eu/">Foreshadow (L1TF)</a></li>
+                    <li><a href="https://www.intel.com/content/www/us/en/developer/articles/technical/software-security-guidance/advisory-guidance/microarchitectural-data-sampling.html">Microarchitectural Data Sampling (MDS)</a></li>
+                    <li><a href="https://www.intel.com/content/www/us/en/developer/articles/technical/software-security-guidance/technical-documentation/load-value-injection.html">Load Value Injection (LVI), including LVI-Null</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- <div class="md-container md-typeset title" style="max-width: 1280px;">
+    <div>
+        <h1>Trophies</h1>
+        <div class="trophies" style="display: grid; column-gap: 1rem; grid-template-columns: 1fr 1fr;">
+            <div>
+                <p>Newly discovered vulnerabilities:</p>
+                <ul>
+                    <li><a href="trophies/#string-comparison-overrun-sco">String Comparison Overrun (SCO)</a></li>
+                    <li><a href="trophies/#zero-dividend-injection-zdi">Zero Dividend Injection (ZDI)</a></li>
+                    <li><a href="trophies/#spectre-v1-var-and-v4-var">Spectre V1-Var and V4-Var</a></li>
+                    <li><a href="trophies/#store-based-spectre-v1">Store-based Spectre V1</a></li>
+                    <li><a href="trophies/#speculative-store-with-forwarding">Speculative Store with Forwarding</a></li>
+                </ul>
+            </div>
+            <div>
+                <p>Known vulnerabilities reproduced by Revizor:</p>
+                <ul>
+                    <li><a href="trophies/#spectre-v1-bounds-check-bypass-bcb">Spectre V1 (Bounds Check Bypass, BCB)</a></li>
+                    <li><a href="trophies/#spectre-v4-speculative-store-bypass-ssbp">Spectre V4 (Speculative Store Bypass, SSBP)</a></li>
+                    <li><a href="trophies/#meltdown-smap-variant">Meltdown (SMAP variant)</a></li>
+                    <li><a href="trophies/#foreshadow-l1tf">Foreshadow (L1TF)</a></li>
+                    <li><a href="trophies/#microarchitectural-data-sampling-mds">Microarchitectural Data Sampling (MDS)</a></li>
+                    <li><a href="trophies/#load-value-injection-lvi-including-lvi-null">Load Value Injection (LVI), including LVI-Null</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+ -->
+
+{% endblock %}
+
+<!-- Content -->
+{% block content %}{% endblock %}
+
+<!-- Application footer -->
+{% block footer %}
+  {{ super() }}
+{% endblock %}
