@@ -332,36 +332,43 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#1-testbed" class="md-nav__link">
-    1. Testbed
+  <a href="#testbed" class="md-nav__link">
+    Testbed
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#2-installation" class="md-nav__link">
-    2. Installation
+  <a href="#installation" class="md-nav__link">
+    Installation
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-baseline-testing" class="md-nav__link">
-    3. Baseline Testing
+  <a href="#config-file" class="md-nav__link">
+    Config File
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#4-simile-detection" class="md-nav__link">
-    4. Simile Detection
+  <a href="#baseline-experiment" class="md-nav__link">
+    Baseline Experiment
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#5-start-real-fuzzing" class="md-nav__link">
-    5. Start Real Fuzzing
+  <a href="#detection-of-a-simple-contract-violation" class="md-nav__link">
+    Detection of a Simple Contract Violation
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#full-scale-fuzzing-campaign" class="md-nav__link">
+    Full-Scale Fuzzing Campaign
   </a>
   
 </li>
@@ -465,22 +472,8 @@
   
   
     <li class="md-nav__item">
-      <a href="../modules/" class="md-nav__link">
-        Modules and Interfaces
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../architecture/" class="md-nav__link">
-        Architecture
+      <a href="../development/" class="md-nav__link">
+        Development
       </a>
     </li>
   
@@ -535,36 +528,43 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#1-testbed" class="md-nav__link">
-    1. Testbed
+  <a href="#testbed" class="md-nav__link">
+    Testbed
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#2-installation" class="md-nav__link">
-    2. Installation
+  <a href="#installation" class="md-nav__link">
+    Installation
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-baseline-testing" class="md-nav__link">
-    3. Baseline Testing
+  <a href="#config-file" class="md-nav__link">
+    Config File
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#4-simile-detection" class="md-nav__link">
-    4. Simile Detection
+  <a href="#baseline-experiment" class="md-nav__link">
+    Baseline Experiment
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#5-start-real-fuzzing" class="md-nav__link">
-    5. Start Real Fuzzing
+  <a href="#detection-of-a-simple-contract-violation" class="md-nav__link">
+    Detection of a Simple Contract Violation
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#full-scale-fuzzing-campaign" class="md-nav__link">
+    Full-Scale Fuzzing Campaign
   </a>
   
 </li>
@@ -588,22 +588,51 @@
 
 
 <h1 id="quick-start-guide">Quick Start Guide</h1>
-<h2 id="1-testbed">1. Testbed</h2>
+<h2 id="testbed">Testbed</h2>
 <p>Get yourself a machine for testing: Revizor can test x86-64 CPUs, Intel or AMD.
 You will need a Linux installation running directly on the hardware (testing from within a VM is not supported).</p>
-<h2 id="2-installation">2. Installation</h2>
+<h2 id="installation">Installation</h2>
 <p>Follow the installation instructions on <a href="../install/">this page</a>.</p>
-<h2 id="3-baseline-testing">3. Baseline Testing</h2>
-<p>Try running Revizor in a simple, violation-free configuration:</p>
-<div class="highlight"><pre><span></span><code>./cli.py<span class="w"> </span>fuzz<span class="w"> </span>-s<span class="w"> </span>x86/isa_spec/base.json<span class="w"> </span>-i<span class="w"> </span><span class="m">50</span><span class="w"> </span>-n<span class="w"> </span><span class="m">100</span><span class="w"> </span>-c<span class="w"> </span>tests/test-nondetection.yaml
+<h2 id="config-file">Config File</h2>
+<p>The fuzzing process is controlled by a configuration file in the YAML format, passed via <code>--config</code> option. At the very minimum, this file should contain the following fields:
+* <code>contract_observation_clause</code> and <code>contract_execution_clause</code> describe the contract that the CPU-under-test is tested against. See <a href="https://microsoft.github.io/sca-fuzzer/config/">this page</a> for a list of available contracts. If you don't know what a contract is, Sec. 3 of <a href="https://arxiv.org/pdf/2105.06872.pdf">this paper</a> will give you a high-level introduction to contracts, and <a href="https://www.microsoft.com/en-us/research/publication/hardware-software-contracts-for-secure-speculation/">this paper</a> will provide a deep dive into contracts.
+* <code>instruction_categories</code> is a list of instruction types that will be tested. Effectively, Revizor uses this list to filter out instructions from <code>base.json</code> (the file you downloaded via <code>rvzr download_spec</code>).</p>
+<p>For a full list of configuration options, see <a href="https://microsoft.github.io/sca-fuzzer/config/">docs</a>.</p>
+<h2 id="baseline-experiment">Baseline Experiment</h2>
+<p>After a fresh installation, it is normally a good idea to do a quick test run to check that everything works ok.</p>
+<p>For example, we can create a configuration file <code>config.yaml</code> with only simple arithmetic instructions. As this instruction set does not include any instructions that would trigger speculation on Intel or AMD CPUs (at least that we know of), the expected contract would be <code>CT-SEQ</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># config.yaml</span>
+<span class="nt">instruction_categories</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">BASE-BINARY</span><span class="w">  </span><span class="c1"># arithmetic instructions</span>
+<span class="nt">max_bb_per_function</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span><span class="w">  </span><span class="c1"># no branches!</span>
+<span class="nt">min_bb_per_function</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+
+<span class="nt">contract_observation_clause</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">loads+stores+pc</span><span class="w">  </span><span class="c1"># aka CT</span>
+<span class="nt">contract_execution_clause</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">no_speculation</span><span class="w">  </span><span class="c1"># aka SEQ</span>
 </code></pre></div>
-<p>This command should terminate with no output.</p>
-<h2 id="4-simile-detection">4. Simile Detection</h2>
-<p>Try starting detecting a contract violation with Revizor:</p>
-<div class="highlight"><pre><span></span><code>./cli.py<span class="w"> </span>fuzz<span class="w"> </span>-s<span class="w"> </span>x86/isa_spec/base.json<span class="w"> </span>-i<span class="w"> </span><span class="m">20</span><span class="w"> </span>-n<span class="w"> </span><span class="m">1000</span><span class="w"> </span>-c<span class="w"> </span>tests/test-detection.yaml<span class="w"> </span>-w<span class="w"> </span>.
-</code></pre></div>
-<p>This command will test the CPU against a contract that completely forbids speculation.
-As your CPU under test almost definitely implements at least some form of speculation, Revizor should detect a violation within a few minutes, with a message similar to this:</p>
+<p>Start the fuzzer:
+<div class="highlight"><pre><span></span><code>rvzr<span class="w"> </span>fuzz<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-i<span class="w"> </span><span class="m">50</span><span class="w"> </span>-n<span class="w"> </span><span class="m">100</span><span class="w"> </span>-c<span class="w"> </span>config.yaml<span class="w">  </span>-w<span class="w"> </span>.
+</code></pre></div></p>
+<p>This command should terminate with no violations.</p>
+<h2 id="detection-of-a-simple-contract-violation">Detection of a Simple Contract Violation</h2>
+<p>Next, we could intentionally make a mistake in a contract to check that Revizor can detect it.
+To this end, we can modify the config file from the previous example to include instructions that trigger speculation (e.g., conditional branches) but keep the contract the same:
+<div class="highlight"><pre><span></span><code><span class="c1"># config.yaml</span>
+<span class="nt">instruction_categories</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">BASE-BINARY</span><span class="w">  </span><span class="c1"># arithmetic instructions</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">BASE-COND_BR</span>
+<span class="nt">max_bb_per_function</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span><span class="w">  </span><span class="c1"># up to 5 branches per test case</span>
+<span class="nt">min_bb_per_function</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+
+<span class="nt">contract_observation_clause</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">loads+stores+pc</span><span class="w">  </span><span class="c1"># aka CT</span>
+<span class="nt">contract_execution_clause</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">no_speculation</span><span class="w">  </span><span class="c1"># aka SEQ</span>
+</code></pre></div></p>
+<p>Start the fuzzer:
+<div class="highlight"><pre><span></span><code>rvzr<span class="w"> </span>fuzz<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-i<span class="w"> </span><span class="m">50</span><span class="w"> </span>-n<span class="w"> </span><span class="m">1000</span><span class="w"> </span>-c<span class="w"> </span>config.yaml<span class="w"> </span>-w<span class="w"> </span>.
+</code></pre></div></p>
+<p>As your CPU-under-test almost definitely implements branch prediction, Revizor should detect a violation within a few minutes, with a message similar to this:</p>
 <div class="highlight"><pre><span></span><code>================================ Violations detected ==========================
   Contract trace (hash):
 
@@ -616,13 +645,12 @@ As your CPU under test almost definitely implements at least some form of specul
 </code></pre></div>
 <p>You can find the violating test case as well as the violation report in the directory named <code>./violation-*/</code>.
 It will contain an assembly file <code>program.asm</code> that surfaced a violation, a sequence of inputs <code>input-*.bin</code> to this program, and some details about the violation in <code>report.txt</code>.</p>
-<h2 id="5-start-real-fuzzing">5. Start Real Fuzzing</h2>
-<p>Write your own configuration file (see description <a href="../config/">here</a> and an example config <a href="https://github.com/microsoft/sca-fuzzer/tree/main/src/tests/big-fuzz.yaml">here</a>), and launch the fuzzer.</p>
-<p>Below is a example launch command, which will start a 24-hour fuzzing session, with 100 input classes per test case:</p>
-<div class="highlight"><pre><span></span><code>./cli.py<span class="w"> </span>fuzz<span class="w"> </span>-s<span class="w"> </span>x86/isa_spec/base.json<span class="w"> </span>-c<span class="w"> </span>tests/big-fuzz.yaml<span class="w"> </span>-i<span class="w"> </span><span class="m">100</span><span class="w"> </span>-n<span class="w"> </span><span class="m">100000000</span><span class="w"> </span>--timeout<span class="w"> </span><span class="m">86400</span><span class="w"> </span>-w<span class="w"> </span><span class="sb">`</span><span class="nb">pwd</span><span class="sb">`</span><span class="w"> </span>--nonstop
-</code></pre></div>
-<p>When you find a violation, you will have to do some manual investigation to understand the source of it;
-<a href="../fuzzing-guide/">this guide</a> is an example of how to do such an investigation.</p>
+<h2 id="full-scale-fuzzing-campaign">Full-Scale Fuzzing Campaign</h2>
+<p>To start a full-scale test, write your own configuration file (see description <a href="../config/">here</a> and an example config <a href="https://github.com/microsoft/sca-fuzzer/tree/main/src/tests/big-fuzz.yaml">here</a>), and launch the fuzzer.</p>
+<p>Below is a example launch command, which will start a 24-hour fuzzing session, with 100 input classes per test case, and which uses <a href="https://github.com/microsoft/sca-fuzzer/tree/main/src/tests/big-fuzz.yaml">big-fuzz.yaml</a> configuration:
+<div class="highlight"><pre><span></span><code>rvzr<span class="w"> </span>fuzz<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>src/tests/big-fuzz.yaml<span class="w"> </span>-i<span class="w"> </span><span class="m">100</span><span class="w"> </span>-n<span class="w"> </span><span class="m">100000000</span><span class="w"> </span>--timeout<span class="w"> </span><span class="m">86400</span><span class="w"> </span>-w<span class="w"> </span><span class="sb">`</span><span class="nb">pwd</span><span class="sb">`</span><span class="w"> </span>--nonstop
+</code></pre></div></p>
+<p>When you find a violation, you will have to do some manual investigation to understand the source of it; <a href="../fuzzing-guide/">this guide</a> is an example of how to do such an investigation.</p>
 
 
 

@@ -453,22 +453,8 @@
   
   
     <li class="md-nav__item">
-      <a href="../modules/" class="md-nav__link">
-        Modules and Interfaces
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../architecture/" class="md-nav__link">
-        Architecture
+      <a href="../development/" class="md-nav__link">
+        Development
       </a>
     </li>
   
@@ -565,7 +551,7 @@
 <p>Revizor can run in one of multiple "modes":</p>
 <ul>
 <li><strong>Fuzzing mode</strong> is revizor's main form of execution. It's what invokes all
-  components of <a href="../architecture/">revizor's architecture</a> to enable hardware
+  components of <a href="architecture.md">revizor's architecture</a> to enable hardware
   fuzzing.</li>
 <li><strong>Analysis mode</strong> invokes the analyser to compare existing contract traces and
   hardware traces.</li>
@@ -574,7 +560,7 @@
   a single test case.</li>
 </ul>
 <p>To select a mode on the command-line, begin your command with:</p>
-<div class="highlight"><pre><span></span><code>cli.py<span class="w"> </span>MODE<span class="w"> </span><span class="c1"># ... arguments go here</span>
+<div class="highlight"><pre><span></span><code>rvzr<span class="w"> </span>MODE<span class="w"> </span><span class="c1"># ... arguments go here</span>
 
 <span class="c1"># Where MODE can be:</span>
 <span class="c1">#   fuzz            for fuzzing mode</span>

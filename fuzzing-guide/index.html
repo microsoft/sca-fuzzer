@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/fuzzing-guide/">
       
       
-        <link rel="prev" href="../architecture/">
+        <link rel="prev" href="../development/">
       
       
       <link rel="icon" href="../assets/ms_icon.png">
@@ -394,22 +394,8 @@
   
   
     <li class="md-nav__item">
-      <a href="../modules/" class="md-nav__link">
-        Modules and Interfaces
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../architecture/" class="md-nav__link">
-        Architecture
+      <a href="../development/" class="md-nav__link">
+        Development
       </a>
     </li>
   
@@ -671,10 +657,11 @@ Accordingly, our expected contract is going to be <code>ct-seq</code>, a contrac
 <p>We save the configuration into a file (<code>config.yaml</code>) and start a fuzzing campaign.</p>
 <h2 id="fuzzing-campaign">Fuzzing Campaign</h2>
 <p>We start Revizor with the following command:</p>
-<div class="highlight"><pre><span></span><code>./cli.py<span class="w"> </span>fuzz<span class="w"> </span>-s<span class="w"> </span>x86/isa_spec/base.json<span class="w"> </span>-c<span class="w"> </span>config.yaml<span class="w"> </span>-n<span class="w"> </span><span class="m">100000</span><span class="w"> </span>-i<span class="w"> </span><span class="m">100</span><span class="w"> </span>-w<span class="w"> </span>./results
+<p><div class="highlight"><pre><span></span><code>rvzr<span class="w"> </span>fuzz<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>config.yaml<span class="w"> </span>-n<span class="w"> </span><span class="m">100000</span><span class="w"> </span>-i<span class="w"> </span><span class="m">100</span><span class="w"> </span>-w<span class="w"> </span>./results
 </code></pre></div>
+(use <code>./revizor.py</code> instead of <code>rvzr</code> if you want to run Revizor directly from the source directory)</p>
 <p>Here
-* <code>-s x86/isa_spec/base.json</code> - tells Revizor where to find a description of the tested instructions
+* <code>-s base.json</code> - tells Revizor where to find a description of the tested instructions
 * <code>-c config.yaml</code> - points Revizor to the configuration file described above
 * <code>-n 100000</code> - number of randomly-generated programs to be tested. Note that 100k programs will be tested only if none of them surfaces a contract violation; otherwise, Revizor will stop as soon as it detects a violation
 * <code>-i 100</code> - number of inputs per test case
@@ -742,7 +729,7 @@ MFENCE # instrumentation
 <p>This is a randomly-generated sequence of assembly instructions, so if we try to find out the source of the unexpected leakage in it, we will have to put a very considerable effort.
 Fortunately, we don't have to do it, as there are several techniques that can significantly simplify the analysis.</p>
 <h3 id="1-remove-irrelevant-instructions-from-the-program">1. Remove irrelevant instructions from the program</h3>
-<div class="highlight"><pre><span></span><code>./cli.py<span class="w"> </span>minimize<span class="w"> </span>-s<span class="w"> </span>x86/isa_spec/base.json<span class="w"> </span>-c<span class="w"> </span>config.yaml<span class="w"> </span>-i<span class="w"> </span>/results/violation&lt;timestamp&gt;.asm<span class="w"> </span>-o<span class="w"> </span>min.asm<span class="w"> </span>-n<span class="w"> </span><span class="m">100</span>
+<div class="highlight"><pre><span></span><code>rvzr<span class="w"> </span>minimize<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>config.yaml<span class="w"> </span>-i<span class="w"> </span>/results/violation&lt;timestamp&gt;.asm<span class="w"> </span>-o<span class="w"> </span>min.asm<span class="w"> </span>-n<span class="w"> </span><span class="m">100</span>
 </code></pre></div>
 <p>It simplifies the program and stores the result into <code>min.asm</code>. The result is:</p>
 <div class="highlight"><pre><span></span><code>.intel_syntax noprefix
@@ -795,10 +782,10 @@ LOCK SBB byte ptr [R14 + RAX], CL
 MFENCE # instrumentation
 </code></pre></div>
 <p>To make sure that we didn't make a mistake while modifying the program, we can verify the result by reproducing the violation:</p>
-<div class="highlight"><pre><span></span><code>./cli.py<span class="w"> </span>fuzz<span class="w"> </span>-s<span class="w"> </span>x86/isa_spec/base.json<span class="w"> </span>-c<span class="w"> </span>config.yaml<span class="w"> </span>-t<span class="w"> </span>min.asm<span class="w"> </span>-i<span class="w"> </span><span class="m">100</span>
+<div class="highlight"><pre><span></span><code>rvzr<span class="w"> </span>fuzz<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>config.yaml<span class="w"> </span>-t<span class="w"> </span>min.asm<span class="w"> </span>-i<span class="w"> </span><span class="m">100</span>
 </code></pre></div>
 <h3 id="2-add-speculation-fences-to-narrow-down-the-part-of-the-program-that-causes-leakage">2. Add speculation fences to narrow down the part of the program that causes leakage</h3>
-<div class="highlight"><pre><span></span><code>./cli.py<span class="w"> </span>minimize<span class="w"> </span>-s<span class="w"> </span>x86/isa_spec/base.json<span class="w"> </span>-c<span class="w"> </span>config.yaml<span class="w"> </span>-i<span class="w"> </span>min.asm<span class="w"> </span>-o<span class="w"> </span>min.asm<span class="w"> </span>-n<span class="w"> </span><span class="m">100</span><span class="w"> </span>--add-fences
+<div class="highlight"><pre><span></span><code>rvzr<span class="w"> </span>minimize<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>config.yaml<span class="w"> </span>-i<span class="w"> </span>min.asm<span class="w"> </span>-o<span class="w"> </span>min.asm<span class="w"> </span>-n<span class="w"> </span><span class="m">100</span><span class="w"> </span>--add-fences
 </code></pre></div>
 <p>This command iteratively attempts to add an <code>LFENCE</code> before every instruction in the program while checking if the violation persists. The result is:</p>
 <div class="highlight"><pre><span></span><code>.intel_syntax noprefix
@@ -830,7 +817,7 @@ It means that all the remaining instructions are somehow involved in the specula
 We go through the program, try removing instructions one at a time, execute the modified program on Revizor, and check the statistic from the speculation filter.</p>
 <p>For example, let's say we start from the bottom.
 We first try to remove the last line (<code>LOCK SBB byte ptr [R14 + RAX], CL</code>), and execute the program on Revizor:
-<div class="highlight"><pre><span></span><code>./cli.py<span class="w"> </span>fuzz<span class="w"> </span>-s<span class="w"> </span>x86/isa_spec/base.json<span class="w"> </span>-c<span class="w"> </span>config.yaml<span class="w"> </span>-t<span class="w"> </span>min.asm<span class="w"> </span>-i<span class="w"> </span><span class="m">100</span>
+<div class="highlight"><pre><span></span><code>rvzr<span class="w"> </span>fuzz<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>config.yaml<span class="w"> </span>-t<span class="w"> </span>min.asm<span class="w"> </span>-i<span class="w"> </span><span class="m">100</span>
 
 INFO:<span class="w"> </span><span class="o">[</span>fuzzer<span class="o">]</span><span class="w"> </span>Starting<span class="w"> </span>at<span class="w"> </span><span class="m">17</span>:16:52
 <span class="m">0</span><span class="w">     </span><span class="o">(</span><span class="w"> </span><span class="m">0</span>%<span class="o">)</span><span class="p">|</span><span class="w"> </span>Stats:

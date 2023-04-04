@@ -12,20 +12,20 @@
         <meta name="author" content="Microsoft">
       
       
-        <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/modules/">
+        <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/development/">
       
       
         <link rel="prev" href="../config/">
       
       
-        <link rel="next" href="../architecture/">
+        <link rel="next" href="../fuzzing-guide/">
       
       <link rel="icon" href="../assets/ms_icon.png">
       <meta name="generator" content="mkdocs-1.4.2, mkdocs-material-9.1.4">
     
     
       
-        <title>Modules and Interfaces - Revizor</title>
+        <title>Development - Revizor</title>
       
     
     
@@ -73,7 +73,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#revizor-modules-and-interfaces" class="md-skip">
+        <a href="#development" class="md-skip">
           Skip to content
         </a>
       
@@ -105,7 +105,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Modules and Interfaces
+              Development
             
           </span>
         </div>
@@ -407,117 +407,10 @@
         
       
       
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          Modules and Interfaces
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
       <a href="./" class="md-nav__link md-nav__link--active">
-        Modules and Interfaces
+        Development
       </a>
       
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#architecture-specific-implementation" class="md-nav__link">
-    Architecture-specific Implementation
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#abstract-test-case" class="md-nav__link">
-    Abstract Test Case
-  </a>
-  
-    <nav class="md-nav" aria-label="Abstract Test Case">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#operandspec" class="md-nav__link">
-    OperandSpec
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#instructionspec" class="md-nav__link">
-    InstructionSpec
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#operand" class="md-nav__link">
-    Operand
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#instruction" class="md-nav__link">
-    Instruction
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#basicblock" class="md-nav__link">
-    BasicBlock
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#function" class="md-nav__link">
-    Function
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#testcasedag" class="md-nav__link">
-    TestCaseDAG
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../architecture/" class="md-nav__link">
-        Architecture
-      </a>
     </li>
   
 
@@ -564,83 +457,6 @@
     
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#architecture-specific-implementation" class="md-nav__link">
-    Architecture-specific Implementation
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#abstract-test-case" class="md-nav__link">
-    Abstract Test Case
-  </a>
-  
-    <nav class="md-nav" aria-label="Abstract Test Case">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#operandspec" class="md-nav__link">
-    OperandSpec
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#instructionspec" class="md-nav__link">
-    InstructionSpec
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#operand" class="md-nav__link">
-    Operand
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#instruction" class="md-nav__link">
-    Instruction
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#basicblock" class="md-nav__link">
-    BasicBlock
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#function" class="md-nav__link">
-    Function
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#testcasedag" class="md-nav__link">
-    TestCaseDAG
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -657,23 +473,77 @@
   
 
 
+<h1 id="development">Development</h1>
+<p>This page contains various bits of information helpful when developing and expanding Revizor.</p>
+<h1 id="running-tests">Running Tests</h1>
+<p>To run automated tests you will need to install a few more dependencies:
+* <a href="https://bats-core.readthedocs.io/en/latest/index.html">Bash Automated Testing System</a>
+* <a href="https://mypy.readthedocs.io/en/latest/getting_started.html#installing-and-running-mypy">mypy</a>
+* <a href="https://flake8.pycqa.org/en/latest/index.html">flake8</a></p>
+<p>With the dependencies installed, you can run the tests with:</p>
+<div class="highlight"><pre><span></span><code>make<span class="w"> </span><span class="nb">test</span>
+</code></pre></div>
+<p>If a few (up to 3) "Detection" tests fail, it's fine, you might just have a slightly different microarchitecture.
+But if other tests fail - something is broken.</p>
+<h1 id="revizors-architecture">Revizor's Architecture</h1>
+<p><img alt="architecture" src="../assets/arch.png" /></p>
+<p>Revizor has <strong>five</strong> chief components:</p>
+<ol>
+<li>Test Case Generator</li>
+<li>Input Generator</li>
+<li>Model</li>
+<li>Executor</li>
+<li>Analyser</li>
+</ol>
+<p>The <strong>Test Case Generator</strong> and <strong>Input Generator</strong> are responsible for
+generating random test cases to be run through the <strong>Model</strong> and <strong>Executor</strong>.
+The results are examined by the <strong>Analyser</strong> for contract violations.</p>
+<h2 id="test-case-generator">Test Case Generator</h2>
+<p>The TCG is responsible for generating random assembly test cases. It takes an
+Instruction Set Specification as input in order for it to understand the
+instructions and syntax it can use for generation.</p>
+<h2 id="input-generator">Input Generator</h2>
+<p>The IG is responsible for generating the <em>inputs</em> that are passed into a test
+case created by the TCG. Largely, this means <strong>register</strong> and <strong>memory</strong> values
+that the microarchitecture will be primed with before executing the test case.
+In this way, a single test case program can be run across several different
+inputs, allowing for multiple contract traces (and later, hardware traces) to be
+collected for analysis.</p>
+<h2 id="model">Model</h2>
+<p>The Model's job is to accept test cases and inputs from the TCG &amp; IG and
+<em>emulate</em> the test case to collect <strong>contract traces</strong>. A single test case seeded
+with several inputs (<code>N</code> inputs) will create several contract traces (<code>N</code>
+contract traces) as the model's output. These are passed to the Analyser to
+determine <strong>input classes</strong>.</p>
+<h2 id="executor">Executor</h2>
+<p>The Executor, on the other side from the Model, is responsible for running the
+<em>same</em> test cases (with the <em>same</em> inputs) on physical hardware to collect
+<strong>hardware traces</strong>. Hardware traces from the same input class are collected and
+studied by the Analyser to detect <strong>contract violations</strong>.</p>
+<h2 id="analyser">Analyser</h2>
+<p>The Analyser receives contract traces from the Model and hardware traces from
+the Executor to accomplish two primary goals:</p>
+<ol>
+<li>Compare contract traces to set up <strong>input classes</strong>.</li>
+<li>Compare hardware traces to detect <strong>contract violations</strong>.</li>
+</ol>
 <h1 id="revizor-modules-and-interfaces">Revizor Modules and Interfaces</h1>
-<p>Revizor's implementation and <a href="../architecture/">architecture</a> is separated into
+<p>Revizor's implementation and <a href="architecture.md">architecture</a> is separated into
 multiple Python files:</p>
 <ul>
 <li><code>cli.py</code> - implements the command-line interface of revizor.</li>
 <li><code>config.py</code> - implements parsing and managing of revizor's YAML configuration
   file.</li>
 <li><code>generator.py</code> - implements the <strong>Test Case Generator</strong> portion of
-  <a href="../architecture/">revizor's architecture</a>.</li>
+  <a href="architecture.md">revizor's architecture</a>.</li>
 <li><code>input_generator.py</code> - implements the <strong>Input Generator</strong> portion of
-  <a href="../architecture/">revizor's architecture</a>.</li>
+  <a href="architecture.md">revizor's architecture</a>.</li>
 <li><code>model.py</code> - implements the Unicorn-based <strong>Model</strong> portion of
-  <a href="../architecture/">revizor's architecture</a>.</li>
+  <a href="architecture.md">revizor's architecture</a>.</li>
 <li><code>executor.py</code> - implements the <strong>Executor</strong> portion of
-  <a href="../architecture/">revizor's architecture</a>.</li>
+  <a href="architecture.md">revizor's architecture</a>.</li>
 <li><code>analyser.py</code> - implements the <strong>Analyser</strong> portion of
-  <a href="../architecture/">revizor's architecture</a>.</li>
+  <a href="architecture.md">revizor's architecture</a>.</li>
 <li><code>postprocessor.py</code> - defines the <code>MinimizerViolation</code> class, used during
   <code>minimize</code> mode to reduce a violation-inducing test case down to a smaller
   size while still maintaining the violation-inducing behavior.</li>
@@ -703,9 +573,9 @@ parts of the <strong>Model</strong> module). The only unique parts are:</p>
 <ul>
 <li><code>*_target_desc.py</code> - defines constants describing the ISA (e.g., a list of
   available registers) and some helper functions.</li>
-<li><code>isa_spec/get_spec.py</code> - a script for transforming the ISA description provided
+<li><code>get_spec.py</code> - a script for transforming the ISA description provided
   by the CPU vendor (different for every vendor) into a unified JSON format</li>
-<li><code>executor/</code> - contains a low-level implementation of the executor. The 
+<li><code>executor/</code> - contains a low-level implementation of the executor. The
   implementation will be different for each architecture. For black-box x86 CPUs,
   it is a Linux kernel module.</li>
 </ul>
