@@ -47,7 +47,6 @@ nav:
     - How Revizor Works: how-revizor-works.md
     - Command Line Interface: cli.md
     - Configuration Files: config.md
-    - Modules and Interfaces: modules.md
-    - Architecture: architecture.md
+    - Development: development.md
   - Fuzzing Guide: fuzzing-guide.md
   # - Trophies: trophies.md

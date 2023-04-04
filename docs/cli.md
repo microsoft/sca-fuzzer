@@ -14,7 +14,7 @@ Revizor can run in one of multiple "modes":
 To select a mode on the command-line, begin your command with:
 
 ```shell
-cli.py MODE # ... arguments go here
+rvzr MODE # ... arguments go here
 
 # Where MODE can be:
 #   fuzz            for fuzzing mode

@@ -1,3 +1,78 @@
+# Development
+
+This page contains various bits of information helpful when developing and expanding Revizor.
+
+# Running Tests
+
+To run automated tests you will need to install a few more dependencies:
+* [Bash Automated Testing System](https://bats-core.readthedocs.io/en/latest/index.html)
+* [mypy](https://mypy.readthedocs.io/en/latest/getting_started.html#installing-and-running-mypy)
+* [flake8](https://flake8.pycqa.org/en/latest/index.html)
+
+With the dependencies installed, you can run the tests with:
+
+```bash
+make test
+```
+
+If a few (up to 3) "Detection" tests fail, it's fine, you might just have a slightly different microarchitecture.
+But if other tests fail - something is broken.
+
+# Revizor's Architecture
+
+![architecture](assets/arch.png)
+
+Revizor has **five** chief components:
+
+1. Test Case Generator
+2. Input Generator
+3. Model
+4. Executor
+5. Analyser
+
+The **Test Case Generator** and **Input Generator** are responsible for
+generating random test cases to be run through the **Model** and **Executor**.
+The results are examined by the **Analyser** for contract violations.
+
+## Test Case Generator
+
+The TCG is responsible for generating random assembly test cases. It takes an
+Instruction Set Specification as input in order for it to understand the
+instructions and syntax it can use for generation.
+
+## Input Generator
+
+The IG is responsible for generating the *inputs* that are passed into a test
+case created by the TCG. Largely, this means **register** and **memory** values
+that the microarchitecture will be primed with before executing the test case.
+In this way, a single test case program can be run across several different
+inputs, allowing for multiple contract traces (and later, hardware traces) to be
+collected for analysis.
+
+## Model
+
+The Model's job is to accept test cases and inputs from the TCG & IG and
+*emulate* the test case to collect **contract traces**. A single test case seeded
+with several inputs (`N` inputs) will create several contract traces (`N`
+contract traces) as the model's output. These are passed to the Analyser to
+determine **input classes**.
+
+## Executor
+
+The Executor, on the other side from the Model, is responsible for running the
+*same* test cases (with the *same* inputs) on physical hardware to collect
+**hardware traces**. Hardware traces from the same input class are collected and
+studied by the Analyser to detect **contract violations**.
+
+## Analyser
+
+The Analyser receives contract traces from the Model and hardware traces from
+the Executor to accomplish two primary goals:
+
+1. Compare contract traces to set up **input classes**.
+2. Compare hardware traces to detect **contract violations**.
+
+
 # Revizor Modules and Interfaces
 
 Revizor's implementation and [architecture](architecture.md) is separated into
@@ -46,9 +121,9 @@ parts of the **Model** module). The only unique parts are:
 
 * `*_target_desc.py` - defines constants describing the ISA (e.g., a list of
   available registers) and some helper functions.
-* `isa_spec/get_spec.py` - a script for transforming the ISA description provided
+* `get_spec.py` - a script for transforming the ISA description provided
   by the CPU vendor (different for every vendor) into a unified JSON format
-* `executor/` - contains a low-level implementation of the executor. The 
+* `executor/` - contains a low-level implementation of the executor. The
   implementation will be different for each architecture. For black-box x86 CPUs,
   it is a Linux kernel module.
 
@@ -121,4 +196,3 @@ blocks that comprise the function.
 **DAG** is short for **Directed Acyclic Graph**. This object represents the
 *entire* test case's control flow. It contains a list of functions that, within,
 define all instructions to be written out to the test case's assembly file.
-

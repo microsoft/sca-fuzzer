@@ -56,11 +56,12 @@ We save the configuration into a file (`config.yaml`) and start a fuzzing campai
 We start Revizor with the following command:
 
 ```shell
-./cli.py fuzz -s x86/isa_spec/base.json -c config.yaml -n 100000 -i 100 -w ./results
+rvzr fuzz -s base.json -c config.yaml -n 100000 -i 100 -w ./results
 ```
+(use `./revizor.py` instead of `rvzr` if you want to run Revizor directly from the source directory)
 
 Here
-* `-s x86/isa_spec/base.json` - tells Revizor where to find a description of the tested instructions
+* `-s base.json` - tells Revizor where to find a description of the tested instructions
 * `-c config.yaml` - points Revizor to the configuration file described above
 * `-n 100000` - number of randomly-generated programs to be tested. Note that 100k programs will be tested only if none of them surfaces a contract violation; otherwise, Revizor will stop as soon as it detects a violation
 * `-i 100` - number of inputs per test case
@@ -138,7 +139,7 @@ Fortunately, we don't have to do it, as there are several techniques that can si
 ### 1. Remove irrelevant instructions from the program
 
 ```shell
-./cli.py minimize -s x86/isa_spec/base.json -c config.yaml -i /results/violation<timestamp>.asm -o min.asm -n 100
+rvzr minimize -s base.json -c config.yaml -i /results/violation<timestamp>.asm -o min.asm -n 100
 ```
 
 It simplifies the program and stores the result into `min.asm`. The result is:
@@ -201,13 +202,13 @@ MFENCE # instrumentation
 To make sure that we didn't make a mistake while modifying the program, we can verify the result by reproducing the violation:
 
 ```shell
-./cli.py fuzz -s x86/isa_spec/base.json -c config.yaml -t min.asm -i 100
+rvzr fuzz -s base.json -c config.yaml -t min.asm -i 100
 ```
 
 ### 2. Add speculation fences to narrow down the part of the program that causes leakage
 
 ```shell
-./cli.py minimize -s x86/isa_spec/base.json -c config.yaml -i min.asm -o min.asm -n 100 --add-fences
+rvzr minimize -s base.json -c config.yaml -i min.asm -o min.asm -n 100 --add-fences
 ```
 
 This command iteratively attempts to add an `LFENCE` before every instruction in the program while checking if the violation persists. The result is:
@@ -248,7 +249,7 @@ We go through the program, try removing instructions one at a time, execute the 
 For example, let's say we start from the bottom.
 We first try to remove the last line (`LOCK SBB byte ptr [R14 + RAX], CL`), and execute the program on Revizor:
 ```shell
-./cli.py fuzz -s x86/isa_spec/base.json -c config.yaml -t min.asm -i 100
+rvzr fuzz -s base.json -c config.yaml -t min.asm -i 100
 
 INFO: [fuzzer] Starting at 17:16:52
 0     ( 0%)| Stats:
