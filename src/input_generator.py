@@ -9,9 +9,9 @@ import random
 import numpy as np
 from abc import abstractmethod
 from typing import List
-from interfaces import Input, InputTaint, InputGenerator
-from config import CONF
-from service import LOGGER
+from .interfaces import Input, InputTaint, InputGenerator
+from .config import CONF
+from .util import LOGGER
 
 POW32 = pow(2, 32)
 

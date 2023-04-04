@@ -4,23 +4,20 @@ SPDX-License-Identifier: MIT
 """
 import unittest
 import tempfile
-import sys
 import subprocess
 import os
 from pathlib import Path
 
-sys.path.insert(0, '..')
-from x86.x86_generator import X86RandomGenerator, X86Printer, X86PatchUndefinedFlagsPass, \
+from src.x86.x86_generator import X86RandomGenerator, X86Printer, X86PatchUndefinedFlagsPass, \
     X86Generator
-from factory import get_program_generator
-from isa_loader import InstructionSet
-from interfaces import TestCase, Function
-from config import CONF
+from src.factory import get_program_generator
+from src.isa_loader import InstructionSet
+from src.interfaces import TestCase, Function
+from src.config import CONF
 
 CONF.instruction_set = "x86-64"
 test_path = Path(__file__).resolve()
 test_dir = test_path.parent
-
 
 ASM_OPCODE = """
 .intel_syntax noprefix
@@ -48,12 +45,14 @@ class X86RandomGeneratorTest(unittest.TestCase):
 
     def test_x86_configuration(self):
         CONF.generator = "random"
-        instruction_set = InstructionSet('tests/min_x86.json', CONF.instruction_categories)
+        instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix(),
+                                         CONF.instruction_categories)
         gen = get_program_generator(instruction_set, CONF.program_generator_seed)
         self.assertEqual(gen.__class__, X86RandomGenerator)
 
     def test_x86_all_instructions(self):
-        instruction_set = InstructionSet('tests/min_x86.json', CONF.instruction_categories)
+        instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix(),
+                                         CONF.instruction_categories)
         generator = X86RandomGenerator(instruction_set, CONF.program_generator_seed)
         func = generator.generate_function(".function_main")
         printer = X86Printer()
@@ -92,7 +91,8 @@ class X86RandomGeneratorTest(unittest.TestCase):
             self.fail("Generated invalid instruction(s)")
 
     def test_create_test_case(self):
-        instruction_set = InstructionSet('tests/min_x86.json', CONF.instruction_categories)
+        instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix(),
+                                         CONF.instruction_categories)
         generator = X86RandomGenerator(instruction_set, CONF.program_generator_seed)
 
         asm_file = tempfile.NamedTemporaryFile(delete=False)
@@ -128,9 +128,9 @@ class X86RandomGeneratorTest(unittest.TestCase):
         CONF.register_blocklist = []
         CONF.setattr_internal("_default_instruction_blocklist", [])
 
-        instruction_set = InstructionSet('tests/min_x86.json')
+        instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix())
         generator = X86RandomGenerator(instruction_set, CONF.program_generator_seed)
-        tc: TestCase = generator.load("tests/asm_basic.asm")
+        tc: TestCase = generator.load((test_dir / "asm_basic.asm").absolute().as_posix())
         self.assertEqual(len(tc.functions), 1)
 
         main = tc.functions[0]
@@ -158,7 +158,8 @@ class X86RandomGeneratorTest(unittest.TestCase):
         self.assertEqual(bb0.get_first().name, "OPCODE")
 
     def test_x86_undef_flag_patch(self):
-        instruction_set = InstructionSet('tests/min_x86.json', CONF.instruction_categories)
+        instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix(),
+                                         CONF.instruction_categories)
         undef_instr_spec = list(filter(lambda x: x.name == 'BSF', instruction_set.instructions))[0]
         read_instr_spec = list(filter(lambda x: x.name == 'LAHF', instruction_set.instructions))[0]
 
@@ -174,7 +175,3 @@ class X86RandomGeneratorTest(unittest.TestCase):
 
         X86PatchUndefinedFlagsPass(instruction_set, generator).run_on_test_case(test_case)
         self.assertEqual(len(bb), 3)
-
-
-if __name__ == '__main__':
-    unittest.main()

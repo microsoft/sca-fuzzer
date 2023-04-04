@@ -1,20 +1,15 @@
-from typing import Tuple, Dict, Type
+"""
+File: Configuration factory
 
-import x86.x86_generator as x86_generator
+Copyright (C) Microsoft Corporation
+SPDX-License-Identifier: MIT
+"""
 
-import model
-import x86.x86_model as x86_model
+from typing import Tuple, Dict, Type, List, Callable
 
-import x86.x86_executor as x86_executor
-
-import x86.x86_fuzzer as x86_fuzzer
-import input_generator
-import analyser
-import coverage
-import postprocessor
-
-import interfaces
-from config import CONF, ConfigException
+from . import input_generator, analyser, coverage, postprocessor, interfaces, model
+from .x86 import x86_model, x86_executor, x86_fuzzer, x86_generator, get_spec
+from .config import CONF, ConfigException
 
 GENERATORS: Dict[str, Type[interfaces.Generator]] = {
     "x86-64-random": x86_generator.X86RandomGenerator

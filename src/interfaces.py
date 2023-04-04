@@ -13,7 +13,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 from enum import Enum
 
-from config import CONF
+from .config import CONF
 
 
 # ==================================================================================================

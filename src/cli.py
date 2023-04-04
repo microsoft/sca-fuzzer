@@ -10,10 +10,10 @@ import os
 import yaml
 from typing import Dict
 from argparse import ArgumentParser
-from factory import get_minimizer, get_fuzzer
-from fuzzer import Fuzzer
-from config import CONF
-from service import LOGGER
+from .factory import get_minimizer, get_fuzzer, get_downloader
+from .fuzzer import Fuzzer
+from .config import CONF
+from .util import LOGGER
 
 
 def main() -> int:

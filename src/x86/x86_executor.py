@@ -4,10 +4,10 @@ import csv
 import numpy as np
 from collections import Counter
 from typing import List
-from interfaces import CombinedHTrace, Input, TestCase, Executor
 
-from config import CONF
-from service import LOGGER
+from ..interfaces import CombinedHTrace, Input, TestCase, Executor
+from ..config import CONF
+from ..util import LOGGER
 
 
 def write_to_sysfs_file(value, path: str) -> None:
@@ -48,7 +48,9 @@ class X86IntelExecutor(Executor):
 
         # is kernel module ready?
         if not os.path.isfile("/sys/x86_executor/trace"):
-            LOGGER.error("x86 executor: kernel module not loaded")
+            LOGGER.error("x86 executor: kernel module not installed\n\n"
+                         "Go to https://microsoft.github.io/sca-fuzzer/quick-start/ for "
+                         "installation instructions.")
 
         # initialize the kernel module
         write_to_sysfs_file(CONF.executor_warmups, '/sys/x86_executor/warmups')

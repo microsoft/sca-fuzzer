@@ -12,10 +12,10 @@ import copy
 import unicorn.x86_const as ucc  # type: ignore
 from unicorn import Uc, UC_MEM_WRITE, UC_ARCH_X86, UC_MODE_64, UC_PROT_READ, UC_PROT_NONE
 
-from interfaces import Input, FlagsOperand, RegisterOperand, MemoryOperand, TestCase
-from model import UnicornModel, UnicornSpec, UnicornSeq, UnicornBpas, BaseTaintTracker
-from x86.x86_target_desc import X86UnicornTargetDesc, X86TargetDesc
-from service import UnreachableCode
+from ..interfaces import Input, FlagsOperand, RegisterOperand, MemoryOperand, TestCase
+from ..model import UnicornModel, UnicornSpec, UnicornSeq, UnicornBpas, BaseTaintTracker
+from ..util import UnreachableCode
+from .x86_target_desc import X86UnicornTargetDesc, X86TargetDesc
 
 FLAGS_CF = 0b000000000001
 FLAGS_PF = 0b000000000100

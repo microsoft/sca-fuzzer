@@ -15,11 +15,11 @@ import unicorn as uc
 from unicorn import Uc, UcError, UC_MEM_WRITE, UC_MEM_READ, UC_SECOND_SCALE, UC_HOOK_MEM_READ, \
     UC_HOOK_MEM_WRITE, UC_HOOK_CODE, UC_HOOK_MEM_UNMAPPED
 
-from interfaces import CTrace, TestCase, Model, InputTaint, Instruction, ExecutionTrace, \
+from .interfaces import CTrace, TestCase, Model, InputTaint, Instruction, ExecutionTrace, \
     TracedInstruction, TracedMemAccess, Input, Tracer, \
     RegisterOperand, FlagsOperand, MemoryOperand, TaintTrackerInterface, TargetDesc
-from config import CONF
-from service import LOGGER, NotSupportedException
+from .config import CONF
+from .util import LOGGER, NotSupportedException
 
 
 # ==================================================================================================

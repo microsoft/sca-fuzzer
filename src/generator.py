@@ -13,12 +13,12 @@ from typing import List, Dict
 from subprocess import CalledProcessError, run
 from collections import OrderedDict
 
-from isa_loader import InstructionSet
-from interfaces import Generator, TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
-    ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, Function, \
-    OperandSpec, InstructionSpec, CondOperand, TargetDesc
-from service import NotSupportedException, LOGGER
-from config import CONF
+from .isa_loader import InstructionSet
+from .interfaces import Generator, TestCase, Operand, RegisterOperand, FlagsOperand, \
+    MemoryOperand, ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, \
+    Function, OperandSpec, InstructionSpec, CondOperand, TargetDesc
+from .util import NotSupportedException, LOGGER
+from .config import CONF
 
 
 # Helpers
@@ -89,6 +89,9 @@ class ConfigurableGenerator(Generator, abc.ABC):
             self.store_instructions = [i for i in memory_access_instructions if i.has_write]
             assert self.load_instruction or self.store_instructions, \
                 "The instruction set does not have memory accesses while `avg_mem_accesses > 0`"
+        else:
+            self.load_instruction = []
+            self.store_instructions = []
 
     def set_seed(self, seed: int) -> None:
         self._state = seed

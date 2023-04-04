@@ -4,8 +4,8 @@ File: Fuzzing Configuration Options
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
-import x86.x86_config as x86_config
 from typing import List, Dict
+from .x86 import x86_config
 
 
 class ConfigException(SystemExit):
