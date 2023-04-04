@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
@@ -6,7 +5,6 @@ SPDX-License-Identifier: MIT
 
 import json
 import subprocess
-from argparse import ArgumentParser
 from typing import List
 from xml.etree import ElementTree as ET
 
@@ -313,27 +311,24 @@ class X86Transformer:
                 self.instructions.append(inst)
 
 
-def main():
-    parser = ArgumentParser(description='', add_help=False)
-    parser.add_argument("--extensions", nargs="*", default=[])
-    args = parser.parse_args()
+class Downloader:
+    def __init__(self, extensions: List[str], out_file: str) -> None:
+        self.extensions = extensions
+        self.out_file = out_file
 
-    subprocess.run(
-        "wget "
-        "https://github.com/microsoft/sca-fuzzer/releases/download/v1.2/x86_instructions.xml",
-        shell=True,
-        check=True)
+    def run(self):
+        subprocess.run(
+            "wget "
+            "https://github.com/microsoft/sca-fuzzer/releases/download/v1.2/x86_instructions.xml",
+            shell=True,
+            check=True)
 
-    try:
-        transformer = X86Transformer()
-        transformer.load_files("x86_instructions.xml")
-        transformer.parse_tree(args.extensions)
-        transformer.add_missing(args.extensions)
-        print(f"Produced base.json with {len(transformer.instructions)} instructions")
-        transformer.save("base.json")
-    finally:
-        subprocess.run("rm x86_instructions.xml", shell=True, check=True)
-
-
-if __name__ == "__main__":
-    main()
+        try:
+            transformer = X86Transformer()
+            transformer.load_files("x86_instructions.xml")
+            transformer.parse_tree(self.extensions)
+            transformer.add_missing(self.extensions)
+            print(f"Produced base.json with {len(transformer.instructions)} instructions")
+            transformer.save(self.out_file)
+        finally:
+            subprocess.run("rm x86_instructions.xml", shell=True, check=True)

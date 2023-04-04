@@ -73,6 +73,10 @@ MINIMIZERS: Dict[str, Type[interfaces.Minimizer]] = {
     'violation': postprocessor.MinimizerViolation,
 }
 
+SPEC_DOWNLOADERS: Dict[str, Type] = {
+    'x86-64': get_spec.Downloader,
+}
+
 
 def _get_from_config(options: Dict, key: str, conf_option_name: str, *args):
     GenCls = options.get(key, None)
@@ -153,3 +157,7 @@ def get_coverage(instruction_set: interfaces.InstructionSetAbstract, executor_: 
 
 def get_minimizer(instruction_set: interfaces.InstructionSetAbstract) -> interfaces.Minimizer:
     return _get_from_config(MINIMIZERS, CONF.minimizer, "minimizer", instruction_set)
+
+
+def get_downloader(arch: str, extensions: List[str], out_file: str) -> Callable:
+    return _get_from_config(SPEC_DOWNLOADERS, arch, "architecture", extensions, out_file)

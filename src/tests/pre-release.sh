@@ -24,8 +24,8 @@ if [ ! -f "$REVIZOR_DIR/src/cli.py" ]; then
     echo "ERROR: Could not find '$REVIZOR_DIR/src/x86/isa_spec/base.json'"
 fi
 
-if [ ! -f "$REVIZOR_DIR/src/x86/isa_spec/base.json" ]; then
-    echo "ERROR: Could not find '$REVIZOR_DIR/src/x86/isa_spec/base.json'"
+if [ ! -f "$REVIZOR_DIR/src/x86/base.json" ]; then
+    echo "ERROR: Could not find '$REVIZOR_DIR/src/x86/base.json'"
 fi
 
 # Prepare all files
@@ -33,7 +33,7 @@ SCRIPT=$(realpath $0)
 SCRIPT_DIR=$(dirname $SCRIPT)
 
 revizor="$REVIZOR_DIR/src/cli.py"
-instructions="$REVIZOR_DIR/src/x86/isa_spec/base.json"
+instructions="$REVIZOR_DIR/src/x86/base.json"
 
 work_dir="$LOGS_DIR/$(date '+%y.%m.%d.%H.%M.%S')"
 mkdir -p "$work_dir"
