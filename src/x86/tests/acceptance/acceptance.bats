@@ -2,12 +2,12 @@
 INSTRUCTION_SET='x86/base.json'
 
 EXTENDED_TESTS=0
-cli_opt="python3 -OO ./cli.py"
+cli_opt="python3 -OO ../revizor.py"
 
 
 @test "Model and Executor are initialized with the same values" {
     tmpfile=$(mktemp /tmp/revizor-test.XXXXXX.o)
-    ./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/model_match.asm -c x86/tests/acceptance/model_match.yaml -i 20 > $tmpfile
+    ../revizor.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/model_match.asm -c x86/tests/acceptance/model_match.yaml -i 20 > $tmpfile
     run bash -c "cat $tmpfile | awk 'BEGIN{new=0} /    /{new=1} /\^/{if (new==1) {new = 0; prev=\$2} else {if (prev != \$2) {print \"mismatch\"; exit 1; }}} END{print \"finished\"}'"
 
     echo "Output: $output"
@@ -19,7 +19,7 @@ cli_opt="python3 -OO ./cli.py"
 
 @test "Model and Executor are initialized with the same FLAGS value" {
     tmpfile=$(mktemp /tmp/revizor-test.XXXXXX.o)
-    ./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/model_flags_match.asm -c x86/tests/acceptance/model_match.yaml -i 20 > $tmpfile
+    ../revizor.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/model_flags_match.asm -c x86/tests/acceptance/model_match.yaml -i 20 > $tmpfile
     run bash -c "cat $tmpfile | awk 'BEGIN{new=0} /    /{new=1} /\^/{if (new==1) {new = 0; prev=\$2} else {if (prev != \$2) {print \"mismatch\"; exit 1; }}} END{print \"finished\"}'"
 
     echo "Output: $output"
@@ -47,7 +47,7 @@ min_bb_per_function: 3
 logging_modes:
   -
 EOF
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -c $tmp_config -n 10 -i 100"
+    run bash -c "../revizor.py fuzz -s $INSTRUCTION_SET -c $tmp_config -n 10 -i 100"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" != *"=== Violations detected ==="* ]]
@@ -175,7 +175,7 @@ EOF
 }
 
 @test "False Positive: Input-independent branch misprediction" {
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/spectre_v1_independent.asm -i 100"
+    run bash -c "../revizor.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/spectre_v1_independent.asm -i 100"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" != *"=== Violations detected ==="* ]]
@@ -183,7 +183,7 @@ EOF
 
 @test "Analyser: Priming" {
     skip
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/priming.asm -i 100 -c x86/tests/acceptance/priming.yaml"
+    run bash -c "../revizor.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/priming.asm -i 100 -c x86/tests/acceptance/priming.yaml"
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" == *"Priming"* ]]
@@ -205,7 +205,7 @@ logging_modes:
   -
 EOF
 
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/fault_DE_zero.asm -i 100 -c $tmp_config"
+    run bash -c "../revizor.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/fault_DE_zero.asm -i 100 -c $tmp_config"
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
@@ -226,7 +226,7 @@ logging_modes:
   -
 EOF
 
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/fault_DE_overflow.asm -i 20 -c $tmp_config"
+    run bash -c "../revizor.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/fault_DE_overflow.asm -i 20 -c $tmp_config"
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
@@ -247,7 +247,7 @@ logging_modes:
   -
 EOF
 
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/fault_UD.asm -i 100 -c $tmp_config"
+    run bash -c "../revizor.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/fault_UD.asm -i 100 -c $tmp_config"
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
@@ -268,7 +268,7 @@ logging_modes:
   -
 EOF
 
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/fault_PF.asm -i 100 -c $tmp_config"
+    run bash -c "../revizor.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/fault_PF.asm -i 100 -c $tmp_config"
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
@@ -297,7 +297,7 @@ MOV rax, qword ptr [r14 + 256]
 .test_case_exit:
 EOF
 
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t $tmp_asm -i 10 -c $tmp_config"
+    run bash -c "../revizor.py fuzz -s $INSTRUCTION_SET -t $tmp_asm -i 10 -c $tmp_config"
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
@@ -326,7 +326,7 @@ MOV rax, qword ptr [r14 + 256]
 .test_case_exit:
 EOF
 
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t $tmp_asm -i 10 -c $tmp_config"
+    run bash -c "../revizor.py fuzz -s $INSTRUCTION_SET -t $tmp_asm -i 10 -c $tmp_config"
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
@@ -347,7 +347,7 @@ logging_modes:
   -
 EOF
 
-    run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/fault_ooo_mem_access.asm -i 100 -c $tmp_config"
+    run bash -c "../revizor.py fuzz -s $INSTRUCTION_SET -t x86/tests/acceptance/fault_ooo_mem_access.asm -i 100 -c $tmp_config"
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
@@ -362,12 +362,12 @@ logging_modes:
   -
 EOF
 
-    run bash -c "./cli.py generate -s $INSTRUCTION_SET -c $tmp_config -w $tmp_dir -n 1 -i 2"
+    run bash -c "../revizor.py generate -s $INSTRUCTION_SET -c $tmp_config -w $tmp_dir -n 1 -i 2"
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
 
-    run bash -c "./cli.py reproduce -s $INSTRUCTION_SET -c $tmp_config -t $tmp_dir/tc0/program.asm -i $tmp_dir/tc0/input*.bin"
+    run bash -c "../revizor.py reproduce -s $INSTRUCTION_SET -c $tmp_config -t $tmp_dir/tc0/program.asm -i $tmp_dir/tc0/input*.bin"
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
@@ -384,7 +384,7 @@ EOF
 
     for test_case in x86/tests/acceptance/generated-fp/* ; do
         echo "Testing $test_case"
-        run bash -c "./cli.py fuzz -s $INSTRUCTION_SET -t $test_case -i 10000 -c x86/tests/acceptance/ct-cond-bpas.yaml"
+        run bash -c "../revizor.py fuzz -s $INSTRUCTION_SET -t $test_case -i 10000 -c x86/tests/acceptance/ct-cond-bpas.yaml"
         echo "$output"
         [ "$status" -eq 0 ]
         [[ "$output" != *"=== Violations detected ==="* ]]
