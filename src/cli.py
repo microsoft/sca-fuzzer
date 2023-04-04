@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
 """
-File: Command Line Interface
+File: Function definitions for using Revizor as command-line tool
+(Note: the actual CLI is accessed via revizor.py)
 
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
@@ -280,5 +280,5 @@ def main() -> int:
 
 
 if __name__ == '__main__':
-    exit_code = main()
-    exit(exit_code)
+    print("[ERROR]", "This file is not meant to be run directly. Use `revizor.py` instead.")
+    exit(1)

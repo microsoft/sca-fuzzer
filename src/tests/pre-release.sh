@@ -20,8 +20,8 @@ if [ -z "${LOGS_DIR}" ]; then
     exit 1
 fi
 
-if [ ! -f "$REVIZOR_DIR/src/cli.py" ]; then
-    echo "ERROR: Could not find '$REVIZOR_DIR/src/x86/isa_spec/base.json'"
+if [ ! -f "$REVIZOR_DIR/revizor.py" ]; then
+    echo "ERROR: Could not find '$REVIZOR_DIR/revizor.py'"
 fi
 
 if [ ! -f "$REVIZOR_DIR/src/x86/base.json" ]; then
@@ -32,7 +32,7 @@ fi
 SCRIPT=$(realpath $0)
 SCRIPT_DIR=$(dirname $SCRIPT)
 
-revizor="$REVIZOR_DIR/src/cli.py"
+revizor="$REVIZOR_DIR/revizor.py"
 instructions="$REVIZOR_DIR/src/x86/base.json"
 
 work_dir="$LOGS_DIR/$(date '+%y.%m.%d.%H.%M.%S')"
