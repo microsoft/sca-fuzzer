@@ -3,25 +3,21 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 import unittest
-import sys
 import tempfile
 import os
 from typing import List
 from pathlib import Path
-
-sys.path.insert(0, '..')
-
-import x86.x86_model as x86_model
-import model as core_model
-
-from interfaces import Instruction, RegisterOperand, MemoryOperand, InputTaint, LabelOperand, \
-    FlagsOperand, TestCase, Input, CTrace, PageTableModifier
-from isa_loader import InstructionSet
-from x86.x86_generator import X86RandomGenerator
 from copy import deepcopy
 
-from config import CONF
-# from service import LOGGER
+import src.x86.x86_model as x86_model
+import src.model as core_model
+
+from src.interfaces import Instruction, RegisterOperand, MemoryOperand, InputTaint, LabelOperand, \
+    FlagsOperand, TestCase, Input, CTrace, PageTableModifier
+from src.isa_loader import InstructionSet
+from src.x86.x86_generator import X86RandomGenerator
+from src.config import CONF
+# from src.util import LOGGER
 
 test_path = Path(__file__).resolve()
 test_dir = test_path.parent

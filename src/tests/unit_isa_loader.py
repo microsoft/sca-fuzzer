@@ -4,13 +4,11 @@ SPDX-License-Identifier: MIT
 """
 import unittest
 
-import sys
 import os
 import tempfile
 
-sys.path.insert(0, '..')
-from isa_loader import InstructionSet
-from interfaces import OT, InstructionSpec
+from src.isa_loader import InstructionSet
+from src.interfaces import OT, InstructionSpec
 
 basic = """
 [
@@ -91,7 +89,3 @@ class InstructionSetParserTest(unittest.TestCase):
         os.unlink(spec_file.name)
 
         self.assertEqual(len(instruction_set.instructions), 1, "No deduplication")
-
-
-if __name__ == '__main__':
-    unittest.main()

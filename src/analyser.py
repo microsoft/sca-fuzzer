@@ -7,9 +7,9 @@ SPDX-License-Identifier: MIT
 from collections import defaultdict
 from typing import List, Dict
 
-from interfaces import HTrace, CTrace, Input, EquivalenceClass, Analyser, Measurement
-from config import CONF
-from service import STAT, TWOS_COMPLEMENT_MASK_64, bit_count
+from .interfaces import HTrace, CTrace, Input, EquivalenceClass, Analyser, Measurement
+from .config import CONF
+from .util import STAT, TWOS_COMPLEMENT_MASK_64, bit_count
 
 
 class EquivalenceAnalyser(Analyser):

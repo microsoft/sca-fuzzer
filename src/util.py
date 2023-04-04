@@ -6,11 +6,10 @@ SPDX-License-Identifier: MIT
 """
 
 from datetime import datetime
-
-from interfaces import EquivalenceClass
-from config import CONF
 from typing import NoReturn
 from pprint import pformat
+from .interfaces import EquivalenceClass
+from .config import CONF
 
 MASK_64BIT = pow(2, 64)
 POW2_64 = pow(2, 64)
@@ -194,9 +193,12 @@ class Logger:
             if STAT.test_cases > self.progress:
                 self.progress += self.one_percent_progress
                 self.progress_percent += 1
-            msg = f"\r{STAT.test_cases:<6}({self.progress_percent:>2}%)| Stats: "
-            msg += STAT.get_brief()
-            print(msg + "         ", end=self.line_ending, flush=True)
+            if STAT.test_cases == 0:
+                msg = ""
+            else:
+                msg = f"\r{STAT.test_cases:<6}({self.progress_percent:>2}%)| Stats: "
+                msg += STAT.get_brief()
+                print(msg + "         ", end=self.line_ending, flush=True)
             self.msg = msg
 
         if not __debug__:

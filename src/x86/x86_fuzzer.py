@@ -7,11 +7,11 @@ SPDX-License-Identifier: MIT
 from subprocess import run
 from typing import List
 
-from fuzzer import Fuzzer, ArchitecturalFuzzer
-from interfaces import TestCase, Input, InstructionSetAbstract
-from service import STAT
-from config import CONF
-from x86.x86_executor import X86IntelExecutor
+from ..fuzzer import Fuzzer, ArchitecturalFuzzer
+from ..interfaces import TestCase, Input, InstructionSetAbstract
+from ..util import STAT
+from ..config import CONF
+from .x86_executor import X86IntelExecutor
 
 
 def update_instruction_list():

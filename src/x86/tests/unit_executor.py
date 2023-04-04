@@ -3,15 +3,13 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 import unittest
-import sys
 import os
 import tempfile
 import subprocess
 
-sys.path.insert(0, '..')
-from x86_executor import X86IntelExecutor
-from x86_generator import X86Generator
-from interfaces import TestCase, Input
+from src.x86.x86_executor import X86IntelExecutor
+from src.x86.x86_generator import X86Generator
+from src.interfaces import TestCase, Input
 
 
 class ExecutorTest(unittest.TestCase):
@@ -79,7 +77,3 @@ class ExecutorTest(unittest.TestCase):
 
         self.assertEqual(traces[0], 9259400833873739776)
         self.assertEqual(traces[299], 9259400833873739776)
-
-
-if __name__ == '__main__':
-    unittest.main()

@@ -8,15 +8,14 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, List
-from copy import copy
+import copy
 
-import factory
-from interfaces import CTrace, HTrace, Input, InputTaint, EquivalenceClass, TestCase, Generator, \
+from . import factory
+from .interfaces import CTrace, HTrace, Input, InputTaint, EquivalenceClass, TestCase, Generator, \
     InputGenerator, Model, Executor, Analyser, Coverage, InputID, Measurement
-from isa_loader import InstructionSet
-
-from config import CONF
-from service import STAT, LOGGER, TWOS_COMPLEMENT_MASK_64, bit_count
+from .isa_loader import InstructionSet
+from .config import CONF
+from .util import STAT, LOGGER, TWOS_COMPLEMENT_MASK_64, bit_count
 
 
 class Fuzzer:
@@ -325,7 +324,7 @@ class Fuzzer:
 
         return: True if the violation survived priming
         """
-        violation = copy(org_violation)
+        violation = copy.copy(org_violation)
         ordered_htraces = sorted(
             violation.htrace_map.keys(), key=lambda x: bit_count(x), reverse=False)
 

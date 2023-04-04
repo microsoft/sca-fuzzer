@@ -6,11 +6,7 @@ build/
 venv/
 **/__pycache__/
 CMakeLists.txt
-src/x86/isa_spec/*.json
-tmp.pdf
-src/min.asm
-src/tmp.asm
-src/bigfuzz.yaml
+src/x86/*.json
 experiments/
 *.code-workspace
 src/custom_conf.yaml
@@ -19,4 +15,6 @@ patches/
 src/generated.asm
 src/x86/executor/.cache.mk
 src/x86/executor/measurement.o.ur-safe
-src/debug
+dbg/
+site
+dist/

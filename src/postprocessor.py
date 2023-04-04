@@ -6,12 +6,12 @@ set of inputs that reproduce the vulnerability and to minimize the test case.
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
+import shutil
 from subprocess import run
-from shutil import copy
-from fuzzer import Fuzzer
 from typing import List
-from interfaces import HTrace, EquivalenceClass, Input, TestCase, Minimizer
-from config import CONF
+from .fuzzer import Fuzzer
+from .interfaces import HTrace, EquivalenceClass, Input, TestCase, Minimizer
+from .config import CONF
 
 
 class MinimizerViolation(Minimizer):
@@ -137,7 +137,7 @@ class MinimizerViolation(Minimizer):
             min_test_case = self.add_fences(fuzzer, min_test_case, boosted_inputs)
 
         print("Storing the results")
-        copy(min_test_case.asm_path, outfile)
+        shutil.copy(min_test_case.asm_path, outfile)
 
     def minimize_test_case(self, fuzzer: Fuzzer, test_case: TestCase,
                            inputs: List[Input]) -> TestCase:

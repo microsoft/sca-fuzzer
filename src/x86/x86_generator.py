@@ -12,14 +12,14 @@ from copy import deepcopy
 from typing import List, Dict, Set, Optional, Tuple
 from subprocess import run
 
-from isa_loader import InstructionSet
-from interfaces import TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
+from ..isa_loader import InstructionSet
+from ..interfaces import TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
     ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, InstructionSpec, \
     PageTableModifier
-from generator import ConfigurableGenerator, RandomGenerator, Pass, \
+from ..generator import ConfigurableGenerator, RandomGenerator, Pass, \
     parser_assert, Printer, GeneratorException, AsmParserException
-from x86.x86_target_desc import X86TargetDesc
-from config import CONF
+from ..config import CONF
+from .x86_target_desc import X86TargetDesc
 
 
 class X86Generator(ConfigurableGenerator, abc.ABC):
