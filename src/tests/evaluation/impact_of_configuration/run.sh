@@ -7,7 +7,7 @@ MAX_ROUNDS=10000
 
 timestamp=$(date '+%y-%m-%d-%H-%M')
 revizor_src='../../../'
-instructions="$revizor_src/x86/isa_spec/base.json"
+instructions="$revizor_src/x86/base.json"
 
 # RESULTS_DIR="results"
 exp_dir="$RESULTS_DIR/$timestamp"
