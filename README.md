@@ -42,6 +42,15 @@ Alternatively, install Revizor from sources:
 make install
 ```
 
+If the installation fails with `'revizor-fuzzer' requires a different Python:`, you'll have to install Python 3.9 and run Revizor from a virtual environment:
+```bash
+sudo apt install python3.9 python3.9-venv
+/usr/bin/python3.9 -m pip install virtualenv
+/usr/bin/python3.9 -m virtualenv ~/venv-revizor
+source ~/venv-revizor/bin/activate
+pip install revizor-fuzzer
+```
+
 ### 3. Install Revizor Executor (kernel module)
 
 Then build and install the kernel module:

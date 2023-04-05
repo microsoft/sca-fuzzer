@@ -6,10 +6,7 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 
-try:
-    from src.cli import main
-except ImportError:
-    from revizor.cli import main
+from src.cli import main
 
 
 if __name__ == '__main__':
