@@ -3,7 +3,7 @@ all: install
 install:
 	python3 -m build
 	pip uninstall revizor
-	pip install dist/revizor-1.2.2-py3-none-any.whl
+	pip install dist/revizor_fuzzer-1.2.3-py3-none-any.whl
 
 uninstall:
 	pip uninstall revizor
