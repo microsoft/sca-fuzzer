@@ -808,7 +808,7 @@ class X86PatchUndefinedFlagsPass(Pass):
             a superset of or the same as undef_flags.
         :return: list of instructions that overwrite the undefined flags
         """
-        org_undef = copy.deepcopy(undef_flags)
+        org_undef = deepcopy(undef_flags)
         patches: List[Instruction] = []
         for instruction_spec in self.patch_candidates:
             patch = self.generator.generate_instruction(instruction_spec)
