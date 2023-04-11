@@ -104,8 +104,9 @@ class Logger:
     # info modes
     info: bool = False
     stat: bool = False
+    debug: bool = False
 
-    # debugging
+    # debugging specific modules
     dbg_timestamp: bool = False
     dbg_violation: bool = False
     dbg_traces: bool = False
@@ -123,6 +124,8 @@ class Logger:
             if getattr(self, mode, None) is None:
                 self.error(f"Unknown value '{mode}' of config variable 'logging_modes'")
             setattr(self, mode, True)
+            if "dbg" in mode:  # enable debug mode if any debug mode is enabled
+                self.debug = True
 
         if not __debug__:
             if self.dbg_timestamp or self.dbg_model or self.dbg_coverage or self.dbg_traces\
@@ -149,9 +152,10 @@ class Logger:
             print(f"INFO: [{src}] {msg}", end=end, flush=True)
 
     def dbg(self, src, msg) -> None:
-        if self.redraw_mode:
-            print("")
-        print(f"DBG: [{src}] {msg}")
+        if self.debug:
+            if self.redraw_mode:
+                print("")
+            print(f"DBG: [{src}] {msg}")
 
     # ==============================================================================================
     # Generator
