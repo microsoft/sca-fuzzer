@@ -327,10 +327,10 @@ class UnicornModel(Model, ABC):
 
     def get_taints(self, inputs, nesting):
         self.tainting_enabled = True
-        logger_state = LOGGER.dbg_model
-        LOGGER.dbg_model = False
+        logger_state = self.LOG.dbg_model
+        self.LOG.dbg_model = False
         _, taints = self._execute_test_case(inputs, nesting)
-        LOGGER.dbg_model = logger_state
+        self.LOG.dbg_model = logger_state
         self.tainting_enabled = False
         return taints
 
@@ -420,7 +420,7 @@ class UnicornModel(Model, ABC):
         model.trace_instruction(emulator, address, size, model)
 
     def handle_fault(self, errno: int) -> int:
-        LOGGER.dbg_model_exception(errno, self.errno_to_str(errno))
+        self.LOG.dbg_model_exception(errno, self.errno_to_str(errno))
 
         next_addr = self.speculate_fault(errno)
         if next_addr:

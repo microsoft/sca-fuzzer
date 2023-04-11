@@ -143,19 +143,20 @@ class Fuzzer:
         htraces = self.executor.trace_test_case(boosted_inputs)
         violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces, True)
         if not violations:  # nothing detected? -> we are done here, move to next test case
-            LOGGER.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces,
-                                          self.executor.get_last_feedback(), 1)
+            self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces,
+                                            self.executor.get_last_feedback(), 1)
             return None
 
         # 2. Repeat with with max nesting
         if "seq" not in CONF.contract_execution_clause and \
            "no_speculation" not in CONF.contract_execution_clause:
-            LOGGER.fuzzer_nesting_increased()
+            self.LOG.fuzzer_nesting_increased()
             boosted_inputs = self.boost_inputs(inputs, CONF.model_max_nesting)
             ctraces = self.model.trace_test_case(boosted_inputs, CONF.model_max_nesting)
             htraces = self.executor.trace_test_case(boosted_inputs)
-            LOGGER.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces,
-                                          self.executor.get_last_feedback(), CONF.model_max_nesting)
+            self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces,
+                                            self.executor.get_last_feedback(),
+                                            CONF.model_max_nesting)
             violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces, True)
             if not violations:
                 return None
@@ -221,8 +222,8 @@ class Fuzzer:
             f.write("# Violation Report\n\n")
             f.write(f"* Test Case ID: {STAT.test_cases - 1}\n")
             f.write(f"* Detected: {datetime.today().strftime('%d.%m.%y at %H:%M:%S')}\n\n")
-            f.write(
-                f"* Time to detection: {(datetime.today() - LOGGER.start_time).total_seconds()}\n")
+            f.write("* Time to detection:"
+                    f" {(datetime.today() - self.LOG.start_time).total_seconds()}\n")
             f.write("* Statistics:\n")
             f.write(str(STAT) + "\n")
 
@@ -233,7 +234,7 @@ class Fuzzer:
             f.write("\n## Counterexample Inputs\n")
             for m in violation.measurements:
                 f.write(f"\nInput #{m.input_id}\n")
-                f.write(f"* Hardware trace: {LOGGER.pretty_bitmap(m.htrace)}\n")
+                f.write(f"* Hardware trace: {pretty_trace(m.htrace)}\n")
                 f.write(f"* Contract trace (hash): {m.ctrace}\n")
                 ctrace_full = self.model.dbg_get_trace_detailed(m.input_, CONF.model_max_nesting)
                 f.write(f"* Contract trace (detailed): {ctrace_full}\n")

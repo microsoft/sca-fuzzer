@@ -297,7 +297,7 @@ class Logger:
                     print(f"- Input {i}:")
                     print(f"  CTr: {ctrace_colorize(ctrace_full) if CONF.color else ctrace_full} "
                           f"| Hash: {ctraces[i]}")
-                    print(f"  HTr: {self.pretty_bitmap(htraces[i])}")
+                    print(f"  HTr: {pretty_trace(htraces[i])}")
                     if CONF.color and hw_feedback[i][0] > hw_feedback[i][1]:
                         print(f"  Feedback: {YELLOW}{hw_feedback[i]}{COL_RESET}")
                     else:
@@ -440,11 +440,11 @@ def pretty_trace(bits: int, merged=False, offset: str = ""):
             f"{offset}{(bits >> 64) % MASK_64BIT:064b} [s]"
     s = s.replace("0", ".").replace("1", "^")
     if CONF.color:
-        s = '\033[33;34m' + s[0:8] + '\033[33;32m' + s[8:16] \
-            + '\033[33;34m' + s[16:24] + '\033[33;32m' + s[24:32] \
-            + '\033[33;34m' + s[32:40] + '\033[33;32m' + s[40:48] \
-            + '\033[33;34m' + s[48:56] + '\033[33;32m' + s[56:64] \
-            + "\033[0m" + s[64:]
+        s = CYAN + s[0:8] + YELLOW + s[8:16] \
+            + CYAN + s[16:24] + YELLOW + s[24:32] \
+            + CYAN + s[32:40] + YELLOW + s[40:48] \
+            + CYAN + s[48:56] + YELLOW + s[56:64] \
+            + COL_RESET + s[64:]
     return s
 
 
