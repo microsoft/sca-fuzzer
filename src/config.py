@@ -152,16 +152,14 @@ class ConfCls:
 
     # ==============================================================================================
     # Internal
-    _instance = None
+    _borg_shared_state: Dict = {}
     _no_generation: bool = False
     _option_values: Dict[str, List] = {}  # set by ISA-specific config.py
     _default_instruction_blocklist: List[str] = []
 
-    # Implementation of singleton
-    def __new__(cls, *args, **kwargs):
-        if not isinstance(cls._instance, cls):
-            cls._instance = object.__new__(cls, *args, **kwargs)
-        return cls._instance
+    # Implementation of Borg pattern
+    def __init__(self) -> None:
+        self.setattr_internal("__dict__", self._borg_shared_state)
 
     def __setattr__(self, name, value):
         # print(f"CONF: setting {name} to {value}")
