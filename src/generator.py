@@ -17,7 +17,7 @@ from .isa_loader import InstructionSet
 from .interfaces import Generator, TestCase, Operand, RegisterOperand, FlagsOperand, \
     MemoryOperand, ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, \
     Function, OperandSpec, InstructionSpec, CondOperand, TargetDesc
-from .util import NotSupportedException, LOGGER
+from .util import NotSupportedException, Logger
 from .config import CONF
 
 
@@ -67,9 +67,12 @@ class ConfigurableGenerator(Generator, abc.ABC):
     printer: Printer  # set by subclasses
     target_desc: TargetDesc  # set by subclasses
 
+    LOG: Logger  # name capitalized to make logging easily distinguishable from the main logic
+
     def __init__(self, instruction_set: InstructionSet, seed: int):
         super().__init__(instruction_set, seed)
-        LOGGER.dbg_gen_instructions(instruction_set.instructions)
+        self.LOG = Logger()
+        self.LOG.dbg_gen_instructions(instruction_set.instructions)
         self.control_flow_instructions = \
             [i for i in self.instruction_set.instructions if i.control_flow]
         assert self.control_flow_instructions or CONF.max_bb_per_function <= 1, \
@@ -102,8 +105,8 @@ class ConfigurableGenerator(Generator, abc.ABC):
         # set seeds
         if self._state == 0:
             self._state = random.randint(1, 1000000)
-            LOGGER.inform("prog_gen",
-                          f"Setting program_generator_seed to random value: {self._state}")
+            self.LOG.inform("prog_gen",
+                            f"Setting program_generator_seed to random value: {self._state}")
         random.seed(self._state)
         self._state += 1
 
@@ -159,14 +162,15 @@ class ConfigurableGenerator(Generator, abc.ABC):
             out = run(f"as {asm_file} -o {bin_file}", shell=True, check=True, capture_output=True)
         except CalledProcessError as e:
             error_msg = e.stderr.decode()
-            if "Assembler messages:" not in error_msg:
+            if "Assembler messages:" in error_msg:
+                print(pretty_error_msg(error_msg))
+            else:
                 print(error_msg)
-                raise e
-            LOGGER.error(pretty_error_msg(error_msg))
+            raise e
 
         output = out.stderr.decode()
         if "Assembler messages:" in output:
-            LOGGER.warning("generator", pretty_error_msg(output))
+            print("WARNING: [generator]" + pretty_error_msg(output))
 
         run(f"strip --remove-section=.note.gnu.property {bin_file}", shell=True, check=True)
         run(f"objcopy {bin_file} -O binary {bin_file}", shell=True, check=True)

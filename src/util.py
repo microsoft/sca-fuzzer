@@ -108,9 +108,9 @@ class Logger:
     dbg_generator: bool = False
 
     def __init__(self) -> None:
-        pass
+        self.update_logging_modes()
 
-    def set_logging_modes(self):
+    def update_logging_modes(self):
         for mode in CONF.logging_modes:
             if not mode:
                 continue
@@ -239,9 +239,9 @@ class Logger:
                         ctrace = ctraces[i]
                         print("    ")
                         print(
-                            f"CTr{i:<2} {self.pretty_bitmap(ctrace, ctrace > pow(2, 64), '      ')}"
+                            f"CTr{i:<2} {pretty_trace(ctrace, ctrace > pow(2, 64), '      ')}"
                         )
-                        print(f"HTr{i:<2} {self.pretty_bitmap(htraces[i])}")
+                        print(f"HTr{i:<2} {pretty_trace(htraces[i])}")
                         print(f"Feedback{i}: {hw_feedback[i]}")
 
                     return
@@ -255,7 +255,7 @@ class Logger:
                     ctrace_full = model.dbg_get_trace_detailed(inputs[i], 1)
                     print("    ")
                     print(f"CTr{i}: {ctrace_full}")
-                    print(f"HTr{i}: {self.pretty_bitmap(htraces[i])}")
+                    print(f"HTr{i}: {pretty_trace(htraces[i])}")
                     print(f"Feedback{i}: {hw_feedback[i]}")
                 self.dbg_model = org_debug_state
 
@@ -277,7 +277,7 @@ class Logger:
                 print(f" Inputs {inputs}:")
             else:
                 print(f" Inputs {inputs[:4]} (+ {len(inputs) - 4} ):")
-            print(f"  {self.pretty_bitmap(htrace)}")
+            print(f"  {pretty_trace(htrace)}")
         print("")
 
         if not __debug__:
@@ -347,26 +347,6 @@ class Logger:
             if self.dbg_coverage and round_id and round_id % 100 == 0:
                 print(f"\nDBG: [coverage] {msg}")
 
-    # ==============================================================================================
-    # Helpers
-    def pretty_bitmap(self, bits: int, merged=False, offset: str = ""):
-        if not merged:
-            s = f"{bits:064b}"
-        else:
-            s = f"{bits % MASK_64BIT:064b} [ns]\n" \
-                f"{offset}{(bits >> 64) % MASK_64BIT:064b} [s]"
-        s = s.replace("0", ".").replace("1", "^")
-        if CONF.color:
-            s = '\033[33;34m' + s[0:8] + '\033[33;32m' + s[8:16] \
-                + '\033[33;34m' + s[16:24] + '\033[33;32m' + s[24:32] \
-                + '\033[33;34m' + s[32:40] + '\033[33;32m' + s[40:48] \
-                + '\033[33;34m' + s[48:56] + '\033[33;32m' + s[56:64] \
-                + "\033[0m" + s[64:]
-        return s
-
-
-LOGGER = Logger()
-
 
 # ==================================================================================================
 # Small helper functions
@@ -377,6 +357,22 @@ def bit_count(n):
         count += n & 1
         n >>= 1
     return count
+
+
+def pretty_trace(bits: int, merged=False, offset: str = ""):
+    if not merged:
+        s = f"{bits:064b}"
+    else:
+        s = f"{bits % MASK_64BIT:064b} [ns]\n" \
+            f"{offset}{(bits >> 64) % MASK_64BIT:064b} [s]"
+    s = s.replace("0", ".").replace("1", "^")
+    if CONF.color:
+        s = '\033[33;34m' + s[0:8] + '\033[33;32m' + s[8:16] \
+            + '\033[33;34m' + s[16:24] + '\033[33;32m' + s[24:32] \
+            + '\033[33;34m' + s[32:40] + '\033[33;32m' + s[40:48] \
+            + '\033[33;34m' + s[48:56] + '\033[33;32m' + s[56:64] \
+            + "\033[0m" + s[64:]
+    return s
 
 
 class NotSupportedException(Exception):

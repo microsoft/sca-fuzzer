@@ -19,7 +19,7 @@ from .interfaces import CTrace, TestCase, Model, InputTaint, Instruction, Execut
     TracedInstruction, TracedMemAccess, Input, Tracer, \
     RegisterOperand, FlagsOperand, MemoryOperand, TaintTrackerInterface, TargetDesc
 from .config import CONF
-from .util import LOGGER, NotSupportedException
+from .util import Logger, NotSupportedException
 
 
 # ==================================================================================================
@@ -44,6 +44,7 @@ class UnicornTracer(Tracer):
     def __init__(self):
         super().__init__()
         self.trace = []
+        self.LOG = Logger()
 
     def init_trace(self, emulator, target_desc: UnicornTargetDesc) -> None:
         self.trace = []
@@ -80,7 +81,7 @@ class UnicornTracer(Tracer):
                            model: UnicornModel) -> None:
         normalized_address = address - model.sandbox_base
         is_store = (access != UC_MEM_READ)
-        LOGGER.dbg_model_mem_access(normalized_address, value, address, size, is_store, model)
+        self.LOG.dbg_model_mem_access(normalized_address, value, address, size, is_store, model)
 
         if model.in_speculation:
             return
@@ -94,7 +95,7 @@ class UnicornTracer(Tracer):
     def observe_instruction(self, address: int, size: int, model) -> None:
         normalized_address = address - model.code_start
         if normalized_address in model.test_case.address_map:
-            LOGGER.dbg_model_instruction(normalized_address, model)
+            self.LOG.dbg_model_instruction(normalized_address, model)
 
         if model.in_speculation:
             return
@@ -109,6 +110,8 @@ class UnicornModel(Model, ABC):
     Base class for all Unicorn-based models.
     Serves as an adapter between Unicorn and our fuzzer.
     """
+    LOG: Logger
+
     CODE_SIZE = 4 * 1024
     MAIN_REGION_SIZE = CONF.input_main_region_size
     FAULTY_REGION_SIZE = CONF.input_faulty_region_size
@@ -151,6 +154,8 @@ class UnicornModel(Model, ABC):
 
     def __init__(self, sandbox_base, code_start):
         super().__init__(sandbox_base, code_start)
+        self.LOG = Logger()
+
         self.code_start = code_start
         self.sandbox_base = sandbox_base
 
@@ -231,7 +236,7 @@ class UnicornModel(Model, ABC):
             self.emulator = emulator
 
         except UcError as e:
-            LOGGER.error("[UnicornModel:load_test_case] %s" % e)
+            self.LOG.error("[UnicornModel:load_test_case] %s" % e)
 
     @abstractmethod
     def _load_input(self, input_: Input):
@@ -251,7 +256,7 @@ class UnicornModel(Model, ABC):
         taints = []
 
         for index, input_ in enumerate(inputs):
-            LOGGER.dbg_model_header(index)
+            self.LOG.dbg_model_header(index)
 
             self._load_input(input_)
             self.reset_model()
@@ -419,7 +424,7 @@ class UnicornModel(Model, ABC):
 
         # unexpected fault - throw an error
         self.print_state()
-        LOGGER.error(f"[UnicornModel:trace_test_case] {errno} {self.errno_to_str(errno)}")
+        self.LOG.error(f"[UnicornModel:trace_test_case] {errno} {self.errno_to_str(errno)}")
 
     @staticmethod
     @abstractmethod
@@ -649,7 +654,7 @@ class UnicornSpec(UnicornModel):
         if not self.checkpoints:
             self.in_speculation = False
 
-        LOGGER.dbg_model_rollback(next_instr, self.code_start)
+        self.LOG.dbg_model_rollback(next_instr, self.code_start)
         self.latest_rollback_address = next_instr
 
         # restore the speculation state

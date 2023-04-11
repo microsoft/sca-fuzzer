@@ -11,12 +11,16 @@ from abc import abstractmethod
 from typing import List
 from .interfaces import Input, InputTaint, InputGenerator
 from .config import CONF
-from .util import LOGGER
+from .util import Logger
 
 POW32 = pow(2, 32)
 
 
 class InputGeneratorCommon(InputGenerator):
+
+    def __init__(self, seed: int):
+        super().__init__(seed)
+        self.LOG = Logger()
 
     @abstractmethod
     def _generate_one(self) -> Input:
@@ -26,7 +30,7 @@ class InputGeneratorCommon(InputGenerator):
         # if it's the first invocation and the seed is zero - use random seed
         if self._state == 0:
             self._state = random.randint(0, pow(2, 32) - 1)
-            LOGGER.inform("input_gen", f"Setting input seed to: {self._state}")
+            self.LOG.inform("input_gen", f"Setting input seed to: {self._state}")
 
         generated_inputs = []
         for _ in range(count):
@@ -68,8 +72,8 @@ class InputGeneratorCommon(InputGenerator):
             # check that the file is not corrupted
             size = os.path.getsize(input_path)
             if size != len(input_) * 8:
-                LOGGER.error(f"Incorrect size of input `{input_path}` "
-                             f"({size} B, expected {len(input_) * 8} B)")
+                self.LOG.error(f"Incorrect size of input `{input_path}` "
+                               f"({size} B, expected {len(input_) * 8} B)")
 
             input_.load(input_path)
             inputs.append(input_)

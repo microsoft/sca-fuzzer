@@ -13,7 +13,6 @@ from argparse import ArgumentParser
 from .factory import get_minimizer, get_fuzzer, get_downloader
 from .fuzzer import Fuzzer
 from .config import CONF
-from .util import LOGGER
 
 
 def main() -> int:
@@ -226,7 +225,6 @@ def main() -> int:
             config_update: Dict = yaml.safe_load(f)
         for var, value in config_update.items():
             setattr(CONF, var, value)
-    LOGGER.set_logging_modes()
 
     # Fuzzing
     if args.subparser_name == 'fuzz':
