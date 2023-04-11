@@ -118,9 +118,9 @@ class Logger:
     dbg_generator: bool = False
 
     def __init__(self) -> None:
-        pass
+        self.update_logging_modes()
 
-    def set_logging_modes(self):
+    def update_logging_modes(self):
         for mode in CONF.logging_modes:
             if not mode:
                 continue
@@ -264,10 +264,8 @@ class Logger:
                             break
                         ctrace = ctraces[i]
                         print("    ")
-                        print(
-                            f"CTr{i:<2} {self.pretty_bitmap(ctrace, ctrace > pow(2, 64), '      ')}"
-                        )
-                        print(f"HTr{i:<2} {self.pretty_bitmap(htraces[i])}")
+                        print(f"CTr{i:<2} {pretty_trace(ctrace, ctrace > pow(2, 64), '      ')}")
+                        print(f"HTr{i:<2} {pretty_trace(htraces[i])}")
                         print(f"Feedback{i}: {hw_feedback[i]}")
 
                     return
@@ -282,7 +280,7 @@ class Logger:
                     print(f"- Input {i}:")
                     print(f"  CTr: {ctrace_colorize(ctrace_full) if CONF.color else ctrace_full} "
                           f"| Hash: {ctraces[i]}")
-                    print(f"  HTr: {self.pretty_bitmap(htraces[i])}")
+                    print(f"  HTr: {pretty_trace(htraces[i])}")
                     if CONF.color and hw_feedback[i][0] > hw_feedback[i][1]:
                         print(f"  Feedback: {YELLOW}{hw_feedback[i]}{COL_RESET}")
                     else:
@@ -307,7 +305,7 @@ class Logger:
                 print(f" Inputs {inputs}:")
             else:
                 print(f" Inputs {inputs[:4]} (+ {len(inputs) - 4} ):")
-            print(f"  {self.pretty_bitmap(htrace)}")
+            print(f"  {pretty_trace(htrace)}")
         print("")
 
         if not __debug__:
@@ -405,26 +403,6 @@ class Logger:
             if self.dbg_coverage and round_id and round_id % 100 == 0:
                 print(f"\nDBG: [coverage] {msg}")
 
-    # ==============================================================================================
-    # Helpers
-    def pretty_bitmap(self, bits: int, merged=False, offset: str = ""):
-        if not merged:
-            s = f"{bits:064b}"
-        else:
-            s = f"{bits % MASK_64BIT:064b} [ns]\n" \
-                f"{offset}{(bits >> 64) % MASK_64BIT:064b} [s]"
-        s = s.replace("0", ".").replace("1", "^")
-        if CONF.color:
-            s = CYAN + s[0:8] + YELLOW + s[8:16] \
-                + CYAN + s[16:24] + YELLOW + s[24:32] \
-                + CYAN + s[32:40] + YELLOW + s[40:48] \
-                + CYAN + s[48:56] + YELLOW + s[56:64] \
-                + COL_RESET + s[64:]
-        return s
-
-
-LOGGER = Logger()
-
 
 # ==================================================================================================
 # Small helper functions
@@ -435,6 +413,22 @@ def bit_count(n):
         count += n & 1
         n >>= 1
     return count
+
+
+def pretty_trace(bits: int, merged=False, offset: str = ""):
+    if not merged:
+        s = f"{bits:064b}"
+    else:
+        s = f"{bits % MASK_64BIT:064b} [ns]\n" \
+            f"{offset}{(bits >> 64) % MASK_64BIT:064b} [s]"
+    s = s.replace("0", ".").replace("1", "^")
+    if CONF.color:
+        s = CYAN + s[0:8] + YELLOW + s[8:16] \
+            + CYAN + s[16:24] + YELLOW + s[24:32] \
+            + CYAN + s[32:40] + YELLOW + s[40:48] \
+            + CYAN + s[48:56] + YELLOW + s[56:64] \
+            + COL_RESET + s[64:]
+    return s
 
 
 class NotSupportedException(Exception):

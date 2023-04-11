@@ -7,7 +7,7 @@ from typing import List
 
 from ..interfaces import CombinedHTrace, Input, TestCase, Executor
 from ..config import CONF
-from ..util import LOGGER
+from ..util import Logger
 
 
 def write_to_sysfs_file(value, path: str) -> None:
@@ -28,13 +28,15 @@ class X86Executor(Executor):
 
     def __init__(self):
         super().__init__()
+        self.LOG = Logger()
+
         # check the execution environment: is SMT disabled?
         smt_on = None
         try:
             out = subprocess.run("lscpu", shell=True, check=True, capture_output=True)
         except subprocess.CalledProcessError:
-            LOGGER.error("Could not check if hyperthreading is enabled.\n"
-                         "       Is lscpu installed?")
+            self.LOG.error("Could not check if hyperthreading is enabled.\n"
+                           "       Is lscpu installed?")
         for line in out.stdout.decode().split("\n"):
             if line.startswith("Thread(s) per core:"):
                 if line[-1] == "1":
@@ -42,15 +44,15 @@ class X86Executor(Executor):
                 else:
                     smt_on = True
         if smt_on is None:
-            LOGGER.warning("executor", "Could not check if SMT is on.")
+            self.LOG.warning("executor", "Could not check if SMT is on.")
         if smt_on:
-            LOGGER.warning("executor", "SMT is on! You may experience false positives.")
+            self.LOG.warning("executor", "SMT is on! You may experience false positives.")
 
         # is kernel module ready?
         if not os.path.isfile("/sys/x86_executor/trace"):
-            LOGGER.error("x86 executor: kernel module not installed\n\n"
-                         "Go to https://microsoft.github.io/sca-fuzzer/quick-start/ for "
-                         "installation instructions.")
+            self.LOG.error("x86 executor: kernel module not installed\n\n"
+                           "Go to https://microsoft.github.io/sca-fuzzer/quick-start/ for "
+                           "installation instructions.")
 
         # initialize the kernel module
         self.set_vendor_specific_features()
@@ -96,7 +98,7 @@ class X86Executor(Executor):
         # 3) Check that the load was successful
         with open('/sys/x86_executor/inputs', 'r') as f:
             if f.readline() != '1\n':
-                LOGGER.error("Failure loading inputs!")
+                self.LOG.error("Failure loading inputs!")
 
         # run experiments and load the results
         all_results: np.ndarray = np.ndarray(

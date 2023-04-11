@@ -17,7 +17,6 @@ from src.interfaces import Instruction, RegisterOperand, MemoryOperand, InputTai
 from src.isa_loader import InstructionSet
 from src.x86.x86_generator import X86RandomGenerator
 from src.config import CONF
-# from src.util import LOGGER
 
 test_path = Path(__file__).resolve()
 test_dir = test_path.parent
@@ -339,9 +338,9 @@ class X86ModelTest(unittest.TestCase):
         input_[input_.register_start + 2] = 4096
         input_[0] = 1
         input_[4096 // 8] = 3
-        # LOGGER.dbg_model = not LOGGER.dbg_model
+        # model.LOG.dbg_model = not model.LOG.dbg_model
         ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_], pte_mask=PF_MASK)
-        # LOGGER.dbg_model = not LOGGER.dbg_model
+        # model.LOG.dbg_model = not model.LOG.dbg_model
         # print(model.tracer.get_contract_trace_full(), mbase, cbase)
         expected_trace = hash(tuple([
             0, 4096, 4088,  # fault
@@ -498,7 +497,7 @@ class X86ModelTest(unittest.TestCase):
             input_[input_.register_start + i] = 2
         input_[input_.register_start + 2] = 4096
         input_[4096 // 8] = 3
-        # LOGGER.dbg_model = True
+        # model.LOG.dbg_model = True
         ctraces = self.get_traces(
             model, ASM_FAULT_AND_BRANCH, [input_], nesting=2, pte_mask=PF_MASK)
         expected_trace_tmp = [
@@ -518,7 +517,7 @@ class X86ModelTest(unittest.TestCase):
         expected_trace = hash(tuple(expected_trace_tmp))
         # print(expected_trace_tmp)
         # print(model.tracer.get_contract_trace_full())
-        # LOGGER.dbg_model = False
+        # model.LOG.dbg_model = False
         self.assertEqual(ctraces[0], expected_trace)
 
     def test_ct_skip_fault(self):
