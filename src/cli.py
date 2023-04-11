@@ -273,7 +273,7 @@ def main() -> int:
         return 0
 
     if args.subparser_name == "download_spec":
-        get_downloader(args.architecture, args.extensions, args.outfile).run()
+        get_downloader(args.architecture, args.extensions, args.outfile).run()  # type: ignore
         return 0
 
     raise Exception("Unreachable")
