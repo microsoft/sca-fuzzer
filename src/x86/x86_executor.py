@@ -94,7 +94,7 @@ class X86IntelExecutor(Executor):
         # 3) Check that the load was successful
         with open('/sys/x86_executor/inputs', 'r') as f:
             if f.readline() != '1\n':
-                self.LOG.error("Failure loading inputs!")
+                self.LOG.error("Failure loading inputs!", print_tb=True)
 
         # run experiments and load the results
         all_results: np.ndarray = np.ndarray(

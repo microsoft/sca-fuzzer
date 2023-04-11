@@ -8,6 +8,7 @@ SPDX-License-Identifier: MIT
 from datetime import datetime
 from typing import NoReturn, Dict
 from pprint import pformat
+from traceback import print_stack
 from .interfaces import EquivalenceClass
 from .config import CONF
 
@@ -134,9 +135,15 @@ class Logger:
                     "", "Current value of `logging_modes` requires debugging mode!\n"
                     "Remove '-O' from python arguments")
 
-    def error(self, msg) -> NoReturn:
+    def error(self, msg: str, print_tb: bool = False) -> NoReturn:
         if self.redraw_mode:
             print("")
+
+        if print_tb:
+            print("Encountered an unrecoverable error\nTraceback:")
+            print_stack()
+            print("\n")
+
         print(f"ERROR: {msg}")
         exit(1)
 
