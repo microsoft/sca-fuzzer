@@ -436,7 +436,7 @@ class UnicornModel(Model, ABC):
 
         # unexpected fault - throw an error
         self.print_state()
-        self.LOG.error(f"[UnicornModel:trace_test_case] {errno} {self.errno_to_str(errno)}")
+        self.LOG.error(f"Unexpected exception {errno} {self.errno_to_str(errno)}", print_tb=True)
 
     @staticmethod
     @abstractmethod
