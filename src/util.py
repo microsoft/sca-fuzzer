@@ -6,7 +6,7 @@ SPDX-License-Identifier: MIT
 """
 
 from datetime import datetime
-from typing import NoReturn
+from typing import NoReturn, Dict
 from pprint import pformat
 from .interfaces import EquivalenceClass
 from .config import CONF
@@ -26,17 +26,23 @@ COL_RESET = "\033[0m"
 
 
 class StatisticsCls:
-    test_cases = 0
-    num_inputs = 0
-    eff_classes = 0
-    single_entry_classes = 0
-    required_priming = 0
-    flaky_violations = 0
-    violations = 0
-    coverage = 0
+    _borg_shared_state: Dict = {}
+
+    test_cases: int = 0
+    num_inputs: int = 0
+    eff_classes: int = 0
+    single_entry_classes: int = 0
+    required_priming: int = 0
+    flaky_violations: int = 0
+    violations: int = 0
+    coverage: int = 0
     analysed_test_cases: int = 0
     spec_filter: int = 0
     observ_filter: int = 0
+
+    # Implementation of Borg pattern
+    def __init__(self) -> None:
+        self.__dict__ = self._borg_shared_state
 
     def __str__(self):
         total_clss = self.eff_classes + self.single_entry_classes
