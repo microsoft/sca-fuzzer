@@ -17,4 +17,4 @@ from .config import *
 
 from .x86 import *
 
-__version__ = "1.2.2"
+__version__ = "1.2.3"
