@@ -799,14 +799,25 @@ class X86PatchUndefinedFlagsPass(Pass):
 
     def find_flags_patch(self, undef_flags, flags_to_set) -> List[Instruction]:
         """
-        Find an instruction that would overwrite the undefined flags
+        Find an instruction sequence that would overwrite a list of flags
+
+        :param undef_flags: list of undefined flags that have to be overwritten
+            by the patch instructions
+        :param flags_to_set: list of flags that will be read by one of the following instructions,
+            and thus should not be set to the undef state by the patch. This should be always
+            a superset of or the same as undef_flags.
+        :return: list of instructions that overwrite the undefined flags
         """
+        org_undef = deepcopy(undef_flags)
         patches: List[Instruction] = []
         for instruction_spec in self.patch_candidates:
             patch = self.generator.generate_instruction(instruction_spec)
             patch_flags = patch.get_flags_operand()
             assert patch_flags
-            new_undef_flags = [i for i in patch_flags.get_undef_flags() if i in flags_to_set]
+            new_undef_flags = [
+                i for i in patch_flags.get_undef_flags()
+                if i not in undef_flags and i in flags_to_set
+            ]
             not_patched_flags = [i for i in undef_flags if i not in patch_flags.get_write_flags()]
 
             if not new_undef_flags and not_patched_flags != undef_flags:
@@ -816,7 +827,9 @@ class X86PatchUndefinedFlagsPass(Pass):
                     break
 
         if undef_flags:
-            raise GeneratorException(f"Could not find an instruction to patch flags {undef_flags}")
+            raise GeneratorException("Could not find an instruction to patch flags.\n"
+                                     f"  Initial flags to be patched: {org_undef}\n"
+                                     f"  Flags for which a patch was not found: {undef_flags}")
 
         return patches
 
