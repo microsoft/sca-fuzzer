@@ -6,7 +6,7 @@ SPDX-License-Identifier: MIT
 """
 
 from datetime import datetime
-from typing import NoReturn
+from typing import NoReturn, Dict
 from pprint import pformat
 from .interfaces import EquivalenceClass
 from .config import CONF
@@ -17,17 +17,23 @@ TWOS_COMPLEMENT_MASK_64 = pow(2, 64) - 1
 
 
 class StatisticsCls:
-    test_cases = 0
-    num_inputs = 0
-    eff_classes = 0
-    single_entry_classes = 0
-    required_priming = 0
-    flaky_violations = 0
-    violations = 0
-    coverage = 0
+    _borg_shared_state: Dict = {}
+
+    test_cases: int = 0
+    num_inputs: int = 0
+    eff_classes: int = 0
+    single_entry_classes: int = 0
+    required_priming: int = 0
+    flaky_violations: int = 0
+    violations: int = 0
+    coverage: int = 0
     analysed_test_cases: int = 0
     spec_filter: int = 0
     observ_filter: int = 0
+
+    # Implementation of Borg pattern
+    def __init__(self) -> None:
+        self.__dict__ = self._borg_shared_state
 
     def __str__(self):
         total_clss = self.eff_classes + self.single_entry_classes
@@ -238,9 +244,7 @@ class Logger:
                             break
                         ctrace = ctraces[i]
                         print("    ")
-                        print(
-                            f"CTr{i:<2} {pretty_trace(ctrace, ctrace > pow(2, 64), '      ')}"
-                        )
+                        print(f"CTr{i:<2} {pretty_trace(ctrace, ctrace > pow(2, 64), '      ')}")
                         print(f"HTr{i:<2} {pretty_trace(htraces[i])}")
                         print(f"Feedback{i}: {hw_feedback[i]}")
 
