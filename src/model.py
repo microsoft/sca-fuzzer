@@ -164,7 +164,7 @@ class UnicornModel(Model, ABC):
             self.sandbox_base + self.MAIN_REGION_SIZE + self.FAULTY_REGION_SIZE
         self.main_region = self.sandbox_base
         self.faulty_region = self.main_region + self.MAIN_REGION_SIZE
-        self.stack_base = self.main_region + self.MAIN_REGION_SIZE - 8
+        self.stack_base = self.faulty_region + self.FAULTY_REGION_SIZE - 8
 
         self.overflow_region_values = bytes(self.OVERFLOW_REGION_SIZE)
 
