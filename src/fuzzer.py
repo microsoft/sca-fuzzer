@@ -113,7 +113,7 @@ class Fuzzer:
 
             if violation:
                 self.LOG.fuzzer_report_violations(violation, self.model)
-                self.store_test_case(test_case, violation)
+                self.store_test_case(test_case, inputs, violation)
                 STAT.violations += 1
                 if not nonstop:
                     break
