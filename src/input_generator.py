@@ -47,9 +47,6 @@ class InputGeneratorCommon(InputGenerator):
         if len(inputs) != len(taints):
             raise Exception("Error: Cannot extend inputs. "
                             "The number of taints does not match the number of inputs.")
-        # this function is technically not a generation function,
-        # hence it should not update the global generation seed
-        initial_state = self._state
 
         # create inputs
         new_inputs = []
@@ -61,7 +58,6 @@ class InputGeneratorCommon(InputGenerator):
                     new_input[j] = input_[j]
             new_inputs.append(new_input)
 
-        self._state = initial_state
         return new_inputs
 
     def load(self, input_paths: List[str]) -> List[Input]:
