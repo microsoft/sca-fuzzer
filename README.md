@@ -201,6 +201,27 @@ If something is confusing or you need help in using Revizor, we have a [discussi
 
 For more details, see [the website](https://microsoft.github.io/sca-fuzzer/).
 
+
+## Citing Revizor
+
+To cite this project, you can use the following references:
+
+1. Oleksii Oleksenko, Christof Fetzer, Boris Köpf, Mark Silberstein. [Revizor: Testing Black-box CPUs against Speculation Contracts](https://www.microsoft.com/en-us/research/publication/revizor-testing-black-box-cpus-against-speculation-contracts/) in Proceedings of the 27th ACM International Conference on Architectural Support for Programming Languages and Operating Systems (ASPLOS), 2022.
+
+This is the original paper that introduced the concepts of Model-based Relation Testing, and which described the main ideas behind Revizor.
+
+2. Marco Guarnieri, Boris Köpf, Jan Reineke, and Pepe Vila. [Hardware-software contracts for secure speculation](https://www.microsoft.com/en-us/research/publication/hardware-software-contracts-for-secure-speculation/) in Proceedings of the 2021 IEEE Symposium on Security and Privacy (SP), 2021.
+
+This is the paper that introduced the idea of Leakage Contracts, as well as its theoretical foundations.
+
+3. Oleksii Oleksenko, Christof Fetzer, Boris Köpf, Mark Silberstein. "Revizor: Testing Black-box CPUs against Speculation Contracts". IEEE Micro, 2023.
+
+This is a more accessible summary of the two papers above, in a journal format.
+
+4. Oleksii Oleksenko, Marco Guarnieri, Boris Köpf, and Mark Silberstein. [Hide and Seek with Spectres: Efficient discovery of speculative information leaks with random testing](https://www.microsoft.com/en-us/research/publication/hide-and-seek-with-spectres-efficient-discovery-of-speculative-information-leaks-with-random-testing/) in Proceedings of the 2023 IEEE Symposium on Security and Privacy (SP), 2022.
+
+This a paper that introduces several significant performance optimizations to the testing process, including taint-based input generation, speculation filtering, and observation filtering.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
