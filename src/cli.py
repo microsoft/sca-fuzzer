@@ -66,7 +66,7 @@ def main() -> int:
         '--nonstop',
         action='store_true',
         help="Don't stop after detecting an unexpected result"
-    )        
+    )
 
     # ==============================================================================================
     # Standalone interface to trace analysis
@@ -231,14 +231,14 @@ def main() -> int:
         # Make sure we're ready for fuzzing
         if args.working_directory and not os.path.isdir(args.working_directory):
             SystemExit("The working directory does not exist")
-        
+
         # Normal fuzzing mode
         fuzzer = get_fuzzer(args.instruction_set, args.working_directory, args.testcase, "")
         exit_code = fuzzer.start(
             args.num_test_cases,
             args.num_inputs,
             args.timeout,
-            args.nonstop
+            args.nonstop,
         )
         return exit_code
 
