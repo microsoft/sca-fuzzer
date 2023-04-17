@@ -7,7 +7,7 @@ SPDX-License-Identifier: MIT
 import shutil
 from pathlib import Path
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Tuple
 import copy
 
 from . import factory
@@ -133,13 +133,14 @@ class Fuzzer:
         ctraces: List[CTrace]
         htraces: List[HTrace]
 
-        # at this point we need to increase the effectiveness of inputs
+        # At this point we need to increase the effectiveness of inputs
         # so that we can detect contract violations (note that it wasn't necessary
-        # up to this point because we weren't testing against a contract)
-        boosted_inputs: List[Input] = self.boost_inputs(inputs, 1)
+        # up to this point because we weren't testing against a contract).
+        # We also compute the contract traces for all boosted inputs.
+        boosted_inputs: List[Input]        
+        ctraces, boosted_inputs = self.trace_and_boost(inputs, 1)
 
         # check for violations
-        ctraces = self.model.trace_test_case(boosted_inputs, 1)
         htraces = self.executor.trace_test_case(boosted_inputs)
         violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces, True)
         if not violations:  # nothing detected? -> we are done here, move to next test case
@@ -151,8 +152,7 @@ class Fuzzer:
         if "seq" not in CONF.contract_execution_clause and \
            "no_speculation" not in CONF.contract_execution_clause:
             self.LOG.fuzzer_nesting_increased()
-            boosted_inputs = self.boost_inputs(inputs, CONF.model_max_nesting)
-            ctraces = self.model.trace_test_case(boosted_inputs, CONF.model_max_nesting)
+            ctraces, boosted_inputs = self.trace_and_boost(inputs, CONF.model_max_nesting)                
             htraces = self.executor.trace_test_case(boosted_inputs)
             self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces,
                                             self.executor.get_last_feedback(),
@@ -160,14 +160,22 @@ class Fuzzer:
             violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces, True)
             if not violations:
                 return None
+        
+        # 3. If ctraces are the same within taint-based input class, recompute in case tainting was wrong
+        if CONF.model_taint_based_ctraces:            
+            ctraces = self.model.trace_test_case(boosted_inputs, CONF.model_max_nesting)
+            violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces, True)
+            if not violations:  # nothing detected? -> tainting was probably wrong, return
+                STAT.taint_mistakes += 1
+                return None
 
-        # 3. Check if the violation is reproducible
+        # 4. Check if the violation is reproducible
         if self.check_if_reproducible(violations, boosted_inputs, htraces):
             STAT.flaky_violations += 1
             if CONF.ignore_flaky_violations:
                 return None
 
-        # 4. Check if the violation survives priming
+        # 5. Check if the violation survives priming
         if not CONF.enable_priming:
             return violations[-1]
         STAT.required_priming += 1
@@ -184,19 +192,27 @@ class Fuzzer:
 
         # Violation survived priming. Report it
         return violation
-
-    def boost_inputs(self, inputs: List[Input], nesting: int) -> List[Input]:
-        if CONF.inputs_per_class == 1:
-            return inputs
-
+    
+    def trace_and_boost(self, inputs: List[Input], nesting: int) -> Tuple[List[CTrace], List[Input]]:
         taints: List[InputTaint]
-        taints = self.model.get_taints(inputs, nesting)
+        ctraces: List[CTrace]
+        ctraces, taints = self.model.trace_test_case_with_taints(inputs, nesting)
 
         # ensure that we have many inputs in each input classes
         boosted_inputs: List[Input] = list(inputs)  # make a copy
         for _ in range(CONF.inputs_per_class - 1):
             boosted_inputs += self.input_gen.extend_equivalence_classes(inputs, taints)
-        return boosted_inputs
+
+        boosted_ctraces: List[CTrace]
+        if CONF.model_taint_based_ctraces:
+            # records same ctrace for all members of the same input class
+            boosted_ctraces = ctraces * CONF.inputs_per_class
+        else:            
+            # compute ctraces separately for every boosted input
+            boosted_ctraces = self.model.trace_test_case(boosted_inputs, nesting)
+
+        assert len(boosted_ctraces) == len(boosted_inputs)
+        return boosted_ctraces, boosted_inputs
 
     def store_test_case(self, test_case: TestCase, inputs: List[Input],
                         violation: EquivalenceClass):
