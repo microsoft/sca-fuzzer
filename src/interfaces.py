@@ -903,12 +903,6 @@ class Analyser(ABC):
                           htraces: List[HTrace],
                           stats=False) -> List[EquivalenceClass]:
         pass
-    
-    @abstractmethod
-    def check_equivalence_classes_equality(self,
-                                       eq_classes1: List[EquivalenceClass], 
-                                       eq_classes2: List[EquivalenceClass]) -> bool:
-        pass
 
     def set_coverage(self, coverage: Coverage):
         self.coverage = coverage

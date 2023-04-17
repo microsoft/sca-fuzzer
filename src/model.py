@@ -324,7 +324,7 @@ class UnicornModel(Model, ABC):
         ctraces, _ = self._execute_test_case(inputs, nesting)
         self.execution_tracing_enabled = False
         return ctraces
-    
+
     def get_ctraces_taints(self, inputs, nesting):
         self.tainting_enabled = True
         self.execution_tracing_enabled = True
