@@ -133,13 +133,14 @@ class Fuzzer:
         ctraces: List[CTrace]
         htraces: List[HTrace]
 
-        # at this point we need to increase the effectiveness of inputs
+        # At this point we need to increase the effectiveness of inputs
         # so that we can detect contract violations (note that it wasn't necessary
-        # up to this point because we weren't testing against a contract)
-        boosted_inputs: List[Input]
+        # up to this point because we weren't testing against a contract).
+        # We also compute the contract traces for all boosted inputs.
+        boosted_inputs: List[Input]        
+        ctraces, boosted_inputs = self.trace_and_boost(inputs, 1)
 
         # check for violations
-        ctraces, boosted_inputs = self.trace_and_boost(inputs, 1)        
         htraces = self.executor.trace_test_case(boosted_inputs)
         violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces, True)
         if not violations:  # nothing detected? -> we are done here, move to next test case
