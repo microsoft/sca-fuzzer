@@ -11,8 +11,8 @@
 
 # How-To Guides
 
-* [Guide: Running a testing campaign and analyzing a violation](./fuzzing-guide.md)
-
+* [Black-box Testing Strategy](./testing-strategy.md)
+* [Adding New Architecture](./adding-new-architecture.md)
 
 # References
 
