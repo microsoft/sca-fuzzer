@@ -121,7 +121,7 @@ class MinimizerViolation(Minimizer):
         fuzzer.generator.create_pte(test_case)
         fuzzer.model.load_test_case(test_case)
         boosted_inputs: List[Input]
-        _, boosted_inputs = fuzzer.boost_inputs(inputs, CONF.model_max_nesting)
+        _, boosted_inputs = fuzzer.trace_and_boost(inputs, CONF.model_max_nesting)
 
         print("Trying to reproduce...")
         violations = self._get_all_violations(fuzzer, test_case, boosted_inputs)

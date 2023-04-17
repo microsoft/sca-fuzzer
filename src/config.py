@@ -104,6 +104,9 @@ class ConfCls:
     """ model_max_nesting: """
     model_max_spec_window: int = 250
     """ model_max_spec_window: """
+    model_taint_based_ctraces: bool = True
+    """ model_taint_based_ctraces: if enabled, the same contract trace will be used
+    for all inputs in the same taint-based input class """
 
     # ==============================================================================================
     # Executor
@@ -131,8 +134,7 @@ class ConfCls:
     analyser_permit_subsets: bool = True
     """ analyser_permit_subsets: if enabled, the analyser will not label hardware traces
     as mismatching if they form a subset relation """
-    analyser_compute_all_ctraces: bool = False
-
+    
     # ==============================================================================================
     # Coverage
     coverage_type: str = 'none'

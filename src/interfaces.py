@@ -863,7 +863,7 @@ class Model(ABC):
         pass
 
     @abstractmethod
-    def get_ctraces_taints(self, inputs, nesting) -> tuple[List[CTrace], List[InputTaint]]:
+    def trace_test_case_with_taints(self, inputs, nesting) -> Tuple[List[CTrace], List[InputTaint]]:
         pass
 
     def set_coverage(self, coverage: Coverage):
