@@ -66,20 +66,7 @@ def main() -> int:
         '--nonstop',
         action='store_true',
         help="Don't stop after detecting an unexpected result"
-    )
-    parser_fuzz.add_argument(
-        "-r", "--program-seed",
-        type=int,
-        default=None,
-        help="Add seed to generate test case."
-    )
-    parser_fuzz.add_argument(
-        "-R", "--input-seed",
-        type=int,
-        default=None,
-        help="Add seed to generate program inputs."
-    )
-        
+    )        
 
     # ==============================================================================================
     # Standalone interface to trace analysis
@@ -245,12 +232,6 @@ def main() -> int:
         if args.working_directory and not os.path.isdir(args.working_directory):
             SystemExit("The working directory does not exist")
         
-        # if seeds were given, update internal config fields
-        if args.program_seed:
-            CONF.program_generator_seed = args.program_seed
-        if args.input_seed:
-            CONF.input_gen_seed = args.input_seed    
-
         # Normal fuzzing mode
         fuzzer = get_fuzzer(args.instruction_set, args.working_directory, args.testcase, "")
         exit_code = fuzzer.start(
