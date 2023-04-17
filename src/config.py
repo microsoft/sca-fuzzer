@@ -131,6 +131,7 @@ class ConfCls:
     analyser_permit_subsets: bool = True
     """ analyser_permit_subsets: if enabled, the analyser will not label hardware traces
     as mismatching if they form a subset relation """
+    analyser_compute_all_ctraces: bool = False
 
     # ==============================================================================================
     # Coverage

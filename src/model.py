@@ -324,15 +324,17 @@ class UnicornModel(Model, ABC):
         ctraces, _ = self._execute_test_case(inputs, nesting)
         self.execution_tracing_enabled = False
         return ctraces
-
-    def get_taints(self, inputs, nesting):
+    
+    def get_ctraces_taints(self, inputs, nesting):
         self.tainting_enabled = True
+        self.execution_tracing_enabled = True
         logger_state = self.LOG.dbg_model
         self.LOG.dbg_model = False
-        _, taints = self._execute_test_case(inputs, nesting)
+        ctraces, taints = self._execute_test_case(inputs, nesting)
         self.LOG.dbg_model = logger_state
         self.tainting_enabled = False
-        return taints
+        self.execution_tracing_enabled = False
+        return ctraces, taints
 
     def dbg_get_trace_detailed(self, input, nesting) -> List[str]:
         _, __ = self._execute_test_case([input], nesting)

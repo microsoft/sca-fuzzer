@@ -107,6 +107,7 @@ class ConfigurableGenerator(Generator, abc.ABC):
             self._state = random.randint(1, 1000000)
             self.LOG.inform("prog_gen",
                             f"Setting program_generator_seed to random value: {self._state}")
+    
         random.seed(self._state)
         self._state += 1
 

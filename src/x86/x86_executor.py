@@ -125,6 +125,10 @@ class X86Executor(Executor):
                         all_results[input_id][rep][i] = int(row[i])
                     input_id -= 1
 
+        # for r in all_results:
+        #     for i in r:
+        #         print(bin(i[0]))
+                
         # simple case - no merging required
         if repetitions == 1:
             self.feedback = [r[0][1:] for r in all_results]

@@ -82,6 +82,8 @@ class EquivalenceAnalyser(Analyser):
         the equivalence class by the htrace
         """
 
+        assert ctraces != []
+                
         # build eq. classes
         eq_class_map: Dict[CTrace, EquivalenceClass] = defaultdict(lambda: EquivalenceClass())
         for i, ctrace in enumerate(ctraces):
@@ -106,3 +108,33 @@ class EquivalenceAnalyser(Analyser):
             eq_cls.build_htrace_map()
 
         return effective_classes
+    
+    def check_equivalence_classes_equality(self, 
+                                           eq_classes1: List[EquivalenceClass],
+                                           eq_classes2: List[EquivalenceClass]) -> bool:        
+        """
+        Checks if inputs are sorted into the same equivalence classes
+        """
+        
+        if len(eq_classes1) != len(eq_classes2):
+            return False
+                
+        classes1 = []
+        classes2 = []
+        
+        # project equivalence classes on list of input IDs
+        for eq_class in eq_classes1:
+            class_ids = []
+            for measure in eq_class.measurements:
+                class_ids.append(measure.input_id)
+            classes1.append(tuple(class_ids))
+        
+        for eq_class in eq_classes2:
+            class_ids = []
+            for measure in eq_class.measurements:
+                class_ids.append(measure.input_id)
+            classes2.append(tuple(class_ids))
+            
+        classes1.sort()    
+        classes2.sort()       
+        return classes1 == classes2

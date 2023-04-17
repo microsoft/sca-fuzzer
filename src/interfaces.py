@@ -863,7 +863,7 @@ class Model(ABC):
         pass
 
     @abstractmethod
-    def get_taints(self, inputs, nesting) -> List[InputTaint]:
+    def get_ctraces_taints(self, inputs, nesting) -> tuple[List[CTrace], List[InputTaint]]:
         pass
 
     def set_coverage(self, coverage: Coverage):
@@ -902,6 +902,12 @@ class Analyser(ABC):
                           ctraces: List[CTrace],
                           htraces: List[HTrace],
                           stats=False) -> List[EquivalenceClass]:
+        pass
+    
+    @abstractmethod
+    def check_equivalence_classes_equality(self,
+                                       eq_classes1: List[EquivalenceClass], 
+                                       eq_classes2: List[EquivalenceClass]) -> bool:
         pass
 
     def set_coverage(self, coverage: Coverage):

@@ -35,6 +35,7 @@ class StatisticsCls:
     single_entry_classes: int = 0
     required_priming: int = 0
     flaky_violations: int = 0
+    taint_mistakes: int = 0
     violations: int = 0
     coverage: int = 0
     analysed_test_cases: int = 0
@@ -58,6 +59,7 @@ class StatisticsCls:
         s += f"Test Cases: {self.test_cases}\n"
         s += f"Inputs per test case: {iptc:.1f}\n"
         s += f"Flaky violations: {self.flaky_violations}\n"
+        s += f"Taint-based false positives: {self.taint_mistakes}\n"
         s += f"Required priming: {self.required_priming}\n"
         s += f"Violations: {self.violations}\n"
         s += "Effectiveness: \n"
@@ -86,6 +88,7 @@ class StatisticsCls:
             s += f"ObF:{self.observ_filter},"
             s += f"Prm:{self.required_priming}," \
                  f"Flk:{self.flaky_violations}," \
+                 f"TbM:{self.taint_mistakes}," \
                  f"Vio:{self.violations}"
             return s
 
