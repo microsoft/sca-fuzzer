@@ -4,8 +4,8 @@ File: Fuzzing Configuration Options
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
-import x86.x86_config as x86_config
 from typing import List, Dict
+from .x86 import x86_config
 
 
 class ConfigException(SystemExit):
@@ -52,6 +52,18 @@ class ConfCls:
     """ min_bb_per_function: minimal number of basic blocks per function in generated programs """
     max_bb_per_function: int = 2
     """ max_bb_per_function: maximum number of basic blocks per function in generated programs """
+    min_successors_per_bb: int = 1
+    """ min_bb_per_function: min. number of successors for each basic block in generated programs
+    Note 1: this config option is a *hint*; it could be ignored if the instruction set does not
+    have the necessary instructions to satisfy it, or if a certain number of successor is required
+    for correctness
+    Note 2: If min_successors_per_bb > max_successors_per_bb, the value is
+    overwritten with max_successors_per_bb """
+    max_successors_per_bb: int = 2
+    """ min_bb_per_function: min. number of successors for each basic block in generated programs
+    Note: this config option is a *hint*; it could be ignored if the instruction set does not
+    have the necessary instructions to satisfy it, or if a certain number of successor is required
+    for correctness """
     register_blocklist: List[str] = []
     """ register_blocklist: list of registers that will NOT be used for generating programs """
     avoid_data_dependencies: bool = False
@@ -140,32 +152,28 @@ class ConfCls:
 
     # ==============================================================================================
     # Internal
-    _instance = None
+    _borg_shared_state: Dict = {}
     _no_generation: bool = False
     _option_values: Dict[str, List] = {}  # set by ISA-specific config.py
     _default_instruction_blocklist: List[str] = []
 
-    # Implementation of singleton
-    def __new__(cls, *args, **kwargs):
-        if not isinstance(cls._instance, cls):
-            cls._instance = object.__new__(cls, *args, **kwargs)
-        return cls._instance
+    # Implementation of Borg pattern
+    def __init__(self) -> None:
+        self.setattr_internal("__dict__", self._borg_shared_state)
 
     def __setattr__(self, name, value):
         # print(f"CONF: setting {name} to {value}")
 
         # Sanity checks
         if name[0] == "_":
-            raise ConfigException(f"Attempting to set an internal configuration variable {name}.")
+            raise ConfigException(
+                f"ERROR: Attempting to set an internal configuration variable {name}.")
         if getattr(self, name, None) is None:
-            raise ConfigException(f"Unknown configuration variable {name}.\n"
+            raise ConfigException(f"ERROR: Unknown configuration variable {name}.\n"
                                   f"It's likely a typo in the configuration file.")
         if type(self.__getattribute__(name)) != type(value):
-            raise ConfigException(f"Wrong type of the configuration variable {name}.\n"
+            raise ConfigException(f"ERROR: Wrong type of the configuration variable {name}.\n"
                                   f"It's likely a typo in the configuration file.")
-        if name == "executor_max_outliers" and value > 20:
-            print(f"WARNING: Configuration: Are you sure you want to"
-                  f" ignore {self.executor_max_outliers} outliers?")
         if name == "coverage_type" and value > "none":
             super().__setattr__("feedback_driven_generator", "False")
 
@@ -180,14 +188,16 @@ class ConfCls:
             else:
                 invalid = value not in self._option_values[name]
             if invalid:
-                raise ConfigException(f"Unknown value '{value}' of config variable '{name}'\n"
-                                      f"Possible options: {self._option_values[name]}")
+                raise ConfigException(
+                    f"ERROR: Unknown value '{value}' of config variable '{name}'\n"
+                    f"Possible options: {self._option_values[name]}")
         if (self.input_main_region_size % 4096 != 0) or \
                 (self.input_faulty_region_size % 4096 != 0):
-            raise ConfigException("Inputs must be page-aligned")
+            raise ConfigException("ERROR: Inputs must be page-aligned")
         if self.input_gen_entropy_bits + self.memory_access_zeroed_bits > 32:
-            raise ConfigException("The sum of input_gen_entropy_bits and memory_access_zeroed_bits"
-                                  " must be less or equal to 32 bits")
+            raise ConfigException(
+                "ERROR: The sum of input_gen_entropy_bits and memory_access_zeroed_bits"
+                " must be less or equal to 32 bits")
 
         # special handling
         if name == "instruction_set":
@@ -207,7 +217,7 @@ class ConfCls:
             config = x86_config
             prefix = "x86_"
         else:
-            raise ConfigException(f"Unknown architecture {self.instruction_set}")
+            raise ConfigException(f"ERROR: Unknown architecture {self.instruction_set}")
         options = [i for i in dir(config) if i.startswith(prefix)]
 
         for option in options:

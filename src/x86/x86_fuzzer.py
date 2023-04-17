@@ -7,11 +7,11 @@ SPDX-License-Identifier: MIT
 from subprocess import run
 from typing import List
 
-from fuzzer import Fuzzer, ArchitecturalFuzzer
-from interfaces import TestCase, Input, InstructionSetAbstract
-from service import STAT
-from config import CONF
-from x86.x86_executor import X86IntelExecutor
+from ..fuzzer import Fuzzer, ArchitecturalFuzzer
+from ..interfaces import TestCase, Input, InstructionSetAbstract
+from ..util import STAT
+from ..config import CONF
+from .x86_executor import X86IntelExecutor
 
 
 def update_instruction_list():
@@ -20,11 +20,6 @@ def update_instruction_list():
     This functionality is implemented as a module-level function
     to avoid code duplication between X86Fuzzer and X86ArchitecturalFuzzer
     """
-    if 'DE-overflow' not in CONF.permitted_faults:
-        if "IDIV" not in CONF._default_instruction_blocklist:
-            CONF._default_instruction_blocklist.append("IDIV")
-        if "REX IDIV" not in CONF._default_instruction_blocklist:
-            CONF._default_instruction_blocklist.append("REX IDIV")
     if 'UD' not in CONF.permitted_faults:
         CONF._default_instruction_blocklist.extend(["UD", "UD2"])
     if 'UD-sgx' not in CONF.permitted_faults:
@@ -41,6 +36,8 @@ def update_instruction_list():
         CONF._default_instruction_blocklist.append("INT1")
     if 'BP' not in CONF.permitted_faults:
         CONF._default_instruction_blocklist.append("INT3")
+    if 'BR' not in CONF.permitted_faults:
+        CONF._default_instruction_blocklist.extend(['BNDCL', 'BNDCU'])
 
 
 def check_instruction_list(instruction_set: InstructionSetAbstract):
@@ -62,6 +59,10 @@ def check_instruction_list(instruction_set: InstructionSetAbstract):
         assert "INT1" in all_instruction_names
     if 'BP' in CONF.permitted_faults:
         assert "INT3" in all_instruction_names
+    if 'BR' in CONF.permitted_faults:
+        cpu_flags = run(
+            "grep 'flags' /proc/cpuinfo", shell=True, capture_output=True).stdout.decode()
+        assert "mpx" in cpu_flags and "BNDCU" in all_instruction_names
 
 
 class X86Fuzzer(Fuzzer):
@@ -106,7 +107,7 @@ class X86Fuzzer(Fuzzer):
             run('awk \'//{print $0, "\\nlfence"}\' ' + test_case.asm_path + '> fenced.asm',
                 shell=True)
             self.generator.assemble('fenced.asm', 'fenced.o')
-            fenced_test_case = TestCase()
+            fenced_test_case = TestCase(0)
             fenced_test_case.bin_path = 'fenced.o'
             self.executor.load_test_case(fenced_test_case)
             fenced_htraces = self.executor.trace_test_case(inputs, repetitions=1)

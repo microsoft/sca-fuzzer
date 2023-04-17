@@ -6,29 +6,44 @@ SPDX-License-Identifier: MIT
 """
 
 from datetime import datetime
-
-from interfaces import EquivalenceClass
-from config import CONF
-from typing import NoReturn
+from typing import NoReturn, Dict
 from pprint import pformat
+from traceback import print_stack
+from .interfaces import EquivalenceClass
+from .config import CONF
 
 MASK_64BIT = pow(2, 64)
 POW2_64 = pow(2, 64)
 TWOS_COMPLEMENT_MASK_64 = pow(2, 64) - 1
 
+RED = '\033[33;31m'
+GREEN = '\033[33;32m'
+YELLOW = '\033[33;33m'
+BLUE = '\033[33;34m'
+PURPLE = '\033[33;35m'
+CYAN = '\033[33;36m'
+GRAY = '\033[33;37m'
+COL_RESET = "\033[0m"
+
 
 class StatisticsCls:
-    test_cases = 0
-    num_inputs = 0
-    eff_classes = 0
-    single_entry_classes = 0
-    required_priming = 0
-    flaky_violations = 0
-    violations = 0
-    coverage = 0
+    _borg_shared_state: Dict = {}
+
+    test_cases: int = 0
+    num_inputs: int = 0
+    eff_classes: int = 0
+    single_entry_classes: int = 0
+    required_priming: int = 0
+    flaky_violations: int = 0
+    violations: int = 0
+    coverage: int = 0
     analysed_test_cases: int = 0
     spec_filter: int = 0
     observ_filter: int = 0
+
+    # Implementation of Borg pattern
+    def __init__(self) -> None:
+        self.__dict__ = self._borg_shared_state
 
     def __str__(self):
         total_clss = self.eff_classes + self.single_entry_classes
@@ -39,7 +54,7 @@ class StatisticsCls:
             if self.analysed_test_cases else 0
         iptc = self.num_inputs / self.test_cases if self.test_cases else 0
 
-        s = "================================ Statistics ===================================\n"
+        s = ""
         s += f"Test Cases: {self.test_cases}\n"
         s += f"Inputs per test case: {iptc:.1f}\n"
         s += f"Flaky violations: {self.flaky_violations}\n"
@@ -99,25 +114,29 @@ class Logger:
     # info modes
     info: bool = False
     stat: bool = False
+    debug: bool = False
 
-    # debugging
+    # debugging specific modules
     dbg_timestamp: bool = False
     dbg_violation: bool = False
     dbg_traces: bool = False
+    dbg_traces_all: bool = False
     dbg_model: bool = False
     dbg_coverage: bool = False
     dbg_generator: bool = False
 
     def __init__(self) -> None:
-        pass
+        self.update_logging_modes()
 
-    def set_logging_modes(self):
+    def update_logging_modes(self):
         for mode in CONF.logging_modes:
             if not mode:
                 continue
             if getattr(self, mode, None) is None:
                 self.error(f"Unknown value '{mode}' of config variable 'logging_modes'")
             setattr(self, mode, True)
+            if "dbg" in mode:  # enable debug mode if any debug mode is enabled
+                self.debug = True
 
         if not __debug__:
             if self.dbg_timestamp or self.dbg_model or self.dbg_coverage or self.dbg_traces\
@@ -126,9 +145,15 @@ class Logger:
                     "", "Current value of `logging_modes` requires debugging mode!\n"
                     "Remove '-O' from python arguments")
 
-    def error(self, msg) -> NoReturn:
+    def error(self, msg: str, print_tb: bool = False) -> NoReturn:
         if self.redraw_mode:
             print("")
+
+        if print_tb:
+            print("Encountered an unrecoverable error\nTraceback:")
+            print_stack()
+            print("\n")
+
         print(f"ERROR: {msg}")
         exit(1)
 
@@ -144,9 +169,10 @@ class Logger:
             print(f"INFO: [{src}] {msg}", end=end, flush=True)
 
     def dbg(self, src, msg) -> None:
-        if self.redraw_mode:
-            print("")
-        print(f"DBG: [{src}] {msg}")
+        if self.debug:
+            if self.redraw_mode:
+                print("")
+            print(f"DBG: [{src}] {msg}")
 
     # ==============================================================================================
     # Generator
@@ -184,9 +210,12 @@ class Logger:
             if STAT.test_cases > self.progress:
                 self.progress += self.one_percent_progress
                 self.progress_percent += 1
-            msg = f"\r{STAT.test_cases:<6}({self.progress_percent:>2}%)| Stats: "
-            msg += STAT.get_brief()
-            print(msg + "         ", end=self.line_ending, flush=True)
+            if STAT.test_cases == 0:
+                msg = ""
+            else:
+                msg = f"\r{STAT.test_cases:<6}({self.progress_percent:>2}%)| Stats: "
+                msg += STAT.get_brief()
+                print(msg + "         ", end=self.line_ending, flush=True)
             self.msg = msg
 
         if not __debug__:
@@ -219,11 +248,27 @@ class Logger:
             now = datetime.today()
             print("")  # new line after the progress bar
             if self.stat:
+                print("================================ Statistics ================================"
+                      "===\n")
                 print(STAT)
             print(f"Duration: {(now - self.start_time).total_seconds():.1f}")
             print(datetime.today().strftime('Finished at %H:%M:%S'))
 
-    def trc_fuzzer_dump_traces(self, model, inputs, htraces, ctraces, hw_feedback):
+    def trc_fuzzer_dump_traces(self, model, inputs, htraces, ctraces, hw_feedback, nesting):
+
+        def ctrace_colorize(ctrace):
+            res = "["
+            for item in ctrace:
+                res += "'"
+                if "mem" in item:
+                    res += PURPLE + item + COL_RESET
+                elif "pc" in item:
+                    res += item
+                else:
+                    res += CYAN + item + COL_RESET
+                res += "', "
+            return res + "]"
+
         if __debug__:
             if self.dbg_traces:
                 print("\n================================ Collected Traces "
@@ -236,10 +281,8 @@ class Logger:
                             break
                         ctrace = ctraces[i]
                         print("    ")
-                        print(
-                            f"CTr{i:<2} {self.pretty_bitmap(ctrace, ctrace > pow(2, 64), '      ')}"
-                        )
-                        print(f"HTr{i:<2} {self.pretty_bitmap(htraces[i])}")
+                        print(f"CTr{i:<2} {pretty_trace(ctrace, ctrace > pow(2, 64), '      ')}")
+                        print(f"HTr{i:<2} {pretty_trace(htraces[i])}")
                         print(f"Feedback{i}: {hw_feedback[i]}")
 
                     return
@@ -247,14 +290,18 @@ class Logger:
                 org_debug_state = self.dbg_model
                 self.dbg_model = False
                 for i in range(len(htraces)):
-                    if i > 100:
+                    if i > 100 and not self.dbg_traces_all:
                         self.warning("fuzzer", "Trace output is limited to 100 traces")
                         break
-                    ctrace_full = model.dbg_get_trace_detailed(inputs[i], 30)
-                    print("    ")
-                    print(f"CTr{i}: {ctrace_full}")
-                    print(f"HTr{i}: {self.pretty_bitmap(htraces[i])}")
-                    print(f"Feedback{i}: {hw_feedback[i]}")
+                    ctrace_full = model.dbg_get_trace_detailed(inputs[i], nesting)
+                    print(f"- Input {i}:")
+                    print(f"  CTr: {ctrace_colorize(ctrace_full) if CONF.color else ctrace_full} "
+                          f"| Hash: {ctraces[i]}")
+                    print(f"  HTr: {pretty_trace(htraces[i])}")
+                    if CONF.color and hw_feedback[i][0] > hw_feedback[i][1]:
+                        print(f"  Feedback: {YELLOW}{hw_feedback[i]}{COL_RESET}")
+                    else:
+                        print(f"  Feedback: {hw_feedback[i]}")
                 self.dbg_model = org_debug_state
 
     def fuzzer_report_violations(self, violation: EquivalenceClass, model):
@@ -275,7 +322,7 @@ class Logger:
                 print(f" Inputs {inputs}:")
             else:
                 print(f" Inputs {inputs[:4]} (+ {len(inputs) - 4} ):")
-            print(f"  {self.pretty_bitmap(htrace)}")
+            print(f"  {pretty_trace(htrace)}")
         print("")
 
         if not __debug__:
@@ -283,12 +330,12 @@ class Logger:
 
         if self.dbg_violation:
             # print details
-            print("================================ Debug Trace ==================================")
+            print("================================ Violation Traces =============================")
             for htrace, measurements in violation.htrace_map.items():
                 print(f"                      ##### Input {measurements[0].input_id} #####")
                 model_debug_state = self.dbg_model
                 self.dbg_model = True
-                model.trace_test_case([measurements[0].input_], 1)
+                model.trace_test_case([measurements[0].input_], CONF.model_max_nesting)
                 self.dbg_model = model_debug_state
                 print("\n\n")
 
@@ -313,7 +360,13 @@ class Logger:
         val = value if is_store else int.from_bytes(
             model.emulator.mem_read(address, size), byteorder='little')
         type_ = "store to" if is_store else "load from"
-        print(f"  > {type_} +0x{normalized_address:x} value 0x{val:x}")
+        if CONF.color:
+            msg = f"    > {CYAN}{type_}{COL_RESET} +0x{normalized_address:x} " \
+                  f"{CYAN}value {COL_RESET}0x{val:x}"
+        else:
+            msg = f"    > {type_} +0x{normalized_address:x} value 0x{val:x}"
+
+        print(msg)
 
     def dbg_model_instruction(self, normalized_address, model):
         if not __debug__:
@@ -322,11 +375,18 @@ class Logger:
         if not self.dbg_model:
             return
 
-        name = model.test_case.address_map[normalized_address]
+        name = str(model.test_case.address_map[normalized_address])
+        if CONF.color:
+            if model.in_speculation:
+                name = YELLOW + name + COL_RESET
+            else:
+                name = GREEN + name + COL_RESET
+
         if model.in_speculation:
-            print(f"transient 0x{normalized_address:<2x}: {name}")
-        else:
-            print(f"0x{normalized_address:<2x}: {name}")
+            name = f"[transient, nesting = {len(model.checkpoints)}] " + name
+        name = f"0x{normalized_address:<2x}: {name}"
+
+        print(name)
         model.print_state(oneline=True)
 
     def dbg_model_rollback(self, address, base):
@@ -336,7 +396,22 @@ class Logger:
         if not self.dbg_model:
             return
 
-        print(f"ROLLBACK to 0x{address - base:x}")
+        msg = f"ROLLBACK to 0x{address - base:x}"
+        if CONF.color:
+            msg = YELLOW + msg + COL_RESET
+        print(msg)
+
+    def dbg_model_exception(self, errno, descr):
+        if not __debug__:
+            return
+
+        if not self.dbg_model:
+            return
+
+        msg = f"EXCEPTION #{errno}: {descr}"
+        if CONF.color:
+            msg = RED + msg + COL_RESET
+        print(msg)
 
     # ==============================================================================================
     # Coverage
@@ -344,26 +419,6 @@ class Logger:
         if __debug__:
             if self.dbg_coverage and round_id and round_id % 100 == 0:
                 print(f"\nDBG: [coverage] {msg}")
-
-    # ==============================================================================================
-    # Helpers
-    def pretty_bitmap(self, bits: int, merged=False, offset: str = ""):
-        if not merged:
-            s = f"{bits:064b}"
-        else:
-            s = f"{bits % MASK_64BIT:064b} [ns]\n" \
-                f"{offset}{(bits >> 64) % MASK_64BIT:064b} [s]"
-        s = s.replace("0", ".").replace("1", "^")
-        if CONF.color:
-            s = '\033[33;34m' + s[0:8] + '\033[33;32m' + s[8:16] \
-                + '\033[33;34m' + s[16:24] + '\033[33;32m' + s[24:32] \
-                + '\033[33;34m' + s[32:40] + '\033[33;32m' + s[40:48] \
-                + '\033[33;34m' + s[48:56] + '\033[33;32m' + s[56:64] \
-                + "\033[0m" + s[64:]
-        return s
-
-
-LOGGER = Logger()
 
 
 # ==================================================================================================
@@ -375,6 +430,22 @@ def bit_count(n):
         count += n & 1
         n >>= 1
     return count
+
+
+def pretty_trace(bits: int, merged=False, offset: str = ""):
+    if not merged:
+        s = f"{bits:064b}"
+    else:
+        s = f"{bits % MASK_64BIT:064b} [ns]\n" \
+            f"{offset}{(bits >> 64) % MASK_64BIT:064b} [s]"
+    s = s.replace("0", ".").replace("1", "^")
+    if CONF.color:
+        s = CYAN + s[0:8] + YELLOW + s[8:16] \
+            + CYAN + s[16:24] + YELLOW + s[24:32] \
+            + CYAN + s[32:40] + YELLOW + s[40:48] \
+            + CYAN + s[48:56] + YELLOW + s[56:64] \
+            + COL_RESET + s[64:]
+    return s
 
 
 class NotSupportedException(Exception):

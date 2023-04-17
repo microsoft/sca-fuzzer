@@ -13,12 +13,12 @@ from typing import List, Dict
 from subprocess import CalledProcessError, run
 from collections import OrderedDict
 
-from isa_loader import InstructionSet
-from interfaces import Generator, TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
-    ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, Function, \
-    OperandSpec, InstructionSpec, CondOperand, TargetDesc
-from service import NotSupportedException, LOGGER
-from config import CONF
+from .isa_loader import InstructionSet
+from .interfaces import Generator, TestCase, Operand, RegisterOperand, FlagsOperand, \
+    MemoryOperand, ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, \
+    Function, OperandSpec, InstructionSpec, CondOperand, TargetDesc
+from .util import NotSupportedException, Logger
+from .config import CONF
 
 
 # Helpers
@@ -67,18 +67,21 @@ class ConfigurableGenerator(Generator, abc.ABC):
     printer: Printer  # set by subclasses
     target_desc: TargetDesc  # set by subclasses
 
-    def __init__(self, instruction_set: InstructionSet):
-        super().__init__(instruction_set)
-        LOGGER.dbg_gen_instructions(instruction_set.instructions)
+    LOG: Logger  # name capitalized to make logging easily distinguishable from the main logic
+
+    def __init__(self, instruction_set: InstructionSet, seed: int):
+        super().__init__(instruction_set, seed)
+        self.LOG = Logger()
+        self.LOG.dbg_gen_instructions(instruction_set.instructions)
         self.control_flow_instructions = \
             [i for i in self.instruction_set.instructions if i.control_flow]
+        assert self.control_flow_instructions or CONF.max_bb_per_function <= 1, \
+               "The instruction set is insufficient to generate a test case"
+
         self.non_control_flow_instructions = \
             [i for i in self.instruction_set.instructions if not i.control_flow]
         assert self.non_control_flow_instructions, \
             "The instruction set is insufficient to generate a test case"
-        if CONF.max_bb_per_function > 1:
-            assert self.control_flow_instructions, \
-                "The instruction set is insufficient to generate a test case"
 
         self.non_memory_access_instructions = \
             [i for i in self.non_control_flow_instructions if not i.has_mem_operand]
@@ -89,12 +92,23 @@ class ConfigurableGenerator(Generator, abc.ABC):
             self.store_instructions = [i for i in memory_access_instructions if i.has_write]
             assert self.load_instruction or self.store_instructions, \
                 "The instruction set does not have memory accesses while `avg_mem_accesses > 0`"
+        else:
+            self.load_instruction = []
+            self.store_instructions = []
 
-        if CONF.program_generator_seed:
-            random.seed(CONF.program_generator_seed)
+    def set_seed(self, seed: int) -> None:
+        self._state = seed
 
     def create_test_case(self, asm_file: str, disable_assembler: bool = False) -> TestCase:
-        self.test_case = TestCase()
+        self.test_case = TestCase(self._state)
+
+        # set seeds
+        if self._state == 0:
+            self._state = random.randint(1, 1000000)
+            self.LOG.inform("prog_gen",
+                            f"Setting program_generator_seed to random value: {self._state}")
+        random.seed(self._state)
+        self._state += 1
 
         # create the main function
         func = self.generate_function(".function_main")
@@ -148,20 +162,21 @@ class ConfigurableGenerator(Generator, abc.ABC):
             out = run(f"as {asm_file} -o {bin_file}", shell=True, check=True, capture_output=True)
         except CalledProcessError as e:
             error_msg = e.stderr.decode()
-            if "Assembler messages:" not in error_msg:
+            if "Assembler messages:" in error_msg:
+                print(pretty_error_msg(error_msg))
+            else:
                 print(error_msg)
-                raise e
-            LOGGER.error(pretty_error_msg(error_msg))
+            raise e
 
         output = out.stderr.decode()
         if "Assembler messages:" in output:
-            LOGGER.warning("generator", pretty_error_msg(output))
+            print("WARNING: [generator]" + pretty_error_msg(output))
 
         run(f"strip --remove-section=.note.gnu.property {bin_file}", shell=True, check=True)
         run(f"objcopy {bin_file} -O binary {bin_file}", shell=True, check=True)
 
     def load(self, asm_file: str) -> TestCase:
-        test_case = TestCase()
+        test_case = TestCase(0)
         test_case.asm_path = asm_file
 
         # prepare regexes
@@ -378,13 +393,24 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
     """
     had_recent_memory_access: bool = False
 
+    def __init__(self, instruction_set: InstructionSet, seed: int):
+        super().__init__(instruction_set, seed)
+        uncond_name = self.get_unconditional_jump_instruction().name.lower()
+        self.cond_branches = \
+            [i for i in self.control_flow_instructions if i.name.lower() != uncond_name]
+
     def generate_function(self, label: str):
         """ Generates a random DAG of basic blocks within a function """
         func = Function(label)
 
         # Define the maximum allowed number of successors for any BB
-        max_successors = 2 if self.instruction_set.has_conditional_branch else 1
-        min_successors = 1
+        if self.instruction_set.has_conditional_branch:
+            max_successors = CONF.max_successors_per_bb if CONF.max_successors_per_bb < 2 else 2
+            min_successors = CONF.min_successors_per_bb \
+                if CONF.min_successors_per_bb < max_successors else max_successors
+        else:
+            max_successors = 1
+            min_successors = 1
 
         # Create basic blocks
         node_count = random.randint(CONF.min_bb_per_function, CONF.max_bb_per_function)
@@ -406,7 +432,7 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
                 # the number is adjusted to the position when close to the end
                 successor_count = node_count - i
 
-            # one of the targets is always the next node - to avoid dead code
+            # one of the targets (the first successor) is always the next node - to avoid dead code
             current_bb.successors.append(nodes[i + 1])
 
             # all other successors are random, selected from next nodes
@@ -542,35 +568,37 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         return CondOperand(cond)
 
     def add_terminators_in_function(self, func: Function):
+
+        def add_fallthrough(bb: BasicBlock, destination: BasicBlock):
+            # create an unconditional branch and add it
+            terminator = self.get_unconditional_jump_instruction()
+            terminator.operands = [LabelOperand(destination.name)]
+            bb.terminators.append(terminator)
+
         for bb in func:
             if len(bb.successors) == 0:
                 # Return instruction
                 continue
 
             elif len(bb.successors) == 1:
-                # the last basic block simply falls through
-                if bb.successors[0] == func.exit:
-                    continue
-
                 # Unconditional branch
-                terminator = self.get_unconditional_jump_instruction()
-                terminator.operands = [LabelOperand(bb.successors[0].name)]
-                bb.terminators.append(terminator)
+                dest = bb.successors[0]
+                if dest == func.exit:
+                    # DON'T insert a branch to the exit
+                    # the last basic block always falls through implicitly
+                    continue
+                add_fallthrough(bb, dest)
 
             elif len(bb.successors) == 2:
                 # Conditional branch
-                spec = random.choice(self.control_flow_instructions)
-
+                spec = random.choice(self.cond_branches)
                 terminator = self.generate_instruction(spec)
                 label = terminator.get_label_operand()
                 assert label
                 label.value = bb.successors[0].name
-
                 bb.terminators.append(terminator)
 
-                terminator = self.get_unconditional_jump_instruction()
-                terminator.operands = [LabelOperand(bb.successors[1].name)]
-                bb.terminators.append(terminator)
+                add_fallthrough(bb, bb.successors[1])
             else:
                 # Indirect jump
                 raise NotSupportedException()

@@ -43,10 +43,12 @@ int (*set_memory_nx)(unsigned long, int) = 0;
 long uarch_reset_rounds = UARCH_RESET_ROUNDS_DEFAULT;
 uint64_t ssbp_patch_control = SSBP_PATH_DEFAULT;
 uint64_t prefetcher_control = PREFETCHER_DEFAULT;
+char mpx_control = MPX_DEFAULT; // unused on AMD
 char pre_run_flush = PRE_RUN_FLUSH_DEFAULT;
 char *measurement_template = (char *)&template_l1d_prime_probe;
 char *measurement_code = NULL;
 
+void *sandbox_unaligned = NULL;
 sandbox_t *sandbox = NULL;
 void *stack_base = NULL;
 
@@ -150,6 +152,16 @@ static ssize_t enable_pre_run_flush_store(struct kobject *kobj, struct kobj_attr
 static struct kobj_attribute enable_pre_run_flush_attribute =
     __ATTR(enable_pre_run_flush, 0666, NULL, enable_pre_run_flush_store);
 
+
+/// Vendor-specific features
+#if VENDOR_ID == 1 // Intel
+// MPX control
+static ssize_t enable_mpx_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf,
+                                size_t count);
+static struct kobj_attribute enable_mpx_attribute =
+    __ATTR(enable_mpx, 0666, NULL, enable_mpx_store);
+#endif
+
 /// Bitmask that control which pte bits to flip
 //
 static ssize_t faulty_pte_mask_store(struct kobject *kobj, struct kobj_attribute *attr,
@@ -177,6 +189,9 @@ static struct attribute *sysfs_attributes[] = {
     &enable_pre_run_flush_attribute.attr,
     &measurement_mode_attribute.attr,
     &pte_mask_attribute.attr,
+#if VENDOR_ID == 1 // Intel
+    &enable_mpx_attribute.attr,
+#endif
     NULL, /* need to NULL terminate the list of attributes */
 };
 
@@ -409,6 +424,16 @@ static ssize_t enable_pre_run_flush_store(struct kobject *kobj, struct kobj_attr
     return count;
 }
 
+// This function is unused on AMD
+static ssize_t enable_mpx_store(struct kobject *kobj, struct kobj_attribute *attr,
+                                       const char *buf, size_t count)
+{
+    unsigned value = 0;
+    sscanf(buf, "%u", &value);
+    mpx_control = (value == 0) ? 0 : 1;
+    return count;
+}
+
 static ssize_t measurement_mode_store(struct kobject *kobj, struct kobj_attribute *attr,
                                       const char *buf, size_t count)
 {
@@ -479,15 +504,20 @@ static int __init executor_init(void)
     }
 
     // allocate working memory
-    sandbox = vmalloc(sizeof(sandbox_t));
-    if (!sandbox)
+    sandbox_unaligned = vmalloc(sizeof(sandbox_t) + 0x1000);
+    if (!sandbox_unaligned)
     {
         printk(KERN_ERR "x86_executor: Could not allocate memory for sandbox\n");
         return -ENOMEM;
     }
-    stack_base = &(sandbox->main_region[MAIN_REGION_SIZE - 8]);
 
-    // make sure the sandbox is aligned as we expect
+    // align sandbox to 2 pages (vmalloc guarantees 1 page alignment)
+    if ((unsigned long)sandbox_unaligned % 0x2000 == 0)
+        sandbox = (sandbox_t *)sandbox_unaligned;
+    else
+        sandbox = (sandbox_t *)((unsigned long)sandbox_unaligned + 0x1000);
+
+    // make sure the fields of the sandbox are aligned as we expect
     if ((&sandbox->main_region[0] - &sandbox->eviction_region[0]) != EVICT_REGION_OFFSET ||
         ((char *)&sandbox->stored_rsp - &sandbox->main_region[0]) != RSP_OFFSET ||
         ((char *)&sandbox->latest_measurement - &sandbox->main_region[0]) != MEASUREMENT_OFFSET ||
@@ -496,6 +526,8 @@ static int __init executor_init(void)
         printk(KERN_ERR "x86_executor: Sandbox alignment error\n");
         return -1;
     }
+
+    stack_base = &(sandbox->main_region[MAIN_REGION_SIZE - 8]);
 
     // allocate memory for measurements
     measurements = vmalloc(n_inputs * sizeof(measurement_t));
@@ -565,8 +597,8 @@ static void __exit executor_exit(void)
     if (inputs)
         vfree(inputs);
 
-    if (sandbox)
-        vfree(sandbox);
+    if (sandbox_unaligned)
+        vfree(sandbox_unaligned);
 
     if (measurements)
         vfree(measurements);

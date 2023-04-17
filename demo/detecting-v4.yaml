@@ -10,13 +10,16 @@ instruction_categories:
   - BASE-CMOV
   - BASE-LOGICAL
 
+# environment
+x86_executor_enable_ssbp_patch: false
+
 # fuzzing configuration
 enable_speculation_filter: true
 enable_observation_filter: true
 input_gen_entropy_bits: 16
 memory_access_zeroed_bits: 0
-min_bb_per_function: 2
-max_bb_per_function: 2
+min_bb_per_function: 1
+max_bb_per_function: 1
 program_size: 20
 avg_mem_accesses: 10
 inputs_per_class: 2

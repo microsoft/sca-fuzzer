@@ -6,8 +6,8 @@ SPDX-License-Identifier: MIT
 """
 import json
 from typing import Dict, List
-from interfaces import OT, InstructionSetAbstract, OperandSpec, InstructionSpec
-from config import CONF
+from .interfaces import OT, InstructionSetAbstract, OperandSpec, InstructionSpec
+from .config import CONF
 
 
 class InstructionSet(InstructionSetAbstract):

@@ -13,7 +13,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 from enum import Enum
 
-from config import CONF
+from .config import CONF
 
 
 # ==================================================================================================
@@ -490,8 +490,10 @@ class TestCase:
     address_map: Dict[int, Instruction]
     num_prologue_instructions: int = 0
     faulty_pte: PageTableModifier
+    seed: int
 
-    def __init__(self):
+    def __init__(self, seed: int):
+        self.seed = seed
         self.functions = []
         self.address_map = {}
         self.faulty_pte = PageTableModifier()
@@ -554,6 +556,11 @@ class Input(np.ndarray):
         obj = super().__new__(cls, (aligned_size,), np.uint64, None, 0, None, None)  # type: ignore
         obj.data_size = data_size
         obj.register_start = data_size - CONF.input_register_region_size // 8
+
+        # fill the input with zeroes initially before returning, to ensure the
+        # 'padding' bytes (created by using 'aligned_size' rather than
+        # 'data_size') deterministic across separate runs
+        obj.fill(0)
         return obj
 
     def __array_finalize__(self, obj):
@@ -685,6 +692,7 @@ class TargetDesc(ABC):
     simd_registers: Dict[int, List[str]]
     branch_conditions: Dict[str, List[str]]
     gpr_normalized: Dict[str, str]
+    gpr_denormalized: Dict[str, Dict[int, str]]
 
     @staticmethod
     @abstractmethod
@@ -699,10 +707,27 @@ class TargetDesc(ABC):
 
 class Generator(ABC):
     instruction_set: InstructionSetAbstract
+    _state: int = 0
 
-    def __init__(self, instruction_set: InstructionSetAbstract):
+    def __init__(self, instruction_set: InstructionSetAbstract, seed: int):
         self.instruction_set = instruction_set
+        self.set_seed(seed)
         super().__init__()
+
+    def set_seed(self, seed: int) -> None:
+        """
+        Set the seed value used to generate test programs
+        :param seed: The seed value
+        """
+        self._state = seed
+
+    def get_state(self) -> int:
+        """
+        Get the current state of the generator.
+        The method complements and is compatible with `set_seed`.
+        :return: Current state of the generator
+        """
+        return self._state
 
     @abstractmethod
     def create_test_case(self, path: str, disable_assembler: bool = False) -> TestCase:
@@ -731,9 +756,27 @@ class Generator(ABC):
 
 
 class InputGenerator(ABC):
+    _state: int = 0
+
+    def __init__(self, seed: int):
+        self.set_seed(seed)
+        super().__init__()
+
+    def set_seed(self, seed: int) -> None:
+        """Set the seed value used to generate inputs
+        :param seed: The seed value
+        """
+        self._state = seed
+
+    def get_seed(self) -> int:
+        """Get the current state of the generator.
+        The method complements and is compatible with `set_seed`.
+        :return: Current state of the generator
+        """
+        return self._state
 
     @abstractmethod
-    def generate(self, seed: int, count: int) -> List[Input]:
+    def generate(self, count: int) -> List[Input]:
         pass
 
     @abstractmethod
@@ -787,8 +830,9 @@ class Coverage(ABC):
 class Tracer(ABC):
     trace: List
 
-    def get_contract_trace(self) -> CTrace:
-        return hash(tuple(self.trace))
+    @abstractmethod
+    def get_contract_trace(self, model: Model) -> CTrace:
+        pass
 
     def get_contract_trace_full(self) -> List[int]:
         return self.trace
@@ -796,6 +840,10 @@ class Tracer(ABC):
 
 class Model(ABC):
     coverage: Optional[Coverage] = None
+    sandbox_base: int = 0
+    code_start: int = 0
+    lower_overflow_base: int = 0
+    upper_overflow_base: int = 0
     tracer: Tracer
 
     @abstractmethod

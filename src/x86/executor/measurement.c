@@ -9,6 +9,7 @@
 #include <linux/seq_file.h>
 #include <linux/irqflags.h>
 #include <linux/version.h>
+#include <../arch/x86/include/asm/desc.h>
 #include <../arch/x86/include/asm/fpu/api.h>
 #include <../arch/x86/include/asm/pgtable.h>
 #include <../arch/x86/include/asm/tlbflush.h>
@@ -159,13 +160,36 @@ static inline int pre_measurement_setup(void)
     int err = 0;
 #if VENDOR_ID == 1 // Intel
     // Configure PMU
-    err |= config_pfc(0, "D1.01", 1, 1); // L1 hits - for htrace collection
+    // #0:  Htrace collection
+    //   MEM_LOAD_RETIRED.L1_HIT: Counts retired load instructions with at least one uop that hit
+    //   in the L1 data cache. This event includes all SW prefetches and lock instructions
+    //   regardless of the data source.
+    err |= config_pfc(0, "D1.01", 1, 1);
+
+    // #1: Fuzzing feedback
+    //   UOPS_ISSUED.ANY: Counts the number of uops that the Resource Allocation Table (RAT)
+    //   issues to the Reservation Station (RS).
     err |= config_pfc(1, "0E.01", 1, 1); // 0E.01 - uops issued - fuzzing feedback
+
+    // #2: Fuzzing feeback
+    //   UOPS_RETIRED.RETIRE_SLOTS: Counts the retirement slots used.
     err |= config_pfc(2, "C2.02", 1, 1); // C2.02 - uops retirement slots - fuzzing feedback
+
+    // #3: Fuzzing feedback
+    //   INT_MISC.CLEAR_RESTEER_CYCLES: Cycles the issue-stage is waiting for front-end to fetch
+    //   from resteered path following branch misprediction or machine clear events.
     err |= config_pfc(3, "0D.01", 1, 1); // misprediction recovery cycles - fuzzing feedback
+
+    // #4: Interrupt detection
+    //    HW_INTERRUPTS.RECEIVED: Counts the number of hardware interruptions received
+    //    by the processor.
+    err |= config_pfc(4, "CB.01", 1, 1); // detection of interrupts
 
     // Configure uarch patches
     wrmsr64(MSR_IA32_SPEC_CTRL, ssbp_patch_control);
+
+    // Configure extensions
+    wrmsr64(MSR_IA32_BNDCFGS, mpx_control);
 
     // Disable prefetchers
     wrmsr64(0x1a4, prefetcher_control);
@@ -207,6 +231,13 @@ static inline int pre_measurement_setup(void)
         return -1;
     }
     return 0;
+}
+
+static inline void post_measurement(void)
+{
+#if VENDOR_ID == 1 // Intel
+    wrmsr64(MSR_IA32_BNDCFGS, 0);
+#endif
 }
 
 static inline int uarch_flush(void)
@@ -363,6 +394,7 @@ int trace_test_case(void)
     if (pre_measurement_setup())
         return -1;
     run_experiment((long)n_inputs);
+    post_measurement();
 
     kernel_fpu_end();
     return 0;

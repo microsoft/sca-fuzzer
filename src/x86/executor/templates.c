@@ -12,7 +12,6 @@
 //   R10 - performance counter #1
 //   R11 - hardware trace
 //   R12 - SMI counter
-//   R13 - input seed
 //   R14 - sandbox base address
 //
 
@@ -79,9 +78,10 @@ int load_template(size_t tc_size)
         if (*(uint64_t *)&measurement_template[template_pos] == TEMPLATE_RETURN)
             break;
 
-       if (*(uint64_t *) &measurement_template[template_pos] == TEMPLATE_JUMP_EXCEPTION) {
+        if (*(uint64_t *)&measurement_template[template_pos] == TEMPLATE_JUMP_EXCEPTION)
+        {
             template_pos += 7;
-            fault_handler = (char *) measurement_code + code_pos;
+            fault_handler = (char *)measurement_code + code_pos;
             code_pos--;
             continue;
         }
@@ -141,25 +141,23 @@ int load_template(size_t tc_size)
         "add r8, rdx \n"
 
 #if VENDOR_ID == 1  // Intel
-#define READ_SMI_START(DEST) READ_MSR_START("0x00000034", DEST)
-#define READ_SMI_END(DEST) READ_MSR_END("0x00000034", DEST)
+#define READ_INTERRUPTS_START(DEST) \
+    READ_PFC_ONE("4") \
+    "sub "DEST", rdx \n"
+
+#define READ_INTERRUPTS_END(DEST) \
+    READ_PFC_ONE("4") \
+    "add "DEST", rdx \n"
 
 #elif VENDOR_ID == 2  // AMD
-#define READ_SMI_START(DEST) \
+#define READ_INTERRUPTS_START(DEST) \
     READ_PFC_ONE("5") \
     "sub "DEST", rdx \n"
-#define READ_SMI_END(DEST) \
+#define READ_INTERRUPTS_END(DEST) \
     READ_PFC_ONE("5") \
     "add "DEST", rdx \n"
 
 #endif
-
-
-// clobber: none
-#define SB_FLUSH(TMP, REPS)                          \
-        "mov "TMP", "REPS"                          \n" \
-        "1: sfence                                  \n" \
-        "dec "TMP"; jnz 1b                          \n"
 
 
 // A sequence of instructions that attempts to
@@ -201,6 +199,26 @@ int load_template(size_t tc_size)
     "lfence; lfence; lfence; lfence; lfence \n");
 
 
+#if VENDOR_ID == 1 // Intel
+#define SET_REGISTER_FROM_INPUT()\
+    asm volatile("\n.intel_syntax noprefix\n" \
+    "lea rsp, [r14 + "xstr(REG_INIT_OFFSET)"]\n" \
+    "popq rax \n" \
+    "popq rbx \n" \
+    "popq rcx \n" \
+    "popq rdx \n" \
+    "popq rsi \n" \
+    "popq rdi \n" \
+    "popfq \n" \
+    "popq rsp \n" \
+    "mov rbp, rsp \n" \
+    "bndmk bnd0, [r14 + 0x1000]\n" \
+    "bndmk bnd1, [r14 + 0x1000]\n" \
+    "bndmk bnd2, [r14 + 0x1000]\n" \
+    "bndmk bnd3, [r14 + 0x1000]\n" \
+    ".att_syntax noprefix");
+
+#elif VENDOR_ID == 2 // AMD
 #define SET_REGISTER_FROM_INPUT()\
     asm volatile("\n.intel_syntax noprefix\n" \
     "lea rsp, [r14 + "xstr(REG_INIT_OFFSET)"]\n" \
@@ -214,6 +232,7 @@ int load_template(size_t tc_size)
     "popq rsp \n" \
     "mov rbp, rsp \n" \
     ".att_syntax noprefix");
+#endif
 
 inline void prologue(void)
 {
@@ -251,22 +270,27 @@ inline void prologue(void)
         "mov r13, 0\n"
         "mov r15, 0\n"
 
-        // start monitoring SMIs
-        READ_SMI_START("r12")
+        // start monitoring interrupts
+        READ_INTERRUPTS_START("r12")
     );
 }
 
 inline void epilogue(void)
 {
     asm_volatile_intel(
-        READ_SMI_END("r12")
+        READ_INTERRUPTS_END("r12")
 
         // rax <- &latest_measurement
         "lea rax, [r14 + "xstr(MEASUREMENT_OFFSET)"]\n"
 
-        // if we see no SMI interrupts, store the hardware trace (r11)
+        // if we see no interrupts, store the hardware trace (r11)
         // otherwise, store zero
         "cmp r12, 0; jne 1f \n"
+            // set the upper bit of r11 to mark the measurement as non-corrupted
+        "   mov rbx, 1\n"
+        "   shl rbx, 63\n"
+        "   or r11, rbx\n"
+
         "   mov qword ptr [rax], r11 \n"
         "   mov qword ptr [rax + 8], r10 \n"
         "   mov qword ptr [rax + 16], r9 \n"
@@ -274,6 +298,9 @@ inline void epilogue(void)
         "   jmp 2f \n"
         "1: \n"
         "   mov qword ptr [rax], 0 \n"
+        "   mov qword ptr [rax + 8], 0 \n"
+        "   mov qword ptr [rax + 16], 0 \n"
+        "   mov qword ptr [rax + 24], 0 \n"
         "2: \n"
 
         // rsp <- stored_rsp
@@ -424,11 +451,6 @@ void template_l1d_prime_probe(void) {
     asm_volatile_intel(""
         "lea rax, [r14 - "xstr(EVICT_REGION_OFFSET)"]\n"
         PRIME("rax", "rbx", "rcx", "rdx", "32"));
-
-    // Deprecated?
-    // Push empty values into the store buffer (just in case)
-    // clobber: rax
-    // asm_volatile_intel(SB_FLUSH("rax", "60"));
 
     // PFC
     // clobber: rax, rcx, rdx
@@ -581,10 +603,6 @@ void template_l1d_flush_reload(void) {
         "mov rbx, r14\n" \
         FLUSH("rbx", "rax"));
 
-    // Deprecated?
-    // Push empty values into the store buffer (just in case)
-    // asm_volatile_intel(SB_FLUSH("rax", "60"));
-
     // PFC
     asm_volatile_intel(READ_PFC_START());
 
@@ -621,10 +639,6 @@ void template_l1d_evict_reload(void) {
     asm_volatile_intel(""\
         "lea rax, [r14 - "xstr(EVICT_REGION_OFFSET)"]\n"
         PRIME("rax", "rbx", "rcx", "rdx", "32"));
-
-    // Deprecated?
-    // Push empty values into the store buffer (just in case)
-    // asm_volatile_intel(SB_FLUSH("rax", "60"));
 
     // PFC
     asm_volatile_intel(READ_PFC_START());

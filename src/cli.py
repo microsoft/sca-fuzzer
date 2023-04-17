@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
 """
-File: Command Line Interface
+File: Function definitions for using Revizor as command-line tool
+(Note: the actual CLI is accessed via revizor.py)
 
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
@@ -10,16 +10,17 @@ import os
 import yaml
 from typing import Dict
 from argparse import ArgumentParser
-from factory import get_minimizer, get_fuzzer
-from fuzzer import Fuzzer
-from config import CONF
-from service import LOGGER
+from .factory import get_minimizer, get_fuzzer, get_downloader
+from .fuzzer import Fuzzer
+from .config import CONF
 
 
 def main() -> int:
     parser = ArgumentParser(description='', add_help=False)
     subparsers = parser.add_subparsers(dest='subparser_name')
+    subparsers.required = True
 
+    # ==============================================================================================
     # Fuzzing
     parser_fuzz = subparsers.add_parser('fuzz')
     parser_fuzz.add_argument(
@@ -67,6 +68,8 @@ def main() -> int:
         help="Don't stop after detecting an unexpected result"
     )
 
+    # ==============================================================================================
+    # Standalone interface to trace analysis
     parser_analyser = subparsers.add_parser('analyse')
     parser_analyser.add_argument(
         '--ctraces',
@@ -84,6 +87,8 @@ def main() -> int:
         required=False
     )
 
+    # ==============================================================================================
+    # Reproducing violation
     parser_reproduce = subparsers.add_parser('reproduce')
     parser_reproduce.add_argument(
         "-s", "--instruction-set",
@@ -117,6 +122,8 @@ def main() -> int:
         help="Number of inputs per test case. [IGNORED if --input-dir is set]",
     )
 
+    # ==============================================================================================
+    # Postprocessing interface
     parser_mini = subparsers.add_parser('minimize')
     parser_mini.add_argument(
         '--infile', '-i',
@@ -151,6 +158,8 @@ def main() -> int:
         required=True
     )
 
+    # ==============================================================================================
+    # Standalone interface to test case generation
     parser_generator = subparsers.add_parser('generate')
     parser_generator.add_argument(
         "-s", "--instruction-set",
@@ -190,16 +199,32 @@ def main() -> int:
         action='store_true',
     )
 
+    # ==============================================================================================
+    # Loading of ISA specs
+    parser_get_isa = subparsers.add_parser('download_spec')
+    parser_get_isa.add_argument(
+        "-a", "--architecture",
+        type=str,
+        required=True
+    )
+    parser_get_isa.add_argument(
+        '--outfile', '-o',
+        type=str,
+        required=True,
+    )
+    parser_get_isa.add_argument("--extensions", nargs="*", default=[])
+
+    # ==============================================================================================
+    # Invocations
     args = parser.parse_args()
 
     # Update configuration
-    if args.config:
+    if getattr(args, 'config', None):
         CONF.config_path = args.config
         with open(args.config, "r") as f:
             config_update: Dict = yaml.safe_load(f)
         for var, value in config_update.items():
             setattr(CONF, var, value)
-    LOGGER.set_logging_modes()
 
     # Fuzzing
     if args.subparser_name == 'fuzz':
@@ -245,9 +270,13 @@ def main() -> int:
         minimizer.minimize(args.infile, args.outfile, args.num_inputs, args.add_fences)
         return 0
 
+    if args.subparser_name == "download_spec":
+        get_downloader(args.architecture, args.extensions, args.outfile).run()  # type: ignore
+        return 0
+
     raise Exception("Unreachable")
 
 
 if __name__ == '__main__':
-    exit_code = main()
-    exit(exit_code)
+    print("[ERROR]", "This file is not meant to be run directly. Use `revizor.py` instead.")
+    exit(1)

@@ -4,10 +4,10 @@ import csv
 import numpy as np
 from collections import Counter
 from typing import List
-from interfaces import CombinedHTrace, Input, TestCase, Executor
 
-from config import CONF
-from service import LOGGER
+from ..interfaces import CombinedHTrace, Input, TestCase, Executor
+from ..config import CONF
+from ..util import Logger
 
 
 def write_to_sysfs_file(value, path: str) -> None:
@@ -22,19 +22,21 @@ def write_to_sysfs_file_bytes(value: bytes, path: str) -> None:
 TRACE_NUM_ELEMENTS = 6
 
 
-class X86IntelExecutor(Executor):
+class X86Executor(Executor):
     previous_num_inputs: int = 0
     feedback: List[int]
 
     def __init__(self):
         super().__init__()
+        self.LOG = Logger()
+
         # check the execution environment: is SMT disabled?
         smt_on = None
         try:
             out = subprocess.run("lscpu", shell=True, check=True, capture_output=True)
         except subprocess.CalledProcessError:
-            LOGGER.error("Could not check if hyperthreading is enabled.\n"
-                         "       Is lscpu installed?")
+            self.LOG.error("Could not check if hyperthreading is enabled.\n"
+                           "       Is lscpu installed?")
         for line in out.stdout.decode().split("\n"):
             if line.startswith("Thread(s) per core:"):
                 if line[-1] == "1":
@@ -42,15 +44,18 @@ class X86IntelExecutor(Executor):
                 else:
                     smt_on = True
         if smt_on is None:
-            LOGGER.warning("executor", "Could not check if SMT is on.")
+            self.LOG.warning("executor", "Could not check if SMT is on.")
         if smt_on:
-            LOGGER.warning("executor", "SMT is on! You may experience false positives.")
+            self.LOG.warning("executor", "SMT is on! You may experience false positives.")
 
         # is kernel module ready?
         if not os.path.isfile("/sys/x86_executor/trace"):
-            LOGGER.error("x86 executor: kernel module not loaded")
+            self.LOG.error("x86 executor: kernel module not installed\n\n"
+                           "Go to https://microsoft.github.io/sca-fuzzer/quick-start/ for "
+                           "installation instructions.")
 
         # initialize the kernel module
+        self.set_vendor_specific_features()
         write_to_sysfs_file(CONF.executor_warmups, '/sys/x86_executor/warmups')
         write_to_sysfs_file("1" if CONF.x86_executor_enable_ssbp_patch else "0",
                             "/sys/x86_executor/enable_ssbp_patch")
@@ -59,6 +64,9 @@ class X86IntelExecutor(Executor):
         write_to_sysfs_file("1" if CONF.enable_pre_run_flush else "0",
                             "/sys/x86_executor/enable_pre_run_flush")
         write_to_sysfs_file(CONF.executor_mode, "/sys/x86_executor/measurement_mode")
+
+    def set_vendor_specific_features(self):
+        pass
 
     def load_test_case(self, test_case: TestCase):
         masks = f"{test_case.faulty_pte.mask_set} {test_case.faulty_pte.mask_clear}"
@@ -90,7 +98,7 @@ class X86IntelExecutor(Executor):
         # 3) Check that the load was successful
         with open('/sys/x86_executor/inputs', 'r') as f:
             if f.readline() != '1\n':
-                LOGGER.error("Failure loading inputs!")
+                self.LOG.error("Failure loading inputs!", print_tb=True)
 
         # run experiments and load the results
         all_results: np.ndarray = np.ndarray(
@@ -153,3 +161,14 @@ class X86IntelExecutor(Executor):
 
     def get_last_feedback(self) -> List:
         return self.feedback
+
+
+class X86IntelExecutor(X86Executor):
+    def set_vendor_specific_features(self):
+        write_to_sysfs_file("1" if "BR" in CONF.permitted_faults else "0",
+                            "/sys/x86_executor/enable_mpx")
+
+
+class X86AMDExecutor(X86Executor):
+    def set_vendor_specific_features(self):
+        pass

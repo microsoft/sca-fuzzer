@@ -6,12 +6,12 @@ set of inputs that reproduce the vulnerability and to minimize the test case.
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
+import shutil
 from subprocess import run
-from shutil import copy
-from fuzzer import Fuzzer
 from typing import List
-from interfaces import HTrace, EquivalenceClass, Input, TestCase, Minimizer
-from config import CONF
+from .fuzzer import Fuzzer
+from .interfaces import HTrace, EquivalenceClass, Input, TestCase, Minimizer
+from .config import CONF
 
 
 class MinimizerViolation(Minimizer):
@@ -26,7 +26,7 @@ class MinimizerViolation(Minimizer):
         fuzzer.model.load_test_case(test_case)
         fuzzer.executor.load_test_case(test_case)
         ctraces = fuzzer.model.trace_test_case(inputs, CONF.model_max_nesting)
-        htraces: List[HTrace] = fuzzer.executor.trace_test_case(inputs, CONF.executor_repetitions)
+        htraces: List[HTrace] = fuzzer.executor.trace_test_case(inputs)
 
         # Check for violations
         violations: List[EquivalenceClass] = fuzzer.analyser.filter_violations(
@@ -86,6 +86,9 @@ class MinimizerViolation(Minimizer):
 
             # Create a test case with one line missing
             tmp_instructions = modifier(instructions, cursor)
+            if not tmp_instructions:
+                continue
+
             tmp_test_case = self._get_test_case_from_instructions(fuzzer, tmp_instructions)
 
             # Run and check if the vuln. is still there
@@ -112,7 +115,7 @@ class MinimizerViolation(Minimizer):
 
         # Parse the test case and inputs
         test_case: TestCase = fuzzer.generator.load(test_case_asm)
-        inputs: List[Input] = fuzzer.input_gen.generate(CONF.input_gen_seed, num_inputs)
+        inputs: List[Input] = fuzzer.input_gen.generate(num_inputs)
 
         # Load, boost inputs, and trace
         fuzzer.generator.create_pte(test_case)
@@ -134,19 +137,22 @@ class MinimizerViolation(Minimizer):
             min_test_case = self.add_fences(fuzzer, min_test_case, boosted_inputs)
 
         print("Storing the results")
-        copy(min_test_case.asm_path, outfile)
+        shutil.copy(min_test_case.asm_path, outfile)
 
     def minimize_test_case(self, fuzzer: Fuzzer, test_case: TestCase,
                            inputs: List[Input]) -> TestCase:
 
-        def skip_instruction(instructions, i):
+        def skip_instruction(instructions, i) -> List:
             return instructions[:i] + instructions[i + 1:]
 
         return self._probe_test_case(fuzzer, test_case, inputs, skip_instruction)
 
     def add_fences(self, fuzzer: Fuzzer, test_case: TestCase, inputs: List[Input]) -> TestCase:
 
-        def push_fence(instructions, i):
+        def push_fence(instructions, i) -> List:
+            curr_instr = instructions[i].upper()
+            if curr_instr[0] == "J" or curr_instr[0:3] == "LOOP":
+                return []  # skip control-flow instructions - their target is already fenced
             return instructions[:i] + ["LFENCE\n"] + instructions[i:]
 
         return self._probe_test_case(fuzzer, test_case, inputs, push_fence)

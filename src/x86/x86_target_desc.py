@@ -7,9 +7,9 @@ SPDX-License-Identifier: MIT
 from typing import List
 import unicorn.x86_const as ucc  # type: ignore
 
-from interfaces import Instruction, TargetDesc
-from model import UnicornTargetDesc
-from config import CONF
+from ..interfaces import Instruction, TargetDesc
+from ..model import UnicornTargetDesc
+from ..config import CONF
 
 
 class X86TargetDesc(TargetDesc):
@@ -52,6 +52,28 @@ class X86TargetDesc(TargetDesc):
         "DF": "DF",
         "OF": "OF",
         "AC": "AC",
+        "BND0": "BND0",
+        "BND1": "BND1",
+        "BND2": "BND2",
+        "BND3": "BND3",
+    }  # yapf: disable
+    gpr_denormalized = {
+        "A": {64: "RAX", 32: "EAX", 16: "AX", 8: "AL"},
+        "B": {64: "RBX", 32: "EBX", 16: "BX", 8: "BL"},
+        "C": {64: "RCX", 32: "ECX", 16: "CX", 8: "CL"},
+        "D": {64: "RDX", 32: "EDX", 16: "DX", 8: "DL"},
+        "SI": {64: "RSI", 32: "ESI", 16: "SI", 8: "SIL"},
+        "DI": {64: "RDI", 32: "EDI", 16: "DI", 8: "DIL"},
+        "8": {64: "R8", 32: "R8D", 16: "R8W", 8: "R8B"},
+        "9": {64: "R9", 32: "R9D", 16: "R9W", 8: "R9B"},
+        "10": {64: "R10", 32: "R10D", 16: "R10W", 8: "R10B"},
+        "11": {64: "R11", 32: "R11D", 16: "R11W", 8: "R11B"},
+        "12": {64: "R12", 32: "R12D", 16: "R12W", 8: "R12B"},
+        "13": {64: "R13", 32: "R13D", 16: "R13W", 8: "R13B"},
+        "14": {64: "R14", 32: "R14D", 16: "R14W", 8: "R14B"},
+        "15": {64: "R15", 32: "R15D", 16: "R15W", 8: "R15B"},
+        "RIP": {64: "RIP", 32: "RIP", 16: "RIP", 8: "RIP"},
+        "RSP": {64: "RSP", 32: "RSP", 16: "RSP", 8: "RSP"},
     }  # yapf: disable
     registers = {
         8: ["AL", "BL", "CL", "DL", "SIL", "DIL", "R8B", "R9B", "R10B", "R11B", "R12B", "R13B",
@@ -62,6 +84,7 @@ class X86TargetDesc(TargetDesc):
              "R13D", "R14D", "R15D"],
         64: ["RAX", "RBX", "RCX", "RDX", "RSI", "RDI", "R8", "R9", "R10", "R11", "R12", "R13",
              "R14", "R15", "RSP", "RBP"],
+        128: ["BND0", "BND1", "BND2", "BND3"]
     }  # yapf: disable
     simd_registers = {
         64: [f"MM{i}" for i in range(0, 8)],

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
@@ -6,7 +5,6 @@ SPDX-License-Identifier: MIT
 
 import json
 import subprocess
-from argparse import ArgumentParser
 from typing import List
 from xml.etree import ElementTree as ET
 
@@ -297,29 +295,40 @@ class X86Transformer:
             inst.implicit_operands = [op1, op2]
             self.instructions.append(inst)
 
-
-def main():
-    parser = ArgumentParser(description='', add_help=False)
-    parser.add_argument(
-        "--extensions",
-        nargs="*",
-        default=[]
-    )
-    args = parser.parse_args()
-
-    subprocess.run("wget "
-                   "https://uops.info/instructions_Jan2022.xml", shell=True, check=True)
-
-    try:
-        transformer = X86Transformer()
-        transformer.load_files("instructions_Jan2022.xml")
-        transformer.parse_tree(args.extensions)
-        transformer.add_missing(args.extensions)
-        print(f"Produced base.json with {len(transformer.instructions)} instructions")
-        transformer.save("base.json")
-    finally:
-        subprocess.run("rm instructions_Jan2022.xml", shell=True, check=True)
+        if not extensions or "MPX" in extensions:
+            for name in ["BNDCL", "BNDCU"]:
+                inst = InstructionSpec()
+                inst.name = name
+                inst.category = "MPX-MPX"
+                inst.control_flow = False
+                op1 = OperandSpec()
+                op1.type_, op1.src, op1.dest, op1.width = "REG", True, False, 128
+                op1.values = ["BND0", "BND1", "BND2", "BND3"]
+                op2 = OperandSpec()
+                op2.type_, op2.src, op2.dest, op2.width = "MEM", True, False, 64
+                op2.values = []
+                inst.operands = [op1, op2]
+                self.instructions.append(inst)
 
 
-if __name__ == "__main__":
-    main()
+class Downloader:
+    def __init__(self, extensions: List[str], out_file: str) -> None:
+        self.extensions = extensions
+        self.out_file = out_file
+
+    def run(self):
+        subprocess.run(
+            "wget "
+            "https://github.com/microsoft/sca-fuzzer/releases/download/v1.2/x86_instructions.xml",
+            shell=True,
+            check=True)
+
+        try:
+            transformer = X86Transformer()
+            transformer.load_files("x86_instructions.xml")
+            transformer.parse_tree(self.extensions)
+            transformer.add_missing(self.extensions)
+            print(f"Produced base.json with {len(transformer.instructions)} instructions")
+            transformer.save(self.out_file)
+        finally:
+            subprocess.run("rm x86_instructions.xml", shell=True, check=True)

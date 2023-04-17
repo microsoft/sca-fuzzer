@@ -16,8 +16,8 @@ cd - > /dev/null || exit
 
 echo ""
 echo "===== Core Unit Tests ====="
-cd $SCRIPT_DIR || exit
-python3 -m unittest discover . -p "unit_*.py" -v
+cd $SCRIPT_DIR/../.. || exit
+python3 -m unittest discover src/tests -p "unit_*.py" -v
 cd - > /dev/null || exit
 
 echo ""
@@ -28,8 +28,8 @@ cd - > /dev/null || exit
 
 echo ""
 echo "===== x86 unit tests ====="
-cd $SCRIPT_DIR/../x86 || exit
-python3 -m unittest discover tests -p "unit_*.py" -v
+cd $SCRIPT_DIR/../.. || exit
+python3 -m unittest discover src/x86/tests -p "unit_*.py" -v
 cd - > /dev/null || exit
 
 echo ""

@@ -3,11 +3,8 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 import unittest
-import sys
-
-sys.path.insert(0, '..')
-from analyser import EquivalenceAnalyser
-from interfaces import Input
+from src.analyser import EquivalenceAnalyser
+from src.interfaces import Input
 
 
 class AnalyserTest(unittest.TestCase):
@@ -46,7 +43,3 @@ class AnalyserTest(unittest.TestCase):
         clss = analyser._build_equivalence_classes([dummy_input] * 4, [1, 2, 2, 2], [1, 2, 3, 4])
         self.assertEqual(len(clss), 1)
         self.assertEqual(clss[0].ctrace, 2)
-
-
-if __name__ == '__main__':
-    unittest.main()

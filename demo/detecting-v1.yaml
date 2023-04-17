@@ -1,7 +1,12 @@
+# This demo illustrates detection of a Spectre V1
+#
+#
+# Run it with: ./cli.py fuzz -s x86/isa_spec/base.json -n 1000 -i 100 -c ../demo/detecting-v1.yaml
+
 # contract
 contract_observation_clause: loads+stores+pc
 contract_execution_clause:
-  - conditional_br_misprediction
+  - no_speculation
 
 # tested instructions
 instruction_categories:
@@ -11,23 +16,23 @@ instruction_categories:
   - BASE-COND_BR
   - BASE-CONVERT
   - BASE-DATAXFER
-  - BASE-FLAGOP
   - BASE-LOGICAL
   - BASE-MISC
   - BASE-NOP
   - BASE-POP
   - BASE-PUSH
-  - BASE-SEMAPHORE
   - BASE-SETCC
 
-# misc. fuzzing configuration
+# fuzzing configuration
 enable_speculation_filter: true
 enable_observation_filter: true
+enable_priming: false
 input_gen_entropy_bits: 16
 memory_access_zeroed_bits: 0
 min_bb_per_function: 2
 max_bb_per_function: 2
-program_size: 64
-avg_mem_accesses: 24
+program_size: 16
+avg_mem_accesses: 8
 inputs_per_class: 2
+executor_warmups: 2
 x86_disable_div64: false

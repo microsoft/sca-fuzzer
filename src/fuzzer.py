@@ -8,15 +8,14 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, List
-from copy import copy
+import copy
 
-import factory
-from interfaces import CTrace, HTrace, Input, InputTaint, EquivalenceClass, TestCase, Generator, \
+from . import factory
+from .interfaces import CTrace, HTrace, Input, InputTaint, EquivalenceClass, TestCase, Generator, \
     InputGenerator, Model, Executor, Analyser, Coverage, InputID, Measurement
-from isa_loader import InstructionSet
-
-from config import CONF
-from service import STAT, LOGGER, TWOS_COMPLEMENT_MASK_64, bit_count
+from .isa_loader import InstructionSet
+from .config import CONF
+from .util import Logger, STAT, TWOS_COMPLEMENT_MASK_64, bit_count, pretty_trace
 
 
 class Fuzzer:
@@ -31,6 +30,8 @@ class Fuzzer:
     analyser: Analyser
     coverage: Coverage
 
+    LOG: Logger  # name capitalized to make logging easily distinguishable from the main logic
+
     def __init__(self,
                  instruction_set_spec: str,
                  work_dir: str,
@@ -42,6 +43,7 @@ class Fuzzer:
 
         self.instruction_set = InstructionSet(instruction_set_spec, CONF.instruction_categories)
         self.work_dir = work_dir
+        self.LOG = Logger()
 
     def _adjust_config(self, existing_test_case):
         if existing_test_case:
@@ -52,8 +54,9 @@ class Fuzzer:
 
     def initialize_modules(self):
         """ create all main modules """
-        self.generator = factory.get_generator(self.instruction_set)
-        self.input_gen = factory.get_input_generator()
+        self.generator = factory.get_program_generator(self.instruction_set,
+                                                       CONF.program_generator_seed)
+        self.input_gen = factory.get_input_generator(CONF.input_gen_seed)
         self.executor = factory.get_executor()
         self.model = factory.get_model(self.executor.read_base_addresses())
         self.analyser = factory.get_analyser()
@@ -66,14 +69,21 @@ class Fuzzer:
               timeout: int,
               nonstop: bool = False) -> bool:
         start_time = datetime.today()
-        LOGGER.fuzzer_start(num_test_cases, start_time)
+        self.LOG.fuzzer_start(num_test_cases, start_time)
 
         # create all main modules
         self.initialize_modules()
 
         for i in range(num_test_cases):
-            LOGGER.fuzzer_start_round(i)
-            LOGGER.dbg_report_coverage(i, self.coverage.get_brief())
+            self.LOG.fuzzer_start_round(i)
+            self.LOG.dbg_report_coverage(i, self.coverage.get_brief())
+
+            # terminate the fuzzer if the timeout has expired
+            if timeout:
+                now = datetime.today()
+                if (now - start_time).total_seconds() > timeout:
+                    self.LOG.fuzzer_timeout()
+                    break
 
             # Generate a test case
             test_case: TestCase
@@ -91,7 +101,7 @@ class Fuzzer:
             if self.input_paths:
                 inputs = self.input_gen.load(self.input_paths)
             else:
-                inputs = self.input_gen.generate(CONF.input_gen_seed, num_inputs)
+                inputs = self.input_gen.generate(num_inputs)
             STAT.num_inputs += len(inputs) * CONF.inputs_per_class
 
             # Check if the test case is useful
@@ -102,20 +112,13 @@ class Fuzzer:
             violation = self.fuzzing_round(test_case, inputs)
 
             if violation:
-                LOGGER.fuzzer_report_violations(violation, self.model)
-                self.store_test_case(test_case, False)
+                self.LOG.fuzzer_report_violations(violation, self.model)
+                self.store_test_case(test_case, inputs, violation)
                 STAT.violations += 1
                 if not nonstop:
                     break
 
-            # stop fuzzing after a timeout
-            if timeout:
-                now = datetime.today()
-                if (now - start_time).total_seconds() > timeout:
-                    LOGGER.fuzzer_timeout()
-                    break
-
-        LOGGER.fuzzer_finish()
+        self.LOG.fuzzer_finish()
         return STAT.violations > 0
 
     def filter(self, test_case, inputs):
@@ -137,21 +140,23 @@ class Fuzzer:
 
         # check for violations
         ctraces = self.model.trace_test_case(boosted_inputs, 1)
-        htraces = self.executor.trace_test_case(boosted_inputs, CONF.executor_repetitions)
-        LOGGER.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces,
-                                      self.executor.get_last_feedback())
+        htraces = self.executor.trace_test_case(boosted_inputs)
         violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces, True)
         if not violations:  # nothing detected? -> we are done here, move to next test case
+            self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces,
+                                            self.executor.get_last_feedback(), 1)
             return None
 
         # 2. Repeat with with max nesting
-        if 'seq' not in CONF.contract_execution_clause:
-            LOGGER.fuzzer_nesting_increased()
+        if "seq" not in CONF.contract_execution_clause and \
+           "no_speculation" not in CONF.contract_execution_clause:
+            self.LOG.fuzzer_nesting_increased()
             boosted_inputs = self.boost_inputs(inputs, CONF.model_max_nesting)
             ctraces = self.model.trace_test_case(boosted_inputs, CONF.model_max_nesting)
-            htraces = self.executor.trace_test_case(boosted_inputs, CONF.executor_repetitions)
-            LOGGER.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces,
-                                          self.executor.get_last_feedback())
+            htraces = self.executor.trace_test_case(boosted_inputs)
+            self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces,
+                                            self.executor.get_last_feedback(),
+                                            CONF.model_max_nesting)
             violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces, True)
             if not violations:
                 return None
@@ -169,7 +174,7 @@ class Fuzzer:
 
         violation_stack = list(violations)  # make a copy
         while violation_stack:
-            LOGGER.fuzzer_priming(len(violation_stack))
+            self.LOG.fuzzer_priming(len(violation_stack))
             violation: EquivalenceClass = violation_stack.pop()
             if self.priming(violation, boosted_inputs):
                 break
@@ -193,30 +198,62 @@ class Fuzzer:
             boosted_inputs += self.input_gen.extend_equivalence_classes(inputs, taints)
         return boosted_inputs
 
-    def store_test_case(self, test_case: TestCase, require_retires: bool):
+    def store_test_case(self, test_case: TestCase, inputs: List[Input],
+                        violation: EquivalenceClass):
         if not self.work_dir:
             return
-
-        type_ = "retry" if require_retires else "violation"
-        timestamp = datetime.today().strftime('%H%M%S-%d-%m-%y')
-        name = type_ + timestamp + ".asm"
+        timestamp = datetime.today().strftime('%y%m%d-%H%M%S')
+        violation_dir = f"{self.work_dir}/violation-{timestamp}"
         Path(self.work_dir).mkdir(exist_ok=True)
-        test_case.save(self.work_dir + "/" + name)
+        Path(violation_dir).mkdir()
 
-        if not Path(self.work_dir + "/config.yaml").exists():
-            shutil.copy2(CONF.config_path, self.work_dir + "/config.yaml")
+        # store violation and the config file
+        test_case.save(f"{violation_dir}/program.asm")
+        for i, input_ in enumerate(inputs):
+            input_.save(f"{violation_dir}/input_{i}.bin")
+        shutil.copy2(CONF.config_path, f"{violation_dir}/config.yaml")
+
+        # we're about to store in a file - disable colors
+        color_on = CONF.color
+        CONF.color = False
+
+        # store the violation report
+        with open(f"{violation_dir}/report.txt", "w") as f:
+            f.write("# Violation Report\n\n")
+            f.write(f"* Test Case ID: {STAT.test_cases - 1}\n")
+            f.write(f"* Detected: {datetime.today().strftime('%d.%m.%y at %H:%M:%S')}\n\n")
+            f.write("* Time to detection:"
+                    f" {(datetime.today() - self.LOG.start_time).total_seconds()}\n")
+            f.write("* Statistics:\n")
+            f.write(str(STAT) + "\n")
+
+            f.write("\n## Generation Seeds\n")
+            f.write(f"* Program seed: {test_case.seed}\n")
+            f.write(f"* Input seed: {inputs[0].seed}\n")
+
+            f.write("\n## Counterexample Inputs\n")
+            for m in violation.measurements:
+                f.write(f"\nInput #{m.input_id}\n")
+                f.write(f"* Hardware trace: {pretty_trace(m.htrace)}\n")
+                f.write(f"* Contract trace (hash): {m.ctrace}\n")
+                ctrace_full = self.model.dbg_get_trace_detailed(m.input_, CONF.model_max_nesting)
+                f.write(f"* Contract trace (detailed): {ctrace_full}\n")
+
+        # re-enable colors if enabled previously
+        CONF.color = color_on
 
     # ==============================================================================================
     # Single-stage interfaces
     def generate_test_batch(self, program_generator_seed: int, num_test_cases: int, num_inputs: int,
                             permit_overwrite: bool):
-        LOGGER.fuzzer_start(0, datetime.today())
+        self.LOG.fuzzer_start(0, datetime.today())
 
         # prepare for generation
         STAT.test_cases = num_test_cases
         CONF.program_generator_seed = program_generator_seed
-        program_gen = factory.get_generator(self.instruction_set)
-        input_gen = factory.get_input_generator()
+        program_gen = factory.get_program_generator(self.instruction_set,
+                                                    CONF.program_generator_seed)
+        input_gen = factory.get_input_generator(CONF.input_gen_seed)
 
         # generate test cases
         Path(self.work_dir).mkdir(exist_ok=True)
@@ -225,20 +262,21 @@ class Fuzzer:
             try:
                 Path(test_case_dir).mkdir(exist_ok=permit_overwrite)
             except FileExistsError:
-                LOGGER.error(f"Directory '{test_case_dir}' already exists\n"
-                             "       Use --permit-overwrite to overwrite the test case")
+                self.LOG.error(f"Directory '{test_case_dir}' already exists\n"
+                               "       Use --permit-overwrite to overwrite the test case")
 
             program_gen.create_test_case(test_case_dir + "/" + "program.asm", True)
-            inputs = input_gen.generate(CONF.input_gen_seed, num_inputs)
+            inputs = input_gen.generate(num_inputs)
             for j, input_ in enumerate(inputs):
                 input_.save(f"{test_case_dir}/input{j}.bin")
 
-        LOGGER.fuzzer_finish()
+        self.LOG.fuzzer_finish()
 
     @staticmethod
     def analyse_traces_from_files(ctrace_file: str, htrace_file: str):
-        LOGGER.dbg_violation = False  # make sure we don't try to call the model
-        LOGGER.fuzzer_start(0, datetime.today())
+        logger = Logger()
+        logger.dbg_violation = False  # make sure we don't try to call the model
+        logger.fuzzer_start(0, datetime.today())
         STAT.test_cases = 1
 
         # read traces
@@ -255,7 +293,7 @@ class Fuzzer:
         assert len(ctraces) == len(htraces), \
             "The number of hardware traces does not match the number of contract traces"
 
-        dummy_inputs = factory.get_input_generator().generate(1, len(ctraces))
+        dummy_inputs = factory.get_input_generator(0).generate(len(ctraces))
 
         # check for violations
         analyser = factory.get_analyser()
@@ -263,16 +301,16 @@ class Fuzzer:
 
         # print results
         if violations:
-            LOGGER.fuzzer_report_violations(violations[0], None)
+            logger.fuzzer_report_violations(violations[0], None)
 
-        LOGGER.fuzzer_finish()
+        logger.fuzzer_finish()
 
     # ==============================================================================================
     # Priming and reproducibility
     def check_if_reproducible(self, violations: List[EquivalenceClass], inputs: List[Input],
                               org_htraces: List[HTrace]) -> bool:
         # re-collect htraces
-        htraces: List[HTrace] = self.executor.trace_test_case(inputs, CONF.executor_repetitions)
+        htraces: List[HTrace] = self.executor.trace_test_case(inputs)
 
         # check if all htraces that had a violation match
         violating_input_ids = []
@@ -291,7 +329,7 @@ class Fuzzer:
 
         return: True if the violation survived priming
         """
-        violation = copy(org_violation)
+        violation = copy.copy(org_violation)
         ordered_htraces = sorted(
             violation.htrace_map.keys(), key=lambda x: bit_count(x), reverse=False)
 
@@ -309,8 +347,7 @@ class Fuzzer:
                 primer[current_input_id] = all_inputs[input_id]
 
                 # try priming
-                htraces: List[HTrace] = self.executor.trace_test_case(primer,
-                                                                      CONF.executor_repetitions)
+                htraces: List[HTrace] = self.executor.trace_test_case(primer)
                 primed_htrace = htraces[current_input_id]
                 if primed_htrace == current_htrace:
                     continue
@@ -335,11 +372,11 @@ class ArchitecturalFuzzer(Fuzzer):
                  work_dir: str,
                  existing_test_case: str = "",
                  inputs: List[str] = []):
-        LOGGER.warning("fuzzer", "Running in architectural mode. "
-                       "Contract violations can't be detected!")
         CONF.setattr_internal('executor_mode', "GPR")
         CONF.contract_observation_clause = 'gpr'
         super().__init__(instruction_set_spec, work_dir, existing_test_case, inputs)
+        self.LOG.warning("fuzzer", "Running in architectural mode. "
+                         "Contract violations can't be detected!")
 
     def fuzzing_round(self, test_case: TestCase, inputs: List[Input]) -> Optional[EquivalenceClass]:
         self.model.load_test_case(test_case)

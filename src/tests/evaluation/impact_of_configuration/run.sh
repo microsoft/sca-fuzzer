@@ -7,7 +7,7 @@ MAX_ROUNDS=10000
 
 timestamp=$(date '+%y-%m-%d-%H-%M')
 revizor_src='../../../'
-instructions="$revizor_src/x86/isa_spec/base.json"
+instructions="$revizor_src/x86/base.json"
 
 # RESULTS_DIR="results"
 exp_dir="$RESULTS_DIR/$timestamp"
@@ -35,7 +35,7 @@ function time_to_violation() {
     local conf=$1
     local name=$2
 
-    ${revizor_src}/cli.py fuzz -s $instructions -c $conf -n $MAX_ROUNDS -i 50 -w $exp_dir > "$exp_dir/tmp.txt"
+    ${revizor_src}/../revizor.py fuzz -s $instructions -c $conf -n $MAX_ROUNDS -i 50 -w $exp_dir > "$exp_dir/tmp.txt"
     cat "$exp_dir/tmp.txt" >> $log
     cat "$exp_dir/tmp.txt" | awk '/Test Cases:/{tc=$3} /Duration:/{dur=$2} /Finished/{printf "%s, %d, %d\n", name, tc, dur}' name=$name >> $result
 #    cat tmp.txt | awk '/Test Cases:/{tc=$3} /Patterns:/{p=$2} /Fully covered:/{fc=$3} /Longest uncovered:/{lu=$3} /Duration:/{dur=$2} /Finished/{printf "%s, %d, %d, %d, %d, %d\n", name, tc, p, fc, lu, dur}' name=$name >> $result

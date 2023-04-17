@@ -1,0 +1,46 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "revizor-fuzzer"
+version = "1.2.3"
+description = "A fuzzer to search for microarchitectural leaks in CPUs"
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Typing :: Typed",
+]
+dependencies = [
+    "unicorn==1.0.3",
+    "pyyaml",
+    "types-pyyaml",
+    "numpy"
+]
+maintainers = [{name = "Oleksii Oleksenko", email = ""}]
+
+[project.urls]
+"Homepage" = "https://microsoft.github.io/sca-fuzzer/"
+"Source code" = "https://github.com/microsoft/sca-fuzzer"
+"Bug Tracker" = "https://github.com/microsoft/sca-fuzzer/issues"
+"Changelog" = "https://github.com/microsoft/sca-fuzzer/releases"
+
+[tool.hatch.build.sources]
+"src" = "revizor"
+
+[tool.hatch.build]
+exclude = [
+  "demo/",
+  "docs/",
+  "mkdocs-overrides/",
+  "src/tests/",
+  "src/x86/executor/",
+  "src/x86/tests/",
+]
+
+[project.scripts]
+rvzr = "revizor.cli:main"

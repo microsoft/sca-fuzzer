@@ -15,11 +15,11 @@ import unicorn as uc
 from unicorn import Uc, UcError, UC_MEM_WRITE, UC_MEM_READ, UC_SECOND_SCALE, UC_HOOK_MEM_READ, \
     UC_HOOK_MEM_WRITE, UC_HOOK_CODE, UC_HOOK_MEM_UNMAPPED
 
-from interfaces import CTrace, TestCase, Model, InputTaint, Instruction, ExecutionTrace, \
+from .interfaces import CTrace, TestCase, Model, InputTaint, Instruction, ExecutionTrace, \
     TracedInstruction, TracedMemAccess, Input, Tracer, \
     RegisterOperand, FlagsOperand, MemoryOperand, TaintTrackerInterface, TargetDesc
-from config import CONF
-from service import LOGGER, NotSupportedException
+from .config import CONF
+from .util import Logger, NotSupportedException
 
 
 # ==================================================================================================
@@ -30,6 +30,7 @@ class UnicornTargetDesc(ABC):
     barriers: List[str]
     flags_register: int
     reg_decode: Dict[str, int]
+    reg_str_to_constant: Dict[str, int]
 
 
 class UnicornTracer(Tracer):
@@ -44,13 +45,24 @@ class UnicornTracer(Tracer):
     def __init__(self):
         super().__init__()
         self.trace = []
+        self.LOG = Logger()
 
     def init_trace(self, emulator, target_desc: UnicornTargetDesc) -> None:
         self.trace = []
         self.execution_trace = []
 
-    def get_contract_trace(self) -> CTrace:
-        return hash(tuple(self.trace))
+    def get_contract_trace(self, model: Model) -> CTrace:
+        # make the trace reproducible by normalizing the addresses
+        normalized_trace: List[int] = []
+        for val in self.trace:
+            if model.code_start <= val and val < (model.code_start + 0x1000):
+                normalized_trace.append(val - model.code_start)
+            elif model.lower_overflow_base < val and val < (model.upper_overflow_base + 0x1000):
+                normalized_trace.append(val - model.sandbox_base)
+            else:
+                normalized_trace.append(val)
+
+        return hash(tuple(normalized_trace))
 
     def get_contract_trace_full(self) -> List[int]:
         return self.trace
@@ -74,7 +86,7 @@ class UnicornTracer(Tracer):
                            model: UnicornModel) -> None:
         normalized_address = address - model.sandbox_base
         is_store = (access != UC_MEM_READ)
-        LOGGER.dbg_model_mem_access(normalized_address, value, address, size, is_store, model)
+        self.LOG.dbg_model_mem_access(normalized_address, value, address, size, is_store, model)
 
         if model.in_speculation:
             return
@@ -88,7 +100,7 @@ class UnicornTracer(Tracer):
     def observe_instruction(self, address: int, size: int, model) -> None:
         normalized_address = address - model.code_start
         if normalized_address in model.test_case.address_map:
-            LOGGER.dbg_model_instruction(normalized_address, model)
+            self.LOG.dbg_model_instruction(normalized_address, model)
 
         if model.in_speculation:
             return
@@ -103,6 +115,8 @@ class UnicornModel(Model, ABC):
     Base class for all Unicorn-based models.
     Serves as an adapter between Unicorn and our fuzzer.
     """
+    LOG: Logger
+
     CODE_SIZE = 4 * 1024
     MAIN_REGION_SIZE = CONF.input_main_region_size
     FAULTY_REGION_SIZE = CONF.input_faulty_region_size
@@ -116,9 +130,7 @@ class UnicornModel(Model, ABC):
 
     test_case: TestCase
     current_instruction: Instruction
-    code_start: int
     code_end: int
-    sandbox_base: int
     main_region: int
     faulty_region: int
     nesting: int = 0
@@ -147,6 +159,8 @@ class UnicornModel(Model, ABC):
 
     def __init__(self, sandbox_base, code_start):
         super().__init__(sandbox_base, code_start)
+        self.LOG = Logger()
+
         self.code_start = code_start
         self.sandbox_base = sandbox_base
 
@@ -179,6 +193,8 @@ class UnicornModel(Model, ABC):
             self.handled_faults.add(10)
         if 'BP' in CONF.permitted_faults:
             self.handled_faults.add(21)
+        if 'BR' in CONF.permitted_faults:
+            self.handled_faults.add(13)
         if 'UD' in CONF.permitted_faults or 'UD-vtx' in CONF.permitted_faults or \
            'UD-svm' in CONF.permitted_faults:
             self.handled_faults.add(10)
@@ -227,7 +243,7 @@ class UnicornModel(Model, ABC):
             self.emulator = emulator
 
         except UcError as e:
-            LOGGER.error("[UnicornModel:load_test_case] %s" % e)
+            self.LOG.error("[UnicornModel:load_test_case] %s" % e)
 
     @abstractmethod
     def _load_input(self, input_: Input):
@@ -247,7 +263,7 @@ class UnicornModel(Model, ABC):
         taints = []
 
         for index, input_ in enumerate(inputs):
-            LOGGER.dbg_model_header(index)
+            self.LOG.dbg_model_header(index)
 
             self._load_input(input_)
             self.reset_model()
@@ -276,7 +292,7 @@ class UnicornModel(Model, ABC):
 
                     start_address = self.handle_fault(self.pending_fault_id)
                     self.pending_fault_id = 0
-                    if start_address:
+                    if start_address and start_address != self.code_end:
                         continue
 
                 # if we use one of the speculative contracts, we might have some residual simulation
@@ -291,7 +307,7 @@ class UnicornModel(Model, ABC):
 
             # store the results
             assert self.tracer
-            contract_traces.append(self.tracer.get_contract_trace())
+            contract_traces.append(self.tracer.get_contract_trace(self))
             execution_traces.append(self.tracer.get_execution_trace())
             taints.append(self.taint_tracker.get_taint())
 
@@ -311,7 +327,10 @@ class UnicornModel(Model, ABC):
 
     def get_taints(self, inputs, nesting):
         self.tainting_enabled = True
+        logger_state = self.LOG.dbg_model
+        self.LOG.dbg_model = False
         _, taints = self._execute_test_case(inputs, nesting)
+        self.LOG.dbg_model = logger_state
         self.tainting_enabled = False
         return taints
 
@@ -322,7 +341,7 @@ class UnicornModel(Model, ABC):
         for val in trace:
             if self.code_start <= val and val < self.code_start + 0x1000:
                 normalized_trace.append(f"pc:0x{val - self.code_start:x}")
-            elif self.lower_overflow_base < val and val < self.upper_overflow_base:
+            elif self.lower_overflow_base < val and val < (self.upper_overflow_base + 0x1000):
                 normalized_trace.append(f"mem:0x{val - self.sandbox_base:x}")
             else:
                 normalized_trace.append(f"val:{val}")
@@ -401,6 +420,8 @@ class UnicornModel(Model, ABC):
         model.trace_instruction(emulator, address, size, model)
 
     def handle_fault(self, errno: int) -> int:
+        self.LOG.dbg_model_exception(errno, self.errno_to_str(errno))
+
         next_addr = self.speculate_fault(errno)
         if next_addr:
             return next_addr
@@ -415,7 +436,7 @@ class UnicornModel(Model, ABC):
 
         # unexpected fault - throw an error
         self.print_state()
-        LOGGER.error(f"[UnicornModel:trace_test_case] {errno} {self.errno_to_str(errno)}")
+        self.LOG.error(f"Unexpected exception {errno} {self.errno_to_str(errno)}", print_tb=True)
 
     @staticmethod
     @abstractmethod
@@ -434,6 +455,9 @@ class UnicornModel(Model, ABC):
 
     @staticmethod
     def speculate_instruction(emulator: Uc, address, size, model: UnicornModel) -> None:
+        pass
+
+    def post_execution_patch(self) -> None:
         pass
 
     def speculate_fault(self, errno: int) -> int:
@@ -476,7 +500,7 @@ class L1DTracer(UnicornTracer):
     def observe_instruction(self, address: int, size: int, model):
         super(L1DTracer, self).observe_instruction(address, size, model)
 
-    def get_contract_trace(self) -> CTrace:
+    def get_contract_trace(self, _) -> CTrace:
         return (self.trace[1] << 64) + self.trace[0]
 
 
@@ -553,7 +577,7 @@ class GPRTracer(UnicornTracer):
         self.target_desc = target_desc
         return super().init_trace(emulator, target_desc)
 
-    def get_contract_trace(self) -> CTrace:
+    def get_contract_trace(self, _) -> CTrace:
         self.trace = [self.emulator.reg_read(reg) for reg in self.target_desc.registers]
         self.trace = self.trace[:-1]  # exclude flags
         return self.trace[0]
@@ -570,14 +594,19 @@ class UnicornSeq(UnicornModel):
     """
 
     @staticmethod
-    def trace_instruction(_, address, size, model) -> None:
+    def trace_instruction(emulator, address, size, model) -> None:
         model.taint_tracker.start_instruction(model.current_instruction)
         model.tracer.observe_instruction(address, size, model)
+        # speculate_instruction is empty for seq, nonempty in subclasses
+        model.speculate_instruction(emulator, address, size, model)
+        model.post_execution_patch()
 
     @staticmethod
-    def trace_mem_access(_, access, address: int, size, value, model):
+    def trace_mem_access(emulator, access, address: int, size, value, model):
         model.taint_tracker.track_memory_access(address, size, access == UC_MEM_WRITE)
         model.tracer.observe_mem_access(access, address, size, value, model)
+        # speculate_mem_access is empty for seq, nonempty in subclasses
+        model.speculate_mem_access(emulator, access, address, size, value, model)
 
     def handle_fault(self, errno: int) -> int:
         # when a fault is triggered, CPU stores the PC and the fault type
@@ -606,7 +635,6 @@ class UnicornSpec(UnicornModel):
             model.store_logs[-1].append((address, emulator.mem_read(address, 8)))
 
         UnicornSeq.trace_mem_access(emulator, access, address, size, value, model)
-        model.speculate_mem_access(emulator, access, address, size, value, model)
 
     @staticmethod
     def trace_instruction(emulator, address, size, model: UnicornModel) -> None:
@@ -621,7 +649,6 @@ class UnicornSpec(UnicornModel):
                 emulator.emu_stop()
 
         UnicornSeq.trace_instruction(emulator, address, size, model)
-        model.speculate_instruction(emulator, address, size, model)
 
     def handle_fault(self, errno: int) -> int:
         # when a fault is triggered, CPU stores the PC and the fault type
@@ -645,7 +672,7 @@ class UnicornSpec(UnicornModel):
         if not self.checkpoints:
             self.in_speculation = False
 
-        LOGGER.dbg_model_rollback(next_instr, self.code_start)
+        self.LOG.dbg_model_rollback(next_instr, self.code_start)
         self.latest_rollback_address = next_instr
 
         # restore the speculation state
