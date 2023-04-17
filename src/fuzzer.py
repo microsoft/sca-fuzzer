@@ -73,7 +73,7 @@ class Fuzzer:
 
         # create all main modules
         self.initialize_modules()
-                
+
         for i in range(num_test_cases):
             self.LOG.fuzzer_start_round(i)
             self.LOG.dbg_report_coverage(i, self.coverage.get_brief())
@@ -84,7 +84,7 @@ class Fuzzer:
                 if (now - start_time).total_seconds() > timeout:
                     self.LOG.fuzzer_timeout()
                     break
-                
+
             # Generate a test case
             test_case: TestCase
             if self.existing_test_case:
@@ -92,10 +92,10 @@ class Fuzzer:
             else:
                 test_case = self.generator.create_test_case('generated.asm')
             STAT.test_cases += 1
-            
+
             # Generate the execution environment
             self.generator.create_pte(test_case)
-            
+
             # Prepare inputs
             inputs: List[Input]
             if self.input_paths:
@@ -128,7 +128,7 @@ class Fuzzer:
         self.model.load_test_case(test_case)
         self.executor.load_test_case(test_case)
         self.coverage.load_test_case(test_case)
-                
+
         # 1. Test for contract violations with nesting=1
         ctraces: List[CTrace]
         htraces: List[HTrace]
@@ -153,7 +153,7 @@ class Fuzzer:
             self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces,
                                             self.executor.get_last_feedback(), 1)
             return None
-                                                    
+
         # 2. Repeat with with max nesting
         if "seq" not in CONF.contract_execution_clause and \
            "no_speculation" not in CONF.contract_execution_clause:
@@ -185,7 +185,7 @@ class Fuzzer:
         # 4. Check if the violation is reproducible
         if self.check_if_reproducible(violations, boosted_inputs, htraces):
             STAT.flaky_violations += 1
-            if CONF.ignore_flaky_violations:   
+            if CONF.ignore_flaky_violations:
                 return None
 
         # 5. Check if the violation survives priming

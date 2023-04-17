@@ -81,9 +81,7 @@ class EquivalenceAnalyser(Analyser):
         Collect inputs into equivalence classes based on ctraces and group the inputs within
         the equivalence class by the htrace
         """
-
-        assert ctraces != []
-                
+                        
         # build eq. classes
         eq_class_map: Dict[CTrace, EquivalenceClass] = defaultdict(lambda: EquivalenceClass())
         for i, ctrace in enumerate(ctraces):
