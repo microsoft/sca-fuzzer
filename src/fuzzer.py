@@ -142,10 +142,10 @@ class Fuzzer:
 
         # check for violations
         htraces = self.executor.trace_test_case(boosted_inputs)
+        feedback = self.executor.get_last_feedback()
         violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces, True)
         if not violations:  # nothing detected? -> we are done here, move to next test case
-            self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces,
-                                            self.executor.get_last_feedback(),
+            self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces, feedback,
                                             CONF.model_min_nesting)
             return None
 
@@ -156,11 +156,11 @@ class Fuzzer:
             self.LOG.fuzzer_nesting_increased()
             ctraces, boosted_inputs = self.trace_and_boost(inputs, CONF.model_max_nesting)
             htraces = self.executor.trace_test_case(boosted_inputs)
-            self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces,
-                                            self.executor.get_last_feedback(),
-                                            CONF.model_max_nesting)
+            feedback = self.executor.get_last_feedback()
             violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces, True)
             if not violations:
+                self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces,
+                                                feedback, CONF.model_max_nesting)
                 return None
 
         # 3. If ctraces are the same within taint-based input class,
@@ -170,7 +170,12 @@ class Fuzzer:
             violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces, True)
             if not violations:  # nothing detected? -> tainting was probably wrong, return
                 STAT.taint_mistakes += 1
+                self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces,
+                                                feedback, CONF.model_max_nesting)
                 return None
+
+        self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces, feedback,
+                                        CONF.model_max_nesting)
 
         # 4. Check if the violation is reproducible
         if self.check_if_reproducible(violations, boosted_inputs, htraces):
