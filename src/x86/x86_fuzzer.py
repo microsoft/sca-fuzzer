@@ -99,8 +99,8 @@ class X86Fuzzer(Fuzzer):
                 if pfc_values[0] > pfc_values[1] or pfc_values[2] > 0:
                     break
             else:
+                STAT.spec_filter += 1
                 return True
-            STAT.spec_filter += 1
 
         # 2. Observation filter:
         # Check if any of the htraces contain a speculative cache eviction
@@ -119,9 +119,8 @@ class X86Fuzzer(Fuzzer):
             os.remove(fenced_obj.name)
 
             if fenced_htraces == non_fenced_htraces:
+                STAT.observ_filter += 1
                 return True
-
-            STAT.observ_filter += 1
 
         return False
 

@@ -151,6 +151,7 @@ class Fuzzer:
         # Check for violations
         violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces, stats=True)
         if not violations:  # nothing detected? -> we are done here, move to next test case
+            STAT.no_fast_violation += 1
             self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces, feedback,
                                             CONF.model_min_nesting)
             return None
@@ -173,6 +174,7 @@ class Fuzzer:
             feedback = self.executor.get_last_feedback()
             violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces, True)
             if not violations:
+                STAT.fp_nesting += 1
                 self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces,
                                                 feedback, CONF.model_max_nesting)
                 return None
@@ -183,6 +185,7 @@ class Fuzzer:
             htraces = self.executor.trace_test_case(boosted_inputs)
             violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces)
             if not violations:
+                STAT.fp_noise += 1
                 self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces,
                                                 feedback, CONF.model_min_nesting)
                 return None
@@ -192,7 +195,7 @@ class Fuzzer:
             ctraces = self.model.trace_test_case(boosted_inputs, CONF.model_max_nesting)
             violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces)
             if not violations:  # nothing detected? -> tainting was probably wrong, return
-                STAT.taint_mistakes += 1
+                STAT.fp_taint_mistakes += 1
                 self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces,
                                                 feedback, CONF.model_max_nesting)
                 return None
@@ -202,14 +205,13 @@ class Fuzzer:
 
         # 3. Check if the violation is reproducible
         if self.check_if_reproducible(violations, boosted_inputs, htraces):
-            STAT.flaky_violations += 1
+            STAT.fp_flaky += 1
             if CONF.ignore_flaky_violations:
                 return None
 
         # 4. Check if the violation survives priming
         if not CONF.enable_priming:
             return violations[-1]
-        STAT.required_priming += 1
 
         violation_stack = list(violations)  # make a copy
         while violation_stack:
@@ -219,6 +221,7 @@ class Fuzzer:
                 break
         else:
             # All violations were cleared by priming.
+            STAT.fp_priming += 1
             return None
 
         # Violation survived priming. Report it
