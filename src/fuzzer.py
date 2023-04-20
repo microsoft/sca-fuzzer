@@ -184,6 +184,7 @@ class Fuzzer:
         #     and check if the violation persists
         if CONF.enable_fast_path_executor:  # only makes sense if fast path was enabled
             htraces = self.executor.trace_test_case(boosted_inputs)
+            feedback = self.executor.get_last_feedback()
             violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces)
             if not violations:
                 STAT.fp_noise += 1
