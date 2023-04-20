@@ -26,6 +26,14 @@ class ConfCls:
     """ enable_speculation_filter: if True, discard test cases that don't trigger speculation"""
     enable_observation_filter: bool = False
     """ enable_observation_filter: if True,discard test cases that don't leave speculative traces"""
+    enable_fast_path_model: bool = True
+    """ enable_fast_path_boosting: if enabled, the same contract trace will be used
+    for all inputs in the same taint-based input class """
+    enable_fast_path_executor: bool = True
+    """ enable_fast_path_executor: if True, the executor will first collect hardware traces
+    with (almost) no noise filtering, and will re-collect traces with noise filtering if
+    a violation is detected
+    """
 
     # ==============================================================================================
     # Execution Environment
@@ -106,9 +114,6 @@ class ConfCls:
     """ model_max_nesting: """
     model_max_spec_window: int = 250
     """ model_max_spec_window: """
-    model_taint_based_ctraces: bool = True
-    """ model_taint_based_ctraces: if enabled, the same contract trace will be used
-    for all inputs in the same taint-based input class """
 
     # ==============================================================================================
     # Executor

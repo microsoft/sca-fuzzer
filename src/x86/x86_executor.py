@@ -75,8 +75,10 @@ class X86Executor(Executor):
         with open(test_case.bin_path, "rb") as f:
             write_to_sysfs_file_bytes(f.read(), "/sys/x86_executor/test_case")
 
-    def trace_test_case(self, inputs: List[Input], repetitions: int = 0) \
-            -> List[CombinedHTrace]:
+    def trace_test_case(self,
+                        inputs: List[Input],
+                        repetitions: int = 0,
+                        threshold_outliers: int = 0) -> List[CombinedHTrace]:
         # make sure it's not a dummy call
         if not inputs:
             return []
@@ -84,7 +86,7 @@ class X86Executor(Executor):
         if repetitions == 0:
             repetitions = CONF.executor_repetitions
             threshold_outliers = CONF.executor_max_outliers
-        else:
+        elif threshold_outliers == 0:
             threshold_outliers = repetitions // 10
 
         # convert the inputs into a byte sequence
@@ -165,11 +167,13 @@ class X86Executor(Executor):
 
 
 class X86IntelExecutor(X86Executor):
+
     def set_vendor_specific_features(self):
         write_to_sysfs_file("1" if "BR" in CONF.permitted_faults else "0",
                             "/sys/x86_executor/enable_mpx")
 
 
 class X86AMDExecutor(X86Executor):
+
     def set_vendor_specific_features(self):
         pass
