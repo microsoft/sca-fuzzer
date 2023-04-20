@@ -129,7 +129,7 @@ class Fuzzer:
         self.executor.load_test_case(test_case)
         self.coverage.load_test_case(test_case)
 
-        # 1. Test for contract violations with nesting=1
+        # 1. Test for contract violations with min nesting
         ctraces: List[CTrace]
         htraces: List[HTrace]
 
@@ -137,22 +137,24 @@ class Fuzzer:
         # so that we can detect contract violations (note that it wasn't necessary
         # up to this point because we weren't testing against a contract).
         # We also compute the contract traces for all boosted inputs.
-        boosted_inputs: List[Input]        
-        ctraces, boosted_inputs = self.trace_and_boost(inputs, 1)
+        boosted_inputs: List[Input]
+        ctraces, boosted_inputs = self.trace_and_boost(inputs, CONF.model_min_nesting)
 
         # check for violations
         htraces = self.executor.trace_test_case(boosted_inputs)
         violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces, True)
         if not violations:  # nothing detected? -> we are done here, move to next test case
             self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces,
-                                            self.executor.get_last_feedback(), 1)
+                                            self.executor.get_last_feedback(),
+                                            CONF.model_min_nesting)
             return None
 
         # 2. Repeat with with max nesting
-        if "seq" not in CONF.contract_execution_clause and \
+        if CONF.model_min_nesting < CONF.model_max_nesting and \
+           "seq" not in CONF.contract_execution_clause and \
            "no_speculation" not in CONF.contract_execution_clause:
             self.LOG.fuzzer_nesting_increased()
-            ctraces, boosted_inputs = self.trace_and_boost(inputs, CONF.model_max_nesting)                
+            ctraces, boosted_inputs = self.trace_and_boost(inputs, CONF.model_max_nesting)
             htraces = self.executor.trace_test_case(boosted_inputs)
             self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces,
                                             self.executor.get_last_feedback(),
@@ -160,9 +162,10 @@ class Fuzzer:
             violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces, True)
             if not violations:
                 return None
-        
-        # 3. If ctraces are the same within taint-based input class, recompute in case tainting was wrong
-        if CONF.model_taint_based_ctraces:            
+
+        # 3. If ctraces are the same within taint-based input class,
+        # recompute in case tainting was wrong
+        if CONF.model_taint_based_ctraces:
             ctraces = self.model.trace_test_case(boosted_inputs, CONF.model_max_nesting)
             violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces, True)
             if not violations:  # nothing detected? -> tainting was probably wrong, return
@@ -192,8 +195,9 @@ class Fuzzer:
 
         # Violation survived priming. Report it
         return violation
-    
-    def trace_and_boost(self, inputs: List[Input], nesting: int) -> Tuple[List[CTrace], List[Input]]:
+
+    def trace_and_boost(self, inputs: List[Input],
+                        nesting: int) -> Tuple[List[CTrace], List[Input]]:
         taints: List[InputTaint]
         ctraces: List[CTrace]
         ctraces, taints = self.model.trace_test_case_with_taints(inputs, nesting)
@@ -207,7 +211,7 @@ class Fuzzer:
         if CONF.model_taint_based_ctraces:
             # records same ctrace for all members of the same input class
             boosted_ctraces = ctraces * CONF.inputs_per_class
-        else:            
+        else:
             # compute ctraces separately for every boosted input
             boosted_ctraces = self.model.trace_test_case(boosted_inputs, nesting)
 
