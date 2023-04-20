@@ -568,7 +568,7 @@ class Input(np.ndarray):
         if obj is None:
             return
 
-    def __hash__(self) -> int:
+    def __hash__(self) -> int:  # type: ignore
         # hash of input is hash of input data, registers and memory
         return hash(tuple(self[0:self.data_size - 1]))
 
@@ -879,7 +879,10 @@ class Executor(ABC):
         pass
 
     @abstractmethod
-    def trace_test_case(self, inputs: List[Input], repetitions: int = 0) -> List[CombinedHTrace]:
+    def trace_test_case(self,
+                        inputs: List[Input],
+                        repetitions: int = 0,
+                        threshold_outliers: int = 0) -> List[CombinedHTrace]:
         pass
 
     @abstractmethod
