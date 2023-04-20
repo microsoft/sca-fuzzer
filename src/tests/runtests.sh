@@ -4,8 +4,10 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 echo ""
 echo "===== Type Checking with mypy ====="
-cd $SCRIPT_DIR/.. || exit
-python3 -m mypy cli.py
+cd $SCRIPT_DIR/../.. || exit
+python3 -m mypy src --exclude src/tests/unit_isa_loader.py \
+    --exclude src/x86/tests/unit_model.py --exclude src/x86/tests/unit_executor.py \
+    --exclude src/x86/tests/unit_generators.py
 cd - > /dev/null || exit
 
 echo ""
