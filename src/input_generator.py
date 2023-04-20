@@ -8,7 +8,7 @@ import os
 import random
 import numpy as np
 from abc import abstractmethod
-from typing import List
+from typing import List, Tuple
 from .interfaces import Input, InputTaint, InputGenerator
 from .config import CONF
 from .util import Logger
@@ -17,13 +17,15 @@ POW32 = pow(2, 32)
 
 
 class InputGeneratorCommon(InputGenerator):
+    _state: int = 0
+    _boosting_state: int = 0
 
     def __init__(self, seed: int):
         super().__init__(seed)
         self.LOG = Logger()
 
     @abstractmethod
-    def _generate_one(self) -> Input:
+    def _generate_one(self, state: int) -> Tuple[Input, int]:
         pass
 
     def generate(self, count: int) -> List[Input]:
@@ -34,9 +36,15 @@ class InputGeneratorCommon(InputGenerator):
 
         generated_inputs = []
         for _ in range(count):
-            input_ = self._generate_one()
+            input_, self._state = self._generate_one(self._state)
             generated_inputs.append(input_)
+
+        # make sure that boosted inputs will continue from the updated state
+        self._boosting_state = self._state
         return generated_inputs
+
+    def reset_boosting_state(self) -> None:
+        self._boosting_state = self._state
 
     def extend_equivalence_classes(self, inputs: List[Input],
                                    taints: List[InputTaint]) -> List[Input]:
@@ -52,7 +60,7 @@ class InputGeneratorCommon(InputGenerator):
         new_inputs = []
         for i, input_ in enumerate(inputs):
             taint = taints[i]
-            new_input = self._generate_one()
+            new_input, self._boosting_state = self._generate_one(self._boosting_state)
             for j in range(input_.data_size):
                 if taint[j]:
                     new_input[j] = input_[j]
@@ -87,11 +95,11 @@ class LegacyRandomInputGenerator(InputGeneratorCommon):
         super().__init__(seed)
         self.input_mask = pow(2, (CONF.input_gen_entropy_bits % 33)) - 1
 
-    def _generate_one(self) -> Input:
+    def _generate_one(self, state: int) -> Tuple[Input, int]:
         input_ = Input()
-        input_.seed = self._state
+        input_.seed = state
 
-        randint = self._state
+        randint = state
         for i in range(input_.data_size):
             # this weird implementation is a legacy of our old PRNG.
             # basically, it's a 32-bit PRNG, assigned to 4-byte chucks of memory
@@ -110,8 +118,7 @@ class LegacyRandomInputGenerator(InputGeneratorCommon):
         for i in range(CONF.input_register_region_size // 8):
             input_[-i - 1] = input_[-i - 1] % POW32
 
-        self._state = randint
-        return input_
+        return input_, randint
 
 
 class NumpyRandomInputGenerator(InputGeneratorCommon):
@@ -121,14 +128,13 @@ class NumpyRandomInputGenerator(InputGeneratorCommon):
         super().__init__(seed)
         self.max_input_value = pow(2, CONF.input_gen_entropy_bits)
 
-    def _generate_one(self) -> Input:
+    def _generate_one(self, state: int) -> Tuple[Input, int]:
         input_ = Input()
-        input_.seed = self._state
+        input_.seed = state
 
-        rng = np.random.default_rng(seed=self._state)
+        rng = np.random.default_rng(seed=state)
         data = rng.integers(self.max_input_value, size=input_.data_size, dtype=np.uint64)
         data = data << CONF.memory_access_zeroed_bits  # type: ignore
         input_[:input_.data_size] = (data << 32) + data
 
-        self._state += 1
-        return input_
+        return input_, state + 1

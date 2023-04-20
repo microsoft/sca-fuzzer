@@ -776,6 +776,10 @@ class InputGenerator(ABC):
         return self._state
 
     @abstractmethod
+    def reset_boosting_state(self) -> None:
+        pass
+
+    @abstractmethod
     def generate(self, count: int) -> List[Input]:
         pass
 
