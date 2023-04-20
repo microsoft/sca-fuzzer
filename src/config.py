@@ -100,6 +100,8 @@ class ConfCls:
     """ contract_execution_clause: """
     contract_observation_clause: str = 'ct'
     """ contract_observation_clause: """
+    model_min_nesting: int = 1
+    """ model_max_nesting: """
     model_max_nesting: int = 30
     """ model_max_nesting: """
     model_max_spec_window: int = 250
@@ -134,7 +136,7 @@ class ConfCls:
     analyser_permit_subsets: bool = True
     """ analyser_permit_subsets: if enabled, the analyser will not label hardware traces
     as mismatching if they form a subset relation """
-    
+
     # ==============================================================================================
     # Coverage
     coverage_type: str = 'none'
