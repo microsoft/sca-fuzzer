@@ -165,6 +165,7 @@ class Fuzzer:
         if CONF.model_min_nesting < CONF.model_max_nesting and \
            "seq" not in CONF.contract_execution_clause and \
            "no_speculation" not in CONF.contract_execution_clause:
+            self.input_gen.reset_boosting_state()
             ctraces, boosted_inputs = self.trace_and_boost(inputs, CONF.model_max_nesting)
             if CONF.enable_fast_path_executor:
                 htraces = self.executor.trace_test_case(
