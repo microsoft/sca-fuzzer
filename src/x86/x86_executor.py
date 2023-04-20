@@ -29,6 +29,7 @@ class X86Executor(Executor):
     def __init__(self):
         super().__init__()
         self.LOG = Logger()
+        self.feedback = []
 
         # check the execution environment: is SMT disabled?
         smt_on = None
