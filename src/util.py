@@ -218,7 +218,7 @@ class Logger:
             else:
                 msg = f"\r{STAT.test_cases:<6}({self.progress_percent:>2}%)| Stats: "
                 msg += STAT.get_brief()
-                print(msg + "         ", end=self.line_ending, flush=True)
+                print(msg + "                         ", end=self.line_ending, flush=True)
             self.msg = msg
 
         if not __debug__:
@@ -232,7 +232,7 @@ class Logger:
     def fuzzer_priming(self, num_violations: int):
         if self.info:
             print(
-                self.msg + "> Prime  " + str(num_violations) + "           ",
+                self.msg + f"> Priming  {num_violations}             ",
                 end=self.line_ending,
                 flush=True)
 
@@ -242,6 +242,10 @@ class Logger:
                 self.msg + "> Nest   " + str(CONF.model_max_nesting) + "         ",
                 end=self.line_ending,
                 flush=True)
+
+    def fuzzer_slow_path(self):
+        if self.info:
+            print(self.msg + "> Validating violation...", end=self.line_ending, flush=True)
 
     def fuzzer_timeout(self):
         self.inform("fuzzer", "\nTimeout expired")
@@ -258,54 +262,42 @@ class Logger:
             print(datetime.today().strftime('Finished at %H:%M:%S'))
 
     def trc_fuzzer_dump_traces(self, model, inputs, htraces, ctraces, hw_feedback, nesting):
+        if not __debug__:
+            return
+        if not self.dbg_traces:
+            return
 
-        def ctrace_colorize(ctrace):
-            res = "["
-            for item in ctrace:
-                res += "'"
-                if "mem" in item:
-                    res += PURPLE + item + COL_RESET
-                elif "pc" in item:
-                    res += item
-                else:
-                    res += CYAN + item + COL_RESET
-                res += "', "
-            return res + "]"
+        print("\n================================ Collected Traces =============================")
 
-        if __debug__:
-            if self.dbg_traces:
-                print("\n================================ Collected Traces "
-                      "=============================")
+        if CONF.contract_observation_clause == 'l1d':
+            for i in range(len(htraces)):
+                if i > 100 and not self.dbg_traces_all:
+                    self.warning("fuzzer", "Trace output is limited to 100 traces")
+                    break
+                ctrace = ctraces[i]
+                print("    ")
+                print(f"CTr{i:<2} {pretty_trace(ctrace, ctrace > pow(2, 64), '      ')}")
+                print(f"HTr{i:<2} {pretty_trace(htraces[i])}")
+                print(f"Feedback{i}: {hw_feedback[i]}")
 
-                if CONF.contract_observation_clause == 'l1d':
-                    for i in range(len(htraces)):
-                        if i > 100:
-                            self.warning("fuzzer", "Trace output is limited to 100 traces")
-                            break
-                        ctrace = ctraces[i]
-                        print("    ")
-                        print(f"CTr{i:<2} {pretty_trace(ctrace, ctrace > pow(2, 64), '      ')}")
-                        print(f"HTr{i:<2} {pretty_trace(htraces[i])}")
-                        print(f"Feedback{i}: {hw_feedback[i]}")
+            return
 
-                    return
-
-                org_debug_state = self.dbg_model
-                self.dbg_model = False
-                for i in range(len(htraces)):
-                    if i > 100 and not self.dbg_traces_all:
-                        self.warning("fuzzer", "Trace output is limited to 100 traces")
-                        break
-                    ctrace_full = model.dbg_get_trace_detailed(inputs[i], nesting)
-                    print(f"- Input {i}:")
-                    print(f"  CTr: {ctrace_colorize(ctrace_full) if CONF.color else ctrace_full} "
-                          f"| Hash: {ctraces[i]}")
-                    print(f"  HTr: {pretty_trace(htraces[i])}")
-                    if CONF.color and hw_feedback[i][0] > hw_feedback[i][1]:
-                        print(f"  Feedback: {YELLOW}{hw_feedback[i]}{COL_RESET}")
-                    else:
-                        print(f"  Feedback: {hw_feedback[i]}")
-                self.dbg_model = org_debug_state
+        org_debug_state = self.dbg_model
+        self.dbg_model = False
+        for i in range(len(htraces)):
+            if i > 100 and not self.dbg_traces_all:
+                self.warning("fuzzer", "Trace output is limited to 100 traces")
+                break
+            ctrace_full = model.dbg_get_trace_detailed(inputs[i], nesting)
+            print(f"- Input {i}:")
+            print(f"  CTr: {ctrace_colorize(ctrace_full) if CONF.color else ctrace_full} "
+                  f"| Hash: {ctraces[i]}")
+            print(f"  HTr: {pretty_trace(htraces[i])}")
+            if CONF.color and hw_feedback[i][0] > hw_feedback[i][1]:
+                print(f"  Feedback: {YELLOW}{hw_feedback[i]}{COL_RESET}")
+            else:
+                print(f"  Feedback: {hw_feedback[i]}")
+        self.dbg_model = org_debug_state
 
     def fuzzer_report_violations(self, violation: EquivalenceClass, model):
         print("\n\n================================ Violations detected ==========================")
@@ -449,6 +441,20 @@ def pretty_trace(bits: int, merged=False, offset: str = ""):
             + CYAN + s[48:56] + YELLOW + s[56:64] \
             + COL_RESET + s[64:]
     return s
+
+
+def ctrace_colorize(ctrace):
+    res = "["
+    for item in ctrace:
+        res += "'"
+        if "mem" in item:
+            res += PURPLE + item + COL_RESET
+        elif "pc" in item:
+            res += item
+        else:
+            res += CYAN + item + COL_RESET
+        res += "', "
+    return res + "]"
 
 
 class NotSupportedException(Exception):
