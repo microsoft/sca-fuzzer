@@ -33,14 +33,17 @@ class StatisticsCls:
     num_inputs: int = 0
     eff_classes: int = 0
     single_entry_classes: int = 0
-    required_priming: int = 0
-    flaky_violations: int = 0
-    taint_mistakes: int = 0
     violations: int = 0
     coverage: int = 0
     analysed_test_cases: int = 0
     spec_filter: int = 0
     observ_filter: int = 0
+    no_fast_violation: int = 0
+    fp_noise: int = 0
+    fp_nesting: int = 0
+    fp_taint_mistakes: int = 0
+    fp_flaky: int = 0
+    fp_priming: int = 0
 
     # Implementation of Borg pattern
     def __init__(self) -> None:
@@ -48,7 +51,6 @@ class StatisticsCls:
 
     def __str__(self):
         total_clss = self.eff_classes + self.single_entry_classes
-        effectiveness = self.eff_classes / total_clss if total_clss else 0
         total_clss_per_test_case = total_clss / self.analysed_test_cases \
             if self.analysed_test_cases else 0
         effective_clss = self.eff_classes / self.analysed_test_cases \
@@ -58,17 +60,19 @@ class StatisticsCls:
         s = ""
         s += f"Test Cases: {self.test_cases}\n"
         s += f"Inputs per test case: {iptc:.1f}\n"
-        s += f"Flaky violations: {self.flaky_violations}\n"
-        s += f"Taint-based false positives: {self.taint_mistakes}\n"
-        s += f"Required priming: {self.required_priming}\n"
         s += f"Violations: {self.violations}\n"
         s += "Effectiveness: \n"
-        s += f"  Effectiveness: {effectiveness:.1f}\n"
         s += f"  Total Cls: {total_clss_per_test_case:.1f}\n"
         s += f"  Effective Cls: {effective_clss:.1f}\n"
-        s += "Filters:\n"
+        s += "Discarded Test Cases:\n"
         s += f"  Speculation Filter: {self.spec_filter}\n"
         s += f"  Observation Filter: {self.observ_filter}\n"
+        s += f"  No Fast-Path Violation: {self.no_fast_violation}\n"
+        s += f"  Noise-Based FP: {self.fp_noise}\n"
+        s += f"  No Max-Nesting Violation: {self.fp_nesting}\n"
+        s += f"  Tainting Mistakes: {self.fp_taint_mistakes}\n"
+        s += f"  Flaky Tests: {self.fp_flaky}\n"
+        s += f"  Priming Check: {self.fp_priming}\n"
         return s
 
     def get_brief(self):
@@ -83,13 +87,14 @@ class StatisticsCls:
                 eff_cls = 0
             s = f"Cls:{eff_cls:.1f}/{all_cls:.1f},"
             s += f"In:{self.num_inputs / self.test_cases:.1f},"
-            s += f"Cv:{self.coverage},"
-            s += f"SpF:{self.spec_filter},"
-            s += f"ObF:{self.observ_filter},"
-            s += f"Prm:{self.required_priming}," \
-                 f"Flk:{self.flaky_violations}," \
-                 f"TbM:{self.taint_mistakes}," \
-                 f"Vio:{self.violations}"
+            s += f"SF:{self.spec_filter},"
+            s += f"OF:{self.observ_filter},"
+            s += f"NE:{self.fp_nesting}," \
+                 f"NO:{self.fp_noise}," \
+                 f"TM:{self.fp_taint_mistakes}," \
+                 f"FL:{self.fp_flaky}," \
+                 f"PR:{self.fp_priming}," \
+                 f"V:{self.violations}"
             return s
 
 
