@@ -84,7 +84,8 @@ def _get_from_config(options: Dict, key: str, conf_option_name: str, *args):
         return GenCls(*args)
 
     raise ConfigException(
-        f"ERROR: unknown value {key} of `{conf_option_name}` configuration option")
+        f"ERROR: unknown value `{key}` of `{conf_option_name}` configuration option.\n"
+        "  Available options are:\n  - " + "\n  - ".join(options.keys()))
 
 
 def get_fuzzer(instruction_set, working_directory, testcase, inputs):
