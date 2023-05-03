@@ -1,6 +1,0 @@
-contract_observation_clause: ct
-contract_execution_clause:
-  - bpas
-x86_executor_enable_ssbp_patch: false
-model_max_nesting: 1
-enable_priming: false

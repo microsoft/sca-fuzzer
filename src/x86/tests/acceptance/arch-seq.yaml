@@ -1,6 +1,0 @@
-contract_observation_clause: arch
-contract_execution_clause:
-  - seq
-input_gen_entropy_bits: 16
-inputs_per_class: 3
-enable_priming: false
