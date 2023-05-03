@@ -37,5 +37,5 @@ cd - > /dev/null || exit
 echo ""
 echo "===== x86 acceptance tests ====="
 cd $SCRIPT_DIR/.. || exit
-./x86/tests/acceptance/acceptance.bats
+./x86/tests/acceptance.bats
 cd - > /dev/null || exit

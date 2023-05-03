@@ -1,5 +1,0 @@
-contract_observation_clause: ct
-contract_execution_clause:
-  - seq
-x86_executor_enable_ssbp_patch: false
-enable_priming: false
