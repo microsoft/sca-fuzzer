@@ -524,7 +524,8 @@ class X86SandboxPass(Pass):
             * entropy of D is reduced by (division_size - 2) bits (i.e., the resulting
               entropy of D is 2 bits, with the sign bit cleared)
         """
-        divisor = inst.operands[0]
+        # Copy div source operand as we may need to modify it
+        divisor = deepcopy(inst.operands[0])
         size = divisor.width
 
         # This option prevents triggering of Zero Division Injection in the tests
@@ -542,6 +543,7 @@ class X86SandboxPass(Pass):
                     .add_op(ImmediateOperand("1", 8)) \
                     .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
                 parent.insert_before(inst, instrumentation)
+                divisor.dest = True
             else:
                 # for signed divisions with overflows forbidden,
                 # we need to modify the divisor to make it both non-zero
@@ -557,6 +559,7 @@ class X86SandboxPass(Pass):
                     .add_op(ImmediateOperand("0b1000", 8)) \
                     .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
                 parent.insert_before(inst, instrumentation)
+                divisor.dest = True
 
                 # For negative dividers, we clear the lower 4 bits of the divider,
                 # thus making the value at most -15. To this end, we AND
@@ -620,6 +623,8 @@ class X86SandboxPass(Pass):
                 .add_op(divisor) \
                 .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
             parent.insert_before(inst, instrumentation)
+            divisor.dest = True
+
             instrumentation = Instruction("SHR", True) \
                 .add_op(RegisterOperand(d_register, size, True, True)) \
                 .add_op(ImmediateOperand("1", 8)) \
@@ -638,7 +643,7 @@ class X86SandboxPass(Pass):
             # no need for sandboxing
             return
 
-        offset = inst.operands[1]
+        offset = deepcopy(inst.operands[1])
         if isinstance(offset, ImmediateOperand):
             # The offset is an immediate
             # Simply replace it with a smaller value
@@ -653,6 +658,7 @@ class X86SandboxPass(Pass):
                 .add_op(ImmediateOperand(self.mask_3bits, 8)) \
                 .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
             parent.insert_before(inst, apply_mask)
+            offset.dest = True
             return
 
         # Special case: offset and address use the same register
@@ -858,7 +864,7 @@ class X86PatchUndefinedResultPass(Pass):
         Bit Scan instructions give an undefined result when the source operand is zero.
         To avoid it, set the most significant bit.
         """
-        source = inst.operands[1]
+        source = deepcopy(inst.operands[1])  # copy because we may modify it
         mask = bin(1 << (source.width - 1))
         mask_size = source.width
         if source.width in [64, 32]:
@@ -869,6 +875,7 @@ class X86PatchUndefinedResultPass(Pass):
             .add_op(ImmediateOperand(mask, mask_size)) \
             .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
         parent.insert_before(inst, apply_mask)
+        source.dest = True
 
 
 class X86PatchOpcodesPass(Pass):
