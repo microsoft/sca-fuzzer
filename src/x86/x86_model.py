@@ -1167,21 +1167,28 @@ class X86UnicornVspecOps(X86FaultModelAbstract):
 
         if access != UC_MEM_WRITE:
             # for loads, check if address is tainted
-            # TODO: strictly speaking I think we should test if any address in the range of
-            # address+size is tainted
-            if address in model.mem_taints or model.whole_memory_tainted:
-                # add address taint to current taint
-                if model.whole_memory_tainted:
-                    model.curr_taint.add(model.full_input_taint)
-                else:
-                    model.curr_taint.update(model.mem_taints[address])
-                # remember that instruction used tainted src value
+            # Test if any address in the range of address+size is tainted
+            is_tainted: bool = False
+            taints = set()
+            for i in range(size):
+                if (address + i) in model.mem_taints:
+                    is_tainted = True
+                    taints.update(model.mem_taints[address + i])
+
+            # add address taint to current taint
+            if is_tainted:
+                model.curr_taint.update(taints)
+            elif model.whole_memory_tainted:
+                model.curr_taint.add(model.full_input_taint)
+
+            if is_tainted or model.whole_memory_tainted:
+                # remember that instruction used tainted src value and update taint of dest
+                # registers with address taint
                 model.curr_src_tainted = True
-                # update taint of dest registers with address taint
                 model.update_reg_taints()
-            # if address itself is not tainted, value stored at address to current taint
-            #     and potentially add to taints
             else:
+                # if address itself is not tainted, value stored at address to current taint
+                # and potentially add to taints
                 mem_value = int.from_bytes(mem_value, 'little')
                 pc = model.curr_instruction_addr - model.code_start
                 model.curr_taint.add(TaintedValue(pc, address, mem_value))
@@ -1202,7 +1209,7 @@ class X86UnicornVspecOps(X86FaultModelAbstract):
         # check if the memory access creates a tainted observation
         if model.curr_observation:
             # if current observation contains full architectural state info, then only leak the hash
-            if (None, None, model.input_hash) in model.curr_observation:
+            if model.full_input_taint in model.curr_observation:
                 model.curr_observation = {model.full_input_taint}
             observation_list = list(model.curr_observation)
             observation_list.sort()
