@@ -1484,6 +1484,7 @@ class X86UnicornVspecAllMemoryFaults(X86UnicornVspecAll):
         elif model.pending_re_execution:
             model.pending_re_execution = False
             model.pending_restore_protection = True
+            return
         X86UnicornVspecAll.speculate_instruction(emulator, address, size, model)
 
     def get_next_instruction(self):
