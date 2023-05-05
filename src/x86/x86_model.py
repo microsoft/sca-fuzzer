@@ -806,6 +806,7 @@ class X86UnicornCondBpas(X86UnicornSpec):
 
 
 class X86NullInjCond(X86UnicornNull, X86UnicornCond):
+
     @staticmethod
     def speculate_mem_access(emulator, access, address, size, value, model):
         X86UnicornNull.speculate_mem_access(emulator, access, address, size, value, model)
@@ -835,29 +836,32 @@ class X86UnicornVspecOps(X86FaultModelAbstract):
     """
     input_hash: int = 0
     full_input_taint: TaintedValue
-    # taints of registers
     reg_taints: Dict[str, Taint]
+    """ reg_taints: taints of registers """
     reg_taints_checkpoints: List[Dict[str, Taint]]
-    # taints of memory locations
     mem_taints: Dict[int, Taint]
+    """ mem_taints: taints of memory locations """
     mem_taints_checkpoints: List[Dict[int, Taint]]
-    # overapproximation recording whole memory as being corrupted/tainted
     whole_memory_tainted: bool
+    """ whole_memory_tainted: overapproximation recording whole memory as being corrupted/tainted"""
     whole_memory_tainted_checkpoints: List[bool]
-    # taints+values that need to be leaked if current instruction is a memory access
     curr_observation: Taint = set()
-    # address and size of last memory load (needed in case of exception)
+    """ curr_observation: taints+values that need to be leaked if current instruction is
+        a memory access """
     curr_mem_load: Tuple[int, int] = (-1, -1)
-    # address and size of last memory store (needed in case of exception)
+    """ curr_mem_load: address and size of last memory load (needed in case of exception) """
     curr_mem_store: Tuple[int, int] = (-1, -1)
-    # current destination registers
+    """ curr_mem_store: address and size of last memory store (needed in case of exception) """
     curr_dest_regs: List[str] = []
-    # width of current destination registers, i.e., whether only part of register gets overwritten
+    """ curr_dest_regs: current destination registers """
     curr_dest_regs_sizes: Dict = dict()
-    # current taint+values that are propagated from speculate_instruction() to trace_mem_access()
+    """ curr_dest_regs_sizes: width of current destination registers, i.e., whether only part of
+        register gets overwritten """
     curr_taint: Taint = set()
-    # remember if any source operand was tainted in speculate_instruction()
+    """ curr_taint: current taint+values that are propagated from speculate_instruction()
+        to trace_mem_access() """
     curr_src_tainted: bool = False
+    """ curr_src_tainted: remember if any source operand was tainted in speculate_instruction() """
 
     flags_translate = {
         "CF": FLAGS_CF,
