@@ -893,6 +893,7 @@ class X86UnicornVspecOps(X86FaultModelAbstract):
         self.curr_dest_regs = []
         self.curr_dest_regs_sizes = {}
         self.curr_mem_load = (-1, -1)
+        self.curr_mem_store = (-1, -1)
         self.curr_taint = set()
         self.curr_src_tainted = False
         assert len(self.reg_taints) == 0
