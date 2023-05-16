@@ -196,7 +196,11 @@ static inline int pre_measurement_setup(void)
 
 #elif VENDOR_ID == 2 // AMD
     // Configure PMU
+#if CPU_FAMILY == 25
     err |= config_pfc(0, "044.ff", 1, 1); // Local L2->L1 cache fills - htrace collection
+#elif CPU_FAMILY == 23
+    err |= config_pfc(0, "043.ff", 1, 1);
+#endif
     err |= config_pfc(5, "02c.00", 1, 1); // SMI monitoring
 
     err |= config_pfc(1, "0AB.88", 1, 1); // dispatched ops - fuzzing feedback
@@ -204,11 +208,19 @@ static inline int pre_measurement_setup(void)
     err |= config_pfc(3, "091.00", 1, 1); // decode redirects - fuzzing feedback
     // err |= config_pfc(1, "05A.ff", 1, 1); // decode redirects - fuzzing feedback
 
+#if CPU_FAMILY == 25
     // Configure uarch patches
     wrmsr64(MSR_IA32_SPEC_CTRL, ssbp_patch_control);
 
     // Disable prefetchers
     wrmsr64(0xc0000108, prefetcher_control);
+#elif CPU_FAMILY == 23
+    // Disable prefetchers
+    uint64_t dc_config = native_read_msr(0xC0011022); // Data Cache Configuration
+    dc_config |=  (1<<13);
+    dc_config |=  (1<<15);
+    wrmsr64(0xC0011022, dc_config);
+#endif
 
     // Ensure SVM is disabled
     unsigned long long int msr_efer = rdmsr64(0xc0000080);
