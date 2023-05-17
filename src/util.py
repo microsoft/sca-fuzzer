@@ -80,16 +80,17 @@ class StatisticsCls:
             return ""
         else:
             if self.analysed_test_cases:
-                all_cls = (self.eff_classes + self.single_entry_classes) / self.analysed_test_cases
-                eff_cls = self.eff_classes / self.analysed_test_cases
+                all_cls = (self.eff_classes + self.single_entry_classes) // self.analysed_test_cases
+                eff_cls = self.eff_classes // self.analysed_test_cases
             else:
                 all_cls = 0
                 eff_cls = 0
-            s = f"Cls:{eff_cls:.1f}/{all_cls:.1f},"
-            s += f"In:{self.num_inputs / self.test_cases:.1f},"
+            s = f"Cls:{eff_cls}/{all_cls},"
+            s += f"In:{self.num_inputs // self.test_cases},"
             s += f"SF:{self.spec_filter},"
             s += f"OF:{self.observ_filter},"
-            s += f"NE:{self.fp_nesting}," \
+            s += f"FV:{self.no_fast_violation}," \
+                 f"NE:{self.fp_nesting}," \
                  f"NO:{self.fp_noise}," \
                  f"TM:{self.fp_taint_mistakes}," \
                  f"FL:{self.fp_flaky}," \
