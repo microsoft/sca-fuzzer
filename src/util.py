@@ -111,6 +111,7 @@ class Logger:
     - Info: Useful info. Printed only if enabled in CONF.logging_modes
     - Debug: Detailed info. Printed if both enabled in CONF.logging_modes and if __debug__ is set.
     """
+    _borg_shared_state: Dict = {}
 
     one_percent_progress: float = 0.0
     progress: float = 0.0
@@ -134,7 +135,9 @@ class Logger:
     dbg_generator: bool = False
 
     def __init__(self) -> None:
-        self.update_logging_modes()
+        self.__dict__ = self._borg_shared_state
+        if not self._borg_shared_state:
+            self.update_logging_modes()
 
     def update_logging_modes(self):
         for mode in CONF.logging_modes:
