@@ -404,7 +404,7 @@ class UnicornModel(Model, ABC):
         elif errno == uc.UC_ERR_RESOURCE:
             return "Insufficient resource (UC_ERR_RESOURCE)"
         elif errno == uc.UC_ERR_EXCEPTION:
-            return "Unhandled CPU exception (UC_ERR_EXCEPTION)"
+            return "Misc. CPU exception (UC_ERR_EXCEPTION)"
         else:
             return "Unknown error code"
 

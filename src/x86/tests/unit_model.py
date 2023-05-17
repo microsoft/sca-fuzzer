@@ -145,6 +145,15 @@ MOV rax, qword ptr [R14 + RAX]
 .test_case_exit:
 """
 
+ASM_DIV_ZERO2 = """
+.intel_syntax noprefix
+.test_case_enter:
+DIV RBX
+MOV rax, qword ptr [R14 + RAX]
+MOV rax, qword ptr [R14 + RAX]
+.test_case_exit:
+"""
+
 PF_MASK = 0xfffffffffffffffe
 
 
@@ -537,6 +546,49 @@ class X86ModelTest(unittest.TestCase):
             # terminate after rollback
         ]))   # yapf: disable
         self.assertEqual(ctraces[0], expected_trace)
+
+    def test_ct_vsops(self):
+        model = x86_model.x86UnicornVspecOpsDIV(0x1000000, 0x8000)
+        model.tracer = core_model.CTTracer()
+        model.handled_faults.add(21)
+        input_ = Input()
+        input_[input_.register_start] = 2  # rax
+        input_[input_.register_start + 1] = 0  # rbx
+        input_[input_.register_start + 3] = 0  # rdx
+
+        ctraces = self.get_traces(model, ASM_DIV_ZERO2, [input_])
+        hash_of_operands = hash((
+            (0x0, 35, 2),  # rax
+            (0x0, 37, 0),  # rbx
+            (0x0, 40, 0),  # rdx
+            (0x3, 112, 0x1000000)  # r14
+        ))
+        hash_of_input = hash(((0, 0, hash(input_)), ))
+        expected_trace_full = tuple([
+            0x0, 0xff8,  # fault
+            0x3, hash_of_operands,  # first mem access exposes the hash of the div operands
+            0x7, hash_of_input  # next mem access exposes the hash of the whole input
+            # terminate after rollback
+        ])  # yapf: disable
+        self.assertEqual(ctraces[0], hash(expected_trace_full))
+
+    def test_ct_vsall(self):
+        model = x86_model.x86UnicornVspecAllDIV(0x1000000, 0x8000)
+        model.tracer = core_model.CTTracer()
+        model.handled_faults.add(21)
+        input_ = Input()
+        input_[input_.register_start] = 2  # rax
+        input_[input_.register_start + 1] = 0  # rbx
+        input_[input_.register_start + 3] = 0  # rdx
+
+        ctraces = self.get_traces(model, ASM_DIV_ZERO, [input_])
+        hash_of_input = hash(((0, 0, hash(input_)), ))
+        expected_trace_full = tuple([
+            0x0, 0xff8,  # fault
+            0x2, hash_of_input,  # mem access exposes the input hash
+            # terminate after rollback
+        ])  # yapf: disable
+        self.assertEqual(ctraces[0], hash(expected_trace_full))
 
 
 class X86TaintTrackerTest(unittest.TestCase):
