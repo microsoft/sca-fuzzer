@@ -11,7 +11,7 @@ from ..util import Logger
 
 
 def write_to_sysfs_file(value, path: str) -> None:
-    subprocess.run(f"sudo bash -c 'echo -n {value} > {path}'", shell=True, check=True)
+    subprocess.run(f"echo -n {value} > {path}", shell=True, check=True)
 
 
 def write_to_sysfs_file_bytes(value: bytes, path: str) -> None:
@@ -65,6 +65,9 @@ class X86Executor(Executor):
         write_to_sysfs_file("1" if CONF.enable_pre_run_flush else "0",
                             "/sys/x86_executor/enable_pre_run_flush")
         write_to_sysfs_file(CONF.executor_mode, "/sys/x86_executor/measurement_mode")
+
+    def set_quick_and_dirty(self, state: bool):
+        write_to_sysfs_file("1" if state else "0", "/sys/x86_executor/enable_quick_and_dirty_mode")
 
     def set_vendor_specific_features(self):
         pass

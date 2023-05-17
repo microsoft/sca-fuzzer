@@ -40,6 +40,8 @@ int (*set_memory_nx)(unsigned long, int) = 0;
 
 // =================================================================================================
 // Global Variables
+bool quick_and_dirty_mode = false;
+
 long uarch_reset_rounds = UARCH_RESET_ROUNDS_DEFAULT;
 uint64_t ssbp_patch_control = SSBP_PATH_DEFAULT;
 uint64_t prefetcher_control = PREFETCHER_DEFAULT;
@@ -152,7 +154,6 @@ static ssize_t enable_pre_run_flush_store(struct kobject *kobj, struct kobj_attr
 static struct kobj_attribute enable_pre_run_flush_attribute =
     __ATTR(enable_pre_run_flush, 0666, NULL, enable_pre_run_flush_store);
 
-
 /// Vendor-specific features
 #if VENDOR_ID == 1 // Intel
 // MPX control
@@ -176,6 +177,13 @@ static ssize_t measurement_mode_store(struct kobject *kobj, struct kobj_attribut
 static struct kobj_attribute measurement_mode_attribute =
     __ATTR(measurement_mode, 0666, NULL, measurement_mode_store);
 
+/// Q&D mode selector
+///
+static ssize_t enable_quick_and_dirty_mode(struct kobject *kobj, struct kobj_attribute *attr,
+                                           const char *buf, size_t count);
+static struct kobj_attribute enable_quick_and_dirty_mode_attribute =
+    __ATTR(enable_quick_and_dirty_mode, 0666, NULL, enable_quick_and_dirty_mode);
+
 static struct attribute *sysfs_attributes[] = {
     &trace_attribute.attr,
     &test_case_attribute.attr,
@@ -188,6 +196,7 @@ static struct attribute *sysfs_attributes[] = {
     &enable_prefetcher_attribute.attr,
     &enable_pre_run_flush_attribute.attr,
     &measurement_mode_attribute.attr,
+    &enable_quick_and_dirty_mode_attribute.attr,
     &pte_mask_attribute.attr,
 #if VENDOR_ID == 1 // Intel
     &enable_mpx_attribute.attr,
@@ -460,6 +469,40 @@ static ssize_t measurement_mode_store(struct kobject *kobj, struct kobj_attribut
     return count;
 }
 
+static ssize_t enable_quick_and_dirty_mode(struct kobject *kobj, struct kobj_attribute *attr,
+                                           const char *buf, size_t count)
+{
+
+    unsigned value = 0;
+    sscanf(buf, "%u", &value);
+
+    if (value == 1)
+    {
+        quick_and_dirty_mode = true;
+        if (measurement_template == (char *)&template_l1d_prime_probe)
+        {
+            measurement_template = (char *)&template_l1d_prime_probe_fast;
+        }
+        else if (measurement_template == (char *)&template_l1d_prime_probe_partial)
+        {
+            measurement_template = (char *)&template_l1d_prime_probe_partial_fast;
+        }
+    }
+    else
+    {
+        quick_and_dirty_mode = false;
+        if (measurement_template == (char *)&template_l1d_prime_probe_fast)
+        {
+            measurement_template = (char *)&template_l1d_prime_probe;
+        }
+        else if (measurement_template == (char *)&template_l1d_prime_probe_partial_fast)
+        {
+            measurement_template = (char *)&template_l1d_prime_probe_partial;
+        }
+    }
+    return count;
+}
+
 // ============================================================================
 // Memory Management and Initialization
 static int __init executor_init(void)
@@ -528,6 +571,9 @@ static int __init executor_init(void)
     }
 
     stack_base = &(sandbox->main_region[MAIN_REGION_SIZE - 8]);
+
+    // zero-initialize the region of memory used by Prime+Probe
+    memset(&sandbox->eviction_region[0], 0, EVICT_REGION_SIZE * sizeof(char));
 
     // allocate memory for measurements
     measurements = vmalloc(n_inputs * sizeof(measurement_t));

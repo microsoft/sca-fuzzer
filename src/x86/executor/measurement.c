@@ -266,6 +266,102 @@ static inline int uarch_flush(void)
     return 0;
 }
 
+void run_experiment_dirty(long rounds)
+{
+    get_cpu();
+    unsigned long flags;
+    raw_local_irq_save(flags);
+
+    // save the current state of IDT
+    local_store_idt(&idtr);
+    orig_idt_table = (gate_desc *)idtr.address;
+    idt_copy();
+
+    // save the current value of the faulty page PTE
+    pteval_t orig_pte = faulty_page_ptep->pte;
+
+    for (long i = -uarch_reset_rounds; i < rounds; i++)
+    {
+        // ignore "warm-up" runs (i<0)uarch_reset_rounds
+        long i_ = (i < 0) ? 0 : i;
+        uint64_t *current_input = &inputs[i_ * INPUT_SIZE / 8];
+
+        // Initialize the rest of the memory
+        // - sandbox: main and faulty regions
+        uint64_t *main_page_values = &current_input[0];
+        uint64_t *main_base = (uint64_t *)&sandbox->main_region[0];
+        for (int j = 0; j < MAIN_REGION_SIZE / 8; j += 1)
+        {
+            ((uint64_t *)main_base)[j] = main_page_values[j];
+        }
+
+        uint64_t *faulty_page_values = &current_input[MAIN_REGION_SIZE / 8];
+        uint64_t *faulty_base = (uint64_t *)&sandbox->faulty_region[0];
+        for (int j = 0; j < FAULTY_REGION_SIZE / 8; j += 1)
+        {
+            ((uint64_t *)faulty_base)[j] = faulty_page_values[j];
+        }
+
+        // Initial register values (the registers will be set to these values in template.c)
+        uint64_t *register_values = &current_input[(MAIN_REGION_SIZE + FAULTY_REGION_SIZE) / 8];
+        uint64_t *register_initialization_base = (uint64_t *)&sandbox->upper_overflow[0];
+
+        // - RAX ... RDI
+        for (int j = 0; j < 6; j += 1)
+        {
+            ((uint64_t *)register_initialization_base)[j] = register_values[j];
+        }
+
+        // - flags
+        uint64_t masked_flags = (register_values[6] & 2263) | 2;
+        ((uint64_t *)register_initialization_base)[6] = masked_flags;
+
+        // - RSP and RBP
+        ((uint64_t *)register_initialization_base)[7] = (uint64_t)stack_base;
+
+        // Set page table entry for the faulty region
+        if ((faulty_pte_mask_set != 0) || (faulty_pte_mask_clear != 0xffffffffffffffff))
+        {
+            faulty_page_pte.pte =
+                ((faulty_page_ptep->pte | faulty_pte_mask_set) & faulty_pte_mask_clear);
+            set_pte_at(current->mm, faulty_page_addr, faulty_page_ptep, faulty_page_pte);
+            // When testing for #PF flushing the faulty page causes a 'soft
+            // lookup' kernel error on certain CPUs.
+            // asm volatile("clflush (%0)\nlfence\n" ::"r"(faulty_page_addr)
+            // : "memory");
+            _native_page_invalidate();
+        }
+
+        setup_idt();
+
+        // execute
+        ((void (*)(char *))measurement_code)(&sandbox->main_region[0]);
+
+        reset_idt();
+
+        // restore the original value of the faulty page PTE
+        if ((faulty_pte_mask_set != 0) || (faulty_pte_mask_clear != 0xffffffffffffffff))
+        {
+            faulty_page_pte.pte = orig_pte;
+            set_pte_at(current->mm, faulty_page_addr, faulty_page_ptep, faulty_page_pte);
+            _native_page_invalidate();
+        }
+
+        // store the measurement results
+        measurement_t result = sandbox->latest_measurement;
+        // printk(KERN_ERR "x86_executor: measurement %llu\n", result.htrace[0]);
+        measurements[i_].htrace[0] = result.htrace[0];
+        measurements[i_].pfc[0] = result.pfc[0];
+        measurements[i_].pfc[1] = result.pfc[1];
+        measurements[i_].pfc[2] = result.pfc[2];
+        measurements[i_].pfc[3] = result.pfc[3];
+        measurements[i_].pfc[4] = result.pfc[4];
+    }
+
+    raw_local_irq_restore(flags);
+    put_cpu();
+}
+
 void run_experiment(long rounds)
 {
     get_cpu();
@@ -405,7 +501,14 @@ int trace_test_case(void)
     // 3. Run the measurement
     if (pre_measurement_setup())
         return -1;
-    run_experiment((long)n_inputs);
+    if (quick_and_dirty_mode)
+    {
+        run_experiment_dirty((long)n_inputs);
+    }
+    else
+    {
+        run_experiment((long)n_inputs);
+    }
     post_measurement();
 
     kernel_fpu_end();
