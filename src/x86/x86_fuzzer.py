@@ -85,6 +85,7 @@ class X86Fuzzer(Fuzzer):
     def filter(self, test_case: TestCase, inputs: List[Input]) -> bool:
         """ This function implements a multi-stage algorithm that gradually filters out
         uninteresting test cases """
+        self.executor.set_quick_and_dirty(True)
         if CONF.enable_speculation_filter or CONF.enable_observation_filter:
             self.executor.load_test_case(test_case)
             non_fenced_htraces = self.executor.trace_test_case(inputs, repetitions=1)
@@ -99,6 +100,7 @@ class X86Fuzzer(Fuzzer):
                 if pfc_values[0] > pfc_values[1] or pfc_values[2] > 0:
                     break
             else:
+                self.executor.set_quick_and_dirty(False)
                 STAT.spec_filter += 1
                 return True
 
@@ -119,9 +121,11 @@ class X86Fuzzer(Fuzzer):
             os.remove(fenced_obj.name)
 
             if fenced_htraces == non_fenced_htraces:
+                self.executor.set_quick_and_dirty(False)
                 STAT.observ_filter += 1
                 return True
 
+        self.executor.set_quick_and_dirty(False)
         return False
 
 

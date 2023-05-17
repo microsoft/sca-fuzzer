@@ -41,6 +41,7 @@
 #endif
 
 // Executor Configuration Interface
+extern bool quick_and_dirty_mode;
 extern long uarch_reset_rounds;
 #define UARCH_RESET_ROUNDS_DEFAULT 1
 extern uint64_t ssbp_patch_control;
@@ -120,7 +121,9 @@ extern pteval_t faulty_pte_mask_clear;
 int trace_test_case(void);
 int load_template(size_t tc_size);
 void template_l1d_prime_probe(void);
+void template_l1d_prime_probe_fast(void);
 void template_l1d_prime_probe_partial(void);
+void template_l1d_prime_probe_partial_fast(void);
 void template_l1d_flush_reload(void);
 void template_l1d_evict_reload(void);
 void template_gpr(void);
