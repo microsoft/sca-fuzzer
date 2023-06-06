@@ -149,7 +149,7 @@ class X86UnicornModel(UnicornModel):
             mem_regs = re.split(r'\+|-|\*', mem_op.value)
             assert len(mem_regs) == 2 and "R14" in mem_regs[0].upper(), "Invalid format of BNDCU"
             offset_reg = self.target_desc.reg_str_to_constant.get(mem_regs[1].upper().strip(), None)
-            if offset_reg and (self.emulator.reg_read(offset_reg) + 8) > 0x1000:  # type: ignore
+            if offset_reg and self.emulator.reg_read(offset_reg) > 0x1000:  # type: ignore
                 self.pending_fault_id = 13
                 self.emulator.emu_stop()
             elif re.match("(0[bx])?[0-9]+", mem_regs[1]) and int(mem_regs[1]) > 0x1000:
