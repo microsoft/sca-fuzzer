@@ -27,6 +27,7 @@ from .util import Logger, NotSupportedException
 # ==================================================================================================
 class UnicornTargetDesc(ABC):
     registers: List[int]
+    simd128_registers: List[int]
     barriers: List[str]
     flags_register: int
     reg_decode: Dict[str, int]

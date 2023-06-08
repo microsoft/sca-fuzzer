@@ -16,6 +16,31 @@ fuzzer: architectural
 enable_priming: false
 memory_access_zeroed_bits: 0
 inputs_per_class: 1
+
+instruction_categories:
+- BASE-BINARY
+- BASE-BITBYTE
+- BASE-CMOV
+- BASE-COND_BR
+- BASE-CONVERT
+- BASE-DATAXFER
+- BASE-FLAGOP
+- BASE-LOGICAL
+- BASE-MISC
+- BASE-NOP
+- BASE-POP
+- BASE-PUSH
+- BASE-SEMAPHORE
+- BASE-SETCC
+- BASE-STRINGOP
+- BASE-WIDENOP
+- SSE-SSE
+- SSE-DATAXFER
+- SSE-MISC
+- SSE2-DATAXFER
+- SSE2-MISC
+- CLFLUSHOPT-CLFLUSHOPT
+- CLFSH-MISC
 "
 
 CT_SEQ="
@@ -123,10 +148,16 @@ function intel_only() {
     assert_no_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/model_flags_match.asm -c $tmp_config -i 20"
 }
 
-@test "Architectural Test: Model and Executor are initialized with the same FLAGS value" {
+@test "Architectural Test: Model and Executor have the same FLAGS value" {
     tmp_config=$(mktemp -p $TEST_DIR)
     echo "$ARCH_BASE" >>$tmp_config
     assert_no_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/model_flags_match.asm -c $tmp_config -i 20"
+}
+
+@test "Architectural Test: Model and Executor have the same XMM values" {
+    tmp_config=$(mktemp -p $TEST_DIR)
+    echo "$ARCH_BASE" >>$tmp_config
+    assert_no_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/model_match_xmm.asm -c $tmp_config -i 20"
 }
 
 @test "Architectural Test: 100 Random Test Cases" {

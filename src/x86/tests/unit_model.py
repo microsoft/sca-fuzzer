@@ -243,7 +243,8 @@ class X86ModelTest(unittest.TestCase):
         for i in range(0, 7):
             input_[input_.register_start + i] = 2
         ctraces = self.get_traces(model, ASM_BRANCH_AND_LOAD, [input_])
-        expected_trace = hash(tuple([2, 2, 2, 2, 2, 2, 2, 0x0, 0x3, 0x5, 0, 0x8]))
+        expected_trace = hash(
+            tuple([2, 2, 2, 2, 2, 2, 2, model.stack_base - model.sandbox_base, 0x0, 3, 5, 0, 8]))
         self.assertEqual(ctraces, [expected_trace])
 
     def test_arch_seq(self):
@@ -254,7 +255,8 @@ class X86ModelTest(unittest.TestCase):
         for i in range(0, 7):
             input_[input_.register_start + i] = 2
         ctraces = self.get_traces(model, ASM_BRANCH_AND_LOAD, [input_])
-        expected_trace = hash(tuple([2, 2, 2, 2, 2, 2, 2, 0x0, 0x3, 0x5, 1, 0, 0x8]))
+        expected_trace = hash(
+            tuple([2, 2, 2, 2, 2, 2, 2, model.stack_base - model.sandbox_base, 0x0, 3, 5, 1, 0, 8]))
         self.assertEqual(ctraces, [expected_trace])
 
     def test_ct_cond(self):
@@ -563,7 +565,7 @@ class X86ModelTest(unittest.TestCase):
             (0x0, 40, 0),  # rdx
             (0x3, 112, 0x1000000)  # r14
         ))
-        hash_of_input = hash(((0, 0, hash(input_)), ))
+        hash_of_input = hash(((0, 0, hash(input_)),))
         expected_trace_full = tuple([
             0x0, 0xff8,  # fault
             0x3, hash_of_operands,  # first mem access exposes the hash of the div operands
@@ -582,7 +584,7 @@ class X86ModelTest(unittest.TestCase):
         input_[input_.register_start + 3] = 0  # rdx
 
         ctraces = self.get_traces(model, ASM_DIV_ZERO, [input_])
-        hash_of_input = hash(((0, 0, hash(input_)), ))
+        hash_of_input = hash(((0, 0, hash(input_)),))
         expected_trace_full = tuple([
             0x0, 0xff8,  # fault
             0x2, hash_of_input,  # mem access exposes the input hash

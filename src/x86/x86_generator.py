@@ -214,7 +214,8 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
                         break
                     continue
                 elif op_spec.type == OT.REG:
-                    if op_raw not in self.target_desc.registers[op_spec.width]:
+                    width = op_spec.width if "XMM" not in op_raw else 128
+                    if op_raw not in self.target_desc.registers[width]:
                         match = False
                         break
                     continue
@@ -439,6 +440,10 @@ class X86SandboxPass(Pass):
         """ Force the memory accesses into the page starting from R14 """
         mem_operands = instr.get_mem_operands()
         implicit_mem_operands = instr.get_implicit_mem_operands()
+        mask = self.sandbox_address_mask
+        if "SSE" in instr.category:
+            mask = mask[:-4] + "0" * 4
+
         if mem_operands and not implicit_mem_operands:
             assert len(mem_operands) == 1, \
                 f"Instructions with multiple memory accesses are not yet supported: {instr.name}"
@@ -447,7 +452,7 @@ class X86SandboxPass(Pass):
             imm_width = mem_operand.width if mem_operand.width <= 32 else 32
             apply_mask = Instruction("AND", True) \
                 .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
-                .add_op(ImmediateOperand(self.sandbox_address_mask, imm_width)) \
+                .add_op(ImmediateOperand(mask, imm_width)) \
                 .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
             parent.insert_before(instr, apply_mask)
             instr.get_mem_operands()[0].value = "R14 + " + address_reg
@@ -468,7 +473,7 @@ class X86SandboxPass(Pass):
                     f"Unexpected address register {address_reg} used in {instr}"
                 apply_mask = Instruction("AND", True) \
                     .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
-                    .add_op(ImmediateOperand(self.sandbox_address_mask, imm_width)) \
+                    .add_op(ImmediateOperand(mask, imm_width)) \
                     .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
                 add_base = Instruction("ADD", True) \
                     .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
