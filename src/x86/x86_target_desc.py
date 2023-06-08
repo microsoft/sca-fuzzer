@@ -24,7 +24,7 @@ class X86TargetDesc(TargetDesc):
         "R10B": 8, "R11B": 8, "R12B": 8, "R13B": 8, "R14B": 8, "R15B": 8,
         "AH": 8, "Bh": 8, "CH": 8, "DH": 8,
     }  # yapf: disable
-    gpr_normalized = {
+    reg_normalized = {
         "RAX": "A", "EAX": "A", "AX": "A", "AL": "A", "AH": "A",
         "RBX": "B", "EBX": "B", "BX": "B", "BL": "B", "BH": "B",
         "RCX": "C", "ECX": "C", "CX": "C", "CL": "C", "CH": "C",
@@ -57,7 +57,7 @@ class X86TargetDesc(TargetDesc):
         "BND2": "BND2",
         "BND3": "BND3",
     }  # yapf: disable
-    gpr_denormalized = {
+    reg_denormalized = {
         "A": {64: "RAX", 32: "EAX", 16: "AX", 8: "AL"},
         "B": {64: "RBX", 32: "EBX", 16: "BX", 8: "BL"},
         "C": {64: "RCX", 32: "ECX", 16: "CX", 8: "CL"},
@@ -139,12 +139,10 @@ class X86UnicornTargetDesc(UnicornTargetDesc):
         "SIL": ucc.UC_X86_REG_SIL,
         "SPL": ucc.UC_X86_REG_SPL,
         "BPL": ucc.UC_X86_REG_BPL,
-
         "AH": ucc.UC_X86_REG_AH,
         "BH": ucc.UC_X86_REG_BH,
         "CH": ucc.UC_X86_REG_CH,
         "DH": ucc.UC_X86_REG_DH,
-
         "AX": ucc.UC_X86_REG_AX,
         "BX": ucc.UC_X86_REG_BX,
         "CX": ucc.UC_X86_REG_CX,
@@ -153,7 +151,6 @@ class X86UnicornTargetDesc(UnicornTargetDesc):
         "SI": ucc.UC_X86_REG_SI,
         "SP": ucc.UC_X86_REG_SP,
         "BP": ucc.UC_X86_REG_BP,
-
         "EAX": ucc.UC_X86_REG_EAX,
         "EBX": ucc.UC_X86_REG_EBX,
         "ECX": ucc.UC_X86_REG_ECX,
@@ -162,7 +159,6 @@ class X86UnicornTargetDesc(UnicornTargetDesc):
         "ESI": ucc.UC_X86_REG_ESI,
         "ESP": ucc.UC_X86_REG_ESP,
         "EBP": ucc.UC_X86_REG_EBP,
-
         "RAX": ucc.UC_X86_REG_RAX,
         "RBX": ucc.UC_X86_REG_RBX,
         "RCX": ucc.UC_X86_REG_RCX,

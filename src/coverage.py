@@ -245,8 +245,8 @@ class DependentPairCoverage(Coverage):
             r.value for r in inst1.get_dest_operands(True) if isinstance(r, RegisterOperand)
         ]
         src_regs = [r.value for r in inst2.get_src_operands(True) if isinstance(r, RegisterOperand)]
-        dest_regs = [X86TargetDesc.gpr_normalized[r] for r in dest_regs]
-        src_regs = [X86TargetDesc.gpr_normalized[r] for r in src_regs]
+        dest_regs = [X86TargetDesc.reg_normalized[r] for r in dest_regs]
+        src_regs = [X86TargetDesc.reg_normalized[r] for r in src_regs]
         for r in dest_regs:
             if r in src_regs:
                 return DT.REG_GPR
