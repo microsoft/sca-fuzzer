@@ -192,7 +192,7 @@ class Logger:
         if not __debug__:
             return
 
-        if not self.dbg_generator:
+        if not self.dbg_generator or CONF._no_generation:
             return
 
         instructions_by_category = {i.category: set() for i in instructions}
