@@ -75,28 +75,35 @@ class X86UnicornModel(UnicornModel):
         regs = self.target_desc.registers
         flags = self.target_desc.flags_register
         reg_init_address = self.sandbox_base + self.MAIN_REGION_SIZE + self.FAULTY_REGION_SIZE
+
+        # - initialize GPRs
+        value: np.uint64
         for i, value in enumerate(input_.get_registers()):
-            if regs[i] == flags:
+            if regs[i] == ucc.UC_X86_REG_RSP:  # RSP is initialized with the stack base
+                value = np.uint64(self.stack_base)
+            elif regs[i] == flags:  # EFLAGS value has to be masked
                 value = (value & np.uint64(2263)) | np.uint64(2)  # type: ignore
+
             self.emulator.reg_write(regs[i], value)
 
             # executor uses the lower bytes of the upper_overflow_region to initialize registers
             # we need to match it in the model
             self.emulator.mem_write(reg_init_address, value.tobytes())
             reg_init_address += 8
-        self.emulator.mem_write(reg_init_address,
-                                self.stack_base.to_bytes(8, byteorder='little', signed=False))
 
+        self.emulator.reg_write(ucc.UC_X86_REG_RBP, self.stack_base)
+        self.emulator.reg_write(ucc.UC_X86_REG_R14, self.sandbox_base)
+
+
+        # Set memory permissions
+        # Note: this code is at the end because we need to set the permissions
+        #       *after* the memory is initialized
         if self.rw_protect:
             self.emulator.mem_protect(self.sandbox_base + self.MAIN_REGION_SIZE,
                                       self.FAULTY_REGION_SIZE, UC_PROT_NONE)
         elif self.write_protect:
             self.emulator.mem_protect(self.sandbox_base + self.MAIN_REGION_SIZE,
                                       self.FAULTY_REGION_SIZE, UC_PROT_READ)
-
-        self.emulator.reg_write(ucc.UC_X86_REG_RSP, self.stack_base)
-        self.emulator.reg_write(ucc.UC_X86_REG_RBP, self.stack_base)
-        self.emulator.reg_write(ucc.UC_X86_REG_R14, self.sandbox_base)
 
     def print_state(self, oneline: bool = False):
 
