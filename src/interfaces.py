@@ -530,7 +530,7 @@ class Input(np.ndarray):
     The array layout is:
 
     +----------------------+
-    |   Register Values    | Conf.input_register_region_size
+    |   64-bit GPR Values  | self.register_region_size
     +----------------------+
     |                      |
     |                      | Conf.input_faulty_region_size
@@ -541,22 +541,22 @@ class Input(np.ndarray):
     |  Main Region Values  |
     +----------------------+
 
-    The ordering of registers:  RAX, RBX, RCX, RDX, RSI, RDI, FLAGS
+    Ordering of GPRs:  RAX, RBX, RCX, RDX, RSI, RDI, FLAGS
     """
     seed: int = 0
     data_size: int = 0
     register_start: int = 0
+    register_region_size: int = 64  # 56 bytes for GPRs + 8 bytes for alignment
 
     def __init__(self) -> None:
         pass  # unreachable; defined only for type checking
 
     def __new__(cls):
         data_size = (CONF.input_main_region_size + CONF.input_faulty_region_size
-                     + CONF.input_register_region_size) // 8
-        aligned_size = data_size + (4096 - CONF.input_register_region_size) // 8
+        aligned_size = data_size + (4096 - cls.register_region_size)  // 8
         obj = super().__new__(cls, (aligned_size,), np.uint64, None, 0, None, None)  # type: ignore
         obj.data_size = data_size
-        obj.register_start = data_size - CONF.input_register_region_size // 8
+        obj.register_start = (CONF.input_main_region_size + CONF.input_faulty_region_size) // 8
 
         # fill the input with zeroes initially before returning, to ensure the
         # 'padding' bytes (created by using 'aligned_size' rather than
@@ -602,13 +602,14 @@ class InputTaint(np.ndarray):
     of the input impacts the contract trace.
     """
     register_start: int = 0
+    register_region_size: int = 320
 
     def __init__(self) -> None:
         pass  # unreachable; defined only for type checking
 
     def __new__(cls):
         size = (CONF.input_main_region_size + CONF.input_faulty_region_size
-                + CONF.input_register_region_size) // 8
+                + cls.register_region_size) // 8
         obj = super().__new__(cls, (size,), bool, None, 0, None, None)  # type: ignore
         obj.register_start = (CONF.input_main_region_size + CONF.input_faulty_region_size) // 8
         return obj

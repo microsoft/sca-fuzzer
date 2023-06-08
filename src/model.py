@@ -577,7 +577,8 @@ class GPRTracer(UnicornTracer):
         return super().init_trace(emulator, target_desc)
 
     def get_contract_trace(self, _) -> CTrace:
-        self.trace = [self.emulator.reg_read(reg) for reg in self.target_desc.registers]
+        registers = self.target_desc.registers[:-1]  # exclude the last register (stack pointer)
+        self.trace = [int(self.emulator.reg_read(reg)) for reg in registers]
         self.trace = self.trace[:-1]  # exclude flags
         return self.trace[0]
 

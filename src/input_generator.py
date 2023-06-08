@@ -92,6 +92,8 @@ class LegacyRandomInputGenerator(InputGeneratorCommon):
     """
 
     def __init__(self, seed: int):
+        LOG = Logger()
+        LOG.warning("input_gen", "Using deprecated LegacyRandomInputGenerator")
         super().__init__(seed)
         self.input_mask = pow(2, (CONF.input_gen_entropy_bits % 33)) - 1
 
@@ -115,7 +117,7 @@ class LegacyRandomInputGenerator(InputGeneratorCommon):
 
         # again, to emulate the legacy (and kinda broken) input generator,
         # initialize only the first 32 bits of registers
-        for i in range(CONF.input_register_region_size // 8):
+        for i in range(input_.register_region_size // 8):
             input_[-i - 1] = input_[-i - 1] % POW32
 
         return input_, randint

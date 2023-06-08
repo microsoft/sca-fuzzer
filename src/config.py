@@ -97,8 +97,6 @@ class ConfCls:
     """ input_main_region_size: """
     input_faulty_region_size: int = 4096
     """ input_faulty_region_size: """
-    input_register_region_size: int = 64
-    """ input_register_region_size: """
 
     # ==============================================================================================
     # Contract Model
