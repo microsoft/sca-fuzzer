@@ -351,7 +351,7 @@ class X86UnicornDEH(X86FaultModelAbstract):
         # add destinations to the dependency list
         for op in self.current_instruction.get_dest_operands(True):
             if isinstance(op, RegisterOperand):
-                self.dependencies.add(X86TargetDesc.gpr_normalized[op.value])
+                self.dependencies.add(X86TargetDesc.reg_normalized[op.value])
             elif isinstance(op, FlagsOperand):
                 for flag in op.get_write_flags():
                     self.dependencies.add(flag)
@@ -384,13 +384,13 @@ class X86UnicornDEH(X86FaultModelAbstract):
         for op in model.current_instruction.get_all_operands():
             if isinstance(op, RegisterOperand):
                 if op.src:
-                    reg_src_operands.append(X86TargetDesc.gpr_normalized[op.value])
+                    reg_src_operands.append(X86TargetDesc.reg_normalized[op.value])
                 if op.dest:
-                    reg_dest_operands.append(X86TargetDesc.gpr_normalized[op.value])
+                    reg_dest_operands.append(X86TargetDesc.reg_normalized[op.value])
             elif isinstance(op, MemoryOperand):
                 for sub_op in re.split(r'\+|-|\*| ', op.value):
-                    if sub_op and sub_op in X86TargetDesc.gpr_normalized:
-                        normalized = X86TargetDesc.gpr_normalized[sub_op]
+                    if sub_op and sub_op in X86TargetDesc.reg_normalized:
+                        normalized = X86TargetDesc.reg_normalized[sub_op]
                         reg_src_operands.append(normalized)
                         address_regs.append(normalized)
             elif isinstance(op, FlagsOperand):
@@ -425,8 +425,8 @@ class X86UnicornDEH(X86FaultModelAbstract):
         if "CMPXCHG" in name:
             dest = model.current_instruction.operands[0]
             if isinstance(dest, MemoryOperand) or \
-               X86TargetDesc.gpr_normalized[dest.value] not in old_dependencies:
-                model.dependencies.remove(X86TargetDesc.gpr_normalized["RAX"])
+               X86TargetDesc.reg_normalized[dest.value] not in old_dependencies:
+                model.dependencies.remove(X86TargetDesc.reg_normalized["RAX"])
                 flags = model.current_instruction.get_flags_operand()
                 assert flags
                 for flag in flags.get_write_flags():
@@ -438,14 +438,14 @@ class X86UnicornDEH(X86FaultModelAbstract):
             op1, op2 = model.current_instruction.operands
             if isinstance(op1, RegisterOperand):
                 # swap dependencies
-                op1_val, op2_val = [X86TargetDesc.gpr_normalized[op.value] for op in [op1, op2]]
+                op1_val, op2_val = [X86TargetDesc.reg_normalized[op.value] for op in [op1, op2]]
                 if op1_val in old_dependencies and op2_val not in old_dependencies:
                     model.dependencies.remove(op1_val)
                 elif op1_val not in old_dependencies and op2_val in old_dependencies:
                     model.dependencies.remove(op2_val)
             else:
                 # memory is never tainted -> override the src dependency
-                op2_val = X86TargetDesc.gpr_normalized[op2.value]
+                op2_val = X86TargetDesc.reg_normalized[op2.value]
                 if op2_val in old_dependencies:
                     model.dependencies.remove(op2_val)
 
@@ -454,8 +454,8 @@ class X86UnicornDEH(X86FaultModelAbstract):
             assert len(model.current_instruction.operands) == 2
             op1, op2 = model.current_instruction.operands
             if isinstance(op1, MemoryOperand) or \
-               X86TargetDesc.gpr_normalized[op1.value] not in old_dependencies:
-                model.dependencies.remove(X86TargetDesc.gpr_normalized[op2.value])
+               X86TargetDesc.reg_normalized[op1.value] not in old_dependencies:
+                model.dependencies.remove(X86TargetDesc.reg_normalized[op2.value])
 
         # special case 4 - zeroing and reset patterns
         elif name in ["SUB", "LOCK SUB", "SBB", "LOCK SBB", "XOR", "LOCK XOR", "CMP"]:
@@ -1005,11 +1005,11 @@ class X86UnicornVspecOps(X86FaultModelAbstract):
             for op in self.current_instruction.get_all_operands():
                 if isinstance(op, RegisterOperand):
                     if op.src:
-                        op_normalized = X86TargetDesc.gpr_normalized[op.value]
+                        op_normalized = X86TargetDesc.reg_normalized[op.value]
                         src_regs.add(op_normalized)
                         # src_regs_sizes[op_normalized] = op.width
                     if op.dest:
-                        op_normalized = X86TargetDesc.gpr_normalized[op.value]
+                        op_normalized = X86TargetDesc.reg_normalized[op.value]
                         self.curr_dest_regs.append(op_normalized)
                         self.curr_dest_regs_sizes[op_normalized] = op.width
                 elif isinstance(op, FlagsOperand):
@@ -1077,17 +1077,17 @@ class X86UnicornVspecOps(X86FaultModelAbstract):
         for op in model.current_instruction.get_all_operands():
             if isinstance(op, RegisterOperand):
                 if op.src:
-                    op_normalized = X86TargetDesc.gpr_normalized[op.value]
+                    op_normalized = X86TargetDesc.reg_normalized[op.value]
                     src_regs.add(op_normalized)
                     # src_regs_sizes[op_normalized] = op.width
                 if op.dest:
-                    op_normalized = X86TargetDesc.gpr_normalized[op.value]
+                    op_normalized = X86TargetDesc.reg_normalized[op.value]
                     model.curr_dest_regs.append(op_normalized)
                     model.curr_dest_regs_sizes[op_normalized] = op.width
             elif isinstance(op, MemoryOperand):
                 for sub_op in re.split(r'\+|-|\*| ', op.value):
-                    if sub_op and sub_op in X86TargetDesc.gpr_normalized:
-                        normalized = X86TargetDesc.gpr_normalized[sub_op]
+                    if sub_op and sub_op in X86TargetDesc.reg_normalized:
+                        normalized = X86TargetDesc.reg_normalized[sub_op]
                         if op.src:
                             mem_src_regs.add(normalized)
                         if op.dest:
@@ -1101,8 +1101,8 @@ class X86UnicornVspecOps(X86FaultModelAbstract):
                 assert model.current_instruction.name == "LEA"
                 assert op.src
                 for sub_op in re.split(r'\[|\]|\+|-|\*| ', op.value):
-                    if sub_op and sub_op in X86TargetDesc.gpr_normalized:
-                        normalized = X86TargetDesc.gpr_normalized[sub_op]
+                    if sub_op and sub_op in X86TargetDesc.reg_normalized:
+                        normalized = X86TargetDesc.reg_normalized[sub_op]
                         src_regs.add(normalized)
 
         # assemble values of memory dest registers. if tainted, use taint instead
@@ -1347,11 +1347,11 @@ class x86UnicornVspecOpsGP(X86UnicornVspecOps, X86NonCanonicalAddress):
             for op in self.current_instruction.get_all_operands():
                 if isinstance(op, RegisterOperand):
                     if op.src:
-                        op_normalized = X86TargetDesc.gpr_normalized[op.value]
+                        op_normalized = X86TargetDesc.reg_normalized[op.value]
                         src_regs.add(op_normalized)
                         # src_regs_sizes[op_normalized] = op.width
                     if op.dest:
-                        op_normalized = X86TargetDesc.gpr_normalized[op.value]
+                        op_normalized = X86TargetDesc.reg_normalized[op.value]
                         self.curr_dest_regs.append(op_normalized)
                         self.curr_dest_regs_sizes[op_normalized] = op.width
                 elif isinstance(op, FlagsOperand):
@@ -1444,7 +1444,7 @@ class X86UnicornVspecAll(X86UnicornVspecOps):
             for op in self.current_instruction.get_all_operands():
                 if isinstance(op, RegisterOperand):
                     if op.dest:
-                        self.curr_dest_regs.append(X86TargetDesc.gpr_normalized[op.value])
+                        self.curr_dest_regs.append(X86TargetDesc.reg_normalized[op.value])
                 elif isinstance(op, FlagsOperand):
                     self.curr_dest_regs.extend(op.get_write_flags())
 

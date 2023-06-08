@@ -339,8 +339,8 @@ class X86NonCanonicalAddressPass(Pass):
                         for operands in src_operands:
                             op_regs = re.split(r'\+|-|\*| ', operands.value)
                             for reg in op_regs:
-                                if X86TargetDesc.gpr_normalized[mask_reg] == \
-                                   X86TargetDesc.gpr_normalized[reg]:
+                                if X86TargetDesc.reg_normalized[mask_reg] == \
+                                   X86TargetDesc.reg_normalized[reg]:
                                     mask_reg = masks_list[1]
 
                         offset_list = ["RCX", "RDX"]
@@ -349,8 +349,8 @@ class X86NonCanonicalAddressPass(Pass):
                         for op in instr.get_all_operands():
                             if not isinstance(op, RegisterOperand):
                                 continue
-                            if X86TargetDesc.gpr_normalized[offset_reg] == \
-                               X86TargetDesc.gpr_normalized[op.value]:
+                            if X86TargetDesc.reg_normalized[offset_reg] == \
+                               X86TargetDesc.reg_normalized[op.value]:
                                 offset_reg = offset_list[1]
 
                         mask = hex((random.getrandbits(16) << 48))
@@ -567,8 +567,8 @@ class X86SandboxPass(Pass):
                 divider_8_bit = deepcopy(divisor)
                 divider_8_bit.width = 8
                 if isinstance(divisor, RegisterOperand):
-                    reg_normalized = self.target_desc.gpr_normalized[divisor.value]
-                    reg_8_bit = self.target_desc.gpr_denormalized[reg_normalized][8]
+                    reg_normalized = self.target_desc.reg_normalized[divisor.value]
+                    reg_8_bit = self.target_desc.reg_denormalized[reg_normalized][8]
                     divider_8_bit.value = reg_8_bit
                 instrumentation = Instruction("AND", True) \
                     .add_op(divider_8_bit) \

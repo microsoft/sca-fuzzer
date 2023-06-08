@@ -818,7 +818,7 @@ class BaseTaintTracker(TaintTrackerInterface):
 
         for op in instruction.get_all_operands():
             if isinstance(op, RegisterOperand):
-                value = self.target_desc.gpr_normalized[op.value]
+                value = self.target_desc.reg_normalized[op.value]
                 if op.src:
                     self.src_regs.append(value)
                 if op.dest:
@@ -830,8 +830,8 @@ class BaseTaintTracker(TaintTrackerInterface):
                 self.dest_flags = op.get_write_flags()
             elif isinstance(op, MemoryOperand):
                 for sub_op in re.split(r'\+|-|\*| ', op.value):
-                    if sub_op and sub_op in self.target_desc.gpr_normalized:
-                        self.mem_address_regs.append(self.target_desc.gpr_normalized[sub_op])
+                    if sub_op and sub_op in self.target_desc.reg_normalized:
+                        self.mem_address_regs.append(self.target_desc.reg_normalized[sub_op])
 
     def _finalize_instruction(self):
         """Propagate dependencies from source operands to destinations """
