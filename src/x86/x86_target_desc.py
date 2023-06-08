@@ -42,20 +42,25 @@ class X86TargetDesc(TargetDesc):
         "FLAGS": "FLAGS",
         "RIP": "RIP",
         "RSP": "RSP",
-        "CF": "CF",
-        "PF": "PF",
-        "AF": "AF",
-        "ZF": "ZF",
-        "SF": "SF",
-        "TF": "TF",
-        "IF": "IF",
-        "DF": "DF",
-        "OF": "OF",
-        "AC": "AC",
-        "BND0": "BND0",
-        "BND1": "BND1",
-        "BND2": "BND2",
-        "BND3": "BND3",
+        "CF": "CF", "PF": "PF", "AF": "AF", "ZF": "ZF", "SF": "SF", "TF": "TF", "IF": "IF",
+        "DF": "DF", "OF": "OF", "AC": "AC",
+        "BND0": "BND0", "BND1": "BND1", "BND2": "BND2", "BND3": "BND3",
+        "XMM0": "XMM0",
+        "XMM1": "XMM1",
+        "XMM2": "XMM2",
+        "XMM3": "XMM3",
+        "XMM4": "XMM4",
+        "XMM5": "XMM5",
+        "XMM6": "XMM6",
+        "XMM7": "XMM7",
+        "XMM8": "XMM8",
+        "XMM9": "XMM9",
+        "XMM10": "XMM10",
+        "XMM11": "XMM11",
+        "XMM12": "XMM12",
+        "XMM13": "XMM13",
+        "XMM14": "XMM14",
+        "XMM15": "XMM15"
     }  # yapf: disable
     reg_denormalized = {
         "A": {64: "RAX", 32: "EAX", 16: "AX", 8: "AL"},
@@ -74,6 +79,22 @@ class X86TargetDesc(TargetDesc):
         "15": {64: "R15", 32: "R15D", 16: "R15W", 8: "R15B"},
         "RIP": {64: "RIP", 32: "RIP", 16: "RIP", 8: "RIP"},
         "RSP": {64: "RSP", 32: "RSP", 16: "RSP", 8: "RSP"},
+        "XMM0": {128: "XMM0"},
+        "XMM1": {128: "XMM1"},
+        "XMM2": {128: "XMM2"},
+        "XMM3": {128: "XMM3"},
+        "XMM4": {128: "XMM4"},
+        "XMM5": {128: "XMM5"},
+        "XMM6": {128: "XMM6"},
+        "XMM7": {128: "XMM7"},
+        "XMM8": {128: "XMM8"},
+        "XMM9": {128: "XMM9"},
+        "XMM10": {128: "XMM10"},
+        "XMM11": {128: "XMM11"},
+        "XMM12": {128: "XMM12"},
+        "XMM13": {128: "XMM13"},
+        "XMM14": {128: "XMM14"},
+        "XMM15": {128: "XMM15"}
     }  # yapf: disable
     registers = {
         8: ["AL", "BL", "CL", "DL", "SIL", "DIL", "R8B", "R9B", "R10B", "R11B", "R12B", "R13B",
@@ -84,7 +105,9 @@ class X86TargetDesc(TargetDesc):
              "R13D", "R14D", "R15D"],
         64: ["RAX", "RBX", "RCX", "RDX", "RSI", "RDI", "R8", "R9", "R10", "R11", "R12", "R13",
              "R14", "R15", "RSP", "RBP"],
-        128: ["BND0", "BND1", "BND2", "BND3"]
+        128: ["BND0", "BND1", "BND2", "BND3",
+              "XMM0", "XMM1", "XMM2", "XMM3", "XMM4", "XMM5",
+              "XMM6", "XMM7", "XMM8", "XMM9", "XMM10", "XMM11", "XMM12", "XMM13", "XMM14", "XMM15"]
     }  # yapf: disable
     simd_registers = {
         64: [f"MM{i}" for i in range(0, 8)],
@@ -167,6 +190,21 @@ class X86UnicornTargetDesc(UnicornTargetDesc):
         "RSI": ucc.UC_X86_REG_RSI,
         "RSP": ucc.UC_X86_REG_RSP,
         "RBP": ucc.UC_X86_REG_RBP,
+        "XMM0": ucc.UC_X86_REG_XMM0,
+        "XMM1": ucc.UC_X86_REG_XMM1,
+        "XMM2": ucc.UC_X86_REG_XMM2,
+        "XMM3": ucc.UC_X86_REG_XMM3,
+        "XMM4": ucc.UC_X86_REG_XMM4,
+        "XMM5": ucc.UC_X86_REG_XMM5,
+        "XMM6": ucc.UC_X86_REG_XMM6,
+        "XMM7": ucc.UC_X86_REG_XMM7,
+        "XMM8": ucc.UC_X86_REG_XMM8,
+        "XMM9": ucc.UC_X86_REG_XMM9,
+        "XMM10": ucc.UC_X86_REG_XMM10,
+        "XMM11": ucc.UC_X86_REG_XMM11,
+        "XMM12": ucc.UC_X86_REG_XMM12,
+        "XMM14": ucc.UC_X86_REG_XMM14,
+        "XMM15": ucc.UC_X86_REG_XMM15,
     }
 
     reg_decode = {
@@ -197,13 +235,34 @@ class X86UnicornTargetDesc(UnicornTargetDesc):
         "DF": ucc.UC_X86_REG_EFLAGS,
         "OF": ucc.UC_X86_REG_EFLAGS,
         "AC": ucc.UC_X86_REG_EFLAGS,
+        "XMM0": ucc.UC_X86_REG_XMM0,
+        "XMM1": ucc.UC_X86_REG_XMM1,
+        "XMM2": ucc.UC_X86_REG_XMM2,
+        "XMM3": ucc.UC_X86_REG_XMM3,
+        "XMM4": ucc.UC_X86_REG_XMM4,
+        "XMM5": ucc.UC_X86_REG_XMM5,
+        "XMM6": ucc.UC_X86_REG_XMM6,
+        "XMM7": ucc.UC_X86_REG_XMM7,
+        "XMM8": ucc.UC_X86_REG_XMM8,
+        "XMM9": ucc.UC_X86_REG_XMM9,
+        "XMM10": ucc.UC_X86_REG_XMM10,
+        "XMM11": ucc.UC_X86_REG_XMM11,
+        "XMM12": ucc.UC_X86_REG_XMM12,
+        "XMM14": ucc.UC_X86_REG_XMM14,
+        "XMM15": ucc.UC_X86_REG_XMM15,
         "RIP": -1,
         "RSP": -1,
     }
 
     registers: List[int] = [
         ucc.UC_X86_REG_RAX, ucc.UC_X86_REG_RBX, ucc.UC_X86_REG_RCX, ucc.UC_X86_REG_RDX,
-        ucc.UC_X86_REG_RSI, ucc.UC_X86_REG_RDI, ucc.UC_X86_REG_EFLAGS
+        ucc.UC_X86_REG_RSI, ucc.UC_X86_REG_RDI, ucc.UC_X86_REG_EFLAGS, ucc.UC_X86_REG_RSP
+    ]
+    simd128_registers: List[int] = [
+        ucc.UC_X86_REG_XMM0, ucc.UC_X86_REG_XMM1, ucc.UC_X86_REG_XMM2, ucc.UC_X86_REG_XMM3,
+        ucc.UC_X86_REG_XMM4, ucc.UC_X86_REG_XMM5, ucc.UC_X86_REG_XMM6, ucc.UC_X86_REG_XMM7,
+        ucc.UC_X86_REG_XMM8, ucc.UC_X86_REG_XMM9, ucc.UC_X86_REG_XMM10, ucc.UC_X86_REG_XMM11,
+        ucc.UC_X86_REG_XMM12, ucc.UC_X86_REG_XMM13, ucc.UC_X86_REG_XMM14, ucc.UC_X86_REG_XMM15
     ]
     barriers: List[str] = ['MFENCE', 'LFENCE']
     flags_register: int = ucc.UC_X86_REG_EFLAGS

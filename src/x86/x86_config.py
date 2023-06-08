@@ -65,7 +65,10 @@ x86_option_values = {
         # "BASE-SYSTEM",      # Not supported: System instructions
 
         # Extensions
+        "SSE-SSE",
+        "SSE-DATAXFER",
         "SSE-MISC",
+        "SSE2-DATAXFER",
         "SSE2-MISC",
         "CLFLUSHOPT-CLFLUSHOPT",
         "CLFSH-MISC",
@@ -93,7 +96,7 @@ x86_instruction_blocklist: List[str] = [
     #   bug: https://github.com/unicorn-engine/unicorn/issues/990
     "CMPXCHG8B", "LOCK CMPXCHG8B",
     # - Incorrect emulation
-    "CPUID",
+    "CPUID", "RCPPS", "RCPSS",
     # - Requires support of segment registers
     "XLAT", "XLATB",
     # - Requires complex instrumentation
@@ -101,10 +104,18 @@ x86_instruction_blocklist: List[str] = [
     # - requires support of all possible interrupts
     "INT",
     # - system management instruction
-    "ENCLS", "VMXON", "STGI", "SKINIT",
+    "ENCLS", "VMXON", "STGI", "SKINIT", "LDMXCSR", "STMXCSR",
 
     # - not supported
     "LFENCE", "MFENCE", "SFENCE", "CLFLUSH", "CLFLUSHOPT",
+
+    # - under construction
+    "CMPPS", "CMPSS", "COMISS", "UCOMISS", "DIVPS", "DIVSS", "MULSS", "MULPS", "MAXPS", "MAXSS",
+    "MINPS", "MINSS", "RSQRTPS", "RSQRTSS", "SHUFPS", "SQRTPS", "SQRTSS", "SUBPS", "SUBSS",
+    "UNPCKHPS", "UNPCKLPS", "UNPCKLP", "MOVAPS", "MOVHLPS", "MOVHPS", "MOVLHPS", "MOVLPS",
+    "MOVMSKPS", "MOVNTPS", "MOVSS", "MOVUP", "MOVUPS", "MASKMOVDQU", "MOVAPD", "MOVDQ2Q", "MOVDQA",
+    "MOVDQU", "MOVHPD", "MOVLPD", "MOVMSKPD", "MOVNTDQ", "MOVNTI", "MOVNTPD", "MOVQ2DQ", "MOVSD",
+    "MOVUPD",
 ]  # yapf: disable
 
 # x86 executor internally uses R15, R14, RSP, RBP and, thus, they are excluded
@@ -118,5 +129,7 @@ x86_register_blocklist: List[str] = [
     'R8B', 'R9B', 'R10B', 'R11B', 'R12B', 'R13B', 'R14B', 'R15B', 'SPL', 'BPL',
     'ES', 'CS', 'SS', 'DS', 'FS', 'GS',
     'CR0', 'CR2', 'CR3', 'CR4', 'CR8',
-    'DR0', 'DR1', 'DR2', 'DR3', 'DR4', 'DR5', 'DR6', 'DR7'
+    'DR0', 'DR1', 'DR2', 'DR3', 'DR4', 'DR5', 'DR6', 'DR7',
+    # XMM8-15 are somehow broken in Unicorn
+    "XMM8", "XMM9", "XMM10", "XMM11", "XMM12", "XMM13", "XMM14", "XMM15",
 ]  # yapf: disable

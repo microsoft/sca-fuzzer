@@ -529,6 +529,8 @@ class Input(np.ndarray):
     The array layout is:
 
     +----------------------+
+    |  128-bit SIMD Values | self.simd128_region_size
+    +----------------------+
     |   64-bit GPR Values  | self.register_region_size
     +----------------------+
     |                      |
@@ -541,21 +543,26 @@ class Input(np.ndarray):
     +----------------------+
 
     Ordering of GPRs:  RAX, RBX, RCX, RDX, RSI, RDI, FLAGS
+    Ordering of SIMD registers: XMM0-XMM15
     """
     seed: int = 0
     data_size: int = 0
     register_start: int = 0
     register_region_size: int = 64  # 56 bytes for GPRs + 8 bytes for alignment
+    simd128_start: int = 0
+    simd128_region_size: int = 256
 
     def __init__(self) -> None:
         pass  # unreachable; defined only for type checking
 
     def __new__(cls):
         data_size = (CONF.input_main_region_size + CONF.input_faulty_region_size
-        aligned_size = data_size + (4096 - cls.register_region_size)  // 8
+                     + cls.register_region_size + cls.simd128_region_size) // 8
+        aligned_size = data_size + (4096 - cls.register_region_size - cls.simd128_region_size) // 8
         obj = super().__new__(cls, (aligned_size,), np.uint64, None, 0, None, None)  # type: ignore
         obj.data_size = data_size
         obj.register_start = (CONF.input_main_region_size + CONF.input_faulty_region_size) // 8
+        obj.simd128_start = obj.register_start + cls.register_region_size // 8
 
         # fill the input with zeroes initially before returning, to ensure the
         # 'padding' bytes (created by using 'aligned_size' rather than
@@ -572,7 +579,14 @@ class Input(np.ndarray):
         return hash(tuple(self[0:self.data_size - 1]))
 
     def get_registers(self):
-        return list(self[self.register_start:self.data_size - 1])
+        return list(self[self.register_start:self.simd128_start])
+
+    def get_simd128_registers(self):
+        vals = []
+        for i in range(self.simd128_start, self.data_size - 1, 2):
+            vals.append((int(self[i + 1]) << 64) | int(self[i]))
+        return vals
+        # return list(self[self.simd128_start:self.data_size - 1])
 
     def get_memory(self):
         return self[0:self.register_start]

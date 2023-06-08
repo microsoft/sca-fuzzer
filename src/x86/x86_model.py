@@ -94,6 +94,9 @@ class X86UnicornModel(UnicornModel):
         self.emulator.reg_write(ucc.UC_X86_REG_RBP, self.stack_base)
         self.emulator.reg_write(ucc.UC_X86_REG_R14, self.sandbox_base)
 
+        # - initialize SIMD
+        for i, value in enumerate(input_.get_simd128_registers()):
+            self.emulator.reg_write(self.target_desc.simd128_registers[i], value)
 
         # Set memory permissions
         # Note: this code is at the end because we need to set the permissions

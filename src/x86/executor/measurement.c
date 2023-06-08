@@ -266,26 +266,8 @@ static inline int uarch_flush(void)
     return 0;
 }
 
-void run_experiment_dirty(long rounds)
-{
-    get_cpu();
-    unsigned long flags;
-    raw_local_irq_save(flags);
 
-    // save the current state of IDT
-    local_store_idt(&idtr);
-    orig_idt_table = (gate_desc *)idtr.address;
-    idt_copy();
-
-    // save the current value of the faulty page PTE
-    pteval_t orig_pte = faulty_page_ptep->pte;
-
-    for (long i = -uarch_reset_rounds; i < rounds; i++)
-    {
-        // ignore "warm-up" runs (i<0)uarch_reset_rounds
-        long i_ = (i < 0) ? 0 : i;
-        uint64_t *current_input = &inputs[i_ * INPUT_SIZE / 8];
-
+void init_sandbox(uint64_t *current_input) {
         // Initialize the rest of the memory
         // - sandbox: main and faulty regions
         uint64_t *main_page_values = &current_input[0];
@@ -318,6 +300,51 @@ void run_experiment_dirty(long rounds)
 
         // - RSP and RBP
         ((uint64_t *)register_initialization_base)[7] = (uint64_t)stack_base;
+
+        // - XMM0 ... XMM15
+        asm volatile(""
+                     "movdqa 0x00(%0), %%xmm0\n"
+                     "movdqa 0x10(%0), %%xmm1\n"
+                     "movdqa 0x20(%0), %%xmm2\n"
+                     "movdqa 0x30(%0), %%xmm3\n"
+                     "movdqa 0x40(%0), %%xmm4\n"
+                     "movdqa 0x50(%0), %%xmm5\n"
+                     "movdqa 0x60(%0), %%xmm6\n"
+                     "movdqa 0x70(%0), %%xmm7\n"
+                     "movdqa 0x80(%0), %%xmm8\n"
+                     "movdqa 0x90(%0), %%xmm9\n"
+                     "movdqa 0xa0(%0), %%xmm10\n"
+                     "movdqa 0xb0(%0), %%xmm11\n"
+                     "movdqa 0xc0(%0), %%xmm12\n"
+                     "movdqa 0xd0(%0), %%xmm13\n"
+                     "movdqa 0xe0(%0), %%xmm14\n"
+                     "movdqa 0xf0(%0), %%xmm15\n"
+                      ::"r"(&register_values[8])
+                     : "xmm0");
+}
+
+
+void run_experiment_dirty(long rounds)
+{
+    get_cpu();
+    unsigned long flags;
+    raw_local_irq_save(flags);
+
+    // save the current state of IDT
+    local_store_idt(&idtr);
+    orig_idt_table = (gate_desc *)idtr.address;
+    idt_copy();
+
+    // save the current value of the faulty page PTE
+    pteval_t orig_pte = faulty_page_ptep->pte;
+
+    for (long i = -uarch_reset_rounds; i < rounds; i++)
+    {
+        // ignore "warm-up" runs (i<0)uarch_reset_rounds
+        long i_ = (i < 0) ? 0 : i;
+        uint64_t *current_input = &inputs[i_ * INPUT_SIZE / 8];
+
+        init_sandbox(current_input);
 
         // Set page table entry for the faulty region
         if ((faulty_pte_mask_set != 0) || (faulty_pte_mask_clear != 0xffffffffffffffff))
@@ -402,38 +429,7 @@ void run_experiment(long rounds)
         if (pre_run_flush == 1)
             uarch_flush();
 
-        // Initialize the rest of the memory
-        // - sandbox: main and faulty regions
-        uint64_t *main_page_values = &current_input[0];
-        uint64_t *main_base = (uint64_t *)&sandbox->main_region[0];
-        for (int j = 0; j < MAIN_REGION_SIZE / 8; j += 1)
-        {
-            ((uint64_t *)main_base)[j] = main_page_values[j];
-        }
-
-        uint64_t *faulty_page_values = &current_input[MAIN_REGION_SIZE / 8];
-        uint64_t *faulty_base = (uint64_t *)&sandbox->faulty_region[0];
-        for (int j = 0; j < FAULTY_REGION_SIZE / 8; j += 1)
-        {
-            ((uint64_t *)faulty_base)[j] = faulty_page_values[j];
-        }
-
-        // Initial register values (the registers will be set to these values in template.c)
-        uint64_t *register_values = &current_input[(MAIN_REGION_SIZE + FAULTY_REGION_SIZE) / 8];
-        uint64_t *register_initialization_base = (uint64_t *)&sandbox->upper_overflow[0];
-
-        // - RAX ... RDI
-        for (int j = 0; j < 6; j += 1)
-        {
-            ((uint64_t *)register_initialization_base)[j] = register_values[j];
-        }
-
-        // - flags
-        uint64_t masked_flags = (register_values[6] & 2263) | 2;
-        ((uint64_t *)register_initialization_base)[6] = masked_flags;
-
-        // - RSP and RBP
-        ((uint64_t *)register_initialization_base)[7] = (uint64_t)stack_base;
+        init_sandbox(current_input);
 
         // Set page table entry for the faulty region
         if ((faulty_pte_mask_set != 0) || (faulty_pte_mask_clear != 0xffffffffffffffff))
