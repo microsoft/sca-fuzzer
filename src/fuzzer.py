@@ -452,8 +452,8 @@ class ArchitecturalFuzzer(Fuzzer):
         for i, input_ in enumerate(inputs):
             if ctraces[i] != htraces[i]:
                 print(f"Input #{i}")
-                print(f"Model: {ctraces[i]}")
-                print(f"CPU:   {htraces[i]}")
+                print(f"Model: {[hex(v) for v in ctraces[i]]}")
+                print(f"CPU:   {[hex(v) for v in htraces[i]]}")
 
                 eq_cls = EquivalenceClass()
                 eq_cls.ctrace = ctraces[i][0]
