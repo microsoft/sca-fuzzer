@@ -159,7 +159,7 @@ class X86RandomGeneratorTest(unittest.TestCase):
 
     def test_x86_undef_flag_patch(self):
         instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix(),
-                                         CONF.instruction_categories)
+                                         CONF.instruction_categories + ["BASE-FLAGOP"])
         undef_instr_spec = list(filter(lambda x: x.name == 'BSF', instruction_set.instructions))[0]
         read_instr_spec = list(filter(lambda x: x.name == 'LAHF', instruction_set.instructions))[0]
 

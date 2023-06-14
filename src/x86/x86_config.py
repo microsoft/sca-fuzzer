@@ -8,11 +8,72 @@ from typing import List
 
 # x86_option_values attribute MUST be the first attribute in the file
 x86_option_values = {
-    'executor_mode': ['P+P', 'F+R', 'E+R', 'PP+P'],  # 'GPR' is intentionally left out
-    'permitted_faults': [
-        'DE-zero', 'DE-overflow', 'UD', 'UD-vtx', 'UD-svm', 'PF-present', 'PF-writable', 'PF-smap',
-        'GP-noncanonical', 'BP', 'BR', 'DB-instruction', 'assist-accessed', 'assist-dirty'
+    'executor_mode': [
+        'P+P',
+        'F+R',
+        'E+R',
+        'PP+P',
+        # 'GPR' is intentionally left out
     ],
+    'permitted_faults': [
+        'DE-zero',
+        'DE-overflow',
+        'UD',
+        'UD-vtx',
+        'UD-svm',
+        'PF-present',
+        'PF-writable',
+        'PF-smap',
+        'GP-noncanonical',
+        'BP',
+        'BR',
+        'DB-instruction',
+        'assist-accessed',
+        'assist-dirty',
+    ],
+    'instruction_categories': [
+        # Base x86 - user instructions
+        "BASE-BINARY",
+        "BASE-BITBYTE",
+        "BASE-CMOV",
+        "BASE-COND_BR",
+        "BASE-CONVERT",
+        "BASE-DATAXFER",
+        "BASE-FLAGOP",
+        "BASE-LOGICAL",
+        "BASE-MISC",
+        "BASE-NOP",
+        "BASE-POP",
+        "BASE-PUSH",
+        "BASE-SEMAPHORE",
+        "BASE-SETCC",
+        "BASE-STRINGOP",
+        "BASE-WIDENOP",
+
+        # Base x86 - system instructions
+        "BASE-INTERRUPT",
+        # "BASE-ROTATE",      # Unknown bug in Unicorn - emulated incorrectly
+        # "BASE-SHIFT",       # Unknown bug in Unicorn - emulated incorrectly
+        # "BASE-UNCOND_BR",   # Not supported: Complex control flow
+        # "BASE-CALL",        # Not supported: Complex control flow
+        # "BASE-RET",         # Not supported: Complex control flow
+        # "BASE-SEGOP",       # Not supported: System instructions
+        # "BASE-IO",          # Not supported: System instructions
+        # "BASE-IOSTRINGOP",  # Not supported: System instructions
+        # "BASE-SYSCALL",     # Not supported: System instructions
+        # "BASE-SYSRET",      # Not supported: System instructions
+        # "BASE-SYSTEM",      # Not supported: System instructions
+
+        # Extensions
+        "SSE-MISC",
+        "SSE2-MISC",
+        "CLFLUSHOPT-CLFLUSHOPT",
+        "CLFSH-MISC",
+        "SGX-SGX",
+        "VTX-VTX",
+        "SVM-SYSTEM",
+        "MPX-MPX",
+    ]
 }
 
 x86_executor_enable_prefetcher: bool = False
@@ -21,53 +82,8 @@ x86_executor_enable_ssbp_patch: bool = True
 """ x86_executor_enable_ssbp_patch: enable a patch against Speculative Store Bypass"""
 x86_disable_div64: bool = True
 
-x86_instruction_categories: List[str] = [
-    # Base x86 - main instructions
-    "BASE-BINARY",
-    "BASE-BITBYTE",
-    "BASE-CMOV",
-    "BASE-COND_BR",
-    "BASE-CONVERT",
-    "BASE-DATAXFER",
-    "BASE-FLAGOP",
-    "BASE-LOGICAL",
-    "BASE-MISC",
-    "BASE-NOP",
-    "BASE-POP",
-    "BASE-PUSH",
-    "BASE-SEMAPHORE",
-    "BASE-SETCC",
-    "BASE-STRINGOP",
-    "BASE-WIDENOP",
-
-    # Base x86 - system instructions
-    "BASE-INTERRUPT",
-
-    # "BASE-ROTATE",      # Unknown bug in Unicorn - emulated incorrectly
-    # "BASE-SHIFT",       # Unknown bug in Unicorn - emulated incorrectly
-
-    # "BASE-UNCOND_BR",   # Not supported: Complex control flow
-    # "BASE-CALL",        # Not supported: Complex control flow
-    # "BASE-RET",         # Not supported: Complex control flow
-
-    # "BASE-SEGOP",       # Not supported: System instructions
-    # "BASE-IO",          # Not supported: System instructions
-    # "BASE-IOSTRINGOP",  # Not supported: System instructions
-    # "BASE-SYSCALL",     # Not supported: System instructions
-    # "BASE-SYSRET",      # Not supported: System instructions
-    # "BASE-SYSTEM",      # Not supported: System instructions
-
-    # Extensions
-    "SSE-MISC",  # SFENCE
-    "SSE2-MISC",  # LFENCE, MFENCE
-    # "CLFLUSHOPT-CLFLUSHOPT",
-    # "CLFSH-MISC",
-    # "BMI1",
-    "SGX-SGX",
-    "VTX-VTX",
-    "SVM-SYSTEM",
-    "MPX-MPX",
-]
+x86_instruction_categories: List[str] = ["BASE-BINARY", "BASE-BITBYTE", "BASE-COND_BR"]
+""" x86_instruction_categories: a default list of tested instruction categories """
 
 x86_instruction_blocklist: List[str] = [
     # Hard to fix:
