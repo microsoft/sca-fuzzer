@@ -187,17 +187,17 @@ class ConfCls:
 
         # value checks
         if self._option_values.get(name, '') != '':
-            invalid = False
+            invalid_value = None
             if isinstance(value, List):
                 for v in value:
                     if v not in self._option_values[name]:
-                        invalid = True
+                        invalid_value = v
                         break
             else:
-                invalid = value not in self._option_values[name]
-            if invalid:
+                invalid_value = value if value not in self._option_values[name] else None
+            if invalid_value:
                 raise ConfigException(
-                    f"ERROR: Unknown value '{value}' of config variable '{name}'\n"
+                    f"ERROR: Unknown value '{invalid_value}' of config variable '{name}'\n"
                     f"Possible options: {self._option_values[name]}")
         if (self.input_main_region_size % 4096 != 0) or \
                 (self.input_faulty_region_size % 4096 != 0):
