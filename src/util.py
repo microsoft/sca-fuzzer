@@ -254,7 +254,7 @@ class Logger:
 
     def fuzzer_slow_path(self):
         if self.info:
-            print(self.msg + "> Validating violation...", end=self.line_ending, flush=True)
+            print(self.msg + "> Entering slow path...", end=self.line_ending, flush=True)
 
     def fuzzer_timeout(self):
         self.inform("fuzzer", "\nTimeout expired")
