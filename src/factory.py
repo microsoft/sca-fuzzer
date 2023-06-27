@@ -57,7 +57,8 @@ X86_SIMPLE_EXECUTION_CLAUSES: Dict[str, Type[x86_model.X86UnicornModel]] = {
 }
 
 EXECUTORS = {
-    'x86-64': x86_executor.X86IntelExecutor,
+    'x86-64-intel': x86_executor.X86IntelExecutor,
+    'x86-64-amd': x86_executor.X86AMDExecutor,
 }
 
 ANALYSERS: Dict[str, Type[interfaces.Analyser]] = {
@@ -141,9 +142,7 @@ def get_model(bases: Tuple[int, int]) -> interfaces.Model:
 
 
 def get_executor() -> interfaces.Executor:
-    if CONF.executor != 'default':
-        raise ConfigException("ERROR: unknown value of `executor` configuration option")
-    return _get_from_config(EXECUTORS, CONF.instruction_set, "instruction_set")
+    return _get_from_config(EXECUTORS, CONF.executor, "executor")
 
 
 def get_analyser() -> interfaces.Analyser:

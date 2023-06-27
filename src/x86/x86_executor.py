@@ -171,12 +171,32 @@ class X86Executor(Executor):
 
 class X86IntelExecutor(X86Executor):
 
+    def __init__(self):
+        self.LOG = Logger()
+        vendor = subprocess.run(
+            "grep 'vendor_id' /proc/cpuinfo", shell=True, capture_output=True).stdout.decode()
+        if "Intel" not in vendor:
+            self.LOG.error(
+                "Attempting to run Intel executor on a non-Intel CPUs!\n"
+                "Change the `executor` configuration option to the appropriate vendor value.")
+        super().__init__()
+
     def set_vendor_specific_features(self):
         write_to_sysfs_file("1" if "BR" in CONF.permitted_faults else "0",
                             "/sys/x86_executor/enable_mpx")
 
 
 class X86AMDExecutor(X86Executor):
+
+    def __init__(self):
+        self.LOG = Logger()
+        vendor = subprocess.run(
+            "grep 'vendor_id' /proc/cpuinfo", shell=True, capture_output=True).stdout.decode()
+        if "AMD" not in vendor:
+            self.LOG.error(
+                "Attempting to run AMD executor on a non-AMD CPUs!\n"
+                "Change the `executor` configuration option to the appropriate vendor value.")
+        super().__init__()
 
     def set_vendor_specific_features(self):
         pass
