@@ -8,6 +8,10 @@ from typing import List
 
 # x86_option_values attribute MUST be the first attribute in the file
 x86_option_values = {
+    'executor': [
+        'x86-64-intel',
+        'x86-64-amd',
+    ],
     'executor_mode': [
         'P+P',
         'F+R',
