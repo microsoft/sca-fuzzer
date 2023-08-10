@@ -141,19 +141,14 @@ int load_template(size_t tc_size)
         "add r8, rdx \n"
 
 #if VENDOR_ID == 1  // Intel
-#define READ_INTERRUPTS_START(DEST) \
-    READ_PFC_ONE("4") \
-    "sub "DEST", rdx \n"
-
-#define READ_INTERRUPTS_END(DEST) \
-    READ_PFC_ONE("4") \
-    "add "DEST", rdx \n"
+#define READ_SMI_START(DEST) READ_MSR_START("0x00000034", DEST)
+#define READ_SMI_END(DEST) READ_MSR_END("0x00000034", DEST)
 
 #elif VENDOR_ID == 2  // AMD
-#define READ_INTERRUPTS_START(DEST) \
+#define READ_SMI_START(DEST) \
     READ_PFC_ONE("5") \
     "sub "DEST", rdx \n"
-#define READ_INTERRUPTS_END(DEST) \
+#define READ_SMI_END(DEST) \
     READ_PFC_ONE("5") \
     "add "DEST", rdx \n"
 
@@ -270,15 +265,15 @@ inline void prologue(void)
         "mov r13, 0\n"
         "mov r15, 0\n"
 
-        // start monitoring interrupts
-        READ_INTERRUPTS_START("r12")
+        // start monitoring SMIs
+        READ_SMI_START("r12")
     );
 }
 
 inline void epilogue(void)
 {
     asm_volatile_intel(
-        READ_INTERRUPTS_END("r12")
+        READ_SMI_END("r12")
 
         // rax <- &latest_measurement
         "lea rax, [r14 + "xstr(MEASUREMENT_OFFSET)"]\n"
@@ -298,9 +293,6 @@ inline void epilogue(void)
         "   jmp 2f \n"
         "1: \n"
         "   mov qword ptr [rax], 0 \n"
-        "   mov qword ptr [rax + 8], 0 \n"
-        "   mov qword ptr [rax + 16], 0 \n"
-        "   mov qword ptr [rax + 24], 0 \n"
         "2: \n"
 
         // rsp <- stored_rsp
