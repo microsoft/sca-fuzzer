@@ -7,7 +7,6 @@ SPDX-License-Identifier: MIT
 import os
 import random
 import numpy as np
-from abc import abstractmethod
 from typing import List, Tuple
 from .interfaces import Input, InputTaint, InputGenerator
 from .config import CONF
@@ -16,17 +15,27 @@ from .util import Logger
 POW32 = pow(2, 32)
 
 
-class InputGeneratorCommon(InputGenerator):
+class NumpyRandomInputGenerator(InputGenerator):
+    """ Numpy-based implementation of the input gen """
+
     _state: int = 0
     _boosting_state: int = 0
 
     def __init__(self, seed: int):
         super().__init__(seed)
         self.LOG = Logger()
+        self.max_input_value = pow(2, CONF.input_gen_entropy_bits)
 
-    @abstractmethod
     def _generate_one(self, state: int) -> Tuple[Input, int]:
-        pass
+        input_ = Input()
+        input_.seed = state
+
+        rng = np.random.default_rng(seed=state)
+        data = rng.integers(self.max_input_value, size=input_.data_size, dtype=np.uint64)
+        data = data << CONF.memory_access_zeroed_bits  # type: ignore
+        input_[:input_.data_size] = (data << 32) + data
+
+        return input_, state + 1
 
     def generate(self, count: int) -> List[Input]:
         # if it's the first invocation and the seed is zero - use random seed
@@ -82,61 +91,3 @@ class InputGeneratorCommon(InputGenerator):
             input_.load(input_path)
             inputs.append(input_)
         return inputs
-
-
-class LegacyRandomInputGenerator(InputGeneratorCommon):
-    """
-    Legacy implementation. Exist only for backwards compatibility.
-    NumpyRandomInputGenerator is a preferred implementation.
-    Implements a simple 32-bit LCG with a=2891336453 and c=54321.
-    """
-
-    def __init__(self, seed: int):
-        LOG = Logger()
-        LOG.warning("input_gen", "Using deprecated LegacyRandomInputGenerator")
-        super().__init__(seed)
-        self.input_mask = pow(2, (CONF.input_gen_entropy_bits % 33)) - 1
-
-    def _generate_one(self, state: int) -> Tuple[Input, int]:
-        input_ = Input()
-        input_.seed = state
-
-        randint = state
-        for i in range(input_.data_size):
-            # this weird implementation is a legacy of our old PRNG.
-            # basically, it's a 32-bit PRNG, assigned to 4-byte chucks of memory
-            randint = ((randint * 2891336453) % POW32 + 54321) % POW32
-            masked_rvalue = (randint ^ (randint >> 16)) & self.input_mask
-            masked_rvalue = masked_rvalue << 6
-            input_[i] = masked_rvalue << 32
-
-            randint = ((randint * 2891336453) % POW32 + 54321) % POW32
-            masked_rvalue = (randint ^ (randint >> 16)) & self.input_mask
-            masked_rvalue = masked_rvalue << 6
-            input_[i] += masked_rvalue
-
-        # again, to emulate the legacy (and kinda broken) input generator,
-        # initialize only the first 32 bits of registers
-        for i in range(input_.register_region_size // 8):
-            input_[-i - 1] = input_[-i - 1] % POW32
-
-        return input_, randint
-
-
-class NumpyRandomInputGenerator(InputGeneratorCommon):
-    """ Numpy-based implementation of the input gen """
-
-    def __init__(self, seed: int):
-        super().__init__(seed)
-        self.max_input_value = pow(2, CONF.input_gen_entropy_bits)
-
-    def _generate_one(self, state: int) -> Tuple[Input, int]:
-        input_ = Input()
-        input_.seed = state
-
-        rng = np.random.default_rng(seed=state)
-        data = rng.integers(self.max_input_value, size=input_.data_size, dtype=np.uint64)
-        data = data << CONF.memory_access_zeroed_bits  # type: ignore
-        input_[:input_.data_size] = (data << 32) + data
-
-        return input_, state + 1
