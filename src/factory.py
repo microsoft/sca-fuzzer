@@ -17,7 +17,6 @@ GENERATORS: Dict[str, Type[interfaces.Generator]] = {
 
 INPUT_GENERATORS: Dict[str, Type[interfaces.InputGenerator]] = {
     'random': input_generator.NumpyRandomInputGenerator,
-    'legacy-random': input_generator.LegacyRandomInputGenerator,
 }
 
 TRACERS: Dict[str, Type[model.UnicornTracer]] = {
