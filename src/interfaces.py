@@ -512,62 +512,56 @@ class PageTableModifier(NamedTuple):
 
 
 # ==================================================================================================
-# Custom Data Types
+# Components of an Input
 # ==================================================================================================
-CTrace = int
-HTrace = int
-InputID = int
-CombinedHTrace = int
+
+# Constants defining the input layout
+MAIN_REGION_SIZE = 4096
+FAULTY_REGION_SIZE = 4096
+REGISTER_REGION_SIZE = 4096
+GPR_SUBREGION_SIZE = 64
+SIMD_SUBREGION_SIZE = 256
+DATA_SIZE = MAIN_REGION_SIZE + FAULTY_REGION_SIZE + GPR_SUBREGION_SIZE + SIMD_SUBREGION_SIZE
+
+# ActorInput data type represents the input for a single actor. It is a fixed-size array of
+# 64-bit unsigned integers, structured into 2 sub-arrays representing memory (`main` and `faulty`),
+# and 2 sub-arrays representing CPU registers (`gpr` and `simd`).
+# The array is used to initialize sandbox memory and CPU registers.
+#
+# Ordering of GPRs:  RAX, RBX, RCX, RDX, RSI, RDI, FLAGS, (last 8 bytes unused)
+# Ordering of SIMD registers: YMM0, YMM1, ..., YMM7
+ActorInput = np.dtype(
+    [
+        ('main', np.uint64, MAIN_REGION_SIZE // 8),
+        ('faulty', np.uint64, FAULTY_REGION_SIZE // 8),
+        ('gpr', np.uint64, GPR_SUBREGION_SIZE // 8),
+        ('simd', np.uint64, SIMD_SUBREGION_SIZE // 8),
+        ('padding', np.uint64, (4096 - GPR_SUBREGION_SIZE - SIMD_SUBREGION_SIZE) // 8),
+    ],
+    align=False,
+)
 
 
 class Input(np.ndarray):
     """
-    A class representing a single input to a test case.
-    It is a fixed-size array of 64-bit unsigned integers, with a few addition
-    methods for convenience.
-    The array is used to initialize the sandbox memory and the CPU registers.
-    The array layout is:
+    This class represents a single input to a test case. It is a fixed-size array of
+    64-bit unsigned integers, with a few addition methods for convenience. The array
+    is used to initialize the sandbox memory and the CPU registers.
 
-    +----------------------+
-    |  128-bit SIMD Values | self.simd128_region_size
-    +----------------------+
-    |   64-bit GPR Values  | self.register_region_size
-    +----------------------+
-    |                      |
-    |                      | Conf.input_faulty_region_size
-    | Assist Region Values |
-    +----------------------+
-    |                      |
-    |                      | Conf.input_main_region_size
-    |  Main Region Values  |
-    +----------------------+
-
-    Ordering of GPRs:  RAX, RBX, RCX, RDX, RSI, RDI, FLAGS
-    Ordering of SIMD registers: XMM0-XMM15
+    The number of elements in Input is equal to the number of actors multiplied by
+    the number of elements in ActorInput, i.e.,
+        Input.size = n_actors * ActorInput.size
     """
     seed: int = 0
-    data_size: int = 0
-    register_start: int = 0
-    register_region_size: int = 64  # 56 bytes for GPRs + 8 bytes for alignment
-    simd128_start: int = 0
-    simd128_region_size: int = 256
+    data_size: int
 
     def __init__(self) -> None:
         pass  # unreachable; defined only for type checking
 
     def __new__(cls):
-        data_size = (CONF.input_main_region_size + CONF.input_faulty_region_size
-                     + cls.register_region_size + cls.simd128_region_size) // 8
-        aligned_size = data_size + (4096 - cls.register_region_size - cls.simd128_region_size) // 8
-        obj = super().__new__(cls, (aligned_size,), np.uint64, None, 0, None, None)  # type: ignore
-        obj.data_size = data_size
-        obj.register_start = (CONF.input_main_region_size + CONF.input_faulty_region_size) // 8
-        obj.simd128_start = obj.register_start + cls.register_region_size // 8
-
-        # fill the input with zeroes initially before returning, to ensure the
-        # 'padding' bytes (created by using 'aligned_size' rather than
-        # 'data_size') deterministic across separate runs
-        obj.fill(0)
+        n_actors = 1 + CONF.n_guests  # 1 host + n guests
+        obj = super().__new__(cls, (n_actors,), ActorInput, None, 0, None, None)  # type: ignore
+        obj.data_size = DATA_SIZE // 8
         return obj
 
     def __array_finalize__(self, obj):
@@ -576,26 +570,23 @@ class Input(np.ndarray):
 
     def __hash__(self) -> int:  # type: ignore
         # hash of input is hash of input data, registers and memory
-        return hash(tuple(self[0:self.data_size - 1]))
+        h = hash(self.tobytes())
+        return h
 
-    def get_registers(self):
-        return list(self[self.register_start:self.simd128_start])
-
-    def get_simd128_registers(self):
+    def get_simd128_registers(self, actor_id: int):
         vals = []
-        for i in range(self.simd128_start, self.data_size - 1, 2):
-            vals.append((int(self[i + 1]) << 64) | int(self[i]))
+        for i in range(0, ActorInput['simd'].shape[actor_id], 2):
+            vals.append(int(self[0]['simd'][i + 1]) << 64 | int(self[0]['simd'][i]))
         return vals
-        # return list(self[self.simd128_start:self.data_size - 1])
-
-    def get_memory(self):
-        return self[0:self.register_start]
 
     def __str__(self):
         return str(self.seed)
 
     def __repr__(self):
         return str(self.seed)
+
+    def linear_view(self) -> np.ndarray:
+        return self[0].view((np.uint64, self[0].itemsize // 8))
 
     def save(self, path: str) -> None:
         with open(path, 'wb') as f:
@@ -604,28 +595,36 @@ class Input(np.ndarray):
     def load(self, path: str) -> None:
         with open(path, 'rb') as f:
             contents = np.fromfile(f, dtype=np.uint64)
-            self[:] = contents
+            self.linear_view()[:] = contents
 
 
-class InputTaint(np.ndarray):
+class InputTaint(Input):
     """
-    An array that represents which input elements influence contract traces.
-    The number of elements in InputTaint is identical to Input class.
-    Each element is an boolean value: When it is True, the corresponding element
-    of the input impacts the contract trace.
+    This class represents a taint vector for an input. It is a fixed-size array of
+    boolean values, with a few addition methods for convenience. The array is used
+    to indicate which input elements influence contract traces. The number of
+    elements in InputTaint is identical to Input class.
+
+    Each element is an boolean value: When it is True, the corresponding element of
+    the input impacts the contract trace.
     """
-    register_start: int = 0
-    register_region_size: int = 320
+
+    def __new__(cls):
+        obj = super().__new__(cls)  # type: ignore
+        # obj.fill(0)
+        return obj
 
     def __init__(self) -> None:
         pass  # unreachable; defined only for type checking
 
-    def __new__(cls):
-        size = (CONF.input_main_region_size + CONF.input_faulty_region_size
-                + cls.register_region_size) // 8
-        obj = super().__new__(cls, (size,), bool, None, 0, None, None)  # type: ignore
-        obj.register_start = (CONF.input_main_region_size + CONF.input_faulty_region_size) // 8
-        return obj
+
+# ==================================================================================================
+# Custom Data Types
+# ==================================================================================================
+CTrace = int
+HTrace = int
+InputID = int
+CombinedHTrace = int
 
 
 class Measurement(NamedTuple):

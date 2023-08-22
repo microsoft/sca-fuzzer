@@ -85,6 +85,7 @@ class X86Executor(Executor):
         # make sure it's not a dummy call
         if not inputs:
             return []
+        n_measurements = len(inputs)
 
         if repetitions == 0:
             repetitions = CONF.executor_repetitions
@@ -93,7 +94,7 @@ class X86Executor(Executor):
             threshold_outliers = repetitions // 10
 
         # convert the inputs into a byte sequence
-        byte_inputs = [i.tobytes() for i in inputs]
+        byte_inputs = [i[0].tobytes() for i in inputs]
         byte_inputs_merged = bytes().join(byte_inputs)
 
         # protocol of loading inputs (must be in this order):
@@ -108,10 +109,10 @@ class X86Executor(Executor):
 
         # run experiments and load the results
         all_results: np.ndarray = np.ndarray(
-            shape=(len(inputs), repetitions, TRACE_NUM_ELEMENTS), dtype=np.uint64)
+            shape=(n_measurements, repetitions, TRACE_NUM_ELEMENTS), dtype=np.uint64)
         for rep in range(repetitions):
             # executor prints results in reverse, so we begin from the end
-            input_id = len(inputs) - 1
+            input_id = n_measurements - 1
             reading_finished = False
 
             # executor prints results in batches, hence we have to call it several times,
@@ -137,7 +138,7 @@ class X86Executor(Executor):
             return [int(r[0][0]) for r in all_results]
 
         traces = [0 for _ in inputs]
-        pfc_readings: np.ndarray = np.zeros(shape=(len(inputs), 3), dtype=int)
+        pfc_readings: np.ndarray = np.zeros(shape=(n_measurements, 3), dtype=int)
 
         # merge the results of repeated measurements
         for input_id, input_results in enumerate(all_results):

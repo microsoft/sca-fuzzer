@@ -8,7 +8,7 @@ import os
 import random
 import numpy as np
 from typing import List, Tuple
-from .interfaces import Input, InputTaint, InputGenerator
+from .interfaces import Input, InputTaint, InputGenerator, ActorInput
 from .config import CONF
 from .util import Logger
 
@@ -30,10 +30,24 @@ class NumpyRandomInputGenerator(InputGenerator):
         input_ = Input()
         input_.seed = state
 
+        size = input_.itemsize // 8
+
         rng = np.random.default_rng(seed=state)
-        data = rng.integers(self.max_input_value, size=input_.data_size, dtype=np.uint64)
-        data = data << CONF.memory_access_zeroed_bits  # type: ignore
-        input_[:input_.data_size] = (data << 32) + data
+        for i in range(len(input_)):
+            # generate random data
+            data = rng.integers(self.max_input_value, size=size, dtype=np.uint64)
+
+            # zero out lower bits of every 8-byte word
+            data = data << CONF.memory_access_zeroed_bits  # type: ignore
+
+            # copy lower 32-bits to upper 32-bits, for every 8-byte word
+            data = (data << 32) + data
+
+            # cast to ActorInput
+            input_[i] = data.view(ActorInput)
+
+            # zero-fill the unused parts of the input
+            input_[i]['padding'] = 0
 
         return input_, state + 1
 
@@ -68,11 +82,14 @@ class NumpyRandomInputGenerator(InputGenerator):
         # create inputs
         new_inputs = []
         for i, input_ in enumerate(inputs):
-            taint = taints[i]
             new_input, self._boosting_state = self._generate_one(self._boosting_state)
+
+            taint = taints[i].linear_view()
+            input_old = input_.linear_view()
+            input_new = new_input.linear_view()
             for j in range(input_.data_size):
                 if taint[j]:
-                    new_input[j] = input_[j]
+                    input_new[j] = input_old[j]
             new_inputs.append(new_input)
 
         return new_inputs
@@ -84,9 +101,9 @@ class NumpyRandomInputGenerator(InputGenerator):
 
             # check that the file is not corrupted
             size = os.path.getsize(input_path)
-            if size != len(input_) * 8:
+            if size != input_.itemsize:
                 self.LOG.error(f"Incorrect size of input `{input_path}` "
-                               f"({size} B, expected {len(input_) * 8} B)")
+                               f"({size} B, expected {input_.itemsize} B)")
 
             input_.load(input_path)
             inputs.append(input_)

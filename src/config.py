@@ -39,6 +39,10 @@ class ConfCls:
     # Execution Environment
     permitted_faults: List[str] = []
     """ permitted_faults: a list of faults that are permitted to happen during testing """
+    enable_vm_guests: bool = False
+    """ enable_vm_guests: if True, the executor will run parts of test cases in a guest VM """
+    n_guests: int = 0
+    """ n_guests: number of guest VMs to use while testing; ignored if enable_guest_vms is False """
 
     # ==============================================================================================
     # Program Generator
@@ -93,10 +97,6 @@ class ConfCls:
     """ [DEPRECATED] memory_access_zeroed_bits: """
     inputs_per_class: int = 2
     """ inputs_per_class: number of inputs per input class """
-    input_main_region_size: int = 4096
-    """ input_main_region_size: """
-    input_faulty_region_size: int = 4096
-    """ input_faulty_region_size: """
 
     # ==============================================================================================
     # Contract Model
@@ -199,9 +199,6 @@ class ConfCls:
                 raise ConfigException(
                     f"ERROR: Unknown value '{invalid_value}' of config variable '{name}'\n"
                     f"Possible options: {self._option_values[name]}")
-        if (self.input_main_region_size % 4096 != 0) or \
-                (self.input_faulty_region_size % 4096 != 0):
-            raise ConfigException("ERROR: Inputs must be page-aligned")
         if self.input_gen_entropy_bits + self.memory_access_zeroed_bits > 32:
             raise ConfigException(
                 "ERROR: The sum of input_gen_entropy_bits and memory_access_zeroed_bits"
