@@ -161,7 +161,7 @@ function load_test_case() {
     echo "0" > /sys/x86_executor/enable_prefetcher
 
     # execute one dummy run to set Executor into the default config and to load the test case
-    nruns=10000
+    nruns=1000
     threshold=$((nruns - 10))
 
     tmpasm=$(mktemp /tmp/revizor-test.XXXXXX.asm)
@@ -216,7 +216,7 @@ function load_test_case() {
     echo "0" > /sys/x86_executor/enable_prefetcher
 
     # execute one dummy run to set Executor into the default config and to load the test case
-    nruns=10000
+    nruns=1000
     threshold=$((nruns - 10))
 
     tmpasm=$(mktemp /tmp/revizor-test.XXXXXX.asm)

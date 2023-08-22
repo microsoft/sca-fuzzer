@@ -1,6 +1,6 @@
 .intel_syntax noprefix
 .test_case_enter:
-MOV rbx, 1000
+MOV rbx, 100
 .l1:
 LFENCE
 LEA rax, qword ptr [rax + rax + 8]

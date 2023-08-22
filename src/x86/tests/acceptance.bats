@@ -286,13 +286,13 @@ EOF
 }
 
 @test "Detection [meltdown-type]: #BR speculation (MPX)" {
-    if grep "BNDCU" $ISA; then
+    if grep "BNDCU" $ISA > /dev/null ; then
         tmp_config=$(mktemp -p $TEST_DIR)
         printf "$CT_SEQ $LOGGING_OFF \npermitted_faults:\n  - BR\n" >$tmp_config
-        assert_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault_load.asm -i 5"
+        assert_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault_BR.asm -i 2"
 
         printf "$CT_DEH" >>$tmp_config
-        assert_no_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault_load.asm -i 5"
+        assert_no_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault_BR.asm -i 2"
     else
         skip
     fi

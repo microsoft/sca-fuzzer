@@ -199,10 +199,10 @@ class X86ModelTest(unittest.TestCase):
         model = x86_model.X86UnicornSeq(mem_base, code_base)
         model.tracer = core_model.GPRTracer()
         input_ = Input()
-        input_[0] = 0
-        input_[1] = 1
+        input_[0]['main'][0] = 0
+        input_[0]['main'][1] = 1
         for i in range(0, 7):
-            input_[input_.register_start + i] = 2
+            input_[0]['gpr'][i] = 2
         _ = self.get_traces(model, ASM_STORE_AND_LOAD, [input_])
         full_trace = model.tracer.get_contract_trace_full()
         expected_trace = [1 << 48, 2, 2, 2, 2, 2]
@@ -241,7 +241,7 @@ class X86ModelTest(unittest.TestCase):
         model.tracer = core_model.CTRTracer()
         input_ = Input()
         for i in range(0, 7):
-            input_[input_.register_start + i] = 2
+            input_[0]['gpr'][i] = 2
         ctraces = self.get_traces(model, ASM_BRANCH_AND_LOAD, [input_])
         expected_trace = hash(
             tuple([2, 2, 2, 2, 2, 2, 2, model.stack_base - model.sandbox_base, 0x0, 3, 5, 0, 8]))
@@ -251,9 +251,9 @@ class X86ModelTest(unittest.TestCase):
         model = x86_model.X86UnicornSeq(0x1000000, 0x8000)
         model.tracer = core_model.ArchTracer()
         input_ = Input()
-        input_[0] = 1
+        input_[0]['main'][0] = 1
         for i in range(0, 7):
-            input_[input_.register_start + i] = 2
+            input_[0]['gpr'][i] = 2
         ctraces = self.get_traces(model, ASM_BRANCH_AND_LOAD, [input_])
         expected_trace = hash(
             tuple([2, 2, 2, 2, 2, 2, 2, model.stack_base - model.sandbox_base, 0x0, 3, 5, 1, 0, 8]))
@@ -291,7 +291,7 @@ class X86ModelTest(unittest.TestCase):
         model = x86_model.X86UnicornBpas(0x1000000, 0x8000)
         model.tracer = core_model.CTTracer()
         input_ = Input()
-        input_[0] = 1
+        input_['main'][0] = 1
         ctraces = self.get_traces(model, ASM_STORE_AND_LOAD, [input_])
         expected_trace = hash(tuple([0, 0, 7, 0, 10, 1, 7, 0, 10, 2]))
         self.assertEqual(ctraces, [expected_trace])
@@ -308,8 +308,8 @@ class X86ModelTest(unittest.TestCase):
         model.tracer = core_model.CTTracer()
         model.handled_faults.update([12, 13])
         input_ = Input()
-        input_[0] = 1
-        input_[input_.register_start + 2] = 4096
+        input_[0]['main'][0] = 1
+        input_[0]['gpr'][2] = 4096
         ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_], pte_mask=PF_MASK)
         expected_trace = hash(tuple([0, 4096, 4088]))
         self.assertEqual(ctraces, [expected_trace])
@@ -321,9 +321,9 @@ class X86ModelTest(unittest.TestCase):
         model.handled_faults.update([12, 13])
         input_ = Input()
         for i in range(0, 7):
-            input_[input_.register_start + i] = 2
-        input_[input_.register_start + 2] = 4096
-        input_[4096 // 8] = 3
+            input_[0]['gpr'][i] = 2
+        input_[0]['gpr'][2] = 4096
+        input_[0]['faulty'][0] = 3
         ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_], pte_mask=PF_MASK)
         expected_trace = hash(tuple([
             0, 4096, 4088,  # fault
@@ -345,10 +345,10 @@ class X86ModelTest(unittest.TestCase):
         model.handled_faults.update([12, 13])
         input_ = Input()
         for i in range(0, 7):
-            input_[input_.register_start + i] = 2
-        input_[input_.register_start + 2] = 4096
-        input_[0] = 1
-        input_[4096 // 8] = 3
+            input_[0]['gpr'][i] = 2
+        input_[0]['gpr'][2] = 4096
+        input_[0]['main'][0] = 1
+        input_[0]['faulty'][0] = 3
         # model.LOG.dbg_model = not model.LOG.dbg_model
         ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_], pte_mask=PF_MASK)
         # model.LOG.dbg_model = not model.LOG.dbg_model
@@ -373,10 +373,10 @@ class X86ModelTest(unittest.TestCase):
         model.handled_faults.update([12, 13])
         input_ = Input()
         for i in range(0, 7):
-            input_[input_.register_start + i] = 2
-        input_[input_.register_start + 2] = 4096
-        input_[0] = 1
-        input_[4096 // 8] = 3
+            input_[0]['gpr'][i] = 2
+        input_[0]['gpr'][2] = 4096
+        input_[0]['main'][0] = 1
+        input_[0]['faulty'][0] = 3
         ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_], pte_mask=PF_MASK)
         expected_trace = hash(tuple([
             0, 4096, 4088,  # faulty load
@@ -391,9 +391,9 @@ class X86ModelTest(unittest.TestCase):
         model.tracer = core_model.CTTracer()
         model.handled_faults.add(21)
         input_ = Input()
-        input_[input_.register_start] = 2  # rax
-        input_[input_.register_start + 1] = 0  # rbx
-        input_[input_.register_start + 3] = 0  # rdx
+        input_[0]['gpr'][0] = 2  # rax
+        input_[0]['gpr'][1] = 0  # rbx
+        input_[0]['gpr'][3] = 0  # rdx
         ctraces = self.get_traces(model, ASM_DIV_ZERO, [input_])
         expected_trace = hash(tuple([0, 4088, 2, 0]))
         self.assertEqual(ctraces[0], expected_trace)
@@ -404,17 +404,12 @@ class X86ModelTest(unittest.TestCase):
         model.rw_protect = True
         model.handled_faults.add(21)
         input_ = Input()
-        input_[input_.register_start] = 2  # rax
-        input_[input_.register_start + 1] = 0  # rbx
-        input_[input_.register_start + 3] = 0  # rdx
+        input_[0]['gpr'][0] = 2  # rax
+        input_[0]['gpr'][1] = 0  # rbx
+        input_[0]['gpr'][3] = 0  # rdx
         ctraces = self.get_traces(model, ASM_DIV_ZERO_FENCE, [input_])
         expected_trace = hash(tuple([0, 4088, 2]))
         self.assertEqual(ctraces[0], expected_trace)
-
-    @unittest.skip("not implemented")
-    def test_ct_div_overflow(self):
-        # TBD
-        pass
 
     def test_ct_meltdown(self):
         model = x86_model.X86Meltdown(0x1000000, 0x8000)
@@ -422,9 +417,9 @@ class X86ModelTest(unittest.TestCase):
         model.handled_faults.update([12, 13])
         input_ = Input()
         for i in range(0, 7):
-            input_[input_.register_start + i] = 2
-        input_[input_.register_start + 2] = 4096
-        input_[4096 // 8] = 3
+            input_[0]['gpr'][i] = 2
+        input_[0]['gpr'][2] = 4096
+        input_[0]['faulty'][0] = 3
         ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_], pte_mask=PF_MASK)
         expected_trace = hash(tuple([
             0, 4096, 4088,  # fault
@@ -441,9 +436,9 @@ class X86ModelTest(unittest.TestCase):
         model.handled_faults.update([12, 13])
         input_ = Input()
         for i in range(0, 7):
-            input_[input_.register_start + i] = 2
-        input_[input_.register_start + 2] = 4096
-        input_[4096 // 8] = 3
+            input_[0]['gpr'][i] = 2
+        input_[0]['gpr'][2] = 4096
+        input_[0]['faulty'][0] = 3
         ctraces = self.get_traces(model, ASM_FAULTY_ACCESS_FENCE, [input_], pte_mask=PF_MASK)
         expected_trace = hash(
             tuple([
@@ -462,9 +457,9 @@ class X86ModelTest(unittest.TestCase):
         model.handled_faults.update([12, 13])
         input_ = Input()
         for i in range(0, 7):
-            input_[input_.register_start + i] = 2
-        input_[input_.register_start + 2] = 4096
-        input_[4096 // 8] = 4097
+            input_[0]['gpr'][i] = 2
+        input_[0]['gpr'][2] = 4096
+        input_[0]['faulty'][0] = 4097
         ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_], nesting=2, pte_mask=PF_MASK)
         expected_trace = hash(
             tuple([
@@ -483,9 +478,9 @@ class X86ModelTest(unittest.TestCase):
         model.handled_faults.update([12, 13])
         input_ = Input()
         for i in range(0, 7):
-            input_[input_.register_start + i] = 2
-        input_[input_.register_start + 2] = 4096
-        input_[4096 // 8] = 3
+            input_[0]['gpr'][i] = 2
+        input_[0]['gpr'][2] = 4096
+        input_[0]['faulty'][0] = 3
         ctraces = self.get_traces(
             model, ASM_BRANCH_AND_FAULT, [input_], nesting=2, pte_mask=PF_MASK)
         expected_trace = hash(tuple([
@@ -505,9 +500,9 @@ class X86ModelTest(unittest.TestCase):
         model.handled_faults.update([12, 13])
         input_ = Input()
         for i in range(0, 7):
-            input_[input_.register_start + i] = 2
-        input_[input_.register_start + 2] = 4096
-        input_[4096 // 8] = 3
+            input_[0]['gpr'][i] = 2
+        input_[0]['gpr'][2] = 4096
+        input_[0]['faulty'][0] = 3
         # model.LOG.dbg_model = True
         ctraces = self.get_traces(
             model, ASM_FAULT_AND_BRANCH, [input_], nesting=2, pte_mask=PF_MASK)
@@ -537,9 +532,9 @@ class X86ModelTest(unittest.TestCase):
         model.handled_faults.update([12, 13])
         input_ = Input()
         for i in range(0, 7):
-            input_[input_.register_start + i] = 2
-        input_[input_.register_start + 2] = 4096
-        input_[4096 // 8] = 3
+            input_[0]['gpr'][i] = 2
+        input_[0]['gpr'][2] = 4096
+        input_[0]['faulty'][0] = 3
         ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_], pte_mask=PF_MASK)
         expected_trace = hash(tuple([
             0, 4096, 4088,  # fault
@@ -554,13 +549,14 @@ class X86ModelTest(unittest.TestCase):
         model.tracer = core_model.CTTracer()
         model.handled_faults.add(21)
         input_ = Input()
-        input_[input_.register_start] = 2  # rax
-        input_[input_.register_start + 1] = 0  # rbx
-        input_[input_.register_start + 3] = 0  # rdx
+        input_[0]['gpr'][0] = 0  # rax
+        input_[0]['gpr'][1] = 0  # rbx
+        input_[0]['gpr'][3] = 0  # rdx
+        input_[0]['main'][0] = 0
 
         ctraces = self.get_traces(model, ASM_DIV_ZERO2, [input_])
         hash_of_operands = hash((
-            (0x0, 35, 2),  # rax
+            (0x0, 35, 0),  # rax
             (0x0, 37, 0),  # rbx
             (0x0, 40, 0),  # rdx
             (0x3, 112, 0x1000000)  # r14
@@ -579,9 +575,9 @@ class X86ModelTest(unittest.TestCase):
         model.tracer = core_model.CTTracer()
         model.handled_faults.add(21)
         input_ = Input()
-        input_[input_.register_start] = 2  # rax
-        input_[input_.register_start + 1] = 0  # rbx
-        input_[input_.register_start + 3] = 0  # rdx
+        input_[0]['gpr'][0] = 2  # rax
+        input_[0]['gpr'][1] = 0  # rbx
+        input_[0]['gpr'][3] = 0  # rdx
 
         ctraces = self.get_traces(model, ASM_DIV_ZERO, [input_])
         hash_of_input = hash(((0, 0, hash(input_)),))
@@ -661,11 +657,10 @@ class X86TaintTrackerTest(unittest.TestCase):
         tracker.track_memory_access(0x80, 8, False)
         tracker.taint_memory_access_address()
         taint: InputTaint = tracker.get_taint()
-        reg_offset = taint.register_start
 
         self.assertCountEqual(tracker.mem_dependencies['0x80'], ['A', 'B', '0x80'])
         self.assertCountEqual(tracker.tainted_labels, {'C'})
-        self.assertEqual(taint[reg_offset + 2], True)  # RCX
+        self.assertEqual(taint[0]['gpr'][2], True)  # RCX
 
         # Taint PC
         tracker.tainted_labels = set()
@@ -683,9 +678,9 @@ class X86TaintTrackerTest(unittest.TestCase):
         tracker.start_instruction(jmp_instruction)
         tracker.taint_pc()
         taint: InputTaint = tracker.get_taint()
-        self.assertEqual(taint[reg_offset], True)  # RAX - through flags
-        self.assertEqual(taint[reg_offset + 1], True)  # RBX - through flags + register
-        self.assertEqual(taint[reg_offset + 3], True)  # RDX - through flags
+        self.assertEqual(taint[0]['gpr'][0], True)  # RAX - through flags
+        self.assertEqual(taint[0]['gpr'][1], True)  # RBX - through flags + register
+        self.assertEqual(taint[0]['gpr'][3], True)  # RDX - through flags
 
         # Taint load value
         tracker.tainted_labels = set()
@@ -697,26 +692,25 @@ class X86TaintTrackerTest(unittest.TestCase):
         tracker.taint_memory_load()
         taint: InputTaint = tracker.get_taint()
         # 0x80 -> A -> [A, B]
-        self.assertEqual(taint[reg_offset + 0], True)
-        self.assertEqual(taint[reg_offset + 1], True)
+        self.assertEqual(taint[0]['gpr'][0], True)
+        self.assertEqual(taint[0]['gpr'][1], True)
 
     def test_label_to_taint(self):
         tracker = x86_model.X86TaintTracker([])
         tracker.tainted_labels = {'0x0', '0x40', '0x640', 'D', 'SI', '8', '14', 'DF', 'RIP'}
         taint: InputTaint = tracker.get_taint()
-        register_start = taint.register_start
-        taint_size = taint.size
 
-        expected = [False for i in range(taint_size)]
-        expected[0] = True  # 0x0
-        expected[8] = True  # 0x40
-        expected[200] = True  # 640
-        expected[register_start + 3] = True  # D
-        expected[register_start + 4] = True  # SI
-        expected[register_start + 6] = True  # DF - flags
+        expected: InputTaint = InputTaint()
+        expected.fill(0)
+        expected[0]['main'][0] = True  # 0x0
+        expected[0]['main'][8] = True  # 0x40
+        expected[0]['main'][200] = True  # 640
+        expected[0]['gpr'][3] = True  # D
+        expected[0]['gpr'][4] = True  # SI
+        expected[0]['gpr'][6] = True  # DF - flags
         # 8, 14, RIP - not a part of the input
 
-        self.assertListEqual(list(taint), expected)
+        self.assertListEqual(list(taint), list(expected))
 
 
 if __name__ == '__main__':

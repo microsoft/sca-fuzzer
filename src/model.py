@@ -17,7 +17,8 @@ from unicorn import Uc, UcError, UC_MEM_WRITE, UC_MEM_READ, UC_SECOND_SCALE, UC_
 
 from .interfaces import CTrace, TestCase, Model, InputTaint, Instruction, ExecutionTrace, \
     TracedInstruction, TracedMemAccess, Input, Tracer, \
-    RegisterOperand, FlagsOperand, MemoryOperand, TaintTrackerInterface, TargetDesc
+    RegisterOperand, FlagsOperand, MemoryOperand, TaintTrackerInterface, TargetDesc, \
+    MAIN_REGION_SIZE, FAULTY_REGION_SIZE
 from .config import CONF
 from .util import Logger, NotSupportedException
 
@@ -118,9 +119,7 @@ class UnicornModel(Model, ABC):
     """
     LOG: Logger
 
-    CODE_SIZE = 4 * 1024
-    MAIN_REGION_SIZE = CONF.input_main_region_size
-    FAULTY_REGION_SIZE = CONF.input_faulty_region_size
+    CODE_SIZE = 4096
     OVERFLOW_REGION_SIZE = 4096
 
     emulator: Uc
@@ -166,8 +165,7 @@ class UnicornModel(Model, ABC):
         self.sandbox_base = sandbox_base
 
         self.lower_overflow_base = self.sandbox_base - self.OVERFLOW_REGION_SIZE
-        self.upper_overflow_base = \
-            self.sandbox_base + self.MAIN_REGION_SIZE + self.FAULTY_REGION_SIZE
+        self.upper_overflow_base = self.sandbox_base + MAIN_REGION_SIZE + FAULTY_REGION_SIZE
         self.main_region = self.sandbox_base
         self.faulty_region = self.main_region + self.MAIN_REGION_SIZE
         self.stack_base = self.main_region + self.MAIN_REGION_SIZE - 8
@@ -229,8 +227,7 @@ class UnicornModel(Model, ABC):
         try:
             # allocate memory
             emulator.mem_map(self.code_start, self.CODE_SIZE)
-            sandbox_size = \
-                self.OVERFLOW_REGION_SIZE * 2 + self.MAIN_REGION_SIZE + self.FAULTY_REGION_SIZE
+            sandbox_size = self.OVERFLOW_REGION_SIZE * 2 + MAIN_REGION_SIZE + FAULTY_REGION_SIZE
             emulator.mem_map(self.sandbox_base - self.OVERFLOW_REGION_SIZE, sandbox_size)
 
             # write machine code to be emulated to memory
@@ -930,7 +927,7 @@ class BaseTaintTracker(TaintTrackerInterface):
 
         taint = InputTaint()
         tainted_positions = []
-        register_start = taint.register_start
+        register_start = taint[0].dtype.fields['gpr'][1] // 8
 
         for label in self.tainted_labels:
             input_offset = -1  # the location of the label within the Input array
@@ -950,10 +947,19 @@ class BaseTaintTracker(TaintTrackerInterface):
 
         tainted_positions = list(dict.fromkeys(tainted_positions))
         tainted_positions.sort()
-        for i in range(taint.size):
+
+        # create a view of the taint array as a 64-bit array
+        # note that it *does not* copy the taint, only casts it into a different type
+        linear_view = taint.linear_view()
+
+        for i in range(linear_view.size):
             if i in tainted_positions:
-                taint[i] = True
+                linear_view[i] = True
             else:
-                taint[i] = False
+                linear_view[i] = False
+
+        # all taints but the first are unused
+        for i in range(1, len(taint)):
+            taint[i].fill(False)
 
         return taint
