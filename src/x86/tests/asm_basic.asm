@@ -3,12 +3,10 @@ LEA R14, [R14 + 40] # instrumentation
 MFENCE # instrumentation
 .test_case_enter:
 
-.function_main:
-.bb_main.entry:
-JMP .bb_main.0 
-.bb_main.0:
+.function_0:
+.bb_0:
 
-  # line with a comment   
+  # line with a comment
 NOP # no operands
 DIV RBX  # one operand
 AND RAX, RAX # two operands
@@ -28,14 +26,14 @@ AND RAX, RAX # instrumentation
 MOV RDI, RDI # multiple matches
 
 
-JMP .bb_main.1 
-  .bb_main.1:
+JMP .bb_1
+  .bb_1:
       AND RDI, 0b0111111000000 # indentation
      CMP qword ptr [ R14 + RDI ] , 59   # extra spaces
     AND RDI, 0b0111111000000 # instrumentation
-    CMPXCHG byte ptr [R14 + RSI], SIL 
+    CMPXCHG byte ptr [R14 + RSI], SIL
 
-.bb_main.exit:
+.exit_0:
 .test_case_exit:
 MFENCE # instrumentation
 LEA R14, [R14 - 40] # instrumentation
