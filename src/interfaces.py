@@ -450,17 +450,12 @@ class BasicBlock:
 class Function:
     name: str
     _all_bb: List[BasicBlock]
-    entry: BasicBlock
     exit: BasicBlock
 
     def __init__(self, name):
         self.name = name
-
-        # create entry and exit points for the function
-        stripped_name = name.lstrip(".function_")
-        self.entry = BasicBlock(f".bb_{stripped_name}.entry")
-        self.exit = BasicBlock(f".bb_{stripped_name}.exit")
-        self._all_bb = [self.entry, self.exit]
+        self.exit = BasicBlock(f".exit_{name.lstrip('.function_')}")
+        self._all_bb = []
 
     def __len__(self):
         return len(self._all_bb)
@@ -469,35 +464,32 @@ class Function:
         for bb in self._all_bb:
             yield bb
 
-    def insert(self, bb: BasicBlock):
-        self._all_bb = self._all_bb[0:-1]
+    def __getitem__(self, item):
+        return self._all_bb[item]
+
+    def append(self, bb: BasicBlock):
         self._all_bb.append(bb)
-        self._all_bb.append(self.exit)
 
-    def insert_multiple(self, bb_list: List[BasicBlock]):
-        self._all_bb = self._all_bb[0:-1]
-        self._all_bb += bb_list
-        self._all_bb.append(self.exit)
-
-    def get_all(self):
-        return self._all_bb
+    def extend(self, bb_list: List[BasicBlock]):
+        self._all_bb.extend(bb_list)
 
 
 class TestCase:
     asm_path: str = ''
     bin_path: str = ''
-    main: Function
     functions: List[Function]
     address_map: Dict[int, Instruction]
     num_prologue_instructions: int = 0
     faulty_pte: PageTableModifier
     seed: int
+    exit: BasicBlock
 
     def __init__(self, seed: int):
         self.seed = seed
         self.functions = []
         self.address_map = {}
         self.faulty_pte = PageTableModifier()
+        self.exit = BasicBlock(".test_case_exit")
 
     def __iter__(self):
         for func in self.functions:

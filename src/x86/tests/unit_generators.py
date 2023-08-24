@@ -12,7 +12,7 @@ from src.x86.x86_generator import X86RandomGenerator, X86Printer, X86PatchUndefi
     X86Generator
 from src.factory import get_program_generator
 from src.isa_loader import InstructionSet
-from src.interfaces import TestCase, Function
+from src.interfaces import TestCase, Function, BasicBlock
 from src.config import CONF
 
 CONF.instruction_set = "x86-64"
@@ -54,7 +54,8 @@ class X86RandomGeneratorTest(unittest.TestCase):
         instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix(),
                                          CONF.instruction_categories)
         generator = X86RandomGenerator(instruction_set, CONF.program_generator_seed)
-        func = generator.generate_function(".function_main")
+        tc = TestCase(0)
+        func = generator.generate_function(".function_0", tc)
         printer = X86Printer()
         all_instructions = ['.intel_syntax noprefix\n']
 
@@ -134,16 +135,13 @@ class X86RandomGeneratorTest(unittest.TestCase):
         self.assertEqual(len(tc.functions), 1)
 
         main = tc.functions[0]
-        self.assertEqual(main.name, ".function_main")
-        self.assertEqual(len(main), 4)
-        main_iter = iter(main)
+        self.assertEqual(main.name, ".function_0")
+        self.assertEqual(len(main), 2)
 
-        entry = next(main_iter)
-        bb0 = next(main_iter)
-        bb1 = next(main_iter)
-        exit_ = next(main_iter)
+        bb0 = main[0]
+        bb1 = main[1]
+        exit_ = main.exit
 
-        self.assertEqual(entry.successors[0], bb0)
         self.assertEqual(bb0.successors[0], bb1)
         self.assertEqual(bb1.successors[0], exit_)
 
@@ -168,8 +166,9 @@ class X86RandomGeneratorTest(unittest.TestCase):
         read_instr = generator.generate_instruction(read_instr_spec)
 
         test_case = TestCase(0)
-        test_case.functions = [Function(".function_main")]
-        bb = test_case.functions[0].entry
+        test_case.functions = [Function(".function_0")]
+        bb = BasicBlock(".bb0")
+        test_case.functions[0].append(bb)
         bb.insert_after(bb.get_last(), undef_instr)
         bb.insert_after(bb.get_last(), read_instr)
 

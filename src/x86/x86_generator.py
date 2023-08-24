@@ -302,9 +302,6 @@ class X86NonCanonicalAddressPass(Pass):
 
         for func in test_case.functions:
             for bb in func:
-                if bb == func.entry:
-                    continue
-
                 memory_instructions = []
                 for instr in bb:
                     if instr.is_instrumentation:
@@ -393,9 +390,6 @@ class X86SandboxPass(Pass):
     def run_on_test_case(self, test_case: TestCase) -> None:
         for func in test_case.functions:
             for bb in func:
-                if bb == func.entry:
-                    continue
-
                 # collect all instructions that require sandboxing
                 memory_instructions = []
                 divisions = []
@@ -850,9 +844,6 @@ class X86PatchUndefinedResultPass(Pass):
     def run_on_test_case(self, test_case: TestCase) -> None:
         for func in test_case.functions:
             for bb in func:
-                if bb == func.entry:
-                    continue
-
                 # collect all instructions that require patching
                 bit_scan = []
                 for inst in bb:
@@ -926,9 +917,6 @@ class X86PatchOpcodesPass(Pass):
     def run_on_test_case(self, test_case: TestCase) -> None:
         for func in test_case.functions:
             for bb in func:
-                if bb == func.entry:
-                    continue
-
                 # collect all UD instructions
                 to_patch = []
                 for inst in bb:
@@ -957,12 +945,10 @@ class X86Printer(Printer):
     }
     prologue_template = [
         ".intel_syntax noprefix\n",
-        "MFENCE # instrumentation\n",
         ".test_case_enter:\n",
     ]
     epilogue_template = [
         ".test_case_exit:\n",
-        "MFENCE # instrumentation\n",
     ]
 
     def print(self, test_case: TestCase, outfile: str) -> None:
