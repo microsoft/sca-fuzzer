@@ -65,7 +65,6 @@ ANALYSERS: Dict[str, Type[interfaces.Analyser]] = {
 }
 
 COVERAGE: Dict[str, Type[interfaces.Coverage]] = {
-    'dependent-pairs': coverage.DependentPairCoverage,
     'none': coverage.NoCoverage
 }
 
