@@ -16,7 +16,7 @@ from collections import OrderedDict
 from .isa_loader import InstructionSet
 from .interfaces import Generator, TestCase, Operand, RegisterOperand, FlagsOperand, \
     MemoryOperand, ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, \
-    Function, OperandSpec, InstructionSpec, CondOperand, TargetDesc
+    Function, OperandSpec, InstructionSpec, CondOperand, TargetDesc, Actor, ActorType
 from .util import NotSupportedException, Logger
 from .config import CONF
 
@@ -35,7 +35,8 @@ class AsmParserException(Exception):
 
 def parser_assert(condition: bool, line_number: int, explanation: str):
     if not condition:
-        raise AsmParserException(line_number, explanation)
+        logger = Logger()
+        logger.error(f"asm_parser: Could not parse line {line_number + 1}\n  Reason: {explanation}")
 
 
 # ==================================================================================================
@@ -111,7 +112,8 @@ class ConfigurableGenerator(Generator, abc.ABC):
         self._state += 1
 
         # create the main function
-        func = self.generate_function(".function_0", self.test_case)
+        default_actor = self.test_case.actors[0]
+        func = self.generate_function(".function_0", default_actor, self.test_case)
 
         # fill the function with instructions
         self.add_terminators_in_function(func)
@@ -130,16 +132,18 @@ class ConfigurableGenerator(Generator, abc.ABC):
         if disable_assembler:
             return self.test_case
 
-        bin_file = asm_file[:-4] + ".o"
-        self.assemble(asm_file, bin_file)
+        bin_file = asm_file[:-4]
+        obj_file = bin_file + ".o"
+        self.assemble(asm_file, obj_file, bin_file)
         self.test_case.bin_path = bin_file
+        self.test_case.obj_path = obj_file
 
-        self.map_addresses(self.test_case, bin_file)
+        self.map_addresses(self.test_case, obj_file)
 
         return self.test_case
 
     @staticmethod
-    def assemble(asm_file: str, bin_file: str) -> None:
+    def assemble(asm_file: str, obj_file: str, bin_file: str) -> None:
         """Assemble the test case into a stripped binary"""
 
         def pretty_error_msg(error_msg):
@@ -157,8 +161,38 @@ class ConfigurableGenerator(Generator, abc.ABC):
                     msg += f"\n  Line {line}\n    (the line was parsed as {parsed})"
             return msg
 
+        # make sure that all function labels are exposed in the object file
+        # by adding a NOP before each function label (this makes the function label
+        # into the only label that points to the next instruction)
+        patched_asm_file = asm_file + ".patched"
+        function_found = False
+        enter_found = False
+        with open(asm_file, "r") as f:
+            with open(patched_asm_file, "w") as patched:
+                for line in f:
+                    line = line.strip()
+                    if not enter_found:
+                        if line == ".test_case_enter:":
+                            enter_found = True
+                        patched.write(line + "\n")
+                        continue
+
+                    if not function_found and line and line[0] != "#" \
+                       and "function" not in line and "section" not in line:
+                        patched.write(".global .global_function_0\n")
+                        patched.write(".global_function_0:\n")
+                        patched.write(".function_0:\n")
+                        function_found = True
+                    elif line.startswith(".function_"):
+                        name = line[1:-1]
+                        patched.write(".global .global_" + name + "\n")
+                        patched.write(".global_" + name + ":\n")
+                        function_found = True
+                    patched.write(line + "\n")
+
         try:
-            out = run(f"as {asm_file} -o {bin_file}", shell=True, check=True, capture_output=True)
+            out = run(
+                f"as {patched_asm_file} -o {obj_file}", shell=True, check=True, capture_output=True)
         except CalledProcessError as e:
             error_msg = e.stderr.decode()
             if "Assembler messages:" in error_msg:
@@ -166,11 +200,15 @@ class ConfigurableGenerator(Generator, abc.ABC):
             else:
                 print(error_msg)
             raise e
+        finally:
+            pass
+            # run(f"rm {patched_asm_file}", shell=True, check=True)
 
         output = out.stderr.decode()
         if "Assembler messages:" in output:
             print("WARNING: [generator]" + pretty_error_msg(output))
 
+        run(f"cp {obj_file} {bin_file}", shell=True, check=True)
         run(f"strip --remove-section=.note.gnu.property {bin_file}", shell=True, check=True)
         run(f"objcopy {bin_file} -O binary {bin_file}", shell=True, check=True)
 
@@ -198,8 +236,9 @@ class ConfigurableGenerator(Generator, abc.ABC):
         # load the text and clean it up
         lines = []
         started = False
+        finished = False
         with open(asm_file, "r") as f:
-            for line in f:
+            for i, line in enumerate(f):
                 # remove extra spaces
                 line = line.strip()
                 line = re_redundant_spaces.sub("", line)
@@ -211,42 +250,58 @@ class ConfigurableGenerator(Generator, abc.ABC):
                 # skip footer and header
                 if not started:
                     started = (line == ".test_case_enter:")
-                    if line[0] != ".":
-                        test_case.num_prologue_instructions += 1
+                    if not line[0] == ".":
+                        parser_assert(started, i, "Found instructions before .test_case_enter")
                     continue
                 if line == ".test_case_exit:":
-                    break
+                    finished = True
+                    continue
+                parser_assert(not finished, i, "Found instructions after .test_case_exit")
 
                 lines.append(line)
-
-        # set defaults in case the main function is implicit
-        if not lines or not lines[0].startswith(".function_0:"):
-            lines = [".function_0:"] + lines
 
         # map lines to functions and basic blocks
         current_function = ""
         current_bb = ""
+        current_actor = ""
         autogenerated_bb = False
         test_case_map: Dict[str, Dict[str, List[str]]] = OrderedDict()
-        for line in lines:
+        function_owners: Dict[str, str] = {}
+        for i, line in enumerate(lines):
+            # section start
+            if line.startswith(".section"):
+                words = line.split()
+                assert len(words) == 2
+                if words[1] == "exit":
+                    continue  # exit section does not represent any actor
+                current_actor = words[1]
+                current_function = ""
+                current_bb = ""
+                continue
+            parser_assert(current_actor != "", i, "Missing actor declaration (missing .section)")
+
             # function start
             if line.startswith(".function_"):
                 assert line[-1] == ":", f"Invalid function header: {line}"
                 current_function = line[:-1]
                 test_case_map[current_function] = OrderedDict()
+                function_owners[current_function] = current_actor
 
                 autogenerated_bb = True
                 current_bb = ".bb_" + current_function.removeprefix(".function_") + ".entry"
                 test_case_map[current_function][current_bb] = []
                 continue
 
-            if line.startswith(".exit_"):
-                assert line[-1] == ":", f"Invalid function ending: {line}"
-                current_function = ""
-                current_bb = ""
-                continue
+            # implicit declaration of the main function
+            if not current_function and not test_case_map:
+                current_function = ".function_0"
+                test_case_map[current_function] = OrderedDict()
+                function_owners[current_function] = current_actor
 
-            assert current_function
+                autogenerated_bb = True
+                current_bb = ".bb_" + current_function.removeprefix(".function_") + ".entry"
+                test_case_map[current_function][current_bb] = []
+            parser_assert(current_function != "", i, "Missing function declaration")
 
             # opcode
             if line[:4] == ".bcd " or line[:5] in [".byte", ".long", ".quad"] \
@@ -269,15 +324,37 @@ class ConfigurableGenerator(Generator, abc.ABC):
                 continue
 
             # instruction
-            assert current_bb
+            parser_assert(current_bb != "", i, "Missing basic block declaration")
             test_case_map[current_function][current_bb].append(line)
+
+        # create actors
+        actor_names: Dict[str, Actor] = {}
+        for actor_label in sorted(set(function_owners.values())):
+            words = actor_label.split(".")
+            assert len(words) == 3, f"Invalid actor label: {actor_label}"
+            subwords = words[2].split("_")
+            assert len(subwords) == 2, f"Invalid actor label: {actor_label}"
+
+            id_ = int(subwords[0])
+            if subwords[1] == "host":
+                type_ = ActorType.HOST
+            elif subwords[1] == "guest":
+                type_ = ActorType.GUEST
+            else:
+                parser_assert(False, 0, f"Invalid actor type: {subwords[1]}")
+
+            actor = Actor(type_, id_)  # type: ignore
+            assert id_ not in test_case.actors or test_case.actors[id_] == actor, "Duplicate actor"
+            test_case.actors[id_] = actor
+            actor_names[actor_label] = actor
 
         # parse lines and create their object representations
         line_id = 1
         for func_name, bbs in test_case_map.items():
             # print(func_name)
             line_id += 1
-            func = Function(func_name)
+            actor = actor_names[function_owners[func_name]]
+            func = Function(func_name, actor)
             test_case.functions.append(func)
 
             for bb_name, lines in bbs.items():
@@ -323,11 +400,13 @@ class ConfigurableGenerator(Generator, abc.ABC):
             # last BB always falls through to the exit
             func[-1].successors.append(func.exit)
 
-        bin_file = asm_file[:-4] + ".o"
-        self.assemble(asm_file, bin_file)
+        bin_file = asm_file[:-4]
+        obj_file = bin_file + ".o"
+        self.assemble(asm_file, obj_file, bin_file)
         test_case.bin_path = bin_file
+        test_case.obj_path = obj_file
 
-        self.map_addresses(test_case, bin_file)
+        self.map_addresses(test_case, obj_file)
 
         return test_case
 
@@ -337,11 +416,11 @@ class ConfigurableGenerator(Generator, abc.ABC):
         pass
 
     @abc.abstractmethod
-    def map_addresses(self, test_case: TestCase, bin_file: str) -> None:
+    def map_addresses(self, test_case: TestCase, obj_file: str) -> None:
         pass
 
     @abc.abstractmethod
-    def generate_function(self, name: str, parent: TestCase) -> Function:
+    def generate_function(self, name: str, owner: Actor, parent: TestCase) -> Function:
         pass
 
     @abc.abstractmethod
@@ -413,9 +492,9 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         self.cond_branches = \
             [i for i in self.control_flow_instructions if i.name.lower() != uncond_name]
 
-    def generate_function(self, label: str, parent: TestCase):
+    def generate_function(self, label: str, owner: Actor, parent: TestCase):
         """ Generates a random DAG of basic blocks within a function """
-        func = Function(label)
+        func = Function(label, owner)
 
         # Define the maximum allowed number of successors for any BB
         if self.instruction_set.has_conditional_branch:

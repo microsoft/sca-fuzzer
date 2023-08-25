@@ -1,5 +1,6 @@
 .intel_syntax noprefix
 .test_case_enter:
+.section .data.0_host
 JMP .1
 .1:
 JMP .2

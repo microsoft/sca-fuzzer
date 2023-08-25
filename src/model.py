@@ -101,8 +101,7 @@ class UnicornTracer(Tracer):
 
     def observe_instruction(self, address: int, size: int, model) -> None:
         normalized_address = address - model.code_start
-        if normalized_address in model.test_case.address_map:
-            self.LOG.dbg_model_instruction(normalized_address, model)
+        self.LOG.dbg_model_instruction(normalized_address, model)
 
         if model.in_speculation:
             return
@@ -119,7 +118,7 @@ class UnicornModel(Model, ABC):
     """
     LOG: Logger
 
-    CODE_SIZE = 4096
+    CODE_SIZE = 4096 * 10
     OVERFLOW_REGION_SIZE = 4096
 
     emulator: Uc
@@ -413,7 +412,7 @@ class UnicornModel(Model, ABC):
         it records instruction
         """
         model.previous_context = model.emulator.context_save()
-        model.current_instruction = model.test_case.address_map[address - model.code_start]
+        model.current_instruction = model.test_case.address_map[0][address - model.code_start]
         model.trace_instruction(emulator, address, size, model)
 
     def handle_fault(self, errno: int) -> int:

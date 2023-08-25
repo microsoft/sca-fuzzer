@@ -12,7 +12,7 @@ from src.x86.x86_generator import X86RandomGenerator, X86Printer, X86PatchUndefi
     X86Generator
 from src.factory import get_program_generator
 from src.isa_loader import InstructionSet
-from src.interfaces import TestCase, Function, BasicBlock
+from src.interfaces import TestCase, Function, BasicBlock, ActorType
 from src.config import CONF
 
 CONF.instruction_set = "x86-64"
@@ -22,6 +22,7 @@ test_dir = test_path.parent
 ASM_OPCODE = """
 .intel_syntax noprefix
 .test_case_enter:
+.section .data.0_host
 .byte 0x90, 0x90
 .test_case_exit:
 """
@@ -55,7 +56,7 @@ class X86RandomGeneratorTest(unittest.TestCase):
                                          CONF.instruction_categories)
         generator = X86RandomGenerator(instruction_set, CONF.program_generator_seed)
         tc = TestCase(0)
-        func = generator.generate_function(".function_0", tc)
+        func = generator.generate_function(".function_0", tc.actors[0], tc)
         printer = X86Printer()
         all_instructions = ['.intel_syntax noprefix\n']
 
@@ -73,16 +74,19 @@ class X86RandomGeneratorTest(unittest.TestCase):
 
         asm_file = tempfile.NamedTemporaryFile("w", delete=False)
         bin_file = tempfile.NamedTemporaryFile("w", delete=False)
+        obj_file = tempfile.NamedTemporaryFile("w", delete=False)
         for i in all_instructions:
             asm_file.write(i)
 
         # check if the generated instructions are valid
         assembly_failed = False
         try:
-            generator.assemble(asm_file.name, bin_file.name)
+            generator.assemble(asm_file.name, obj_file.name, bin_file.name)
         except subprocess.CalledProcessError:
             assembly_failed = True
         else:
+            obj_file.close()
+            os.unlink(obj_file.name)
             bin_file.close()
             os.unlink(bin_file.name)
         asm_file.close()
@@ -104,7 +108,7 @@ class X86RandomGeneratorTest(unittest.TestCase):
         self.assertNotEqual(size, 0)
 
         dump = subprocess.run(
-            f"objdump --no-show-raw-insn -D -M intel -b binary -m i386:x86-64 {tc.bin_path} "
+            f"objdump --no-show-raw-insn -D -M intel -m i386:x86-64 {tc.bin_path} "
             "| awk '/ [0-9a-f]+:/{print $1, $2, $3}'",
             shell=True,
             check=True,
@@ -114,7 +118,7 @@ class X86RandomGeneratorTest(unittest.TestCase):
             if len(words) < 2:
                 continue
             pc = int(words[0][:-1], 16)
-            inst_obj = tc.address_map[pc]
+            inst_obj = tc.address_map[0][pc]
             if inst_obj.name == "UNMAPPED" or '.byte' in inst_obj.name:
                 continue
             disasm_name = words[1].upper()
@@ -131,7 +135,7 @@ class X86RandomGeneratorTest(unittest.TestCase):
 
         instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix())
         generator = X86RandomGenerator(instruction_set, CONF.program_generator_seed)
-        tc: TestCase = generator.load((test_dir / "asm_basic.asm").absolute().as_posix())
+        tc: TestCase = generator.load((test_dir / "asm/asm_basic.asm").absolute().as_posix())
         self.assertEqual(len(tc.functions), 1)
 
         main = tc.functions[0]
@@ -155,6 +159,37 @@ class X86RandomGeneratorTest(unittest.TestCase):
         bb0 = next(main_iter)
         self.assertEqual(bb0.get_first().name, "OPCODE")
 
+    def test_x86_asm_parsing_section(self):
+        CONF.register_blocklist = []
+        CONF.setattr_internal("_default_instruction_blocklist", [])
+
+        instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix())
+        generator = X86RandomGenerator(instruction_set, CONF.program_generator_seed)
+        tc: TestCase = generator.load((test_dir / "asm/asm_multiactor.asm").absolute().as_posix())
+
+        self.assertEqual(len(tc.actors), 2)
+        self.assertEqual(tc.actors[0].type_, ActorType.HOST)
+        self.assertEqual(tc.actors[0].id_, 0)
+        self.assertEqual(tc.actors[1].type_, ActorType.GUEST)
+        self.assertEqual(tc.actors[1].id_, 1)
+
+        self.assertEqual(len(tc.functions), 3)
+        f1 = tc.functions[0]
+        f2 = tc.functions[1]
+        f3 = tc.functions[2]
+
+        self.assertEqual(f1.name, ".function_0")
+        self.assertEqual(f1.owner.id_, 0)
+        self.assertEqual(len(f1[0]), 2)
+
+        self.assertEqual(f2.name, ".function_1")
+        self.assertEqual(f2.owner.id_, 1)
+        self.assertEqual(len(f2[0]), 1)
+
+        self.assertEqual(f3.name, ".function_2")
+        self.assertEqual(f3.owner.id_, 0)
+        self.assertEqual(len(f3[0]), 1)
+
     def test_x86_undef_flag_patch(self):
         instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix(),
                                          CONF.instruction_categories + ["BASE-FLAGOP"])
@@ -166,7 +201,7 @@ class X86RandomGeneratorTest(unittest.TestCase):
         read_instr = generator.generate_instruction(read_instr_spec)
 
         test_case = TestCase(0)
-        test_case.functions = [Function(".function_0")]
+        test_case.functions = [Function(".function_0", test_case.actors[0])]
         bb = BasicBlock(".bb0")
         test_case.functions[0].append(bb)
         bb.insert_after(bb.get_last(), undef_instr)

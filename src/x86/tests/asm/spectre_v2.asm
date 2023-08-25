@@ -1,6 +1,6 @@
 .intel_syntax noprefix
-LFENCE
 .test_case_enter:
+.section .data.0_host
 
 # reduce the entropy of rax
 AND rax, 0b111111000000
