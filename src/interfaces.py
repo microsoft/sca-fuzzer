@@ -17,6 +17,19 @@ from .config import CONF
 
 
 # ==================================================================================================
+# Actors
+# ==================================================================================================
+class ActorType(Enum):
+    HOST = 0
+    GUEST = 1
+
+
+class Actor(NamedTuple):
+    type_: ActorType
+    id_: int
+
+
+# ==================================================================================================
 # Components of a Test Case
 # ==================================================================================================
 class OT(Enum):
@@ -449,11 +462,14 @@ class BasicBlock:
 
 class Function:
     name: str
+    owner: Actor
     _all_bb: List[BasicBlock]
     exit: BasicBlock
+    obj_file_offset: int = 0
 
-    def __init__(self, name):
+    def __init__(self, name: str, owner: Actor):
         self.name = name
+        self.owner = owner
         self.exit = BasicBlock(f".exit_{name.lstrip('.function_')}")
         self._all_bb = []
 
@@ -476,16 +492,18 @@ class Function:
 
 class TestCase:
     asm_path: str = ''
+    obj_path: str = ''
     bin_path: str = ''
+    actors: Dict[int, Actor]
     functions: List[Function]
-    address_map: Dict[int, Instruction]
-    num_prologue_instructions: int = 0
+    address_map: Dict[int, Dict[int, Instruction]]
     faulty_pte: PageTableModifier
     seed: int
     exit: BasicBlock
 
     def __init__(self, seed: int):
         self.seed = seed
+        self.actors = {0: Actor(ActorType.HOST, 0)}
         self.functions = []
         self.address_map = {}
         self.faulty_pte = PageTableModifier()
@@ -754,7 +772,7 @@ class Generator(ABC):
 
     @staticmethod
     @abstractmethod
-    def assemble(asm_file: str, bin_file: str) -> None:
+    def assemble(asm_file: str, obj_file: str, bin_file: str) -> None:
         pass
 
     @abstractmethod

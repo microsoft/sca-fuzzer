@@ -379,7 +379,10 @@ class Logger:
         if not self.dbg_model:
             return
 
-        name = str(model.test_case.address_map[normalized_address])
+        if normalized_address not in model.test_case.address_map[0]:
+            return
+
+        name = str(model.test_case.address_map[0][normalized_address])
         if CONF.color:
             if model.in_speculation:
                 name = YELLOW + name + COL_RESET

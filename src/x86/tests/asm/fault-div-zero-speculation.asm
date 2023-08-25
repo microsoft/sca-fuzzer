@@ -1,5 +1,6 @@
 .intel_syntax noprefix
 .test_case_enter:
+.section .data.0_host
 MOV ebx, 0
 DIV ebx
 XOR rax, rcx

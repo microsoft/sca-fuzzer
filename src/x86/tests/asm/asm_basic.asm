@@ -1,7 +1,6 @@
 .intel_syntax noprefix
-LEA R14, [R14 + 40] # instrumentation
-MFENCE # instrumentation
 .test_case_enter:
+.section .data.0_host
 
 .function_0:
 .bb_0:
@@ -33,7 +32,4 @@ JMP .bb_1
     AND RDI, 0b0111111000000 # instrumentation
     CMPXCHG byte ptr [R14 + RSI], SIL
 
-.exit_0:
 .test_case_exit:
-MFENCE # instrumentation
-LEA R14, [R14 - 40] # instrumentation

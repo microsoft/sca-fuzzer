@@ -15,7 +15,7 @@ from subprocess import run
 from ..isa_loader import InstructionSet
 from ..interfaces import TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
     ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, InstructionSpec, \
-    PageTableModifier, MAIN_REGION_SIZE, FAULTY_REGION_SIZE
+    PageTableModifier, MAIN_REGION_SIZE, FAULTY_REGION_SIZE, Function, ActorType
 from ..generator import ConfigurableGenerator, RandomGenerator, Pass, \
     parser_assert, Printer, GeneratorException, AsmParserException
 from ..config import CONF
@@ -108,30 +108,70 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
         if 'PF-smap' in CONF.permitted_faults:
             self.pte_bit_choices.append(self.target_desc.pte_bits["USER"])
 
-    def map_addresses(self, test_case: TestCase, bin_file: str) -> None:
+    def map_addresses(self, test_case: TestCase, obj_file: str) -> None:
         # get a list of relative instruction addresses
         dump = run(
-            f"objdump --no-show-raw-insn -D -M intel -b binary -m i386:x86-64 {bin_file} "
-            "| awk '/ [0-9a-f]+:/{print $1}'",
+            f"objdump --no-show-raw-insn -D -M intel --file-offsets -m i386:x86-64 {obj_file} "
+            "| awk '/ [0-9a-f]+:/{print $1} /function|section/{print $0}'",
             shell=True,
             check=True,
             capture_output=True)
-        address_list = [int(addr[:-1], 16) for addr in dump.stdout.decode().split("\n") if addr]
 
-        # connect them with instructions in the test case
-        address_map: Dict[int, Instruction] = {}
-        counter = test_case.num_prologue_instructions
+        # parse the output
+        lines = dump.stdout.decode().split("\n")
+        output_map: Dict[int, Dict[str, List[int]]] = {}
+        function_addresses: Dict[str, int] = {}
+        actor_id = -1
+        function_name = ""
+        for line in lines:
+            if not line:
+                continue
+
+            if "section" in line:
+                try:
+                    actor_label = line.split()[-1].split(".")[2].split("_")[0]
+                    actor_id = int(actor_label)
+                except ValueError:
+                    actor_id = -1
+                if actor_id == -1:
+                    self.LOG.error(f"Invalid actor label: {line.split()[-1]}")
+                output_map[actor_id] = {}
+                function_name = ""
+                continue
+            assert actor_id != -1, "Failed to parse objdump output (actor_id)"
+
+            if "global_function_" in line:
+                if "call" in line or "lea" in line:
+                    continue  # skip calls/jumps/lea
+
+                words = line.split()
+                assert len(words) == 5, f"Failed to parse objdump output (function name) {line}"
+                function_name = "." + words[1][9:-1]  # remove the "global_" prefix
+                function_offset = words[4][:-2]
+                function_addresses[function_name] = int(function_offset, 16)
+                output_map[actor_id][function_name] = []
+                continue
+            assert function_name != "", f"Failed to parse objdump output (function name) {line}"
+
+            output_map[actor_id][function_name].append(int(line[:-1], 16))
+
+        # add objdump data to the test case
+        address_map: Dict[int, Dict[int, Instruction]] = {}
         for func in test_case.functions:
-            for bb in func:
+            # store the function address
+            func.obj_file_offset = function_addresses[func.name]
+
+            # connect addresses with instructions in the test case
+            aid_ = func.owner.id_
+            address_list = output_map[aid_][func.name]
+            if not address_map.get(aid_):
+                address_map[aid_] = {}
+            counter = 0
+            for bb in list(func) + [func.exit]:
                 for inst in list(bb) + bb.terminators:
                     address = address_list[counter]
-                    address_map[address] = inst
+                    address_map[aid_][address] = inst
                     counter += 1
-
-        # map prologue and epilogue to dummy instructions
-        for address in address_list:
-            if address not in address_map:
-                address_map[address] = Instruction("UNMAPPED", True)
 
         test_case.address_map = address_map
 
@@ -367,8 +407,8 @@ class X86NonCanonicalAddressPass(Pass):
                         for idx, op in enumerate(instr.operands):
                             if op == mem_operand:
                                 old_op = instr.operands[idx]
-                                addr_op = MemoryOperand(offset_reg, old_op.get_width(),
-                                                        old_op.src, old_op.dest)
+                                addr_op = MemoryOperand(offset_reg, old_op.get_width(), old_op.src,
+                                                        old_op.dest)
                                 instr.operands[idx] = addr_op
 
                     # Make sure #GP only once. Otherwise Unicorn keeps raising an exception
@@ -959,17 +999,20 @@ class X86Printer(Printer):
 
             # print the test case
             for func in test_case.functions:
-                f.write(f"{func.name}:\n")
-                for bb in func:
-                    self.print_basic_block(bb, f)
+                self.print_function(func, f)
 
             # print epilogue
             for line in self.epilogue_template:
                 f.write(line)
 
-        for i in self.prologue_template:
-            if i[0] != ".":
-                test_case.num_prologue_instructions += 1
+    def print_function(self, func: Function, file):
+        owner_type = "host" if func.owner.type_ == ActorType.HOST else "guest"
+        file.write(f".section .data.{func.owner.id_}_{owner_type}\n")
+        file.write(f"{func.name}:\n")
+        for bb in func:
+            self.print_basic_block(bb, file)
+
+        self.print_basic_block(func.exit, file)
 
     def print_basic_block(self, bb: BasicBlock, file):
         file.write(f"{bb.name}:\n")

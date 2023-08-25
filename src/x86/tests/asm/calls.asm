@@ -1,7 +1,6 @@
 .intel_syntax noprefix
-MFENCE
-SFENCE
 .test_case_enter:
+.section .data.0_host
 .function_0:
 CALL .function_1
 .function_1:
@@ -154,4 +153,3 @@ CALL .function_50
 .function_50:
 ADD rsp, 8
 .test_case_exit:
-MFENCE

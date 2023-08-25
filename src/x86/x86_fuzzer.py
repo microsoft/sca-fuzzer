@@ -110,15 +110,22 @@ class X86Fuzzer(Fuzzer):
         if CONF.enable_observation_filter:
             fenced = tempfile.NamedTemporaryFile(delete=False)
             fenced_obj = tempfile.NamedTemporaryFile(delete=False)
-            run('awk \'//{print $0, "\\nlfence"}\' ' + test_case.asm_path + '>' + fenced.name,
-                shell=True)
-            self.generator.assemble(fenced.name, fenced_obj.name)
+            fenced_bin = tempfile.NamedTemporaryFile(delete=False)
+            with open(test_case.asm_path, 'r') as f:
+                with open(fenced.name, 'w') as fenced_asm:
+                    for line in f:
+                        fenced_asm.write(line)
+                        if line.strip()[0] not in ["#", "."]:
+                            fenced_asm.write('lfence\n')
+            self.generator.assemble(fenced.name, fenced_obj.name, fenced_bin.name)
             fenced_test_case = TestCase(0)
-            fenced_test_case.bin_path = fenced_obj.name
+            fenced_test_case.bin_path = fenced_bin.name
+            fenced_test_case.obj_path = fenced_obj.name
             self.executor.load_test_case(fenced_test_case)
             fenced_htraces = self.executor.trace_test_case(inputs, repetitions=1)
             os.remove(fenced.name)
             os.remove(fenced_obj.name)
+            os.remove(fenced_bin.name)
 
             if fenced_htraces == non_fenced_htraces:
                 self.executor.set_quick_and_dirty(False)

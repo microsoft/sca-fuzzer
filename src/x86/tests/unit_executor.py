@@ -19,18 +19,21 @@ class ExecutorTest(unittest.TestCase):
         cls.tc: TestCase = TestCase(0)
         asm_file = tempfile.NamedTemporaryFile(delete=False)
         bin_file = tempfile.NamedTemporaryFile(delete=False)
+        obj_file = tempfile.NamedTemporaryFile(delete=False)
 
         with open(asm_file.name, "w") as f:
             f.write("movq %r14, %rax; add $512, %rax; movq (%rax), %rax\n")
             # f.write("nop")
 
         try:
-            X86Generator.assemble(asm_file.name, bin_file.name)
+            X86Generator.assemble(asm_file.name, obj_file.name, bin_file.name)
         except Exception:
             asm_file.close()
             bin_file.close()
+            obj_file.close()
             os.unlink(asm_file.name)
             os.unlink(bin_file.name)
+            os.unlink(obj_file.name)
             return
 
         asm_file.close()

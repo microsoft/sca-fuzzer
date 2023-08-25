@@ -1,5 +1,6 @@
 .intel_syntax noprefix
 .test_case_enter:
+.section .data.0_host
 
 # accumulate base address into rax
 ADD rax, r14

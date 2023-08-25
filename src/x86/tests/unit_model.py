@@ -21,18 +21,20 @@ from src.config import CONF
 test_path = Path(__file__).resolve()
 test_dir = test_path.parent
 
-ASM_THREE_LOADS = """
+ASM_HEADER = """
 .intel_syntax noprefix
 .test_case_enter:
+.section .data.0_host
+"""
+
+ASM_THREE_LOADS = ASM_HEADER + """
 MOV RAX, qword ptr [R14]
 MOV RAX, qword ptr [R14 + 512]
 MOV RAX, qword ptr [R14 + 1050]
 .test_case_exit:
 """
 
-ASM_BRANCH_AND_LOAD = """
-.intel_syntax noprefix
-.test_case_enter:
+ASM_BRANCH_AND_LOAD = ASM_HEADER + """
 XOR rax, rax
 JNZ .l1
 .l0:
@@ -42,9 +44,7 @@ NOP
 .test_case_exit:
 """
 
-ASM_DOUBLE_BRANCH = """
-.intel_syntax noprefix
-.test_case_enter:
+ASM_DOUBLE_BRANCH = ASM_HEADER + """
 XOR rax, rax
 JNZ .l1
 .l0:
@@ -60,18 +60,14 @@ NOP
 .test_case_exit:
 """
 
-ASM_STORE_AND_LOAD = """
-.intel_syntax noprefix
-.test_case_enter:
+ASM_STORE_AND_LOAD = ASM_HEADER + """
 MOV qword ptr [R14], 2
 MOV RAX, qword ptr [R14]
 MOV RAX, qword ptr [R14 + RAX]
 .test_case_exit:
 """
 
-ASM_FENCE = """
-.intel_syntax noprefix
-.test_case_enter:
+ASM_FENCE = ASM_HEADER + """
 XOR rax, rax
 JZ .l1
 .l0:
@@ -83,18 +79,14 @@ NOP
 .test_case_exit:
 """
 
-ASM_FAULTY_ACCESS = """
-.intel_syntax noprefix
-.test_case_enter:
+ASM_FAULTY_ACCESS = ASM_HEADER + """
 MOV RAX, qword ptr [R14 + RCX]
 MOV RAX, qword ptr [R14 + RAX]
 MOV RBX, qword ptr [R14 + RBX]
 .test_case_exit:
 """
 
-ASM_FAULTY_ACCESS_FENCE = """
-.intel_syntax noprefix
-.test_case_enter:
+ASM_FAULTY_ACCESS_FENCE = ASM_HEADER + """
 MOV RAX, qword ptr [R14 + RCX]
 MOV RAX, qword ptr [R14 + RAX]
 LFENCE
@@ -102,9 +94,7 @@ MOV RBX, qword ptr [R14 + RBX]
 .test_case_exit:
 """
 
-ASM_BRANCH_AND_FAULT = """
-.intel_syntax noprefix
-.test_case_enter:
+ASM_BRANCH_AND_FAULT = ASM_HEADER + """
 XOR rax, rax
 JZ .l1
 .l0:
@@ -115,9 +105,7 @@ NOP
 .test_case_exit:
 """
 
-ASM_FAULT_AND_BRANCH = """
-.intel_syntax noprefix
-.test_case_enter:
+ASM_FAULT_AND_BRANCH = ASM_HEADER + """
 MOV RAX, qword ptr [R14 + RCX]
 XOR rbx, rbx
 JZ .l1
@@ -128,26 +116,20 @@ NOP
 .test_case_exit:
 """
 
-ASM_DIV_ZERO = """
-.intel_syntax noprefix
-.test_case_enter:
+ASM_DIV_ZERO = ASM_HEADER + """
 DIV EBX
 MOV rax, qword ptr [R14 + RAX]
 .test_case_exit:
 """
 
-ASM_DIV_ZERO_FENCE = """
-.intel_syntax noprefix
-.test_case_enter:
+ASM_DIV_ZERO_FENCE = ASM_HEADER + """
 DIV EBX
 LFENCE
 MOV rax, qword ptr [R14 + RAX]
 .test_case_exit:
 """
 
-ASM_DIV_ZERO2 = """
-.intel_syntax noprefix
-.test_case_enter:
+ASM_DIV_ZERO2 = ASM_HEADER + """
 DIV RBX
 MOV rax, qword ptr [R14 + RAX]
 MOV rax, qword ptr [R14 + RAX]
