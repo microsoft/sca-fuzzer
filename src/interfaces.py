@@ -459,18 +459,24 @@ class BasicBlock:
         return self.end
 
 
+SymbolID = int
+SymbolOffset = int
+
+
 class Function:
     name: str
     owner: Actor
     _all_bb: List[BasicBlock]
     exit: BasicBlock
     obj_file_offset: int = 0
+    symbol_table: Dict[SymbolOffset, SymbolID] = {}
 
     def __init__(self, name: str, owner: Actor):
         self.name = name
         self.owner = owner
         self.exit = BasicBlock(f".exit_{name.lstrip('.function_')}")
         self._all_bb = []
+        self.symbol_table = {}
 
     def __len__(self):
         return len(self._all_bb)
@@ -717,6 +723,7 @@ class TargetDesc(ABC):
     branch_conditions: Dict[str, List[str]]
     reg_normalized: Dict[str, str]
     reg_denormalized: Dict[str, Dict[int, str]]
+    symbol_ids: Dict[str, int]
 
     @staticmethod
     @abstractmethod

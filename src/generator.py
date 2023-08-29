@@ -36,7 +36,10 @@ class AsmParserException(Exception):
 def parser_assert(condition: bool, line_number: int, explanation: str):
     if not condition:
         logger = Logger()
-        logger.error(f"asm_parser: Could not parse line {line_number + 1}\n  Reason: {explanation}")
+        logger.error(
+            f"asm_parser: Could not parse line {line_number + 1}\n"
+            f"       Reason: {explanation}",
+            print_tb=True)
 
 
 # ==================================================================================================
@@ -228,10 +231,17 @@ class ConfigurableGenerator(Generator, abc.ABC):
                 instruction_map[spec.name] = [spec]
 
             # add an entry for direct opcodes
-            dummy_spec = InstructionSpec()
-            dummy_spec.name = "OPCODE"
-            dummy_spec.category = "OPCODE"
-            instruction_map["OPCODE"] = [dummy_spec]
+            opcode_spec = InstructionSpec()
+            opcode_spec.name = "OPCODE"
+            opcode_spec.category = "OPCODE"
+            instruction_map["OPCODE"] = [opcode_spec]
+
+            # entry for symbols
+            symbol_spec = InstructionSpec()
+            symbol_spec.name = "SYMBOL"
+            symbol_spec.category = "SYMBOL"
+            symbol_spec.operands = [OperandSpec([], OT.IMM, False, False)]
+            instruction_map["SYMBOL"] = [symbol_spec]
 
         # load the text and clean it up
         lines = []
@@ -268,6 +278,10 @@ class ConfigurableGenerator(Generator, abc.ABC):
         test_case_map: Dict[str, Dict[str, List[str]]] = OrderedDict()
         function_owners: Dict[str, str] = {}
         for i, line in enumerate(lines):
+            # directives - ignored
+            if line.startswith(".global"):
+                continue
+
             # section start
             if line.startswith(".section"):
                 words = line.split()
@@ -308,6 +322,18 @@ class ConfigurableGenerator(Generator, abc.ABC):
                or line[6:] in [".value", ".2byte", ".4byte", ".8byte"]:
                 assert current_bb
                 test_case_map[current_function][current_bb].append("OPCODE")
+                continue
+
+            # symbols
+            if line.startswith(".symbol"):
+                parser_assert(current_bb != "", i, "Symbol declared outside of a basic block")
+                words = line.split(":")
+                parser_assert(len(words) == 2, i, "Invalid symbol declaration")
+                parser_assert(words[1].upper() == "NOP", i, "Symbol must end with NOP")
+                subwords = words[0].split(".")
+                parser_assert(len(subwords) == 3, i, f"Invalid symbol: {line}")
+                symbol_id = self.target_desc.symbol_ids[subwords[2]]
+                test_case_map[current_function][current_bb].append("SYMBOL " + str(symbol_id))
                 continue
 
             # basic block

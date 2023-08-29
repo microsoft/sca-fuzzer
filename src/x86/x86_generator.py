@@ -161,16 +161,27 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
             # store the function address
             func.obj_file_offset = function_addresses[func.name]
 
-            # connect addresses with instructions in the test case
+            # create a per-actor map
             aid_ = func.owner.id_
-            address_list = output_map[aid_][func.name]
             if not address_map.get(aid_):
                 address_map[aid_] = {}
+
+            address_list = output_map[aid_][func.name]
             counter = 0
+            first_address = -1
             for bb in list(func) + [func.exit]:
                 for inst in list(bb) + bb.terminators:
                     address = address_list[counter]
+                    if first_address == -1:
+                        first_address = address_list[counter]
+
+                    # connect instructions with their addresses
                     address_map[aid_][address] = inst
+
+                    # store symbol addresses
+                    if inst.name == "SYMBOL":
+                        func.symbol_table[address - first_address] = int(inst.operands[0].value)
+
                     counter += 1
 
         test_case.address_map = address_map
