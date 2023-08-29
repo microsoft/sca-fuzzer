@@ -131,6 +131,14 @@ class X86TargetDesc(TargetDesc):
         "PKEY_BIT3": (62, False),  # Protection Keys, bit 4/4
         "NX": (63, False),  # No execute: only valid after cpuid check
     }
+    symbol_ids = {
+        # 0 and 1 are reserved for prologue and epilogue
+        "measurement_start": 2,
+        "measurement_end": 3,
+        "vmenter": 4,
+        "vmcall": 5,
+        "select_vm_g0_f2": 6,
+    }
 
     def __init__(self):
         super().__init__()

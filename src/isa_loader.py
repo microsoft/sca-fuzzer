@@ -70,7 +70,7 @@ class InstructionSet(InstructionSetAbstract):
 
         def is_supported(spec: InstructionSpec):
             if CONF._no_generation:
-                # if we use an existing test case, then instruction filterring is irrelevant
+                # if we use an existing test case, then instruction filtering is irrelevant
                 return True
 
             if include_categories and spec.category not in include_categories:
