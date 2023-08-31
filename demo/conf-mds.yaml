@@ -1,7 +1,7 @@
 # contract
 contract_observation_clause: ct
 contract_execution_clause:
-  - seq
+  - seq-assist
 
 # tested instructions
 instruction_categories:
