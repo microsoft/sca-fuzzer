@@ -30,7 +30,9 @@ static struct kprobe kp = {.symbol_name = "kallsyms_lookup_name"};
 
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(4, 12, 0)
 #include <asm/cacheflush.h>
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0)
+#endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0)
 #include <linux/kallsyms.h>
 int (*set_memory_x)(unsigned long, int) = 0;
 int (*set_memory_nx)(unsigned long, int) = 0;
@@ -48,35 +50,16 @@ uint64_t prefetcher_control = PREFETCHER_DEFAULT;
 char mpx_control = MPX_DEFAULT; // unused on AMD
 char pre_run_flush = PRE_RUN_FLUSH_DEFAULT;
 char *measurement_template = (char *)&template_l1d_prime_probe;
-char *measurement_code = NULL;
-
-void *sandbox_unaligned = NULL;
-sandbox_t *sandbox = NULL;
-void *stack_base = NULL;
-
-char *test_case = NULL;
-uint64_t *inputs = NULL;
-volatile size_t n_inputs = 1;
-
-uint32_t handled_faults = HANDLED_FAULTS_DEFAULT;
-pteval_t faulty_pte_mask_set = 0x0;
-pteval_t faulty_pte_mask_clear = 0xffffffffffffffff;
-
-measurement_t *measurements;
 
 // =================================================================================================
 // Local declarations and definitions
 #define SYSFS_DIRNAME "x86_executor"
+static struct kobject *kobj_interface;
 
 char tracing_error = 0;
 
 unsigned inputs_top = 0;
-static struct kobject *kobj_interface;
-char test_case_ready = 0;
-char n_inputs_ready = 0;
-char inputs_ready = 0;
-
-int loaded_tc_size = 0;
+bool inputs_ready = false;
 
 // =================================================================================================
 // SysFS interface to the module
@@ -505,9 +488,11 @@ static ssize_t enable_quick_and_dirty_mode(struct kobject *kobj, struct kobj_att
 
 // ============================================================================
 // Memory Management and Initialization
-static int __init executor_init(void)
+
+/// Get symbols for set_memory_x and set_memory_nx
+///
+static inline void _get_required_symbols(void)
 {
-    // get set_memory_x and set_memory_nx
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0)
 #ifdef KPROBE_LOOKUP
     typedef unsigned long (*kallsyms_lookup_name_t)(const char *name);
@@ -515,11 +500,14 @@ static int __init executor_init(void)
     register_kprobe(&kp);
     kallsyms_lookup_name = (kallsyms_lookup_name_t)kp.addr;
     unregister_kprobe(&kp);
-#endif
+#endif // KPROBE_LOOKUP
     set_memory_x = (void *)kallsyms_lookup_name("set_memory_x");
     set_memory_nx = (void *)kallsyms_lookup_name("set_memory_nx");
-#endif
+#endif // LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0)
+}
 
+static int __init executor_init(void)
+{
     // Check CPU vendor
     struct cpuinfo_x86 *c = &cpu_data(0);
     if (c->x86_vendor != X86_VENDOR_INTEL && c->x86_vendor != X86_VENDOR_AMD)
@@ -528,60 +516,16 @@ static int __init executor_init(void)
         return -1;
     }
 
-    // allocate memory for test cases and make it executable
-    test_case = kmalloc(MAX_TEST_CASE_SIZE, GFP_KERNEL);
-    measurement_code = kmalloc(MAX_MEASUREMENT_CODE_SIZE, GFP_KERNEL);
-    if (!test_case || !measurement_code)
-    {
-        printk(KERN_ERR "x86_executor: Could not allocate memory for test_case\n");
-        return -ENOMEM;
-    }
-    set_memory_x((unsigned long)measurement_code, MAX_MEASUREMENT_CODE_SIZE / PAGE_SIZE);
+    // Make sure that we have all requirements
+    _get_required_symbols();
 
-    // allocate memory for inputs
-    inputs = vmalloc(n_inputs * INPUT_SIZE);
-    if (!inputs)
-    {
-        printk(KERN_ERR "x86_executor: Could not allocate memory for inputs\n");
-        return -ENOMEM;
-    }
-
-    // allocate working memory
-    sandbox_unaligned = vmalloc(sizeof(sandbox_t) + 0x1000);
-    if (!sandbox_unaligned)
-    {
-        printk(KERN_ERR "x86_executor: Could not allocate memory for sandbox\n");
-        return -ENOMEM;
-    }
-
-    // align sandbox to 2 pages (vmalloc guarantees 1 page alignment)
-    if ((unsigned long)sandbox_unaligned % 0x2000 == 0)
-        sandbox = (sandbox_t *)sandbox_unaligned;
-    else
-        sandbox = (sandbox_t *)((unsigned long)sandbox_unaligned + 0x1000);
-
-    // make sure the fields of the sandbox are aligned as we expect
-    if ((&sandbox->main_region[0] - &sandbox->eviction_region[0]) != EVICT_REGION_OFFSET ||
-        ((char *)&sandbox->stored_rsp - &sandbox->main_region[0]) != RSP_OFFSET ||
-        ((char *)&sandbox->latest_measurement - &sandbox->main_region[0]) != MEASUREMENT_OFFSET ||
-        (&sandbox->upper_overflow[0] - &sandbox->main_region[0]) != REG_INIT_OFFSET)
-    {
-        printk(KERN_ERR "x86_executor: Sandbox alignment error\n");
-        return -1;
-    }
-
-    stack_base = &(sandbox->main_region[MAIN_REGION_SIZE - 8]);
-
-    // zero-initialize the region of memory used by Prime+Probe
-    memset(&sandbox->eviction_region[0], 0, EVICT_REGION_SIZE * sizeof(char));
-
-    // allocate memory for measurements
-    measurements = vmalloc(n_inputs * sizeof(measurement_t));
-    if (!measurements)
-    {
-        printk(KERN_ERR "x86_executor: Could not allocate memory for measurements\n");
-        return -ENOMEM;
-    }
+    // Initialize modules
+    int err = 0;
+    err |= init_test_case_manager();
+    err |= init_input_manager();
+    err |= init_measurements();
+    err |= init_sandbox();
+    CHECK_ERR("executor_init");
 
     // Create a pseudo file system interface
     kobj_interface = kobject_create_and_add(SYSFS_DIRNAME, kernel_kobj->parent);
@@ -594,7 +538,6 @@ static int __init executor_init(void)
     // Create the files associated with this kobject
     // int retval = sysfs_create_group(kobj_interface, &attr_group);
     int i = 0;
-    int err = 0;
     struct attribute *attr;
     for (attr = sysfs_attributes[i]; !err; i++)
     {
@@ -604,7 +547,6 @@ static int __init executor_init(void)
 
         err = sysfs_create_file(kobj_interface, attr);
     }
-
     if (err != 0)
     {
         printk(KERN_ERR "x86_executor: Failed to create a sysfs group\n");

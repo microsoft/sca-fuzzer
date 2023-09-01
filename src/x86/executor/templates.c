@@ -23,12 +23,6 @@
 #define TEMPLATE_RETURN 0x0fff279000000000
 #define TEMPLATE_JUMP_EXCEPTION 0x0fff479000000000
 
-#define xstr(s) _str(s)
-#define _str(s) str(s)
-#define str(s) #s
-
-char *fault_handler;
-
 int load_template(size_t tc_size)
 {
     unsigned template_pos = 0;
@@ -95,13 +89,6 @@ int load_template(size_t tc_size)
 // =================================================================================================
 // Template building blocks
 // =================================================================================================
-// clang-format off
-#define asm_volatile_intel(ASM) \
-    asm volatile( \
-    "\n.intel_syntax noprefix                  \n" \
-    ASM \
-    ".att_syntax noprefix                    ") \
-
 // clobber: rax, rcx, rdx
 #define READ_MSR_START(ID, DEST)                          \
         "mov rcx, "ID"                           \n"      \
