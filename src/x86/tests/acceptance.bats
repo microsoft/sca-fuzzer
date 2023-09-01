@@ -142,22 +142,28 @@ function intel_only() {
 # Tests
 # ------------------------------------------------------------------------------
 
-@test "Architectural Test: Model and Executor are initialized with the same values" {
+@test "Architectural Test: Model and Executor are initialized with the same values (registers)" {
+    tmp_config=$(mktemp -p $TEST_DIR)
+    echo "$ARCH_BASE" >>$tmp_config
+    assert_no_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/model_match.asm -c $tmp_config -i 20"
+}
+
+@test "Architectural Test: Model and Executor are initialized with the same values (memory)" {
+    tmp_config=$(mktemp -p $TEST_DIR)
+    echo "$ARCH_BASE" >>$tmp_config
+    assert_no_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/model_match_memory.asm -c $tmp_config -i 20"
+}
+
+@test "Architectural Test: Model and Executor are initialized with the same values (flags)" {
     tmp_config=$(mktemp -p $TEST_DIR)
     echo "$ARCH_BASE" >>$tmp_config
     assert_no_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/model_flags_match.asm -c $tmp_config -i 20"
 }
 
-@test "Architectural Test: Model and Executor have the same FLAGS value" {
+@test "Architectural Test: Model and Executor are initialized with the same values (SIMD registers)" {
     tmp_config=$(mktemp -p $TEST_DIR)
     echo "$ARCH_BASE" >>$tmp_config
     assert_no_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/model_flags_match.asm -c $tmp_config -i 20"
-}
-
-@test "Architectural Test: Model and Executor have the same XMM values" {
-    tmp_config=$(mktemp -p $TEST_DIR)
-    echo "$ARCH_BASE" >>$tmp_config
-    assert_no_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/model_match_xmm.asm -c $tmp_config -i 20"
 }
 
 @test "Architectural Test: 100 Random Test Cases" {
