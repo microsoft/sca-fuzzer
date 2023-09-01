@@ -434,8 +434,8 @@ static ssize_t enable_pre_run_flush_store(struct kobject *kobj, struct kobj_attr
 }
 
 // This function is unused on AMD
-static ssize_t enable_mpx_store(struct kobject *kobj, struct kobj_attribute *attr,
-                                       const char *buf, size_t count)
+static ssize_t enable_mpx_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf,
+                                size_t count)
 {
     unsigned value = 0;
     sscanf(buf, "%u", &value);

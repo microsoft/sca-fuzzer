@@ -26,7 +26,9 @@
 #define L1D_ASSOCIATIVITY 8
 #endif
 
+// =================================================================================================
 // Model-specific constants
+// =================================================================================================
 #if VENDOR_ID == 1 // Intel
 #define SSBP_PATCH_ON 0b111
 #define SSBP_PATCH_OFF 0b011
@@ -40,7 +42,9 @@
 #define PREFETCHER_OFF 0b101111
 #endif
 
+// =================================================================================================
 // Executor Configuration Interface
+// =================================================================================================
 extern bool quick_and_dirty_mode;
 extern long uarch_reset_rounds;
 #define UARCH_RESET_ROUNDS_DEFAULT 1
@@ -54,7 +58,9 @@ extern char mpx_control; // MPX - unused on AMD
 #define MPX_DEFAULT 0
 extern char *attack_template;
 
-// Measurement results
+// =================================================================================================
+// Measurements
+// =================================================================================================
 #define HTRACE_WIDTH 1
 #define NUM_PFC 5
 
@@ -66,7 +72,9 @@ typedef struct Measurement
 
 extern measurement_t *measurements;
 
+// =================================================================================================
 // Sandbox
+// =================================================================================================
 #define WORKING_MEMORY_SIZE 1048576 // 256KB
 #define MAIN_REGION_SIZE 4096
 #define FAULTY_REGION_SIZE 4096
@@ -93,7 +101,9 @@ extern void *stack_base;
 #define RSP_OFFSET 12288         // (MAIN_REGION_SIZE + FAULTY_REGION_SIZE + OVERFLOW_REGION_SIZE)
 #define MEASUREMENT_OFFSET 12296 // RSP_OFFSET + sizeof(stored_rsp)
 
+// =================================================================================================
 // Test Case
+// =================================================================================================
 extern char *test_case;
 #define MAX_TEST_CASE_SIZE 4096 // must be exactly 1 page to detect sysfs buffering
 extern char *measurement_code;
@@ -106,7 +116,9 @@ extern char *measurement_template;
 extern uint64_t *inputs;
 extern volatile size_t n_inputs;
 
+// =================================================================================================
 // Fault handling
+// =================================================================================================
 #define HANDLED_FAULTS_DEFAULT                                                                     \
     ((1 << X86_TRAP_DE) + (1 << X86_TRAP_DB) + (1 << X86_TRAP_BP) + (1 << X86_TRAP_BR) +           \
      (1 << X86_TRAP_UD) + (1 << X86_TRAP_GP) + (1 << X86_TRAP_PF))
@@ -117,8 +129,9 @@ extern gate_desc *curr_idt_table;
 extern pteval_t faulty_pte_mask_set;
 extern pteval_t faulty_pte_mask_clear;
 
+// =================================================================================================
 // Shared functions
-int trace_test_case(void);
+// =================================================================================================
 int load_template(size_t tc_size);
 void template_l1d_prime_probe(void);
 void template_l1d_prime_probe_fast(void);
