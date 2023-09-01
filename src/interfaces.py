@@ -540,14 +540,14 @@ GPR_SUBREGION_SIZE = 64
 SIMD_SUBREGION_SIZE = 256
 DATA_SIZE = MAIN_REGION_SIZE + FAULTY_REGION_SIZE + GPR_SUBREGION_SIZE + SIMD_SUBREGION_SIZE
 
-# ActorInput data type represents the input for a single actor. It is a fixed-size array of
+# InputFragment data type represents the input for a single actor. It is a fixed-size array of
 # 64-bit unsigned integers, structured into 2 sub-arrays representing memory (`main` and `faulty`),
 # and 2 sub-arrays representing CPU registers (`gpr` and `simd`).
 # The array is used to initialize sandbox memory and CPU registers.
 #
 # Ordering of GPRs:  RAX, RBX, RCX, RDX, RSI, RDI, FLAGS, (last 8 bytes unused)
 # Ordering of SIMD registers: YMM0, YMM1, ..., YMM7
-ActorInput = np.dtype(
+InputFragment = np.dtype(
     [
         ('main', np.uint64, MAIN_REGION_SIZE // 8),
         ('faulty', np.uint64, FAULTY_REGION_SIZE // 8),
@@ -566,8 +566,8 @@ class Input(np.ndarray):
     is used to initialize the sandbox memory and the CPU registers.
 
     The number of elements in Input is equal to the number of actors multiplied by
-    the number of elements in ActorInput, i.e.,
-        Input.size = n_actors * ActorInput.size
+    the number of elements in InputFragment, i.e.,
+        Input.size = n_actors * InputFragment.size
     """
     seed: int = 0
     data_size: int
@@ -577,7 +577,7 @@ class Input(np.ndarray):
 
     def __new__(cls):
         n_actors = 1 + CONF.n_guests  # 1 host + n guests
-        obj = super().__new__(cls, (n_actors,), ActorInput, None, 0, None, None)  # type: ignore
+        obj = super().__new__(cls, (n_actors,), InputFragment, None, 0, None, None)  # type: ignore
         obj.data_size = DATA_SIZE // 8
         return obj
 
@@ -592,7 +592,7 @@ class Input(np.ndarray):
 
     def get_simd128_registers(self, actor_id: int):
         vals = []
-        for i in range(0, ActorInput['simd'].shape[actor_id], 2):
+        for i in range(0, InputFragment['simd'].shape[actor_id], 2):
             vals.append(int(self[0]['simd'][i + 1]) << 64 | int(self[0]['simd'][i]))
         return vals
 
