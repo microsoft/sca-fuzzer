@@ -317,63 +317,61 @@ static inline int uarch_flush(void)
     return 0;
 }
 
+void write_sandbox(uint64_t *current_input)
+{
+    // Initialize the rest of the memory
+    // - sandbox: main and faulty regions
+    uint64_t *main_page_values = &current_input[0];
+    uint64_t *main_base = (uint64_t *)&sandbox->main_region[0];
+    for (int j = 0; j < MAIN_REGION_SIZE / 8; j += 1)
+    {
+        ((uint64_t *)main_base)[j] = main_page_values[j];
+    }
 
-void init_sandbox(uint64_t *current_input) {
-        // Initialize the rest of the memory
-        // - sandbox: main and faulty regions
-        uint64_t *main_page_values = &current_input[0];
-        uint64_t *main_base = (uint64_t *)&sandbox->main_region[0];
-        for (int j = 0; j < MAIN_REGION_SIZE / 8; j += 1)
-        {
-            ((uint64_t *)main_base)[j] = main_page_values[j];
-        }
+    uint64_t *faulty_page_values = &current_input[MAIN_REGION_SIZE / 8];
+    uint64_t *faulty_base = (uint64_t *)&sandbox->faulty_region[0];
+    for (int j = 0; j < FAULTY_REGION_SIZE / 8; j += 1)
+    {
+        ((uint64_t *)faulty_base)[j] = faulty_page_values[j];
+    }
 
-        uint64_t *faulty_page_values = &current_input[MAIN_REGION_SIZE / 8];
-        uint64_t *faulty_base = (uint64_t *)&sandbox->faulty_region[0];
-        for (int j = 0; j < FAULTY_REGION_SIZE / 8; j += 1)
-        {
-            ((uint64_t *)faulty_base)[j] = faulty_page_values[j];
-        }
+    // Initial register values (the registers will be set to these values in template.c)
+    uint64_t *register_values = &current_input[(MAIN_REGION_SIZE + FAULTY_REGION_SIZE) / 8];
+    uint64_t *register_initialization_base = (uint64_t *)&sandbox->upper_overflow[0];
 
-        // Initial register values (the registers will be set to these values in template.c)
-        uint64_t *register_values = &current_input[(MAIN_REGION_SIZE + FAULTY_REGION_SIZE) / 8];
-        uint64_t *register_initialization_base = (uint64_t *)&sandbox->upper_overflow[0];
+    // - RAX ... RDI
+    for (int j = 0; j < 6; j += 1)
+    {
+        ((uint64_t *)register_initialization_base)[j] = register_values[j];
+    }
 
-        // - RAX ... RDI
-        for (int j = 0; j < 6; j += 1)
-        {
-            ((uint64_t *)register_initialization_base)[j] = register_values[j];
-        }
+    // - flags
+    uint64_t masked_flags = (register_values[6] & 2263) | 2;
+    ((uint64_t *)register_initialization_base)[6] = masked_flags;
 
-        // - flags
-        uint64_t masked_flags = (register_values[6] & 2263) | 2;
-        ((uint64_t *)register_initialization_base)[6] = masked_flags;
+    // - RSP and RBP
+    ((uint64_t *)register_initialization_base)[7] = (uint64_t)stack_base;
 
-        // - RSP and RBP
-        ((uint64_t *)register_initialization_base)[7] = (uint64_t)stack_base;
-
-        // - XMM0 ... XMM15
-        asm volatile(""
-                     "movdqa 0x00(%0), %%xmm0\n"
-                     "movdqa 0x10(%0), %%xmm1\n"
-                     "movdqa 0x20(%0), %%xmm2\n"
-                     "movdqa 0x30(%0), %%xmm3\n"
-                     "movdqa 0x40(%0), %%xmm4\n"
-                     "movdqa 0x50(%0), %%xmm5\n"
-                     "movdqa 0x60(%0), %%xmm6\n"
-                     "movdqa 0x70(%0), %%xmm7\n"
-                     "movdqa 0x80(%0), %%xmm8\n"
-                     "movdqa 0x90(%0), %%xmm9\n"
-                     "movdqa 0xa0(%0), %%xmm10\n"
-                     "movdqa 0xb0(%0), %%xmm11\n"
-                     "movdqa 0xc0(%0), %%xmm12\n"
-                     "movdqa 0xd0(%0), %%xmm13\n"
-                     "movdqa 0xe0(%0), %%xmm14\n"
-                     "movdqa 0xf0(%0), %%xmm15\n"
-                      ::"r"(&register_values[8])
-                     : "xmm0");
+    // - XMM0 ... XMM15
+    asm volatile(""
+                 "movdqa 0x00(%0), %%xmm0\n"
+                 "movdqa 0x10(%0), %%xmm1\n"
+                 "movdqa 0x20(%0), %%xmm2\n"
+                 "movdqa 0x30(%0), %%xmm3\n"
+                 "movdqa 0x40(%0), %%xmm4\n"
+                 "movdqa 0x50(%0), %%xmm5\n"
+                 "movdqa 0x60(%0), %%xmm6\n"
+                 "movdqa 0x70(%0), %%xmm7\n"
+                 "movdqa 0x80(%0), %%xmm8\n"
+                 "movdqa 0x90(%0), %%xmm9\n"
+                 "movdqa 0xa0(%0), %%xmm10\n"
+                 "movdqa 0xb0(%0), %%xmm11\n"
+                 "movdqa 0xc0(%0), %%xmm12\n"
+                 "movdqa 0xd0(%0), %%xmm13\n"
+                 "movdqa 0xe0(%0), %%xmm14\n"
+                 "movdqa 0xf0(%0), %%xmm15\n" ::"r"(&register_values[8])
+                 : "xmm0");
 }
-
 
 void run_experiment_dirty(long rounds)
 {
@@ -395,7 +393,7 @@ void run_experiment_dirty(long rounds)
         long i_ = (i < 0) ? 0 : i;
         uint64_t *current_input = &inputs[i_ * INPUT_SIZE / 8];
 
-        init_sandbox(current_input);
+        write_sandbox(current_input);
 
         // Set page table entry for the faulty region
         if ((faulty_pte_mask_set != 0) || (faulty_pte_mask_clear != 0xffffffffffffffff))
@@ -480,7 +478,7 @@ void run_experiment(long rounds)
         if (pre_run_flush == 1)
             uarch_flush();
 
-        init_sandbox(current_input);
+        write_sandbox(current_input);
 
         // Set page table entry for the faulty region
         if ((faulty_pte_mask_set != 0) || (faulty_pte_mask_clear != 0xffffffffffffffff))
@@ -531,14 +529,16 @@ int trace_test_case(void)
     // 1. Ensure that all necessary objects are allocated
     if (!measurements)
     {
-        printk(KERN_ERR "Did not allocate memory for measurements\n");
+        PRINT_ERRS("trace_test_case", "measurements is NULL\n");
         return -ENOMEM;
     }
     if (!measurement_code)
-        return -1;
-    if (!inputs)
     {
-        printk(KERN_ERR "Did not allocate memory for inputs\n");
+        PRINT_ERRS("trace_test_case", "measurement_code is NULL\n");
+        return -ENOMEM;
+    }
+    {
+        PRINT_ERRS("trace_test_case", "inputs is NULL or its fields are NULL\n");
         return -ENOMEM;
     }
 
@@ -547,6 +547,8 @@ int trace_test_case(void)
 
     // 3. Run the measurement
     if (pre_measurement_setup())
+    {
+        PRINT_ERRS("trace_test_case", "pre_measurement_setup failed\n");
         return -1;
     if (quick_and_dirty_mode)
     {
@@ -563,9 +565,8 @@ int trace_test_case(void)
 }
 
 // =================================================================================================
-// Helper Functions
+// Perf. Counter Management
 // =================================================================================================
-
 /// Clears the programmable performance counters and writes the
 /// configurations to the corresponding MSRs.
 ///
