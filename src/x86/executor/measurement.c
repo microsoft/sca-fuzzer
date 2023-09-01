@@ -39,6 +39,7 @@ struct idt_data
 unsigned long faulty_page_addr;
 pte_t faulty_page_pte;
 pte_t *faulty_page_ptep;
+char *_default_fault_handler = NULL;
 
 gate_desc *orig_idt_table;
 gate_desc *curr_idt_table;
@@ -58,6 +59,8 @@ inline void _native_page_invalidate(void)
 {
     asm volatile("invlpg (%0)" ::"r"(faulty_page_addr) : "memory");
 }
+
+void default_handler(void);
 
 // =================================================================================================
 // Fault Handling
@@ -140,6 +143,10 @@ static void setup_idt(void)
         {
             set_intr_gate(idx, (void *)fault_handler);
         }
+        else
+        {
+            set_intr_gate(idx, (void *)_default_fault_handler);
+        }
     }
     enable_write_protection();
     idtr.address = (unsigned long)curr_idt_table;
@@ -150,6 +157,55 @@ static void reset_idt(void)
 {
     idtr.address = (unsigned long)orig_idt_table;
     local_load_idt(&idtr);
+}
+
+__attribute__((unused)) void default_handler_wrapper(void)
+{
+    // clang-format off
+    asm_volatile_intel(
+        ".global default_handler\n"
+        "default_handler:\n"
+
+        // rax <- &latest_measurement
+        "lea rax, [r14 + "xstr(MEASUREMENT_OFFSET)"]\n"
+
+        // set the trace to 0xFFFF to indicate an unhandled fault
+        "mov qword ptr [rax], 0xFFFF \n"
+
+        // set PFC[0] to the error code
+        "pop rbx \n"
+        "mov qword ptr [rax + 8], rbx \n"
+
+        // set PFC[1] to the faulting address
+        "pop rcx \n"
+        "mov qword ptr [rax + 16], rcx \n"
+
+        // rsp <- stored_rsp
+        "mov rsp, qword ptr [r14 + "xstr(RSP_OFFSET)"]\n"
+
+        // restore registers
+        "popfq\n"
+        "pop r15\n"
+        "pop r14\n"
+        "pop r13\n"
+        "pop r12\n"
+        "pop r11\n"
+        "pop r10\n"
+        "pop rbp\n"
+        "pop rbx\n"
+    );
+    // clang-format on
+
+    // since most faults happen within the measurement_code, we additionally store
+    // a normalized value of the faulting address
+    sandbox->latest_measurement.pfc[2] =
+        sandbox->latest_measurement.pfc[1] - (uint64_t)measurement_code;
+
+    // TODO: make run_experiment exit with an error code upon a n unhandled fault
+
+    PRINT_ERRS("test_case", "Test case triggered an unhandled fault\n");
+
+    asm_volatile_intel("ret\n");
 }
 
 // =================================================================================================
@@ -212,8 +268,8 @@ static inline int pre_measurement_setup(void)
 #elif CPU_FAMILY == 23
     // Disable prefetchers
     uint64_t dc_config = native_read_msr(0xC0011022); // Data Cache Configuration
-    dc_config |=  (1<<13);
-    dc_config |=  (1<<15);
+    dc_config |= (1 << 13);
+    dc_config |= (1 << 15);
     wrmsr64(0xC0011022, dc_config);
 #endif
 
