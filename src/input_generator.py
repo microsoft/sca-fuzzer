@@ -8,7 +8,7 @@ import os
 import random
 import numpy as np
 from typing import List, Tuple
-from .interfaces import Input, InputTaint, InputGenerator, ActorInput
+from .interfaces import Input, InputTaint, InputGenerator, InputFragment
 from .config import CONF
 from .util import Logger
 
@@ -43,8 +43,8 @@ class NumpyRandomInputGenerator(InputGenerator):
             # copy lower 32-bits to upper 32-bits, for every 8-byte word
             data = (data << 32) + data
 
-            # cast to ActorInput
-            input_[i] = data.view(ActorInput)
+            # cast to InputFragment
+            input_[i] = data.view(InputFragment)
 
             # zero-fill the unused parts of the input
             input_[i]['padding'] = 0
