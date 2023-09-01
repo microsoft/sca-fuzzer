@@ -133,4 +133,77 @@ void template_gpr(void);
 #define BIT_FLIP(a, b) ((a) ^= (1ULL << (b)))
 #define BIT_CHECK(a, b) (!!((a) & (1ULL << (b))))
 
+// =================================================================================================
+// Checking for internal errors
+// =================================================================================================
+#define PRINT_ERR(msg, ...) printk(KERN_ERR "[x86_executor] " msg, ##__VA_ARGS__);
+#define PRINT_ERRS(src, msg, ...) printk(KERN_ERR "[x86_executor:" src "] " msg, ##__VA_ARGS__);
+
+#define CHECK_ERR(msg)                                                                             \
+    if (err)                                                                                       \
+    {                                                                                              \
+        PRINT_ERR(" Error [" msg "]\n");                                                           \
+        return err;                                                                                \
+    }
+#define CHECK_ERR_RETURN_NULL(msg)                                                                 \
+    if (err)                                                                                       \
+    {                                                                                              \
+        PRINT_ERR("  Error [" msg "]\n");                                                          \
+        return 0;                                                                                  \
+    }
+#define CHECK_NONULL(ptr, msg)                                                                     \
+    if (!ptr)                                                                                      \
+    {                                                                                              \
+        PRINT_ERR(" Null pointer [" msg "]\n");                                                    \
+        return -EIO;                                                                               \
+    }
+#define CHECK_NONULL_RETURN_NULL(ptr, msg)                                                         \
+    if (!ptr)                                                                                      \
+    {                                                                                              \
+        PRINT_ERR(" Null pointer [" msg "]\n");                                                    \
+        return NULL;                                                                               \
+    }
+#define SAFE_FREE(x)                                                                               \
+    if (x)                                                                                         \
+    {                                                                                              \
+        kfree(x);                                                                                  \
+        x = NULL;                                                                                  \
+    }
+#define CHECKED_MALLOC(x)                                                                          \
+    ({                                                                                             \
+        void *ptr = kmalloc(x, GFP_KERNEL);                                                        \
+        if (!ptr)                                                                                  \
+        {                                                                                          \
+            PRINT_ERR(" Error allocating memory\n");                                               \
+            return -EIO;                                                                           \
+        }                                                                                          \
+        ptr;                                                                                       \
+    })
+#define CHECKED_ZALLOC(x)                                                                          \
+    ({                                                                                             \
+        void *ptr = kzalloc(x, GFP_KERNEL);                                                        \
+        if (!ptr)                                                                                  \
+        {                                                                                          \
+            PRINT_ERR(" Error zero-allocating memory\n");                                          \
+            return -EIO;                                                                           \
+        }                                                                                          \
+        ptr;                                                                                       \
+    })
+#define CHECKED_VMALLOC(x)                                                                         \
+    ({                                                                                             \
+        void *ptr = vmalloc(x);                                                                    \
+        if (!ptr)                                                                                  \
+        {                                                                                          \
+            PRINT_ERR(" Error allocating memory\n");                                               \
+            return -EIO;                                                                           \
+        }                                                                                          \
+        ptr;                                                                                       \
+    })
+#define SAFE_VFREE(x)                                                                              \
+    if (x)                                                                                         \
+    {                                                                                              \
+        vfree(x);                                                                                  \
+        x = NULL;                                                                                  \
+    }
+
 #endif
