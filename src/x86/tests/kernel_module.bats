@@ -2,6 +2,8 @@
 
 INPUT_SIZE=$((4096 * 3))
 NOP_OPCODE='\x90'
+FRAGMENT_META='\x00\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+
 
 setup() {
     # get the containing directory of this file
@@ -12,10 +14,9 @@ setup() {
 @test "x86 executor: Loading a test case" {
     echo -n -e $NOP_OPCODE >/sys/x86_executor/test_case
 
-    run bash -c 'echo "1" >/sys/x86_executor/n_inputs'
-    [ "$status" -eq 0 ]
-
-    printf '%0.s\x01' $(seq 1 $INPUT_SIZE) > tmp.bin
+    printf '\x01\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00' > tmp.bin
+    printf $FRAGMENT_META >> tmp.bin
+    printf '%0.s\x01' $(seq 1 $INPUT_SIZE) >> tmp.bin
     run bash -c 'cat tmp.bin > /sys/x86_executor/inputs'
     [ "$status" -eq 0 ]
     rm tmp.bin
@@ -51,12 +52,20 @@ function load_test_case() {
     objcopy "$tmpbin" -O binary "$tmpbin"
 
     cat $tmpbin >/sys/x86_executor/test_case
-    echo "1" >/sys/x86_executor/n_inputs
-    printf '%0.s\x01' $(seq 1 $INPUT_SIZE) > /sys/x86_executor/inputs
+    printf '\x01\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00' > tmp.bin
+    printf '\x00\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00' >> tmp.bin
+    printf '%0.s\x01' $(seq 1 $INPUT_SIZE) >> tmp.bin
+    cat tmp.bin > /sys/x86_executor/inputs
+    rm tmp.bin
     run cat /sys/x86_executor/inputs
     [[ "$output" -eq "1" ]]
 
     rm "$tmpbin"
+}
+
+@test "x86_executor: Uninitialized tracing" {
+    run cat /sys/x86_executor/trace
+    [ "$status" -eq 0 ]
 }
 
 @test "x86 executor: Controlling patches" {
@@ -181,8 +190,12 @@ function load_test_case() {
         # echo $mode
         echo $mode > /sys/x86_executor/measurement_mode
         cat $tmpbin >/sys/x86_executor/test_case
-        echo "$nruns" >/sys/x86_executor/n_inputs
+
+        x=$nruns
+        printf "\x01\x00\x00\x00\x00\x00\x00\x00$(printf "\\%03o" $((x&255)) $((x>>8&255)) $((x>>16&255)) $((x>>24&255)))\x00\x00\x00\x00" > /sys/x86_executor/inputs
+        printf $FRAGMENT_META >> /sys/x86_executor/inputs
         cat $tmpinput > /sys/x86_executor/inputs
+
         run cat /sys/x86_executor/inputs
         [[ "$output" -eq "1" ]]
 
@@ -235,8 +248,12 @@ function load_test_case() {
     mode="P+P"
     echo $mode > /sys/x86_executor/measurement_mode
     cat $tmpbin >/sys/x86_executor/test_case
-    echo "$nruns" >/sys/x86_executor/n_inputs
+
+    x=$nruns
+    printf "\x01\x00\x00\x00\x00\x00\x00\x00$(printf "\\%03o" $((x&255)) $((x>>8&255)) $((x>>16&255)) $((x>>24&255)))\x00\x00\x00\x00" > /sys/x86_executor/inputs
+    printf $FRAGMENT_META >> /sys/x86_executor/inputs
     cat $tmpinput > /sys/x86_executor/inputs
+
     run cat /sys/x86_executor/inputs
     [[ "$output" -eq "1" ]]
 

@@ -88,14 +88,6 @@ static ssize_t inputs_store(struct kobject *kobj, struct kobj_attribute *attr, c
 static ssize_t inputs_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf);
 static struct kobj_attribute inputs_attribute = __ATTR(inputs, 0666, inputs_show, inputs_store);
 
-/// Changing the number of tested inputs
-///
-static ssize_t n_inputs_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf,
-                              size_t count);
-static ssize_t n_inputs_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf);
-static struct kobj_attribute n_inputs_attribute =
-    __ATTR(n_inputs, 0666, n_inputs_show, n_inputs_store);
-
 /// Setting the number of warm up rounds
 ///
 static ssize_t warmups_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf);
@@ -167,11 +159,15 @@ static ssize_t enable_quick_and_dirty_mode(struct kobject *kobj, struct kobj_att
 static struct kobj_attribute enable_quick_and_dirty_mode_attribute =
     __ATTR(enable_quick_and_dirty_mode, 0666, NULL, enable_quick_and_dirty_mode);
 
+/// Debugging interface
+///
+static ssize_t dbg_dump_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf);
+static struct kobj_attribute dbg_dump_attribute = __ATTR(dbg_dump_mode, 0666, dbg_dump_show, NULL);
+
 static struct attribute *sysfs_attributes[] = {
     &trace_attribute.attr,
     &test_case_attribute.attr,
     &inputs_attribute.attr,
-    &n_inputs_attribute.attr,
     &warmups_attribute.attr,
     &print_sandbox_base_attribute.attr,
     &print_code_base_attribute.attr,
@@ -181,6 +177,7 @@ static struct attribute *sysfs_attributes[] = {
     &measurement_mode_attribute.attr,
     &enable_quick_and_dirty_mode_attribute.attr,
     &pte_mask_attribute.attr,
+    &dbg_dump_attribute.attr,
 #if VENDOR_ID == 1 // Intel
     &enable_mpx_attribute.attr,
 #endif
@@ -198,19 +195,18 @@ static ssize_t trace_show(struct kobject *kobj, struct kobj_attribute *attr, cha
 
     if (!measurements)
     {
-        printk(KERN_ERR "x86_executor: Measurements where not initialized\n");
+        PRINT_ERRS("trace_show", "Measurements where not initialized\n");
+        return -1;
+    }
+    if (!input_parsing_completed())
+    {
+        PRINT_ERRS("trace_show", "Attempting to start tracing before inputs are ready\n");
         return -1;
     }
 
     // start a new measurement?
     if (next_measurement_id < 0)
     {
-        if (test_case_ready == 0 || inputs_ready == 0)
-        {
-            printk(KERN_ERR "x86_executor: Test case is not ready to be tested\n");
-            return -1;
-        }
-
         tracing_error = 1; // this variable is used to detect crashes during test case execution
         int err = trace_test_case();
         tracing_error = 0;
@@ -270,9 +266,6 @@ static ssize_t test_case_store(struct kobject *kobj, struct kobj_attribute *attr
         return -1;
     }
 
-    test_case_ready = 1;
-    n_inputs_ready = 0;
-    inputs_ready = 0;
     next_measurement_id = -1;
     return count;
 }
@@ -286,84 +279,30 @@ static ssize_t test_case_show(struct kobject *kobj, struct kobj_attribute *attr,
     return loaded_tc_size;
 }
 
-static ssize_t n_inputs_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf,
-                              size_t count)
-{
-    unsigned long old_n_inputs = n_inputs;
-    sscanf(buf, "%ld", &n_inputs);
-
-    if (n_inputs > old_n_inputs)
-    {
-        // allocate more memory for measurements
-        vfree(measurements);
-        measurements = vmalloc(n_inputs * sizeof(measurement_t));
-        if (!measurements)
-        {
-            printk(KERN_ERR "x86_executor: Could not allocate memory for measurements\n");
-            return -ENOMEM;
-        }
-
-        // and for inputs
-        vfree(inputs);
-        inputs = vmalloc(n_inputs * INPUT_SIZE);
-        if (!inputs)
-        {
-            printk(KERN_ERR "x86_executor: Could not allocate memory for inputs\n");
-            return -ENOMEM;
-        }
-    }
-    inputs_top = 0; // restart input loading
-    n_inputs_ready = 1;
-    return count;
-}
-
-static ssize_t n_inputs_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
-{
-    return sprintf(buf, "%ld\n", n_inputs);
-}
-
 static ssize_t inputs_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf,
                             size_t count)
 {
-    if (n_inputs_ready == 0)
-    {
-        printk(KERN_ERR "x86_executor: Violation of the loading protocol\n");
-        return -1;
-    }
+    bool finished = false;
+    ssize_t consumed_bytes = parse_input_buffer(buf, count, &finished);
+    inputs_ready = false;
 
-    // check if memory for inputs was allocated
-    if (!inputs)
+    if (finished)
     {
-        printk(KERN_ERR "x86_executor: Input memory was not allocated\n");
-        inputs_ready = 0;
-        return -1;
-    }
+        // prepare sandboxes
+        int err = alloc_and_map_sandboxes();
+        CHECK_ERR("alloc_and_map_sandboxes");
 
-    /// Because of buffering in sysfs, this function may be called several times for
-    /// the same sequence of inputs
-    unsigned batch_size = count / 8; // the count is for uint64
+        // prepare memory for storing results
+        err = alloc_measurements();
 
-    // first, check for overflows
-    if (inputs_top + batch_size > n_inputs * INPUT_SIZE)
-    {
-        printk(KERN_ERR "x86_executor: Input overflow\n");
-        inputs_ready = 0;
-        return -1;
+        inputs_ready = true;
     }
-
-    // load the batch
-    uint64_t *new_inputs = (uint64_t *)buf;
-    for (unsigned i = 0; i < batch_size; i++)
-    {
-        inputs[inputs_top + i] = new_inputs[i];
-    }
-    inputs_top += batch_size;
-    inputs_ready = 1;
-    return count;
+    return consumed_bytes;
 }
 
 static ssize_t inputs_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
+    // FIXME: not implemented yet. See Flavien's branch for a reference implementation
     return sprintf(buf, "%d\n", inputs_ready);
 }
 
@@ -486,6 +425,39 @@ static ssize_t enable_quick_and_dirty_mode(struct kobject *kobj, struct kobj_att
     return count;
 }
 
+/// Dump all global variables into the kernel log
+///
+static ssize_t dbg_dump_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+{
+    int len = 0;
+    len += sprintf(&buf[len], "n_actors: %lu\n", n_actors);
+    len += sprintf(&buf[len], "test_case: 0x%llx\n", (uint64_t)test_case);
+    len += sprintf(&buf[len], "measurement_code: 0x%llx\n", (uint64_t)measurement_code);
+    len += sprintf(&buf[len], "measurement_template: 0x%llx\n", (uint64_t)measurement_template);
+    len += sprintf(&buf[len], "measurements: 0x%llx\n", (uint64_t)measurements);
+    len += sprintf(&buf[len], "n_inputs: %lu\n", n_inputs);
+    len += sprintf(&buf[len], "inputs: %llx\n", (uint64_t)inputs);
+    if (inputs)
+    {
+        len += sprintf(&buf[len], "inputs->metadata: %llx\n", (uint64_t)inputs->metadata);
+        len += sprintf(&buf[len], "inputs->data: %llx\n", (uint64_t)inputs->data);
+    }
+    len += sprintf(&buf[len], "sandbox: %llx\n", (uint64_t)sandbox);
+    len += sprintf(&buf[len], "stack_base: %llx\n", (uint64_t)stack_base);
+    len += sprintf(&buf[len], "fault_handler: %llx\n", (uint64_t)fault_handler);
+    len += sprintf(&buf[len], "handled_faults: %u\n", handled_faults);
+    len += sprintf(&buf[len], "curr_idt_table: %llx\n", (uint64_t)curr_idt_table);
+    len += sprintf(&buf[len], "faulty_pte_mask_set: %lu\n", faulty_pte_mask_set);
+    len += sprintf(&buf[len], "faulty_pte_mask_clear: %lu\n", faulty_pte_mask_clear);
+    len += sprintf(&buf[len], "quick_and_dirty_mode: %d\n", quick_and_dirty_mode);
+    len += sprintf(&buf[len], "uarch_reset_rounds: %ld\n", uarch_reset_rounds);
+    len += sprintf(&buf[len], "ssbp_patch_control: %llu\n", ssbp_patch_control);
+    len += sprintf(&buf[len], "prefetcher_control: %llu\n", prefetcher_control);
+    len += sprintf(&buf[len], "pre_run_flush: %d\n", pre_run_flush);
+    len += sprintf(&buf[len], "mpx_control: %d\n", mpx_control);
+    return len;
+}
+
 // ============================================================================
 // Memory Management and Initialization
 
@@ -573,23 +545,10 @@ static void __exit executor_exit(void)
         return;
     }
 
-    if (measurement_code)
-    {
-        set_memory_nx((unsigned long)measurement_code, MAX_MEASUREMENT_CODE_SIZE / PAGE_SIZE);
-        kfree(measurement_code);
-    }
-
-    if (test_case)
-        kfree(test_case);
-
-    if (inputs)
-        vfree(inputs);
-
-    if (sandbox_unaligned)
-        vfree(sandbox_unaligned);
-
-    if (measurements)
-        vfree(measurements);
+    free_test_case_manager();
+    free_input_parser();
+    free_measurements();
+    free_sandbox();
 
     if (kobj_interface)
         kobject_put(kobj_interface);
