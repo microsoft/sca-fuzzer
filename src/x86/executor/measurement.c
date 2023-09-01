@@ -397,7 +397,8 @@ void run_experiment_dirty(long rounds)
     {
         // ignore "warm-up" runs (i<0)uarch_reset_rounds
         long i_ = (i < 0) ? 0 : i;
-        uint64_t *current_input = &inputs[i_ * INPUT_SIZE / 8];
+        int actor_id = 0; // we don't support multiple actors yet
+        uint64_t *current_input = (uint64_t *)get_input_fragment_unsafe(i_, actor_id);
 
         write_sandbox(current_input);
 
@@ -465,7 +466,8 @@ void run_experiment(long rounds)
     {
         // ignore "warm-up" runs (i<0)uarch_reset_rounds
         long i_ = (i < 0) ? 0 : i;
-        uint64_t *current_input = &inputs[i_ * INPUT_SIZE / 8];
+        int actor_id = 0; // we don't support multiple actors yet
+        uint64_t *current_input = (uint64_t *)get_input_fragment_unsafe(i_, actor_id);
 
         // Initialize the areas surrounding the sandbox
         // NOTE: memset is not used intentionally! somehow, it messes up with P+P measurements
@@ -543,6 +545,7 @@ int trace_test_case(void)
         PRINT_ERRS("trace_test_case", "measurement_code is NULL\n");
         return -ENOMEM;
     }
+    if (!inputs || !inputs->metadata || !inputs->data)
     {
         PRINT_ERRS("trace_test_case", "inputs is NULL or its fields are NULL\n");
         return -ENOMEM;

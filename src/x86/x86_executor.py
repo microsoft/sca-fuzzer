@@ -76,7 +76,11 @@ class X86Executor(Executor):
         masks = f"{test_case.faulty_pte.mask_set} {test_case.faulty_pte.mask_clear}"
         write_to_sysfs_file(masks, "/sys/x86_executor/faulty_pte_mask")
         with open(test_case.bin_path, "rb") as f:
-            write_to_sysfs_file_bytes(f.read(), "/sys/x86_executor/test_case")
+            binary_contents = f.read()
+            if len(binary_contents) != 0:
+                write_to_sysfs_file_bytes(binary_contents, "/sys/x86_executor/test_case")
+            else:
+                write_to_sysfs_file_bytes(b'\x90', "/sys/x86_executor/test_case")  # opcode of NOP
 
     def trace_test_case(self,
                         inputs: List[Input],
@@ -93,16 +97,10 @@ class X86Executor(Executor):
         elif threshold_outliers == 0:
             threshold_outliers = repetitions // 10
 
-        # convert the inputs into a byte sequence
-        byte_inputs = [i[0].tobytes() for i in inputs]
-        byte_inputs_merged = bytes().join(byte_inputs)
+        # Transfer inputs
+        self.__write_inputs(inputs)
 
-        # protocol of loading inputs (must be in this order):
-        # 1) Announce the number of inputs
-        write_to_sysfs_file(str(len(inputs)), "/sys/x86_executor/n_inputs")
-        # 2) Load the inputs
-        write_to_sysfs_file_bytes(byte_inputs_merged, "/sys/x86_executor/inputs")
-        # 3) Check that the load was successful
+        # Check that the transfer was successful
         with open('/sys/x86_executor/inputs', 'r') as f:
             if f.readline() != '1\n':
                 self.LOG.error("Failure loading inputs!", print_tb=True)
@@ -168,6 +166,23 @@ class X86Executor(Executor):
 
     def get_last_feedback(self) -> List:
         return self.feedback
+
+    def __write_inputs(self, inputs: List[Input]):
+        with open('/sys/x86_executor/inputs', 'wb') as f:
+            # header
+            f.write((1).to_bytes(8, byteorder='little'))  # number of actors
+            f.write((len(inputs)).to_bytes(8, byteorder='little'))  # number of inputs
+
+            # metadata
+            fragment_size = (inputs[0].data_size * 8).to_bytes(8, byteorder='little')
+            for _ in range(len(inputs[0])):
+                f.write(fragment_size)  # size
+                f.write((0).to_bytes(8, byteorder='little'))  # permissions; not implemented
+                f.write((0).to_bytes(8, byteorder='little'))  # reserved
+
+            # data
+            for input_ in inputs:
+                f.write(input_.tobytes())
 
 
 class X86IntelExecutor(X86Executor):
