@@ -36,6 +36,12 @@ struct idt_data
 };
 #endif
 
+measurement_t *measurements = NULL;                  // global
+uint32_t handled_faults = HANDLED_FAULTS_DEFAULT;    // global
+pteval_t faulty_pte_mask_set = 0x0;                  // global
+pteval_t faulty_pte_mask_clear = 0xffffffffffffffff; // global
+char *fault_handler = NULL;                          // global
+
 unsigned long faulty_page_addr;
 pte_t faulty_page_pte;
 pte_t *faulty_page_ptep;
@@ -550,13 +556,17 @@ int trace_test_case(void)
     {
         PRINT_ERRS("trace_test_case", "pre_measurement_setup failed\n");
         return -1;
-    if (quick_and_dirty_mode)
-    {
-        run_experiment_dirty((long)n_inputs);
     }
-    else
+    if (n_inputs)
     {
-        run_experiment((long)n_inputs);
+        if (quick_and_dirty_mode)
+        {
+            run_experiment_dirty((long)n_inputs);
+        }
+        else
+        {
+            run_experiment((long)n_inputs);
+        }
     }
     post_measurement();
 
@@ -682,3 +692,40 @@ pte_t *get_pte(unsigned long address)
 
     return pte;
 }
+
+// =================================================================================================
+// Allocation and Initialization
+// =================================================================================================
+
+/// Constructor for the measurement module
+///
+int alloc_measurements(void)
+{
+    static int old_n_inputs = 0;
+    if (n_inputs <= old_n_inputs)
+        return 0;
+    old_n_inputs = n_inputs;
+
+    SAFE_VFREE(measurements);
+    measurements = CHECKED_VMALLOC(n_inputs * sizeof(measurement_t));
+    _default_fault_handler = (char *)default_handler;
+    fault_handler = _default_fault_handler;
+    return 0;
+}
+
+/// Constructor
+///
+int init_measurements(void)
+{
+    handled_faults = HANDLED_FAULTS_DEFAULT;
+    faulty_pte_mask_set = 0x0;
+    faulty_pte_mask_clear = 0xffffffffffffffff;
+
+    measurements = CHECKED_VMALLOC(sizeof(measurement_t));
+
+    return 0;
+}
+
+/// Destructor for the measurement module
+///
+void free_measurements(void) { SAFE_VFREE(measurements); }

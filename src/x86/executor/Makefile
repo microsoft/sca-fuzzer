@@ -17,7 +17,7 @@ ccflags-y += -std=gnu11 -Wno-declaration-after-statement -msse2 \
 	-DCPU_FAMILY=$(CPU_FAMILY)
 
 obj-m += $(NAME).o
-$(NAME)-objs += main.o templates.o measurement.o
+$(NAME)-objs += main.o templates.o measurement.o input.o sandbox.o test_case.o
 
 
 KDIR=/lib/modules/$(shell uname -r)/build

@@ -6,8 +6,9 @@
 #ifndef X86_EXECUTOR
 #define X86_EXECUTOR
 
-#include <linux/types.h>
 #include <asm/traps.h>
+#include <linux/types.h>
+#include <linux/version.h>
 
 #define DEBUG 0
 #define STRINGIFY(...) #__VA_ARGS__
@@ -72,6 +73,12 @@ typedef struct Measurement
 
 extern measurement_t *measurements;
 
+int trace_test_case(void);
+int alloc_measurements(void);
+
+int init_measurements(void);
+void free_measurements(void);
+
 // =================================================================================================
 // Sandbox
 // =================================================================================================
@@ -80,6 +87,7 @@ extern measurement_t *measurements;
 #define FAULTY_REGION_SIZE 4096
 #define OVERFLOW_REGION_SIZE 4096
 #define REG_INITIALIZATION_REGION_SIZE 64
+#define REG_INITIALIZATION_REGION_SIZE_ALIGNED 4096
 #define EVICT_REGION_SIZE (L1D_ASSOCIATIVITY * 4096)
 
 typedef struct Sandbox
@@ -101,6 +109,11 @@ extern void *stack_base;
 #define RSP_OFFSET 12288         // (MAIN_REGION_SIZE + FAULTY_REGION_SIZE + OVERFLOW_REGION_SIZE)
 #define MEASUREMENT_OFFSET 12296 // RSP_OFFSET + sizeof(stored_rsp)
 
+int alloc_and_map_sandboxes(void);
+
+int init_sandbox(void);
+void free_sandbox(void);
+
 // =================================================================================================
 // Test Case
 // =================================================================================================
@@ -110,11 +123,14 @@ extern char *measurement_code;
 #define MAX_MEASUREMENT_CODE_SIZE (4096 * 2)
 extern char *measurement_template;
 
-// Inputs
-#define REG_INITIALIZATION_REGION_SIZE_ALIGNED 4096
-#define INPUT_SIZE (MAIN_REGION_SIZE + FAULTY_REGION_SIZE + REG_INITIALIZATION_REGION_SIZE_ALIGNED)
-extern uint64_t *inputs;
-extern volatile size_t n_inputs;
+extern int loaded_tc_size;
+
+int init_test_case_manager(void);
+void free_test_case_manager(void);
+
+// =================================================================================================
+// Input management
+// =================================================================================================
 
 // =================================================================================================
 // Fault handling
@@ -141,10 +157,29 @@ void template_l1d_flush_reload(void);
 void template_l1d_evict_reload(void);
 void template_gpr(void);
 
+// Missing definition of set_memory_{x,nx} in newer kernels
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0)
+#include <linux/kallsyms.h>
+extern int (*set_memory_x)(unsigned long, int);
+extern int (*set_memory_nx)(unsigned long, int);
+#else
+#include <linux/set_memory.h>
+#endif
+
 #define BIT_SET(a, b) ((a) |= (1ULL << (b)))
 #define BIT_CLEAR(a, b) ((a) &= ~(1ULL << (b)))
 #define BIT_FLIP(a, b) ((a) ^= (1ULL << (b)))
 #define BIT_CHECK(a, b) (!!((a) & (1ULL << (b))))
+
+#define xstr(s) _str(s)
+#define _str(s) str(s)
+#define str(s) #s
+
+#define asm_volatile_intel(ASM)                                                                    \
+    asm volatile(                                                                                  \
+    "\n.intel_syntax noprefix                  \n"                                                 \
+    ASM                                                                                            \
+    ".att_syntax noprefix                    ")
 
 // =================================================================================================
 // Checking for internal errors
