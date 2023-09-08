@@ -34,3 +34,5 @@ JMP rsi   # misprediction
     MOV rdx, qword ptr [r14 + rax]
 .l2:
 MFENCE
+
+.test_case_exit:

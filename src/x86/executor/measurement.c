@@ -209,7 +209,7 @@ __attribute__((unused)) void default_handler_wrapper(void)
 
     // TODO: make run_experiment exit with an error code upon a n unhandled fault
 
-    PRINT_ERRS("test_case", "Test case triggered an unhandled fault\n");
+    PRINT_ERRS("test_case_main", "Test case triggered an unhandled fault\n");
 
     asm_volatile_intel("ret\n");
 }

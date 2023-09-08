@@ -44,3 +44,5 @@ AND rcx, 0b111111000000
 MOV rdx, qword ptr [r14 + rcx]
 
 MFENCE
+
+.test_case_exit:

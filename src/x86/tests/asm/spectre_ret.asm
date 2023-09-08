@@ -26,3 +26,5 @@ RET
 .function_2:
 MOV rdx, qword ptr [rcx + 64]
 MFENCE
+
+.test_case_exit:

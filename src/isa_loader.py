@@ -20,10 +20,13 @@ class InstructionSet(InstructionSetAbstract):
         "FLAGS": OT.FLAGS,
         "COND": OT.COND,
     }
+    instructions: List[InstructionSpec]
+    unfiltered_instructions: List[InstructionSpec]
 
     def __init__(self, filename: str, include_categories=None):
         self.instructions: List[InstructionSpec] = []
         self.init_from_file(filename)
+        self.unfiltered_instructions = self.instructions.copy()
         self.reduce(include_categories)
         self.dedup()
         super().__init__(filename, include_categories)

@@ -34,3 +34,5 @@ JE .l1  # misprediction
 .l1:
 
 MFENCE
+
+.test_case_exit:

@@ -31,3 +31,5 @@ JE .l1  # misprediction
     MOV rbx, qword ptr [r14 + rbx]
 .l1:
 MFENCE
+
+.test_case_exit:

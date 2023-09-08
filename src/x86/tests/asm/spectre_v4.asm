@@ -48,3 +48,5 @@ MOV rdx, qword ptr [r14]  # misprediction happens here
 # dependent load
 MOV rdx, qword ptr [r14 + rdx]
 MFENCE
+
+.test_case_exit:

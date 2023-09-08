@@ -216,8 +216,10 @@ class UnicornModel(Model, ABC):
         self.test_case = test_case
 
         # create and read a binary
-        with open(test_case.bin_path, 'rb') as f:
-            code = f.read()
+        code = b''
+        with open(test_case.obj_path, 'rb') as f:
+            f.seek(test_case.actors[0].elf_section.offset)
+            code += f.read(test_case.actors[0].elf_section.size)
         self.code_end = self.code_start + len(code)
 
         # initialize emulator in x86-64 mode

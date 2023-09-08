@@ -18,3 +18,5 @@ JNZ .l1
 .l2:
 
 LFENCE
+
+.test_case_exit:

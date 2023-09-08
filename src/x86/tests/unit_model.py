@@ -40,7 +40,6 @@ JNZ .l1
 .l0:
 MOV RAX, qword ptr [R14]
 .l1:
-NOP
 .test_case_exit:
 """
 
@@ -56,7 +55,6 @@ JNZ .l3
 .l2:
 MOV RBX, qword ptr [R14]
 .l3:
-NOP
 .test_case_exit:
 """
 
@@ -75,7 +73,6 @@ MOV RAX, qword ptr [R14]
 LFENCE
 MOV RAX, qword ptr [R14 + 2]
 .l1:
-NOP
 .test_case_exit:
 """
 
@@ -238,7 +235,7 @@ class X86ModelTest(unittest.TestCase):
             input_[0]['gpr'][i] = 2
         ctraces = self.get_traces(model, ASM_BRANCH_AND_LOAD, [input_])
         expected_trace = hash(
-            tuple([2, 2, 2, 2, 2, 2, 2, model.stack_base - model.sandbox_base, 0x0, 3, 5, 1, 0, 8]))
+            tuple([2, 2, 2, 2, 2, 2, 2, model.stack_base - model.sandbox_base, 0, 3, 5, 1, 0, 8]))
         self.assertEqual(ctraces, [expected_trace])
 
     def test_ct_cond(self):
@@ -275,7 +272,7 @@ class X86ModelTest(unittest.TestCase):
         input_ = Input()
         input_['main'][0] = 1
         ctraces = self.get_traces(model, ASM_STORE_AND_LOAD, [input_])
-        expected_trace = hash(tuple([0, 0, 7, 0, 10, 1, 7, 0, 10, 2]))
+        expected_trace = hash(tuple([0, 0, 7, 0, 10, 1, 14, 7, 0, 10, 2, 14]))
         self.assertEqual(ctraces, [expected_trace])
 
     def test_rollback_on_fence(self):
@@ -312,8 +309,9 @@ class X86ModelTest(unittest.TestCase):
             0, 4096,  # speculative injection
             4,  # speculatively start executing the next instr
             4, 0,  # re-execute the instruction after setting the permissions
-            8, 2,  # speculatively execute the last instruction and rollback
+            8, 2, 12,  # speculatively execute the last instruction and rollback
             0, 4096, 4, 3, 8, 2,  # after rollback
+            12,  # terminate after rollback
         ]))   # yapf: disable
         # on newer versions of Unicorn, the instruction may
         # not be re-executed after changing permissions
@@ -340,7 +338,7 @@ class X86ModelTest(unittest.TestCase):
             0, 4096,  # speculative injection
             4,  # speculatively start executing the next instr
             4, 0,  # re-execute the instruction after setting the permissions
-            8, 2,  # speculatively execute the last instruction and rollback
+            8, 2, 12,  # speculatively execute the last instruction and rollback
             # terminate after rollback
         ]))   # yapf: disable
         # on newer versions of Unicorn, the instruction may
@@ -363,7 +361,7 @@ class X86ModelTest(unittest.TestCase):
         expected_trace = hash(tuple([
             0, 4096, 4088,  # faulty load
             4,  # next load is dependent - do not execute the mem access
-            8, 2,  # speculatively execute the last instruction and rollback
+            8, 2, 12,  # speculatively execute the last instruction and rollback
             # terminate after rollback
         ]))   # yapf: disable
         self.assertEqual(ctraces[0], expected_trace)
@@ -377,7 +375,7 @@ class X86ModelTest(unittest.TestCase):
         input_[0]['gpr'][1] = 0  # rbx
         input_[0]['gpr'][3] = 0  # rdx
         ctraces = self.get_traces(model, ASM_DIV_ZERO, [input_])
-        expected_trace = hash(tuple([0, 4088, 2, 0]))
+        expected_trace = hash(tuple([0, 4088, 2, 0, 6]))
         self.assertEqual(ctraces[0], expected_trace)
 
     def test_ct_div_zero_fence(self):
@@ -407,7 +405,7 @@ class X86ModelTest(unittest.TestCase):
             0, 4096, 4088,  # fault
             0, 4096,  # speculative injection
             4, 3,  # next instruction
-            8, 2,  # speculatively execute the last instruction and rollback
+            8, 2, 12,  # speculatively execute the last instruction and rollback
             # terminate after rollback
         ]))   # yapf: disable
         self.assertEqual(ctraces[0], expected_trace)
@@ -449,7 +447,7 @@ class X86ModelTest(unittest.TestCase):
                 0, 4096,  # speculative injection
                 4, 4097,  # second fault
                 # no second speculative injection, fault just ignored
-                8, 2  # speculatively execute the last instruction and rollback
+                8, 2, 12  # speculatively execute the last instruction and rollback
                 # terminate after rollback
             ]))   # yapf: disable
         self.assertEqual(ctraces[0], expected_trace)
@@ -471,8 +469,8 @@ class X86ModelTest(unittest.TestCase):
             5, 4096, 4088,  # fault while speculating
             5, 4096,  # speculative injection
             9, 3,  # leak [4096]
-            13,  # last instruction of speculation caused by exception, rollback
-            13,  # execution of correct branch
+            13, 14,  # last instruction of speculation caused by exception, rollback
+            13, 14,  # execution of correct branch
         ]))   # yapf: disable
         self.assertEqual(ctraces[0], expected_trace)
 
@@ -498,8 +496,10 @@ class X86ModelTest(unittest.TestCase):
             7,  # speculatively do not jump
             9,
             3,  # leak [4096]
-            13,  # end of branch speculation, rollback
-            13,  # execution of correct branch
+            13,
+            14,  # end of branch speculation, rollback
+            13,
+            14,  # execution of correct branch
             # end of speculation after exception, rollback and terminate
         ]
         expected_trace = hash(tuple(expected_trace_tmp))
@@ -521,7 +521,7 @@ class X86ModelTest(unittest.TestCase):
         expected_trace = hash(tuple([
             0, 4096, 4088,  # fault
             4, 2,  # next instruction
-            8, 2,  # speculatively execute the last instruction and rollback
+            8, 2, 12  # speculatively execute the last instruction and rollback
             # terminate after rollback
         ]))   # yapf: disable
         self.assertEqual(ctraces[0], expected_trace)
@@ -547,7 +547,7 @@ class X86ModelTest(unittest.TestCase):
         expected_trace_full = tuple([
             0x0, 0xff8,  # fault
             0x3, hash_of_operands,  # first mem access exposes the hash of the div operands
-            0x7, hash_of_input  # next mem access exposes the hash of the whole input
+            0x7, hash_of_input, 11  # next mem access exposes the hash of the whole input
             # terminate after rollback
         ])  # yapf: disable
         self.assertEqual(ctraces[0], hash(expected_trace_full))
@@ -565,7 +565,7 @@ class X86ModelTest(unittest.TestCase):
         hash_of_input = hash(((0, 0, hash(input_)),))
         expected_trace_full = tuple([
             0x0, 0xff8,  # fault
-            0x2, hash_of_input,  # mem access exposes the input hash
+            0x2, hash_of_input, 6  # mem access exposes the input hash
             # terminate after rollback
         ])  # yapf: disable
         self.assertEqual(ctraces[0], hash(expected_trace_full))

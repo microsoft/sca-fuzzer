@@ -117,15 +117,65 @@ void free_sandbox(void);
 // =================================================================================================
 // Test Case
 // =================================================================================================
-extern char *test_case;
-#define MAX_TEST_CASE_SIZE 4096 // must be exactly 1 page to detect sysfs buffering
-extern char *measurement_code;
-#define MAX_MEASUREMENT_CODE_SIZE (4096 * 2)
-extern char *measurement_template;
+typedef uint64_t section_size_t;
+typedef uint64_t section_metadata_reserved_t;
+typedef uint64_t section_id_t;
+typedef uint64_t symbol_offset_t;
+typedef uint64_t symbol_id_t;
+
+typedef struct
+{
+    uint32_t actor_type;
+    uint32_t actor_subid;
+} actor_id_t;
+
+typedef struct
+{
+    actor_id_t owner_id;
+    section_size_t size;
+    section_metadata_reserved_t reserved;
+} tc_section_metadata_entry_t;
+
+#define MAX_SECTION_SIZE 4096 // NOTE: must be exactly 1 page to detect sysfs buffering
+typedef struct
+{
+    char code[MAX_SECTION_SIZE];
+} tc_section_t;
+
+typedef struct
+{
+    actor_id_t owner_id;
+    symbol_offset_t offset;
+    symbol_id_t id;
+} tc_symbol_entry_t;
+
+typedef struct
+{
+    size_t symbol_table_size;
+    size_t metadata_size;
+    size_t sections_size;
+    tc_symbol_entry_t *symbol_table;
+    tc_section_metadata_entry_t *metadata;
+    tc_section_t *sections;
+} test_case_t;
+
+#define MAX_ACTORS 16
+#define MAX_SECTIONS MAX_ACTORS
+#define MAX_SYMBOLS 128
+#define MAX_EXPANDED_SECTION_SIZE (4096 * 4)
+#define TC_HEADER_SIZE (2 * sizeof(uint64_t))
 
 extern size_t n_actors;
 extern int loaded_tc_size;
 
+// Outdated variables - to be removed soon
+extern char *test_case_main;
+extern char *measurement_code;
+#define MAX_MEASUREMENT_CODE_SIZE (4096 * 2)
+extern char *measurement_template;
+
+ssize_t parse_test_case_buffer(const char *buf, size_t count, bool *finished);
+bool tc_parsing_completed(void);
 int init_test_case_manager(void);
 void free_test_case_manager(void);
 
@@ -147,7 +197,7 @@ typedef struct
 {
     char main_region[MAIN_REGION_SIZE];
     char faulty_region[FAULTY_REGION_SIZE];
-    char upper_overflow[REG_INITIALIZATION_REGION_SIZE_ALIGNED];
+    char reg_init_region[REG_INITIALIZATION_REGION_SIZE_ALIGNED];
 } input_fragment_t;
 
 typedef struct
@@ -218,16 +268,28 @@ extern int (*set_memory_nx)(unsigned long, int);
 #define str(s) #s
 
 #define asm_volatile_intel(ASM)                                                                    \
-    asm volatile(                                                                                  \
-    "\n.intel_syntax noprefix                  \n"                                                 \
-    ASM                                                                                            \
-    ".att_syntax noprefix                    ")
+    asm volatile("\n.intel_syntax noprefix                  \n" ASM                                \
+                 ".att_syntax noprefix                    ")
 
 // =================================================================================================
 // Checking for internal errors
 // =================================================================================================
 #define PRINT_ERR(msg, ...) printk(KERN_ERR "[x86_executor] " msg, ##__VA_ARGS__);
 #define PRINT_ERRS(src, msg, ...) printk(KERN_ERR "[x86_executor:" src "] " msg, ##__VA_ARGS__);
+
+#define ASSERT(condition, src)                                                                     \
+    if (!(condition))                                                                              \
+    {                                                                                              \
+        PRINT_ERRS(src, "Assertion failed: " xstr(condition) "\n");                                \
+        return -EIO;                                                                               \
+    }
+
+#define ASSERT_MSG(condition, src, msg, ...)                                                       \
+    if (!(condition))                                                                              \
+    {                                                                                              \
+        PRINT_ERRS(src, msg, ##__VA_ARGS__);                                                       \
+        return -EIO;                                                                               \
+    }
 
 #define CHECK_ERR(msg)                                                                             \
     if (err)                                                                                       \

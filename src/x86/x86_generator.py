@@ -11,11 +11,12 @@ import random
 from copy import deepcopy
 from typing import List, Dict, Set, Optional, Tuple
 from subprocess import run
+from elftools.elf.elffile import ELFFile, SymbolTableSection  # type: ignore
 
 from ..isa_loader import InstructionSet
 from ..interfaces import TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
     ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, InstructionSpec, \
-    PageTableModifier, MAIN_REGION_SIZE, FAULTY_REGION_SIZE, Function, ActorType
+    PageTableModifier, MAIN_REGION_SIZE, FAULTY_REGION_SIZE, Function, ActorType, ElfSection
 from ..generator import ConfigurableGenerator, RandomGenerator, Pass, \
     parser_assert, Printer, GeneratorException, AsmParserException
 from ..config import CONF
@@ -109,80 +110,111 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
             self.pte_bit_choices.append(self.target_desc.pte_bits["USER"])
 
     def map_addresses(self, test_case: TestCase, obj_file: str) -> None:
-        # get a list of relative instruction addresses
+        exit_addr: int = -1
+        function_symbol_entries: Dict = {}
+        instruction_addresses: Dict[str, List[int]] = {}
+        section_headers: Dict = {}
+
+        # parse ELF data
+        with open(obj_file, "rb") as f:
+            data = ELFFile(f)
+
+            # we build objects in such a way that there should be no segments
+            assert data.num_segments() == 0, f"{data.num_segments()}"
+
+            # collect section info
+            for id_, s in enumerate(data.iter_sections()):
+                if ".data." not in s.name:
+                    continue
+                name = s.name
+                section_headers[name] = s.header
+                section_headers[name]['sid'] = id_
+
+            # get addresses of functions and macros
+            symtab: SymbolTableSection = data.get_section_by_name(".symtab")  # type: ignore
+            for s in symtab.iter_symbols():
+                name = s.name
+                if ".function_" in name:
+                    function_symbol_entries[name] = s.entry
+
+                if ".test_case_exit" in name:
+                    exit_addr = s.entry.st_value
+
+        # parse objdump output
         dump = run(
-            f"objdump --no-show-raw-insn -D -M intel --file-offsets -m i386:x86-64 {obj_file} "
-            "| awk '/ [0-9a-f]+:/{print $1} /function|section/{print $0}'",
+            f"objdump --no-show-raw-insn -D -M intel -m i386:x86-64 {obj_file} "
+            "| awk '/ [0-9a-f]+:/{print $1} /section/{print $0}'",
             shell=True,
             check=True,
             capture_output=True)
 
-        # parse the output
-        lines = dump.stdout.decode().split("\n")
-        output_map: Dict[int, Dict[str, List[int]]] = {}
-        function_addresses: Dict[str, int] = {}
-        actor_id = -1
-        function_name = ""
-        for line in lines:
+        section_name = ""
+        for line in dump.stdout.decode().split("\n"):
             if not line:
                 continue
 
             if "section" in line:
                 try:
-                    actor_label = line.split()[-1].split(".")[2].split("_")[0]
-                    actor_id = int(actor_label)
+                    section_name = line.split()[-1][:-1]
                 except ValueError:
-                    actor_id = -1
-                if actor_id == -1:
+                    section_name = ""
+                if section_name == "":
                     self.LOG.error(f"Invalid actor label: {line.split()[-1]}")
-                output_map[actor_id] = {}
-                function_name = ""
+                instruction_addresses[section_name] = []
                 continue
-            assert actor_id != -1, "Failed to parse objdump output (actor_id)"
+            assert section_name != "", "Failed to parse objdump output (section_name)"
 
-            if "global_function_" in line:
-                if "call" in line or "lea" in line:
-                    continue  # skip calls/jumps/lea
+            instruction_addresses[section_name].append(int(line[:-1], 16))
 
-                words = line.split()
-                assert len(words) == 5, f"Failed to parse objdump output (function name) {line}"
-                function_name = "." + words[1][9:-1]  # remove the "global_" prefix
-                function_offset = words[4][:-2]
-                function_addresses[function_name] = int(function_offset, 16)
-                output_map[actor_id][function_name] = []
-                continue
-            assert function_name != "", f"Failed to parse objdump output (function name) {line}"
+        # order function symbols by section id and offset
+        func_names_ordered: Dict[int, List] = {}
+        for f, e in function_symbol_entries.items():
+            sid = e.st_shndx
+            if not func_names_ordered.get(sid):
+                func_names_ordered[sid] = []
+            func_names_ordered[sid].append(f)
+        for sid in func_names_ordered.keys():
+            func_names_ordered[sid].sort(key=lambda x: function_symbol_entries[x].st_value)
 
-            output_map[actor_id][function_name].append(int(line[:-1], 16))
-
-        # add objdump data to the test case
+        # add collected data to the test case
         address_map: Dict[int, Dict[int, Instruction]] = {}
-        for func in test_case.functions:
-            # store the function address
-            func.obj_file_offset = function_addresses[func.name]
+        for section_name, address_list in sorted(instruction_addresses.items()):
+            sid = section_headers[section_name]['sid']
+            actor = test_case.get_actor_by_name(section_name.split(".")[2])
+            actor.elf_section = ElfSection(sid, section_headers[section_name]['sh_offset'],
+                                           section_headers[section_name]['sh_size'])
 
-            # create a per-actor map
-            aid_ = func.owner.id_
-            if not address_map.get(aid_):
-                address_map[aid_] = {}
-
-            address_list = output_map[aid_][func.name]
             counter = 0
-            first_address = -1
-            for bb in list(func) + [func.exit]:
-                for inst in list(bb) + bb.terminators:
-                    address = address_list[counter]
-                    if first_address == -1:
-                        first_address = address_list[counter]
+            address_map[actor.id_] = {}
+            for func_name in func_names_ordered[sid]:
+                func = test_case.get_function_by_name(func_name)
+                assert func.owner == actor
 
-                    # connect instructions with their addresses
-                    address_map[aid_][address] = inst
+                offset = function_symbol_entries[func.name].st_value
+                assert offset == address_list[counter]
 
-                    # store symbol addresses
-                    if inst.name == "SYMBOL":
-                        func.symbol_table[address - first_address] = int(inst.operands[0].value)
+                # add the function into the symbol table
+                # FIXME: replace 0 with symbol id
+                test_case.symbol_table.append((actor.id_, offset, 0))
 
-                    counter += 1
+                for bb in list(func) + [func.exit]:
+                    for inst in list(bb) + bb.terminators:
+                        address = address_list[counter]
+
+                        # connect instructions with their addresses
+                        inst.section_id = sid
+                        inst.section_offset = address
+                        address_map[actor.id_][address] = inst
+
+                        # add macros to the symbol table
+                        if inst.name == "MACRO":
+                            test_case.symbol_table.append(
+                                (actor.id_, address, int(inst.operands[0].value)))
+
+                        counter += 1
+
+        # the last instruction in .data.0_host is the test case exit, and it must map to a NOP
+        address_map[0][exit_addr] = Instruction("NOP", False, "BASE-NOP", True)
 
         test_case.address_map = address_map
 
