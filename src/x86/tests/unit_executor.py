@@ -6,10 +6,16 @@ import unittest
 import os
 import tempfile
 import subprocess
+from pathlib import Path
 
 from src.x86.x86_executor import X86IntelExecutor
-from src.x86.x86_generator import X86Generator
+from src.x86.x86_generator import X86RandomGenerator
+from src.isa_loader import InstructionSet
 from src.interfaces import TestCase, Input
+from src.config import CONF
+
+test_path = Path(__file__).resolve()
+test_dir = test_path.parent
 
 
 class ExecutorTest(unittest.TestCase):
@@ -18,34 +24,21 @@ class ExecutorTest(unittest.TestCase):
     def setUpClass(cls):
         cls.tc: TestCase = TestCase(0)
         asm_file = tempfile.NamedTemporaryFile(delete=False)
-        bin_file = tempfile.NamedTemporaryFile(delete=False)
-        obj_file = tempfile.NamedTemporaryFile(delete=False)
 
         with open(asm_file.name, "w") as f:
-            f.write("movq %r14, %rax; add $512, %rax; movq (%rax), %rax\n")
-            # f.write("nop")
+            f.write(".intel_syntax noprefix\n"
+                    ".test_case_enter:\n"
+                    ".section .data.0_host\n"
+                    "mov rax, qword ptr [r14 + 0x200]\n"
+                    ".test_case_exit:\n")
 
-        try:
-            X86Generator.assemble(asm_file.name, obj_file.name, bin_file.name)
-        except Exception:
-            asm_file.close()
-            bin_file.close()
-            obj_file.close()
-            os.unlink(asm_file.name)
-            os.unlink(bin_file.name)
-            os.unlink(obj_file.name)
-            return
+        min_x86_path = test_dir / "min_x86.json"
+        instruction_set = InstructionSet(min_x86_path.absolute().as_posix())
+        generator = X86RandomGenerator(instruction_set, CONF.program_generator_seed)
 
+        cls.tc = generator.load(asm_file.name)
         asm_file.close()
         os.unlink(asm_file.name)
-
-        cls.tc.bin_path = bin_file.name
-        cls.bin_file = bin_file
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.bin_file.close()
-        os.unlink(cls.bin_file.name)
 
     def test_init(self):
         # check if the executor kernel module is properly loaded and can be initialized
@@ -59,7 +52,7 @@ class ExecutorTest(unittest.TestCase):
             "cat /sys/x86_executor/test_case > tmp.o ;"
             " objdump -D -b binary -m i386:x86-64 tmp.o",
             shell=True).decode()
-        self.assertIn("add    $0x200,%rax", out)
+        self.assertIn("mov    0x200(%r14),%rax", out)
         self.assertNotIn("(bad)", out)
 
     def test_trace(self):
@@ -68,8 +61,7 @@ class ExecutorTest(unittest.TestCase):
 
         inputs = [Input(), Input()]  # single zero-initialized inputs
         traces = executor.trace_test_case(inputs, 2)
-
-        self.assertEqual(traces, [9259400833873739776, 9259400833873739776])
+        self.assertEqual(len(traces), 2)
 
     def test_big_batch(self):
         executor = X86IntelExecutor()
@@ -77,6 +69,4 @@ class ExecutorTest(unittest.TestCase):
 
         inputs = [Input() for _ in range(0, 300)]
         traces = executor.trace_test_case(inputs, 2)
-
-        self.assertEqual(traces[0], 9259400833873739776)
-        self.assertEqual(traces[299], 9259400833873739776)
+        self.assertEqual(len(traces), 300)

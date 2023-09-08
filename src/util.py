@@ -392,6 +392,8 @@ class Logger:
         if model.in_speculation:
             name = f"[transient, nesting = {len(model.checkpoints)}] " + name
         name = f"0x{normalized_address:<2x}: {name}"
+        if normalized_address == model.code_end - model.code_start - 1:
+            name += " [test_case_exit]"
 
         print(name)
         model.print_state(oneline=True)

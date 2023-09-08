@@ -164,11 +164,24 @@ class ConfigurableGenerator(Generator, abc.ABC):
                     msg += f"\n  Line {line}\n    (the line was parsed as {parsed})"
             return msg
 
-        # make sure that all function labels are exposed in the object file
-        # by adding a NOP before each function label (this makes the function label
-        # into the only label that points to the next instruction)
+        def is_instruction(line: str) -> bool:
+            res = (line != ''
+                   and line[0] != '#'
+                   and (line[0] != '.'
+                        or line[:4] == ".bcd"
+                        or line[:5] in [".byte", ".long", ".quad"]
+                        or line[:6] == '.macro'
+                        or line[6:] in [".value", ".2byte", ".4byte", ".8byte"]
+                        )
+                   )
+            return res
+
+        # make sure that all function labels are exposed by adding a global label
+        # also, add NOP at the end of each function to make size calculations easier
+        # also, insert .function_0 at the beginning of the file if it is missing
+        # also, .test_case_exit must be within the .data.0_host section and contain a single NOP
         patched_asm_file = asm_file + ".patched"
-        function_found = False
+        main_function_found = False
         enter_found = False
         with open(asm_file, "r") as f:
             with open(patched_asm_file, "w") as patched:
@@ -179,18 +192,21 @@ class ConfigurableGenerator(Generator, abc.ABC):
                             enter_found = True
                         patched.write(line + "\n")
                         continue
+                    if ".test_case_exit:" in line:
+                        if not main_function_found:
+                            patched.write(".function_0:\n")
+                        patched.write(".section .data.0_host\n")
+                        patched.write(".global .test_case_exit\n")
+                        patched.write(line + "\n")
+                        patched.write("nop\n")
+                        continue
 
-                    if not function_found and line and line[0] != "#" \
-                       and "function" not in line and "section" not in line:
-                        patched.write(".global .global_function_0\n")
-                        patched.write(".global_function_0:\n")
+                    if line.startswith(".function_"):
+                        main_function_found = True
+                    elif not main_function_found and is_instruction(line):
                         patched.write(".function_0:\n")
-                        function_found = True
-                    elif line.startswith(".function_"):
-                        name = line[1:-1]
-                        patched.write(".global .global_" + name + "\n")
-                        patched.write(".global_" + name + ":\n")
-                        function_found = True
+                        main_function_found = True
+
                     patched.write(line + "\n")
 
         try:
@@ -236,12 +252,12 @@ class ConfigurableGenerator(Generator, abc.ABC):
             opcode_spec.category = "OPCODE"
             instruction_map["OPCODE"] = [opcode_spec]
 
-            # entry for symbols
-            symbol_spec = InstructionSpec()
-            symbol_spec.name = "SYMBOL"
-            symbol_spec.category = "SYMBOL"
-            symbol_spec.operands = [OperandSpec([], OT.IMM, False, False)]
-            instruction_map["SYMBOL"] = [symbol_spec]
+            # entry for macros
+            macro_spec = InstructionSpec()
+            macro_spec.name = "MACRO"
+            macro_spec.category = "MACRO"
+            macro_spec.operands = [OperandSpec([], OT.IMM, False, False)]
+            instruction_map["MACRO"] = [macro_spec]
 
         # load the text and clean it up
         lines = []
@@ -260,7 +276,7 @@ class ConfigurableGenerator(Generator, abc.ABC):
                 # skip footer and header
                 if not started:
                     started = (line == ".test_case_enter:")
-                    if not line[0] == ".":
+                    if line[0] != ".":
                         parser_assert(started, i, "Found instructions before .test_case_enter")
                     continue
                 if line == ".test_case_exit:":
@@ -269,6 +285,7 @@ class ConfigurableGenerator(Generator, abc.ABC):
                 parser_assert(not finished, i, "Found instructions after .test_case_exit")
 
                 lines.append(line)
+            parser_assert(finished, len(lines), ".test_case_exit not found")
 
         # map lines to functions and basic blocks
         current_function = ""
@@ -325,15 +342,15 @@ class ConfigurableGenerator(Generator, abc.ABC):
                 continue
 
             # symbols
-            if line.startswith(".symbol"):
-                parser_assert(current_bb != "", i, "Symbol declared outside of a basic block")
+            if line.startswith(".macro"):
+                parser_assert(current_bb != "", i, "Macro declared outside of a basic block")
                 words = line.split(":")
-                parser_assert(len(words) == 2, i, "Invalid symbol declaration")
-                parser_assert(words[1].upper() == "NOP", i, "Symbol must end with NOP")
+                parser_assert(len(words) == 2, i, "Invalid macro declaration")
+                parser_assert(words[1].upper() == "NOP", i, "Macro symbol must end with NOP")
                 subwords = words[0].split(".")
-                parser_assert(len(subwords) == 3, i, f"Invalid symbol: {line}")
-                symbol_id = self.target_desc.symbol_ids[subwords[2]]
-                test_case_map[current_function][current_bb].append("SYMBOL " + str(symbol_id))
+                parser_assert(len(subwords) == 3, i, f"Invalid macro: {line}")
+                macro_id = self.target_desc.macro_ids[subwords[2]]
+                test_case_map[current_function][current_bb].append("MACRO " + str(macro_id))
                 continue
 
             # basic block
@@ -369,7 +386,12 @@ class ConfigurableGenerator(Generator, abc.ABC):
             else:
                 parser_assert(False, 0, f"Invalid actor type: {subwords[1]}")
 
-            actor = Actor(type_, id_)  # type: ignore
+            if id_ == 0:
+                assert type_ == ActorType.HOST, "Actor 0 must be the host"  # type: ignore
+                actor = test_case.actors[0]
+            else:
+                actor = Actor(type_, id_)  # type: ignore
+
             assert id_ not in test_case.actors or test_case.actors[id_] == actor, "Duplicate actor"
             test_case.actors[id_] = actor
             actor_names[actor_label] = actor
@@ -425,6 +447,16 @@ class ConfigurableGenerator(Generator, abc.ABC):
 
             # last BB always falls through to the exit
             func[-1].successors.append(func.exit)
+
+        # special case: empty test case
+        if not test_case.functions:
+            instr = Instruction("NOP", False, "BASE-NOP", False)
+            bb = BasicBlock(".bb_0")
+            main = Function(".function_0", Actor(ActorType.HOST, 0))
+            bb.insert_after(bb.get_last(), instr)
+            main.append(bb)
+            bb.successors.append(main.exit)
+            test_case.functions.append(main)
 
         bin_file = asm_file[:-4]
         obj_file = bin_file + ".o"

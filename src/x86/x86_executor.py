@@ -75,12 +75,7 @@ class X86Executor(Executor):
     def load_test_case(self, test_case: TestCase):
         masks = f"{test_case.faulty_pte.mask_set} {test_case.faulty_pte.mask_clear}"
         write_to_sysfs_file(masks, "/sys/x86_executor/faulty_pte_mask")
-        with open(test_case.bin_path, "rb") as f:
-            binary_contents = f.read()
-            if len(binary_contents) != 0:
-                write_to_sysfs_file_bytes(binary_contents, "/sys/x86_executor/test_case")
-            else:
-                write_to_sysfs_file_bytes(b'\x90', "/sys/x86_executor/test_case")  # opcode of NOP
+        self.__write_test_case(test_case)
 
     def trace_test_case(self,
                         inputs: List[Input],
@@ -166,6 +161,39 @@ class X86Executor(Executor):
 
     def get_last_feedback(self) -> List:
         return self.feedback
+
+    def __write_test_case(self, test_case: TestCase):
+        actors = sorted(test_case.actors.values(), key=lambda a: (a.id_))
+        assert len(actors) == 1
+
+        with open('/sys/x86_executor/test_case', 'wb') as f:
+            # header
+            f.write((len(actors)).to_bytes(8, byteorder='little'))  # n_actors
+            f.write((len(test_case.symbol_table)).to_bytes(8, byteorder='little'))  # n_symbols
+
+            # symbol table
+            for aid, s_offset, s_id in test_case.symbol_table:
+                # print("symbol\n")
+                f.write((aid).to_bytes(8, byteorder='little'))
+                f.write((s_offset).to_bytes(8, byteorder='little'))
+                f.write((s_id).to_bytes(8, byteorder='little'))
+
+            # section metadata
+            for actor in actors:
+                # print("section\n")
+                f.write((actor.id_) .to_bytes(8, byteorder='little'))
+                f.write((actor.elf_section.size).to_bytes(8, byteorder='little'))
+                f.write((0) .to_bytes(8, byteorder='little'))
+
+            # code
+            with open(test_case.obj_path, 'rb') as bin_file:
+                for actor in sorted(actors, key=lambda a: (a.id_)):
+                    bin_file.seek(actor.elf_section.offset)
+                    code = bin_file.read(actor.elf_section.size)
+                    # print(code, actor.elf_section.size)
+                    f.write(code)
+
+            # print(test_case.obj_path, f.tell())
 
     def __write_inputs(self, inputs: List[Input]):
         with open('/sys/x86_executor/inputs', 'wb') as f:

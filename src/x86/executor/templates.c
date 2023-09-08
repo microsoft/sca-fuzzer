@@ -57,7 +57,7 @@ int load_template(size_t tc_size)
     }
 
     // copy the test case into the template
-    memcpy(&measurement_code[code_pos], test_case, tc_size);
+    memcpy(&measurement_code[code_pos], test_case_main, tc_size);
     code_pos += tc_size;
 
     // write the rest of the template

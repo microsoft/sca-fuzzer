@@ -198,15 +198,13 @@ class X86RandomGeneratorTest(unittest.TestCase):
         generator = X86RandomGenerator(instruction_set, CONF.program_generator_seed)
         tc: TestCase = generator.load((test_dir / "asm/asm_symbol.asm").absolute().as_posix())
 
-        self.assertEqual(len(tc.functions), 2)
-        main = tc.functions[0]
-
-        self.assertEqual(main.symbol_table[0], 2)
-        self.assertEqual(main.symbol_table[2], 3)
-        self.assertEqual(main.symbol_table[3], 4)
-        self.assertEqual(main.symbol_table[4], 5)
-
-        self.assertEqual(tc.functions[1].symbol_table, {})
+        self.assertEqual(tc.symbol_table[0], (0, 0, 0))  # function_0
+        self.assertEqual(tc.symbol_table[1], (0, 0, 3))
+        self.assertEqual(tc.symbol_table[2], (0, 2, 4))
+        self.assertEqual(tc.symbol_table[3], (0, 3, 5))
+        self.assertEqual(tc.symbol_table[4], (0, 4, 6))
+        self.assertEqual(tc.symbol_table[5], (0, 8, 0))  # function_1
+        self.assertEqual(tc.symbol_table[6], (1, 0, 0))  # function_2
 
     def test_x86_undef_flag_patch(self):
         instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix(),

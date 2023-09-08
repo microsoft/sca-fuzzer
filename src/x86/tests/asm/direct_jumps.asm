@@ -101,3 +101,4 @@ JMP .49
 .49:
 JMP .50
 .50:
+.test_case_exit:

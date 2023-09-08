@@ -15,18 +15,36 @@ from enum import Enum
 
 from .config import CONF
 
-
 # ==================================================================================================
 # Actors
 # ==================================================================================================
+ActorID = int
+
+
 class ActorType(Enum):
     HOST = 0
     GUEST = 1
 
 
-class Actor(NamedTuple):
-    type_: ActorType
+class ElfSection(NamedTuple):
     id_: int
+    offset: int
+    size: int
+
+
+class Actor:
+    type_: ActorType
+    id_: ActorID
+    elf_section: ElfSection
+
+    def __init__(self, type_: ActorType, id_: ActorID) -> None:
+        self.type_ = type_
+        self.id_ = id_
+
+    @property
+    def name(self) -> str:
+        type_str = "host" if self.type_ == ActorType.HOST else "guest"
+        return f"{self.id_}_{type_str}"
 
 
 # ==================================================================================================
@@ -208,6 +226,8 @@ class Instruction:
     next: Optional[Instruction] = None
     previous: Optional[Instruction] = None
     is_instrumentation: bool
+    section_offset: int = 0
+    section_id: int = 0
 
     # TODO: remove latest_reg_operand from this class. It belongs in the generator
     latest_reg_operand: Optional[Operand] = None  # for avoiding dependencies
@@ -460,24 +480,18 @@ class BasicBlock:
         return self.end
 
 
-SymbolID = int
-SymbolOffset = int
-
-
 class Function:
     name: str
     owner: Actor
     _all_bb: List[BasicBlock]
     exit: BasicBlock
     obj_file_offset: int = 0
-    symbol_table: Dict[SymbolOffset, SymbolID] = {}
 
     def __init__(self, name: str, owner: Actor):
         self.name = name
         self.owner = owner
         self.exit = BasicBlock(f".exit_{name.lstrip('.function_')}")
         self._all_bb = []
-        self.symbol_table = {}
 
     def __len__(self):
         return len(self._all_bb)
@@ -496,6 +510,10 @@ class Function:
         self._all_bb.extend(bb_list)
 
 
+SymbolID = int
+SymbolOffset = int
+
+
 class TestCase:
     asm_path: str = ''
     obj_path: str = ''
@@ -506,18 +524,32 @@ class TestCase:
     faulty_pte: PageTableModifier
     seed: int
     exit: BasicBlock
+    symbol_table: List[Tuple[ActorID, SymbolOffset, SymbolID]]
 
     def __init__(self, seed: int):
         self.seed = seed
         self.actors = {0: Actor(ActorType.HOST, 0)}
         self.functions = []
         self.address_map = {}
+        self.symbol_table = []
         self.faulty_pte = PageTableModifier()
         self.exit = BasicBlock(".test_case_exit")
 
     def __iter__(self):
         for func in self.functions:
             yield func
+
+    def get_function_by_name(self, name: str) -> Function:
+        for func in self.functions:
+            if func.name == name:
+                return func
+        raise Exception(f"ERROR: Function {name} not found")
+
+    def get_actor_by_name(self, name: str) -> Actor:
+        for actor in self.actors.values():
+            if actor.name == name:
+                return actor
+        raise Exception(f"ERROR: Actor {name} not found")
 
     def save(self, path: str) -> None:
         shutil.copy2(self.asm_path, path)
@@ -705,7 +737,8 @@ ExecutionTrace = List[TracedInstruction]
 # Interfaces of Modules
 # ==================================================================================================
 class InstructionSetAbstract(ABC):
-    instructions: List[InstructionSpec] = []
+    instructions: List[InstructionSpec]
+    instruction_unfiltered: List[InstructionSpec]
     has_unconditional_branch: bool = False
     has_conditional_branch: bool = False
     has_indirect_branch: bool = False
@@ -724,7 +757,7 @@ class TargetDesc(ABC):
     branch_conditions: Dict[str, List[str]]
     reg_normalized: Dict[str, str]
     reg_denormalized: Dict[str, Dict[int, str]]
-    symbol_ids: Dict[str, int]
+    macro_ids: Dict[str, int]
 
     @staticmethod
     @abstractmethod

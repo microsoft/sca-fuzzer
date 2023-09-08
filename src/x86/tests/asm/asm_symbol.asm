@@ -2,15 +2,15 @@
 .test_case_enter:
 .section .data.0_host
 
-.symbol.measurement_start: nop
+.macro.measurement_start: nop
 
 nop
 
-.symbol.measurement_end: nop
+.macro.measurement_end: nop
 
-.symbol.vmenter: nop
+.macro.vmenter: nop
 
-.symbol.vmcall: nop
+.macro.vmcall: nop
 
 and rax, rax
 
@@ -18,6 +18,9 @@ and rax, rax
 
 nop
 
+.section .data.1_guest
+.function_2:
+nop
 
-# .section exit
+
 .test_case_exit:

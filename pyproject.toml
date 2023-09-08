@@ -19,7 +19,8 @@ dependencies = [
     "unicorn==1.0.3",
     "pyyaml",
     "types-pyyaml",
-    "numpy"
+    "numpy",
+    "pyelftools"
 ]
 maintainers = [{name = "Oleksii Oleksenko", email = ""}]
 

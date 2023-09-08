@@ -53,3 +53,4 @@ MOV rcx, qword ptr [rax + rbx]
 // CMOVNS
 // CMOVNZ
 MFENCE
+.test_case_exit:

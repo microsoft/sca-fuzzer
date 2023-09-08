@@ -33,3 +33,5 @@ JMP .l2
     #MOV rax, qword ptr [r14 + 64]
 .l2:
 MFENCE
+
+.test_case_exit:

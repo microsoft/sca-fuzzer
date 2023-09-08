@@ -60,6 +60,7 @@ char tracing_error = 0;
 
 unsigned inputs_top = 0;
 bool inputs_ready = false;
+bool tc_ready = false;
 
 // =================================================================================================
 // SysFS interface to the module
@@ -203,6 +204,11 @@ static ssize_t trace_show(struct kobject *kobj, struct kobj_attribute *attr, cha
         PRINT_ERRS("trace_show", "Attempting to start tracing before inputs are ready\n");
         return -1;
     }
+    if (!tc_parsing_completed())
+    {
+        PRINT_ERRS("trace_show", "Attempting to start tracing before the test case is ready\n");
+        return -1;
+    }
 
     // start a new measurement?
     if (next_measurement_id < 0)
@@ -245,29 +251,22 @@ static ssize_t faulty_pte_mask_store(struct kobject *kobj, struct kobj_attribute
 static ssize_t test_case_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf,
                                size_t count)
 {
-    if (count >= MAX_TEST_CASE_SIZE)
-    {
-        printk(KERN_ERR "x86_executor: Test case exceeds MAX_TEST_CASE_SIZE\n");
-        return -1;
-    }
+    bool finished = false;
+    ssize_t consumed_bytes = parse_test_case_buffer(buf, count, &finished);
+    tc_ready = false;
 
-    // check if memory for inputs was allocated
-    if (!test_case || !measurement_code)
+    if (finished)
     {
-        printk(KERN_ERR "x86_executor: The memory for the test case was not allocated\n");
-        return -1;
-    }
+        // check if memory for measurement code was allocated
+        ASSERT(measurement_code != NULL, "test_case_store");
 
-    memcpy(test_case, buf, count);
-    loaded_tc_size = load_template(count);
-    if (loaded_tc_size <= 0)
-    {
-        printk(KERN_ERR "x86_executor: Failed to load the test case (code %d)\n", loaded_tc_size);
-        return -1;
-    }
+        loaded_tc_size = load_template(count);
+        ASSERT(loaded_tc_size > 0, "test_case_store");
 
-    next_measurement_id = -1;
-    return count;
+        next_measurement_id = -1;
+        tc_ready = true;
+    }
+    return consumed_bytes;
 }
 
 static ssize_t test_case_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
@@ -325,7 +324,7 @@ static ssize_t print_sandbox_base_show(struct kobject *kobj, struct kobj_attribu
 
 static ssize_t print_code_base_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
-    return sprintf(buf, "%llx\n", (long long unsigned)test_case);
+    return sprintf(buf, "%llx\n", (long long unsigned)test_case_main);
 }
 
 static ssize_t enable_ssbp_patch_store(struct kobject *kobj, struct kobj_attribute *attr,
@@ -431,7 +430,7 @@ static ssize_t dbg_dump_show(struct kobject *kobj, struct kobj_attribute *attr, 
 {
     int len = 0;
     len += sprintf(&buf[len], "n_actors: %lu\n", n_actors);
-    len += sprintf(&buf[len], "test_case: 0x%llx\n", (uint64_t)test_case);
+    len += sprintf(&buf[len], "test_case_main: 0x%llx\n", (uint64_t)test_case_main);
     len += sprintf(&buf[len], "measurement_code: 0x%llx\n", (uint64_t)measurement_code);
     len += sprintf(&buf[len], "measurement_template: 0x%llx\n", (uint64_t)measurement_template);
     len += sprintf(&buf[len], "measurements: 0x%llx\n", (uint64_t)measurements);

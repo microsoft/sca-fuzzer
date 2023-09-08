@@ -26,3 +26,5 @@ JMP .l2
     MOV rcx, qword ptr [rcx]
 .l2:
 MFENCE
+
+.test_case_exit:
