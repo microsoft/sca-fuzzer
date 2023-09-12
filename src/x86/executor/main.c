@@ -8,13 +8,20 @@
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/sysfs.h>
-#include <linux/slab.h>
 #include <linux/version.h>
 #include <linux/kobject.h>
 // clang-format on
-#include <../arch/x86/include/asm/processor.h>
 
 #include "main.h"
+#include "fault_handler.h"
+#include "hardware.h"
+#include "input.h"
+#include "measurement.h"
+#include "page_table.h"
+#include "sandbox.h"
+#include "shortcuts.h"
+#include "template.h"
+#include "test_case.h"
 
 // =================================================================================================
 // Version-dependent includes
@@ -47,7 +54,7 @@ bool quick_and_dirty_mode = false;
 long uarch_reset_rounds = UARCH_RESET_ROUNDS_DEFAULT;
 uint64_t ssbp_patch_control = SSBP_PATH_DEFAULT;
 uint64_t prefetcher_control = PREFETCHER_DEFAULT;
-char mpx_control = MPX_DEFAULT; // unused on AMD
+uint64_t mpx_control = MPX_DEFAULT; // unused on AMD
 char pre_run_flush = PRE_RUN_FLUSH_DEFAULT;
 char *measurement_template = (char *)&template_l1d_prime_probe;
 
@@ -453,7 +460,7 @@ static ssize_t dbg_dump_show(struct kobject *kobj, struct kobj_attribute *attr, 
     len += sprintf(&buf[len], "ssbp_patch_control: %llu\n", ssbp_patch_control);
     len += sprintf(&buf[len], "prefetcher_control: %llu\n", prefetcher_control);
     len += sprintf(&buf[len], "pre_run_flush: %d\n", pre_run_flush);
-    len += sprintf(&buf[len], "mpx_control: %d\n", mpx_control);
+    len += sprintf(&buf[len], "mpx_control: %llu\n", mpx_control);
     return len;
 }
 
@@ -462,7 +469,7 @@ static ssize_t dbg_dump_show(struct kobject *kobj, struct kobj_attribute *attr, 
 
 /// Get symbols for set_memory_x and set_memory_nx
 ///
-static inline void _get_required_symbols(void)
+static inline void _get_required_kernel_functions(void)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0)
 #ifdef KPROBE_LOOKUP
@@ -488,7 +495,7 @@ static int __init executor_init(void)
     }
 
     // Make sure that we have all requirements
-    _get_required_symbols();
+    _get_required_kernel_functions();
 
     // Initialize modules
     int err = 0;
@@ -496,6 +503,8 @@ static int __init executor_init(void)
     err |= init_input_manager();
     err |= init_measurements();
     err |= init_sandbox();
+    err |= init_page_table_manager();
+    err |= init_fault_handler();
     CHECK_ERR("executor_init");
 
     // Create a pseudo file system interface
@@ -538,16 +547,19 @@ static int __init executor_init(void)
 
 static void __exit executor_exit(void)
 {
-    if (tracing_error != 0)
+    if (tracing_error == 0)
+    {
+        free_test_case_manager();
+        free_input_parser();
+        free_measurements();
+        free_sandbox();
+        free_page_table_manager();
+        free_fault_handler();
+    }
+    else
     {
         printk(KERN_ERR "x86_executor: Failed to unload the module due to corrupted state\n");
-        return;
     }
-
-    free_test_case_manager();
-    free_input_parser();
-    free_measurements();
-    free_sandbox();
 
     if (kobj_interface)
         kobject_put(kobj_interface);

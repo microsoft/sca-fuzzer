@@ -11,13 +11,16 @@ else
 endif
 endif
 
-ccflags-y += -std=gnu11 -Wno-declaration-after-statement -msse2 \
+# ccflags-y +=
+
+EXTRA_CFLAGS += -I$(src)/include \
+	-std=gnu11 -Wno-declaration-after-statement -msse2 \
     -DL1D_ASSOCIATIVITY=$(shell cat /sys/devices/system/cpu/cpu0/cache/index0/ways_of_associativity) \
 	-DVENDOR_ID=$(VENDOR_ID) \
 	-DCPU_FAMILY=$(CPU_FAMILY)
 
 obj-m += $(NAME).o
-$(NAME)-objs += main.o templates.o measurement.o input.o sandbox.o test_case.o
+$(NAME)-objs += main.o templates.o measurement.o input.o sandbox.o test_case.o fault_handler.o page_table.o
 
 
 KDIR=/lib/modules/$(shell uname -r)/build

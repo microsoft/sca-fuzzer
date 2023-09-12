@@ -5,7 +5,9 @@
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "test_case.h"
 #include "main.h"
+#include "shortcuts.h"
 
 char *test_case_main = NULL;   // global
 char *measurement_code = NULL; // global
@@ -195,9 +197,9 @@ ssize_t parse_test_case_buffer(const char *buf, size_t count, bool *finished)
         }
     }
 
-    printk(KERN_ERR "parse_test_case_buffer: consumed_bytes = %lu; count = %lu; _cursor = %llu, "
-                    "fid: %ld, finished: %d\n",
-           consumed_bytes, count, _cursor, curr_section_id, *finished);
+    // printk(KERN_ERR "parse_test_case_buffer: consumed_bytes = %lu; count = %lu; _cursor = %llu, "
+    //                 "fid: %ld, finished: %d\n",
+    //        consumed_bytes, count, _cursor, curr_section_id, *finished);
 
     // Check whether we are done
     if (curr_section_id >= n_actors)

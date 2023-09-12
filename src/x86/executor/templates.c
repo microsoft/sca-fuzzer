@@ -15,7 +15,10 @@
 //   R14 - sandbox base address
 //
 
-#include "main.h"
+#include "fault_handler.h"
+#include "shortcuts.h"
+#include "sandbox.h"
+#include "test_case.h"
 #include <linux/string.h>
 
 #define TEMPLATE_ENTER 0x0fff379000000000
@@ -89,6 +92,8 @@ int load_template(size_t tc_size)
 // =================================================================================================
 // Template building blocks
 // =================================================================================================
+// clang-format off
+
 // clobber: rax, rcx, rdx
 #define READ_MSR_START(ID, DEST)                          \
         "mov rcx, "ID"                           \n"      \
@@ -770,3 +775,5 @@ void template_gpr(void) {
     );
     asm volatile(".quad "xstr(TEMPLATE_RETURN));
 }
+
+// clang-format on
