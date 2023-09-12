@@ -6,7 +6,11 @@
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "main.h"
+#include <linux/slab.h> // PAGE_SIZE
+
+#include "input.h"
+#include "shortcuts.h"
+#include "test_case.h" // n_actors
 
 input_batch_t *inputs = NULL; // global
 size_t n_inputs = 0;          // global

@@ -3,12 +3,69 @@
 ///
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-#include "main.h"
+
+#include "sandbox.h"
+#include "shortcuts.h"
 
 sandbox_t *sandbox = NULL; // global
 void *stack_base = NULL;   // global
-void *_sandbox_unaligned = NULL;
+static void *_sandbox_unaligned = NULL;
 
+void write_sandbox(uint64_t *current_input)
+{
+    // Initialize the rest of the memory
+    // - sandbox: main and faulty regions
+    uint64_t *main_page_values = &current_input[0];
+    uint64_t *main_base = (uint64_t *)&sandbox->main_region[0];
+    for (int j = 0; j < MAIN_REGION_SIZE / 8; j += 1)
+    {
+        ((uint64_t *)main_base)[j] = main_page_values[j];
+    }
+
+    uint64_t *faulty_page_values = &current_input[MAIN_REGION_SIZE / 8];
+    uint64_t *faulty_base = (uint64_t *)&sandbox->faulty_region[0];
+    for (int j = 0; j < FAULTY_REGION_SIZE / 8; j += 1)
+    {
+        ((uint64_t *)faulty_base)[j] = faulty_page_values[j];
+    }
+
+    // Initial register values (the registers will be set to these values in template.c)
+    uint64_t *register_values = &current_input[(MAIN_REGION_SIZE + FAULTY_REGION_SIZE) / 8];
+    uint64_t *register_initialization_base = (uint64_t *)&sandbox->upper_overflow[0];
+
+    // - RAX ... RDI
+    for (int j = 0; j < 6; j += 1)
+    {
+        ((uint64_t *)register_initialization_base)[j] = register_values[j];
+    }
+
+    // - flags
+    uint64_t masked_flags = (register_values[6] & 2263) | 2;
+    ((uint64_t *)register_initialization_base)[6] = masked_flags;
+
+    // - RSP and RBP
+    ((uint64_t *)register_initialization_base)[7] = (uint64_t)stack_base;
+
+    // - XMM0 ... XMM15
+    asm volatile(""
+                 "movdqa 0x00(%0), %%xmm0\n"
+                 "movdqa 0x10(%0), %%xmm1\n"
+                 "movdqa 0x20(%0), %%xmm2\n"
+                 "movdqa 0x30(%0), %%xmm3\n"
+                 "movdqa 0x40(%0), %%xmm4\n"
+                 "movdqa 0x50(%0), %%xmm5\n"
+                 "movdqa 0x60(%0), %%xmm6\n"
+                 "movdqa 0x70(%0), %%xmm7\n"
+                 "movdqa 0x80(%0), %%xmm8\n"
+                 "movdqa 0x90(%0), %%xmm9\n"
+                 "movdqa 0xa0(%0), %%xmm10\n"
+                 "movdqa 0xb0(%0), %%xmm11\n"
+                 "movdqa 0xc0(%0), %%xmm12\n"
+                 "movdqa 0xd0(%0), %%xmm13\n"
+                 "movdqa 0xe0(%0), %%xmm14\n"
+                 "movdqa 0xf0(%0), %%xmm15\n" ::"r"(&register_values[8])
+                 : "xmm0");
+}
 
 // =================================================================================================
 // Allocation and Initialization
@@ -44,14 +101,9 @@ int init_sandbox(void)
 
     stack_base = &(sandbox->main_region[MAIN_REGION_SIZE - 8]);
 
-    // zero-initialize the region of memory used by Prime+Probe
-    memset(&sandbox->eviction_region[0], 0, EVICT_REGION_SIZE * sizeof(char));
+    // zero-initialize the sandbox
+    memset(sandbox, 0, sizeof(sandbox_t));
 
-
-    _sandbox_unaligned = CHECKED_VMALLOC(sizeof(sandbox_t) + 0x1000);
-    // no alignment here because this allocation is done just in case, we won't actually use it
-    sandbox = _sandbox_unaligned;
-    stack_base = &(sandbox->main_region[MAIN_REGION_SIZE - 8]);
     return 0;
 }
 
