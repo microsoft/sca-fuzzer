@@ -19,6 +19,8 @@ EXTRA_CFLAGS += -I$(src)/include \
 	-DVENDOR_ID=$(VENDOR_ID) \
 	-DCPU_FAMILY=$(CPU_FAMILY)
 
+EXTRA_CFLAGS += -g -DDEBUG
+
 obj-m += $(NAME).o
 $(NAME)-objs += main.o templates.o measurement.o input.o sandbox.o test_case.o fault_handler.o page_table.o
 
@@ -37,3 +39,7 @@ install:
 
 uninstall:
 	sudo rmmod $(NAME)
+
+dbg_symbols:
+	objcopy --only-keep-debug $(NAME).o $(NAME).dbg
+	sudo cat /sys/module/$(NAME)/sections/.text

@@ -243,8 +243,6 @@ void run_experiment(long rounds)
     get_cpu();
     raw_local_irq_save(flags);
     idt_store();
-    faulty_page_pte_store();
-
 
     // Zero-initialize the region of memory used by Prime+Probe
     if (!quick_and_dirty_mode)
@@ -275,9 +273,12 @@ void run_experiment(long rounds)
         if (pre_run_flush == 1 && !quick_and_dirty_mode)
             uarch_flush();
 
-
+        // Prepare sandbox
         write_sandbox(current_input);
+        faulty_page_pte_store();
         faulty_page_pte_set();
+
+        // Catch all exceptions
         idt_set_custom_handlers();
 
         // execute
@@ -285,11 +286,11 @@ void run_experiment(long rounds)
 
         idt_restore();
         faulty_page_pte_restore();
+
         store_latest_result(i_);
     }
 
     // restore the kernel state
-    idt_restore();
     raw_local_irq_restore(flags);
     put_cpu();
 }
