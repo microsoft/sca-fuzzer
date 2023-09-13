@@ -23,7 +23,6 @@
 #include "template.h"
 #include "test_case.h"
 
-// =================================================================================================
 // Version-dependent includes
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 6)
 #include <../arch/x86/include/asm/io.h>

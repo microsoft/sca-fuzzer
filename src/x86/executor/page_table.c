@@ -14,7 +14,6 @@ pteval_t faulty_pte_mask_set = 0;   // global
 pteval_t faulty_pte_mask_clear = 0; // global
 
 static unsigned long faulty_page_addr = 0;
-static pte_t faulty_page_pte;
 static pte_t *faulty_page_ptep = NULL;
 static pteval_t orig_pte;
 
@@ -53,18 +52,6 @@ pte_t *get_pte(uint64_t address)
 // =================================================================================================
 // Faulty page management
 // =================================================================================================
-void faulty_page_pte_store(void) { orig_pte = faulty_page_ptep->pte; }
-
-void faulty_page_pte_restore(void)
-{
-    if ((faulty_pte_mask_set != 0) || (faulty_pte_mask_clear != 0xffffffffffffffff))
-    {
-        faulty_page_ptep->pte = orig_pte;
-        set_pte_at(current->mm, faulty_page_addr, faulty_page_ptep, faulty_page_pte);
-        _native_page_invalidate();
-    }
-}
-
 int faulty_page_prepare(void)
 {
     ASSERT(sandbox != NULL, "faulty_page_prepare");
@@ -75,17 +62,34 @@ int faulty_page_prepare(void)
     return 0;
 }
 
+void faulty_page_pte_store(void)
+{
+    orig_pte = faulty_page_ptep->pte;
+}
+
 void faulty_page_pte_set(void)
 {
+    pte_t new_pte = (pte_t){0};
     if ((faulty_pte_mask_set != 0) || (faulty_pte_mask_clear != 0xffffffffffffffff))
     {
-        faulty_page_pte.pte =
+        new_pte.pte =
             ((faulty_page_ptep->pte | faulty_pte_mask_set) & faulty_pte_mask_clear);
-        set_pte_at(current->mm, faulty_page_addr, faulty_page_ptep, faulty_page_pte);
+        set_pte_at(current->mm, faulty_page_addr, faulty_page_ptep, new_pte);
         // When testing for #PF flushing the faulty page causes a 'soft
         // lookup' kernel error on certain CPUs.
         // asm volatile("clflush (%0)\nlfence\n" ::"r"(faulty_page_addr)
         // : "memory");
+        _native_page_invalidate();
+    }
+}
+
+void faulty_page_pte_restore(void)
+{
+    pte_t new_pte = (pte_t){0};
+    if ((faulty_pte_mask_set != 0) || (faulty_pte_mask_clear != 0xffffffffffffffff))
+    {
+        new_pte.pte = orig_pte;
+        set_pte_at(current->mm, faulty_page_addr, faulty_page_ptep, new_pte);
         _native_page_invalidate();
     }
 }
@@ -101,8 +105,7 @@ int init_page_table_manager(void)
     faulty_pte_mask_clear = 0xffffffffffffffff;
 
     orig_pte = 0;
-    faulty_page_pte = (pte_t){0};
-    faulty_page_ptep = &faulty_page_pte;
+    faulty_page_ptep = NULL;
     return 0;
 }
 

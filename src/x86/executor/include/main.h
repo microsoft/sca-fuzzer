@@ -10,7 +10,7 @@
 #include <linux/types.h>
 #include <linux/version.h>
 
-#define DEBUG 0
+#define EXECUTOR_DEBUG 0
 
 // Executor Configuration Interface
 extern bool quick_and_dirty_mode;
