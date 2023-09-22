@@ -769,8 +769,22 @@ class TargetDesc(ABC):
         pass
 
 
+class AsmParser(ABC):
+    """ Class responsible for parsing (and optionally patching) assembly files
+    and producing TestCases from them """
+
+    @abstractmethod
+    def parse_file(self, asm_file: str) -> TestCase:
+        """
+        Read a test case from a file and create a complete TestCase object based on it.
+        Used instead of create_test_case when Revizor works with a user-provided test case.
+        """
+        pass
+
+
 class Generator(ABC):
     instruction_set: InstructionSetAbstract
+    target_desc: TargetDesc
     _state: int = 0
 
     def __init__(self, instruction_set: InstructionSetAbstract, seed: int):
@@ -801,17 +815,19 @@ class Generator(ABC):
         """
         pass
 
-    @abstractmethod
-    def load(self, asm_file: str) -> TestCase:
-        """
-        Read a test case from a file and create a complete TestCase object based on it.
-        Used instead of create_test_case when Revizor works with a user-provided test case.
-        """
-        pass
-
     @staticmethod
     @abstractmethod
     def assemble(asm_file: str, obj_file: str, bin_file: str) -> None:
+        """
+        Assemble an assembly file into an object file and creates a stripped binary
+        """
+        pass
+
+    @abstractmethod
+    def get_elf_data(self, test_case: TestCase, obj_file: str) -> None:
+        """
+        Extract ELF data from an object file and populate the test case
+        """
         pass
 
     @abstractmethod

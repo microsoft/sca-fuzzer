@@ -9,37 +9,19 @@ from __future__ import annotations
 import random
 import abc
 import re
-from typing import List, Dict
+from typing import List
 from subprocess import CalledProcessError, run
-from collections import OrderedDict
 
 from .isa_loader import InstructionSet
 from .interfaces import Generator, TestCase, Operand, RegisterOperand, FlagsOperand, \
     MemoryOperand, ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, \
-    Function, OperandSpec, InstructionSpec, CondOperand, TargetDesc, Actor, ActorType
+    Function, OperandSpec, InstructionSpec, CondOperand, Actor
 from .util import NotSupportedException, Logger
 from .config import CONF
 
 
-# Helpers
 class GeneratorException(Exception):
     pass
-
-
-class AsmParserException(Exception):
-
-    def __init__(self, line_number, explanation):
-        msg = "Could not parse line " + str(line_number + 1) + "\n  Reason: " + explanation
-        super().__init__(msg)
-
-
-def parser_assert(condition: bool, line_number: int, explanation: str):
-    if not condition:
-        logger = Logger()
-        logger.error(
-            f"asm_parser: Could not parse line {line_number + 1}\n"
-            f"       Reason: {explanation}",
-            print_tb=True)
 
 
 # ==================================================================================================
@@ -69,7 +51,6 @@ class ConfigurableGenerator(Generator, abc.ABC):
     test_case: TestCase
     passes: List[Pass]  # set by subclasses
     printer: Printer  # set by subclasses
-    target_desc: TargetDesc  # set by subclasses
 
     LOG: Logger  # name capitalized to make logging easily distinguishable from the main logic
 
@@ -141,7 +122,7 @@ class ConfigurableGenerator(Generator, abc.ABC):
         self.test_case.bin_path = bin_file
         self.test_case.obj_path = obj_file
 
-        self.map_addresses(self.test_case, obj_file)
+        self.get_elf_data(self.test_case, obj_file)
 
         return self.test_case
 
@@ -164,54 +145,8 @@ class ConfigurableGenerator(Generator, abc.ABC):
                     msg += f"\n  Line {line}\n    (the line was parsed as {parsed})"
             return msg
 
-        def is_instruction(line: str) -> bool:
-            res = (line != ''
-                   and line[0] != '#'
-                   and (line[0] != '.'
-                        or line[:4] == ".bcd"
-                        or line[:5] in [".byte", ".long", ".quad"]
-                        or line[:6] == '.macro'
-                        or line[6:] in [".value", ".2byte", ".4byte", ".8byte"]
-                        )
-                   )
-            return res
-
-        # make sure that all function labels are exposed by adding a global label
-        # also, add NOP at the end of each function to make size calculations easier
-        # also, insert .function_0 at the beginning of the file if it is missing
-        # also, .test_case_exit must be within the .data.0_host section and contain a single NOP
-        patched_asm_file = asm_file + ".patched"
-        main_function_found = False
-        enter_found = False
-        with open(asm_file, "r") as f:
-            with open(patched_asm_file, "w") as patched:
-                for line in f:
-                    line = line.strip()
-                    if not enter_found:
-                        if line == ".test_case_enter:":
-                            enter_found = True
-                        patched.write(line + "\n")
-                        continue
-                    if ".test_case_exit:" in line:
-                        if not main_function_found:
-                            patched.write(".function_0:\n")
-                        patched.write(".section .data.0_host\n")
-                        patched.write(".global .test_case_exit\n")
-                        patched.write(line + "\n")
-                        patched.write("nop\n")
-                        continue
-
-                    if line.startswith(".function_"):
-                        main_function_found = True
-                    elif not main_function_found and is_instruction(line):
-                        patched.write(".function_0:\n")
-                        main_function_found = True
-
-                    patched.write(line + "\n")
-
         try:
-            out = run(
-                f"as {patched_asm_file} -o {obj_file}", shell=True, check=True, capture_output=True)
+            out = run(f"as {asm_file} -o {obj_file}", shell=True, check=True, capture_output=True)
         except CalledProcessError as e:
             error_msg = e.stderr.decode()
             if "Assembler messages:" in error_msg:
@@ -231,250 +166,8 @@ class ConfigurableGenerator(Generator, abc.ABC):
         run(f"strip --remove-section=.note.gnu.property {bin_file}", shell=True, check=True)
         run(f"objcopy {bin_file} -O binary {bin_file}", shell=True, check=True)
 
-    def load(self, asm_file: str) -> TestCase:
-        test_case = TestCase(0)
-        test_case.asm_path = asm_file
-
-        # prepare regexes
-        re_redundant_spaces = re.compile(r"(?<![a-zA-Z0-9]) +")
-
-        # prepare a map of all instruction specs
-        instruction_map: Dict[str, List[InstructionSpec]] = {}
-        for spec in self.instruction_set.instructions:
-            if spec.name in instruction_map:
-                instruction_map[spec.name].append(spec)
-            else:
-                instruction_map[spec.name] = [spec]
-
-            # add an entry for direct opcodes
-            opcode_spec = InstructionSpec()
-            opcode_spec.name = "OPCODE"
-            opcode_spec.category = "OPCODE"
-            instruction_map["OPCODE"] = [opcode_spec]
-
-            # entry for macros
-            macro_spec = InstructionSpec()
-            macro_spec.name = "MACRO"
-            macro_spec.category = "MACRO"
-            macro_spec.operands = [OperandSpec([], OT.IMM, False, False)]
-            instruction_map["MACRO"] = [macro_spec]
-
-        # load the text and clean it up
-        lines = []
-        started = False
-        finished = False
-        with open(asm_file, "r") as f:
-            for i, line in enumerate(f):
-                # remove extra spaces
-                line = line.strip()
-                line = re_redundant_spaces.sub("", line)
-
-                # skip comments and empty lines
-                if not line or line[0] in ["", "#", "/"]:
-                    continue
-
-                # skip footer and header
-                if not started:
-                    started = (line == ".test_case_enter:")
-                    if line[0] != ".":
-                        parser_assert(started, i, "Found instructions before .test_case_enter")
-                    continue
-                if line == ".test_case_exit:":
-                    finished = True
-                    continue
-                parser_assert(not finished, i, "Found instructions after .test_case_exit")
-
-                lines.append(line)
-            parser_assert(finished, len(lines), ".test_case_exit not found")
-
-        # map lines to functions and basic blocks
-        current_function = ""
-        current_bb = ""
-        current_actor = ""
-        autogenerated_bb = False
-        test_case_map: Dict[str, Dict[str, List[str]]] = OrderedDict()
-        function_owners: Dict[str, str] = {}
-        for i, line in enumerate(lines):
-            # directives - ignored
-            if line.startswith(".global"):
-                continue
-
-            # section start
-            if line.startswith(".section"):
-                words = line.split()
-                assert len(words) == 2
-                if words[1] == "exit":
-                    continue  # exit section does not represent any actor
-                current_actor = words[1]
-                current_function = ""
-                current_bb = ""
-                continue
-            parser_assert(current_actor != "", i, "Missing actor declaration (missing .section)")
-
-            # function start
-            if line.startswith(".function_"):
-                assert line[-1] == ":", f"Invalid function header: {line}"
-                current_function = line[:-1]
-                test_case_map[current_function] = OrderedDict()
-                function_owners[current_function] = current_actor
-
-                autogenerated_bb = True
-                current_bb = ".bb_" + current_function.removeprefix(".function_") + ".entry"
-                test_case_map[current_function][current_bb] = []
-                continue
-
-            # implicit declaration of the main function
-            if not current_function and not test_case_map:
-                current_function = ".function_0"
-                test_case_map[current_function] = OrderedDict()
-                function_owners[current_function] = current_actor
-
-                autogenerated_bb = True
-                current_bb = ".bb_" + current_function.removeprefix(".function_") + ".entry"
-                test_case_map[current_function][current_bb] = []
-            parser_assert(current_function != "", i, "Missing function declaration")
-
-            # opcode
-            if line[:4] == ".bcd " or line[:5] in [".byte", ".long", ".quad"] \
-               or line[6:] in [".value", ".2byte", ".4byte", ".8byte"]:
-                assert current_bb
-                test_case_map[current_function][current_bb].append("OPCODE")
-                continue
-
-            # symbols
-            if line.startswith(".macro"):
-                parser_assert(current_bb != "", i, "Macro declared outside of a basic block")
-                words = line.split(":")
-                parser_assert(len(words) == 2, i, "Invalid macro declaration")
-                parser_assert(words[1].upper() == "NOP", i, "Macro symbol must end with NOP")
-                subwords = words[0].split(".")
-                parser_assert(len(subwords) == 3, i, f"Invalid macro: {line}")
-                macro_id = self.target_desc.macro_ids[subwords[2]]
-                test_case_map[current_function][current_bb].append("MACRO " + str(macro_id))
-                continue
-
-            # basic block
-            if line.startswith("."):
-                assert line[-1] == ":", f"Invalid basic block header: {line}"
-                # remove empty default BBs
-                if autogenerated_bb and not test_case_map[current_function][current_bb]:
-                    del test_case_map[current_function][current_bb]
-
-                autogenerated_bb = False
-                current_bb = line[:-1]
-                if current_bb not in test_case_map[current_function]:
-                    test_case_map[current_function][current_bb] = []
-                continue
-
-            # instruction
-            parser_assert(current_bb != "", i, "Missing basic block declaration")
-            test_case_map[current_function][current_bb].append(line)
-
-        # create actors
-        actor_names: Dict[str, Actor] = {}
-        for actor_label in sorted(set(function_owners.values())):
-            words = actor_label.split(".")
-            assert len(words) == 3, f"Invalid actor label: {actor_label}"
-            subwords = words[2].split("_")
-            assert len(subwords) == 2, f"Invalid actor label: {actor_label}"
-
-            id_ = int(subwords[0])
-            if subwords[1] == "host":
-                type_ = ActorType.HOST
-            elif subwords[1] == "guest":
-                type_ = ActorType.GUEST
-            else:
-                parser_assert(False, 0, f"Invalid actor type: {subwords[1]}")
-
-            if id_ == 0:
-                assert type_ == ActorType.HOST, "Actor 0 must be the host"  # type: ignore
-                actor = test_case.actors[0]
-            else:
-                actor = Actor(type_, id_)  # type: ignore
-
-            assert id_ not in test_case.actors or test_case.actors[id_] == actor, "Duplicate actor"
-            test_case.actors[id_] = actor
-            actor_names[actor_label] = actor
-
-        # parse lines and create their object representations
-        line_id = 1
-        for func_name, bbs in test_case_map.items():
-            # print(func_name)
-            line_id += 1
-            actor = actor_names[function_owners[func_name]]
-            func = Function(func_name, actor)
-            test_case.functions.append(func)
-
-            for bb_name, lines in bbs.items():
-                # print(">>", bb_name)
-                line_id += 1
-                bb = BasicBlock(bb_name)
-                func.append(bb)
-
-                terminators_started = False
-                for line in lines:
-                    # print(f"    {line}")
-                    line_id += 1
-                    inst = self.parse_line(line, line_id, instruction_map)
-                    if inst.control_flow and not self.target_desc.is_call(inst):
-                        terminators_started = True
-                        bb.insert_terminator(inst)
-                    else:
-                        parser_assert(not terminators_started, line_id,
-                                      "Terminator not at the end of BB")
-                        bb.insert_after(bb.get_last(), inst)
-
-        # connect basic blocks
-        bb_names = {bb.name.upper(): bb for func in test_case for bb in func}
-        bb_names[".TEST_CASE_EXIT"] = test_case.exit
-        previous_bb = None
-        for func in test_case:
-            for bb in func:
-                # fallthrough
-                if previous_bb:  # skip the first BB
-                    # there is a fallthrough only if the last terminator is not a direct jump
-                    if not previous_bb.terminators or \
-                       not self.target_desc.is_unconditional_branch(previous_bb.terminators[-1]):
-                        previous_bb.successors.append(bb)
-                previous_bb = bb
-
-                # taken branches
-                for terminator in bb.terminators:
-                    for op in terminator.operands:
-                        if isinstance(op, LabelOperand):
-                            successor = bb_names[op.value]
-                            bb.successors.append(successor)
-
-            # last BB always falls through to the exit
-            func[-1].successors.append(func.exit)
-
-        # special case: empty test case
-        if not test_case.functions:
-            instr = Instruction("NOP", False, "BASE-NOP", False)
-            bb = BasicBlock(".bb_0")
-            main = Function(".function_0", Actor(ActorType.HOST, 0))
-            bb.insert_after(bb.get_last(), instr)
-            main.append(bb)
-            bb.successors.append(main.exit)
-            test_case.functions.append(main)
-
-        bin_file = asm_file[:-4]
-        obj_file = bin_file + ".o"
-        self.assemble(asm_file, obj_file, bin_file)
-        test_case.bin_path = bin_file
-        test_case.obj_path = obj_file
-
-        self.map_addresses(test_case, obj_file)
-
-        return test_case
-
     @abc.abstractmethod
-    def parse_line(self, line: str, line_num: int,
-                   instruction_map: Dict[str, List[InstructionSpec]]) -> Instruction:
-        pass
-
-    @abc.abstractmethod
-    def map_addresses(self, test_case: TestCase, obj_file: str) -> None:
+    def get_elf_data(self, test_case: TestCase, obj_file: str) -> None:
         pass
 
     @abc.abstractmethod
