@@ -2,15 +2,15 @@
 .test_case_enter:
 .section .data.0_host
 
-.macro.measurement_start: nop
+.macro.measurement_start: nop dword ptr [rax + 1*rax + 1]
 
 nop
 
-.macro.measurement_end: nop
+.macro.measurement_end: nop dword ptr [rax + 1*rax + 1]
 
-.macro.vmenter: nop
+.macro.vmenter: nop dword ptr [rax + 1*rax + 1]
 
-.macro.vmcall: nop
+.macro.vmcall: nop dword ptr [rax + 1*rax + 1]
 
 and rax, rax
 

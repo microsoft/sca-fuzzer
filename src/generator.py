@@ -110,6 +110,9 @@ class ConfigurableGenerator(Generator, abc.ABC):
         for p in self.passes:
             p.run_on_test_case(self.test_case)
 
+        # add symbols to test case
+        self.add_required_symbols(self.test_case)
+
         self.printer.print(self.test_case, asm_file)
         self.test_case.asm_path = asm_file
 
@@ -224,6 +227,10 @@ class ConfigurableGenerator(Generator, abc.ABC):
 
     @abc.abstractmethod
     def add_instructions_in_function(self, func: Function):
+        pass
+
+    @abc.abstractmethod
+    def add_required_symbols(self, test_case: TestCase):
         pass
 
 
@@ -489,3 +496,20 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
     @abc.abstractmethod
     def get_unconditional_jump_instruction(self) -> Instruction:
         pass
+
+    def add_required_symbols(self, test_case: TestCase):
+        # add measurement_start and measurement_end symbols
+        func_main = test_case.functions[0]
+        assert func_main.owner == test_case.actors[0]
+
+        bb_first = func_main[0]
+        start_sid = self.target_desc.macro_ids["measurement_start"]
+        bb_first.insert_before(
+            bb_first.get_first(),
+            Instruction("MACRO", category="MACRO").add_op(ImmediateOperand(str(start_sid), 8)))
+
+        bb_last = func_main.exit
+        end_sid = self.target_desc.macro_ids["measurement_end"]
+        bb_last.insert_after(
+            bb_last.get_last(),
+            Instruction("MACRO", category="MACRO").add_op(ImmediateOperand(str(end_sid), 8)))

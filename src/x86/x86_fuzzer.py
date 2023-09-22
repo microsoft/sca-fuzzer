@@ -124,7 +124,7 @@ class X86Fuzzer(FuzzerGeneric):
             # otherwise, some of the instrumentation instructions might be missing
             tmp_instruction_set = self.instruction_set.instructions
             self.instruction_set.instructions = self.instruction_set.unfiltered_instructions
-            fenced_test_case = self.generator.load('fenced.asm')
+            fenced_test_case = self.asm_parser.parse_file('fenced.asm')
             self.instruction_set.instructions = tmp_instruction_set
 
             self.executor.load_test_case(fenced_test_case)

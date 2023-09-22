@@ -513,6 +513,12 @@ SymbolID = int
 SymbolOffset = int
 
 
+class Symbol(NamedTuple):
+    aid: ActorID
+    offset: SymbolOffset
+    id_: SymbolID
+
+
 class TestCase:
     asm_path: str = ''
     obj_path: str = ''
@@ -523,7 +529,7 @@ class TestCase:
     faulty_pte: PageTableModifier
     seed: int
     exit: BasicBlock
-    symbol_table: List[Tuple[ActorID, SymbolOffset, SymbolID]]
+    symbol_table: List[Symbol]
 
     def __init__(self, seed: int):
         self.seed = seed

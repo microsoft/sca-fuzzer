@@ -62,6 +62,7 @@ class FuzzerGeneric(Fuzzer):
         self.analyser = factory.get_analyser()
         self.coverage = factory.get_coverage(self.instruction_set, self.executor, self.model,
                                              self.analyser)
+        self.asm_parser = factory.get_asm_parser(self.generator)
 
     def start(self,
               num_test_cases: int,
@@ -88,7 +89,7 @@ class FuzzerGeneric(Fuzzer):
             # Generate a test case
             test_case: TestCase
             if self.existing_test_case:
-                test_case = self.generator.load(self.existing_test_case)
+                test_case = self.asm_parser.parse_file(self.existing_test_case)
             else:
                 test_case = self.generator.create_test_case('generated.asm')
             STAT.test_cases += 1
@@ -425,7 +426,6 @@ class ArchitecturalFuzzer(FuzzerGeneric):
                  work_dir: str,
                  existing_test_case: str = "",
                  inputs: List[str] = []):
-        CONF.setattr_internal('executor_mode', "GPR")
         CONF.contract_observation_clause = 'gpr'
         super().__init__(instruction_set_spec, work_dir, existing_test_case, inputs)
         self.LOG.warning("fuzzer", "Running in architectural mode. "
@@ -451,9 +451,10 @@ class ArchitecturalFuzzer(FuzzerGeneric):
         # to invoke the analyser
         for i, input_ in enumerate(inputs):
             if ctraces[i] != htraces[i]:
-                print(f"Input #{i}")
-                print(f"Model: {[hex(v) for v in ctraces[i]]}")
-                print(f"CPU:   {[hex(v) for v in htraces[i]]}")
+                if "dbg_violation" in CONF.logging_modes:
+                    print(f"Input #{i}")
+                    print(f"Model: {[hex(v) for v in ctraces[i]]}")
+                    print(f"CPU:   {[hex(v) for v in htraces[i]]}")
 
                 eq_cls = EquivalenceClass()
                 eq_cls.ctrace = ctraces[i][0]

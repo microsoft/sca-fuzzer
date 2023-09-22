@@ -15,74 +15,14 @@ from elftools.elf.elffile import ELFFile, SymbolTableSection  # type: ignore
 
 from ..isa_loader import InstructionSet
 from ..interfaces import TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
-    ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, InstructionSpec, \
-    PageTableModifier, MAIN_REGION_SIZE, FAULTY_REGION_SIZE, Function, ActorType, ElfSection
-from ..generator import ConfigurableGenerator, RandomGenerator, Pass, \
-    parser_assert, Printer, GeneratorException, AsmParserException
+    ImmediateOperand, AgenOperand, OT, Instruction, BasicBlock, InstructionSpec, \
+    PageTableModifier, MAIN_REGION_SIZE, FAULTY_REGION_SIZE, Function, ActorType, ElfSection, Symbol
+from ..generator import ConfigurableGenerator, RandomGenerator, Pass, Printer, GeneratorException
 from ..config import CONF
 from .x86_target_desc import X86TargetDesc
 
 
 class X86Generator(ConfigurableGenerator, abc.ABC):
-    asm_prefixes = ["LOCK", "REX", "REP", "REPE", "REPNE"]
-    asm_synonyms = {
-        "JE": "JZ",
-        "JNE": "JNZ",
-        "JNAE": "JB",
-        "JC": "JB",
-        "JAE": "JNB",
-        "JNC": "JNB",
-        "JNA": "JBE",
-        "JA": "JNBE",
-        "JNGE": "JL",
-        "JGE": "JNL",
-        "JNG": "JLE",
-        "JG": "JNLE",
-        "JPE": "JP",
-        "JPO": "JNP",
-        "CMOVE": "CMOVZ",
-        "CMOVNE": "CMOVNZ",
-        "CMOVNAE": "CMOVB",
-        "CMOVC": "CMOVB",
-        "CMOVAE": "CMOVNB",
-        "CMOVNC": "CMOVNB",
-        "CMOVNA": "CMOVBE",
-        "CMOVA": "CMOVNBE",
-        "CMOVNGE": "CMOVL",
-        "CMOVGE": "CMOVNL",
-        "CMOVNG": "CMOVLE",
-        "CMOVG": "CMOVNLE",
-        "CMOVPE": "CMOVP",
-        "CMOVPO": "CMOVNP",
-        "SETE": "SETZ",
-        "SETNE": "SETNZ",
-        "SETNAE": "SETB",
-        "SETC": "SETB",
-        "SETAE": "SETNB",
-        "SETNC": "SETNB",
-        "SETNA": "SETBE",
-        "SETA": "SETNBE",
-        "SETNGE": "SETL",
-        "SETGE": "SETNL",
-        "SETNG": "SETLE",
-        "SETG": "SETNLE",
-        "SETPE": "SETP",
-        "SETPO": "SETNP",
-        "MOVABS": "MOV",
-        "REPE": "REPZ",
-        "REPNE": "REPNZ",
-        "REPNZ": "REPNE",
-        "REPZ": "REPE",
-    }
-    memory_sizes = {
-        "BYTE": 8,
-        "WORD": 16,
-        "DWORD": 32,
-        "QWORD": 64,
-        "XMMWORD": 128,
-        "YMMWORD": 256,
-        "ZMMWORD": 512
-    }
 
     def __init__(self, instruction_set: InstructionSet, seed: int):
         super(X86Generator, self).__init__(instruction_set, seed)
@@ -94,7 +34,7 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
             X86NonCanonicalAddressPass(),
             X86PatchOpcodesPass(),
         ]
-        self.printer = X86Printer()
+        self.printer = X86Printer(self.target_desc)
 
         # select PTE bits that could be set
         self.pte_bit_choices: List[Tuple[int, bool]] = []
@@ -109,7 +49,7 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
         if 'PF-smap' in CONF.permitted_faults:
             self.pte_bit_choices.append(self.target_desc.pte_bits["USER"])
 
-    def map_addresses(self, test_case: TestCase, obj_file: str) -> None:
+    def get_elf_data(self, test_case: TestCase, obj_file: str) -> None:
         exit_addr: int = -1
         function_symbol_entries: Dict = {}
         instruction_addresses: Dict[str, List[int]] = {}
@@ -195,7 +135,11 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
 
                 # add the function into the symbol table
                 # FIXME: replace 0 with symbol id
-                test_case.symbol_table.append((actor.id_, offset, 0))
+                test_case.symbol_table.append(Symbol(
+                    aid=actor.id_,
+                    id_=0,
+                    offset=offset,
+                ))
 
                 for bb in list(func) + [func.exit]:
                     for inst in list(bb) + bb.terminators:
@@ -209,7 +153,11 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
                         # add macros to the symbol table
                         if inst.name == "MACRO":
                             test_case.symbol_table.append(
-                                (actor.id_, address, int(inst.operands[0].value)))
+                                Symbol(
+                                    aid=actor.id_,
+                                    id_=int(inst.operands[0].value),
+                                    offset=address,
+                                ))
 
                         counter += 1
 
@@ -223,128 +171,6 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
 
     def get_unconditional_jump_instruction(self) -> Instruction:
         return Instruction("JMP", False, "UNCOND_BR", True)
-
-    def parse_line(self, line: str, line_num: int,
-                   instruction_map: Dict[str, List[InstructionSpec]]) -> Instruction:
-        line = line.upper()
-
-        # get name and possible specs
-        words = line.split()
-        name = ""
-        specs: List[InstructionSpec] = []
-        for word in words:
-            if word in self.asm_prefixes:
-                name += word + " "
-                continue
-
-            # fix jump name
-            if word in self.asm_synonyms:
-                key = name + self.asm_synonyms[word]
-            else:
-                key = name + word
-            specs = instruction_map.get(key, [])
-            name += word
-            break
-        if not specs:
-            raise AsmParserException(line_num, f"Unknown instruction {line}")
-
-        # instrumentation?
-        is_instrumentation = line.endswith("# INSTRUMENTATION")
-
-        # remove comments
-        if "#" in line:
-            line = re.search(r"(.*)#.*", line).group(1).strip()  # type: ignore
-
-        # extract operands
-        operands_raw = line.removeprefix(name).split(",")
-        if operands_raw == [""]:  # no operands
-            operands_raw = []
-        else:  # clean the operands
-            operands_raw = [o.strip() for o in operands_raw]
-
-        # find a matching spec
-        matching_specs = []
-        for spec_candidate in specs:
-            if len(spec_candidate.operands) != len(operands_raw):
-                continue
-
-            match = True
-            for op_id, op_raw in enumerate(operands_raw):
-                op_spec = spec_candidate.operands[op_id]
-                if op_raw[0] == ".":  # match label
-                    if op_spec.type != OT.LABEL:
-                        match = False
-                        break
-                    continue
-                elif "[" in op_raw:  # match address
-                    if op_spec.type not in [OT.AGEN, OT.MEM]:
-                        match = False
-                        break
-                    access_size = op_raw.split()[0]  # match address size
-                    parser_assert(access_size in self.memory_sizes, line_num,
-                                  f"Pointer size must be declared explicitly in {line}")
-                    if op_spec.width != self.memory_sizes[access_size]:
-                        match = False
-                        break
-                    continue
-                # match immediate value
-                elif re.match(r"^-?[0-9]+$", op_raw) or \
-                        re.match(r"^-?0X[0-9ABCDEF]+$", op_raw) or \
-                        re.match(r"^-?0B[01]+$", op_raw) or \
-                        re.match(r"^-?[0-9]+\ *[+-]\ *[0-9]+$", op_raw):
-                    if op_spec.type != OT.IMM:
-                        match = False
-                        break
-                    continue
-                elif op_spec.type == OT.REG:
-                    width = op_spec.width if "XMM" not in op_raw else 128
-                    if op_raw not in self.target_desc.registers[width]:
-                        match = False
-                        break
-                    continue
-                else:
-                    match = False
-            if match:
-                matching_specs.append(spec_candidate)
-        parser_assert(
-            len(matching_specs) != 0, line_num, f"Could not find a matching spec for {line}")
-
-        # we might find several matches if the instruction has a magic operand value
-        if len(matching_specs) > 1:
-            magic_value_specs = list(filter(lambda x: (x.has_magic_value), matching_specs))
-            if magic_value_specs:
-                matching_specs = magic_value_specs
-
-        # at this point we should have only one spec, but even if we don't, all of them should
-        # be equivalent. Just pick the first
-        spec: InstructionSpec = matching_specs[0]
-
-        # generate a corresponding Instruction
-        inst = Instruction.from_spec(spec, is_instrumentation)
-        op: Operand
-        for op_id, op_raw in enumerate(operands_raw):
-            op_spec = spec.operands[op_id]
-            if op_spec.type == OT.REG:
-                op = RegisterOperand(op_raw, op_spec.width, op_spec.src, op_spec.dest)
-            elif op_spec.type == OT.MEM:
-                address_match = re.search(r'\[(.*)\]', op_raw)
-                parser_assert(address_match is not None, line_num, "Invalid memory address")
-                address = address_match.group(1)  # type: ignore
-                op = MemoryOperand(address, op_spec.width, op_spec.src, op_spec.dest)
-            elif op_spec.type == OT.IMM:
-                op = ImmediateOperand(op_raw, op_spec.width)
-            elif op_spec.type == OT.LABEL:
-                assert spec.control_flow
-                op = LabelOperand(op_raw)
-            else:  # AGEN
-                op = AgenOperand(op_raw, op_spec.width)
-            inst.operands.append(op)
-
-        for op_spec in spec.implicit_operands:
-            op = self.generate_operand(op_spec, inst)
-            inst.implicit_operands.append(op)
-
-        return inst
 
     def create_pte(self, test_case: TestCase):
         """
@@ -1031,8 +857,13 @@ class X86Printer(Printer):
         ".test_case_enter:\n",
     ]
     epilogue_template = [
+        ".section .data.0_host\n",
         ".test_case_exit:\n",
     ]
+
+    def __init__(self, target_desc: X86TargetDesc) -> None:
+        self.macro_labels = {v: k for k, v in target_desc.macro_ids.items()}
+        super().__init__()
 
     def print(self, test_case: TestCase, outfile: str) -> None:
         with open(outfile, "w") as f:
@@ -1065,6 +896,9 @@ class X86Printer(Printer):
             file.write(self.instruction_to_str(inst) + "\n")
 
     def instruction_to_str(self, inst: Instruction):
+        if inst.category == "MACRO":
+            return self.macro_to_str(inst)
+
         operands = ", ".join([self.operand_to_str(op) for op in inst.operands])
         comment = "# instrumentation" if inst.is_instrumentation else ""
         return f"{inst.name} {operands} {comment}"
@@ -1075,6 +909,10 @@ class X86Printer(Printer):
             return f"{prefix} [{op.value}]"
 
         return op.value
+
+    def macro_to_str(self, inst: Instruction):
+        label = self.macro_labels[int(inst.operands[0].value)]
+        return f".macro.{label}: nop dword ptr [rax + rax*1 + 0x1]"
 
 
 class X86RandomGenerator(X86Generator, RandomGenerator):

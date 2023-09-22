@@ -10,9 +10,11 @@ from pathlib import Path
 
 from src.x86.x86_generator import X86RandomGenerator, X86Printer, X86PatchUndefinedFlagsPass, \
     X86Generator
+from src.x86.x86_asm_parser import X86AsmParser
+from src.x86.x86_target_desc import X86TargetDesc
 from src.factory import get_program_generator
 from src.isa_loader import InstructionSet
-from src.interfaces import TestCase, Function, BasicBlock, ActorType
+from src.interfaces import TestCase, Function, BasicBlock, ActorType, Symbol
 from src.config import CONF
 
 CONF.instruction_set = "x86-64"
@@ -23,7 +25,7 @@ ASM_OPCODE = """
 .intel_syntax noprefix
 .test_case_enter:
 .section .data.0_host
-.byte 0x90, 0x90
+.byte 0x90
 .test_case_exit:
 """
 
@@ -35,11 +37,12 @@ class X86RandomGeneratorTest(unittest.TestCase):
         min_x86_path = test_dir / "min_x86.json"
         instruction_set = InstructionSet(min_x86_path.absolute().as_posix())
         generator = X86RandomGenerator(instruction_set, CONF.program_generator_seed)
+        parser = X86AsmParser(generator)
 
         asm_file = tempfile.NamedTemporaryFile(delete=False)
         with open(asm_file.name, "w") as f:
             f.write(asm_str)
-        tc: TestCase = generator.load(asm_file.name)
+        tc: TestCase = parser.parse_file(asm_file.name)
         asm_file.close()
         os.unlink(asm_file.name)
         return tc
@@ -57,7 +60,7 @@ class X86RandomGeneratorTest(unittest.TestCase):
         generator = X86RandomGenerator(instruction_set, CONF.program_generator_seed)
         tc = TestCase(0)
         func = generator.generate_function(".function_0", tc.actors[0], tc)
-        printer = X86Printer()
+        printer = X86Printer(X86TargetDesc())
         all_instructions = ['.intel_syntax noprefix\n']
 
         # try generating instruction strings
@@ -135,19 +138,23 @@ class X86RandomGeneratorTest(unittest.TestCase):
 
         instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix())
         generator = X86RandomGenerator(instruction_set, CONF.program_generator_seed)
-        tc: TestCase = generator.load((test_dir / "asm/asm_basic.asm").absolute().as_posix())
-        self.assertEqual(len(tc.functions), 1)
+        parser = X86AsmParser(generator)
+        tc: TestCase = parser.parse_file((test_dir / "asm/asm_basic.asm").absolute().as_posix())
+        self.assertEqual(len(tc.functions), 2)
 
         main = tc.functions[0]
         self.assertEqual(main.name, ".function_0")
-        self.assertEqual(len(main), 2)
 
-        bb0 = main[0]
-        bb1 = main[1]
+        self.assertEqual(len(main), 3)
+
+        bb0 = main[1]
+        bb1 = main[2]
         exit_ = main.exit
 
         self.assertEqual(bb0.successors[0], bb1)
         self.assertEqual(bb1.successors[0], exit_)
+
+        self.assertEqual(tc.functions[1].name, ".function_end")
 
     def test_x86_asm_parsing_opcode(self):
         CONF.register_blocklist = []
@@ -157,7 +164,9 @@ class X86RandomGeneratorTest(unittest.TestCase):
 
         main_iter = iter(tc.functions[0])
         bb0 = next(main_iter)
-        self.assertEqual(bb0.get_first().name, "OPCODE")
+        insts = list(bb0)
+        self.assertEqual(insts[0].name, "MACRO")
+        self.assertEqual(insts[1].name, "OPCODE")
 
     def test_x86_asm_parsing_section(self):
         CONF.register_blocklist = []
@@ -165,7 +174,8 @@ class X86RandomGeneratorTest(unittest.TestCase):
 
         instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix())
         generator = X86RandomGenerator(instruction_set, CONF.program_generator_seed)
-        tc: TestCase = generator.load((test_dir / "asm/asm_multiactor.asm").absolute().as_posix())
+        parser = X86AsmParser(generator)
+        tc: TestCase = parser.parse_file((test_dir / "asm/asm_multiactor.asm").absolute().as_posix())
 
         self.assertEqual(len(tc.actors), 2)
         self.assertEqual(tc.actors[0].type_, ActorType.HOST)
@@ -173,14 +183,14 @@ class X86RandomGeneratorTest(unittest.TestCase):
         self.assertEqual(tc.actors[1].type_, ActorType.GUEST)
         self.assertEqual(tc.actors[1].id_, 1)
 
-        self.assertEqual(len(tc.functions), 3)
+        self.assertEqual(len(tc.functions), 4)
         f1 = tc.functions[0]
         f2 = tc.functions[1]
         f3 = tc.functions[2]
 
         self.assertEqual(f1.name, ".function_0")
         self.assertEqual(f1.owner.id_, 0)
-        self.assertEqual(len(f1[0]), 2)
+        self.assertEqual(len(f1[0]), 3)
 
         self.assertEqual(f2.name, ".function_1")
         self.assertEqual(f2.owner.id_, 1)
@@ -196,15 +206,16 @@ class X86RandomGeneratorTest(unittest.TestCase):
 
         instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix())
         generator = X86RandomGenerator(instruction_set, CONF.program_generator_seed)
-        tc: TestCase = generator.load((test_dir / "asm/asm_symbol.asm").absolute().as_posix())
+        parser = X86AsmParser(generator)
+        tc: TestCase = parser.parse_file((test_dir / "asm/asm_symbol.asm").absolute().as_posix())
 
-        self.assertEqual(tc.symbol_table[0], (0, 0, 0))  # function_0
-        self.assertEqual(tc.symbol_table[1], (0, 0, 3))
-        self.assertEqual(tc.symbol_table[2], (0, 2, 4))
-        self.assertEqual(tc.symbol_table[3], (0, 3, 5))
-        self.assertEqual(tc.symbol_table[4], (0, 4, 6))
-        self.assertEqual(tc.symbol_table[5], (0, 8, 0))  # function_1
-        self.assertEqual(tc.symbol_table[6], (1, 0, 0))  # function_2
+        self.assertEqual(tc.symbol_table[0], Symbol(0, 0, 0))  # function_0
+        self.assertEqual(tc.symbol_table[1], Symbol(0, 0, 1))
+        self.assertEqual(tc.symbol_table[2], Symbol(0, 6, 2))
+        self.assertEqual(tc.symbol_table[3], Symbol(0, 11, 3))
+        self.assertEqual(tc.symbol_table[4], Symbol(0, 16, 4))
+        self.assertEqual(tc.symbol_table[5], Symbol(0, 24, 0))  # function_1
+        self.assertEqual(tc.symbol_table[6], Symbol(1, 0, 0))  # function_2
 
     def test_x86_undef_flag_patch(self):
         instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix(),
