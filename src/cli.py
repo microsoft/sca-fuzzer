@@ -11,7 +11,6 @@ import yaml
 from typing import Dict
 from argparse import ArgumentParser
 from .factory import get_minimizer, get_fuzzer, get_downloader
-from .fuzzer import Fuzzer
 from .config import CONF
 
 
@@ -23,50 +22,41 @@ def main() -> int:
     # ==============================================================================================
     # Fuzzing
     parser_fuzz = subparsers.add_parser('fuzz')
+    parser_fuzz.add_argument("-s", "--instruction-set", type=str, required=True)
+    parser_fuzz.add_argument("-c", "--config", type=str, required=False)
     parser_fuzz.add_argument(
-        "-s", "--instruction-set",
-        type=str,
-        required=True
-    )
-    parser_fuzz.add_argument(
-        "-c", "--config",
-        type=str,
-        required=False
-    )
-    parser_fuzz.add_argument(
-        "-n", "--num-test-cases",
+        "-n",
+        "--num-test-cases",
         type=int,
         default=1,
         help="Number of test cases.",
     )
     parser_fuzz.add_argument(
-        "-i", "--num-inputs",
+        "-i",
+        "--num-inputs",
         type=int,
         default=100,
         help="Number of inputs per test case.",
     )
     parser_fuzz.add_argument(
-        '-w', '--working-directory',
+        '-w',
+        '--working-directory',
         type=str,
         default='',
     )
     parser_fuzz.add_argument(
-        '-t', '--testcase',
+        '-t',
+        '--testcase',
         type=str,
         default=None,
-        help="Use an existing test case [DEPRECATED - see reproduce]"
-    )
+        help="Use an existing test case [DEPRECATED - see reproduce]")
     parser_fuzz.add_argument(
         '--timeout',
         type=int,
         default=0,
-        help="Run fuzzing with a time limit [seconds]. No timeout when set to zero."
-    )
+        help="Run fuzzing with a time limit [seconds]. No timeout when set to zero.")
     parser_fuzz.add_argument(
-        '--nonstop',
-        action='store_true',
-        help="Don't stop after detecting an unexpected result"
-    )
+        '--nonstop', action='store_true', help="Don't stop after detecting an unexpected result")
 
     # ==============================================================================================
     # Standalone interface to trace analysis
@@ -81,39 +71,28 @@ def main() -> int:
         type=str,
         required=True,
     )
-    parser_analyser.add_argument(
-        "-c", "--config",
-        type=str,
-        required=False
-    )
+    parser_analyser.add_argument("-c", "--config", type=str, required=False)
 
     # ==============================================================================================
     # Reproducing violation
     parser_reproduce = subparsers.add_parser('reproduce')
+    parser_reproduce.add_argument("-s", "--instruction-set", type=str, required=True)
+    parser_reproduce.add_argument("-c", "--config", type=str, required=False)
     parser_reproduce.add_argument(
-        "-s", "--instruction-set",
-        type=str,
-        required=True
-    )
-    parser_reproduce.add_argument(
-        "-c", "--config",
-        type=str,
-        required=False
-    )
-    parser_reproduce.add_argument(
-        '-t', '--testcase',
+        '-t',
+        '--testcase',
         type=str,
         default=None,
         required=True,
         help="Path to the test case",
     )
     parser_reproduce.add_argument(
-        '-i', '--inputs',
+        '-i',
+        '--inputs',
         type=str,
         nargs='*',
         default=None,
-        help="Path to the directory with inputs"
-    )
+        help="Path to the directory with inputs")
     parser_reproduce.add_argument(
         "-n",
         "--num-inputs",
@@ -126,71 +105,63 @@ def main() -> int:
     # Postprocessing interface
     parser_mini = subparsers.add_parser('minimize')
     parser_mini.add_argument(
-        '--infile', '-i',
+        '--infile',
+        '-i',
         type=str,
         required=True,
     )
     parser_mini.add_argument(
-        '--outfile', '-o',
+        '--outfile',
+        '-o',
         type=str,
         required=True,
     )
+    parser_mini.add_argument("-c", "--config", type=str, required=False)
     parser_mini.add_argument(
-        "-c", "--config",
-        type=str,
-        required=False
-    )
-    parser_mini.add_argument(
-        "-n", "--num-inputs",
+        "-n",
+        "--num-inputs",
         type=int,
         default=100,
         help="Number of inputs per test case.",
     )
     parser_mini.add_argument(
-        "-f", "--add-fences",
+        "-f",
+        "--add-fences",
         action='store_true',
         default=False,
         help="Add as many LFENCEs as possible, while preserving the violation.",
     )
-    parser_mini.add_argument(
-        "-s", "--instruction-set",
-        type=str,
-        required=True
-    )
+    parser_mini.add_argument("-s", "--instruction-set", type=str, required=True)
 
     # ==============================================================================================
     # Standalone interface to test case generation
     parser_generator = subparsers.add_parser('generate')
+    parser_generator.add_argument("-s", "--instruction-set", type=str, required=True)
     parser_generator.add_argument(
-        "-s", "--instruction-set",
-        type=str,
-        required=True
-    )
-    parser_generator.add_argument(
-        "-r", "--seed",
+        "-r",
+        "--seed",
         type=int,
         default=0,
         help="Add seed to generate test case.",
     )
     parser_generator.add_argument(
-        "-n", "--num-test-cases",
+        "-n",
+        "--num-test-cases",
         type=int,
         default=5,
         help="Number of test cases.",
     )
     parser_generator.add_argument(
-        "-i", "--num-inputs",
+        "-i",
+        "--num-inputs",
         type=int,
         default=100,
         help="Number of inputs per test case.",
     )
+    parser_generator.add_argument("-c", "--config", type=str, required=False)
     parser_generator.add_argument(
-        "-c", "--config",
-        type=str,
-        required=False
-    )
-    parser_generator.add_argument(
-        '-w', '--working-directory',
+        '-w',
+        '--working-directory',
         type=str,
         default='',
     )
@@ -202,13 +173,10 @@ def main() -> int:
     # ==============================================================================================
     # Loading of ISA specs
     parser_get_isa = subparsers.add_parser('download_spec')
+    parser_get_isa.add_argument("-a", "--architecture", type=str, required=True)
     parser_get_isa.add_argument(
-        "-a", "--architecture",
-        type=str,
-        required=True
-    )
-    parser_get_isa.add_argument(
-        '--outfile', '-o',
+        '--outfile',
+        '-o',
         type=str,
         required=True,
     )
@@ -248,25 +216,23 @@ def main() -> int:
         exit_code = fuzzer.start(1, args.num_inputs, 0, False)
         return exit_code
 
-    # Stand-alone generator
+    # Stand-alone generation
     if args.subparser_name == "generate":
         fuzzer = get_fuzzer(args.instruction_set, args.working_directory, None, "")
-        fuzzer.generate_test_batch(
-            args.seed,
-            args.num_test_cases,
-            args.num_inputs,
-            args.permit_overwrite
-        )
+        fuzzer.generate_test_batch(args.seed, args.num_test_cases, args.num_inputs,
+                                   args.permit_overwrite)
         return 0
 
     # Trace analysis
     if args.subparser_name == 'analyse':
-        fuzzer = Fuzzer.analyse_traces_from_files(args.ctraces, args.htraces)
+        fuzzer = get_fuzzer(args.instruction_set, "", None, "")
+        fuzzer.analyse_traces_from_files(args.ctraces, args.htraces)
         return 0
 
-    # Test case minimisation
+    # Test case minimization
     if args.subparser_name == "minimize":
-        minimizer = get_minimizer(args.instruction_set)
+        fuzzer = get_fuzzer(args.instruction_set, "", args.infile, "")
+        minimizer = get_minimizer(fuzzer, args.instruction_set)
         minimizer.minimize(args.infile, args.outfile, args.num_inputs, args.add_fences)
         return 0
 

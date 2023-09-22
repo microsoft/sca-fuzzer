@@ -7,7 +7,7 @@ SPDX-License-Identifier: MIT
 from subprocess import run
 from typing import List
 
-from ..fuzzer import Fuzzer, ArchitecturalFuzzer
+from ..fuzzer import FuzzerGeneric, ArchitecturalFuzzer
 from ..interfaces import TestCase, Input, InstructionSetAbstract
 from ..util import STAT
 from ..config import CONF
@@ -65,7 +65,7 @@ def check_instruction_list(instruction_set: InstructionSetAbstract):
         assert "mpx" in cpu_flags and "BNDCU" in all_instruction_names
 
 
-class X86Fuzzer(Fuzzer):
+class X86Fuzzer(FuzzerGeneric):
     executor: X86IntelExecutor
 
     def _adjust_config(self, existing_test_case):

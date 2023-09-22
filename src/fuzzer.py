@@ -11,14 +11,14 @@ from typing import Optional, List, Tuple
 import copy
 
 from . import factory
-from .interfaces import CTrace, HTrace, Input, InputTaint, EquivalenceClass, TestCase, Generator, \
-    InputGenerator, Model, Executor, Analyser, Coverage, InputID, Measurement
+from .interfaces import Fuzzer, CTrace, HTrace, Input, InputTaint, EquivalenceClass, TestCase, \
+    Generator, InputGenerator, Model, Executor, Analyser, Coverage, InputID, Measurement
 from .isa_loader import InstructionSet
 from .config import CONF
 from .util import Logger, STAT, TWOS_COMPLEMENT_MASK_64, bit_count, pretty_trace
 
 
-class Fuzzer:
+class FuzzerGeneric(Fuzzer):
     instruction_set: InstructionSet
     existing_test_case: str
     input_paths: List[str]
@@ -414,7 +414,7 @@ class Fuzzer:
         return False
 
 
-class ArchitecturalFuzzer(Fuzzer):
+class ArchitecturalFuzzer(FuzzerGeneric):
     """
     A stripped-down version of the fuzzer that compares the architectural results
     of the model execution vs execution on the CPU

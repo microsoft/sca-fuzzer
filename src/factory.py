@@ -153,8 +153,9 @@ def get_coverage(instruction_set: interfaces.InstructionSetAbstract, executor_: 
                             executor_, model, analyser)
 
 
-def get_minimizer(instruction_set: interfaces.InstructionSetAbstract) -> interfaces.Minimizer:
-    return _get_from_config(MINIMIZERS, CONF.minimizer, "minimizer", instruction_set)
+def get_minimizer(fuzzer: interfaces.Fuzzer,
+                  instruction_set: interfaces.InstructionSetAbstract) -> interfaces.Minimizer:
+    return _get_from_config(MINIMIZERS, CONF.minimizer, "minimizer", fuzzer, instruction_set)
 
 
 def get_downloader(arch: str, extensions: List[str], out_file: str) -> Callable:

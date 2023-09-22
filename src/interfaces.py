@@ -979,9 +979,39 @@ class Analyser(ABC):
         self.coverage = coverage
 
 
+class Fuzzer(ABC):
+    model: Model
+    executor: Executor
+    asm_parser: AsmParser
+    generator: Generator
+    input_gen: InputGenerator
+    analyser: Analyser
+
+    @abstractmethod
+    def initialize_modules(self):
+        pass
+
+    @abstractmethod
+    def filter(self, test_case, inputs):
+        pass
+
+    @abstractmethod
+    def fuzzing_round(self, test_case: TestCase, inputs: List[Input]) -> Optional[EquivalenceClass]:
+        pass
+
+    @abstractmethod
+    def trace_and_boost(self, inputs: List[Input],
+                        nesting: int) -> Tuple[List[CTrace], List[Input]]:
+        pass
+
+    @abstractmethod
+    def priming(self, org_violation: EquivalenceClass, all_inputs: List[Input]) -> bool:
+        pass
+
+
 class Minimizer(ABC):
 
-    def __init__(self, instruction_set_spec: InstructionSetAbstract):
+    def __init__(self, fuzzer: Fuzzer, instruction_set_spec: InstructionSetAbstract):
         pass
 
     @abstractmethod
