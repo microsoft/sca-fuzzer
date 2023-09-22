@@ -132,13 +132,12 @@ class X86TargetDesc(TargetDesc):
         "NX": (63, False),  # No execute: only valid after cpuid check
     }
     macro_ids = {
-        # 0 is reserved for functions
-        # 1 and 2 are reserved for prologue and epilogue
-        "measurement_start": 3,
-        "measurement_end": 4,
-        "vmenter": 5,
-        "vmcall": 6,
-        "select_vm_g0_f2": 7,
+        "function": 0,
+        "measurement_start": 1,
+        "measurement_end": 2,
+        "vmenter": 3,
+        "vmcall": 4,
+        "select_vm_g0_f2": 5,
     }
 
     def __init__(self):

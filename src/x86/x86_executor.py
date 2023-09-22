@@ -65,6 +65,8 @@ class X86Executor(Executor):
         write_to_sysfs_file("1" if CONF.enable_pre_run_flush else "0",
                             "/sys/x86_executor/enable_pre_run_flush")
         write_to_sysfs_file(CONF.executor_mode, "/sys/x86_executor/measurement_mode")
+        write_to_sysfs_file("1" if CONF.fuzzer == "architectural" else "0",
+                            "/sys/x86_executor/enable_dbg_gpr_mode")
 
     def set_quick_and_dirty(self, state: bool):
         write_to_sysfs_file("1" if state else "0", "/sys/x86_executor/enable_quick_and_dirty_mode")
@@ -171,9 +173,16 @@ class X86Executor(Executor):
             f.write((len(actors)).to_bytes(8, byteorder='little'))  # n_actors
             f.write((len(test_case.symbol_table)).to_bytes(8, byteorder='little'))  # n_symbols
 
-            # symbol table
-            for aid, s_offset, s_id in test_case.symbol_table:
-                # print("symbol\n")
+            # symbol table (first functions, then macros, sorted by actor and offset)
+            function_symbols = [s for s in test_case.symbol_table if s[2] == 0]
+            macro_symbols = [s for s in test_case.symbol_table if s[2] != 0]
+            for aid, s_offset, s_id in function_symbols:
+                # print("function", s_id, aid, s_offset)
+                f.write((aid).to_bytes(8, byteorder='little'))
+                f.write((s_offset).to_bytes(8, byteorder='little'))
+                f.write((s_id).to_bytes(8, byteorder='little'))
+            for aid, s_offset, s_id in sorted(macro_symbols, key=lambda s: (s[0], s[1])):
+                # print("macro", s_id, aid, s_offset)
                 f.write((aid).to_bytes(8, byteorder='little'))
                 f.write((s_offset).to_bytes(8, byteorder='little'))
                 f.write((s_id).to_bytes(8, byteorder='little'))
@@ -181,9 +190,9 @@ class X86Executor(Executor):
             # section metadata
             for actor in actors:
                 # print("section\n")
-                f.write((actor.id_) .to_bytes(8, byteorder='little'))
+                f.write((actor.id_).to_bytes(8, byteorder='little'))
                 f.write((actor.elf_section.size).to_bytes(8, byteorder='little'))
-                f.write((0) .to_bytes(8, byteorder='little'))
+                f.write((0).to_bytes(8, byteorder='little'))
 
             # code
             with open(test_case.obj_path, 'rb') as bin_file:
