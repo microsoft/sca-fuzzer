@@ -22,7 +22,7 @@ EXTRA_CFLAGS += -I$(src)/include \
 EXTRA_CFLAGS += -g -DDEBUG
 
 obj-m += $(NAME).o
-$(NAME)-objs += main.o templates.o measurement.o input.o sandbox.o test_case.o fault_handler.o page_table.o
+$(NAME)-objs += main.o measurement.o input.o sandbox.o test_case.o fault_handler.o page_table.o loader.o macro.o
 
 
 KDIR=/lib/modules/$(shell uname -r)/build

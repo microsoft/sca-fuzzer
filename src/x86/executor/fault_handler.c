@@ -12,6 +12,7 @@
 #include "sandbox.h"
 #include "shortcuts.h"
 #include "test_case.h"
+#include "loader.h"
 
 uint32_t handled_faults = 0;        // global
 char *fault_handler = NULL;         // global
@@ -170,11 +171,11 @@ __attribute__((unused)) void default_handler_wrapper(void)
     // since most faults happen within the measurement_code, we additionally store
     // a normalized value of the faulting address
     sandbox->latest_measurement.pfc[2] =
-        sandbox->latest_measurement.pfc[1] - (uint64_t)measurement_code;
+        sandbox->latest_measurement.pfc[1] - (uint64_t)loaded_main_section;
 
     // TODO: make run_experiment exit with an error code upon a n unhandled fault
 
-    PRINT_ERRS("test_case_main", "Test case triggered an unhandled fault\n");
+    PRINT_ERRS("default_handler_wrapper", "Test case triggered an unhandled fault\n");
 
     asm_volatile_intel("ret\n");
 }

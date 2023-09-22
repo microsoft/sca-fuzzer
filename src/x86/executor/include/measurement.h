@@ -10,7 +10,7 @@
 #include <linux/version.h>
 
 #define HTRACE_WIDTH 1
-#define NUM_PFC 5
+#define NUM_PFC      5
 
 typedef struct Measurement
 {
@@ -27,7 +27,6 @@ struct pfc_config
     unsigned int edge;
     unsigned int inv;
 };
-
 
 extern measurement_t *measurements;
 

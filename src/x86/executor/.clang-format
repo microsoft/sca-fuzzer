@@ -1,4 +1,8 @@
 ColumnLimit: 100
 IndentWidth: 4
-BreakBeforeBraces: Allman
+BreakBeforeBraces: Linux
 AllowShortIfStatementsOnASingleLine: false
+AlignConsecutiveMacros:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: false

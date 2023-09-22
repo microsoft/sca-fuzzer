@@ -176,7 +176,7 @@ ssize_t parse_input_buffer(const char *buf, size_t count, bool *finished)
 /// @return The input fragment for input_id of actor_id
 char *get_input_fragment(uint64_t input_id, uint64_t actor_id)
 {
-    CHECK_NONULL_RETURN_NULL(inputs, "get_input_fragment: inputs is NULL");
+    ASSERT_ENULL(inputs != NULL, "get_input_fragment");
     if (actor_id >= n_actors)
     {
         PRINT_ERRS("get_input_fragment", "actor_id (%llu) >= n_actors (%lu)\n", actor_id, n_actors);

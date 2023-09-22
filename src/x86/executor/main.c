@@ -16,11 +16,12 @@
 #include "fault_handler.h"
 #include "hardware.h"
 #include "input.h"
+#include "loader.h"
+#include "macro.h"
 #include "measurement.h"
 #include "page_table.h"
 #include "sandbox.h"
 #include "shortcuts.h"
-#include "template.h"
 #include "test_case.h"
 
 // Version-dependent includes
@@ -55,7 +56,8 @@ uint64_t ssbp_patch_control = SSBP_PATH_DEFAULT;
 uint64_t prefetcher_control = PREFETCHER_DEFAULT;
 uint64_t mpx_control = MPX_DEFAULT; // unused on AMD
 char pre_run_flush = PRE_RUN_FLUSH_DEFAULT;
-char *measurement_template = (char *)&template_l1d_prime_probe;
+measurement_mode_e measurement_mode = MEASUREMENT_MODE_DEFAULT;
+bool dbg_gpr_mode = DBG_GPR_MODE_DEFAULT;
 
 // =================================================================================================
 // Local declarations and definitions
@@ -166,6 +168,13 @@ static ssize_t enable_quick_and_dirty_mode(struct kobject *kobj, struct kobj_att
 static struct kobj_attribute enable_quick_and_dirty_mode_attribute =
     __ATTR(enable_quick_and_dirty_mode, 0666, NULL, enable_quick_and_dirty_mode);
 
+/// Debug GPR mode selector
+///
+static ssize_t enable_dbg_gpr_mode(struct kobject *kobj, struct kobj_attribute *attr,
+                                   const char *buf, size_t count);
+static struct kobj_attribute enable_dbg_gpr_mode_attribute =
+    __ATTR(enable_dbg_gpr_mode, 0666, NULL, enable_dbg_gpr_mode);
+
 /// Debugging interface
 ///
 static ssize_t dbg_dump_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf);
@@ -183,6 +192,7 @@ static struct attribute *sysfs_attributes[] = {
     &enable_pre_run_flush_attribute.attr,
     &measurement_mode_attribute.attr,
     &enable_quick_and_dirty_mode_attribute.attr,
+    &enable_dbg_gpr_mode_attribute.attr,
     &pte_mask_attribute.attr,
     &dbg_dump_attribute.attr,
 #if VENDOR_ID == 1 // Intel
@@ -200,25 +210,12 @@ static ssize_t trace_show(struct kobject *kobj, struct kobj_attribute *attr, cha
     int count = 0;
     int retval = 0;
 
-    if (!measurements)
-    {
-        PRINT_ERRS("trace_show", "Measurements where not initialized\n");
-        return -1;
-    }
-    if (!input_parsing_completed())
-    {
-        PRINT_ERRS("trace_show", "Attempting to start tracing before inputs are ready\n");
-        return -1;
-    }
-    if (!tc_parsing_completed())
-    {
-        PRINT_ERRS("trace_show", "Attempting to start tracing before the test case is ready\n");
-        return -1;
-    }
+    ASSERT(measurements, "trace_show");
+    ASSERT(input_parsing_completed(), "trace_show");
+    ASSERT(tc_parsing_completed(), "trace_show");
 
     // start a new measurement?
-    if (next_measurement_id < 0)
-    {
+    if (next_measurement_id < 0) {
         tracing_error = 1; // this variable is used to detect crashes during test case execution
         int err = trace_test_case();
         tracing_error = 0;
@@ -230,8 +227,7 @@ static ssize_t trace_show(struct kobject *kobj, struct kobj_attribute *attr, cha
     }
 
     // print the results, but make sure we can continue later if we run out of space in buf
-    for (; next_measurement_id >= 0; next_measurement_id--)
-    {
+    for (; next_measurement_id >= 0; next_measurement_id--) {
         // check if the output buffer still has space
         if (count >= (4096 - 128))
             return count; // we will continue in the next call of this function
@@ -261,13 +257,9 @@ static ssize_t test_case_store(struct kobject *kobj, struct kobj_attribute *attr
     ssize_t consumed_bytes = parse_test_case_buffer(buf, count, &finished);
     tc_ready = false;
 
-    if (finished)
-    {
-        // check if memory for measurement code was allocated
-        ASSERT(measurement_code != NULL, "test_case_store");
-
-        loaded_tc_size = load_template(count);
-        ASSERT(loaded_tc_size > 0, "test_case_store");
+    if (finished) {
+        int err = load_test_case();
+        CHECK_ERR("test_case_store");
 
         next_measurement_id = -1;
         tc_ready = true;
@@ -277,11 +269,10 @@ static ssize_t test_case_store(struct kobject *kobj, struct kobj_attribute *attr
 
 static ssize_t test_case_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
-    for (int i = 0; i < loaded_tc_size; i++)
-    {
-        sprintf(&buf[i], "%c", measurement_code[i]);
+    for (int i = 0; i < 0xfff; i++) {
+        sprintf(&buf[i], "%c", loaded_main_section[i]);
     }
-    return loaded_tc_size;
+    return 0xfff;
 }
 
 static ssize_t inputs_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf,
@@ -291,8 +282,7 @@ static ssize_t inputs_store(struct kobject *kobj, struct kobj_attribute *attr, c
     ssize_t consumed_bytes = parse_input_buffer(buf, count, &finished);
     inputs_ready = false;
 
-    if (finished)
-    {
+    if (finished) {
         // prepare sandboxes
         int err = alloc_and_map_sandboxes();
         CHECK_ERR("alloc_and_map_sandboxes");
@@ -330,7 +320,7 @@ static ssize_t print_sandbox_base_show(struct kobject *kobj, struct kobj_attribu
 
 static ssize_t print_code_base_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
-    return sprintf(buf, "%llx\n", (long long unsigned)test_case_main);
+    return sprintf(buf, "%llx\n", (long long unsigned)loaded_main_section);
 }
 
 static ssize_t enable_ssbp_patch_store(struct kobject *kobj, struct kobj_attribute *attr,
@@ -373,26 +363,25 @@ static ssize_t enable_mpx_store(struct kobject *kobj, struct kobj_attribute *att
 static ssize_t measurement_mode_store(struct kobject *kobj, struct kobj_attribute *attr,
                                       const char *buf, size_t count)
 {
-    if (buf[0] == 'F')
-    {
-        measurement_template = (char *)&template_l1d_flush_reload;
-    }
-    else if (buf[0] == 'P')
-    {
+    switch (buf[0]) {
+    case 'P':
         if (buf[1] == '+')
-            measurement_template = (char *)&template_l1d_prime_probe;
+            measurement_mode = PRIME_PROBE;
         else
-            measurement_template = (char *)&template_l1d_prime_probe_partial;
-    }
-    else if (buf[0] == 'E')
-    {
-        measurement_template = (char *)&template_l1d_evict_reload;
-    }
-    else if (buf[0] == 'G')
-    {
-        measurement_template = (char *)&template_gpr;
+            measurement_mode = PARTIAL_PRIME_PROBE;
+        break;
+    case 'F':
+        measurement_mode = FLUSH_RELOAD;
+        break;
+    case 'E':
+        measurement_mode = EVICT_RELOAD;
+        break;
+    default:
+        PRINT_ERRS("measurement_mode_store", "Invalid measurement mode\n");
+        return -1;
     }
 
+    quick_and_dirty_mode = false; // updating the measurement mode resets the Q&D mode
     return count;
 }
 
@@ -402,31 +391,40 @@ static ssize_t enable_quick_and_dirty_mode(struct kobject *kobj, struct kobj_att
 
     unsigned value = 0;
     sscanf(buf, "%u", &value);
-
-    if (value == 1)
-    {
+    if (value == 1 && quick_and_dirty_mode == false) {
         quick_and_dirty_mode = true;
-        if (measurement_template == (char *)&template_l1d_prime_probe)
-        {
-            measurement_template = (char *)&template_l1d_prime_probe_fast;
+        switch (measurement_mode) {
+        case PRIME_PROBE:
+            measurement_mode = FAST_PRIME_PROBE;
+            break;
+        case PARTIAL_PRIME_PROBE:
+            measurement_mode = FAST_PARTIAL_PRIME_PROBE;
+            break;
+        default:
+            break;
         }
-        else if (measurement_template == (char *)&template_l1d_prime_probe_partial)
-        {
-            measurement_template = (char *)&template_l1d_prime_probe_partial_fast;
-        }
-    }
-    else
-    {
+    } else if (value == 0 && quick_and_dirty_mode == true) {
         quick_and_dirty_mode = false;
-        if (measurement_template == (char *)&template_l1d_prime_probe_fast)
-        {
-            measurement_template = (char *)&template_l1d_prime_probe;
-        }
-        else if (measurement_template == (char *)&template_l1d_prime_probe_partial_fast)
-        {
-            measurement_template = (char *)&template_l1d_prime_probe_partial;
+        switch (measurement_mode) {
+        case FAST_PRIME_PROBE:
+            measurement_mode = PRIME_PROBE;
+            break;
+        case FAST_PARTIAL_PRIME_PROBE:
+            measurement_mode = PARTIAL_PRIME_PROBE;
+            break;
+        default:
+            break;
         }
     }
+    return count;
+}
+
+static ssize_t enable_dbg_gpr_mode(struct kobject *kobj, struct kobj_attribute *attr,
+                                   const char *buf, size_t count)
+{
+    unsigned value = 0;
+    sscanf(buf, "%u", &value);
+    dbg_gpr_mode = (value == 0) ? false : true;
     return count;
 }
 
@@ -436,14 +434,12 @@ static ssize_t dbg_dump_show(struct kobject *kobj, struct kobj_attribute *attr, 
 {
     int len = 0;
     len += sprintf(&buf[len], "n_actors: %lu\n", n_actors);
-    len += sprintf(&buf[len], "test_case_main: 0x%llx\n", (uint64_t)test_case_main);
-    len += sprintf(&buf[len], "measurement_code: 0x%llx\n", (uint64_t)measurement_code);
-    len += sprintf(&buf[len], "measurement_template: 0x%llx\n", (uint64_t)measurement_template);
+    len += sprintf(&buf[len], "test_case: 0x%llx\n", (uint64_t)test_case);
+    len += sprintf(&buf[len], "loaded_main_section: 0x%llx\n", (uint64_t)loaded_main_section);
     len += sprintf(&buf[len], "measurements: 0x%llx\n", (uint64_t)measurements);
     len += sprintf(&buf[len], "n_inputs: %lu\n", n_inputs);
     len += sprintf(&buf[len], "inputs: %llx\n", (uint64_t)inputs);
-    if (inputs)
-    {
+    if (inputs) {
         len += sprintf(&buf[len], "inputs->metadata: %llx\n", (uint64_t)inputs->metadata);
         len += sprintf(&buf[len], "inputs->data: %llx\n", (uint64_t)inputs->data);
     }
@@ -487,8 +483,7 @@ static int __init executor_init(void)
 {
     // Check CPU vendor
     struct cpuinfo_x86 *c = &cpu_data(0);
-    if (c->x86_vendor != X86_VENDOR_INTEL && c->x86_vendor != X86_VENDOR_AMD)
-    {
+    if (c->x86_vendor != X86_VENDOR_INTEL && c->x86_vendor != X86_VENDOR_AMD) {
         printk(KERN_ERR "x86_executor: This CPU vendor is not supported\n");
         return -1;
     }
@@ -504,12 +499,13 @@ static int __init executor_init(void)
     err |= init_sandbox();
     err |= init_page_table_manager();
     err |= init_fault_handler();
+    err |= init_macros_manager();
+    err |= init_loader();
     CHECK_ERR("executor_init");
 
     // Create a pseudo file system interface
     kobj_interface = kobject_create_and_add(SYSFS_DIRNAME, kernel_kobj->parent);
-    if (!kobj_interface)
-    {
+    if (!kobj_interface) {
         printk(KERN_ERR "x86_executor: Failed to create a sysfs directory for x86-executor\n");
         return -ENOMEM;
     }
@@ -518,16 +514,14 @@ static int __init executor_init(void)
     // int retval = sysfs_create_group(kobj_interface, &attr_group);
     int i = 0;
     struct attribute *attr;
-    for (attr = sysfs_attributes[i]; !err; i++)
-    {
+    for (attr = sysfs_attributes[i]; !err; i++) {
         attr = sysfs_attributes[i];
         if (attr == NULL)
             break;
 
         err = sysfs_create_file(kobj_interface, attr);
     }
-    if (err != 0)
-    {
+    if (err != 0) {
         printk(KERN_ERR "x86_executor: Failed to create a sysfs group\n");
         kobject_put(kobj_interface);
         return err;
@@ -535,8 +529,7 @@ static int __init executor_init(void)
 
     // Allocate memory for new IDT
     curr_idt_table = kmalloc(sizeof(gate_desc) * 256, GFP_KERNEL);
-    if (!curr_idt_table)
-    {
+    if (!curr_idt_table) {
         printk(KERN_ERR "x86_executor: Could not allocate memory for IDT\n");
         return -ENOMEM;
     }
@@ -546,17 +539,16 @@ static int __init executor_init(void)
 
 static void __exit executor_exit(void)
 {
-    if (tracing_error == 0)
-    {
+    if (tracing_error == 0) {
         free_test_case_manager();
         free_input_parser();
         free_measurements();
         free_sandbox();
         free_page_table_manager();
         free_fault_handler();
-    }
-    else
-    {
+        free_macros_manager();
+        free_loader();
+    } else {
         printk(KERN_ERR "x86_executor: Failed to unload the module due to corrupted state\n");
     }
 
