@@ -6,9 +6,9 @@
 #ifndef _X86_EXECUTOR_FAULT_HANDLING_H_
 #define _X86_EXECUTOR_FAULT_HANDLING_H_
 
+#include <../arch/x86/include/asm/traps.h>
 #include <linux/interrupt.h>
 #include <linux/version.h>
-#include <../arch/x86/include/asm/traps.h>
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0)
 struct idt_data

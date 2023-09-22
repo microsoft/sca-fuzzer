@@ -34,7 +34,7 @@ typedef struct
     input_fragment_t *data;
 } input_batch_t;
 
-#define MAX_INPUTS (1024 * 1024)
+#define MAX_INPUTS        (1024 * 1024)
 #define BATCH_HEADER_SIZE 16 // sizeof(n_actors) + sizeof(n_inputs)
 #define FRAGMENT_SIZE_ALIGNED                                                                      \
     (MAIN_REGION_SIZE + FAULTY_REGION_SIZE + REG_INITIALIZATION_REGION_SIZE_ALIGNED)
@@ -51,4 +51,3 @@ int init_input_manager(void);
 void free_input_parser(void);
 
 #endif // _X86_EXECUTOR_INPUT_H_
-

@@ -4,8 +4,6 @@ INPUT_SIZE=$((4096 * 3))
 
 ZERO64BIT='\x00\x00\x00\x00\x00\x00\x00\x00'
 INPUT_META='\x00\x03\x00\x00\x00\x00\x00\x00'$ZERO64BIT$ZERO64BIT
-TC_HEADER='\x01\x00\x00\x00\x00\x00\x00\x00'$ZERO64BIT
-TC_META='\x01\x00\x00\x00\x00\x00\x00\x00''\x00\x00\x00\x00\x00\x00\x00\x00'$ZERO64BIT
 
 setup() {
     # get the containing directory of this file
@@ -38,21 +36,20 @@ function load_test_case() {
     local asm_file=$2
     local dest_file=$3
 
-    local tmpbin=$(mktemp /tmp/revizor-test.XXXXXX.o)
-    as "$asm_file" -o "$tmpbin"
-    strip --remove-section=.note.gnu.property "$tmpbin"
-    objcopy "$tmpbin" -O binary "$tmpbin"
-
-    printf $TC_HEADER >$dest_file
-    printf $ZERO64BIT"$(hex2bin32 $(stat -c%s $tmpbin))"'\x00\x00\x00\x00'$ZERO64BIT >>$dest_file
-    cat $tmpbin >>$dest_file
+    ${DIR}/asm_to_bin_testcase.py $asm_file $dest_file
 
     if [ $create_only = false ]; then
         cat $dest_file >/sys/x86_executor/test_case
         rm $dest_file
     fi
-    rm $tmpbin
 }
+
+function set_default_config() {
+    echo "0" >/sys/x86_executor/enable_dbg_gpr_mode
+    echo "1" >/sys/x86_executor/enable_ssbp_patch
+    echo "0" >/sys/x86_executor/enable_prefetcher
+}
+
 
 @test "x86 executor: Loading a test case" {
     printf "NOP\n" >tmp.asm
@@ -123,6 +120,7 @@ function load_test_case() {
 }
 
 @test "x86 executor: Hardware tracing with P+P" {
+    set_default_config
     echo "P+P" >/sys/x86_executor/measurement_mode
 
     tmpasm=$(mktemp /tmp/revizor-test.XXXXXX.asm)
@@ -146,6 +144,7 @@ function load_test_case() {
 }
 
 @test "x86 executor: Hardware tracing with F+R" {
+    set_default_config
     echo "F+R" >/sys/x86_executor/measurement_mode
 
     tmpasm=$(mktemp /tmp/revizor-test.XXXXXX.asm)
@@ -169,6 +168,7 @@ function load_test_case() {
 }
 
 @test "x86 executor: Hardware tracing with E+R" {
+    set_default_config
     echo "E+R" >/sys/x86_executor/measurement_mode
 
     tmpasm=$(mktemp /tmp/revizor-test.XXXXXX.asm)
@@ -192,7 +192,8 @@ function load_test_case() {
 }
 
 @test "x86 executor: Hardware tracing with GPR" {
-    echo "GPR" >/sys/x86_executor/measurement_mode
+    set_default_config
+    echo "1" >/sys/x86_executor/enable_dbg_gpr_mode
 
     tmpasm=$(mktemp /tmp/revizor-test.XXXXXX.asm)
     tmpbin=$(mktemp /tmp/revizor-test.XXXXXX.o)
@@ -207,8 +208,7 @@ function load_test_case() {
 }
 
 @test "x86 executor: Noise Level" {
-    echo "1" >/sys/x86_executor/enable_ssbp_patch
-    echo "0" >/sys/x86_executor/enable_prefetcher
+    set_default_config
 
     # execute one dummy run to set Executor into the default config and to load the test case
     nruns=1000
@@ -261,8 +261,7 @@ function load_test_case() {
 }
 
 @test "x86 executor: Noisy stores" {
-    echo "1" >/sys/x86_executor/enable_ssbp_patch
-    echo "0" >/sys/x86_executor/enable_prefetcher
+    set_default_config
 
     # execute one dummy run to set Executor into the default config and to load the test case
     nruns=1000

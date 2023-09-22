@@ -13,6 +13,7 @@
 #include "sandbox.h"
 #include "shortcuts.h"
 #include "test_case.h"
+#include "loader.h"
 
 measurement_t *measurements = NULL; // global
 
@@ -282,7 +283,7 @@ void run_experiment(long rounds)
         idt_set_custom_handlers();
 
         // execute
-        ((void (*)(char *))measurement_code)(&sandbox->main_region[0]);
+        ((void (*)(char *))loaded_main_section)(&sandbox->main_region[0]);
 
         idt_restore();
         faulty_page_pte_restore();
@@ -299,7 +300,7 @@ int trace_test_case(void)
 {
     int err = 0;
     ASSERT(measurements, "trace_test_case");
-    ASSERT(measurement_code, "trace_test_case");
+    ASSERT(loaded_main_section, "trace_test_case");
     ASSERT(inputs, "trace_test_case");
     ASSERT(inputs->metadata, "trace_test_case");
     ASSERT(inputs->data, "trace_test_case");

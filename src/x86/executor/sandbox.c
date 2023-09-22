@@ -91,7 +91,7 @@ int init_sandbox(void)
 
     // make sure the fields of the sandbox are aligned as we expect
     if ((&sandbox->main_region[0] - &sandbox->eviction_region[0]) != EVICT_REGION_OFFSET ||
-        ((char *)&sandbox->stored_rsp - &sandbox->main_region[0]) != RSP_OFFSET ||
+        ((char *)&sandbox->rsp_before_test_case - &sandbox->main_region[0]) != RSP_OFFSET ||
         ((char *)&sandbox->latest_measurement - &sandbox->main_region[0]) != MEASUREMENT_OFFSET ||
         (&sandbox->upper_overflow[0] - &sandbox->main_region[0]) != REG_INIT_OFFSET)
     {

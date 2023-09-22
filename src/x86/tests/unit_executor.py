@@ -10,6 +10,7 @@ from pathlib import Path
 
 from src.x86.x86_executor import X86IntelExecutor
 from src.x86.x86_generator import X86RandomGenerator
+from src.x86.x86_asm_parser import X86AsmParser
 from src.isa_loader import InstructionSet
 from src.interfaces import TestCase, Input
 from src.config import CONF
@@ -35,8 +36,9 @@ class ExecutorTest(unittest.TestCase):
         min_x86_path = test_dir / "min_x86.json"
         instruction_set = InstructionSet(min_x86_path.absolute().as_posix())
         generator = X86RandomGenerator(instruction_set, CONF.program_generator_seed)
+        parser = X86AsmParser(generator)
 
-        cls.tc = generator.load(asm_file.name)
+        cls.tc = parser.parse_file(asm_file.name)
         asm_file.close()
         os.unlink(asm_file.name)
 

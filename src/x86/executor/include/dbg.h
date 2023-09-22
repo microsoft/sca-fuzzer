@@ -8,10 +8,12 @@
 #ifndef _DEBUG_H_
 #define _DEBUG_H_
 
-#define GDB_LOOP \
-    __asm__ __volatile__ (".globl gdb_loop\n" \
-                          "gdb_loop:\n" \
-                          "xchg %bx, %bx\n" \
-                          "jmp gdb_loop\n")
+#include <linux/kernel.h>
+
+#define GDB_LOOP                                                                                   \
+    __asm__ __volatile__(".globl gdb_loop\n"                                                       \
+                         "gdb_loop:\n"                                                             \
+                         "xchg %bx, %bx\n"                                                         \
+                         "jmp gdb_loop\n")
 
 #endif // _DEBUG_H_
