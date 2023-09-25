@@ -214,7 +214,7 @@ class X86AsmParser(AsmParserGeneric):
                      or line[:5] in [".byte", ".long", ".quad"] or line[:6] == '.macro'
                      or line[6:] in [".value", ".2byte", ".4byte", ".8byte"])
 
-        main_function_found = False
+        main_function_label = ""
         enter_found = False
         has_measurement_start = False
         has_measurement_end = False
@@ -234,18 +234,19 @@ class X86AsmParser(AsmParserGeneric):
                         patched.write(line + "\n")
                         continue
                     if ".test_case_exit:" in line:
-                        if not main_function_found:
+                        if not main_function_label:
                             patched.write(".function_0:\n")
+                            main_function_label = ".function_0"
                         if ".data.0_host" not in prev_line or "measurement_end" in prev_line:
                             patched.write(".section .data.0_host\n")
                         patched.write(".test_case_exit:" + "nop" + "\n")
                         continue
 
-                    if line.startswith(".function_"):
-                        main_function_found = True
-                    elif not main_function_found and is_instruction(line):
+                    if line.startswith(".function_") and not main_function_label:
+                        main_function_label = line[:-1]
+                    elif not main_function_label and is_instruction(line):
                         patched.write(".function_0:\n")
-                        main_function_found = True
+                        main_function_label = ".function_0"
 
                     patched.write(line + "\n")
                     prev_line = line
@@ -268,7 +269,7 @@ class X86AsmParser(AsmParserGeneric):
                 with open(patched_asm_file + ".tmp", "w") as patched:
                     for line in f:
                         patched.write(line)
-                        if line.startswith(".function_0:"):
+                        if line.startswith(main_function_label):
                             patched.write(".macro.measurement_start:" + macro_placeholder + "\n")
             os.rename(patched_asm_file + ".tmp", patched_asm_file)
 
