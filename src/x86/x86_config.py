@@ -68,12 +68,28 @@ x86_option_values = {
         # "BASE-SYSRET",      # Not supported: System instructions
         # "BASE-SYSTEM",      # Not supported: System instructions
 
-        # Extensions
+        # SIMD extensions
         "SSE-SSE",
         "SSE-DATAXFER",
         "SSE-MISC",
+        "SSE-LOGICAL_FP",
+        # "SSE-CONVERT",  # require MMX
+        # "SSE-PREFETCH",  # prefetch does not trigger a mem access in unicorn
+        "SSE2-SSE",
         "SSE2-DATAXFER",
         "SSE2-MISC",
+        "SSE2-LOGICAL_FP",
+        "SSE2-LOGICAL",
+        # "SSE2-CONVERT",  # require MMX
+        # "SSE2-MMX",   # require MMX
+        "SSE3-SSE",
+        "SSE3-DATAXFER",
+        # "SSE4-SSE",  # not tested yet
+        "SSE4-LOGICAL",
+        "SSE4a-BITBYTE",
+        "SSE4a-DATAXFER",
+
+        # Misc
         "CLFLUSHOPT-CLFLUSHOPT",
         "CLFSH-MISC",
         "SGX-SGX",
@@ -114,12 +130,18 @@ x86_instruction_blocklist: List[str] = [
     "LFENCE", "MFENCE", "SFENCE", "CLFLUSH", "CLFLUSHOPT",
 
     # - under construction
-    "CMPPS", "CMPSS", "COMISS", "UCOMISS", "DIVPS", "DIVSS", "MULSS", "MULPS", "MAXPS", "MAXSS",
-    "MINPS", "MINSS", "RSQRTPS", "RSQRTSS", "SHUFPS", "SQRTPS", "SQRTSS", "SUBPS", "SUBSS",
-    "UNPCKHPS", "UNPCKLPS", "UNPCKLP", "MOVAPS", "MOVHLPS", "MOVHPS", "MOVLHPS", "MOVLPS",
-    "MOVMSKPS", "MOVNTPS", "MOVSS", "MOVUP", "MOVUPS", "MASKMOVDQU", "MOVAPD", "MOVDQ2Q", "MOVDQA",
-    "MOVDQU", "MOVHPD", "MOVLPD", "MOVMSKPD", "MOVNTDQ", "MOVNTI", "MOVNTPD", "MOVQ2DQ", "MOVSD",
-    "MOVUPD",
+    # -- trigger FPVI (we have neither a contract nor an instrumentation for it yet)
+    "DIVPS", "DIVSS", 'DIVPD', 'DIVSD',
+    "MULSS", "MULPS", 'MULPD', 'MULSD',
+    "RSQRTPS", "RSQRTSS", "SQRTPS", "SQRTSS", 'SQRTPD', 'SQRTSD',
+    'ADDPS', 'ADDSS', 'ADDPD', 'ADDSD',
+    'SUBPS', 'SUBSS', 'SUBPD', 'SUBSD',
+    'ADDSUBPD', 'ADDSUBPS', 'HADDPD', 'HADDPS', 'HSUBPD', 'HSUBPS',
+    # -- crash
+    "CMPPS", "CMPSS", 'CMPPD', 'CMPSD',
+    # -- requires MMX
+    "MOVQ2DQ", 'MOVDQ2Q',
+
 ]  # yapf: disable
 
 # x86 executor internally uses R15, R14, RSP, RBP and, thus, they are excluded
