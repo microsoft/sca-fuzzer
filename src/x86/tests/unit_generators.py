@@ -175,7 +175,8 @@ class X86RandomGeneratorTest(unittest.TestCase):
         instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix())
         generator = X86RandomGenerator(instruction_set, CONF.program_generator_seed)
         parser = X86AsmParser(generator)
-        tc: TestCase = parser.parse_file((test_dir / "asm/asm_multiactor.asm").absolute().as_posix())
+        tc: TestCase = parser.parse_file(
+            (test_dir / "asm/asm_multiactor.asm").absolute().as_posix())
 
         self.assertEqual(len(tc.actors), 2)
         self.assertEqual(tc.actors[0].type_, ActorType.HOST)

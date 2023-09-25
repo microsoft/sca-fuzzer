@@ -791,6 +791,7 @@ class BaseTaintTracker(TaintTrackerInterface):
     unicorn_target_desc: UnicornTargetDesc
     target_desc: TargetDesc
     _registers: List[int]
+    _simd_registers: List[int]
 
     def __init__(self, initial_observations, sandbox_base=0):
         self.initial_observations = initial_observations
@@ -929,6 +930,7 @@ class BaseTaintTracker(TaintTrackerInterface):
         taint = InputTaint()
         tainted_positions = []
         register_start = taint[0].dtype.fields['gpr'][1] // 8
+        simd_start = taint[0].dtype.fields['simd'][1] // 8
 
         for label in self.tainted_labels:
             input_offset = -1  # the location of the label within the Input array
@@ -943,6 +945,11 @@ class BaseTaintTracker(TaintTrackerInterface):
                 if reg in self._registers:
                     input_offset = register_start + \
                         self._registers.index(self.unicorn_target_desc.reg_decode[label])
+                elif reg in self._simd_registers:
+                    input_offset = simd_start + \
+                        self._simd_registers.index(self.unicorn_target_desc.reg_decode[label]) * 2
+                # else:
+                    # print(f"Register {label} is not tracked")
             if input_offset >= 0:
                 tainted_positions.append(input_offset)
 

@@ -10,13 +10,27 @@ input_gen_seed: 1234567
 program_generator_seed: 1234567
 "
 
-ARCH_BASE="
-$BASE
-fuzzer: architectural
-enable_priming: false
-memory_access_zeroed_bits: 0
-inputs_per_class: 1
+BASE_CATEGORIES="
+instruction_categories:
+- BASE-BINARY
+- BASE-BITBYTE
+- BASE-CMOV
+- BASE-COND_BR
+- BASE-CONVERT
+- BASE-DATAXFER
+- BASE-FLAGOP
+- BASE-LOGICAL
+- BASE-MISC
+- BASE-NOP
+- BASE-POP
+- BASE-PUSH
+- BASE-SEMAPHORE
+- BASE-SETCC
+- BASE-STRINGOP
+- BASE-WIDENOP
+"
 
+BASE_AND_SIMD_CATEGORIES="
 instruction_categories:
 - BASE-BINARY
 - BASE-BITBYTE
@@ -41,6 +55,17 @@ instruction_categories:
 - SSE2-MISC
 - CLFLUSHOPT-CLFLUSHOPT
 - CLFSH-MISC
+"
+
+
+ARCH_BASE="
+$BASE
+fuzzer: architectural
+enable_priming: false
+memory_access_zeroed_bits: 0
+inputs_per_class: 1
+
+$BASE_AND_SIMD_CATEGORIES
 "
 
 CT_SEQ="
@@ -327,5 +352,14 @@ EOF
     printf "$LOGGING_OFF" >$tmp_config
     assert_no_violation "$cli_opt generate -s $ISA -c $tmp_config -w $TEST_DIR -n 1 -i 2"
     assert_no_violation "$cli_opt reproduce -s $ISA -c $tmp_config -t $TEST_DIR/tc0/program.asm -i $TEST_DIR/tc0/input*.bin"
+}
+
+@test "Feature: Taint tracking of SIMD registers" {
+    tmp_config=$(mktemp -p $TEST_DIR)
+    printf "$CT_SEQ $BASE_AND_SIMD_CATEGORIES" >$tmp_config
+    run bash -c "$cli_opt fuzz -s $ISA -c $tmp_config -n 10 -i 10"
+    echo "$output"
+    [[ "$output" == *"Effective Cls: 10.0"* ]]
+    rm $tmp_config
 }
 
