@@ -344,7 +344,10 @@ class X86SandboxPass(Pass):
         mem_operands = instr.get_mem_operands()
         implicit_mem_operands = instr.get_implicit_mem_operands()
         mask = self.sandbox_address_mask
-        if "SSE" in instr.category:
+        if "SSE" in instr.category \
+           and "MOVUP" not in instr.name \
+           and "MOVDQU" not in instr.name \
+           and "LDDQU" not in instr.name:
             mask = mask[:-4] + "0" * 4
 
         if mem_operands and not implicit_mem_operands:
