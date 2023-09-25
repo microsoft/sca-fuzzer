@@ -381,3 +381,13 @@ EOF
     rm $tmp_config
 }
 
+@test "Feature: Minimization of test cases" {
+    tmp_config=$(mktemp -p $TEST_DIR)
+    printf "$CT_DEH $LOGGING_OFF \npermitted_faults:\n  - PF-present\n" >$tmp_config
+    $cli_opt minimize -s $ISA -c $tmp_config -n 20 -i $ASM_DIR/minimization-before.asm -o $TEST_DIR/res.asm --simplify --find-sources
+    run diff $TEST_DIR/res.asm $ASM_DIR/minimization-after.asm
+    diff $TEST_DIR/res.asm $ASM_DIR/minimization-after.asm
+    echo "Result:"
+    cat $TEST_DIR/res.asm
+    [ "$status" -eq 0 ]
+}

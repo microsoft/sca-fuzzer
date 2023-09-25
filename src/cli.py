@@ -15,7 +15,7 @@ from .config import CONF
 
 
 def main() -> int:
-    parser = ArgumentParser(description='', add_help=False)
+    parser = ArgumentParser(description='', add_help=True)
     subparsers = parser.add_subparsers(dest='subparser_name')
     subparsers.required = True
 
@@ -125,12 +125,37 @@ def main() -> int:
         help="Number of inputs per test case.",
     )
     parser_mini.add_argument(
+        "--no-minimize",
+        action='store_true',
+        default=False,
+        help="Don't minimize the test case, but apply the other postprocessing passes (if enabled)."
+    )
+    parser_mini.add_argument(
+        "--simplify",
+        action='store_true',
+        default=False,
+        help="Try replacing complex instructions with similar but simpler instructions.")
+    parser_mini.add_argument(
         "-f",
         "--add-fences",
         action='store_true',
         default=False,
         help="Add as many LFENCEs as possible, while preserving the violation.",
     )
+    parser_mini.add_argument(
+        "--find-sources",
+        action='store_true',
+        default=False,
+        help="Scan the test case to find the instructions that trigger speculation\n "
+        "and that cause speculative leakage, and label them as such in the assembly\n "
+        "file comments.",
+    )
+    parser_mini.add_argument(
+        "--find-min-inputs",
+        action='store_true',
+        default=False,
+        help="Find a sequence of inputs with minimal differences that still trigger\n "
+        "the violation.")
     parser_mini.add_argument("-s", "--instruction-set", type=str, required=True)
 
     # ==============================================================================================
@@ -233,7 +258,16 @@ def main() -> int:
     if args.subparser_name == "minimize":
         fuzzer = get_fuzzer(args.instruction_set, "", args.infile, "")
         minimizer = get_minimizer(fuzzer, args.instruction_set)
-        minimizer.minimize(args.infile, args.outfile, args.num_inputs, args.add_fences)
+        minimizer.run(
+            args.infile,
+            args.outfile,
+            args.num_inputs,
+            not args.no_minimize,
+            args.simplify,
+            args.add_fences,
+            args.find_sources,
+            args.find_min_inputs
+        )
         return 0
 
     if args.subparser_name == "download_spec":
