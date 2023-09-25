@@ -73,7 +73,7 @@ make install
 ### 4. Download ISA spec
 
 ```bash
-rvzr download_spec -a x86-64 --extensions BASE SSE SSE2 CLFLUSHOPT CLFSH --outfile base.json
+rvzr download_spec -a x86-64 --extensions ALL_SUPPORTED --outfile base.json
 ```
 
 ### 5. (Optional) System Configuration

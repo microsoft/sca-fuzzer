@@ -314,8 +314,29 @@ class X86Transformer:
                 self.instructions.append(inst)
 
 
+SUPPORTED_EXTENSIONS = [
+    "BASE",
+    "SSE",
+    "SSE2",
+    "SSE3",
+    "SSE4",
+    "SSE4a",
+    "CLFLUSHOPT",
+    "CLFSH",
+    "VTX",
+    "SVM",
+    "MPX",
+    "SSE",
+    "SGX",
+]
+
+
 class Downloader:
+
     def __init__(self, extensions: List[str], out_file: str) -> None:
+        if "ALL_SUPPORTED" in extensions:
+            extensions.extend(SUPPORTED_EXTENSIONS)
+            extensions = list(set(extensions))
         self.extensions = extensions
         self.out_file = out_file
 
