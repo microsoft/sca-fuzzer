@@ -1037,7 +1037,9 @@ class Minimizer(ABC):
         pass
 
     @abstractmethod
-    def minimize(self, test_case_asm: str, outfile: str, num_inputs: int, add_fences: bool):
+    def run(self, test_case_asm: str, outfile: str, num_inputs: int, enable_minimize: bool,
+            enable_simplify: bool, enable_add_fences: bool, enable_find_sources: bool,
+            enable_minimize_inputs: bool):
         pass
 
 
