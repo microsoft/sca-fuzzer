@@ -1552,11 +1552,6 @@ class X86UnicornVspecAllMemoryAssists(X86UnicornVspecAll):
 # Taint tracker
 # ==================================================================================================
 class X86TaintTracker(BaseTaintTracker):
-    # ISA-specific fields
-    _registers = [
-        ucc.UC_X86_REG_RAX, ucc.UC_X86_REG_RBX, ucc.UC_X86_REG_RCX, ucc.UC_X86_REG_RDX,
-        ucc.UC_X86_REG_RSI, ucc.UC_X86_REG_RDI, ucc.UC_X86_REG_EFLAGS
-    ]
 
     def __init__(self, initial_observations, sandbox_base=0):
         super().__init__(initial_observations, sandbox_base=sandbox_base)
@@ -1564,3 +1559,6 @@ class X86TaintTracker(BaseTaintTracker):
         # ISA-specific field setup
         self.target_desc = X86TargetDesc()
         self.unicorn_target_desc = X86UnicornTargetDesc()
+
+        self._registers = self.unicorn_target_desc.registers
+        self._simd_registers = self.unicorn_target_desc.simd128_registers
