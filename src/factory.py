@@ -95,6 +95,11 @@ def get_fuzzer(instruction_set, working_directory, testcase, inputs):
             return x86_fuzzer.X86ArchitecturalFuzzer(instruction_set, working_directory, testcase,
                                                      inputs)
         raise ConfigException("ERROR: unknown value of `instruction_set` configuration option")
+    elif CONF.fuzzer == "archdiff":
+        if CONF.instruction_set == "x86-64":
+            return x86_fuzzer.X86ArchDiffFuzzer(instruction_set, working_directory, testcase,
+                                                inputs)
+        raise ConfigException("ERROR: unknown value of `instruction_set` configuration option")
     elif CONF.fuzzer == "basic":
         if CONF.instruction_set == "x86-64":
             return x86_fuzzer.X86Fuzzer(instruction_set, working_directory, testcase, inputs)

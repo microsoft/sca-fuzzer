@@ -203,6 +203,24 @@ EOF
     assert_no_violation "$cli_opt fuzz -s $ISA -c $tmp_config -n 100 -i 10"
 }
 
+@test "ArchDiff Test: 10 Random Test Cases" {
+    tmp_config=$(mktemp -p $TEST_DIR)
+    cat <<EOF >>$tmp_config
+$BASE
+fuzzer: architectural
+enable_priming: false
+memory_access_zeroed_bits: 0
+inputs_per_class: 1
+
+$BASE_AND_SIMD_CATEGORIES
+program_size: 100
+avg_mem_accesses: 50
+max_bb_per_function: 3
+min_bb_per_function: 3
+EOF
+    assert_no_violation "$cli_opt fuzz -s $ISA -c $tmp_config -n 10 -i 10"
+}
+
 @test "Test Basics: Sequence of direct jumps" {
     assert_no_violation "$cli_opt fuzz -s $ISA -c $CT_SEQ_CONF -t $ASM_DIR/direct_jumps.asm -i 100"
 }
