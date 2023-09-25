@@ -461,5 +461,9 @@ class ArchitecturalFuzzer(FuzzerGeneric):
                 eq_cls.measurements = [Measurement(i, inputs[i], ctraces[i][0], htraces[i][0])]
                 eq_cls.build_htrace_map()
                 return eq_cls
+            elif "dbg_traces" in CONF.logging_modes:
+                print(f"Input #{i}")
+                print(f"Model: {[hex(v) for v in ctraces[i]]}")
+                print(f"CPU:   {[hex(v) for v in htraces[i]]}")
 
         return None
