@@ -10,8 +10,7 @@
 #include <linux/types.h>
 #include <linux/version.h>
 
-typedef enum
-{
+typedef enum {
     PRIME_PROBE,
     PARTIAL_PRIME_PROBE,
     FAST_PRIME_PROBE,

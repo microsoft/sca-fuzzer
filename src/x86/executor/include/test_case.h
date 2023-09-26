@@ -21,33 +21,28 @@ typedef uint64_t section_id_t;
 typedef uint64_t symbol_offset_t;
 typedef uint64_t symbol_id_t;
 
-typedef struct
-{
+typedef struct {
     uint32_t actor_type;
     uint32_t actor_id;
 } actor_id_t;
 
-typedef struct
-{
+typedef struct {
     actor_id_t owner;
     section_size_t size;
     section_metadata_reserved_t reserved;
 } tc_section_metadata_entry_t;
 
-typedef struct
-{
+typedef struct {
     char code[MAX_SECTION_SIZE];
 } tc_section_t;
 
-typedef struct
-{
+typedef struct {
     actor_id_t owner;
     symbol_offset_t offset;
     symbol_id_t id;
 } tc_symbol_entry_t;
 
-typedef struct
-{
+typedef struct {
     size_t symbol_table_size;
     size_t metadata_size;
     size_t sections_size;

@@ -12,22 +12,19 @@ typedef uint64_t input_fragment_size_t;
 typedef uint64_t input_fragment_permissions_field_t;
 typedef uint64_t input_fragment_reserved_field_t;
 
-typedef struct
-{
+typedef struct {
     input_fragment_size_t size;
     input_fragment_permissions_field_t permission;
     input_fragment_reserved_field_t reserved;
 } input_fragment_metadata_entry_t;
 
-typedef struct
-{
+typedef struct {
     char main_region[MAIN_REGION_SIZE];
     char faulty_region[FAULTY_REGION_SIZE];
     char reg_init_region[REG_INITIALIZATION_REGION_SIZE_ALIGNED];
 } input_fragment_t;
 
-typedef struct
-{
+typedef struct {
     size_t metadata_size;
     size_t data_size;
     input_fragment_metadata_entry_t *metadata;

@@ -62,18 +62,13 @@ int faulty_page_prepare(void)
     return 0;
 }
 
-void faulty_page_pte_store(void)
-{
-    orig_pte = faulty_page_ptep->pte;
-}
+void faulty_page_pte_store(void) { orig_pte = faulty_page_ptep->pte; }
 
 void faulty_page_pte_set(void)
 {
     pte_t new_pte = (pte_t){0};
-    if ((faulty_pte_mask_set != 0) || (faulty_pte_mask_clear != 0xffffffffffffffff))
-    {
-        new_pte.pte =
-            ((faulty_page_ptep->pte | faulty_pte_mask_set) & faulty_pte_mask_clear);
+    if ((faulty_pte_mask_set != 0) || (faulty_pte_mask_clear != 0xffffffffffffffff)) {
+        new_pte.pte = ((faulty_page_ptep->pte | faulty_pte_mask_set) & faulty_pte_mask_clear);
         set_pte_at(current->mm, faulty_page_addr, faulty_page_ptep, new_pte);
         // When testing for #PF flushing the faulty page causes a 'soft
         // lookup' kernel error on certain CPUs.
@@ -86,8 +81,7 @@ void faulty_page_pte_set(void)
 void faulty_page_pte_restore(void)
 {
     pte_t new_pte = (pte_t){0};
-    if ((faulty_pte_mask_set != 0) || (faulty_pte_mask_clear != 0xffffffffffffffff))
-    {
+    if ((faulty_pte_mask_set != 0) || (faulty_pte_mask_clear != 0xffffffffffffffff)) {
         new_pte.pte = orig_pte;
         set_pte_at(current->mm, faulty_page_addr, faulty_page_ptep, new_pte);
         _native_page_invalidate();

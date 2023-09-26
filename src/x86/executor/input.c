@@ -64,8 +64,7 @@ static int __batch_input_parsing_start(const char *buf)
 
     // If the number of actors or the number of inputs has increased, we need to re-allocate
     if (new_n_actors > highest_n_actors || new_n_inputs > highest_n_inputs ||
-        !_allocated_metadata || !_allocated_data)
-    {
+        !_allocated_metadata || !_allocated_data) {
         SAFE_FREE(_allocated_metadata);
         SAFE_VFREE(_allocated_data);
         _allocated_metadata = CHECKED_MALLOC(inputs->metadata_size);
@@ -121,29 +120,25 @@ ssize_t parse_input_buffer(const char *buf, size_t count, bool *finished)
             return -1;
 
         _is_receiving_inputs = true;
-    }
-    else if (_cursor < BATCH_HEADER_SIZE + inputs->metadata_size) // Parsing metadata
+    } else if (_cursor < BATCH_HEADER_SIZE + inputs->metadata_size) // Parsing metadata
     {
         size_t metadata_cursor = _cursor - BATCH_HEADER_SIZE;
         size_t end = inputs->metadata_size;
-        for (; metadata_cursor < end && byte_id < count;)
-        {
+        for (; metadata_cursor < end && byte_id < count;) {
             ((char *)inputs->metadata)[metadata_cursor] = buf[byte_id];
             byte_id++;
             metadata_cursor++;
         }
         _cursor = metadata_cursor + BATCH_HEADER_SIZE;
         consumed_bytes = byte_id;
-    }
-    else // Parsing data
+    } else // Parsing data
     {
         // FIXME: this implementation is not optimal performance-wise,
         // because it will copy the unused data between fragment_size and FRAGMENT_SIZE_ALIGNED
         // See Flavien's implementation for a better one.
         size_t data_cursor = _cursor - inputs->metadata_size - BATCH_HEADER_SIZE;
         size_t end = inputs->data_size;
-        for (; data_cursor < end && byte_id < count;)
-        {
+        for (; data_cursor < end && byte_id < count;) {
             ((char *)inputs->data)[data_cursor] = buf[byte_id];
             byte_id++;
             data_cursor++;
@@ -154,8 +149,7 @@ ssize_t parse_input_buffer(const char *buf, size_t count, bool *finished)
 
     // Check whether we are done
     size_t data_end = BATCH_HEADER_SIZE + inputs->metadata_size + inputs->data_size;
-    if (_cursor >= data_end)
-    {
+    if (_cursor >= data_end) {
         _is_receiving_inputs = false;
         *finished = true;
     }
@@ -177,13 +171,10 @@ ssize_t parse_input_buffer(const char *buf, size_t count, bool *finished)
 char *get_input_fragment(uint64_t input_id, uint64_t actor_id)
 {
     ASSERT_ENULL(inputs != NULL, "get_input_fragment");
-    if (actor_id >= n_actors)
-    {
+    if (actor_id >= n_actors) {
         PRINT_ERRS("get_input_fragment", "actor_id (%llu) >= n_actors (%lu)\n", actor_id, n_actors);
         return NULL;
-    }
-    else if (input_id >= n_inputs)
-    {
+    } else if (input_id >= n_inputs) {
         PRINT_ERRS("get_input_fragment", "input_id (%llu) >= n_inputs (%lu)\n", input_id, n_inputs);
         return NULL;
     }
