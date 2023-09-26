@@ -9,14 +9,14 @@
 // clang-format on
 
 #include "fault_handler.h"
+#include "loader.h"
 #include "sandbox.h"
 #include "shortcuts.h"
 #include "test_case.h"
-#include "loader.h"
 
-uint32_t handled_faults = 0;        // global
-char *fault_handler = NULL;         // global
-gate_desc *curr_idt_table;          // global
+uint32_t handled_faults = 0; // global
+char *fault_handler = NULL;  // global
+gate_desc *curr_idt_table;   // global
 
 static char *_default_fault_handler = NULL;
 static gate_desc *orig_idt_table;
@@ -39,8 +39,7 @@ static void idt_setup_from_table(gate_desc *idt, const struct idt_data *t, int s
 {
     gate_desc desc;
 
-    for (; size > 0; t++, size--)
-    {
+    for (; size > 0; t++, size--) {
         unsigned long addr = (unsigned long)t->addr;
 
         desc.offset_low = (u16)addr;
@@ -86,8 +85,7 @@ static void disable_write_protection(void)
 
 static void idt_copy(void)
 {
-    for (int entry = 0; entry < 256; entry++)
-    {
+    for (int entry = 0; entry < 256; entry++) {
         const gate_desc *gate = &orig_idt_table[entry];
         memcpy(&curr_idt_table[entry], gate, sizeof(*gate));
     }
@@ -111,14 +109,10 @@ void idt_set_custom_handlers(void)
 {
     disable_write_protection();
     uint8_t idx = 0;
-    for (idx = 0; idx < 32; idx++)
-    {
-        if (BIT_CHECK(handled_faults, idx))
-        {
+    for (idx = 0; idx < 32; idx++) {
+        if (BIT_CHECK(handled_faults, idx)) {
             set_intr_gate(idx, (void *)fault_handler);
-        }
-        else
-        {
+        } else {
             set_intr_gate(idx, (void *)_default_fault_handler);
         }
     }

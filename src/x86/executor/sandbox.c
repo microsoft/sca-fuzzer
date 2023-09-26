@@ -17,15 +17,13 @@ void write_sandbox(uint64_t *current_input)
     // - sandbox: main and faulty regions
     uint64_t *main_page_values = &current_input[0];
     uint64_t *main_base = (uint64_t *)&sandbox->main_region[0];
-    for (int j = 0; j < MAIN_REGION_SIZE / 8; j += 1)
-    {
+    for (int j = 0; j < MAIN_REGION_SIZE / 8; j += 1) {
         ((uint64_t *)main_base)[j] = main_page_values[j];
     }
 
     uint64_t *faulty_page_values = &current_input[MAIN_REGION_SIZE / 8];
     uint64_t *faulty_base = (uint64_t *)&sandbox->faulty_region[0];
-    for (int j = 0; j < FAULTY_REGION_SIZE / 8; j += 1)
-    {
+    for (int j = 0; j < FAULTY_REGION_SIZE / 8; j += 1) {
         ((uint64_t *)faulty_base)[j] = faulty_page_values[j];
     }
 
@@ -34,8 +32,7 @@ void write_sandbox(uint64_t *current_input)
     uint64_t *register_initialization_base = (uint64_t *)&sandbox->upper_overflow[0];
 
     // - RAX ... RDI
-    for (int j = 0; j < 6; j += 1)
-    {
+    for (int j = 0; j < 6; j += 1) {
         ((uint64_t *)register_initialization_base)[j] = register_values[j];
     }
 
@@ -93,8 +90,7 @@ int init_sandbox(void)
     if ((&sandbox->main_region[0] - &sandbox->eviction_region[0]) != EVICT_REGION_OFFSET ||
         ((char *)&sandbox->rsp_before_test_case - &sandbox->main_region[0]) != RSP_OFFSET ||
         ((char *)&sandbox->latest_measurement - &sandbox->main_region[0]) != MEASUREMENT_OFFSET ||
-        (&sandbox->upper_overflow[0] - &sandbox->main_region[0]) != REG_INIT_OFFSET)
-    {
+        (&sandbox->upper_overflow[0] - &sandbox->main_region[0]) != REG_INIT_OFFSET) {
         printk(KERN_ERR "x86_executor: Sandbox alignment error\n");
         return -1;
     }

@@ -8,12 +8,12 @@
 #include "measurement.h"
 #include "fault_handler.h"
 #include "input.h"
+#include "loader.h"
 #include "main.h"
 #include "page_table.h"
 #include "sandbox.h"
 #include "shortcuts.h"
 #include "test_case.h"
-#include "loader.h"
 
 measurement_t *measurements = NULL; // global
 
@@ -101,8 +101,7 @@ static int cpu_configure(void)
 
     // Ensure SVM is disabled
     unsigned long long int msr_efer = rdmsr64(0xc0000080);
-    if (msr_efer & EFER_SVME)
-    {
+    if (msr_efer & EFER_SVME) {
         printk(KERN_ERR "x86_executor: ERROR: SVME is on. \nThis testing configuration is not "
                         "supported by Revizor yet.");
         return -1;
@@ -143,22 +142,14 @@ static int pfc_write(unsigned int id, char *pfc_code_org, unsigned int usr, unsi
     err |= kstrtoul(umask, 16, &(config.umask));
 
     char *ce;
-    while ((ce = strsep(&pfc_code_p, ".")) != NULL)
-    {
-        if (!strcmp(ce, "Any"))
-        {
+    while ((ce = strsep(&pfc_code_p, ".")) != NULL) {
+        if (!strcmp(ce, "Any")) {
             config.any = 1;
-        }
-        else if (!strcmp(ce, "EDG"))
-        {
+        } else if (!strcmp(ce, "EDG")) {
             config.edge = 1;
-        }
-        else if (!strcmp(ce, "INV"))
-        {
+        } else if (!strcmp(ce, "INV")) {
             config.inv = 1;
-        }
-        else if (!strncmp(ce, "CMSK=", 5))
-        {
+        } else if (!strncmp(ce, "CMSK=", 5)) {
             err |= kstrtoul(ce + 5, 0, &(config.cmask));
         }
     }
@@ -249,20 +240,17 @@ void run_experiment(long rounds)
     if (!quick_and_dirty_mode)
         memset(&sandbox->eviction_region[0], 0, EVICT_REGION_SIZE * sizeof(char));
 
-    for (long i = -uarch_reset_rounds; i < rounds; i++)
-    {
+    for (long i = -uarch_reset_rounds; i < rounds; i++) {
         // ignore "warm-up" runs (i<0)uarch_reset_rounds
         long i_ = (i < 0) ? 0 : i;
         int actor_id = 0; // we don't support multiple actors yet
         uint64_t *current_input = (uint64_t *)get_input_fragment_unsafe(i_, actor_id);
 
         // Zero-initialize the areas surrounding the sandbox
-        if (!quick_and_dirty_mode)
-        {
+        if (!quick_and_dirty_mode) {
             memset(&sandbox->lower_overflow[0], 0, OVERFLOW_REGION_SIZE * sizeof(char));
             // NOTE: memset is not used intentionally! somehow, it messes up with P+P measurements
-            for (int j = 0; j < OVERFLOW_REGION_SIZE / 8; j += 1)
-            {
+            for (int j = 0; j < OVERFLOW_REGION_SIZE / 8; j += 1) {
                 // ((uint64_t *) sandbox->lower_overflow)[j] = 0;
                 ((uint64_t *)sandbox->upper_overflow)[j] = 0;
             }
@@ -318,8 +306,7 @@ int trace_test_case(void)
     CHECK_ERR("faulty_page_prepare");
 
     // Measurement
-    if (n_inputs)
-    {
+    if (n_inputs) {
         run_experiment((long)n_inputs);
     }
 

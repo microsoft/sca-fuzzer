@@ -21,8 +21,7 @@
 
 typedef uint64_t rsp_t;
 
-typedef struct Sandbox
-{
+typedef struct Sandbox {
     char eviction_region[EVICT_REGION_SIZE];   // region used in Prime+Probe for priming
     char lower_overflow[OVERFLOW_REGION_SIZE]; // zero-initialized region for accidental overflows
     char main_region[MAIN_REGION_SIZE];        // first input page. does not cause faults

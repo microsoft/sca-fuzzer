@@ -11,8 +11,7 @@
 #include <linux/version.h>
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0)
-struct idt_data
-{
+struct idt_data {
     unsigned int vector;
     unsigned int segment;
     struct idt_bits bits;

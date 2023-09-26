@@ -8,8 +8,7 @@
 
 #include <linux/types.h>
 
-typedef enum
-{
+typedef enum {
     NONMACRO_FUNCTION = 0,
     MACRO_MEASUREMENT_START = 1,
     MACRO_MEASUREMENT_END = 2,

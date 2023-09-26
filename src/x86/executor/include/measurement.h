@@ -12,14 +12,12 @@
 #define HTRACE_WIDTH 1
 #define NUM_PFC      5
 
-typedef struct Measurement
-{
+typedef struct Measurement {
     uint64_t htrace[HTRACE_WIDTH];
     uint64_t pfc[NUM_PFC];
 } measurement_t;
 
-struct pfc_config
-{
+struct pfc_config {
     unsigned long evt_num;
     unsigned long umask;
     unsigned long cmask;
