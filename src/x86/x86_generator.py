@@ -16,7 +16,7 @@ from elftools.elf.elffile import ELFFile, SymbolTableSection  # type: ignore
 from ..isa_loader import InstructionSet
 from ..interfaces import TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
     ImmediateOperand, AgenOperand, OT, Instruction, BasicBlock, InstructionSpec, \
-    PageTableModifier, MAIN_REGION_SIZE, FAULTY_REGION_SIZE, Function, ActorType, ElfSection, Symbol
+    PageTableModifier, MAIN_AREA_SIZE, FAULTY_AREA_SIZE, Function, ActorType, ElfSection, Symbol
 from ..generator import ConfigurableGenerator, RandomGenerator, Pass, Printer, GeneratorException
 from ..config import CONF
 from .x86_target_desc import X86TargetDesc
@@ -291,7 +291,7 @@ class X86SandboxPass(Pass):
 
     def __init__(self, target_desc: X86TargetDesc):
         super().__init__()
-        input_memory_size = MAIN_REGION_SIZE + FAULTY_REGION_SIZE
+        input_memory_size = MAIN_AREA_SIZE + FAULTY_AREA_SIZE
         mask_size = int(math.log(input_memory_size, 2)) - CONF.memory_access_zeroed_bits
         self.sandbox_address_mask = "0b" + "1" * mask_size + "0" * CONF.memory_access_zeroed_bits
         self.target_desc = target_desc

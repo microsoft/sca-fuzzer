@@ -16,20 +16,20 @@ void write_sandbox(uint64_t *current_input)
     // Initialize the rest of the memory
     // - sandbox: main and faulty regions
     uint64_t *main_page_values = &current_input[0];
-    uint64_t *main_base = (uint64_t *)&sandbox->main_region[0];
-    for (int j = 0; j < MAIN_REGION_SIZE / 8; j += 1) {
+    uint64_t *main_base = (uint64_t *)&sandbox->main_area[0];
+    for (int j = 0; j < MAIN_AREA_SIZE / 8; j += 1) {
         ((uint64_t *)main_base)[j] = main_page_values[j];
     }
 
-    uint64_t *faulty_page_values = &current_input[MAIN_REGION_SIZE / 8];
-    uint64_t *faulty_base = (uint64_t *)&sandbox->faulty_region[0];
-    for (int j = 0; j < FAULTY_REGION_SIZE / 8; j += 1) {
+    uint64_t *faulty_page_values = &current_input[MAIN_AREA_SIZE / 8];
+    uint64_t *faulty_base = (uint64_t *)&sandbox->faulty_area[0];
+    for (int j = 0; j < FAULTY_AREA_SIZE / 8; j += 1) {
         ((uint64_t *)faulty_base)[j] = faulty_page_values[j];
     }
 
     // Initial register values (the registers will be set to these values in template.c)
-    uint64_t *register_values = &current_input[(MAIN_REGION_SIZE + FAULTY_REGION_SIZE) / 8];
-    uint64_t *register_initialization_base = (uint64_t *)&sandbox->upper_overflow[0];
+    uint64_t *register_values = &current_input[(MAIN_AREA_SIZE + FAULTY_AREA_SIZE) / 8];
+    uint64_t *register_initialization_base = (uint64_t *)&sandbox->overflow_pad[0];
 
     // - RAX ... RDI
     for (int j = 0; j < 6; j += 1) {
@@ -87,15 +87,20 @@ int init_sandbox(void)
         sandbox = (sandbox_t *)((unsigned long)_sandbox_unaligned + 0x1000);
 
     // make sure the fields of the sandbox are aligned as we expect
-    if ((&sandbox->main_region[0] - &sandbox->eviction_region[0]) != EVICT_REGION_OFFSET ||
-        ((char *)&sandbox->rsp_before_test_case - &sandbox->main_region[0]) != RSP_OFFSET ||
-        ((char *)&sandbox->latest_measurement - &sandbox->main_region[0]) != MEASUREMENT_OFFSET ||
-        (&sandbox->upper_overflow[0] - &sandbox->main_region[0]) != REG_INIT_OFFSET) {
-        printk(KERN_ERR "x86_executor: Sandbox alignment error\n");
-        return -1;
-    }
+    ASSERT(&sandbox->main_area[0] - &sandbox->underflow_pad[0] == UNDERFLOW_PAD_OFFSET,
+           "init_sandbox");
+    ASSERT(&sandbox->faulty_area[0] - &sandbox->main_area[0] == FAULTY_AREA_OFFSET, "init_sandbox");
+    ASSERT(&sandbox->overflow_pad[0] - &sandbox->main_area[0] == REG_INIT_OFFSET, "init_sandbox");
+    ASSERT(&sandbox->l1d_priming_area[0] - &sandbox->main_area[0] == L1D_PRIMING_OFFSET,
+           "init_sandbox");
+    ASSERT(&sandbox->macro_stack[64] - &sandbox->main_area[0] == MACRO_STACK_TOP_OFFSET,
+           "init_sandbox");
+    ASSERT(((char *)&sandbox->stored_rsp - &sandbox->main_area[0]) == RSP_OFFSET, "init_sandbox");
+    ASSERT(((char *)&sandbox->latest_measurement - &sandbox->main_area[0]) == MEASUREMENT_OFFSET,
+           "init_sandbox");
 
-    stack_base = &(sandbox->main_region[MAIN_REGION_SIZE - 8]);
+    // stack pointer for test cases
+    stack_base = &(sandbox->main_area[MAIN_AREA_SIZE - 8]);
 
     // zero-initialize the sandbox
     memset(sandbox, 0, sizeof(sandbox_t));

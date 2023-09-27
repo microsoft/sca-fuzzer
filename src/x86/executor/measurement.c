@@ -238,7 +238,7 @@ void run_experiment(long rounds)
 
     // Zero-initialize the region of memory used by Prime+Probe
     if (!quick_and_dirty_mode)
-        memset(&sandbox->eviction_region[0], 0, EVICT_REGION_SIZE * sizeof(char));
+        memset(&sandbox->l1d_priming_area[0], 0, L1D_PRIMING_AREA_SIZE * sizeof(char));
 
     for (long i = -uarch_reset_rounds; i < rounds; i++) {
         // ignore "warm-up" runs (i<0)uarch_reset_rounds
@@ -248,11 +248,11 @@ void run_experiment(long rounds)
 
         // Zero-initialize the areas surrounding the sandbox
         if (!quick_and_dirty_mode) {
-            memset(&sandbox->lower_overflow[0], 0, OVERFLOW_REGION_SIZE * sizeof(char));
+            memset(&sandbox->underflow_pad[0], 0, OVERFLOW_PAD_SIZE * sizeof(char));
             // NOTE: memset is not used intentionally! somehow, it messes up with P+P measurements
-            for (int j = 0; j < OVERFLOW_REGION_SIZE / 8; j += 1) {
-                // ((uint64_t *) sandbox->lower_overflow)[j] = 0;
-                ((uint64_t *)sandbox->upper_overflow)[j] = 0;
+            for (int j = 0; j < OVERFLOW_PAD_SIZE / 8; j += 1) {
+                // ((uint64_t *) sandbox->underflow_pad)[j] = 0;
+                ((uint64_t *)sandbox->overflow_pad)[j] = 0;
             }
         }
 
@@ -271,7 +271,7 @@ void run_experiment(long rounds)
         idt_set_custom_handlers();
 
         // execute
-        ((void (*)(char *))loaded_main_section)(&sandbox->main_region[0]);
+        ((void (*)(char *))loaded_main_section)(&sandbox->main_area[0]);
 
         idt_restore();
         faulty_page_pte_restore();

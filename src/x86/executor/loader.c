@@ -276,7 +276,7 @@ static inline void prologue(void)
         // r14 <- input base address (stored in rdi, the first argument of measurement_code)
         "mov r14, rdi\n"
 
-        // rsp_before_test_case <- rsp
+        // stored_rsp <- rsp
         "mov qword ptr [r14 + "xstr(RSP_OFFSET)"], rsp\n"
 
         // clear the rest of the registers
@@ -325,7 +325,7 @@ static inline void epilogue(void)
         "   mov qword ptr [rax + 0x18], 0 \n"
         "2: \n"
 
-        // rsp <- rsp_before_test_case
+        // rsp <- stored_rsp
         "mov rsp, qword ptr [r14 + "xstr(RSP_OFFSET)"]\n"
 
         // restore registers
@@ -355,7 +355,7 @@ static inline void epilogue_dbg_gpr(void)
         "mov qword ptr [r15 + 0x20], rsi\n"
         "mov qword ptr [r15 + 0x28], rdi\n"
 
-        // rsp <- rsp_before_test_case
+        // rsp <- stored_rsp
         "mov rsp, qword ptr [r14 + "xstr(RSP_OFFSET)"]\n"
 
         // restore registers

@@ -55,8 +55,8 @@ pte_t *get_pte(uint64_t address)
 int faulty_page_prepare(void)
 {
     ASSERT(sandbox != NULL, "faulty_page_prepare");
-    ASSERT(sandbox->faulty_region != NULL, "faulty_page_prepare");
-    faulty_page_addr = (unsigned long)&sandbox->faulty_region[0];
+    ASSERT(sandbox->faulty_area != NULL, "faulty_page_prepare");
+    faulty_page_addr = (unsigned long)&sandbox->faulty_area[0];
     faulty_page_ptep = get_pte(faulty_page_addr);
     ASSERT(faulty_page_ptep != NULL, "faulty_page_prepare");
     return 0;

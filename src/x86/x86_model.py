@@ -14,7 +14,7 @@ from unicorn import Uc, UC_MEM_WRITE, UC_ARCH_X86, UC_MODE_64, UC_PROT_READ, UC_
     UC_ERR_WRITE_PROT
 
 from ..interfaces import Input, FlagsOperand, RegisterOperand, MemoryOperand, AgenOperand, \
-    TestCase, MAIN_REGION_SIZE, FAULTY_REGION_SIZE
+    TestCase, MAIN_AREA_SIZE, FAULTY_AREA_SIZE
 from ..model import UnicornModel, UnicornTracer, UnicornSpec, UnicornSeq, UnicornBpas, \
     BaseTaintTracker
 from ..util import UnreachableCode, BLUE, COL_RESET
@@ -66,17 +66,17 @@ class X86UnicornModel(UnicornModel):
         """
         # Set memory:
         # - initialize overflows with zeroes
-        self.emulator.mem_write(self.lower_overflow_base, self.overflow_region_values)
-        self.emulator.mem_write(self.upper_overflow_base, self.overflow_region_values)
+        self.emulator.mem_write(self.underflow_pad_base, self.overflow_pad_values)
+        self.emulator.mem_write(self.overflow_pad_base, self.overflow_pad_values)
 
         # - sandbox pages
-        self.emulator.mem_write(self.main_region, input_[0]['main'].tobytes())
-        self.emulator.mem_write(self.faulty_region, input_[0]['faulty'].tobytes())
+        self.emulator.mem_write(self.main_area, input_[0]['main'].tobytes())
+        self.emulator.mem_write(self.faulty_area, input_[0]['faulty'].tobytes())
 
         # Set values in registers
         regs = self.target_desc.registers
         flags = self.target_desc.flags_register
-        reg_init_address = self.sandbox_base + MAIN_REGION_SIZE + FAULTY_REGION_SIZE
+        reg_init_address = self.sandbox_base + MAIN_AREA_SIZE + FAULTY_AREA_SIZE
 
         # - initialize GPRs
         value: np.uint64
@@ -88,7 +88,7 @@ class X86UnicornModel(UnicornModel):
 
             self.emulator.reg_write(regs[i], value)
 
-            # executor uses the lower bytes of the upper_overflow_region to initialize registers
+            # executor uses the lower bytes of the overflow_pad to initialize registers
             # we need to match it in the model
             self.emulator.mem_write(reg_init_address, value.tobytes())
             reg_init_address += 8
@@ -104,10 +104,10 @@ class X86UnicornModel(UnicornModel):
         # Note: this code is at the end because we need to set the permissions
         #       *after* the memory is initialized
         if self.rw_protect:
-            self.emulator.mem_protect(self.sandbox_base + MAIN_REGION_SIZE, FAULTY_REGION_SIZE,
+            self.emulator.mem_protect(self.sandbox_base + MAIN_AREA_SIZE, FAULTY_AREA_SIZE,
                                       UC_PROT_NONE)
         elif self.write_protect:
-            self.emulator.mem_protect(self.sandbox_base + MAIN_REGION_SIZE, FAULTY_REGION_SIZE,
+            self.emulator.mem_protect(self.sandbox_base + MAIN_AREA_SIZE, FAULTY_AREA_SIZE,
                                       UC_PROT_READ)
 
     def print_state(self, oneline: bool = False):
@@ -115,7 +115,7 @@ class X86UnicornModel(UnicornModel):
         def compressed(val: int):
             if val >= self.sandbox_base and val <= self.sandbox_base + 12288:
                 return f"+0x{val - self.sandbox_base:<15x}"
-            elif val >= self.sandbox_base - self.OVERFLOW_REGION_SIZE and val < self.sandbox_base:
+            elif val >= self.sandbox_base - self.OVERFLOW_PAD_SIZE and val < self.sandbox_base:
                 return f"+0x{val - self.sandbox_base:<15x}"
             else:
                 return f"0x{val:016x}"
@@ -347,7 +347,7 @@ class X86SequentialAssist(X86FaultModelAbstract):
             return 0
 
         # no speculation - simply reset the permissions
-        self.emulator.mem_protect(self.sandbox_base + MAIN_REGION_SIZE, FAULTY_REGION_SIZE)
+        self.emulator.mem_protect(self.sandbox_base + MAIN_AREA_SIZE, FAULTY_AREA_SIZE)
         return self.curr_instruction_addr
 
 
@@ -534,11 +534,11 @@ class X86UnicornNull(X86FaultModelAbstract):
         if model.pending_restore_protection:
             model.pending_restore_protection = False
             if model.rw_protect:
-                model.emulator.mem_protect(model.sandbox_base + MAIN_REGION_SIZE,
-                                           FAULTY_REGION_SIZE, UC_PROT_NONE)
+                model.emulator.mem_protect(model.sandbox_base + MAIN_AREA_SIZE,
+                                           FAULTY_AREA_SIZE, UC_PROT_NONE)
             elif model.write_protect:
-                model.emulator.mem_protect(model.sandbox_base + MAIN_REGION_SIZE,
-                                           FAULTY_REGION_SIZE, UC_PROT_READ)
+                model.emulator.mem_protect(model.sandbox_base + MAIN_AREA_SIZE,
+                                           FAULTY_AREA_SIZE, UC_PROT_READ)
         elif model.pending_re_execution:
             model.pending_re_execution = False
             model.pending_restore_protection = True
@@ -571,11 +571,11 @@ class X86UnicornNull(X86FaultModelAbstract):
 
         # repeat the instruction
         self.pending_re_execution = True
-        self.emulator.mem_protect(self.sandbox_base + MAIN_REGION_SIZE, FAULTY_REGION_SIZE)
+        self.emulator.mem_protect(self.sandbox_base + MAIN_AREA_SIZE, FAULTY_AREA_SIZE)
         return self.curr_instruction_addr
 
     def rollback(self) -> int:
-        self.emulator.mem_protect(self.sandbox_base + MAIN_REGION_SIZE, FAULTY_REGION_SIZE)
+        self.emulator.mem_protect(self.sandbox_base + MAIN_AREA_SIZE, FAULTY_AREA_SIZE)
         return super().rollback()
 
 
@@ -603,7 +603,7 @@ class X86Meltdown(X86FaultModelAbstract):
         self.checkpoint(self.emulator, self.code_end)
 
         # remove protection
-        self.emulator.mem_protect(self.sandbox_base + MAIN_REGION_SIZE, FAULTY_REGION_SIZE)
+        self.emulator.mem_protect(self.sandbox_base + MAIN_AREA_SIZE, FAULTY_AREA_SIZE)
 
         return self.curr_instruction_addr
 
@@ -1292,11 +1292,11 @@ class x86UnicornVspecOpsMemoryFaults(X86UnicornVspecOps):
         if model.pending_restore_protection:
             model.pending_restore_protection = False
             if model.rw_protect:
-                model.emulator.mem_protect(model.sandbox_base + model.MAIN_REGION_SIZE,
-                                           model.FAULTY_REGION_SIZE, UC_PROT_NONE)
+                model.emulator.mem_protect(model.sandbox_base + MAIN_AREA_SIZE,
+                                           FAULTY_AREA_SIZE, UC_PROT_NONE)
             elif model.write_protect:
-                model.emulator.mem_protect(model.sandbox_base + model.MAIN_REGION_SIZE,
-                                           model.FAULTY_REGION_SIZE, UC_PROT_READ)
+                model.emulator.mem_protect(model.sandbox_base + MAIN_AREA_SIZE,
+                                           FAULTY_AREA_SIZE, UC_PROT_READ)
         elif model.pending_re_execution:
             model.pending_re_execution = False
             model.pending_restore_protection = True
@@ -1307,7 +1307,7 @@ class x86UnicornVspecOpsMemoryFaults(X86UnicornVspecOps):
             return 0  # no need for speculation if we're at the end
         elif self.pending_fault_id == UC_ERR_WRITE_PROT and self.write_protect:
             # remove protection
-            self.emulator.mem_protect(self.sandbox_base + MAIN_REGION_SIZE, FAULTY_REGION_SIZE)
+            self.emulator.mem_protect(self.sandbox_base + MAIN_AREA_SIZE, FAULTY_AREA_SIZE)
             self.pending_re_execution = True
             return self.curr_instruction_addr
         else:
@@ -1324,7 +1324,7 @@ class x86UnicornVspecOpsMemoryAssists(x86UnicornVspecOpsMemoryFaults):
         next_instruction = super().rollback()
         if not self.in_speculation:
             # remove protection after the assists has completed
-            self.emulator.mem_protect(self.sandbox_base + MAIN_REGION_SIZE, FAULTY_REGION_SIZE)
+            self.emulator.mem_protect(self.sandbox_base + MAIN_AREA_SIZE, FAULTY_AREA_SIZE)
 
         return next_instruction
 
@@ -1505,11 +1505,11 @@ class X86UnicornVspecAllMemoryFaults(X86UnicornVspecAll):
         if model.pending_restore_protection:
             model.pending_restore_protection = False
             if model.rw_protect:
-                model.emulator.mem_protect(model.sandbox_base + model.MAIN_REGION_SIZE,
-                                           model.FAULTY_REGION_SIZE, UC_PROT_NONE)
+                model.emulator.mem_protect(model.sandbox_base + model.MAIN_AREA_SIZE,
+                                           FAULTY_AREA_SIZE, UC_PROT_NONE)
             elif model.write_protect:
-                model.emulator.mem_protect(model.sandbox_base + model.MAIN_REGION_SIZE,
-                                           model.FAULTY_REGION_SIZE, UC_PROT_READ)
+                model.emulator.mem_protect(model.sandbox_base + model.MAIN_AREA_SIZE,
+                                           FAULTY_AREA_SIZE, UC_PROT_READ)
         elif model.pending_re_execution:
             model.pending_re_execution = False
             model.pending_restore_protection = True
@@ -1521,7 +1521,7 @@ class X86UnicornVspecAllMemoryFaults(X86UnicornVspecAll):
             return 0  # no need for speculation if we're at the end
         elif self.pending_fault_id == UC_ERR_WRITE_PROT and self.write_protect:
             # remove protection
-            self.emulator.mem_protect(self.sandbox_base + MAIN_REGION_SIZE, FAULTY_REGION_SIZE)
+            self.emulator.mem_protect(self.sandbox_base + MAIN_AREA_SIZE, FAULTY_AREA_SIZE)
             self.pending_re_execution = True
             return self.curr_instruction_addr
         else:
@@ -1538,7 +1538,7 @@ class X86UnicornVspecAllMemoryAssists(X86UnicornVspecAll):
         next_instruction = super().rollback()
         if not self.in_speculation:
             # remove protection after the assists has completed
-            self.emulator.mem_protect(self.sandbox_base + MAIN_REGION_SIZE, FAULTY_REGION_SIZE)
+            self.emulator.mem_protect(self.sandbox_base + MAIN_AREA_SIZE, FAULTY_AREA_SIZE)
         return next_instruction
 
     def get_rollback_address(self) -> int:

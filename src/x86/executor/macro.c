@@ -141,13 +141,13 @@ int get_macro_bounds(uint64_t macro_id, uint8_t **start, uint64_t *size)
 void macro_measurement_start_prime(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
-    asm_volatile_intel(""                                                 //
-                       PUSH_ABCDF()                                       //
-                       "lea rax, [r14 - " xstr(EVICT_REGION_OFFSET) "]\n" //
-                       PRIME("rax", "rbx", "rcx", "rdx", "32")            //
-                       READ_PFC_START()                                   //
-                       POP_ABCDF()                                        //
-                       "lfence\n"                                         //
+    asm_volatile_intel(""                                                //
+                       PUSH_ABCDF()                                      //
+                       "lea rax, [r14 - " xstr(L1D_PRIMING_OFFSET) "]\n" //
+                       PRIME("rax", "rbx", "rcx", "rdx", "32")           //
+                       READ_PFC_START()                                  //
+                       POP_ABCDF()                                       //
+                       "lfence\n"                                        //
     );
     asm volatile(".quad " xstr(MACRO_END));
 }
@@ -155,13 +155,13 @@ void macro_measurement_start_prime(void)
 void macro_measurement_start_fast_prime(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
-    asm_volatile_intel(""                                                 //
-                       PUSH_ABCDF()                                       //
-                       "lea rax, [r14 - " xstr(EVICT_REGION_OFFSET) "]\n" //
-                       PRIME("rax", "rbx", "rcx", "rdx", "1")             //
-                       READ_PFC_START()                                   //
-                       POP_ABCDF()                                        //
-                       "lfence\n"                                         //
+    asm_volatile_intel(""                                                //
+                       PUSH_ABCDF()                                      //
+                       "lea rax, [r14 - " xstr(L1D_PRIMING_OFFSET) "]\n" //
+                       PRIME("rax", "rbx", "rcx", "rdx", "1")            //
+                       READ_PFC_START()                                  //
+                       POP_ABCDF()                                       //
+                       "lfence\n"                                        //
     );
     asm volatile(".quad " xstr(MACRO_END));
 }
@@ -169,13 +169,13 @@ void macro_measurement_start_fast_prime(void)
 void macro_measurement_start_partial_prime(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
-    asm_volatile_intel(""                                                 //
-                       PUSH_ABCDF()                                       //
-                       "lea rax, [r14 - " xstr(EVICT_REGION_OFFSET) "]\n" //
-                       PRIME_PARTIAL("rax", "rbx", "rcx", "rdx", "32")    //
-                       READ_PFC_START()                                   //
-                       POP_ABCDF()                                        //
-                       "lfence\n"                                         //
+    asm_volatile_intel(""                                                //
+                       PUSH_ABCDF()                                      //
+                       "lea rax, [r14 - " xstr(L1D_PRIMING_OFFSET) "]\n" //
+                       PRIME_PARTIAL("rax", "rbx", "rcx", "rdx", "32")   //
+                       READ_PFC_START()                                  //
+                       POP_ABCDF()                                       //
+                       "lfence\n"                                        //
     );
     asm volatile(".quad " xstr(MACRO_END));
 }
@@ -183,13 +183,13 @@ void macro_measurement_start_partial_prime(void)
 void macro_measurement_start_fast_partial_prime(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
-    asm_volatile_intel(""                                                 //
-                       PUSH_ABCDF()                                       //
-                       "lea rax, [r14 - " xstr(EVICT_REGION_OFFSET) "]\n" //
-                       PRIME_PARTIAL("rax", "rbx", "rcx", "rdx", "1")     //
-                       READ_PFC_START()                                   //
-                       POP_ABCDF()                                        //
-                       "lfence\n"                                         //
+    asm_volatile_intel(""                                                //
+                       PUSH_ABCDF()                                      //
+                       "lea rax, [r14 - " xstr(L1D_PRIMING_OFFSET) "]\n" //
+                       PRIME_PARTIAL("rax", "rbx", "rcx", "rdx", "1")    //
+                       READ_PFC_START()                                  //
+                       POP_ABCDF()                                       //
+                       "lfence\n"                                        //
     );
     asm volatile(".quad " xstr(MACRO_END));
 }
@@ -197,17 +197,17 @@ void macro_measurement_start_fast_partial_prime(void)
 void macro_measurement_end_probe(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
-    asm_volatile_intel(""                                                 //
-                       PUSH_ABCDF()                                       //
-                       "push r15\n"                                       //
-                       "push r13\n"                                       //
-                       "lfence\n"                                         //
-                       READ_PFC_END()                                     //
-                       "lea r15, [r14 - " xstr(EVICT_REGION_OFFSET) "]\n" //
-                       PROBE("r15", "rbx", "r13", HTRACE_REGISTER)        //
-                       "pop r13\n"                                        //
-                       "pop r15\n"                                        //
-                       POP_ABCDF()                                        //
+    asm_volatile_intel(""                                                //
+                       PUSH_ABCDF()                                      //
+                       "push r15\n"                                      //
+                       "push r13\n"                                      //
+                       "lfence\n"                                        //
+                       READ_PFC_END()                                    //
+                       "lea r15, [r14 - " xstr(L1D_PRIMING_OFFSET) "]\n" //
+                       PROBE("r15", "rbx", "r13", HTRACE_REGISTER)       //
+                       "pop r13\n"                                       //
+                       "pop r15\n"                                       //
+                       POP_ABCDF()                                       //
     );
     asm volatile(".quad " xstr(MACRO_END));
 }

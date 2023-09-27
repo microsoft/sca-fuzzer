@@ -18,7 +18,7 @@ from unicorn import Uc, UcError, UC_MEM_WRITE, UC_MEM_READ, UC_SECOND_SCALE, UC_
 from .interfaces import CTrace, TestCase, Model, InputTaint, Instruction, ExecutionTrace, \
     TracedInstruction, TracedMemAccess, Input, Tracer, \
     RegisterOperand, FlagsOperand, MemoryOperand, TaintTrackerInterface, TargetDesc, \
-    MAIN_REGION_SIZE, FAULTY_REGION_SIZE
+    MAIN_AREA_SIZE, FAULTY_AREA_SIZE
 from .config import CONF
 from .util import Logger, NotSupportedException
 
@@ -59,7 +59,7 @@ class UnicornTracer(Tracer):
         for val in self.trace:
             if model.code_start <= val and val < (model.code_start + 0x1000):
                 normalized_trace.append(val - model.code_start)
-            elif model.lower_overflow_base < val and val < (model.upper_overflow_base + 0x1000):
+            elif model.underflow_pad_base < val and val < (model.overflow_pad_base + 0x1000):
                 normalized_trace.append(val - model.sandbox_base)
             else:
                 normalized_trace.append(val)
@@ -119,7 +119,7 @@ class UnicornModel(Model, ABC):
     LOG: Logger
 
     CODE_SIZE = 4096 * 10
-    OVERFLOW_REGION_SIZE = 4096
+    OVERFLOW_PAD_SIZE = 4096
 
     emulator: Uc
     target_desc: UnicornTargetDesc
@@ -130,8 +130,8 @@ class UnicornModel(Model, ABC):
     test_case: TestCase
     current_instruction: Instruction
     code_end: int
-    main_region: int
-    faulty_region: int
+    main_area: int
+    faulty_area: int
     nesting: int = 0
     in_speculation: bool = False
     speculation_window: int = 0
@@ -163,13 +163,13 @@ class UnicornModel(Model, ABC):
         self.code_start = code_start
         self.sandbox_base = sandbox_base
 
-        self.lower_overflow_base = self.sandbox_base - self.OVERFLOW_REGION_SIZE
-        self.upper_overflow_base = self.sandbox_base + MAIN_REGION_SIZE + FAULTY_REGION_SIZE
-        self.main_region = self.sandbox_base
-        self.faulty_region = self.main_region + MAIN_REGION_SIZE
-        self.stack_base = self.main_region + MAIN_REGION_SIZE - 8
+        self.underflow_pad_base = self.sandbox_base - self.OVERFLOW_PAD_SIZE
+        self.overflow_pad_base = self.sandbox_base + MAIN_AREA_SIZE + FAULTY_AREA_SIZE
+        self.main_area = self.sandbox_base
+        self.faulty_area = self.main_area + MAIN_AREA_SIZE
+        self.stack_base = self.main_area + MAIN_AREA_SIZE - 8
 
-        self.overflow_region_values = bytes(self.OVERFLOW_REGION_SIZE)
+        self.overflow_pad_values = bytes(self.OVERFLOW_PAD_SIZE)
 
         # taint tracking
         if CONF.contract_observation_clause == 'ctr' or CONF.contract_observation_clause == 'arch':
@@ -228,8 +228,8 @@ class UnicornModel(Model, ABC):
         try:
             # allocate memory
             emulator.mem_map(self.code_start, self.CODE_SIZE)
-            sandbox_size = self.OVERFLOW_REGION_SIZE * 2 + MAIN_REGION_SIZE + FAULTY_REGION_SIZE
-            emulator.mem_map(self.sandbox_base - self.OVERFLOW_REGION_SIZE, sandbox_size)
+            sandbox_size = self.OVERFLOW_PAD_SIZE * 2 + MAIN_AREA_SIZE + FAULTY_AREA_SIZE
+            emulator.mem_map(self.sandbox_base - self.OVERFLOW_PAD_SIZE, sandbox_size)
 
             # write machine code to be emulated to memory
             emulator.mem_write(self.code_start, code)
@@ -339,7 +339,7 @@ class UnicornModel(Model, ABC):
         for val in trace:
             if self.code_start <= val and val < self.code_start + 0x1000:
                 normalized_trace.append(f"pc:0x{val - self.code_start:x}")
-            elif self.lower_overflow_base < val and val < (self.upper_overflow_base + 0x1000):
+            elif self.underflow_pad_base < val and val < (self.overflow_pad_base + 0x1000):
                 normalized_trace.append(f"mem:0x{val - self.sandbox_base:x}")
             else:
                 normalized_trace.append(f"val:{val}")
@@ -949,7 +949,7 @@ class BaseTaintTracker(TaintTrackerInterface):
                     input_offset = simd_start + \
                         self._simd_registers.index(self.unicorn_target_desc.reg_decode[label]) * 2
                 # else:
-                    # print(f"Register {label} is not tracked")
+                # print(f"Register {label} is not tracked")
             if input_offset >= 0:
                 tainted_positions.append(input_offset)
 

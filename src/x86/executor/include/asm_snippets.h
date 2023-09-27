@@ -340,40 +340,5 @@
 #define RELOAD(BASE, OFFSET, TMP, DEST) RELOAD_AMD(BASE, OFFSET, TMP, DEST)
 #endif
 
-// =================================================================================================
-// GPR Tracing
-// =================================================================================================
-#define GPR_TRACING_START(BASE, OFFSET) ""  // dummy macro
-
-#define GPR_TRACING_END(BASE, OFFSET, TMP, DEST) \
-    "" // tbd
-    // implement this:
-    //
-    // // Read GPR values
-    // asm_volatile_intel(
-    //     // r15 <- &latest_measurement
-    //     "lea r15, [r14 + "xstr(MEASUREMENT_OFFSET)"]\n"
-    //     "mov qword ptr [r15], rax \n"
-    //     "mov qword ptr [r15 + 8], rbx \n"
-    //     "mov qword ptr [r15 + 16], rcx \n"
-    //     "mov qword ptr [r15 + 24], rdx \n"
-    //     "mov qword ptr [r15 + 32], rsi \n"
-    //     "mov qword ptr [r15 + 40], rdi \n"
-
-    //     // rsp <- rsp_before_test_case
-    //     "mov rsp, qword ptr [r14 + "xstr(RSP_OFFSET)"]\n"
-
-    //     // restore registers
-    //     "popfq\n"
-    //     "pop r15\n"
-    //     "pop r14\n"
-    //     "pop r13\n"
-    //     "pop r12\n"
-    //     "pop r11\n"
-    //     "pop r10\n"
-    //     "pop rbp\n"
-    //     "pop rbx\n"
-    // );
-
 // clang-format on
 #endif // _MACRO_PRIMITIVES_H_

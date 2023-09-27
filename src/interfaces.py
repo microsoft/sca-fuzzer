@@ -570,12 +570,12 @@ class PageTableModifier(NamedTuple):
 # ==================================================================================================
 
 # Constants defining the input layout
-MAIN_REGION_SIZE = 4096
-FAULTY_REGION_SIZE = 4096
+MAIN_AREA_SIZE = 4096
+FAULTY_AREA_SIZE = 4096
 REGISTER_REGION_SIZE = 4096
 GPR_SUBREGION_SIZE = 64
 SIMD_SUBREGION_SIZE = 256
-DATA_SIZE = MAIN_REGION_SIZE + FAULTY_REGION_SIZE + GPR_SUBREGION_SIZE + SIMD_SUBREGION_SIZE
+DATA_SIZE = MAIN_AREA_SIZE + FAULTY_AREA_SIZE + GPR_SUBREGION_SIZE + SIMD_SUBREGION_SIZE
 
 # InputFragment data type represents the input for a single actor. It is a fixed-size array of
 # 64-bit unsigned integers, structured into 2 sub-arrays representing memory (`main` and `faulty`),
@@ -586,8 +586,8 @@ DATA_SIZE = MAIN_REGION_SIZE + FAULTY_REGION_SIZE + GPR_SUBREGION_SIZE + SIMD_SU
 # Ordering of SIMD registers: YMM0, YMM1, ..., YMM7
 InputFragment = np.dtype(
     [
-        ('main', np.uint64, MAIN_REGION_SIZE // 8),
-        ('faulty', np.uint64, FAULTY_REGION_SIZE // 8),
+        ('main', np.uint64, MAIN_AREA_SIZE // 8),
+        ('faulty', np.uint64, FAULTY_AREA_SIZE // 8),
         ('gpr', np.uint64, GPR_SUBREGION_SIZE // 8),
         ('simd', np.uint64, SIMD_SUBREGION_SIZE // 8),
         ('padding', np.uint64, (4096 - GPR_SUBREGION_SIZE - SIMD_SUBREGION_SIZE) // 8),
@@ -932,8 +932,8 @@ class Model(ABC):
     coverage: Optional[Coverage] = None
     sandbox_base: int = 0
     code_start: int = 0
-    lower_overflow_base: int = 0
-    upper_overflow_base: int = 0
+    underflow_pad_base: int = 0
+    overflow_pad_base: int = 0
     tracer: Tracer
 
     @abstractmethod
