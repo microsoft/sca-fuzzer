@@ -19,9 +19,9 @@ typedef struct {
 } input_fragment_metadata_entry_t;
 
 typedef struct {
-    char main_region[MAIN_REGION_SIZE];
-    char faulty_region[FAULTY_REGION_SIZE];
-    char reg_init_region[REG_INITIALIZATION_REGION_SIZE_ALIGNED];
+    char main_area[MAIN_AREA_SIZE];
+    char faulty_area[FAULTY_AREA_SIZE];
+    char reg_init_region[REG_INIT_AREA_SIZE_ALIGNED];
 } input_fragment_t;
 
 typedef struct {
@@ -34,7 +34,7 @@ typedef struct {
 #define MAX_INPUTS        (1024 * 1024)
 #define BATCH_HEADER_SIZE 16 // sizeof(n_actors) + sizeof(n_inputs)
 #define FRAGMENT_SIZE_ALIGNED                                                                      \
-    (MAIN_REGION_SIZE + FAULTY_REGION_SIZE + REG_INITIALIZATION_REGION_SIZE_ALIGNED)
+    (MAIN_AREA_SIZE + FAULTY_AREA_SIZE + REG_INIT_AREA_SIZE_ALIGNED)
 
 extern input_batch_t *inputs;
 extern size_t n_inputs;

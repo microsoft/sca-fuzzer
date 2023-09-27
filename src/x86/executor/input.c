@@ -97,8 +97,8 @@ static int __batch_input_parsing_start(const char *buf)
 ///     |-------------------------------------|
 ///     | input:                              | DATA
 ///     |   input_fragment_t:                 |
-///     |     - main_region (char *)          |
-///     |     - faulty_region (char *)        |
+///     |     - main_area (char *)            |
+///     |     - faulty_area (char *)          |
 ///     |     - reg_init_region (char *)      |
 ///     |   x n_actors                        |
 ///     | x n_inputs                          |
@@ -179,7 +179,7 @@ char *get_input_fragment(uint64_t input_id, uint64_t actor_id)
         return NULL;
     }
 
-    return inputs->data[actor_id * n_inputs + input_id].main_region;
+    return inputs->data[actor_id * n_inputs + input_id].main_area;
 }
 
 /// @brief Unsafe version of get_input_fragment
@@ -188,7 +188,7 @@ char *get_input_fragment(uint64_t input_id, uint64_t actor_id)
 /// @return
 char *get_input_fragment_unsafe(uint64_t input_id, uint64_t actor_id)
 {
-    return inputs->data[actor_id * n_inputs + input_id].main_region;
+    return inputs->data[actor_id * n_inputs + input_id].main_area;
 }
 
 /// Getter for _is_receiving_inputs
