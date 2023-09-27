@@ -143,7 +143,7 @@ void macro_measurement_start_prime(void)
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                                                //
                        PUSH_ABCDF()                                      //
-                       "lea rax, [r14 - " xstr(L1D_PRIMING_OFFSET) "]\n" //
+                       "lea rax, [r14 + " xstr(L1D_PRIMING_OFFSET) "]\n" //
                        PRIME("rax", "rbx", "rcx", "rdx", "32")           //
                        READ_PFC_START()                                  //
                        POP_ABCDF()                                       //
@@ -157,7 +157,7 @@ void macro_measurement_start_fast_prime(void)
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                                                //
                        PUSH_ABCDF()                                      //
-                       "lea rax, [r14 - " xstr(L1D_PRIMING_OFFSET) "]\n" //
+                       "lea rax, [r14 + " xstr(L1D_PRIMING_OFFSET) "]\n" //
                        PRIME("rax", "rbx", "rcx", "rdx", "1")            //
                        READ_PFC_START()                                  //
                        POP_ABCDF()                                       //
@@ -171,7 +171,7 @@ void macro_measurement_start_partial_prime(void)
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                                                //
                        PUSH_ABCDF()                                      //
-                       "lea rax, [r14 - " xstr(L1D_PRIMING_OFFSET) "]\n" //
+                       "lea rax, [r14 + " xstr(L1D_PRIMING_OFFSET) "]\n" //
                        PRIME_PARTIAL("rax", "rbx", "rcx", "rdx", "32")   //
                        READ_PFC_START()                                  //
                        POP_ABCDF()                                       //
@@ -185,7 +185,7 @@ void macro_measurement_start_fast_partial_prime(void)
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                                                //
                        PUSH_ABCDF()                                      //
-                       "lea rax, [r14 - " xstr(L1D_PRIMING_OFFSET) "]\n" //
+                       "lea rax, [r14 + " xstr(L1D_PRIMING_OFFSET) "]\n" //
                        PRIME_PARTIAL("rax", "rbx", "rcx", "rdx", "1")    //
                        READ_PFC_START()                                  //
                        POP_ABCDF()                                       //
@@ -203,7 +203,7 @@ void macro_measurement_end_probe(void)
                        "push r13\n"                                      //
                        "lfence\n"                                        //
                        READ_PFC_END()                                    //
-                       "lea r15, [r14 - " xstr(L1D_PRIMING_OFFSET) "]\n" //
+                       "lea r15, [r14 + " xstr(L1D_PRIMING_OFFSET) "]\n" //
                        PROBE("r15", "rbx", "r13", HTRACE_REGISTER)       //
                        "pop r13\n"                                       //
                        "pop r15\n"                                       //
