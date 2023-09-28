@@ -18,6 +18,7 @@
 measurement_t *measurements = NULL; // global
 
 static int pfc_write(unsigned int id, char *pfc_code_org, unsigned int usr, unsigned int os);
+int unsafe_bubble(void);
 
 // =================================================================================================
 // Performance counters and MSRs
@@ -215,27 +216,8 @@ static inline int uarch_flush(void)
     return 0;
 }
 
-static inline void store_latest_result(int input_id)
+int run_experiment(long rounds)
 {
-    measurement_t result = sandbox->latest_measurement;
-    // printk(KERN_ERR "x86_executor: measurement %llu\n", result.htrace[0]);
-    measurements[input_id].htrace[0] = result.htrace[0];
-    measurements[input_id].pfc[0] = result.pfc[0];
-    measurements[input_id].pfc[1] = result.pfc[1];
-    measurements[input_id].pfc[2] = result.pfc[2];
-    measurements[input_id].pfc[3] = result.pfc[3];
-    measurements[input_id].pfc[4] = result.pfc[4];
-}
-
-void run_experiment(long rounds)
-{
-    unsigned long flags;
-
-    // ensure that we have an isolated environment
-    get_cpu();
-    raw_local_irq_save(flags);
-    idt_store();
-
     // Zero-initialize the region of memory used by Prime+Probe
     if (!quick_and_dirty_mode)
         memset(&sandbox->l1d_priming_area[0], 0, L1D_PRIMING_AREA_SIZE * sizeof(char));
@@ -268,25 +250,93 @@ void run_experiment(long rounds)
         faulty_page_pte_set();
 
         // Catch all exceptions
-        idt_set_custom_handlers();
+        set_test_case_idt();
 
         // execute
         ((void (*)(char *))loaded_main_section)(&sandbox->main_area[0]);
 
-        idt_restore();
+        unset_test_case_idt();
         faulty_page_pte_restore();
 
-        store_latest_result(i_);
+        // store the measurement
+        // printk(KERN_ERR "x86_executor: measurement %llu\n", result.htrace[0]);
+        measurement_t result = sandbox->latest_measurement;
+        measurements[i_].htrace[0] = result.htrace[0];
+        memcpy(measurements[i_].pfc, result.pfc, sizeof(uint64_t) * NUM_PFC);
     }
-
-    // restore the kernel state
-    raw_local_irq_restore(flags);
-    put_cpu();
+    return 0;
 }
 
+/// @brief A wrapper function that ensures that any bugs in run_experiment that cause an exception
+///        will be handled gracefully and won't crash the system
+/// @param void
+__attribute__((unused)) void unsafe_bubble_wrapper(void)
+{
+    asm volatile(""
+                 ".global unsafe_bubble\n"
+                 "unsafe_bubble:\n"
+                 "push %%rbx\n"
+                 "push %%rcx\n"
+                 "push %%rdx\n"
+                 "push %%rsi\n"
+                 "push %%rdi\n"
+                 "push %%r8\n"
+                 "push %%r9\n"
+                 "push %%r10\n"
+                 "push %%r11\n"
+                 "push %%r12\n"
+                 "push %%r13\n"
+                 "push %%r14\n"
+                 "push %%r15\n"
+                 "push %%rbp\n"
+
+                 "mov %%rsp, %[rsp_save]\n"
+
+                 // CRITICAL: keep enough space for the local variables
+                 "sub $0x1000, %%rsp\n"
+                 "mov %%rsp, %%rbp\n"
+
+                 : [rsp_save] "=m"(pre_bubble_rsp)
+                 :);
+
+    set_bubble_idt();
+    uint64_t err = run_experiment((long)n_inputs);
+    unset_bubble_idt();
+
+    asm volatile(""
+                 "mov %[rsp_save], %%rsp\n"
+                 "pop %%rbp\n"
+                 "pop %%r15\n"
+                 "pop %%r14\n"
+                 "pop %%r13\n"
+                 "pop %%r12\n"
+                 "pop %%r11\n"
+                 "pop %%r10\n"
+                 "pop %%r9\n"
+                 "pop %%r8\n"
+                 "pop %%rdi\n"
+                 "pop %%rsi\n"
+                 "pop %%rdx\n"
+                 "pop %%rcx\n"
+                 "pop %%rbx\n"
+                 "mov %[err], %%rax\n"
+
+                 "ret\n"
+                 : [rsp_save] "=m"(pre_bubble_rsp), [err] "=r"(err)
+                 :);
+    // Unreachable
+    asm volatile("UD2\n");
+}
+
+/// @brief The outermost wrapper for the test case execution. Sets up performance counters,
+///        configures the CPU, disables interrupts, and calls unsafe_bubble
+/// @param void
+/// @return 0 on success, -1 on failure
 int trace_test_case(void)
 {
     int err = 0;
+    unsigned long flags;
+
     ASSERT(measurements, "trace_test_case");
     ASSERT(loaded_main_section, "trace_test_case");
     ASSERT(inputs, "trace_test_case");
@@ -305,16 +355,25 @@ int trace_test_case(void)
     err |= faulty_page_prepare();
     CHECK_ERR("faulty_page_prepare");
 
+    if (err)
+        return err;
+
+    // prevent preemption
+    get_cpu();
+    raw_local_irq_save(flags);
+
     // Measurement
     if (n_inputs) {
-        run_experiment((long)n_inputs);
+        err |= unsafe_bubble();
     }
 
     // Post-measurement cleanup
+    raw_local_irq_restore(flags);
+    put_cpu();
     cpu_restore();
     kernel_fpu_end();
 
-    return 0;
+    return err;
 }
 
 // =================================================================================================

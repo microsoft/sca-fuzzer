@@ -392,8 +392,6 @@ static void main_segment_template(void)
                        ".quad " xstr(TEMPLATE_DEFAULT_EXCEPTION_LANDING) "\n"
                                                                          "1:nop; nop; nop\n");
 
-    // asm(".quad " xstr(TEMPLATE_DEFAULT_EXCEPTION_LANDING));
-
     epilogue();
     asm volatile(".quad " xstr(TEMPLATE_END));
 }
