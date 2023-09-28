@@ -64,8 +64,6 @@ bool dbg_gpr_mode = DBG_GPR_MODE_DEFAULT;
 #define SYSFS_DIRNAME "x86_executor"
 static struct kobject *kobj_interface;
 
-char tracing_error = 0;
-
 unsigned inputs_top = 0;
 bool inputs_ready = false;
 bool tc_ready = false;
@@ -216,11 +214,9 @@ static ssize_t trace_show(struct kobject *kobj, struct kobj_attribute *attr, cha
 
     // start a new measurement?
     if (next_measurement_id < 0) {
-        tracing_error = 1; // this variable is used to detect crashes during test case execution
         int err = trace_test_case();
-        tracing_error = 0;
         if (err)
-            return -1;
+            return -EIO;
 
         // start printing the results
         next_measurement_id = n_inputs - 1;
@@ -447,7 +443,6 @@ static ssize_t dbg_dump_show(struct kobject *kobj, struct kobj_attribute *attr, 
     len += sprintf(&buf[len], "stack_base: %llx\n", (uint64_t)stack_base);
     len += sprintf(&buf[len], "fault_handler: %llx\n", (uint64_t)fault_handler);
     len += sprintf(&buf[len], "handled_faults: %u\n", handled_faults);
-    len += sprintf(&buf[len], "curr_idt_table: %llx\n", (uint64_t)curr_idt_table);
     len += sprintf(&buf[len], "faulty_pte_mask_set: %lu\n", faulty_pte_mask_set);
     len += sprintf(&buf[len], "faulty_pte_mask_clear: %lu\n", faulty_pte_mask_clear);
     len += sprintf(&buf[len], "quick_and_dirty_mode: %d\n", quick_and_dirty_mode);
@@ -527,30 +522,19 @@ static int __init executor_init(void)
         return err;
     }
 
-    // Allocate memory for new IDT
-    curr_idt_table = kmalloc(sizeof(gate_desc) * 256, GFP_KERNEL);
-    if (!curr_idt_table) {
-        printk(KERN_ERR "x86_executor: Could not allocate memory for IDT\n");
-        return -ENOMEM;
-    }
-
     return 0;
 }
 
 static void __exit executor_exit(void)
 {
-    if (tracing_error == 0) {
-        free_test_case_manager();
-        free_input_parser();
-        free_measurements();
-        free_sandbox();
-        free_page_table_manager();
-        free_fault_handler();
-        free_macros_manager();
-        free_loader();
-    } else {
-        printk(KERN_ERR "x86_executor: Failed to unload the module due to corrupted state\n");
-    }
+    free_test_case_manager();
+    free_input_parser();
+    free_measurements();
+    free_sandbox();
+    free_page_table_manager();
+    free_fault_handler();
+    free_macros_manager();
+    free_loader();
 
     if (kobj_interface)
         kobject_put(kobj_interface);

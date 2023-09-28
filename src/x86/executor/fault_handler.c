@@ -1,5 +1,5 @@
 /// File:
-///  - Fault handling
+///  - Fault handling and IDT management
 ///
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
@@ -10,127 +10,102 @@
 
 #include "fault_handler.h"
 #include "loader.h"
+#include "measurement.h"
 #include "sandbox.h"
 #include "shortcuts.h"
 #include "test_case.h"
 
 uint32_t handled_faults = 0; // global
 char *fault_handler = NULL;  // global
-gate_desc *curr_idt_table;   // global
+uint64_t pre_bubble_rsp = 0; // global
 
-static char *_default_fault_handler = NULL;
-static gate_desc *orig_idt_table;
-static struct desc_ptr idtr;
+static gate_desc *bubble_idt = NULL;
+static gate_desc *test_case_idt = NULL;
+
+static struct desc_ptr orig_idtr = {0};
+static struct desc_ptr bubble_idtr = {0};
+static struct desc_ptr test_case_idtr = {0};
+
+void fallback_handler(void);
+void bubble_handler(void);
 
 // =================================================================================================
 // IDT management
 // =================================================================================================
-static void inline local_store_idt(void *dtr)
+static void inline native_sidt(void *dtr)
 {
     asm volatile("sidt %0" : "=m"(*((struct desc_ptr *)dtr)));
 }
 
-static void inline local_load_idt(void *dtr)
+static void inline native_lidt(void *dtr)
 {
     asm volatile("lidt %0" ::"m"(*((struct desc_ptr *)dtr)));
 }
 
-static void idt_setup_from_table(gate_desc *idt, const struct idt_data *t, int size)
+static void set_intr_gate(gate_desc *idt, int interrupt_id, void *handler)
 {
-    gate_desc desc;
-
-    for (; size > 0; t++, size--) {
-        unsigned long addr = (unsigned long)t->addr;
-
-        desc.offset_low = (u16)addr;
-        desc.segment = (u16)t->segment;
-        desc.bits = t->bits;
-        desc.offset_middle = (u16)(addr >> 16);
-#ifdef CONFIG_X86_64
-        desc.offset_high = (u32)(addr >> 32);
-        desc.reserved = 0;
-#endif
-
-        write_idt_entry(idt, t->vector, &desc);
-    }
+    gate_desc desc = {
+        .offset_low = (u16)(unsigned long)handler,
+        .segment = __KERNEL_CS,
+        .bits = (struct idt_bits){.ist = 0, .zero = 0, .type = GATE_INTERRUPT, .dpl = 0, .p = 1},
+        .offset_middle = (u16)((unsigned long)handler >> 16),
+        .offset_high = (u32)((unsigned long)handler >> 32),
+        .reserved = 0,
+    };
+    write_idt_entry(idt, interrupt_id, &desc);
 }
 
-static void set_intr_gate(unsigned int n, const void *addr)
+void idt_set_custom_handlers(gate_desc *idt, struct desc_ptr *idtr, void *main_handler,
+                             void *secondary_handler)
 {
-    struct idt_data data;
-
-    memset(&data, 0, sizeof(data));
-    data.vector = n;
-    data.addr = addr;
-    data.segment = __KERNEL_CS;
-    data.bits.type = GATE_INTERRUPT;
-    data.bits.p = 1;
-
-    idt_setup_from_table(curr_idt_table, &data, 1);
-}
-
-static void enable_write_protection(void)
-{
-    unsigned long cr0 = read_cr0();
-    set_bit(16, &cr0);
-    asm volatile("mov %0,%%cr0" ::"r"(cr0) : "memory");
-}
-
-static void disable_write_protection(void)
-{
-    unsigned long cr0 = read_cr0();
-    clear_bit(16, &cr0);
-    asm volatile("mov %0,%%cr0" ::"r"(cr0) : "memory");
-}
-
-static void idt_copy(void)
-{
-    for (int entry = 0; entry < 256; entry++) {
-        const gate_desc *gate = &orig_idt_table[entry];
-        memcpy(&curr_idt_table[entry], gate, sizeof(*gate));
-    }
-}
-
-void idt_store(void)
-{
-    // save the current state of IDT
-    local_store_idt(&idtr);
-    orig_idt_table = (gate_desc *)idtr.address;
-    idt_copy();
-}
-
-void idt_restore(void)
-{
-    idtr.address = (unsigned long)orig_idt_table;
-    local_load_idt(&idtr);
-}
-
-void idt_set_custom_handlers(void)
-{
-    disable_write_protection();
-    uint8_t idx = 0;
-    for (idx = 0; idx < 32; idx++) {
+    for (uint8_t idx = 0; idx < 255; idx++) {
         if (BIT_CHECK(handled_faults, idx)) {
-            set_intr_gate(idx, (void *)fault_handler);
+            set_intr_gate(idt, idx, main_handler);
         } else {
-            set_intr_gate(idx, (void *)_default_fault_handler);
+            set_intr_gate(idt, idx, secondary_handler);
         }
     }
-    enable_write_protection();
-    idtr.address = (unsigned long)curr_idt_table;
-    local_load_idt(&idtr);
+    idtr->address = (unsigned long)idt;
+    idtr->size = (sizeof(gate_desc) * 256) - 1;
+    native_lidt(idtr);
+}
+
+int set_bubble_idt(void)
+{
+    ASSERT(pre_bubble_rsp != 0, "set_bubble_idt");
+    native_sidt(&orig_idtr); // preserve original IDT
+    idt_set_custom_handlers(bubble_idt, &bubble_idtr, bubble_handler, bubble_handler);
+    return 0;
+}
+
+int unset_bubble_idt(void)
+{
+    native_lidt(&orig_idtr); // restore original IDT
+    return 0;
+}
+
+int set_test_case_idt(void)
+{
+    ASSERT(bubble_idtr.address != 0, "set_test_case_idt");
+    idt_set_custom_handlers(test_case_idt, &test_case_idtr, fault_handler, fallback_handler);
+    return 0;
+}
+
+int unset_test_case_idt(void)
+{
+    idt_set_custom_handlers(bubble_idt, &bubble_idtr, bubble_handler, bubble_handler);
+    return 0;
 }
 
 // =================================================================================================
 // Handlers
 // =================================================================================================
-
-__attribute__((unused)) void default_handler_wrapper(void)
+__attribute__((unused)) void fallback_handler_wrapper(void)
 {
     // clang-format off
     asm_volatile_intel(
-        ".global default_handler\n"
-        "default_handler:\n"
+        ".global fallback_handler\n"
+        "fallback_handler:\n"
 
         // rax <- &latest_measurement
         "lea rax, [r14 + "xstr(MEASUREMENT_OFFSET)"]\n"
@@ -169,9 +144,67 @@ __attribute__((unused)) void default_handler_wrapper(void)
 
     // TODO: make run_experiment exit with an error code upon a n unhandled fault
 
-    PRINT_ERRS("default_handler_wrapper", "Test case triggered an unhandled fault\n");
+    PRINT_ERRS("fallback_handler_wrapper", "Test case triggered an unhandled fault\n");
 
     asm_volatile_intel("ret\n");
+}
+
+__attribute__((unused)) void bubble_handler_wrapper(void)
+{
+    static uint64_t fault_stack[5] = {0};
+    asm volatile(""
+                 ".global bubble_handler\n"
+                 "bubble_handler:\n"
+                 "nop\n"
+
+                 "pop %%rax\n"
+                 "pop %%rbx\n"
+                 "pop %%rcx\n"
+                 "pop %%rdx\n"
+                 "mov %%rax, %[fault_stack0]\n"
+                 "mov %%rbx, %[fault_stack1]\n"
+                 "mov %%rcx, %[fault_stack2]\n"
+                 "mov %%rdx, %[fault_stack3]\n"
+                 "mov %%rsi, %[fault_stack4]\n"
+                 : [fault_stack0] "=m"(fault_stack[0]), [fault_stack1] "=m"(fault_stack[1]),
+                   [fault_stack2] "=m"(fault_stack[2]), [fault_stack3] "=m"(fault_stack[3]),
+                   [fault_stack4] "=m"(fault_stack[4]));
+
+    PRINT_ERRS("bubble_handler", "run_experiment triggered a fault\n");
+    PRINT_ERR("Fault stack (applies only to exceptions):\n"
+              "  1 [Error]:\t0x%llx\n"
+              "  2 [RIP]:\t0x%llx\n"
+              "    (run_experiment base: 0x%llx, offset: 0x%llx)\n"
+              "  3 [CS]:\t0x%llx\n"
+              "  4 [RFLAGS]:\t0x%llx\n"
+              "  5 [RSP]:\t0x%llx\n",
+              fault_stack[0], fault_stack[1], (uint64_t)run_experiment,
+              (fault_stack[1] - (uint64_t)run_experiment), fault_stack[2], fault_stack[3],
+              fault_stack[4]);
+
+    // the code below MUST match the epilogue of unsafe_bubble in measurement.c
+    unset_bubble_idt();
+    asm volatile(""
+                 "mov %[rsp_save], %%rsp\n"
+                 "pop %%rbp\n"
+                 "pop %%r15\n"
+                 "pop %%r14\n"
+                 "pop %%r13\n"
+                 "pop %%r12\n"
+                 "pop %%r11\n"
+                 "pop %%r10\n"
+                 "pop %%r9\n"
+                 "pop %%r8\n"
+                 "pop %%rdi\n"
+                 "pop %%rsi\n"
+                 "pop %%rdx\n"
+                 "pop %%rcx\n"
+                 "pop %%rbx\n"
+                 "mov $1, %%rax\n"
+
+                 "ret\n"
+                 : [rsp_save] "=m"(pre_bubble_rsp)
+                 :);
 }
 
 // =================================================================================================
@@ -183,12 +216,17 @@ __attribute__((unused)) void default_handler_wrapper(void)
 int init_fault_handler(void)
 {
     handled_faults = HANDLED_FAULTS_DEFAULT;
-    _default_fault_handler = (char *)default_handler;
-    fault_handler = _default_fault_handler;
+    fault_handler = (void *)fallback_handler;
 
+    bubble_idt = CHECKED_ZALLOC(sizeof(gate_desc) * 256);
+    test_case_idt = CHECKED_ZALLOC(sizeof(gate_desc) * 256);
     return 0;
 }
 
 /// Destructor for the measurement module
 ///
-void free_fault_handler(void) {}
+void free_fault_handler(void)
+{
+    SAFE_FREE(bubble_idt);
+    SAFE_FREE(test_case_idt);
+}

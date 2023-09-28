@@ -29,6 +29,7 @@ struct pfc_config {
 extern measurement_t *measurements;
 
 int trace_test_case(void);
+int run_experiment(long n_rounds);
 int alloc_measurements(void);
 int init_measurements(void);
 void free_measurements(void);

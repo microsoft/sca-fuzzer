@@ -25,15 +25,14 @@ struct idt_data {
 
 extern char *fault_handler;
 extern uint32_t handled_faults;
-extern gate_desc *curr_idt_table;
 extern pteval_t faulty_pte_mask_set;
 extern pteval_t faulty_pte_mask_clear;
+extern uint64_t pre_bubble_rsp;
 
-void default_handler(void);
-
-void idt_store(void);
-void idt_restore(void);
-void idt_set_custom_handlers(void);
+int set_bubble_idt(void);
+int unset_bubble_idt(void);
+int set_test_case_idt(void);
+int unset_test_case_idt(void);
 
 int init_fault_handler(void);
 void free_fault_handler(void);
