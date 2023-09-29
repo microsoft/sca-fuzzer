@@ -1,4 +1,8 @@
 NAME = x86_executor
+KDIR=/lib/modules/$(shell uname -r)/build
+
+obj-m += $(NAME).o
+$(NAME)-objs += main.o measurement.o input.o sandbox.o test_case.o fault_handler.o page_table.o loader.o macro.o
 
 ifneq ($(shell grep "Intel" /proc/cpuinfo),)
 	VENDOR_ID=1
@@ -11,8 +15,6 @@ else
 endif
 endif
 
-# ccflags-y +=
-
 EXTRA_CFLAGS += -I$(src)/include \
 	-std=gnu11 -Wno-declaration-after-statement -msse2 \
     -DL1D_ASSOCIATIVITY=$(shell cat /sys/devices/system/cpu/cpu0/cache/index0/ways_of_associativity) \
@@ -21,14 +23,18 @@ EXTRA_CFLAGS += -I$(src)/include \
 
 EXTRA_CFLAGS += -g -DDEBUG
 
-obj-m += $(NAME).o
-$(NAME)-objs += main.o measurement.o input.o sandbox.o test_case.o fault_handler.o page_table.o loader.o macro.o
-
-
-KDIR=/lib/modules/$(shell uname -r)/build
-
+ifdef VMBUILD
+EXTRA_CFLAGS += -DVMBUILD
+endif
 
 all:
+ifeq ($(shell cat /sys/devices/virtual/dmi/id/sys_vendor), QEMU)
+ifndef VMBUILD
+	$(warning WARNING: VM environment detected; it's recommented to use `make VMBUILD=1`)
+else
+	$(eval EXTRA_CFLAGS += -DVMBUILD)
+endif
+endif
 	make -C $(KDIR) M=$(PWD) modules
 
 clean:
