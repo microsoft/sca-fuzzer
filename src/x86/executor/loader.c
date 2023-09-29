@@ -197,7 +197,14 @@ static uint64_t expand_section(uint64_t section_id, uint8_t *dest)
     else
         macros_dest = dest + MAX_EXPANDED_SECTION_SIZE;
 
-    tc_symbol_entry_t *macro = get_section_macros_start(0);
+    tc_symbol_entry_t *macro = get_section_macros_start(section_id);
+    if (macro == NULL) {
+        // no macros to expand; just copy the code
+        memcpy(dest, section, section_size);
+        return section_size;
+    }
+
+    // otherwise, expand the macros
     for (src_cursor = 0; src_cursor < section_size; src_cursor++, dest_cursor++) {
         // PRINT_ERR("macro id: %lu, offset: %lu\n", macro->id, macro->offset);
         // PRINT_ERR("dest_cursor: 0x%lx, src_cursor: %lu, %lx\n", dest_cursor, src_cursor,
