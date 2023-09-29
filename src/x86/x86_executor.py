@@ -166,7 +166,6 @@ class X86Executor(Executor):
 
     def __write_test_case(self, test_case: TestCase):
         actors = sorted(test_case.actors.values(), key=lambda a: (a.id_))
-        assert len(actors) == 1
 
         with open('/sys/x86_executor/test_case', 'wb') as f:
             # header
@@ -207,7 +206,7 @@ class X86Executor(Executor):
     def __write_inputs(self, inputs: List[Input]):
         with open('/sys/x86_executor/inputs', 'wb') as f:
             # header
-            f.write((1).to_bytes(8, byteorder='little'))  # number of actors
+            f.write((len(inputs[0])).to_bytes(8, byteorder='little'))  # number of actors
             f.write((len(inputs)).to_bytes(8, byteorder='little'))  # number of inputs
 
             # metadata

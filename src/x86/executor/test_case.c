@@ -43,8 +43,6 @@ static int __batch_tc_parsing_start(const char *buf)
     // Get the number the number of actors
     uint64_t new_n_actors = ((uint64_t *)buf)[0];
     ASSERT(new_n_actors > 0, "__batch_tc_parsing_start");
-    ASSERT_MSG(new_n_actors == 1, "__batch_tc_parsing_start",
-               "n_actors (%llu) > 1 (not supported)\n", new_n_actors);
     ret += 8;
 
     // Get the number of symbols

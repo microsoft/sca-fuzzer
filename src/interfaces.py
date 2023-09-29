@@ -609,11 +609,10 @@ class Input(np.ndarray):
     seed: int = 0
     data_size: int
 
-    def __init__(self) -> None:
+    def __init__(self, n_actors: int = 1) -> None:
         pass  # unreachable; defined only for type checking
 
-    def __new__(cls):
-        n_actors = 1 + CONF.n_guests  # 1 host + n guests
+    def __new__(cls, n_actors: int = 1):
         obj = super().__new__(cls, (n_actors,), InputFragment, None, 0, None, None)  # type: ignore
         obj.data_size = DATA_SIZE // 8
         return obj
@@ -663,12 +662,12 @@ class InputTaint(Input):
     the input impacts the contract trace.
     """
 
-    def __new__(cls):
-        obj = super().__new__(cls)  # type: ignore
+    def __new__(cls, n_actors: int = 1):
+        obj = super().__new__(cls, n_actors)  # type: ignore
         # obj.fill(0)
         return obj
 
-    def __init__(self) -> None:
+    def __init__(self, n_actors: int = 1) -> None:
         pass  # unreachable; defined only for type checking
 
 
@@ -843,6 +842,7 @@ class Generator(ABC):
 
 class InputGenerator(ABC):
     _state: int = 0
+    n_actors: int = 1
 
     def __init__(self, seed: int):
         self.set_seed(seed)
