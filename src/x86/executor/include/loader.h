@@ -14,7 +14,6 @@
 #define PER_SECTION_ALLOC_SIZE    (MAX_EXPANDED_SECTION_SIZE + MAX_EXPANDED_MACROS_SIZE)
 
 extern uint8_t *loaded_main_section;
-extern size_t loaded_main_section_size;
 
 int load_test_case(void);
 

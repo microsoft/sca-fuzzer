@@ -37,9 +37,14 @@
 
 #define JMP_32BIT_RELATIVE 0xE9
 
-size_t loaded_main_section_size = 0; // global
+typedef struct {
+    uint8_t code[MAX_EXPANDED_SECTION_SIZE];
+    uint8_t macros[MAX_EXPANDED_MACROS_SIZE];
+} __attribute__((packed)) section_t;
+
 uint8_t *loaded_main_section = NULL; // global
 
+static section_t *sections = NULL;
 static size_t main_section_macros_cursor = 0;
 
 static int load_section_main(void);
@@ -47,6 +52,7 @@ static int load_section(int segment_id);
 static tc_symbol_entry_t *get_section_macros_start(uint64_t section_id);
 static uint64_t expand_macro(tc_symbol_entry_t *macro, uint8_t *jmp_location, uint8_t *macro_dest);
 static uint64_t expand_section(uint64_t section_id, uint8_t *dest);
+static int allocate_sections(void);
 
 static inline void prologue(void);
 static inline void epilogue(void);
@@ -59,6 +65,9 @@ static void main_segment_template_dbg_gpr(void);
 int load_test_case(void)
 {
     int err = 0;
+    err = allocate_sections();
+    CHECK_ERR("allocate_sections");
+
     for (int section_id = 0; section_id < n_actors; section_id++) {
         if (section_id == 0)
             err |= load_section_main();
@@ -70,8 +79,10 @@ int load_test_case(void)
 
 static int load_section(int segment_id)
 {
-    // Under construction
-    return -1;
+    int bytes_written = expand_section(segment_id, sections[segment_id].code);
+    if (bytes_written < 0)
+        return -1;
+    return 0;
 }
 
 static int load_section_main(void)
@@ -79,6 +90,7 @@ static int load_section_main(void)
     uint64_t dest_cursor = 0;
     uint64_t main_template_cursor = 0;
     main_section_macros_cursor = 0;
+    ASSERT(loaded_main_section != NULL, "load_test_case");
 
     // reset the code
     memset(&loaded_main_section[0], 0x90, PER_SECTION_ALLOC_SIZE);
@@ -141,9 +153,6 @@ static int load_section_main(void)
             break;
         loaded_main_section[dest_cursor] = template[main_template_cursor];
     }
-
-    // done
-    loaded_main_section_size = dest_cursor;
 
     // sanity check
     ASSERT(dest_cursor < MAX_EXPANDED_SECTION_SIZE, "load_test_case");
@@ -421,24 +430,45 @@ static void main_segment_template_dbg_gpr(void)
 // =================================================================================================
 // Allocation and Initialization
 // =================================================================================================
+static int allocate_sections(void)
+{
+    static int old_n_actors = 0;
+    if (old_n_actors >= n_actors)
+        return 0;
+
+    // release old space for sections
+    if (sections) {
+        set_memory_nx((unsigned long)sections, old_n_actors * sizeof(*sections) / PAGE_SIZE);
+        SAFE_VFREE(sections);
+        loaded_main_section = NULL;
+    }
+    old_n_actors = n_actors;
+
+    // create new space for sections
+    sections = CHECKED_VMALLOC(n_actors * sizeof(*sections));
+    memset(sections, 0x90, n_actors * sizeof(*sections)); // pad with nops
+    set_memory_x((unsigned long)sections, n_actors * sizeof(*sections) / PAGE_SIZE);
+
+    // // initialize the main section with a single ret instruction
+    loaded_main_section = sections[0].code;
+    loaded_main_section[0] = '\xC3';
+    return 0;
+}
+
 /// Constructor
 int init_loader(void)
 {
-    loaded_main_section = CHECKED_ZALLOC(PER_SECTION_ALLOC_SIZE);
-    loaded_main_section[0] = '\xC3'; // empty test case that just immediately returns
-    memset(&loaded_main_section[1], 0x90, PER_SECTION_ALLOC_SIZE - 1); // pad with nops
-    set_memory_x((unsigned long)loaded_main_section, PER_SECTION_ALLOC_SIZE / PAGE_SIZE);
-
-    loaded_main_section_size = 0;
-    return 0;
+    int err = allocate_sections();
+    return err;
 }
 
 /// Destructor
 ///
 void free_loader(void)
 {
-    if (loaded_main_section) {
-        set_memory_nx((unsigned long)loaded_main_section, PER_SECTION_ALLOC_SIZE / PAGE_SIZE);
-        kfree(loaded_main_section);
+    if (sections) {
+        set_memory_nx((unsigned long)sections, n_actors * sizeof(*sections) / PAGE_SIZE);
+        SAFE_VFREE(sections);
+        loaded_main_section = NULL;
     }
 }
