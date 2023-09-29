@@ -20,6 +20,7 @@ class NumpyRandomInputGenerator(InputGenerator):
 
     _state: int = 0
     _boosting_state: int = 0
+    n_actors = 1
 
     def __init__(self, seed: int):
         super().__init__(seed)
@@ -27,7 +28,7 @@ class NumpyRandomInputGenerator(InputGenerator):
         self.max_input_value = pow(2, CONF.input_gen_entropy_bits)
 
     def _generate_one(self, state: int) -> Tuple[Input, int]:
-        input_ = Input()
+        input_ = Input(self.n_actors)
         input_.seed = state
 
         size = input_.itemsize // 8
