@@ -8,6 +8,7 @@
 #include "main.h"
 #include "sandbox.h"
 #include "shortcuts.h"
+#include "test_case.h"
 
 // Max sizes for sanity checks
 #define MAX_MACRO_START_OFFSET 0x100
@@ -38,6 +39,7 @@ void macro_measurement_start_fast_partial_prime(void);
 void macro_measurement_end_probe(void);
 void macro_measurement_start_flush(void);
 void macro_measurement_end_reload(void);
+void macro_same_context_switch(void);
 
 // =================================================================================================
 // Macro management
@@ -80,6 +82,8 @@ static uint8_t *get_macro_wrapper_ptr(uint64_t macro_id)
             PRINT_ERRS("get_macro_wrapper_ptr", "misconfigured measurement_mode\n");
             return NULL;
         }
+    case MACRO_SWITCH:
+        return (uint8_t *)macro_same_context_switch;
     default:
         PRINT_ERRS("get_macro_wrapper_ptr", "macro_id %llu is not valid\n", macro_id);
         return NULL;
@@ -244,6 +248,17 @@ void macro_measurement_end_reload(void)
                        "pop r15\n"                                  //
                        POP_ABCDF()                                  //
     );
+    asm volatile(".quad " xstr(MACRO_END));
+}
+
+// =================================================================================================
+// Macros: Context switches
+// =================================================================================================
+
+void macro_same_context_switch(void)
+{
+    asm volatile(".quad " xstr(MACRO_START));
+    // Nothing here; it's a dummy macro
     asm volatile(".quad " xstr(MACRO_END));
 }
 

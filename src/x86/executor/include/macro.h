@@ -12,6 +12,7 @@ typedef enum {
     NONMACRO_FUNCTION = 0,
     MACRO_MEASUREMENT_START = 1,
     MACRO_MEASUREMENT_END = 2,
+    MACRO_SWITCH = 3,
 } macro_name_e;
 
 int get_macro_bounds(uint64_t macro_id, uint8_t **start, uint64_t *size);

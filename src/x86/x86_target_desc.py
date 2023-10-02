@@ -135,6 +135,7 @@ class X86TargetDesc(TargetDesc):
         "function": MacroSpec(0, "function", ("", "", "", "")),
         "measurement_start": MacroSpec(1, "measurement_start", ("", "", "", "")),
         "measurement_end": MacroSpec(2, "measurement_end", ("", "", "", "")),
+        "switch": MacroSpec(3, "switch", ("actor_id", "function_id", "", "")),
     }
 
     def __init__(self):
