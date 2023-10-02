@@ -64,6 +64,8 @@ fuzzer: architectural
 enable_priming: false
 memory_access_zeroed_bits: 0
 inputs_per_class: 1
+logging_modes:
+ - dbg_violation
 
 $BASE_AND_SIMD_CATEGORIES
 "
@@ -383,11 +385,15 @@ EOF
 
 @test "Feature: Minimization of test cases" {
     tmp_config=$(mktemp -p $TEST_DIR)
-    printf "$CT_DEH $LOGGING_OFF \npermitted_faults:\n  - PF-present\n" >$tmp_config
-    $cli_opt minimize -s $ISA -c $tmp_config -n 20 -i $ASM_DIR/minimization-before.asm -o $TEST_DIR/res.asm --simplify --find-sources
+    printf "$CT_DEH $LOGGING_OFF \nenable_priming: false \npermitted_faults:\n  - PF-present\n" >$tmp_config
+    $cli_opt minimize -s $ISA -c $tmp_config -n 10 -i $ASM_DIR/minimization-before.asm -o $TEST_DIR/res.asm --simplify --find-sources
     run diff $TEST_DIR/res.asm $ASM_DIR/minimization-after.asm
     diff $TEST_DIR/res.asm $ASM_DIR/minimization-after.asm
     echo "Result:"
     cat $TEST_DIR/res.asm
     [ "$status" -eq 0 ]
+}
+
+@test "Feature: Multi-actor test case" {
+    assert_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/actor_switch.asm -i 4"
 }

@@ -31,7 +31,7 @@ def parser_assert(condition: bool, line_number: int, explanation: str):
         logger = Logger()
         logger.error(
             f"[AsmParser]:  Error while parsing assembly (line {line_number + 1})\n"
-            f"              Issue: {explanation}",
+            f"       Issue: {explanation}",
             print_last_tb=True)
 
 
@@ -109,6 +109,7 @@ class AsmParserGeneric(AsmParser):
                 for terminator in bb.terminators:
                     for op in terminator.operands:
                         if isinstance(op, LabelOperand):
+                            parser_assert(op.value in bb_names, -1, "Unknown label " + op.value)
                             successor = bb_names[op.value]
                             bb.successors.append(successor)
 
