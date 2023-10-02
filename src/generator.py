@@ -503,13 +503,13 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         assert func_main.owner == test_case.actors[0]
 
         bb_first = func_main[0]
-        start_sid = self.target_desc.macro_ids["measurement_start"]
-        bb_first.insert_before(
-            bb_first.get_first(),
-            Instruction("MACRO", category="MACRO").add_op(ImmediateOperand(str(start_sid), 8)))
+        instr = Instruction("MACRO", category="MACRO") \
+            .add_op(LabelOperand(".measurement_start")) \
+            .add_op(LabelOperand(".noarg"))
+        bb_first.insert_before(bb_first.get_first(), instr)
 
         bb_last = func_main.exit
-        end_sid = self.target_desc.macro_ids["measurement_end"]
-        bb_last.insert_after(
-            bb_last.get_last(),
-            Instruction("MACRO", category="MACRO").add_op(ImmediateOperand(str(end_sid), 8)))
+        instr = Instruction("MACRO", category="MACRO") \
+            .add_op(LabelOperand(".measurement_end")) \
+            .add_op(LabelOperand(".noarg"))
+        bb_last.insert_after(bb_last.get_last(), instr)

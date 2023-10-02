@@ -133,7 +133,7 @@ class X86Executor(Executor):
             return [int(r[0][0]) for r in all_results]
 
         traces = [0 for _ in inputs]
-        pfc_readings: np.ndarray = np.zeros(shape=(n_measurements, 3), dtype=int)
+        pfc_readings: np.ndarray = np.zeros(shape=(n_measurements, 3), dtype=np.uint64)
 
         # merge the results of repeated measurements
         for input_id, input_results in enumerate(all_results):
@@ -172,19 +172,21 @@ class X86Executor(Executor):
             f.write((len(actors)).to_bytes(8, byteorder='little'))  # n_actors
             f.write((len(test_case.symbol_table)).to_bytes(8, byteorder='little'))  # n_symbols
 
-            # symbol table (first functions, then macros, sorted by actor and offset)
+            # symbol table (first functions sorted by argument, then macros sorted by actor+offset)
             function_symbols = [s for s in test_case.symbol_table if s[2] == 0]
             macro_symbols = [s for s in test_case.symbol_table if s[2] != 0]
-            for aid, s_offset, s_id in function_symbols:
-                # print("function", s_id, aid, s_offset)
+            for aid, s_offset, s_id, arg in sorted(function_symbols, key=lambda s: s.arg):
+                # print("function", s_id, aid, s_offset, arg)
                 f.write((aid).to_bytes(8, byteorder='little'))
                 f.write((s_offset).to_bytes(8, byteorder='little'))
                 f.write((s_id).to_bytes(8, byteorder='little'))
-            for aid, s_offset, s_id in sorted(macro_symbols, key=lambda s: (s[0], s[1])):
-                # print("macro", s_id, aid, s_offset)
+                f.write((arg).to_bytes(8, byteorder='little'))
+            for aid, s_offset, s_id, arg in sorted(macro_symbols, key=lambda s: (s.aid, s.offset)):
+                # print("macro", aid, s_offset, s_id, arg)
                 f.write((aid).to_bytes(8, byteorder='little'))
                 f.write((s_offset).to_bytes(8, byteorder='little'))
                 f.write((s_id).to_bytes(8, byteorder='little'))
+                f.write((arg).to_bytes(8, byteorder='little'))
 
             # section metadata
             for actor in actors:

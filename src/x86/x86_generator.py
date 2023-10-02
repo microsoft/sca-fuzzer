@@ -10,16 +10,15 @@ import re
 import random
 from copy import deepcopy
 from typing import List, Dict, Set, Optional, Tuple
-from subprocess import run
-from elftools.elf.elffile import ELFFile, SymbolTableSection  # type: ignore
 
 from ..isa_loader import InstructionSet
 from ..interfaces import TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
     ImmediateOperand, AgenOperand, OT, Instruction, BasicBlock, InstructionSpec, \
-    PageTableModifier, MAIN_AREA_SIZE, FAULTY_AREA_SIZE, Function, ActorType, ElfSection, Symbol
+    PageTableModifier, MAIN_AREA_SIZE, FAULTY_AREA_SIZE, Function, ActorType
 from ..generator import ConfigurableGenerator, RandomGenerator, Pass, Printer, GeneratorException
 from ..config import CONF
 from .x86_target_desc import X86TargetDesc
+from .x86_elf_parser import X86ElfParser
 
 
 class X86Generator(ConfigurableGenerator, abc.ABC):
@@ -27,6 +26,7 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
     def __init__(self, instruction_set: InstructionSet, seed: int):
         super(X86Generator, self).__init__(instruction_set, seed)
         self.target_desc = X86TargetDesc()
+        self.elf_parser = X86ElfParser(self.target_desc)
         self.passes = [
             X86SandboxPass(self.target_desc),
             X86PatchUndefinedFlagsPass(self.instruction_set, self),
@@ -49,123 +49,6 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
         if 'PF-smap' in CONF.permitted_faults:
             self.pte_bit_choices.append(self.target_desc.pte_bits["USER"])
 
-    def get_elf_data(self, test_case: TestCase, obj_file: str) -> None:
-        exit_addr: int = -1
-        function_symbol_entries: Dict = {}
-        instruction_addresses: Dict[str, List[int]] = {}
-        section_headers: Dict = {}
-
-        # parse ELF data
-        with open(obj_file, "rb") as f:
-            data = ELFFile(f)
-
-            # we build objects in such a way that there should be no segments
-            assert data.num_segments() == 0, f"{data.num_segments()}"
-
-            # collect section info
-            for id_, s in enumerate(data.iter_sections()):
-                if ".data." not in s.name:
-                    continue
-                name = s.name
-                section_headers[name] = s.header
-                section_headers[name]['sid'] = id_
-
-            # get addresses of functions and macros
-            symtab: SymbolTableSection = data.get_section_by_name(".symtab")  # type: ignore
-            for s in symtab.iter_symbols():
-                name = s.name
-                if ".function_" in name:
-                    function_symbol_entries[name] = s.entry
-
-                if ".test_case_exit" in name:
-                    exit_addr = s.entry.st_value
-
-        # parse objdump output
-        dump = run(
-            f"objdump --no-show-raw-insn -D -M intel -m i386:x86-64 {obj_file} "
-            "| awk '/ [0-9a-f]+:/{print $1} /section/{print $0}'",
-            shell=True,
-            check=True,
-            capture_output=True)
-
-        section_name = ""
-        for line in dump.stdout.decode().split("\n"):
-            if not line:
-                continue
-
-            if "section" in line:
-                try:
-                    section_name = line.split()[-1][:-1]
-                except ValueError:
-                    section_name = ""
-                if section_name == "":
-                    self.LOG.error(f"Invalid actor label: {line.split()[-1]}")
-                instruction_addresses[section_name] = []
-                continue
-            assert section_name != "", "Failed to parse objdump output (section_name)"
-
-            instruction_addresses[section_name].append(int(line[:-1], 16))
-
-        # order function symbols by section id and offset
-        func_names_ordered: Dict[int, List] = {}
-        for f, e in function_symbol_entries.items():
-            sid = e.st_shndx
-            if not func_names_ordered.get(sid):
-                func_names_ordered[sid] = []
-            func_names_ordered[sid].append(f)
-        for sid in func_names_ordered.keys():
-            func_names_ordered[sid].sort(key=lambda x: function_symbol_entries[x].st_value)
-
-        # add collected data to the test case
-        address_map: Dict[int, Dict[int, Instruction]] = {}
-        for section_name, address_list in sorted(instruction_addresses.items()):
-            sid = section_headers[section_name]['sid']
-            actor = test_case.get_actor_by_name(section_name.split(".")[2])
-            actor.elf_section = ElfSection(sid, section_headers[section_name]['sh_offset'],
-                                           section_headers[section_name]['sh_size'])
-
-            counter = 0
-            address_map[actor.id_] = {}
-            for func_name in func_names_ordered[sid]:
-                func = test_case.get_function_by_name(func_name)
-                assert func.owner == actor
-
-                offset = function_symbol_entries[func.name].st_value
-                assert offset == address_list[counter]
-
-                # add the function into the symbol table
-                # FIXME: replace 0 with symbol id
-                test_case.symbol_table.append(Symbol(
-                    aid=actor.id_,
-                    id_=0,
-                    offset=offset,
-                ))
-
-                for bb in list(func) + [func.exit]:
-                    for inst in list(bb) + bb.terminators:
-                        address = address_list[counter]
-
-                        # connect instructions with their addresses
-                        inst.section_id = sid
-                        inst.section_offset = address
-                        address_map[actor.id_][address] = inst
-
-                        # add macros to the symbol table
-                        if inst.name == "MACRO":
-                            test_case.symbol_table.append(
-                                Symbol(
-                                    aid=actor.id_,
-                                    id_=int(inst.operands[0].value),
-                                    offset=address,
-                                ))
-
-                        counter += 1
-
-        # the last instruction in .data.0_host is the test case exit, and it must map to a NOP
-        address_map[0][exit_addr] = Instruction("NOP", False, "BASE-NOP", True)
-
-        test_case.address_map = address_map
-
     def get_return_instruction(self) -> Instruction:
         return Instruction("RET", False, "", True)
 
@@ -187,6 +70,9 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
             mask_clear = 0xffffffffffffffff
             mask_set = 0x0 | (1 << pte_bit[0])
         test_case.faulty_pte = PageTableModifier(mask_set, mask_clear)
+
+    def get_elf_data(self, test_case: TestCase, obj_file: str) -> None:
+        self.elf_parser.parse(test_case, obj_file)
 
 
 class X86LFENCEPass(Pass):
@@ -864,8 +750,7 @@ class X86Printer(Printer):
         ".test_case_exit:\n",
     ]
 
-    def __init__(self, target_desc: X86TargetDesc) -> None:
-        self.macro_labels = {v: k for k, v in target_desc.macro_ids.items()}
+    def __init__(self, _: X86TargetDesc) -> None:
         super().__init__()
 
     def print(self, test_case: TestCase, outfile: str) -> None:
@@ -899,7 +784,7 @@ class X86Printer(Printer):
             file.write(self.instruction_to_str(inst) + "\n")
 
     def instruction_to_str(self, inst: Instruction):
-        if inst.category == "MACRO":
+        if inst.name == "MACRO":
             return self.macro_to_str(inst)
 
         operands = ", ".join([self.operand_to_str(op) for op in inst.operands])
@@ -914,8 +799,8 @@ class X86Printer(Printer):
         return op.value
 
     def macro_to_str(self, inst: Instruction):
-        label = self.macro_labels[int(inst.operands[0].value)]
-        return f".macro.{label}: nop dword ptr [rax + rax*1 + 0x1]"
+        return f".macro{inst.operands[0].value}{inst.operands[1].value}:" \
+               " nop dword ptr [rax + rax*1 + 0x1]"
 
 
 class X86RandomGenerator(X86Generator, RandomGenerator):

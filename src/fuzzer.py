@@ -92,6 +92,7 @@ class FuzzerGeneric(Fuzzer):
                 test_case = self.asm_parser.parse_file(self.existing_test_case)
             else:
                 test_case = self.generator.create_test_case('generated.asm')
+            self.input_gen.n_actors = len(test_case.actors)
             STAT.test_cases += 1
 
             # Generate the execution environment

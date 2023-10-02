@@ -8,10 +8,6 @@ nop
 
 .macro.measurement_end: nop dword ptr [rax + 1*rax + 1]
 
-.macro.vmenter: nop dword ptr [rax + 1*rax + 1]
-
-.macro.vmcall: nop dword ptr [rax + 1*rax + 1]
-
 and rax, rax
 
 .function_1:

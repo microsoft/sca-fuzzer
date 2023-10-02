@@ -100,19 +100,19 @@ static int __batch_tc_parsing_end(void)
             has_start = true;
         if (e->id == MACRO_MEASUREMENT_END)
             has_end = true;
-        if (e->owner.actor_id == 0 && e->offset == 0)
+        if (e->owner == 0 && e->offset == 0)
             has_main = true;
 
         if (prev_e && e->id != NONMACRO_FUNCTION && prev_e->id != NONMACRO_FUNCTION) {
-            if (e->owner.actor_id < prev_e->owner.actor_id)
+            if (e->owner < prev_e->owner)
                 macros_ordered = false;
-            if (e->owner.actor_id == prev_e->owner.actor_id && e->offset < prev_e->offset)
+            if (e->owner == prev_e->owner && e->offset < prev_e->offset)
                 macros_ordered = false;
         }
         prev_e = e;
     }
     if (!macros_ordered) {
-        PRINT_ERRS("__batch_tc_parsing_end", "Symbol table is not ordered\n");
+        PRINT_ERRS("__batch_tc_parsing_end", "Macros in the symbol table are not ordered\n");
         return -1;
     }
     if (!has_start || !has_end) {
@@ -137,6 +137,7 @@ static int __batch_tc_parsing_end(void)
 ///     |   - owner (uint64_t)                |
 ///     |   - offset (uint64_t)               |
 ///     |   - id (uint64_t)                   |
+///     |   - args (uint64_t)                 |
 ///     | x n_symbols                         |
 ///     |-------------------------------------|
 ///     | tc_section_metadata_entry_t:        | METADATA

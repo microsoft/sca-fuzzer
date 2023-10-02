@@ -157,13 +157,17 @@ class Logger:
                     "", "Current value of `logging_modes` requires debugging mode!\n"
                     "Remove '-O' from python arguments")
 
-    def error(self, msg: str, print_tb: bool = False) -> NoReturn:
+    def error(self, msg: str, print_tb: bool = False, print_last_tb: bool = False) -> NoReturn:
         if self.redraw_mode:
             print("")
 
         if print_tb:
             print("Encountered an unrecoverable error\nTraceback:")
             print_stack()
+            print("\n")
+        elif print_last_tb:
+            print("Encountered an unrecoverable error\nTraceback:")
+            print_stack(limit=3)
             print("\n")
 
         print(f"ERROR: {msg}")
