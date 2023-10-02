@@ -13,8 +13,6 @@ from abc import ABC, abstractmethod
 import numpy as np
 from enum import Enum
 
-from .config import CONF
-
 # ==================================================================================================
 # Actors
 # ==================================================================================================
@@ -27,7 +25,7 @@ class ActorType(Enum):
 
 
 class ElfSection(NamedTuple):
-    id_: int
+    id_: int  # section id; will match the actor id if the actor IDs are ordered and contiguous
     offset: int
     size: int
 
@@ -214,6 +212,12 @@ class InstructionSpec:
         for o in self.operands:
             ops += str(o) + " "
         return f"{self.name} {ops}"
+
+
+class MacroSpec(NamedTuple):
+    type_: SymbolType
+    name: str
+    args: Tuple[str, str, str, str]
 
 
 class Instruction:
@@ -510,14 +514,16 @@ class Function:
         self._all_bb.extend(bb_list)
 
 
-SymbolID = int
+SymbolType = int
 SymbolOffset = int
+MacroArgument = int
 
 
 class Symbol(NamedTuple):
     aid: ActorID
     offset: SymbolOffset
-    id_: SymbolID
+    type_: SymbolType
+    arg: MacroArgument
 
 
 class TestCase:
@@ -762,7 +768,7 @@ class TargetDesc(ABC):
     branch_conditions: Dict[str, List[str]]
     reg_normalized: Dict[str, str]
     reg_denormalized: Dict[str, Dict[int, str]]
-    macro_ids: Dict[str, int]
+    macro_ids: Dict[str, MacroSpec]
 
     @staticmethod
     @abstractmethod

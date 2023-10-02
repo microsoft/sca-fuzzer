@@ -44,8 +44,9 @@ typedef struct {
 
 uint8_t *loaded_main_section = NULL; // global
 
-static section_t *sections = NULL;
+static section_t *expanded_sections = NULL;
 static size_t main_section_macros_cursor = 0;
+static size_t main_prologue_size = 0;
 
 static int load_section_main(void);
 static int load_section(int segment_id);
@@ -79,7 +80,7 @@ int load_test_case(void)
 
 static int load_section(int segment_id)
 {
-    int bytes_written = expand_section(segment_id, sections[segment_id].code);
+    int bytes_written = expand_section(segment_id, expanded_sections[segment_id].code);
     if (bytes_written < 0)
         return -1;
     return 0;
@@ -121,9 +122,10 @@ static int load_section_main(void)
         loaded_main_section[dest_cursor] = template[main_template_cursor];
     }
     main_template_cursor += 8;
+    main_prologue_size = dest_cursor;
 
     // copy the test case into the template and expand macros
-    ASSERT(test_case->metadata[0].owner.actor_id == 0, "load_test_case");
+    ASSERT(test_case->metadata[0].owner == 0, "load_test_case");
     dest_cursor += expand_section(0, &loaded_main_section[dest_cursor]);
 
     // write the handler
@@ -134,7 +136,7 @@ static int load_section_main(void)
 
             // expand the macro that would collect htrace after the exception
             tc_symbol_entry_t measurement_end =
-                (tc_symbol_entry_t){.id = MACRO_MEASUREMENT_END, .offset = 0, .owner = {0}};
+                (tc_symbol_entry_t){.id = MACRO_MEASUREMENT_END, .offset = 0, .owner = 0};
             uint8_t *macro_dest =
                 &loaded_main_section[MAX_EXPANDED_SECTION_SIZE + main_section_macros_cursor];
 
@@ -167,7 +169,7 @@ static tc_symbol_entry_t *get_section_macros_start(uint64_t section_id)
 {
     tc_symbol_entry_t *entry = test_case->symbol_table;
     tc_symbol_entry_t *end = entry + test_case->symbol_table_size / sizeof(*entry);
-    while (entry->owner.actor_id != section_id || entry->id == 0) {
+    while (entry->owner != section_id || entry->id == 0) {
         entry++;
         if (entry >= end)
             return NULL;
@@ -211,7 +213,7 @@ static uint64_t expand_section(uint64_t section_id, uint8_t *dest)
         //   section[src_cursor]);
         if (src_cursor == macro->offset) {
             // if we found a macro -> expand it
-            ASSERT(macro->owner.actor_id == 0, "load_test_case");
+            ASSERT(macro->owner == section_id, "load_test_case");
             ASSERT(macro->id != 0, "load_test_case");
             macros_dest_cursor +=
                 expand_macro(macro, &dest[dest_cursor], &macros_dest[macros_dest_cursor]);
@@ -230,7 +232,7 @@ static uint64_t expand_section(uint64_t section_id, uint8_t *dest)
     // ensure that we did not have an overrun
     ASSERT(src_cursor == section_size, "load_test_case");
     ASSERT(macro - test_case->symbol_table <= test_case->symbol_table_size / sizeof(*macro) ||
-               macro->owner.actor_id != section_id,
+               macro->owner != section_id,
            "load_test_case");
 
     return dest_cursor;
@@ -245,10 +247,10 @@ static uint64_t expand_section(uint64_t section_id, uint8_t *dest)
 static uint64_t expand_macro(tc_symbol_entry_t *macro, uint8_t *jmp_location, uint8_t *macro_dest)
 {
     ASSERT(macro->id != 0, "load_test_case");
-    uint64_t macro_dest_cursor = 0;
+    uint64_t dest_cursor = 0;
 
     // replace the nop with a relative 32-bit jump to the expanded macro
-    uint32_t target = (uint32_t)(&macro_dest[macro_dest_cursor] - jmp_location - 5);
+    uint32_t target = (uint32_t)(&macro_dest[dest_cursor] - jmp_location - 5);
     jmp_location[0] = JMP_32BIT_RELATIVE; // opcode of the jump
     *((uint32_t *)&jmp_location[1]) = target;
 
@@ -258,16 +260,54 @@ static uint64_t expand_macro(tc_symbol_entry_t *macro, uint8_t *jmp_location, ui
     int err = get_macro_bounds(macro->id, &macro_start, &macro_size);
     CHECK_ERR("get_macro_bounds");
 
-    memcpy(&macro_dest[macro_dest_cursor], macro_start, macro_size);
-    macro_dest_cursor += macro_size;
+    dest_cursor += inject_macro_arguments(macro->id, macro->args, &macro_dest[dest_cursor]);
+    memcpy(&macro_dest[dest_cursor], macro_start, macro_size);
+    dest_cursor += macro_size;
 
     // insert a relative jump backwards
-    target = (int32_t)(&jmp_location[5] - &macro_dest[macro_dest_cursor] - 5);
-    macro_dest[macro_dest_cursor] = JMP_32BIT_RELATIVE; // opcode of the jump
-    *((uint32_t *)&macro_dest[macro_dest_cursor + 1]) = target;
-    macro_dest_cursor += 5;
+    target = (int32_t)(&jmp_location[5] - &macro_dest[dest_cursor] - 5);
+    macro_dest[dest_cursor] = JMP_32BIT_RELATIVE; // opcode of the jump
+    *((uint32_t *)&macro_dest[dest_cursor + 1]) = target;
+    dest_cursor += 5;
 
-    return macro_dest_cursor;
+    return dest_cursor;
+}
+
+/// @brief Dynamically generate code that passes arguments to a macro; the macros receive the
+/// arguments in the R13 register
+/// @param args Compressed representation of the arguments, as received from the test case
+/// symbol table
+/// @return Size of the generated code, in bytes
+uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint8_t *macro_dest)
+{
+    switch (macro_type) {
+    case MACRO_MEASUREMENT_START:
+    case MACRO_MEASUREMENT_END:
+        return 0;
+    case MACRO_SWITCH: {
+        uint16_t section_id = args & 0xFFFF;
+        uint16_t function_id = (args >> 16) & 0xFFFF;
+
+        uint64_t actor_addr = (uint64_t)expanded_sections[section_id].code;
+        if (section_id == 0)
+            actor_addr += main_prologue_size;
+        uint64_t function_addr = actor_addr + test_case->symbol_table[function_id].offset;
+
+        // // movabs r13, function_addr
+        // macro_dest[0] = 0x49;
+        // macro_dest[1] = 0xbd;
+        // *((uint64_t *)(macro_dest + 2)) = function_addr;
+        uint32_t relative_offset = function_addr - (uint64_t)macro_dest - 5;
+        // jmp offset
+        macro_dest[0] = JMP_32BIT_RELATIVE;
+        *((uint32_t *)(macro_dest + 1)) = relative_offset;
+
+        return 5;
+    }
+    default:
+        PRINT_ERRS("inject_macro_arguments", "macro_type %llu is not valid\n", macro_type);
+        return 0;
+    }
 }
 
 // =================================================================================================
@@ -444,20 +484,22 @@ static int allocate_sections(void)
         return 0;
 
     // release old space for sections
-    if (sections) {
-        set_memory_nx((unsigned long)sections, old_n_actors * sizeof(*sections) / PAGE_SIZE);
-        SAFE_VFREE(sections);
+    if (expanded_sections) {
+        set_memory_nx((unsigned long)expanded_sections,
+                      old_n_actors * sizeof(section_t) / PAGE_SIZE);
+        SAFE_VFREE(expanded_sections);
         loaded_main_section = NULL;
     }
     old_n_actors = n_actors;
 
     // create new space for sections
-    sections = CHECKED_VMALLOC(n_actors * sizeof(*sections));
-    memset(sections, 0x90, n_actors * sizeof(*sections)); // pad with nops
-    set_memory_x((unsigned long)sections, n_actors * sizeof(*sections) / PAGE_SIZE);
+    expanded_sections = CHECKED_VMALLOC(n_actors * sizeof(*expanded_sections));
+    memset(expanded_sections, 0x90, n_actors * sizeof(*expanded_sections)); // pad with nops
+    set_memory_x((unsigned long)expanded_sections,
+                 n_actors * sizeof(*expanded_sections) / PAGE_SIZE);
 
     // // initialize the main section with a single ret instruction
-    loaded_main_section = sections[0].code;
+    loaded_main_section = expanded_sections[0].code;
     loaded_main_section[0] = '\xC3';
     return 0;
 }
@@ -473,9 +515,10 @@ int init_loader(void)
 ///
 void free_loader(void)
 {
-    if (sections) {
-        set_memory_nx((unsigned long)sections, n_actors * sizeof(*sections) / PAGE_SIZE);
-        SAFE_VFREE(sections);
+    if (expanded_sections) {
+        set_memory_nx((unsigned long)expanded_sections,
+                      n_actors * sizeof(*expanded_sections) / PAGE_SIZE);
+        SAFE_VFREE(expanded_sections);
         loaded_main_section = NULL;
     }
 }

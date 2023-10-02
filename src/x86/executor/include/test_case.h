@@ -20,11 +20,8 @@ typedef uint64_t section_metadata_reserved_t;
 typedef uint64_t section_id_t;
 typedef uint64_t symbol_offset_t;
 typedef uint64_t symbol_id_t;
-
-typedef struct {
-    uint32_t actor_type;
-    uint32_t actor_id;
-} actor_id_t;
+typedef uint64_t symbol_args_t;
+typedef uint64_t actor_id_t;
 
 typedef struct {
     actor_id_t owner;
@@ -40,6 +37,7 @@ typedef struct {
     actor_id_t owner;
     symbol_offset_t offset;
     symbol_id_t id;
+    symbol_args_t args;
 } tc_symbol_entry_t;
 
 typedef struct {

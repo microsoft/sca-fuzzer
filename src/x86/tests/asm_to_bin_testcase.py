@@ -4,6 +4,19 @@ import os
 import subprocess
 
 
+def write_st_entry(f, entry):
+    f.write((entry[0]).to_bytes(8, byteorder='little'))
+    f.write((entry[1]).to_bytes(8, byteorder='little'))
+    f.write((entry[2]).to_bytes(8, byteorder='little'))
+    f.write((entry[3]).to_bytes(8, byteorder='little'))
+
+
+def write_metadata_entry(f, entry):
+    f.write((entry[0]).to_bytes(8, byteorder='little'))
+    f.write((entry[1]).to_bytes(8, byteorder='little'))
+    f.write((entry[2]).to_bytes(8, byteorder='little'))
+
+
 def main(asm_file: str, obj_file: str):
     n_actors = 1
     n_symbols = 3
@@ -23,24 +36,16 @@ def main(asm_file: str, obj_file: str):
 
         # write the symbol table
         # - symbol 1: main
-        f.write((0).to_bytes(8, byteorder='little'))
-        f.write((0).to_bytes(8, byteorder='little'))
-        f.write((0).to_bytes(8, byteorder='little'))
+        write_st_entry(f, (0, 0, 0, 0))
         # - symbol 2: MACRO_MEASUREMENT_START
-        f.write((0).to_bytes(8, byteorder='little'))
-        f.write((0).to_bytes(8, byteorder='little'))
-        f.write((1).to_bytes(8, byteorder='little'))
+        write_st_entry(f, (0, 0, 1, 0))
         main_size += 5
         # - symbol 3: MACRO_MEASUREMENT_END
-        f.write((0).to_bytes(8, byteorder='little'))
-        f.write((main_size).to_bytes(8, byteorder='little'))
-        f.write((2).to_bytes(8, byteorder='little'))
+        write_st_entry(f, (0, main_size, 2, 0))
         main_size += 5
 
         # write the section metadata
-        f.write((0).to_bytes(8, byteorder='little'))
-        f.write((main_size).to_bytes(8, byteorder='little'))
-        f.write((0).to_bytes(8, byteorder='little'))
+        write_metadata_entry(f, (0, main_size, 0))
 
         # write the code
         f.write(b'\x0f\x1f\x44\x00\x01')  # nop - MACRO_MEASUREMENT_START

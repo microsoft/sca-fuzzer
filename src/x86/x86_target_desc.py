@@ -7,7 +7,7 @@ SPDX-License-Identifier: MIT
 from typing import List
 import unicorn.x86_const as ucc  # type: ignore
 
-from ..interfaces import Instruction, TargetDesc
+from ..interfaces import Instruction, TargetDesc, MacroSpec
 from ..model import UnicornTargetDesc
 from ..config import CONF
 
@@ -132,12 +132,9 @@ class X86TargetDesc(TargetDesc):
         "NX": (63, False),  # No execute: only valid after cpuid check
     }
     macro_ids = {
-        "function": 0,
-        "measurement_start": 1,
-        "measurement_end": 2,
-        "vmenter": 3,
-        "vmcall": 4,
-        "select_vm_g0_f2": 5,
+        "function": MacroSpec(0, "function", ("", "", "", "")),
+        "measurement_start": MacroSpec(1, "measurement_start", ("", "", "", "")),
+        "measurement_end": MacroSpec(2, "measurement_end", ("", "", "", "")),
     }
 
     def __init__(self):

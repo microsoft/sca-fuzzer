@@ -210,13 +210,11 @@ class X86RandomGeneratorTest(unittest.TestCase):
         parser = X86AsmParser(generator)
         tc: TestCase = parser.parse_file((test_dir / "asm/asm_symbol.asm").absolute().as_posix())
 
-        self.assertEqual(tc.symbol_table[0], Symbol(0, 0, 0))  # function_0
-        self.assertEqual(tc.symbol_table[1], Symbol(0, 0, 1))
-        self.assertEqual(tc.symbol_table[2], Symbol(0, 6, 2))
-        self.assertEqual(tc.symbol_table[3], Symbol(0, 11, 3))
-        self.assertEqual(tc.symbol_table[4], Symbol(0, 16, 4))
-        self.assertEqual(tc.symbol_table[5], Symbol(0, 24, 0))  # function_1
-        self.assertEqual(tc.symbol_table[6], Symbol(1, 0, 0))  # function_2
+        self.assertEqual(tc.symbol_table[0], Symbol(0, 0, 0, 0))  # function_0
+        self.assertEqual(tc.symbol_table[1], Symbol(0, 0, 1, 0))
+        self.assertEqual(tc.symbol_table[2], Symbol(0, 6, 2, 0))
+        self.assertEqual(tc.symbol_table[3], Symbol(0, 14, 0, 1))  # function_1
+        self.assertEqual(tc.symbol_table[4], Symbol(1, 0, 0, 2))  # function_2
 
     def test_x86_undef_flag_patch(self):
         instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix(),

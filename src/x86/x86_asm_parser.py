@@ -188,7 +188,7 @@ class X86AsmParser(AsmParserGeneric):
             elif op_spec.type == OT.IMM:
                 op = ImmediateOperand(op_raw, op_spec.width)
             elif op_spec.type == OT.LABEL:
-                assert spec.control_flow
+                assert spec.control_flow or spec.name == "MACRO"
                 op = LabelOperand(op_raw)
             else:  # AGEN
                 op = AgenOperand(op_raw, op_spec.width)
