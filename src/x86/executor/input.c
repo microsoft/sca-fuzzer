@@ -188,7 +188,7 @@ char *get_input_fragment(uint64_t input_id, uint64_t actor_id)
 /// @return
 char *get_input_fragment_unsafe(uint64_t input_id, uint64_t actor_id)
 {
-    return inputs->data[actor_id * n_inputs + input_id].main_area;
+    return inputs->data[input_id * n_actors + actor_id].main_area;
 }
 
 /// Getter for _is_receiving_inputs
