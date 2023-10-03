@@ -438,21 +438,21 @@ class UnicornModel(Model, ABC):
 
     @staticmethod
     @abstractmethod
-    def trace_instruction(emulator: Uc, address: int, size: int, model: UnicornModel) -> None:
+    def trace_instruction(emulator: Uc, address: int, size: int, model) -> None:
         pass
 
     @staticmethod
     @abstractmethod
     def trace_mem_access(emulator: Uc, access: int, address: int, size: int, value: int,
-                         model: UnicornModel) -> None:
+                         model) -> None:
         pass
 
     @staticmethod
-    def speculate_mem_access(emulator, access, address, size, value, model: UnicornModel) -> None:
+    def speculate_mem_access(emulator, access, address, size, value, model) -> None:
         pass
 
     @staticmethod
-    def speculate_instruction(emulator: Uc, address, size, model: UnicornModel) -> None:
+    def speculate_instruction(emulator: Uc, address, size, model) -> None:
         pass
 
     def post_execution_patch(self) -> None:
@@ -623,12 +623,11 @@ class UnicornSpec(UnicornModel):
     def __init__(self, *args):
         self.checkpoints = []
         self.store_logs = []
-        self.previous_store = (0, 0, 0, 0)
         self.latest_rollback_address = 0
         super().__init__(*args)
 
     @staticmethod
-    def trace_mem_access(emulator, access, address, size, value, model) -> None:
+    def trace_mem_access(emulator, access, address, size, value, model: UnicornSpec) -> None:
         # when in speculation, log all changes to memory
         if access == UC_MEM_WRITE and model.store_logs:
             model.store_logs[-1].append((address, emulator.mem_read(address, 8)))
@@ -636,7 +635,7 @@ class UnicornSpec(UnicornModel):
         UnicornSeq.trace_mem_access(emulator, access, address, size, value, model)
 
     @staticmethod
-    def trace_instruction(emulator, address, size, model: UnicornModel) -> None:
+    def trace_instruction(emulator, address, size, model: UnicornSpec) -> None:
         if model.in_speculation:
             model.speculation_window += 1
             # rollback on a serializing instruction
@@ -684,9 +683,6 @@ class UnicornSpec(UnicornModel):
             addr, val = mem_changes.pop()
             self.emulator.mem_write(addr, bytes(val))
 
-        # if there are any pending speculative store bypasses, cancel them
-        self.previous_store = (0, 0, 0, 0)
-
         # restore the flags last, to avoid corruption by other operations
         self.emulator.reg_write(self.target_desc.flags_register, flags)
 
@@ -703,8 +699,17 @@ class UnicornSpec(UnicornModel):
 
 class UnicornBpas(UnicornSpec):
 
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.previous_store = (0, 0, 0, 0)
+
+    def rollback(self) -> int:
+        # if there are any pending speculative store bypasses, cancel them
+        self.previous_store = (0, 0, 0, 0)
+        return super().rollback()
+
     @staticmethod
-    def speculate_mem_access(emulator, access, address, size, value, model):
+    def speculate_mem_access(emulator, access, address, size, value, model: UnicornBpas) -> None:
         """
         Since Unicorn does not have post-instruction hooks,
         I have to implement it in a dirty way:
@@ -733,7 +738,7 @@ class UnicornBpas(UnicornSpec):
             model.previous_store = (address, size, emulator.mem_read(address, size), value)
 
     @staticmethod
-    def speculate_instruction(emulator: Uc, address, _, model) -> None:
+    def speculate_instruction(emulator: Uc, address, _, model: UnicornBpas) -> None:
         # reached max spec. window? skip
         if len(model.checkpoints) >= model.nesting:
             model.previous_store = (0, 0, 0, 0)  # clear pending speculation requests
