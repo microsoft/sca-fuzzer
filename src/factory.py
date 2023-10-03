@@ -31,7 +31,7 @@ TRACERS: Dict[str, Type[model.UnicornTracer]] = {
     "gpr": model.GPRTracer,
 }
 
-X86_SIMPLE_EXECUTION_CLAUSES: Dict[str, Type[x86_model.X86UnicornModel]] = {
+X86_SIMPLE_EXECUTION_CLAUSES: Dict[str, Type[x86_model.UnicornModel]] = {
     "seq": x86_model.X86UnicornSeq,
     "no_speculation": x86_model.X86UnicornSeq,
     "seq-assist": x86_model.X86SequentialAssist,
@@ -137,8 +137,6 @@ def get_model(bases: Tuple[int, int]) -> interfaces.Model:
         else:
             raise ConfigException(
                 "ERROR: unknown value of `contract_execution_clause` configuration option")
-
-        model_instance.taint_tracker_cls = x86_model.X86TaintTracker
 
     else:
         raise ConfigException("ERROR: unknown value of `model` configuration option")
