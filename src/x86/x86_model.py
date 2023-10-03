@@ -14,7 +14,7 @@ from unicorn import Uc, UC_MEM_WRITE, UC_ARCH_X86, UC_MODE_64, UC_PROT_READ, UC_
     UC_ERR_WRITE_PROT
 
 from ..interfaces import Input, FlagsOperand, RegisterOperand, MemoryOperand, AgenOperand, \
-    TestCase, MAIN_AREA_SIZE, FAULTY_AREA_SIZE
+    TestCase, MAIN_AREA_SIZE, FAULTY_AREA_SIZE, OVERFLOW_PAD_SIZE
 from ..model import UnicornModel, UnicornTracer, UnicornSpec, UnicornSeq, UnicornBpas, \
     BaseTaintTracker
 from ..util import UnreachableCode, BLUE, COL_RESET
@@ -32,14 +32,18 @@ FLAGS_DF = 0b010000000000
 FLAGS_OF = 0b100000000000
 
 
-class X86UnicornModel(UnicornModel):
+class X86UnicornSeq(UnicornSeq):
     """
     Base class that serves as main interface.
     Loads inputs and executes the test case on x86
     """
+    rw_protect: bool = False
+    write_protect: bool = False
 
     def __init__(self, sandbox_base, code_start):
         self.target_desc = X86UnicornTargetDesc()
+        self.taint_tracker = X86TaintTracker([], sandbox_base)
+
         self.architecture = (UC_ARCH_X86, UC_MODE_64)
         self.rw_fault_mask = (1 << X86TargetDesc.pte_bits["PRESENT"][0]) + \
             (1 << X86TargetDesc.pte_bits["ACCESSED"][0])
@@ -115,7 +119,7 @@ class X86UnicornModel(UnicornModel):
         def compressed(val: int):
             if val >= self.sandbox_base and val <= self.sandbox_base + 12288:
                 return f"+0x{val - self.sandbox_base:<15x}"
-            elif val >= self.sandbox_base - self.OVERFLOW_PAD_SIZE and val < self.sandbox_base:
+            elif val >= self.sandbox_base - OVERFLOW_PAD_SIZE and val < self.sandbox_base:
                 return f"+0x{val - self.sandbox_base:<15x}"
             else:
                 return f"0x{val:016x}"
@@ -188,11 +192,7 @@ class X86UnicornModel(UnicornModel):
 # ==================================================================================================
 # Implementation of Execution Clauses
 # ==================================================================================================
-class X86UnicornSeq(UnicornSeq, X86UnicornModel):
-    pass
-
-
-class X86UnicornSpec(UnicornSpec, X86UnicornModel):
+class X86UnicornSpec(UnicornSpec, X86UnicornSeq):
     pass
 
 
@@ -302,7 +302,7 @@ class X86UnicornCond(X86UnicornSpec):
         return int.from_bytes(target, byteorder='little'), will_jump, is_loop
 
 
-class X86UnicornBpas(UnicornBpas, X86UnicornModel):
+class X86UnicornBpas(UnicornBpas, X86UnicornSeq):
     pass
 
 
@@ -333,7 +333,7 @@ class X86FaultModelAbstract(X86UnicornSpec):
         X86UnicornSpec.trace_instruction(emulator, address, size, model)
 
     def get_rollback_address(self) -> int:
-        return self.code_end
+        return self.exit_addr
 
 
 class X86SequentialAssist(X86FaultModelAbstract):

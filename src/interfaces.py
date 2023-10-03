@@ -579,6 +579,7 @@ class PageTableModifier(NamedTuple):
 MAIN_AREA_SIZE = 4096
 FAULTY_AREA_SIZE = 4096
 REGISTER_REGION_SIZE = 4096
+OVERFLOW_PAD_SIZE = 4096
 GPR_SUBREGION_SIZE = 64
 SIMD_SUBREGION_SIZE = 256
 DATA_SIZE = MAIN_AREA_SIZE + FAULTY_AREA_SIZE + GPR_SUBREGION_SIZE + SIMD_SUBREGION_SIZE
@@ -1052,6 +1053,9 @@ class Minimizer(ABC):
 class TaintTrackerInterface(ABC):
 
     def __init__(self, initial_observations, sandbox_base=0):
+        pass
+
+    def reset(self, initial_observations):
         pass
 
     def start_instruction(self, instruction: Instruction) -> None:

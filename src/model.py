@@ -6,7 +6,7 @@ SPDX-License-Identifier: MIT
 """
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Type, Optional, Set, Dict
+from typing import List, Tuple, Optional, Set, Dict
 
 import copy
 import re
@@ -18,15 +18,26 @@ from unicorn import Uc, UcError, UC_MEM_WRITE, UC_MEM_READ, UC_SECOND_SCALE, UC_
 from .interfaces import CTrace, TestCase, Model, InputTaint, Instruction, ExecutionTrace, \
     TracedInstruction, TracedMemAccess, Input, Tracer, \
     RegisterOperand, FlagsOperand, MemoryOperand, TaintTrackerInterface, TargetDesc, \
-    MAIN_AREA_SIZE, FAULTY_AREA_SIZE
+    MAIN_AREA_SIZE, FAULTY_AREA_SIZE, OVERFLOW_PAD_SIZE
 from .config import CONF
 from .util import Logger, NotSupportedException
 
+# ==================================================================================================
+# Custom Data Types and Constants
+# ==================================================================================================
+MAX_SECTION_SIZE = 4096  # must match MAX_SECTION_SIZE in executor
 
-# ==================================================================================================
-# Abstract Interfaces
-# ==================================================================================================
-class UnicornTargetDesc(ABC):
+Checkpoint = Tuple[object, int, int, int]
+""" context : UnicornContext, next_instruction, flags, spec_window) """
+
+StoreLogEntry = Tuple[int, bytes]
+""" store address, previous value """
+
+UcPointer = int
+""" pointer to a memory address within the Unicorn emulator instance """
+
+
+class UnicornTargetDesc:
     registers: List[int]
     simd128_registers: List[int]
     barriers: List[str]
@@ -35,6 +46,9 @@ class UnicornTargetDesc(ABC):
     reg_str_to_constant: Dict[str, int]
 
 
+# ==================================================================================================
+# Implementation of Observation Clauses
+# ==================================================================================================
 class UnicornTracer(Tracer):
     """
     A simple tracer.
@@ -111,370 +125,6 @@ class UnicornTracer(Tracer):
             self.instruction_id = len(self.execution_trace) - 1
 
 
-class UnicornModel(Model, ABC):
-    """
-    Base class for all Unicorn-based models.
-    Serves as an adapter between Unicorn and our fuzzer.
-    """
-    LOG: Logger
-
-    CODE_SIZE = 4096 * 10
-    OVERFLOW_PAD_SIZE = 4096
-
-    emulator: Uc
-    target_desc: UnicornTargetDesc
-    tracer: UnicornTracer
-    taint_tracker: TaintTrackerInterface
-    taint_tracker_cls: Type[TaintTrackerInterface]
-
-    test_case: TestCase
-    current_instruction: Instruction
-    code_end: int
-    main_area: int
-    faulty_area: int
-    nesting: int = 0
-    in_speculation: bool = False
-    speculation_window: int = 0
-    checkpoints: List[Tuple[object, int, int, int]]
-    ''' List of (context : UnicornContext, next_instruction, flags, spec_window)) '''
-
-    store_logs: List[List[Tuple[int, bytes]]]
-    previous_store: Tuple[int, int, int, int]
-
-    # execution modes
-    tainting_enabled: bool = False
-    execution_tracing_enabled: bool = False
-
-    # fault handling
-    handled_faults: Set[int]
-    pending_fault_id: int = 0
-    previous_context = None
-    rw_protect: bool = False
-    write_protect: bool = False
-
-    # set by subclasses
-    architecture: Tuple[int, int]
-    flags_id: int
-
-    def __init__(self, sandbox_base, code_start):
-        super().__init__(sandbox_base, code_start)
-        self.LOG = Logger()
-
-        self.code_start = code_start
-        self.sandbox_base = sandbox_base
-
-        self.underflow_pad_base = self.sandbox_base - self.OVERFLOW_PAD_SIZE
-        self.overflow_pad_base = self.sandbox_base + MAIN_AREA_SIZE + FAULTY_AREA_SIZE
-        self.main_area = self.sandbox_base
-        self.faulty_area = self.main_area + MAIN_AREA_SIZE
-        self.stack_base = self.main_area + MAIN_AREA_SIZE - 8
-
-        self.overflow_pad_values = bytes(self.OVERFLOW_PAD_SIZE)
-
-        # taint tracking
-        if CONF.contract_observation_clause == 'ctr' or CONF.contract_observation_clause == 'arch':
-            self.initial_taints = [
-                "A", "B", "C", "D", "SI", "DI", "RSP", "CF", "PF", "AF", "ZF", "SF", "TF", "IF",
-                "DF", "OF", "AC"
-            ]
-        else:
-            self.initial_taints = []
-
-        # fault handling
-        self.pending_fault_id = 0
-        self.handled_faults = set()
-
-        # update a list of handled faults based on the config
-        if 'DE-zero' in CONF.permitted_faults or 'DE-overflow' in CONF.permitted_faults:
-            self.handled_faults.add(21)
-        if 'DB-instruction' in CONF.permitted_faults:
-            self.handled_faults.add(10)
-        if 'BP' in CONF.permitted_faults:
-            self.handled_faults.add(21)
-        if 'BR' in CONF.permitted_faults:
-            self.handled_faults.add(13)
-        if 'UD' in CONF.permitted_faults or 'UD-vtx' in CONF.permitted_faults or \
-           'UD-svm' in CONF.permitted_faults:
-            self.handled_faults.add(10)
-        if 'PF-present' in CONF.permitted_faults:
-            self.handled_faults.update([12, 13])
-        if 'PF-writable' in CONF.permitted_faults:
-            self.handled_faults.add(12)
-        if 'PF-smap' in CONF.permitted_faults:
-            self.handled_faults.update([12, 13])
-        if 'GP-noncanonical' in CONF.permitted_faults:
-            self.handled_faults.update([6, 7])
-        if 'assist-dirty' in CONF.permitted_faults:
-            self.handled_faults.update([12, 13])
-        if 'assist-accessed' in CONF.permitted_faults:
-            self.handled_faults.update([12, 13])
-
-    def load_test_case(self, test_case: TestCase) -> None:
-        """
-        Instantiate emulator and load input in registers
-        """
-        self.test_case = test_case
-
-        # create and read a binary
-        code = b''
-        with open(test_case.obj_path, 'rb') as f:
-            f.seek(test_case.actors[0].elf_section.offset)
-            code += f.read(test_case.actors[0].elf_section.size)
-        self.code_end = self.code_start + len(code)
-
-        # initialize emulator in x86-64 mode
-        emulator = Uc(*self.architecture)
-
-        try:
-            # allocate memory
-            emulator.mem_map(self.code_start, self.CODE_SIZE)
-            sandbox_size = self.OVERFLOW_PAD_SIZE * 2 + MAIN_AREA_SIZE + FAULTY_AREA_SIZE
-            emulator.mem_map(self.sandbox_base - self.OVERFLOW_PAD_SIZE, sandbox_size)
-
-            # write machine code to be emulated to memory
-            emulator.mem_write(self.code_start, code)
-
-            # set up callbacks
-            emulator.hook_add(UC_HOOK_MEM_READ | UC_HOOK_MEM_WRITE, self.trace_mem_access, self)
-            emulator.hook_add(UC_HOOK_MEM_UNMAPPED, self.trace_mem_access, self)
-            emulator.hook_add(UC_HOOK_CODE, self.instruction_hook, self)
-
-            self.emulator = emulator
-
-        except UcError as e:
-            self.LOG.error("[UnicornModel:load_test_case] %s" % e)
-
-    @abstractmethod
-    def _load_input(self, input_: Input):
-        """
-        Load registers with given input: this is architecture specific
-        """
-        pass
-
-    def _execute_test_case(self, inputs: List[Input], nesting: int):
-        """
-        Architecture independent code - it starts the emulator
-        """
-        self.nesting = nesting
-
-        contract_traces: List[CTrace] = []
-        execution_traces: List[ExecutionTrace] = []
-        taints = []
-
-        for index, input_ in enumerate(inputs):
-            self.LOG.dbg_model_header(index)
-
-            self._load_input(input_)
-            self.reset_model()
-            start_address = self.code_start
-            while True:
-                self.pending_fault_id = 0
-
-                # execute the test case
-                try:
-                    self.emulator.emu_start(
-                        start_address, self.code_end, timeout=10 * UC_SECOND_SCALE)
-                except UcError as e:
-                    # the type annotation below is ignored because some
-                    # of the packaged versions of Unicorn do not have
-                    # complete type annotations
-                    self.pending_fault_id = e.errno  # type: ignore
-
-                # handle faults
-                if self.pending_fault_id:
-                    # workaround for a Unicorn bug: after catching an exception
-                    # we need to restore some pre-exception context. otherwise,
-                    # the emulator becomes corrupted
-                    self.emulator.context_restore(self.previous_context)
-                    # another workaround, specifically for flags
-                    self.emulator.reg_write(self.flags_id, self.emulator.reg_read(self.flags_id))
-
-                    start_address = self.handle_fault(self.pending_fault_id)
-                    self.pending_fault_id = 0
-                    if start_address and start_address != self.code_end:
-                        continue
-
-                # if we use one of the speculative contracts, we might have some residual simulation
-                # that did not reach the spec. window by the end of simulation. Those need
-                # to be rolled back
-                if self.in_speculation:
-                    start_address = self.rollback()
-                    continue
-
-                # otherwise, we're done with this execution
-                break
-
-            # store the results
-            assert self.tracer
-            contract_traces.append(self.tracer.get_contract_trace(self))
-            execution_traces.append(self.tracer.get_execution_trace())
-            taints.append(self.taint_tracker.get_taint())
-
-        if self.coverage:
-            self.coverage.model_hook(execution_traces)
-
-        return contract_traces, taints
-
-    def trace_test_case(self, inputs, nesting):
-        """
-        Enables tracing and starts the emulator
-        """
-        self.execution_tracing_enabled = True
-        ctraces, _ = self._execute_test_case(inputs, nesting)
-        self.execution_tracing_enabled = False
-        return ctraces
-
-    def trace_test_case_with_taints(self, inputs, nesting):
-        self.tainting_enabled = True
-        self.execution_tracing_enabled = True
-        ctraces, taints = self._execute_test_case(inputs, nesting)
-        self.tainting_enabled = False
-        self.execution_tracing_enabled = False
-        return ctraces, taints
-
-    def dbg_get_trace_detailed(self, input, nesting) -> List[str]:
-        _, __ = self._execute_test_case([input], nesting)
-        trace = self.tracer.get_contract_trace_full()
-        normalized_trace = []
-        for val in trace:
-            if self.code_start <= val and val < self.code_start + 0x1000:
-                normalized_trace.append(f"pc:0x{val - self.code_start:x}")
-            elif self.underflow_pad_base < val and val < (self.overflow_pad_base + 0x1000):
-                normalized_trace.append(f"mem:0x{val - self.sandbox_base:x}")
-            else:
-                normalized_trace.append(f"val:{val}")
-        return normalized_trace
-
-    def reset_model(self):
-        self.checkpoints = []
-        self.in_speculation = False
-        self.speculation_window = 0
-        self.tracer.init_trace(self.emulator, self.target_desc)
-        if self.tainting_enabled:
-            self.taint_tracker = self.taint_tracker_cls(self.initial_taints, self.sandbox_base)
-        else:
-            self.taint_tracker = DummyTaintTracker([])
-        self.pending_fault_id = 0
-
-    @abstractmethod
-    def print_state(self, oneline: bool = False):
-        pass
-
-    @staticmethod
-    def errno_to_str(errno: int) -> str:
-        if errno == uc.UC_ERR_OK:
-            return "OK (UC_ERR_OK)"
-        elif errno == uc.UC_ERR_NOMEM:
-            return "No memory available or memory not present (UC_ERR_NOMEM)"
-        elif errno == uc.UC_ERR_ARCH:
-            return "Invalid/unsupported architecture (UC_ERR_ARCH)"
-        elif errno == uc.UC_ERR_HANDLE:
-            return "Invalid handle (UC_ERR_HANDLE)"
-        elif errno == uc.UC_ERR_MODE:
-            return "Invalid mode (UC_ERR_MODE)"
-        elif errno == uc.UC_ERR_VERSION:
-            return "Different API version between core & binding (UC_ERR_VERSION)"
-        elif errno == uc.UC_ERR_READ_UNMAPPED:
-            return "Invalid memory read (UC_ERR_READ_UNMAPPED)"
-        elif errno == uc.UC_ERR_WRITE_UNMAPPED:
-            return "Invalid memory write (UC_ERR_WRITE_UNMAPPED)"
-        elif errno == uc.UC_ERR_FETCH_UNMAPPED:
-            return "Invalid memory fetch (UC_ERR_FETCH_UNMAPPED)"
-        elif errno == uc.UC_ERR_HOOK:
-            return "Invalid hook type (UC_ERR_HOOK)"
-        elif errno == uc.UC_ERR_INSN_INVALID:
-            return "Invalid instruction (UC_ERR_INSN_INVALID)"
-        elif errno == uc.UC_ERR_MAP:
-            return "Invalid memory mapping (UC_ERR_MAP)"
-        elif errno == uc.UC_ERR_WRITE_PROT:
-            return "Write to write-protected memory (UC_ERR_WRITE_PROT)"
-        elif errno == uc.UC_ERR_READ_PROT:
-            return "Read from non-readable memory (UC_ERR_READ_PROT)"
-        elif errno == uc.UC_ERR_FETCH_PROT:
-            return "Fetch from non-executable memory (UC_ERR_FETCH_PROT)"
-        elif errno == uc.UC_ERR_ARG:
-            return "Invalid argument (UC_ERR_ARG)"
-        elif errno == uc.UC_ERR_READ_UNALIGNED:
-            return "Read from unaligned memory (UC_ERR_READ_UNALIGNED)"
-        elif errno == uc.UC_ERR_WRITE_UNALIGNED:
-            return "Write to unaligned memory (UC_ERR_WRITE_UNALIGNED)"
-        elif errno == uc.UC_ERR_FETCH_UNALIGNED:
-            return "Fetch from unaligned memory (UC_ERR_FETCH_UNALIGNED)"
-        elif errno == uc.UC_ERR_RESOURCE:
-            return "Insufficient resource (UC_ERR_RESOURCE)"
-        elif errno == uc.UC_ERR_EXCEPTION:
-            return "Misc. CPU exception (UC_ERR_EXCEPTION)"
-        else:
-            return "Unknown error code"
-
-    @staticmethod
-    def instruction_hook(emulator: Uc, address: int, size: int, model: UnicornModel) -> None:
-        """
-        Invoked when an instruction is executed.
-        it records instruction
-        """
-        model.previous_context = model.emulator.context_save()
-        model.current_instruction = model.test_case.address_map[0][address - model.code_start]
-        model.trace_instruction(emulator, address, size, model)
-
-    def handle_fault(self, errno: int) -> int:
-        self.LOG.dbg_model_exception(errno, self.errno_to_str(errno))
-
-        next_addr = self.speculate_fault(errno)
-        if next_addr:
-            return next_addr
-
-        # if we're speculating, rollback regardless of the fault type
-        if self.in_speculation:
-            return 0
-
-        # an expected fault - terminate execution
-        if errno in self.handled_faults:
-            return self.code_end
-
-        # unexpected fault - throw an error
-        self.print_state()
-        self.LOG.error(f"Unexpected exception {errno} {self.errno_to_str(errno)}", print_tb=True)
-
-    @staticmethod
-    @abstractmethod
-    def trace_instruction(emulator: Uc, address: int, size: int, model) -> None:
-        pass
-
-    @staticmethod
-    @abstractmethod
-    def trace_mem_access(emulator: Uc, access: int, address: int, size: int, value: int,
-                         model) -> None:
-        pass
-
-    @staticmethod
-    def speculate_mem_access(emulator, access, address, size, value, model) -> None:
-        pass
-
-    @staticmethod
-    def speculate_instruction(emulator: Uc, address, size, model) -> None:
-        pass
-
-    def post_execution_patch(self) -> None:
-        pass
-
-    def speculate_fault(self, errno: int) -> int:
-        """
-        return the address of the first speculative instruction
-        return 0 if not speculation is triggered
-        """
-        return 0
-
-    def checkpoint(self, emulator: Uc, next_instruction: int):
-        pass
-
-    def rollback(self) -> int:
-        return 0
-
-
-# ==================================================================================================
-# Implementation of Observation Clauses
-# ==================================================================================================
 class L1DTracer(UnicornTracer):
 
     def init_trace(self, _, __):
@@ -585,12 +235,363 @@ class GPRTracer(UnicornTracer):
 # ==================================================================================================
 # Implementation of Execution Clauses
 # ==================================================================================================
+class UnicornModel(Model, ABC):
+    """
+    Base class for all Unicorn-based models.
+    Defines the interface for all models.
+    """
+    test_case: TestCase
+    current_instruction: Instruction
+
+    # service objects
+    LOG: Logger
+    emulator: Uc
+    target_desc: UnicornTargetDesc
+    tracer: UnicornTracer
+    taint_tracker: TaintTrackerInterface
+
+    # checkpointing
+    checkpoints: List[Checkpoint]
+    store_logs: List[List[StoreLogEntry]]
+
+    # speculation control
+    in_speculation: bool = False
+    nesting: int = 0
+    speculation_window: int = 0
+    previous_context = None
+
+    # execution modes
+    tainting_enabled: bool = False
+    execution_tracing_enabled: bool = False
+
+    def __init__(self, sandbox_base: int, code_start: int):
+        super().__init__(sandbox_base, code_start)
+        self.LOG = Logger()
+
+        self.code_start: UcPointer = code_start
+        self.sandbox_base: UcPointer = sandbox_base
+
+    @staticmethod
+    def instruction_hook(emulator: Uc, address: int, size: int, model: UnicornModel) -> None:
+        """
+        Invoked when an instruction is executed.
+        it records instruction
+        """
+        model.previous_context = model.emulator.context_save()
+        model.current_instruction = model.test_case.address_map[0][address - model.code_start]
+        model.trace_instruction(emulator, address, size, model)
+
+    @abstractmethod
+    def load_test_case(self, test_case: TestCase) -> None:
+        pass
+
+    @abstractmethod
+    def _load_input(self, input_: Input):
+        """
+        Load registers with given input: this is architecture specific
+        """
+        pass
+
+    @abstractmethod
+    def _execute_test_case(self, inputs: List[Input],
+                           nesting: int) -> Tuple[List[CTrace], List[InputTaint]]:
+        pass
+
+    def trace_test_case(self, inputs, nesting) -> List[CTrace]:
+        """
+        Executes the test case with the inputs, and returns the corresponding contract traces
+        """
+        self.execution_tracing_enabled = True
+        ctraces, _ = self._execute_test_case(inputs, nesting)
+        self.execution_tracing_enabled = False
+        return ctraces
+
+    def trace_test_case_with_taints(self, inputs, nesting):
+        self.tainting_enabled = True
+        self.execution_tracing_enabled = True
+        ctraces, taints = self._execute_test_case(inputs, nesting)
+        self.tainting_enabled = False
+        self.execution_tracing_enabled = False
+        return ctraces, taints
+
+    def dbg_get_trace_detailed(self, input, nesting) -> List[str]:
+        _, __ = self._execute_test_case([input], nesting)
+        trace = self.tracer.get_contract_trace_full()
+        normalized_trace = []
+        for val in trace:
+            if self.code_start <= val and val < self.code_start + 0x1000:
+                normalized_trace.append(f"pc:0x{val - self.code_start:x}")
+            elif self.underflow_pad_base < val and val < (self.overflow_pad_base + 0x1000):
+                normalized_trace.append(f"mem:0x{val - self.sandbox_base:x}")
+            else:
+                normalized_trace.append(f"val:{val}")
+        return normalized_trace
+
+    @abstractmethod
+    def reset_model(self):
+        pass
+
+    @abstractmethod
+    def print_state(self, oneline: bool = False):
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def trace_instruction(emulator: Uc, address: int, size: int, model) -> None:
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def trace_mem_access(emulator: Uc, access: int, address: int, size: int, value: int,
+                         model) -> None:
+        pass
+
+    @staticmethod
+    def speculate_mem_access(emulator, access, address, size, value, model) -> None:
+        pass
+
+    @staticmethod
+    def speculate_instruction(emulator: Uc, address, size, model) -> None:
+        pass
+
+    def post_execution_patch(self) -> None:
+        pass
+
+    def speculate_fault(self, errno: int) -> int:
+        """
+        return the address of the first speculative instruction
+        return 0 if not speculation is triggered
+        """
+        return 0
+
+    def checkpoint(self, emulator: Uc, next_instruction: int):
+        pass
+
+    def rollback(self) -> int:
+        return 0
+
+
 class UnicornSeq(UnicornModel):
     """
-    A simple, in-order contract.
-    The only thing it does is tracing.
-    No manipulation of the control or data flow.
+    The core model.
+    Implements in-order execution and tracing of test cases, as well as fault handling.
+    Does not implement any speculative contracts.
     """
+    # test case code and data
+    code_start: UcPointer  # the lower bound of the code area
+    code_end: UcPointer  # the upper bound of the code area
+    exit_addr: UcPointer  # the address of the test case exit instruction
+
+    underflow_pad_base: UcPointer
+    main_area: UcPointer
+    faulty_area: UcPointer
+    overflow_pad_base: UcPointer
+    stack_base: UcPointer
+
+    # ISA-specific fields
+    architecture: Tuple[int, int]
+    flags_id: int
+
+    # fault handling
+    handled_faults: Set[int]
+    pending_fault_id: int = 0
+    fault_mapping = {
+        "DE-zero": [21],
+        "DE-overflow": [21],
+        "DB-instruction": [10],
+        "BP": [21],
+        "BR": [13],
+        "UD": [10],
+        "UD-vtx": [10],
+        "UD-svm": [10],
+        "PF-present": [12, 13],
+        "PF-writable": [12],
+        "PF-smap": [12, 13],
+        "GP-noncanonical": [6, 7],
+        "assist-dirty": [12, 13],
+        "assist-accessed": [12, 13],
+    }
+
+    def __init__(self, sandbox_base, code_start):
+        super().__init__(sandbox_base, code_start)
+
+        # sandbox
+        self.underflow_pad_base = self.sandbox_base - OVERFLOW_PAD_SIZE
+        self.overflow_pad_base = self.sandbox_base + MAIN_AREA_SIZE + FAULTY_AREA_SIZE
+        self.main_area = self.sandbox_base
+        self.faulty_area = self.main_area + MAIN_AREA_SIZE
+        self.stack_base = self.main_area + MAIN_AREA_SIZE - 8
+        self.overflow_pad_values = bytes(OVERFLOW_PAD_SIZE)
+
+        # taint tracking
+        self.initial_taints = []
+        if CONF.contract_observation_clause == 'ctr' or CONF.contract_observation_clause == 'arch':
+            self.initial_taints = [
+                "A", "B", "C", "D", "SI", "DI", "RSP", "CF", "PF", "AF", "ZF", "SF", "TF", "IF",
+                "DF", "OF", "AC"
+            ]
+        else:
+            self.initial_taints = []
+
+        # fault handling
+        self.pending_fault_id = 0
+        self.handled_faults = set()
+        for fault in CONF.permitted_faults:
+            if fault in self.fault_mapping:
+                self.handled_faults.update(self.fault_mapping[fault])
+            else:
+                raise NotSupportedException(f"Fault type {fault} is not supported")
+
+    def reset_model(self):
+        self.checkpoints = []
+        self.in_speculation = False
+        self.speculation_window = 0
+        self.tracer.init_trace(self.emulator, self.target_desc)
+        if self.tainting_enabled:
+            self.taint_tracker.reset(self.initial_taints)
+        else:
+            self.taint_tracker = DummyTaintTracker([])
+        self.pending_fault_id = 0
+
+    def load_test_case(self, test_case: TestCase) -> None:
+        """
+        Instantiate emulator and copy the test case into the emulator's memory
+        """
+        self.test_case = test_case
+        actors = sorted(test_case.actors.values(), key=lambda a: (a.id_))
+
+        # # read sections from the test case binary
+        # sections = []
+        # with open(test_case.obj_path, 'rb') as bin_file:
+        #     for actor in actors:
+        #         bin_file.seek(actor.elf_section.offset)
+        #         sections.append(bin_file.read(actor.elf_section.size))
+
+        # # create a complete binary
+        # code = b''
+        # for section in sections:
+        #     code += section
+        #     padding = MAX_SECTION_SIZE - (len(section) % MAX_SECTION_SIZE)
+        #     code += b'\x90' * padding  # fill with NOPs
+        # self.code_end = self.code_start + len(code)
+        # self.exit_addr = self.code_start + test_case.actors[0].elf_section.size - 1
+
+        # create and read a binary
+        code = b''
+        with open(test_case.obj_path, 'rb') as f:
+            f.seek(test_case.actors[0].elf_section.offset)
+            code += f.read(test_case.actors[0].elf_section.size)
+        self.code_end = self.code_start + len(code)
+        self.exit_addr = self.code_end
+
+        # initialize emulator in x86-64 mode
+        emulator = Uc(*self.architecture)
+
+        try:
+            # allocate memory
+            emulator.mem_map(self.code_start, MAX_SECTION_SIZE * len(actors))
+            sandbox_size = OVERFLOW_PAD_SIZE * 2 + MAIN_AREA_SIZE + FAULTY_AREA_SIZE
+            emulator.mem_map(self.sandbox_base - OVERFLOW_PAD_SIZE, sandbox_size)
+
+            # write machine code to be emulated to memory
+            emulator.mem_write(self.code_start, code)
+
+            # set up callbacks
+            emulator.hook_add(UC_HOOK_MEM_READ | UC_HOOK_MEM_WRITE, self.trace_mem_access, self)
+            emulator.hook_add(UC_HOOK_MEM_UNMAPPED, self.trace_mem_access, self)
+            emulator.hook_add(UC_HOOK_CODE, self.instruction_hook, self)
+
+            self.emulator = emulator
+
+        except UcError as e:
+            self.LOG.error("[UnicornModel:load_test_case] %s" % e)
+
+    def _execute_test_case(self, inputs: List[Input], nesting: int):
+        """
+        Architecture independent code - it starts the emulator
+        """
+        self.nesting = nesting
+
+        contract_traces: List[CTrace] = []
+        execution_traces: List[ExecutionTrace] = []
+        taints = []
+
+        for index, input_ in enumerate(inputs):
+            self.LOG.dbg_model_header(index)
+
+            self._load_input(input_)
+            self.reset_model()
+            start_address = self.code_start
+            while True:
+                self.pending_fault_id = 0
+
+                # execute the test case
+                try:
+                    self.emulator.emu_start(
+                        start_address, self.code_end, timeout=10 * UC_SECOND_SCALE)
+                except UcError as e:
+                    # the type annotation below is ignored because some
+                    # of the packaged versions of Unicorn do not have
+                    # complete type annotations
+                    self.pending_fault_id = e.errno  # type: ignore
+
+                # handle faults
+                if self.pending_fault_id:
+                    # workaround for a Unicorn bug: after catching an exception
+                    # we need to restore some pre-exception context. otherwise,
+                    # the emulator becomes corrupted
+                    self.emulator.context_restore(self.previous_context)
+                    # another workaround, specifically for flags
+                    self.emulator.reg_write(self.flags_id, self.emulator.reg_read(self.flags_id))
+
+                    start_address = self.handle_fault(self.pending_fault_id)
+                    self.pending_fault_id = 0
+                    if start_address and start_address != self.exit_addr:
+                        continue
+
+                # if we use one of the speculative contracts, we might have some residual simulation
+                # that did not reach the spec. window by the end of simulation. Those need
+                # to be rolled back
+                if self.in_speculation:
+                    start_address = self.rollback()
+                    continue
+
+                # otherwise, we're done with this execution
+                break
+
+            # store the results
+            assert self.tracer
+            contract_traces.append(self.tracer.get_contract_trace(self))
+            execution_traces.append(self.tracer.get_execution_trace())
+            taints.append(self.taint_tracker.get_taint())
+
+        if self.coverage:
+            self.coverage.model_hook(execution_traces)
+
+        return contract_traces, taints
+
+    def handle_fault(self, errno: int) -> int:
+        self.LOG.dbg_model_exception(errno, errno_to_str(errno))
+
+        # when a fault is triggered, CPU stores the PC and the fault type
+        # on stack - this has to be mirrored at the contract level
+        self.tracer.observe_mem_access(UC_MEM_WRITE, self.stack_base, 8, errno, self)
+
+        next_addr = self.speculate_fault(errno)
+        if next_addr:
+            return next_addr
+
+        # if we're speculating, rollback regardless of the fault type
+        if self.in_speculation:
+            return 0
+
+        # an expected fault - terminate execution
+        if errno in self.handled_faults:
+            return self.exit_addr
+
+        # unexpected fault - throw an error
+        self.print_state()
+        self.LOG.error(f"Unexpected exception {errno} {errno_to_str(errno)}", print_tb=True)
 
     @staticmethod
     def trace_instruction(emulator, address, size, model) -> None:
@@ -607,15 +608,8 @@ class UnicornSeq(UnicornModel):
         # speculate_mem_access is empty for seq, nonempty in subclasses
         model.speculate_mem_access(emulator, access, address, size, value, model)
 
-    def handle_fault(self, errno: int) -> int:
-        # when a fault is triggered, CPU stores the PC and the fault type
-        # on stack - this has to be mirrored at the contract level
-        self.tracer.observe_mem_access(UC_MEM_WRITE, self.stack_base, 8, errno, self)
-        # since the address of the fault handler is input-independent, no need for tainting
-        return super().handle_fault(errno)
 
-
-class UnicornSpec(UnicornModel):
+class UnicornSpec(UnicornSeq):
     """
     Intermediary class for all speculative contracts.
     """
@@ -647,13 +641,6 @@ class UnicornSpec(UnicornModel):
                 emulator.emu_stop()
 
         UnicornSeq.trace_instruction(emulator, address, size, model)
-
-    def handle_fault(self, errno: int) -> int:
-        # when a fault is triggered, CPU stores the PC and the fault type
-        # on stack - this has to be mirrored at the contract level
-        self.tracer.observe_mem_access(UC_MEM_WRITE, self.stack_base, 8, errno, self)
-        # since the address of the fault handler is input-independent, no need for tainting
-        return super().handle_fault(errno)
 
     def checkpoint(self, emulator: Uc, next_instruction):
         flags = emulator.reg_read(self.target_desc.flags_register)
@@ -799,8 +786,11 @@ class BaseTaintTracker(TaintTrackerInterface):
     _simd_registers: List[int]
 
     def __init__(self, initial_observations, sandbox_base=0):
-        self.initial_observations = initial_observations
         self.sandbox_base = sandbox_base
+        self.reset(initial_observations)
+
+    def reset(self, initial_observations):
+        self.initial_observations = initial_observations
         self.flag_dependencies = {}
         self.reg_dependencies = {}
         self.mem_dependencies = {}
@@ -976,3 +966,53 @@ class BaseTaintTracker(TaintTrackerInterface):
             taint[i].fill(False)
 
         return taint
+
+
+# ==================================================================================================
+# Utility functions
+# ==================================================================================================
+def errno_to_str(errno: int) -> str:
+    if errno == uc.UC_ERR_OK:
+        return "OK (UC_ERR_OK)"
+    elif errno == uc.UC_ERR_NOMEM:
+        return "No memory available or memory not present (UC_ERR_NOMEM)"
+    elif errno == uc.UC_ERR_ARCH:
+        return "Invalid/unsupported architecture (UC_ERR_ARCH)"
+    elif errno == uc.UC_ERR_HANDLE:
+        return "Invalid handle (UC_ERR_HANDLE)"
+    elif errno == uc.UC_ERR_MODE:
+        return "Invalid mode (UC_ERR_MODE)"
+    elif errno == uc.UC_ERR_VERSION:
+        return "Different API version between core & binding (UC_ERR_VERSION)"
+    elif errno == uc.UC_ERR_READ_UNMAPPED:
+        return "Invalid memory read (UC_ERR_READ_UNMAPPED)"
+    elif errno == uc.UC_ERR_WRITE_UNMAPPED:
+        return "Invalid memory write (UC_ERR_WRITE_UNMAPPED)"
+    elif errno == uc.UC_ERR_FETCH_UNMAPPED:
+        return "Invalid memory fetch (UC_ERR_FETCH_UNMAPPED)"
+    elif errno == uc.UC_ERR_HOOK:
+        return "Invalid hook type (UC_ERR_HOOK)"
+    elif errno == uc.UC_ERR_INSN_INVALID:
+        return "Invalid instruction (UC_ERR_INSN_INVALID)"
+    elif errno == uc.UC_ERR_MAP:
+        return "Invalid memory mapping (UC_ERR_MAP)"
+    elif errno == uc.UC_ERR_WRITE_PROT:
+        return "Write to write-protected memory (UC_ERR_WRITE_PROT)"
+    elif errno == uc.UC_ERR_READ_PROT:
+        return "Read from non-readable memory (UC_ERR_READ_PROT)"
+    elif errno == uc.UC_ERR_FETCH_PROT:
+        return "Fetch from non-executable memory (UC_ERR_FETCH_PROT)"
+    elif errno == uc.UC_ERR_ARG:
+        return "Invalid argument (UC_ERR_ARG)"
+    elif errno == uc.UC_ERR_READ_UNALIGNED:
+        return "Read from unaligned memory (UC_ERR_READ_UNALIGNED)"
+    elif errno == uc.UC_ERR_WRITE_UNALIGNED:
+        return "Write to unaligned memory (UC_ERR_WRITE_UNALIGNED)"
+    elif errno == uc.UC_ERR_FETCH_UNALIGNED:
+        return "Fetch from unaligned memory (UC_ERR_FETCH_UNALIGNED)"
+    elif errno == uc.UC_ERR_RESOURCE:
+        return "Insufficient resource (UC_ERR_RESOURCE)"
+    elif errno == uc.UC_ERR_EXCEPTION:
+        return "Misc. CPU exception (UC_ERR_EXCEPTION)"
+    else:
+        return "Unknown error code"
