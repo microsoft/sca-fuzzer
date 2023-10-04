@@ -468,8 +468,8 @@ class UnicornSeq(UnicornModel):
         Instantiate emulator and copy the test case into the emulator's memory
         """
         self.test_case = test_case
-        self.current_actor = test_case.actors[0]
-        assert self.current_actor.id_ == 0
+        main_actor = test_case.actors["0_host"]
+        self.current_actor = main_actor
         actors = sorted(test_case.actors.values(), key=lambda a: (a.id_))
 
         # read sections from the test case binary
@@ -486,7 +486,7 @@ class UnicornSeq(UnicornModel):
             padding = MAX_SECTION_SIZE - (len(section) % MAX_SECTION_SIZE)
             code += b'\x90' * padding  # fill with NOPs
         self.code_end = self.code_start + len(code)
-        self.exit_addr = self.code_start + test_case.actors[0].elf_section.size - 1
+        self.exit_addr = self.code_start + main_actor.elf_section.size - 1
 
         # initialize emulator in x86-64 mode
         emulator = Uc(*self.architecture)

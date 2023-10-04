@@ -186,7 +186,8 @@ class X86UnicornSeq(UnicornSeq):
             mem_op = self.current_instruction.get_mem_operands()[0]
             mem_regs = re.split(r'\+|-|\*', mem_op.value)
             assert len(mem_regs) == 2 and "R14" in mem_regs[0].upper(), "Invalid format of BNDCU"
-            offset_reg = self.uc_target_desc.reg_str_to_constant.get(mem_regs[1].upper().strip(), None)
+            offset_reg = self.uc_target_desc.reg_str_to_constant.get(mem_regs[1].upper().strip(),
+                                                                     None)
             if offset_reg and self.emulator.reg_read(offset_reg) > 0x1000:  # type: ignore
                 self.pending_fault_id = 13
                 self.emulator.emu_stop()

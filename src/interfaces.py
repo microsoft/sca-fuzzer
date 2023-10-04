@@ -17,6 +17,7 @@ from enum import Enum
 # Actors
 # ==================================================================================================
 ActorID = int
+ActorName = str
 
 
 class ActorType(Enum):
@@ -38,11 +39,6 @@ class Actor:
     def __init__(self, type_: ActorType, id_: ActorID) -> None:
         self.type_ = type_
         self.id_ = id_
-
-    @property
-    def name(self) -> str:
-        type_str = "host" if self.type_ == ActorType.HOST else "guest"
-        return f"{self.id_}_{type_str}"
 
 
 # ==================================================================================================
@@ -529,9 +525,9 @@ class TestCase:
     asm_path: str = ''
     obj_path: str = ''
     bin_path: str = ''
-    actors: Dict[int, Actor]
+    actors: Dict[ActorName, Actor]
     functions: List[Function]
-    address_map: Dict[int, Dict[int, Instruction]]
+    address_map: Dict[ActorID, Dict[int, Instruction]]
     faulty_pte: PageTableModifier
     seed: int
     exit: BasicBlock
@@ -539,7 +535,7 @@ class TestCase:
 
     def __init__(self, seed: int):
         self.seed = seed
-        self.actors = {0: Actor(ActorType.HOST, 0)}
+        self.actors = {"0_host": Actor(ActorType.HOST, 0)}
         self.functions = []
         self.address_map = {}
         self.symbol_table = []
@@ -556,10 +552,9 @@ class TestCase:
                 return func
         raise Exception(f"ERROR: Function {name} not found")
 
-    def get_actor_by_name(self, name: str) -> Actor:
-        for actor in self.actors.values():
-            if actor.name == name:
-                return actor
+    def get_actor_by_name(self, name: ActorName) -> Actor:
+        if name in self.actors:
+            return self.actors[name]
         raise Exception(f"ERROR: Actor {name} not found")
 
     def save(self, path: str) -> None:
