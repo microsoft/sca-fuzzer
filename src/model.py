@@ -16,7 +16,7 @@ SPDX-License-Identifier: MIT
 """
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Optional, Set, Dict
+from typing import List, Tuple, Optional, Set, Dict, Callable
 
 import copy
 import re
@@ -26,16 +26,16 @@ from unicorn import Uc, UcError, UC_MEM_WRITE, UC_MEM_READ, UC_SECOND_SCALE, UC_
     UC_HOOK_MEM_WRITE, UC_HOOK_CODE, UC_HOOK_MEM_UNMAPPED
 
 from .interfaces import CTrace, TestCase, Model, InputTaint, Instruction, ExecutionTrace, \
-    TracedInstruction, TracedMemAccess, Input, Tracer, Actor, \
+    TracedInstruction, TracedMemAccess, Input, Tracer, Actor, Symbol, \
     RegisterOperand, FlagsOperand, MemoryOperand, TaintTrackerInterface, TargetDesc, \
-    MAIN_AREA_SIZE, FAULTY_AREA_SIZE, OVERFLOW_PAD_SIZE
+    MAIN_AREA_SIZE, FAULTY_AREA_SIZE, OVERFLOW_PAD_SIZE, MAX_SECTION_SIZE
 from .config import CONF
 from .util import Logger, NotSupportedException
 
 # ==================================================================================================
 # Custom Data Types and Constants
 # ==================================================================================================
-MAX_SECTION_SIZE = 4096  # must match MAX_SECTION_SIZE in executor
+CRITICAL_ERROR = uc.UC_ERR_NOMEM  # the model never handles this error, hence it will always crash
 
 Checkpoint = Tuple[object, int, int, int]
 """ context : UnicornContext, next_instruction, flags, spec_window) """
@@ -52,12 +52,83 @@ class UnicornTargetDesc:
     simd128_registers: List[int]
     barriers: List[str]
     flags_register: int
+    pc_register: int
     reg_decode: Dict[str, int]
     reg_str_to_constant: Dict[str, int]
 
 
 # ==================================================================================================
-# Implementation of Observation Clauses
+# Macro interpretation
+# ==================================================================================================
+class MacroInterpreter:
+
+    def __init__(self, model: UnicornSeq):
+        self.model = model
+
+    def load_test_case(self, test_case: TestCase):
+        self.test_case = test_case
+        self.function_table = [symbol for symbol in test_case.symbol_table if symbol.type_ == 0]
+        self.function_table.sort(key=lambda s: [s.arg])
+        self.macro_table = [symbol for symbol in test_case.symbol_table if symbol.type_ != 0]
+        self.sid_to_actor_name = {actor.id_: name for name, actor in test_case.actors.items()}
+
+    def interpret(self, macro: Instruction, address: int):
+        macros: Dict[str, Callable] = {
+            "switch": self.macro_switch,
+            "measurement_start": self.macro_measurement_start,
+            "measurement_end": self.macro_measurement_end,
+        }
+
+        actor_id = self.model.current_actor.id_
+        macro_offset = address - (self.model.code_start + MAX_SECTION_SIZE * actor_id)
+        macro_args = self._get_macro_args(actor_id, macro_offset)
+
+        interpreter_func = macros[macro.operands[0].value.lower()[1:]]
+        interpreter_func(*macro_args)
+
+    def _get_macro_args(self, section_id: int, section_offset: int) -> Tuple[int, int, int, int]:
+        # find the macro entry in the symbol table
+        for symbol in self.macro_table:
+            if symbol.aid == section_id and symbol.offset == section_offset:
+                args = symbol.arg
+                return args & 0xFFFF, (args >> 16) & 0xFFFF, (args >> 32) & 0xFFFF, \
+                    (args >> 48) & 0xFFFF
+        Logger().warning("get_macro_args", "macro not found in symbol table")
+        raise UcError(CRITICAL_ERROR)
+
+    def _find_function_by_id(self, function_id: int) -> Symbol:
+        if function_id < 0 or function_id >= len(self.function_table):
+            Logger().warning("find_function_by_id", "function not found in symbol table")
+            raise UcError(CRITICAL_ERROR)
+        return self.function_table[function_id]
+
+    def macro_switch(self, arg1: int, arg2: int, arg3: int, arg4: int):
+        """
+        Switch the active actor and jump to the corresponding function address
+        """
+        model = self.model
+        section_id = arg1
+        section_addr = model.code_start + MAX_SECTION_SIZE * section_id
+
+        function_id = arg2
+        function_symbol = self._find_function_by_id(function_id)
+        function_addr = section_addr + function_symbol.offset
+
+        actor_name = self.sid_to_actor_name[section_id]
+        model.current_actor = self.test_case.actors[actor_name]
+        model.emulator.reg_write(model.uc_target_desc.pc_register, function_addr)
+
+    def macro_measurement_start(self, arg1: int, arg2: int, arg3: int, arg4: int):
+        if not self.model.in_speculation:
+            self.model.tracer.enable_tracing = True
+
+    def macro_measurement_end(self, arg1: int, arg2: int, arg3: int, arg4: int):
+        if not self.model.in_speculation:
+            self.model.tracer.enable_tracing = False
+
+
+# ==================================================================================================
+# Observation Clauses
 # ==================================================================================================
 class UnicornTracer(Tracer):
     """
@@ -67,6 +138,7 @@ class UnicornTracer(Tracer):
     trace: List[int]
     execution_trace: ExecutionTrace
     instruction_id: int
+    enable_tracing: bool = True
 
     def __init__(self):
         super().__init__()
@@ -97,16 +169,19 @@ class UnicornTracer(Tracer):
         return self.execution_trace
 
     def add_mem_address_to_trace(self, address: int, model: UnicornModel):
-        self.trace.append(address)
-        model.taint_tracker.taint_memory_access_address()
+        if self.enable_tracing:
+            self.trace.append(address)
+            model.taint_tracker.taint_memory_access_address()
 
     def add_pc_to_trace(self, address: int, model: UnicornModel):
-        self.trace.append(address)
-        model.taint_tracker.taint_pc()
+        if self.enable_tracing:
+            self.trace.append(address)
+            model.taint_tracker.taint_pc()
 
     def add_dependencies_to_trace(self, address: int, dependency_hash: int, model: UnicornModel):
-        self.trace.append(dependency_hash)
-        model.taint_tracker.taint_memory_access_address()
+        if self.enable_tracing:
+            self.trace.append(dependency_hash)
+            model.taint_tracker.taint_memory_access_address()
 
     def observe_mem_access(self, access, address: int, size: int, value: int,
                            model: UnicornModel) -> None:
@@ -124,13 +199,13 @@ class UnicornTracer(Tracer):
             traced_instruction.accesses.append(TracedMemAccess(normalized_address, val, is_store))
 
     def observe_instruction(self, address: int, size: int, model: UnicornModel) -> None:
-        normalized_address = address - model.code_start
-        self.LOG.dbg_model_instruction(normalized_address, model)
+        self.LOG.dbg_model_instruction(address, model)
 
         if model.in_speculation:
             return
 
         if model.execution_tracing_enabled:
+            normalized_address = address - model.code_start
             self.execution_trace.append(TracedInstruction(normalized_address, []))
             self.instruction_id = len(self.execution_trace) - 1
 
@@ -257,6 +332,7 @@ class UnicornModel(Model, ABC):
     uc_target_desc: UnicornTargetDesc
     tracer: UnicornTracer
     taint_tracker: TaintTrackerInterface
+    macro_interpreter: MacroInterpreter
 
     # checkpointing
     checkpoints: List[Checkpoint]
@@ -277,6 +353,7 @@ class UnicornModel(Model, ABC):
         self.LOG = Logger()
 
         self.code_start: UcPointer = code_start
+        self.code_end: UcPointer = 0  # set by subclasses
         self.sandbox_base: UcPointer = sandbox_base
 
     @staticmethod
@@ -286,10 +363,6 @@ class UnicornModel(Model, ABC):
         Invoked when an instruction is executed.
         it records instruction
         """
-        pass
-
-    @abstractmethod
-    def load_test_case(self, test_case: TestCase) -> None:
         pass
 
     @abstractmethod
@@ -326,7 +399,7 @@ class UnicornModel(Model, ABC):
         trace = self.tracer.get_contract_trace_full()
         normalized_trace = []
         for val in trace:
-            if self.code_start <= val and val < self.code_start + 0x1000:
+            if self.code_start <= val and val < self.code_end:
                 normalized_trace.append(f"pc:0x{val - self.code_start:x}")
             elif self.underflow_pad_base < val and val < (self.overflow_pad_base + 0x1000):
                 normalized_trace.append(f"mem:0x{val - self.sandbox_base:x}")
@@ -431,6 +504,7 @@ class UnicornSeq(UnicornModel):
 
     def __init__(self, sandbox_base, code_start):
         super().__init__(sandbox_base, code_start)
+        self.macro_interpreter = MacroInterpreter(self)
 
         # sandbox
         self.underflow_pad_base = self.sandbox_base - OVERFLOW_PAD_SIZE
@@ -468,6 +542,8 @@ class UnicornSeq(UnicornModel):
         Instantiate emulator and copy the test case into the emulator's memory
         """
         self.test_case = test_case
+        self.macro_interpreter.load_test_case(test_case)
+
         main_actor = test_case.actors["0_host"]
         self.current_actor = main_actor
         actors = sorted(test_case.actors.values(), key=lambda a: (a.id_))
@@ -592,17 +668,6 @@ class UnicornSeq(UnicornModel):
         return address == self.exit_addr or \
             (self.current_actor.id_ == 0 and address > self.exit_addr)
 
-    @staticmethod
-    def instruction_hook(emulator: Uc, address: int, size: int, model) -> None:
-        # terminate execution if the exit instruction is reached
-        if model.exit_reached(address):
-            emulator.emu_stop()
-            return
-
-        model.previous_context = model.emulator.context_save()
-        model.current_instruction = model.test_case.address_map[0][address - model.code_start]
-        model.trace_instruction(emulator, address, size, model)
-
     def handle_fault(self, errno: int) -> int:
         self.LOG.dbg_model_exception(errno, self.err_to_str(errno))
 
@@ -625,6 +690,24 @@ class UnicornSeq(UnicornModel):
         # unexpected fault - throw an error
         self.print_state()
         self.LOG.error(f"Unexpected exception {errno} {self.err_to_str(errno)}", print_last_tb=True)
+
+    @staticmethod
+    def instruction_hook(emulator: Uc, address: int, size: int, model) -> None:
+        # terminate execution if the exit instruction is reached
+        if model.exit_reached(address):
+            emulator.emu_stop()
+            return
+
+        # preserve context and trace the instruction
+        model.previous_context = model.emulator.context_save()
+        aid = model.current_actor.id_
+        section_start = model.code_start + MAX_SECTION_SIZE * aid
+        model.current_instruction = model.test_case.address_map[aid][address - section_start]
+        model.trace_instruction(emulator, address, size, model)
+
+        # if the current instruction is a macro, interpret it
+        if model.current_instruction.name == "MACRO":
+            model.macro_interpreter.interpret(model.current_instruction, address)
 
     @staticmethod
     def trace_instruction(emulator, address, size, model) -> None:
