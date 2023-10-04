@@ -8,7 +8,7 @@ from typing import Dict, List, Tuple, NoReturn
 
 from subprocess import run
 from elftools.elf.elffile import ELFFile, SymbolTableSection  # type: ignore
-from ..interfaces import ElfSection, Symbol, TestCase, Instruction
+from ..interfaces import ElfSection, Symbol, TestCase, Instruction, ActorID
 from ..util import Logger
 from .x86_target_desc import X86TargetDesc
 
@@ -67,12 +67,13 @@ class X86ElfParser:
         instruction_addresses = self._parse_objdump_output(obj_file)
 
         # add collected data to the test case
-        address_map: Dict[int, Dict[int, Instruction]] = {}
+        address_map: Dict[ActorID, Dict[int, Instruction]] = {}
         for section in section_entries:
             # store actor data
             actor_name = section.name
             actor = test_case.get_actor_by_name(actor_name)
             actor.elf_section = ElfSection(section.id_, section.offset, section.size)
+            actor.id_ = section.id_
 
             # find functions belonging to this actor
             functions = [f for f in function_entries if f.parent_id == section.id_]
@@ -219,7 +220,7 @@ class X86ElfParser:
     def _symbol_from_macro_inst(self, inst: Instruction, symbol_entries: List[SectionMetadata],
                                 function_entries: List[FunctionMetadata]) -> Symbol:
         """
-        Convert a macro instruction to a symbol table intry by parsing its symbolic arguments
+        Convert a macro instruction to a symbol table entry by parsing its symbolic arguments
         according to the macro specification (see x86_target_desc.py).
 
         Example:

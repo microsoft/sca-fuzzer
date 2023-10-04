@@ -61,14 +61,14 @@ class AsmParserGeneric(AsmParser):
         test_case_map, function_owners = self._get_tc_maps(lines)
 
         # create actors
-        actor_names = self._create_actors(function_owners, test_case)
+        actors_by_label = self._create_actors(function_owners, test_case)
 
         # parse lines and create their object representations
         line_id = 1
         for func_name, bbs in test_case_map.items():
             # print(func_name)
             line_id += 1
-            actor = actor_names[function_owners[func_name]]
+            actor = actors_by_label[function_owners[func_name]]
             func = Function(func_name, actor)
             test_case.functions.append(func)
 
@@ -171,14 +171,14 @@ class AsmParserGeneric(AsmParser):
         return instruction_map
 
     def _create_actors(self, function_owners, test_case) -> Dict[str, Actor]:
-        actor_names: Dict[str, Actor] = {}
+        actors_by_label: Dict[str, Actor] = {}
         for actor_label in sorted(set(function_owners.values())):
             words = actor_label.split(".")
             assert len(words) == 3, f"Invalid actor label: {actor_label}"
-            subwords = words[2].split("_")
+            name = words[2]
+            subwords = name.split("_")
             assert len(subwords) == 2, f"Invalid actor label: {actor_label}"
 
-            id_ = int(subwords[0])
             if subwords[1] == "host":
                 type_ = ActorType.HOST
             elif subwords[1] == "guest":
@@ -186,16 +186,16 @@ class AsmParserGeneric(AsmParser):
             else:
                 parser_assert(False, 0, f"Invalid actor type: {subwords[1]}")
 
-            if id_ == 0:
-                assert type_ == ActorType.HOST, "Actor 0 must be the host"  # type: ignore
-                actor = test_case.actors[0]
+            if name == "0_host":
+                actor = test_case.actors["0_host"]
             else:
+                id_ = 0  # will be assigned later by the ELF parser
                 actor = Actor(type_, id_)  # type: ignore
 
-            assert id_ not in test_case.actors or test_case.actors[id_] == actor, "Duplicate actor"
-            test_case.actors[id_] = actor
-            actor_names[actor_label] = actor
-        return actor_names
+            assert name not in test_case.actors or test_case.actors[name] == actor, "Duplicate actr"
+            test_case.actors[name] = actor
+            actors_by_label[actor_label] = actor
+        return actors_by_label
 
     def _get_clean_lines_from_file(self, input_file: str) -> List[str]:
         re_redundant_spaces = re.compile(r"(?<![a-zA-Z0-9]) +")

@@ -96,7 +96,7 @@ class ConfigurableGenerator(Generator, abc.ABC):
         self._state += 1
 
         # create the main function
-        default_actor = self.test_case.actors[0]
+        default_actor = self.test_case.actors["0_host"]
         func = self.generate_function(".function_0", default_actor, self.test_case)
 
         # fill the function with instructions
@@ -511,7 +511,7 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
     def add_required_symbols(self, test_case: TestCase):
         # add measurement_start and measurement_end symbols
         func_main = test_case.functions[0]
-        assert func_main.owner == test_case.actors[0]
+        assert func_main.owner == test_case.actors["0_host"]
 
         bb_first = func_main[0]
         instr = Instruction("MACRO", category="MACRO") \

@@ -59,7 +59,7 @@ class X86RandomGeneratorTest(unittest.TestCase):
                                          CONF.instruction_categories)
         generator = X86RandomGenerator(instruction_set, CONF.program_generator_seed)
         tc = TestCase(0)
-        func = generator.generate_function(".function_0", tc.actors[0], tc)
+        func = generator.generate_function(".function_0", tc.actors["0_host"], tc)
         printer = X86Printer(X86TargetDesc())
         all_instructions = ['.intel_syntax noprefix\n']
 
@@ -179,10 +179,10 @@ class X86RandomGeneratorTest(unittest.TestCase):
             (test_dir / "asm/asm_multiactor.asm").absolute().as_posix())
 
         self.assertEqual(len(tc.actors), 2)
-        self.assertEqual(tc.actors[0].type_, ActorType.HOST)
-        self.assertEqual(tc.actors[0].id_, 0)
-        self.assertEqual(tc.actors[1].type_, ActorType.GUEST)
-        self.assertEqual(tc.actors[1].id_, 1)
+        self.assertEqual(tc.actors["0_host"].type_, ActorType.HOST)
+        self.assertEqual(tc.actors["0_host"].id_, 0)
+        self.assertEqual(tc.actors["1_guest"].type_, ActorType.GUEST)
+        self.assertEqual(tc.actors["1_guest"].id_, 1)
 
         self.assertEqual(len(tc.functions), 4)
         f1 = tc.functions[0]
@@ -227,7 +227,7 @@ class X86RandomGeneratorTest(unittest.TestCase):
         read_instr = generator.generate_instruction(read_instr_spec)
 
         test_case = TestCase(0)
-        test_case.functions = [Function(".function_0", test_case.actors[0])]
+        test_case.functions = [Function(".function_0", test_case.actors["0_host"])]
         bb = BasicBlock(".bb0")
         test_case.functions[0].append(bb)
         bb.insert_after(bb.get_last(), undef_instr)
