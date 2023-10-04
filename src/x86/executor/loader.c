@@ -373,6 +373,9 @@ static inline void epilogue(void)
         "   mov qword ptr [rax + 0x08], r10 \n"
         "   mov qword ptr [rax + 0x10], r9 \n"
         "   mov qword ptr [rax + 0x18], r8 \n"
+
+            // to show that the measurement is valid, we set the last byte to 0x01
+        "   or byte ptr [rax + 0x07], 0x80 \n"
         "   jmp 2f \n"
         "1: \n"
         "   mov qword ptr [rax + 0x00], 0 \n"
