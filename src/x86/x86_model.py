@@ -42,7 +42,8 @@ class X86UnicornSeq(UnicornSeq):
     def __init__(self, sandbox_base, code_start):
         super().__init__(sandbox_base, code_start)
 
-        self.target_desc = X86UnicornTargetDesc()
+        self.target_desc = X86TargetDesc()
+        self.uc_target_desc = X86UnicornTargetDesc()
         self.taint_tracker = X86TaintTracker([], sandbox_base)
 
         self.architecture = (UC_ARCH_X86, UC_MODE_64)
@@ -83,8 +84,8 @@ class X86UnicornSeq(UnicornSeq):
         self.emulator.mem_write(self.faulty_area, input_[0]['faulty'].tobytes())
 
         # Set values in registers
-        regs = self.target_desc.registers
-        flags = self.target_desc.flags_register
+        regs = self.uc_target_desc.registers
+        flags = self.uc_target_desc.flags_register
         reg_init_address = self.sandbox_base + MAIN_AREA_SIZE + FAULTY_AREA_SIZE
 
         # - initialize GPRs
@@ -107,7 +108,7 @@ class X86UnicornSeq(UnicornSeq):
 
         # - initialize SIMD
         for i, value in enumerate(input_.get_simd128_registers(0)):
-            self.emulator.reg_write(self.target_desc.simd128_registers[i], value)
+            self.emulator.reg_write(self.uc_target_desc.simd128_registers[i], value)
 
         # Set memory permissions
         # Note: this code is at the end because we need to set the permissions
@@ -185,7 +186,7 @@ class X86UnicornSeq(UnicornSeq):
             mem_op = self.current_instruction.get_mem_operands()[0]
             mem_regs = re.split(r'\+|-|\*', mem_op.value)
             assert len(mem_regs) == 2 and "R14" in mem_regs[0].upper(), "Invalid format of BNDCU"
-            offset_reg = self.target_desc.reg_str_to_constant.get(mem_regs[1].upper().strip(), None)
+            offset_reg = self.uc_target_desc.reg_str_to_constant.get(mem_regs[1].upper().strip(), None)
             if offset_reg and self.emulator.reg_read(offset_reg) > 0x1000:  # type: ignore
                 self.pending_fault_id = 13
                 self.emulator.emu_stop()

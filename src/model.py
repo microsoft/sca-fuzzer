@@ -63,7 +63,7 @@ class UnicornTracer(Tracer):
         self.trace = []
         self.LOG = Logger()
 
-    def init_trace(self, emulator: Uc, target_desc: UnicornTargetDesc) -> None:
+    def init_trace(self, emulator: Uc, uc_target_desc: UnicornTargetDesc) -> None:
         self.trace = []
         self.execution_trace = []
 
@@ -196,8 +196,8 @@ class CTRTracer(CTTracer):
     When execution starts we also observe registers state.
     """
 
-    def init_trace(self, emulator: Uc, target_desc: UnicornTargetDesc):
-        self.trace = [emulator.reg_read(reg) for reg in target_desc.registers]
+    def init_trace(self, emulator: Uc, uc_target_desc: UnicornTargetDesc):
+        self.trace = [emulator.reg_read(reg) for reg in uc_target_desc.registers]
         self.execution_trace = []
 
 
@@ -220,13 +220,13 @@ class GPRTracer(UnicornTracer):
     It returns the values of all GPRs after the test case finished its execution.
     """
 
-    def init_trace(self, emulator: Uc, target_desc: UnicornTargetDesc) -> None:
+    def init_trace(self, emulator: Uc, uc_target_desc: UnicornTargetDesc) -> None:
         self.emulator = emulator
-        self.target_desc = target_desc
-        return super().init_trace(emulator, target_desc)
+        self.uc_target_desc = uc_target_desc
+        return super().init_trace(emulator, uc_target_desc)
 
     def get_contract_trace(self, _) -> CTrace:
-        registers = self.target_desc.registers[:-1]  # exclude the last register (stack pointer)
+        registers = self.uc_target_desc.registers[:-1]  # exclude the last register (stack pointer)
         self.trace = [int(self.emulator.reg_read(reg)) for reg in registers]
         self.trace = self.trace[:-1]  # exclude flags
         return self.trace[0]
@@ -243,7 +243,8 @@ class UnicornModel(Model, ABC):
     # service objects
     LOG: Logger
     emulator: Uc
-    target_desc: UnicornTargetDesc
+    target_desc: TargetDesc
+    uc_target_desc: UnicornTargetDesc
     tracer: UnicornTracer
     taint_tracker: TaintTrackerInterface
 
@@ -442,7 +443,7 @@ class UnicornSeq(UnicornModel):
         self.checkpoints = []
         self.in_speculation = False
         self.speculation_window = 0
-        self.tracer.init_trace(self.emulator, self.target_desc)
+        self.tracer.init_trace(self.emulator, self.uc_target_desc)
         if self.tainting_enabled:
             self.taint_tracker.reset(self.initial_taints)
         else:
@@ -652,7 +653,7 @@ class UnicornSpec(UnicornSeq):
         if model.in_speculation:
             model.speculation_window += 1
             # rollback on a serializing instruction
-            if model.current_instruction.name in model.target_desc.barriers:
+            if model.current_instruction.name in model.uc_target_desc.barriers:
                 emulator.emu_stop()
 
             # and on expired speculation window
@@ -662,7 +663,7 @@ class UnicornSpec(UnicornSeq):
         UnicornSeq.trace_instruction(emulator, address, size, model)
 
     def checkpoint(self, emulator: Uc, next_instruction):
-        flags = emulator.reg_read(self.target_desc.flags_register)
+        flags = emulator.reg_read(self.uc_target_desc.flags_register)
         context = emulator.context_save()
         spec_window = self.speculation_window
         self.checkpoints.append((context, next_instruction, flags, spec_window))
@@ -690,7 +691,7 @@ class UnicornSpec(UnicornSeq):
             self.emulator.mem_write(addr, bytes(val))
 
         # restore the flags last, to avoid corruption by other operations
-        self.emulator.reg_write(self.target_desc.flags_register, flags)
+        self.emulator.reg_write(self.uc_target_desc.flags_register, flags)
 
         # restore the taint tracking
         self.taint_tracker.rollback()
@@ -736,7 +737,7 @@ class BaseTaintTracker(TaintTrackerInterface):
     pending_taint: List[str]
 
     # ISA-specific fields
-    unicorn_target_desc: UnicornTargetDesc
+    uc_target_desc: UnicornTargetDesc
     target_desc: TargetDesc
     _registers: List[int]
     _simd_registers: List[int]
@@ -892,13 +893,13 @@ class BaseTaintTracker(TaintTrackerInterface):
             else:
                 # uncomment if to create violations of vspec-ops-div
                 # if not label == 'D':
-                reg = self.unicorn_target_desc.reg_decode[label]
+                reg = self.uc_target_desc.reg_decode[label]
                 if reg in self._registers:
                     input_offset = register_start + \
-                        self._registers.index(self.unicorn_target_desc.reg_decode[label])
+                        self._registers.index(self.uc_target_desc.reg_decode[label])
                 elif reg in self._simd_registers:
                     input_offset = simd_start + \
-                        self._simd_registers.index(self.unicorn_target_desc.reg_decode[label]) * 2
+                        self._simd_registers.index(self.uc_target_desc.reg_decode[label]) * 2
                 # else:
                 # print(f"Register {label} is not tracked")
             if input_offset >= 0:
