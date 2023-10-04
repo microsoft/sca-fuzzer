@@ -15,9 +15,8 @@ from unicorn import Uc, UC_MEM_WRITE, UC_ARCH_X86, UC_MODE_64, UC_PROT_READ, UC_
 
 from ..interfaces import Input, FlagsOperand, RegisterOperand, MemoryOperand, AgenOperand, \
     TestCase, MAIN_AREA_SIZE, FAULTY_AREA_SIZE, OVERFLOW_PAD_SIZE
-from ..model import UnicornModel, UnicornTracer, UnicornSpec, UnicornSeq, UnicornBpas, \
-    BaseTaintTracker
-from ..util import UnreachableCode, BLUE, COL_RESET
+from ..model import UnicornModel, UnicornTracer, UnicornSpec, UnicornSeq, BaseTaintTracker
+from ..util import UnreachableCode, NotSupportedException, BLUE, COL_RESET
 from ..config import CONF
 from .x86_target_desc import X86UnicornTargetDesc, X86TargetDesc
 
@@ -308,8 +307,67 @@ class X86UnicornCond(X86UnicornSpec):
         return int.from_bytes(target, byteorder='little'), will_jump, is_loop
 
 
-class X86UnicornBpas(UnicornBpas, X86UnicornSeq):
-    pass
+class X86UnicornBpas(X86UnicornSeq):
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.previous_store = (0, 0, 0, 0)
+
+    def rollback(self) -> int:
+        # if there are any pending speculative store bypasses, cancel them
+        self.previous_store = (0, 0, 0, 0)
+        return super().rollback()
+
+    @staticmethod
+    def speculate_mem_access(emulator, access, address, size, value, model) -> None:
+        """
+        Since Unicorn does not have post-instruction hooks,
+        I have to implement it in a dirty way:
+        Save the information about the store here, but execute all the
+        contract logic in a hook before the next instruction (see trace_instruction)
+        """
+        if access == UC_MEM_WRITE:
+            # check for duplicate calls
+            if model.previous_store[0]:
+                end_addr = address + size
+                prev_addr, prev_size = model.previous_store[0:2]
+                if address >= prev_addr and end_addr <= (prev_addr + prev_size):
+                    prev_val = model.previous_store[3].\
+                        to_bytes(prev_size, byteorder='little', signed=model.previous_store[3] < 0)
+                    sliced = prev_val[address - prev_addr:end_addr - prev_addr][0]
+                    if sliced == value:
+                        return
+                    else:
+                        # self-overwriting instructions are not supported
+                        raise NotSupportedException()
+                else:
+                    # instructions with multiple stores are not supported
+                    raise NotSupportedException()
+
+            # it's not a duplicate - initiate speculation
+            model.previous_store = (address, size, emulator.mem_read(address, size), value)
+
+    @staticmethod
+    def speculate_instruction(emulator: Uc, address, _, model) -> None:
+        # reached max spec. window? skip
+        if len(model.checkpoints) >= model.nesting:
+            model.previous_store = (0, 0, 0, 0)  # clear pending speculation requests
+            return
+
+        if model.previous_store[0]:
+            store_addr = model.previous_store[0]
+            old_value = bytes(model.previous_store[2])
+            new_is_signed = model.previous_store[3] < 0
+            new_value = (model.previous_store[3]). \
+                to_bytes(model.previous_store[1], byteorder='little', signed=new_is_signed)
+
+            # store a checkpoint
+            model.checkpoint(emulator, address)
+
+            # cancel the previous store but preserve its value
+            emulator.mem_write(store_addr, old_value)
+            model.store_logs[-1].append((store_addr, new_value))
+        model.previous_store = (0, 0, 0, 0)
 
 
 class X86FaultModelAbstract(X86UnicornSpec):
