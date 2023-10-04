@@ -1,5 +1,15 @@
 """
-File: Model Interface and its implementations
+File:
+    Leakage models, including:
+      - Interfaces for models and service classes
+        (UnicornModel, UnicornTracer, UnicornTargetDesc)
+      - Core model (UnicornSeq), which implements in-order execution
+        and tracing of test cases, as well as fault handling, actor management, and interpretation
+        of macros
+      - Checkpoint-rollback primitives for speculative contracts (UnicornSpec)
+      - Tracing of test cases, otherwise known as observation clauses (PCTracer, CTTracer, etc.)
+      - Taint-tracking for input boosting (BaseTaintTracker)
+      - Macro interpreters (macro_switch, macro_measurement_start, etc.)
 
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
@@ -233,7 +243,7 @@ class GPRTracer(UnicornTracer):
 
 
 # ==================================================================================================
-# Implementation of Execution Clauses
+# Model Implementation and Execution Clauses
 # ==================================================================================================
 class UnicornModel(Model, ABC):
     """
@@ -370,10 +380,13 @@ class UnicornModel(Model, ABC):
 
 class UnicornSeq(UnicornModel):
     """
-    The core model.
-    Implements in-order execution and tracing of test cases, as well as fault handling
-    and actor management.
-    Does not implement any speculative execution.
+    The core model. Implements in-order execution and tracing of test cases.
+    As well as that, this class implements:
+     - fault handling
+     - actor management
+     - interpretation of macros
+
+    This class does *not* implement speculative execution; refer to UnicornSpec for that.
     """
     # execution context
     test_case: TestCase  # the test case being traced
@@ -591,7 +604,7 @@ class UnicornSeq(UnicornModel):
         model.trace_instruction(emulator, address, size, model)
 
     def handle_fault(self, errno: int) -> int:
-        self.LOG.dbg_model_exception(errno, errno_to_str(errno))
+        self.LOG.dbg_model_exception(errno, self.err_to_str(errno))
 
         # when a fault is triggered, CPU stores the PC and the fault type
         # on stack - this has to be mirrored at the contract level
@@ -611,7 +624,7 @@ class UnicornSeq(UnicornModel):
 
         # unexpected fault - throw an error
         self.print_state()
-        self.LOG.error(f"Unexpected exception {errno} {errno_to_str(errno)}", print_last_tb=True)
+        self.LOG.error(f"Unexpected exception {errno} {self.err_to_str(errno)}", print_last_tb=True)
 
     @staticmethod
     def trace_instruction(emulator, address, size, model) -> None:
@@ -627,6 +640,53 @@ class UnicornSeq(UnicornModel):
         model.tracer.observe_mem_access(access, address, size, value, model)
         # speculate_mem_access is empty for seq, nonempty in subclasses
         model.speculate_mem_access(emulator, access, address, size, value, model)
+
+    @staticmethod
+    def err_to_str(errno: int) -> str:
+        if errno == uc.UC_ERR_OK:
+            return "OK (UC_ERR_OK)"
+        elif errno == uc.UC_ERR_NOMEM:
+            return "No memory available or memory not present (UC_ERR_NOMEM)"
+        elif errno == uc.UC_ERR_ARCH:
+            return "Invalid/unsupported architecture (UC_ERR_ARCH)"
+        elif errno == uc.UC_ERR_HANDLE:
+            return "Invalid handle (UC_ERR_HANDLE)"
+        elif errno == uc.UC_ERR_MODE:
+            return "Invalid mode (UC_ERR_MODE)"
+        elif errno == uc.UC_ERR_VERSION:
+            return "Different API version between core & binding (UC_ERR_VERSION)"
+        elif errno == uc.UC_ERR_READ_UNMAPPED:
+            return "Invalid memory read (UC_ERR_READ_UNMAPPED)"
+        elif errno == uc.UC_ERR_WRITE_UNMAPPED:
+            return "Invalid memory write (UC_ERR_WRITE_UNMAPPED)"
+        elif errno == uc.UC_ERR_FETCH_UNMAPPED:
+            return "Invalid memory fetch (UC_ERR_FETCH_UNMAPPED)"
+        elif errno == uc.UC_ERR_HOOK:
+            return "Invalid hook type (UC_ERR_HOOK)"
+        elif errno == uc.UC_ERR_INSN_INVALID:
+            return "Invalid instruction (UC_ERR_INSN_INVALID)"
+        elif errno == uc.UC_ERR_MAP:
+            return "Invalid memory mapping (UC_ERR_MAP)"
+        elif errno == uc.UC_ERR_WRITE_PROT:
+            return "Write to write-protected memory (UC_ERR_WRITE_PROT)"
+        elif errno == uc.UC_ERR_READ_PROT:
+            return "Read from non-readable memory (UC_ERR_READ_PROT)"
+        elif errno == uc.UC_ERR_FETCH_PROT:
+            return "Fetch from non-executable memory (UC_ERR_FETCH_PROT)"
+        elif errno == uc.UC_ERR_ARG:
+            return "Invalid argument (UC_ERR_ARG)"
+        elif errno == uc.UC_ERR_READ_UNALIGNED:
+            return "Read from unaligned memory (UC_ERR_READ_UNALIGNED)"
+        elif errno == uc.UC_ERR_WRITE_UNALIGNED:
+            return "Write to unaligned memory (UC_ERR_WRITE_UNALIGNED)"
+        elif errno == uc.UC_ERR_FETCH_UNALIGNED:
+            return "Fetch from unaligned memory (UC_ERR_FETCH_UNALIGNED)"
+        elif errno == uc.UC_ERR_RESOURCE:
+            return "Insufficient resource (UC_ERR_RESOURCE)"
+        elif errno == uc.UC_ERR_EXCEPTION:
+            return "Misc. CPU exception (UC_ERR_EXCEPTION)"
+        else:
+            return "Unknown error code"
 
 
 class UnicornSpec(UnicornSeq):
@@ -923,53 +983,3 @@ class BaseTaintTracker(TaintTrackerInterface):
             taint[i].fill(False)
 
         return taint
-
-
-# ==================================================================================================
-# Utility functions
-# ==================================================================================================
-def errno_to_str(errno: int) -> str:
-    if errno == uc.UC_ERR_OK:
-        return "OK (UC_ERR_OK)"
-    elif errno == uc.UC_ERR_NOMEM:
-        return "No memory available or memory not present (UC_ERR_NOMEM)"
-    elif errno == uc.UC_ERR_ARCH:
-        return "Invalid/unsupported architecture (UC_ERR_ARCH)"
-    elif errno == uc.UC_ERR_HANDLE:
-        return "Invalid handle (UC_ERR_HANDLE)"
-    elif errno == uc.UC_ERR_MODE:
-        return "Invalid mode (UC_ERR_MODE)"
-    elif errno == uc.UC_ERR_VERSION:
-        return "Different API version between core & binding (UC_ERR_VERSION)"
-    elif errno == uc.UC_ERR_READ_UNMAPPED:
-        return "Invalid memory read (UC_ERR_READ_UNMAPPED)"
-    elif errno == uc.UC_ERR_WRITE_UNMAPPED:
-        return "Invalid memory write (UC_ERR_WRITE_UNMAPPED)"
-    elif errno == uc.UC_ERR_FETCH_UNMAPPED:
-        return "Invalid memory fetch (UC_ERR_FETCH_UNMAPPED)"
-    elif errno == uc.UC_ERR_HOOK:
-        return "Invalid hook type (UC_ERR_HOOK)"
-    elif errno == uc.UC_ERR_INSN_INVALID:
-        return "Invalid instruction (UC_ERR_INSN_INVALID)"
-    elif errno == uc.UC_ERR_MAP:
-        return "Invalid memory mapping (UC_ERR_MAP)"
-    elif errno == uc.UC_ERR_WRITE_PROT:
-        return "Write to write-protected memory (UC_ERR_WRITE_PROT)"
-    elif errno == uc.UC_ERR_READ_PROT:
-        return "Read from non-readable memory (UC_ERR_READ_PROT)"
-    elif errno == uc.UC_ERR_FETCH_PROT:
-        return "Fetch from non-executable memory (UC_ERR_FETCH_PROT)"
-    elif errno == uc.UC_ERR_ARG:
-        return "Invalid argument (UC_ERR_ARG)"
-    elif errno == uc.UC_ERR_READ_UNALIGNED:
-        return "Read from unaligned memory (UC_ERR_READ_UNALIGNED)"
-    elif errno == uc.UC_ERR_WRITE_UNALIGNED:
-        return "Write to unaligned memory (UC_ERR_WRITE_UNALIGNED)"
-    elif errno == uc.UC_ERR_FETCH_UNALIGNED:
-        return "Fetch from unaligned memory (UC_ERR_FETCH_UNALIGNED)"
-    elif errno == uc.UC_ERR_RESOURCE:
-        return "Insufficient resource (UC_ERR_RESOURCE)"
-    elif errno == uc.UC_ERR_EXCEPTION:
-        return "Misc. CPU exception (UC_ERR_EXCEPTION)"
-    else:
-        return "Unknown error code"

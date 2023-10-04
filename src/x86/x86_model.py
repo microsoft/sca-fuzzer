@@ -1622,7 +1622,7 @@ class X86TaintTracker(BaseTaintTracker):
         super().__init__(initial_observations, sandbox_base=sandbox_base)
 
         # ISA-specific field setup
-        self.target_desc = X86TargetDesc()
+        self.uc_target_desc = X86TargetDesc()
         self.unicorn_target_desc = X86UnicornTargetDesc()
 
         self._registers = self.unicorn_target_desc.registers
