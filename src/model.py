@@ -16,7 +16,7 @@ from unicorn import Uc, UcError, UC_MEM_WRITE, UC_MEM_READ, UC_SECOND_SCALE, UC_
     UC_HOOK_MEM_WRITE, UC_HOOK_CODE, UC_HOOK_MEM_UNMAPPED
 
 from .interfaces import CTrace, TestCase, Model, InputTaint, Instruction, ExecutionTrace, \
-    TracedInstruction, TracedMemAccess, Input, Tracer, \
+    TracedInstruction, TracedMemAccess, Input, Tracer, Actor, \
     RegisterOperand, FlagsOperand, MemoryOperand, TaintTrackerInterface, TargetDesc, \
     MAIN_AREA_SIZE, FAULTY_AREA_SIZE, OVERFLOW_PAD_SIZE
 from .config import CONF
@@ -63,7 +63,7 @@ class UnicornTracer(Tracer):
         self.trace = []
         self.LOG = Logger()
 
-    def init_trace(self, emulator, target_desc: UnicornTargetDesc) -> None:
+    def init_trace(self, emulator: Uc, target_desc: UnicornTargetDesc) -> None:
         self.trace = []
         self.execution_trace = []
 
@@ -86,15 +86,15 @@ class UnicornTracer(Tracer):
     def get_execution_trace(self) -> ExecutionTrace:
         return self.execution_trace
 
-    def add_mem_address_to_trace(self, address: int, model):
+    def add_mem_address_to_trace(self, address: int, model: UnicornModel):
         self.trace.append(address)
         model.taint_tracker.taint_memory_access_address()
 
-    def add_pc_to_trace(self, address, model):
+    def add_pc_to_trace(self, address: int, model: UnicornModel):
         self.trace.append(address)
         model.taint_tracker.taint_pc()
 
-    def add_dependencies_to_trace(self, address, dependency_hash, model):
+    def add_dependencies_to_trace(self, address: int, dependency_hash: int, model: UnicornModel):
         self.trace.append(dependency_hash)
         model.taint_tracker.taint_memory_access_address()
 
@@ -113,7 +113,7 @@ class UnicornTracer(Tracer):
             traced_instruction = self.execution_trace[self.instruction_id]
             traced_instruction.accesses.append(TracedMemAccess(normalized_address, val, is_store))
 
-    def observe_instruction(self, address: int, size: int, model) -> None:
+    def observe_instruction(self, address: int, size: int, model: UnicornModel) -> None:
         normalized_address = address - model.code_start
         self.LOG.dbg_model_instruction(normalized_address, model)
 
@@ -240,9 +240,6 @@ class UnicornModel(Model, ABC):
     Base class for all Unicorn-based models.
     Defines the interface for all models.
     """
-    test_case: TestCase
-    current_instruction: Instruction
-
     # service objects
     LOG: Logger
     emulator: Uc
@@ -272,14 +269,13 @@ class UnicornModel(Model, ABC):
         self.sandbox_base: UcPointer = sandbox_base
 
     @staticmethod
-    def instruction_hook(emulator: Uc, address: int, size: int, model: UnicornModel) -> None:
+    @abstractmethod
+    def instruction_hook(emulator: Uc, address: int, size: int, model) -> None:
         """
         Invoked when an instruction is executed.
         it records instruction
         """
-        model.previous_context = model.emulator.context_save()
-        model.current_instruction = model.test_case.address_map[0][address - model.code_start]
-        model.trace_instruction(emulator, address, size, model)
+        pass
 
     @abstractmethod
     def load_test_case(self, test_case: TestCase) -> None:
@@ -288,7 +284,7 @@ class UnicornModel(Model, ABC):
     @abstractmethod
     def _load_input(self, input_: Input):
         """
-        Load registers with given input: this is architecture specific
+        Load registers and memory with given input: this is architecture specific
         """
         pass
 
@@ -374,28 +370,35 @@ class UnicornModel(Model, ABC):
 class UnicornSeq(UnicornModel):
     """
     The core model.
-    Implements in-order execution and tracing of test cases, as well as fault handling.
-    Does not implement any speculative contracts.
+    Implements in-order execution and tracing of test cases, as well as fault handling
+    and actor management.
+    Does not implement any speculative execution.
     """
-    # test case code and data
+    # execution context
+    test_case: TestCase  # the test case being traced
+    current_instruction: Instruction  # the instruction currently being executed
+    current_actor: Actor  # the active actor
+
+    # test case code
     code_start: UcPointer  # the lower bound of the code area
     code_end: UcPointer  # the upper bound of the code area
     exit_addr: UcPointer  # the address of the test case exit instruction
 
-    underflow_pad_base: UcPointer
-    main_area: UcPointer
-    faulty_area: UcPointer
-    overflow_pad_base: UcPointer
-    stack_base: UcPointer
+    # test case data
+    underflow_pad_base: UcPointer  # the base address of the underflow pad
+    main_area: UcPointer  # the base address of the main area
+    faulty_area: UcPointer  # the base address of the faulty area
+    overflow_pad_base: UcPointer  # the base address of the overflow pad
+    stack_base: UcPointer  # the base address of the stack at the beginning of the test case
 
     # ISA-specific fields
-    architecture: Tuple[int, int]
-    flags_id: int
+    architecture: Tuple[int, int]  # (UC_ARCH, UC_MODE)
+    flags_id: int  # the Unicorn constant corresponding to the flags register for the given ISA
 
     # fault handling
-    handled_faults: Set[int]
-    pending_fault_id: int = 0
-    fault_mapping = {
+    handled_faults: Set[int]  # the set of fault types that do NOT terminate execution
+    pending_fault_id: int = 0  # if a fault was triggered but not handled yet, its ID is stored here
+    fault_mapping = {  # maps fault types to the corresponding Unicorn fault IDs
         "DE-zero": [21],
         "DE-overflow": [21],
         "DB-instruction": [10],
@@ -423,15 +426,8 @@ class UnicornSeq(UnicornModel):
         self.stack_base = self.main_area + MAIN_AREA_SIZE - 8
         self.overflow_pad_values = bytes(OVERFLOW_PAD_SIZE)
 
-        # taint tracking
+        # taint tracking (actual values are set by ISA-specific subclasses)
         self.initial_taints = []
-        if CONF.contract_observation_clause == 'ctr' or CONF.contract_observation_clause == 'arch':
-            self.initial_taints = [
-                "A", "B", "C", "D", "SI", "DI", "RSP", "CF", "PF", "AF", "ZF", "SF", "TF", "IF",
-                "DF", "OF", "AC"
-            ]
-        else:
-            self.initial_taints = []
 
         # fault handling
         self.pending_fault_id = 0
@@ -458,31 +454,25 @@ class UnicornSeq(UnicornModel):
         Instantiate emulator and copy the test case into the emulator's memory
         """
         self.test_case = test_case
+        self.current_actor = test_case.actors[0]
+        assert self.current_actor.id_ == 0
         actors = sorted(test_case.actors.values(), key=lambda a: (a.id_))
 
-        # # read sections from the test case binary
-        # sections = []
-        # with open(test_case.obj_path, 'rb') as bin_file:
-        #     for actor in actors:
-        #         bin_file.seek(actor.elf_section.offset)
-        #         sections.append(bin_file.read(actor.elf_section.size))
+        # read sections from the test case binary
+        sections = []
+        with open(test_case.obj_path, 'rb') as bin_file:
+            for actor in actors:
+                bin_file.seek(actor.elf_section.offset)
+                sections.append(bin_file.read(actor.elf_section.size))
 
-        # # create a complete binary
-        # code = b''
-        # for section in sections:
-        #     code += section
-        #     padding = MAX_SECTION_SIZE - (len(section) % MAX_SECTION_SIZE)
-        #     code += b'\x90' * padding  # fill with NOPs
-        # self.code_end = self.code_start + len(code)
-        # self.exit_addr = self.code_start + test_case.actors[0].elf_section.size - 1
-
-        # create and read a binary
+        # create a complete binary
         code = b''
-        with open(test_case.obj_path, 'rb') as f:
-            f.seek(test_case.actors[0].elf_section.offset)
-            code += f.read(test_case.actors[0].elf_section.size)
+        for section in sections:
+            code += section
+            padding = MAX_SECTION_SIZE - (len(section) % MAX_SECTION_SIZE)
+            code += b'\x90' * padding  # fill with NOPs
         self.code_end = self.code_start + len(code)
-        self.exit_addr = self.code_end
+        self.exit_addr = self.code_start + test_case.actors[0].elf_section.size - 1
 
         # initialize emulator in x86-64 mode
         emulator = Uc(*self.architecture)
@@ -508,7 +498,21 @@ class UnicornSeq(UnicornModel):
 
     def _execute_test_case(self, inputs: List[Input], nesting: int):
         """
-        Architecture independent code - it starts the emulator
+        Execute the test case with the given inputs.
+
+        The execution algorithm is as follows:
+            - Load the inputs into registers and memory
+            - Start emulation at self.code_start
+            - For each instruction, call the tracers and emulate speculation according to
+               the contract (implemented by UnicornTracer and by subclasses)
+            - When a fault is triggered:
+                a. If the fault ID is in self.handled_faults, jump to self.exit_addr
+                a. Otherwise, throw an error
+            - When a SWITCH macro is encountered, switch the active actor and jump to
+               the corresponding function address
+            - When self.exit_addr is reached:
+                a. If self.is_speculating, rollback to the last checkpoint
+                b. Otherwise, terminate execution
         """
         self.nesting = nesting
 
@@ -570,6 +574,21 @@ class UnicornSeq(UnicornModel):
 
         return contract_traces, taints
 
+    def exit_reached(self, address) -> bool:
+        return address == self.exit_addr or \
+            (self.current_actor.id_ == 0 and address > self.exit_addr)
+
+    @staticmethod
+    def instruction_hook(emulator: Uc, address: int, size: int, model) -> None:
+        # terminate execution if the exit instruction is reached
+        if model.exit_reached(address):
+            emulator.emu_stop()
+            return
+
+        model.previous_context = model.emulator.context_save()
+        model.current_instruction = model.test_case.address_map[0][address - model.code_start]
+        model.trace_instruction(emulator, address, size, model)
+
     def handle_fault(self, errno: int) -> int:
         self.LOG.dbg_model_exception(errno, errno_to_str(errno))
 
@@ -591,7 +610,7 @@ class UnicornSeq(UnicornModel):
 
         # unexpected fault - throw an error
         self.print_state()
-        self.LOG.error(f"Unexpected exception {errno} {errno_to_str(errno)}", print_tb=True)
+        self.LOG.error(f"Unexpected exception {errno} {errno_to_str(errno)}", print_last_tb=True)
 
     @staticmethod
     def trace_instruction(emulator, address, size, model) -> None:
