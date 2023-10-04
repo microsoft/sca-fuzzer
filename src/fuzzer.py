@@ -12,7 +12,7 @@ import copy
 
 from . import factory
 from .interfaces import Fuzzer, CTrace, HTrace, Input, InputTaint, EquivalenceClass, TestCase, \
-    Generator, InputGenerator, Model, Executor, Analyser, Coverage, InputID, Measurement
+    Generator, InputGenerator, Model, Executor, Analyser, Coverage, InputID, Measurement, NullHTrace
 from .isa_loader import InstructionSet
 from .config import CONF
 from .util import Logger, STAT, TWOS_COMPLEMENT_MASK_64, bit_count, pretty_trace
@@ -150,9 +150,10 @@ class FuzzerGeneric(Fuzzer):
             htraces = self.executor.trace_test_case(boosted_inputs)
         feedback = self.executor.get_last_feedback()
 
-        # Check for violations
+        # Check for violations, but also check that the noise didn't completely corrupt htraces
         violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces, stats=True)
-        if not violations:  # nothing detected? -> we are done here, move to next test case
+        if not violations and NullHTrace not in htraces:
+            # nothing detected -> we are done here, move to next test case
             STAT.no_fast_violation += 1
             self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces, feedback,
                                             CONF.model_min_nesting)
