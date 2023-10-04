@@ -309,7 +309,7 @@ class X86UnicornCond(X86UnicornSpec):
         return int.from_bytes(target, byteorder='little'), will_jump, is_loop
 
 
-class X86UnicornBpas(X86UnicornSeq):
+class X86UnicornBpas(X86UnicornSpec):
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -1623,8 +1623,8 @@ class X86TaintTracker(BaseTaintTracker):
         super().__init__(initial_observations, sandbox_base=sandbox_base)
 
         # ISA-specific field setup
-        self.uc_target_desc = X86TargetDesc()
-        self.unicorn_target_desc = X86UnicornTargetDesc()
+        self.target_desc = X86TargetDesc()
+        self.uc_target_desc = X86UnicornTargetDesc()
 
-        self._registers = self.unicorn_target_desc.registers
-        self._simd_registers = self.unicorn_target_desc.simd128_registers
+        self._registers = self.uc_target_desc.registers
+        self._simd_registers = self.uc_target_desc.simd128_registers
