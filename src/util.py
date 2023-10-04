@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import NoReturn, Dict
 from pprint import pformat
 from traceback import print_stack
-from .interfaces import EquivalenceClass
+from .interfaces import EquivalenceClass, MAX_SECTION_SIZE
 from .config import CONF
 
 MASK_64BIT = pow(2, 64)
@@ -376,27 +376,30 @@ class Logger:
 
         print(msg)
 
-    def dbg_model_instruction(self, normalized_address, model):
+    def dbg_model_instruction(self, address, model):
         if not __debug__:
             return
 
         if not self.dbg_model:
             return
 
-        if normalized_address not in model.test_case.address_map[0]:
+        section_offset = address - (model.code_start + model.current_actor.id_ * MAX_SECTION_SIZE)
+        address_map = model.test_case.address_map[model.current_actor.id_]
+        if section_offset not in address_map:
             return
 
-        name = str(model.test_case.address_map[0][normalized_address])
+        name = str(address_map[section_offset])
         if CONF.color:
             if model.in_speculation:
                 name = YELLOW + name + COL_RESET
             else:
                 name = GREEN + name + COL_RESET
 
+        code_offset = address - model.code_start
         if model.in_speculation:
             name = f"[transient, nesting = {len(model.checkpoints)}] " + name
-        name = f"0x{normalized_address:<2x}: {name}"
-        if normalized_address == model.exit_addr - model.code_start - 1:
+        name = f"0x{code_offset:<2x}: {name}"
+        if code_offset == model.exit_addr - model.code_start - 1:
             name += " [test_case_exit]"
 
         print(name)

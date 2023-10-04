@@ -18,6 +18,7 @@ from enum import Enum
 # ==================================================================================================
 ActorID = int
 ActorName = str
+MAX_SECTION_SIZE = 4096  # must match MAX_SECTION_SIZE in executor
 
 
 class ActorType(Enum):
@@ -681,6 +682,8 @@ CTrace = int
 HTrace = int
 InputID = int
 CombinedHTrace = int
+
+NullHTrace = 0
 
 
 class Measurement(NamedTuple):

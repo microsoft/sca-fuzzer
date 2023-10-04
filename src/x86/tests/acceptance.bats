@@ -395,5 +395,5 @@ EOF
 }
 
 @test "Feature: Multi-actor test case" {
-    assert_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/actor_switch.asm -i 4"
+    assert_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/actor_switch.asm -i 20"
 }
