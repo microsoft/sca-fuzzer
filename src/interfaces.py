@@ -768,7 +768,7 @@ class TargetDesc(ABC):
     branch_conditions: Dict[str, List[str]]
     reg_normalized: Dict[str, str]
     reg_denormalized: Dict[str, Dict[int, str]]
-    macro_ids: Dict[str, MacroSpec]
+    macro_specs: Dict[str, MacroSpec]
 
     @staticmethod
     @abstractmethod

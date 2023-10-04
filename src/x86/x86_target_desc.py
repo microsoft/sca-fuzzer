@@ -131,7 +131,7 @@ class X86TargetDesc(TargetDesc):
         "PKEY_BIT3": (62, False),  # Protection Keys, bit 4/4
         "NX": (63, False),  # No execute: only valid after cpuid check
     }
-    macro_ids = {
+    macro_specs = {
         "function": MacroSpec(0, "function", ("", "", "", "")),
         "measurement_start": MacroSpec(1, "measurement_start", ("", "", "", "")),
         "measurement_end": MacroSpec(2, "measurement_end", ("", "", "", "")),

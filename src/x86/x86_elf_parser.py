@@ -250,9 +250,9 @@ class X86ElfParser:
 
         assert inst.name == "MACRO"
         macro_name = inst.operands[0].value[1:]
-        if macro_name.lower() not in self.target_desc.macro_ids:
+        if macro_name.lower() not in self.target_desc.macro_specs:
             elf_parser_error(f"Unknown macro {macro_name} in {inst}")
-        macro_spec = self.target_desc.macro_ids[macro_name.lower()]
+        macro_spec = self.target_desc.macro_specs[macro_name.lower()]
 
         # convert macro operands to compressed symbol arguments
         str_args = inst.operands[1].value.split('.')[1:]
