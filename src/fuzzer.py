@@ -209,7 +209,8 @@ class FuzzerGeneric(Fuzzer):
                                         CONF.model_max_nesting)
 
         # 3. Check if the violation is reproducible
-        if self.check_if_reproducible(violations, boosted_inputs, htraces):
+        violations = self.filter_non_reproducible(violations, boosted_inputs, htraces)
+        if not violations:
             STAT.fp_flaky += 1
             if CONF.ignore_flaky_violations:
                 return None
@@ -363,21 +364,21 @@ class FuzzerGeneric(Fuzzer):
 
     # ==============================================================================================
     # Priming and reproducibility
-    def check_if_reproducible(self, violations: List[EquivalenceClass], inputs: List[Input],
-                              org_htraces: List[HTrace]) -> bool:
-        # re-collect htraces
-        htraces: List[HTrace] = self.executor.trace_test_case(inputs)
+    def filter_non_reproducible(self, violations: List[EquivalenceClass], inputs: List[Input],
+                                org_htraces: List[HTrace]) -> List[EquivalenceClass]:
+        """ Filter out violations that are not reproducible """
+        htraces: List[HTrace] = self.executor.trace_test_case(
+            inputs, repetitions=CONF.executor_repetitions * 2)
 
-        # check if all htraces that had a violation match
-        violating_input_ids = []
+        reproducible_violations = []
         for violation in violations:
             for measurement in violation.measurements:
-                violating_input_ids.append(measurement.input_id)
+                if htraces[measurement.input_id] != org_htraces[measurement.input_id]:
+                    break
+            else:
+                reproducible_violations.append(violation)
 
-        for i in violating_input_ids:
-            if htraces[i] != org_htraces[i]:
-                return True
-        return False
+        return reproducible_violations
 
     def priming(self, org_violation: EquivalenceClass, all_inputs: List[Input]) -> bool:
         """
