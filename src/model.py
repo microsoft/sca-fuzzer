@@ -462,6 +462,7 @@ class UnicornSeq(UnicornModel):
     This class does *not* implement speculative execution; refer to UnicornSpec for that.
     """
     # execution context
+    actors_sorted: List[Actor]
     test_case: TestCase  # the test case being traced
     current_instruction: Instruction  # the instruction currently being executed
     current_actor: Actor  # the active actor
@@ -548,6 +549,7 @@ class UnicornSeq(UnicornModel):
         main_actor = test_case.actors["0_host"]
         self.current_actor = main_actor
         actors = sorted(test_case.actors.values(), key=lambda a: (a.id_))
+        self.actors_sorted = actors
 
         # read sections from the test case binary
         sections = []
