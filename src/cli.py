@@ -21,7 +21,7 @@ def main() -> int:
 
     # ==============================================================================================
     # Fuzzing
-    parser_fuzz = subparsers.add_parser('fuzz')
+    parser_fuzz = subparsers.add_parser('fuzz', add_help=True)
     parser_fuzz.add_argument("-s", "--instruction-set", type=str, required=True)
     parser_fuzz.add_argument("-c", "--config", type=str, required=False)
     parser_fuzz.add_argument(
@@ -60,7 +60,7 @@ def main() -> int:
 
     # ==============================================================================================
     # Standalone interface to trace analysis
-    parser_analyser = subparsers.add_parser('analyse')
+    parser_analyser = subparsers.add_parser('analyse', add_help=True)
     parser_analyser.add_argument(
         '--ctraces',
         type=str,
@@ -75,7 +75,7 @@ def main() -> int:
 
     # ==============================================================================================
     # Reproducing violation
-    parser_reproduce = subparsers.add_parser('reproduce')
+    parser_reproduce = subparsers.add_parser('reproduce', add_help=True)
     parser_reproduce.add_argument("-s", "--instruction-set", type=str, required=True)
     parser_reproduce.add_argument("-c", "--config", type=str, required=False)
     parser_reproduce.add_argument(
@@ -103,7 +103,7 @@ def main() -> int:
 
     # ==============================================================================================
     # Postprocessing interface
-    parser_mini = subparsers.add_parser('minimize')
+    parser_mini = subparsers.add_parser('minimize', add_help=True)
     parser_mini.add_argument(
         '--infile',
         '-i',
@@ -160,7 +160,7 @@ def main() -> int:
 
     # ==============================================================================================
     # Standalone interface to test case generation
-    parser_generator = subparsers.add_parser('generate')
+    parser_generator = subparsers.add_parser('generate', add_help=True)
     parser_generator.add_argument("-s", "--instruction-set", type=str, required=True)
     parser_generator.add_argument(
         "-r",
@@ -197,7 +197,7 @@ def main() -> int:
 
     # ==============================================================================================
     # Loading of ISA specs
-    parser_get_isa = subparsers.add_parser('download_spec')
+    parser_get_isa = subparsers.add_parser('download_spec', add_help=True)
     parser_get_isa.add_argument("-a", "--architecture", type=str, required=True)
     parser_get_isa.add_argument(
         '--outfile',
