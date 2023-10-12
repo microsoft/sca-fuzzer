@@ -113,6 +113,23 @@ OVERFLOW_PAD_SIZE = (PAGE_SIZE - REG_INIT_AREA_SIZE)
 SANDBOX_DATA_SIZE = MAIN_AREA_SIZE + FAULTY_AREA_SIZE + 2 * PAGE_SIZE
 
 
+def get_sandbox_addr(sandbox_base: int, name: str):
+    name_to_addr = {
+        "start": lambda x: x - UNDERFLOW_PAD_SIZE - MACRO_STACK_SIZE,
+        "macro_stack": lambda x: x - UNDERFLOW_PAD_SIZE - MACRO_STACK_SIZE,
+        "underflow_pad": lambda x: x - UNDERFLOW_PAD_SIZE,
+        "main": lambda x: x,
+        "faulty": lambda x: x + MAIN_AREA_SIZE,
+        "gpr": lambda x: x + MAIN_AREA_SIZE + FAULTY_AREA_SIZE,
+        "simd": lambda x: x + MAIN_AREA_SIZE + FAULTY_AREA_SIZE + GPR_SUBREGION_SIZE,
+        "reg_init": lambda x: x + MAIN_AREA_SIZE + FAULTY_AREA_SIZE,
+        "overflow_pad": lambda x: x + MAIN_AREA_SIZE + FAULTY_AREA_SIZE + REG_INIT_AREA_SIZE,
+    }
+    if name not in name_to_addr:
+        raise Exception(f"Invalid sandbox region name: {name}")
+    return name_to_addr[name](sandbox_base)
+
+
 # Code layout:
 MAX_SECTION_SIZE = PAGE_SIZE
 
