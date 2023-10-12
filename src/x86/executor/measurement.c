@@ -100,6 +100,8 @@ static inline int uarch_flush(void)
 // =================================================================================================
 int run_experiment(void)
 {
+    int err = 0;
+
     // Zero-initialize the region of memory used by Prime+Probe
     if (!quick_and_dirty_mode)
         memset(&sandbox->util->l1d_priming_area[0], 0, L1D_PRIMING_AREA_SIZE * sizeof(char));
@@ -125,7 +127,7 @@ int run_experiment(void)
 
         // execute
         char *main_data = &sandbox->data[0].main_area[0];
-        ((void (*)(char *))loaded_test_case_entry)(main_data);
+        err = ((int (*)(char *))loaded_test_case_entry)(main_data);
 
         unset_test_case_idt();
         faulty_page_pte_restore();
@@ -136,7 +138,7 @@ int run_experiment(void)
         measurements[i_].htrace[0] = result.htrace[0];
         memcpy(measurements[i_].pfc_reading, result.pfc_reading, sizeof(uint64_t) * NUM_PFC);
     }
-    return 0;
+    return err;
 }
 
 /// @brief A wrapper function that ensures that any bugs in run_experiment that cause an exception

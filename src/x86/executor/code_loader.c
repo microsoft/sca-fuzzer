@@ -387,7 +387,8 @@ static inline void epilogue(void)
         "pop rbp\n"
         "pop rbx\n"
 
-        // return
+        // return 0
+        "mov rax, 0\n"
         "ret\n"
     );
 }
@@ -417,7 +418,8 @@ static inline void epilogue_dbg_gpr(void)
         "pop rbp\n"
         "pop rbx\n"
 
-        // return
+        // return 0
+        "mov rax, 0\n"
         "ret\n"
     );
 }
