@@ -38,6 +38,7 @@
 #define FAULTY_AREA_OFFSET     (MAIN_AREA_SIZE)
 #define REG_INIT_OFFSET        (FAULTY_AREA_OFFSET + FAULTY_AREA_SIZE)
 #define OVERFLOW_PAD_OFFSET    (REG_INIT_OFFSET + REG_INIT_AREA_SIZE)
+#define LOCAL_RSP_OFFSET       (FAULTY_AREA_OFFSET - 8)
 
 /// @brief Utility data structure used by various primitives in the test case.
 ///        Must be allocated strictly before the main actor data as its code accesses
@@ -85,7 +86,6 @@ typedef struct {
 } sandbox_t;
 
 extern sandbox_t *sandbox;
-extern void *main_stack_base;
 
 int allocate_sandbox(void);
 int init_sandbox_manager(void);

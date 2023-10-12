@@ -273,3 +273,5 @@ class X86UnicornTargetDesc(UnicornTargetDesc):
     barriers: List[str] = ['MFENCE', 'LFENCE']
     flags_register: int = ucc.UC_X86_REG_EFLAGS
     pc_register: int = ucc.UC_X86_REG_RIP
+    actor_base_register: int = ucc.UC_X86_REG_R14
+    sp_register: int = ucc.UC_X86_REG_RSP

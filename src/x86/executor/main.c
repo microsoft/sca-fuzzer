@@ -442,7 +442,6 @@ static ssize_t dbg_dump_show(struct kobject *kobj, struct kobj_attribute *attr, 
         len += sprintf(&buf[len], "inputs->data: %llx\n", (uint64_t)inputs->data);
     }
     len += sprintf(&buf[len], "sandbox: %llx\n", (uint64_t)sandbox);
-    len += sprintf(&buf[len], "stack_base: %llx\n", (uint64_t)main_stack_base);
     len += sprintf(&buf[len], "fault_handler: %llx\n", (uint64_t)fault_handler);
     len += sprintf(&buf[len], "handled_faults: %u\n", handled_faults);
     len += sprintf(&buf[len], "faulty_pte_mask_set: %lu\n", faulty_pte_mask_set);

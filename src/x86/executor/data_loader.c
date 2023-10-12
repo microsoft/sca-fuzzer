@@ -61,7 +61,9 @@ int load_sandbox_data(int input_id)
 
         // - RSP and RBP are do not take a value from the input,
         //   and are rather set to the stack base
-        reg_dest[7] = (uint64_t)main_stack_base;
+
+        // stack pointer for actor 0
+        reg_dest[7] = (uint64_t)sandbox->data[0].main_area + LOCAL_RSP_OFFSET;
     }
 
     // - Initialize SIMD registers
