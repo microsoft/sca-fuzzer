@@ -88,8 +88,7 @@ class MacroSpec(NamedTuple):
 # Sandbox layout and constants
 # ==================================================================================================
 # Note: the constants *must* be identical to the actor_data_t and actor_code_t in executor
-
-# Data layout:
+# - Data layout:
 #   +-------------------+ (page-aligned)
 #   | OVERFLOW_PAD_SIZE |
 #   +-------------------+
@@ -121,6 +120,7 @@ def get_sandbox_addr(sandbox_base: int, name: str):
         "underflow_pad": lambda x: x - UNDERFLOW_PAD_SIZE,
         "main": lambda x: x,
         "faulty": lambda x: x + MAIN_AREA_SIZE,
+        "sp": lambda x: x + MAIN_AREA_SIZE - 8,
         "gpr": lambda x: x + MAIN_AREA_SIZE + FAULTY_AREA_SIZE,
         "simd": lambda x: x + MAIN_AREA_SIZE + FAULTY_AREA_SIZE + GPR_SUBREGION_SIZE,
         "reg_init": lambda x: x + MAIN_AREA_SIZE + FAULTY_AREA_SIZE,
@@ -131,7 +131,7 @@ def get_sandbox_addr(sandbox_base: int, name: str):
     return name_to_addr[name](sandbox_base)
 
 
-# Code layout:
+# - Code layout:
 MAX_SECTION_SIZE = PAGE_SIZE
 
 # ==================================================================================================
@@ -985,8 +985,9 @@ class Model(ABC):
     coverage: Optional[Coverage] = None
     sandbox_base: int = 0
     code_start: int = 0
-    underflow_pad_base: int = 0
-    overflow_pad_base: int = 0
+    code_end: int = 0
+    data_start: int = 0
+    data_end: int = 0
     tracer: Tracer
 
     @abstractmethod

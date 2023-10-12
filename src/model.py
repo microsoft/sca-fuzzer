@@ -53,6 +53,8 @@ class UnicornTargetDesc:
     barriers: List[str]
     flags_register: int
     pc_register: int
+    actor_base_register: int
+    sp_register: int
     reg_decode: Dict[str, int]
     reg_str_to_constant: Dict[str, int]
 
@@ -104,19 +106,28 @@ class MacroInterpreter:
 
     def macro_switch(self, arg1: int, arg2: int, arg3: int, arg4: int):
         """
-        Switch the active actor and jump to the corresponding function address
+        Switch the active actor, update data area base and SP,
+          and jump to the corresponding function address
         """
         model = self.model
         section_id = arg1
         section_addr = model.code_start + MAX_SECTION_SIZE * section_id
 
+        # PC update
         function_id = arg2
         function_symbol = self._find_function_by_id(function_id)
         function_addr = section_addr + function_symbol.offset
+        model.emulator.reg_write(model.uc_target_desc.pc_register, function_addr)
 
+        # data area base and SP update
+        new_base = model.sandbox_base + SANDBOX_DATA_SIZE * section_id
+        new_sp = get_sandbox_addr(new_base, "sp")
+        model.emulator.reg_write(model.uc_target_desc.actor_base_register, new_base)
+        model.emulator.reg_write(model.uc_target_desc.sp_register, new_sp)
+
+        # actor update
         actor_name = self.sid_to_actor_name[section_id]
         model.current_actor = self.test_case.actors[actor_name]
-        model.emulator.reg_write(model.uc_target_desc.pc_register, function_addr)
 
     def macro_measurement_start(self, arg1: int, arg2: int, arg3: int, arg4: int):
         if not self.model.in_speculation:
@@ -153,9 +164,9 @@ class UnicornTracer(Tracer):
         # make the trace reproducible by normalizing the addresses
         normalized_trace: List[int] = []
         for val in self.trace:
-            if model.code_start <= val and val < (model.code_start + MAX_SECTION_SIZE):
+            if model.code_start <= val and val < model.code_end:
                 normalized_trace.append(val - model.code_start)
-            elif model.underflow_pad_base < val and val < (model.overflow_pad_base + 0x1000):
+            elif model.data_start < val and val < model.data_end:
                 normalized_trace.append(val - model.sandbox_base)
             else:
                 normalized_trace.append(val)
@@ -352,9 +363,9 @@ class UnicornModel(Model, ABC):
         super().__init__(sandbox_base, code_start)
         self.LOG = Logger()
 
-        self.code_start: UcPointer = code_start
-        self.code_end: UcPointer = 0  # set by subclasses
-        self.sandbox_base: UcPointer = sandbox_base
+        self.code_start = code_start
+        self.code_end = 0  # set by subclasses
+        self.sandbox_base = sandbox_base
 
     @staticmethod
     @abstractmethod
@@ -401,7 +412,7 @@ class UnicornModel(Model, ABC):
         for val in trace:
             if self.code_start <= val and val < self.code_end:
                 normalized_trace.append(f"pc:0x{val - self.code_start:x}")
-            elif self.underflow_pad_base < val and val < (self.overflow_pad_base + 0x1000):
+            elif self.data_start < val and val < self.data_end:
                 normalized_trace.append(f"mem:0x{val - self.sandbox_base:x}")
             else:
                 normalized_trace.append(f"val:{val}")
@@ -473,11 +484,9 @@ class UnicornSeq(UnicornModel):
     exit_addr: UcPointer  # the address of the test case exit instruction
 
     # test case data
-    underflow_pad_base: UcPointer  # the base address of the underflow pad
     main_area: UcPointer  # the base address of the main area
     faulty_area: UcPointer  # the base address of the faulty area
     reg_init_area: UcPointer  # the base address of the register initialization area
-    overflow_pad_base: UcPointer  # the base address of the overflow pad
     stack_base: UcPointer  # the base address of the stack at the beginning of the test case
 
     # ISA-specific fields
@@ -513,7 +522,6 @@ class UnicornSeq(UnicornModel):
         self.main_area = get_sandbox_addr(sandbox_base, "main")
         self.faulty_area = get_sandbox_addr(sandbox_base, "faulty")
         self.reg_init_area = get_sandbox_addr(sandbox_base, "reg_init")
-        self.overflow_pad_base = get_sandbox_addr(sandbox_base, "overflow_pad")
         self.stack_base = self.faulty_area - 8
 
         # taint tracking (actual values are set by ISA-specific subclasses)
@@ -567,13 +575,17 @@ class UnicornSeq(UnicornModel):
         self.code_end = self.code_start + len(code)
         self.exit_addr = self.code_start + main_actor.elf_section.size - 1
 
+        # sandbox data bounds
+        self.data_start = get_sandbox_addr(self.sandbox_base, "start")
+        self.data_end = self.sandbox_base + SANDBOX_DATA_SIZE * len(actors)
+
         # initialize emulator in x86-64 mode
         emulator = Uc(*self.architecture)
 
         try:
             # allocate memory
             emulator.mem_map(self.code_start, MAX_SECTION_SIZE * len(actors))
-            emulator.mem_map(get_sandbox_addr(self.sandbox_base, "start"), SANDBOX_DATA_SIZE)
+            emulator.mem_map(self.data_start, self.data_end - self.data_start)
 
             # write machine code to be emulated to memory
             emulator.mem_write(self.code_start, code)

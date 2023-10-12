@@ -37,8 +37,6 @@
 #define TEMPLATE_DEFAULT_EXCEPTION_LANDING 0x0fff479000000000
 #define TEMPLATE_END                       0x0fff279000000000
 
-#define JMP_32BIT_RELATIVE 0xE9
-
 uint8_t *loaded_test_case_entry = NULL; // global
 
 static uint8_t *main_actor_code = NULL;
@@ -249,7 +247,8 @@ static uint64_t expand_macro(tc_symbol_entry_t *macro, uint8_t *jmp_location, ui
     int err = get_macro_bounds(macro->id, &macro_start, &macro_size);
     CHECK_ERR("get_macro_bounds");
 
-    dest_cursor += inject_macro_arguments(macro->id, macro->args, &macro_dest[dest_cursor]);
+    dest_cursor += inject_macro_arguments(macro->id, macro->args, &macro_dest[dest_cursor],
+                                          main_prologue_size);
     memcpy(&macro_dest[dest_cursor], macro_start, macro_size);
     dest_cursor += macro_size;
 
@@ -260,43 +259,6 @@ static uint64_t expand_macro(tc_symbol_entry_t *macro, uint8_t *jmp_location, ui
     dest_cursor += 5;
 
     return dest_cursor;
-}
-
-/// @brief Dynamically generate code that passes arguments to a macro; the macros receive the
-/// arguments in the R13 register
-/// @param args Compressed representation of the arguments, as received from the test case
-/// symbol table
-/// @return Size of the generated code, in bytes
-uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint8_t *macro_dest)
-{
-    switch (macro_type) {
-    case MACRO_MEASUREMENT_START:
-    case MACRO_MEASUREMENT_END:
-        return 0;
-    case MACRO_SWITCH: {
-        uint16_t section_id = args & 0xFFFF;
-        uint16_t function_id = (args >> 16) & 0xFFFF;
-
-        uint64_t actor_addr = (uint64_t)sandbox->code[section_id].section;
-        if (section_id == 0)
-            actor_addr += main_prologue_size;
-        uint64_t function_addr = actor_addr + test_case->symbol_table[function_id].offset;
-
-        // // movabs r13, function_addr
-        // macro_dest[0] = 0x49;
-        // macro_dest[1] = 0xbd;
-        // *((uint64_t *)(macro_dest + 2)) = function_addr;
-        uint32_t relative_offset = function_addr - (uint64_t)macro_dest - 5;
-        // jmp offset
-        macro_dest[0] = JMP_32BIT_RELATIVE;
-        *((uint32_t *)(macro_dest + 1)) = relative_offset;
-
-        return 5;
-    }
-    default:
-        PRINT_ERRS("inject_macro_arguments", "macro_type %llu is not valid\n", macro_type);
-        return 0;
-    }
 }
 
 // =================================================================================================

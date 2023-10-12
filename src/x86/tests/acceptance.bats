@@ -397,3 +397,9 @@ EOF
 @test "Feature: Multi-actor test case" {
     assert_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/actor_switch.asm -i 20"
 }
+
+@test "Architectural Test: Multi-actor test case" {
+    tmp_config=$(mktemp -p $TEST_DIR)
+    echo "$ARCH_BASE" >>$tmp_config
+    assert_no_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/actor_switch.asm -c $tmp_config -i 20"
+}

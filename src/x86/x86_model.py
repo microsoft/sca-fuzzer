@@ -14,7 +14,8 @@ from unicorn import Uc, UC_MEM_WRITE, UC_ARCH_X86, UC_MODE_64, UC_PROT_READ, UC_
     UC_ERR_WRITE_PROT
 
 from ..interfaces import Input, FlagsOperand, RegisterOperand, MemoryOperand, AgenOperand, \
-    TestCase, FAULTY_AREA_SIZE, OVERFLOW_PAD_SIZE, UNDERFLOW_PAD_SIZE, get_sandbox_addr
+    TestCase, SANDBOX_DATA_SIZE, FAULTY_AREA_SIZE, OVERFLOW_PAD_SIZE, UNDERFLOW_PAD_SIZE, \
+    get_sandbox_addr
 from ..model import UnicornModel, UnicornTracer, UnicornSpec, UnicornSeq, BaseTaintTracker
 from ..util import UnreachableCode, NotSupportedException, BLUE, COL_RESET
 from .x86_target_desc import X86UnicornTargetDesc, X86TargetDesc
@@ -77,6 +78,7 @@ class X86UnicornSeq(UnicornSeq):
         """
         Set registers and stack before starting the emulation
         """
+
         def patch_flags(flags: np.uint64) -> np.uint64:
             return (flags & np.uint64(2263)) | np.uint64(2)
 
@@ -88,21 +90,22 @@ class X86UnicornSeq(UnicornSeq):
         # Initialize memory for each actor:
         for actor_id in range(len(self.actors_sorted)):
             input_fragment = input_[actor_id]
+            a_base = s_base + actor_id * SANDBOX_DATA_SIZE  # actor's sandbox base
 
             # - initialize overflows with zeroes
-            em.mem_write(self.underflow_pad_base, self.underflow_pad_values)
-            em.mem_write(self.overflow_pad_base, self.overflow_pad_values)
+            em.mem_write(get_sandbox_addr(a_base, "underflow_pad"), self.underflow_pad_values)
+            em.mem_write(get_sandbox_addr(a_base, "overflow_pad"), self.overflow_pad_values)
 
             # - sandbox data pages
             # Note: register init. area is not used by the model, but executor uses
             # it to initialize registers, and we have to keep it consistent
-            em.mem_write(self.main_area, input_fragment['main'].tobytes())
-            em.mem_write(self.faulty_area, input_fragment['faulty'].tobytes())
-            em.mem_write(get_sandbox_addr(s_base, "gpr"), input_fragment['gpr'].tobytes())
-            em.mem_write(get_sandbox_addr(s_base, "simd"), input_fragment['simd'].tobytes())
+            em.mem_write(get_sandbox_addr(a_base, "main"), input_fragment['main'].tobytes())
+            em.mem_write(get_sandbox_addr(a_base, "faulty"), input_fragment['faulty'].tobytes())
+            em.mem_write(get_sandbox_addr(a_base, "gpr"), input_fragment['gpr'].tobytes())
+            em.mem_write(get_sandbox_addr(a_base, "simd"), input_fragment['simd'].tobytes())
 
             # patch the init values for some of the registers
-            gpr_base = get_sandbox_addr(s_base, "gpr")
+            gpr_base = get_sandbox_addr(a_base, "gpr")
             em.mem_write(gpr_base + 6 * 8, patch_flags(input_fragment['gpr'][6]).tobytes())  # flags
             em.mem_write(gpr_base + 7 * 8, np.uint64(self.stack_base).tobytes())  # RSP
 

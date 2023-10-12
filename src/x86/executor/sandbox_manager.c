@@ -10,7 +10,6 @@
 #include "shortcuts.h"
 
 sandbox_t *sandbox = NULL;    // global
-void *main_stack_base = NULL; // global
 
 static void *_util_n_data_unaligned = NULL;
 static void *util_n_data = NULL;
@@ -82,9 +81,6 @@ int allocate_sandbox(void)
 
     // point to the main section of the first actor
     loaded_test_case_entry = code;
-
-    // stack pointer for actor 0
-    main_stack_base = sandbox->data[0].main_area + MAIN_AREA_SIZE - 8;
 
     old_n_actors = n_actors;
     return 0;

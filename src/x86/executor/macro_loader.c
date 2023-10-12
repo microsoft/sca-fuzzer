@@ -118,6 +118,65 @@ int get_macro_bounds(uint64_t macro_id, uint8_t **start, uint64_t *size)
     return 0;
 }
 
+/// @brief Dynamically generate code that passes arguments to a macro; the macros receive the
+/// arguments in the R13 register
+/// @param args Compressed representation of the arguments, as received from the test case
+/// symbol table
+/// @return Size of the generated code, in bytes
+uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint8_t *macro_dest,
+                                size_t main_prologue_size)
+{
+    size_t cursor = 0;
+
+    switch (macro_type) {
+    case MACRO_MEASUREMENT_START:
+    case MACRO_MEASUREMENT_END:
+        break;
+    case MACRO_SWITCH: {
+        // determine the jump target
+        uint16_t section_id = args & 0xFFFF;
+        uint16_t function_id = (args >> 16) & 0xFFFF;
+        uint64_t actor_addr = (uint64_t)sandbox->code[section_id].section;
+        if (section_id == 0)
+            actor_addr += main_prologue_size;
+        uint64_t function_addr = actor_addr + test_case->symbol_table[function_id].offset;
+
+        // calculate the new R14 and RSP values
+        uint64_t new_r14 = (uint64_t)sandbox->data[section_id].main_area;
+        uint64_t new_rsp = new_r14 + LOCAL_RSP_OFFSET;
+
+        // movabs r14, new_r14
+        macro_dest[cursor] = 0x49;
+        cursor++;
+        macro_dest[cursor] = 0xbe;
+        cursor++;
+        *((uint64_t *)(macro_dest + cursor)) = new_r14;
+        cursor += 8;
+
+        // movabs rsp, new_rsp
+        macro_dest[cursor] = 0x48;
+        cursor++;
+        macro_dest[cursor] = 0xbc;
+        cursor++;
+        *((uint64_t *)(macro_dest + cursor)) = new_rsp;
+        cursor += 8;
+
+        // jmp [RIP + relative_offset]
+        uint32_t relative_offset = function_addr - (uint64_t)macro_dest - cursor - 5;
+        macro_dest[cursor] = JMP_32BIT_RELATIVE;
+        cursor++;
+        *((uint32_t *)(macro_dest + cursor)) = relative_offset;
+        cursor += 4;
+        break;
+    }
+    default:
+        PRINT_ERRS("inject_macro_arguments", "macro_type %llu is not valid\n", macro_type);
+        break;
+    }
+
+    return cursor;
+}
+
 // =================================================================================================
 // Macros: Uarch measurements
 // =================================================================================================
@@ -204,10 +263,12 @@ void macro_measurement_end_probe(void)
     asm_volatile_intel(""                                                //
                        PUSH_ABCDF()                                      //
                        "push r15\n"                                      //
+                       "push r13\n"                                      //
                        "lfence\n"                                        //
                        READ_PFC_END()                                    //
                        "lea r15, [r15 + " xstr(L1D_PRIMING_OFFSET) "]\n" //
                        PROBE("r15", "rbx", "r13", HTRACE_REGISTER)       //
+                       "pop r13\n"                                       //
                        "pop r15\n"                                       //
                        POP_ABCDF()                                       //
     );
@@ -233,12 +294,14 @@ void macro_measurement_end_reload(void)
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                                           //
                        PUSH_ABCDF()                                 //
+                       "push r13\n"                                 //
                        "lfence\n"                                   //
                        READ_PFC_END()                               //
                        RELOAD("r14", "rbx", "r13", HTRACE_REGISTER) //
                        "mov rax, 1\n"                               //
                        "shl rax, 63\n"                              //
                        "or " HTRACE_REGISTER ", rax\n"              //
+                       "pop r13\n"                                  //
                        POP_ABCDF()                                  //
     );
     asm volatile(".quad " xstr(MACRO_END));
@@ -251,7 +314,7 @@ void macro_measurement_end_reload(void)
 void macro_same_context_switch(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
-    // Nothing here; it's a dummy macro
+    // Nothing here; everything is implemented in inject_macro_arguments->MACRO_SWITCH
     asm volatile(".quad " xstr(MACRO_END));
 }
 
