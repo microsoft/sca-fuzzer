@@ -204,12 +204,10 @@ void macro_measurement_end_probe(void)
     asm_volatile_intel(""                                                //
                        PUSH_ABCDF()                                      //
                        "push r15\n"                                      //
-                       "push r13\n"                                      //
                        "lfence\n"                                        //
                        READ_PFC_END()                                    //
                        "lea r15, [r14 - " xstr(L1D_PRIMING_OFFSET) "]\n" //
                        PROBE("r15", "rbx", "r13", HTRACE_REGISTER)       //
-                       "pop r13\n"                                       //
                        "pop r15\n"                                       //
                        POP_ABCDF()                                       //
     );
@@ -236,7 +234,6 @@ void macro_measurement_end_reload(void)
     asm_volatile_intel(""                                           //
                        PUSH_ABCDF()                                 //
                        "push r15\n"                                 //
-                       "push r13\n"                                 //
                        "lfence\n"                                   //
                        READ_PFC_END()                               //
                        "lea r15, [r14]\n"                           //
@@ -244,7 +241,6 @@ void macro_measurement_end_reload(void)
                        "mov rax, 1\n"                               //
                        "shl rax, 63\n"                              //
                        "or " HTRACE_REGISTER ", rax\n"              //
-                       "pop r13\n"                                  //
                        "pop r15\n"                                  //
                        POP_ABCDF()                                  //
     );
