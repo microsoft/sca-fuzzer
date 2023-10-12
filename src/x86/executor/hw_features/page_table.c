@@ -4,11 +4,13 @@
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "page_table.h"
-#include "sandbox.h"
-#include "shortcuts.h"
 #include <linux/kernel.h>
 #include <linux/mm.h>
+
+#include "sandbox_manager.h"
+#include "shortcuts.h"
+
+#include "hw_features/page_table.h"
 
 pteval_t faulty_pte_mask_set = 0;   // global
 pteval_t faulty_pte_mask_clear = 0; // global
@@ -55,8 +57,8 @@ pte_t *get_pte(uint64_t address)
 int faulty_page_prepare(void)
 {
     ASSERT(sandbox != NULL, "faulty_page_prepare");
-    ASSERT(sandbox->faulty_area != NULL, "faulty_page_prepare");
-    faulty_page_addr = (unsigned long)&sandbox->faulty_area[0];
+    ASSERT(sandbox->data[0].faulty_area != NULL, "faulty_page_prepare");
+    faulty_page_addr = (unsigned long)&(sandbox->data[0].faulty_area[0]);
     faulty_page_ptep = get_pte(faulty_page_addr);
     ASSERT(faulty_page_ptep != NULL, "faulty_page_prepare");
     return 0;
@@ -89,10 +91,6 @@ void faulty_page_pte_restore(void)
 }
 
 // =================================================================================================
-// Allocation and Initialization
-// =================================================================================================
-/// Constructor
-///
 int init_page_table_manager(void)
 {
     faulty_pte_mask_set = 0x0;
@@ -103,6 +101,4 @@ int init_page_table_manager(void)
     return 0;
 }
 
-/// Destructor for the measurement module
-///
 void free_page_table_manager(void) {}

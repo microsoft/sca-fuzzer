@@ -3,8 +3,11 @@
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#ifndef _X86_EXECUTOR_MACRO_H_
-#define _X86_EXECUTOR_MACRO_H_
+#ifndef _SHORTCUTS_H_
+#define _SHORTCUTS_H_
+
+#include <linux/kernel.h>
+#include <linux/slab.h>  // kfree, kmalloc
 
 #include <../arch/x86/include/asm/desc.h>
 
@@ -107,4 +110,4 @@
         x = NULL;                                                                                  \
     }
 
-#endif // _X86_EXECUTOR_MACRO_H_
+#endif // _SHORTCUTS_H_

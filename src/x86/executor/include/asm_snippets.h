@@ -3,8 +3,8 @@
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#ifndef _MACRO_PRIMITIVES_H_
-#define _MACRO_PRIMITIVES_H_
+#ifndef _ASM_SNIPPETS_H_
+#define _ASM_SNIPPETS_H_
 // clang-format off
 
 #ifndef VENDOR_ID
@@ -341,4 +341,4 @@
 #endif
 
 // clang-format on
-#endif // _MACRO_PRIMITIVES_H_
+#endif // _ASM_SNIPPETS_H_

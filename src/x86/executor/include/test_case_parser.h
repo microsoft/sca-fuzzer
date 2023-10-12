@@ -3,10 +3,10 @@
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#ifndef _X86_EXECUTOR_TC_H_
-#define _X86_EXECUTOR_TC_H_
+#ifndef _TEST_CASE_PARSER_H_
+#define _TEST_CASE_PARSER_H_
 
-#include <linux/types.h>
+#include "actor_manager.h"
 
 #define MAX_ACTORS              16
 #define MAX_SECTIONS            MAX_ACTORS
@@ -21,7 +21,6 @@ typedef uint64_t section_id_t;
 typedef uint64_t symbol_offset_t;
 typedef uint64_t symbol_id_t;
 typedef uint64_t symbol_args_t;
-typedef uint64_t actor_id_t;
 
 typedef struct {
     actor_id_t owner;
@@ -49,12 +48,11 @@ typedef struct {
     tc_section_t *sections;
 } test_case_t;
 
-extern size_t n_actors;
 extern test_case_t *test_case;
 
 ssize_t parse_test_case_buffer(const char *buf, size_t count, bool *finished);
 bool tc_parsing_completed(void);
-int init_test_case_manager(void);
-void free_test_case_manager(void);
+int init_test_case_parser(void);
+void free_test_case_parser(void);
 
-#endif // _X86_EXECUTOR_TC_H_
+#endif // _TEST_CASE_PARSER_H_

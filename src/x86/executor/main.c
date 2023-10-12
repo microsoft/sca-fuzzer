@@ -13,16 +13,20 @@
 // clang-format on
 
 #include "main.h"
-#include "fault_handler.h"
-#include "hardware.h"
-#include "input.h"
-#include "loader.h"
-#include "macro.h"
+#include "actor_manager.h"
+#include "code_loader.h"
+#include "data_loader.h"
+#include "hardware_desc.h"
+#include "input_parser.h"
+#include "macro_loader.h"
 #include "measurement.h"
-#include "page_table.h"
-#include "sandbox.h"
+#include "sandbox_manager.h"
 #include "shortcuts.h"
-#include "test_case.h"
+#include "test_case_parser.h"
+
+#include "hw_features/fault_handler.h"
+#include "hw_features/page_table.h"
+#include "hw_features/perf_counters.h"
 
 // Version-dependent includes
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 6)
@@ -229,8 +233,9 @@ static ssize_t trace_show(struct kobject *kobj, struct kobj_attribute *attr, cha
             return count; // we will continue in the next call of this function
 
         measurement_t m = measurements[next_measurement_id];
-        retval = sprintf(&buf[count], "%llu,%llu,%llu,%llu,%llu,%llu\n", m.htrace[0], m.pfc[0],
-                         m.pfc[1], m.pfc[2], m.pfc[3], m.pfc[4]);
+        retval =
+            sprintf(&buf[count], "%llu,%llu,%llu,%llu,%llu,%llu\n", m.htrace[0], m.pfc_reading[0],
+                    m.pfc_reading[1], m.pfc_reading[2], m.pfc_reading[3], m.pfc_reading[4]);
         if (!retval)
             return -1;
         count += retval;
@@ -254,8 +259,12 @@ static ssize_t test_case_store(struct kobject *kobj, struct kobj_attribute *attr
     tc_ready = false;
 
     if (finished) {
-        int err = load_test_case();
-        CHECK_ERR("test_case_store");
+        // prepare sandboxes
+        int err = allocate_sandbox();
+        CHECK_ERR("allocate_sandbox");
+
+        err = load_sandbox_code();
+        CHECK_ERR("load_sandbox_code");
 
         next_measurement_id = -1;
         tc_ready = true;
@@ -266,7 +275,7 @@ static ssize_t test_case_store(struct kobject *kobj, struct kobj_attribute *attr
 static ssize_t test_case_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
     for (int i = 0; i < 0xfff; i++) {
-        sprintf(&buf[i], "%c", loaded_main_section[i]);
+        sprintf(&buf[i], "%c", loaded_test_case_entry[i]);
     }
     return 0xfff;
 }
@@ -279,13 +288,6 @@ static ssize_t inputs_store(struct kobject *kobj, struct kobj_attribute *attr, c
     inputs_ready = false;
 
     if (finished) {
-        // prepare sandboxes
-        int err = alloc_and_map_sandboxes();
-        CHECK_ERR("alloc_and_map_sandboxes");
-
-        // prepare memory for storing results
-        err = alloc_measurements();
-
         inputs_ready = true;
     }
     return consumed_bytes;
@@ -311,12 +313,12 @@ static ssize_t warmups_store(struct kobject *kobj, struct kobj_attribute *attr, 
 
 static ssize_t print_sandbox_base_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
-    return sprintf(buf, "%llx\n", (long long unsigned)sandbox->main_area);
+    return sprintf(buf, "%llx\n", (long long unsigned)sandbox->data[0].main_area);
 }
 
 static ssize_t print_code_base_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
-    return sprintf(buf, "%llx\n", (long long unsigned)loaded_main_section);
+    return sprintf(buf, "%llx\n", (long long unsigned)loaded_test_case_entry);
 }
 
 static ssize_t enable_ssbp_patch_store(struct kobject *kobj, struct kobj_attribute *attr,
@@ -431,7 +433,7 @@ static ssize_t dbg_dump_show(struct kobject *kobj, struct kobj_attribute *attr, 
     int len = 0;
     len += sprintf(&buf[len], "n_actors: %lu\n", n_actors);
     len += sprintf(&buf[len], "test_case: 0x%llx\n", (uint64_t)test_case);
-    len += sprintf(&buf[len], "loaded_main_section: 0x%llx\n", (uint64_t)loaded_main_section);
+    len += sprintf(&buf[len], "loaded_test_case_entry: 0x%llx\n", (uint64_t)loaded_test_case_entry);
     len += sprintf(&buf[len], "measurements: 0x%llx\n", (uint64_t)measurements);
     len += sprintf(&buf[len], "n_inputs: %lu\n", n_inputs);
     len += sprintf(&buf[len], "inputs: %llx\n", (uint64_t)inputs);
@@ -440,7 +442,7 @@ static ssize_t dbg_dump_show(struct kobject *kobj, struct kobj_attribute *attr, 
         len += sprintf(&buf[len], "inputs->data: %llx\n", (uint64_t)inputs->data);
     }
     len += sprintf(&buf[len], "sandbox: %llx\n", (uint64_t)sandbox);
-    len += sprintf(&buf[len], "stack_base: %llx\n", (uint64_t)stack_base);
+    len += sprintf(&buf[len], "stack_base: %llx\n", (uint64_t)main_stack_base);
     len += sprintf(&buf[len], "fault_handler: %llx\n", (uint64_t)fault_handler);
     len += sprintf(&buf[len], "handled_faults: %u\n", handled_faults);
     len += sprintf(&buf[len], "faulty_pte_mask_set: %lu\n", faulty_pte_mask_set);
@@ -488,14 +490,17 @@ static int __init executor_init(void)
 
     // Initialize modules
     int err = 0;
-    err |= init_test_case_manager();
-    err |= init_input_manager();
     err |= init_measurements();
-    err |= init_sandbox();
-    err |= init_page_table_manager();
+    err |= init_sandbox_manager();
+    err |= init_actor_manager();
+    err |= init_code_loader();
+    err |= init_data_loader();
+    err |= init_macros_loader();
+    err |= init_input_parser();
+    err |= init_test_case_parser();
     err |= init_fault_handler();
-    err |= init_macros_manager();
-    err |= init_loader();
+    err |= init_page_table_manager();
+    err |= init_perf_counters();
     CHECK_ERR("executor_init");
 
     // Create a pseudo file system interface
@@ -527,14 +532,17 @@ static int __init executor_init(void)
 
 static void __exit executor_exit(void)
 {
-    free_test_case_manager();
-    free_input_parser();
     free_measurements();
-    free_sandbox();
-    free_page_table_manager();
+    free_sandbox_manager();
+    free_actor_manager();
+    free_code_loader();
+    free_data_loader();
+    free_macros_loader();
+    free_input_parser();
+    free_test_case_parser();
     free_fault_handler();
-    free_macros_manager();
-    free_loader();
+    free_page_table_manager();
+    free_perf_counters();
 
     if (kobj_interface)
         kobject_put(kobj_interface);

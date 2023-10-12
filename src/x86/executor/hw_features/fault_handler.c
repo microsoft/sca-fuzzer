@@ -4,16 +4,15 @@
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-// clang-format off
 #include <linux/interrupt.h>
-// clang-format on
 
-#include "fault_handler.h"
-#include "loader.h"
+#include "code_loader.h"
 #include "measurement.h"
-#include "sandbox.h"
+#include "sandbox_manager.h"
 #include "shortcuts.h"
-#include "test_case.h"
+#include "test_case_parser.h"
+
+#include "hw_features/fault_handler.h"
 
 uint32_t handled_faults = 0; // global
 char *fault_handler = NULL;  // global
@@ -56,9 +55,14 @@ static void set_intr_gate(gate_desc *idt, int interrupt_id, void *handler)
 }
 
 void idt_set_custom_handlers(gate_desc *idt, struct desc_ptr *idtr, void *main_handler,
-                             void *secondary_handler)
+                             void *secondary_handler, void *nmi_handler)
 {
     for (uint8_t idx = 0; idx < 255; idx++) {
+        if (idx == 2) {
+            set_intr_gate(idt, idx, nmi_handler);
+            continue;
+        }
+
         if (BIT_CHECK(handled_faults, idx)) {
             set_intr_gate(idt, idx, main_handler);
         } else {
@@ -74,7 +78,8 @@ int set_bubble_idt(void)
 {
     ASSERT(pre_bubble_rsp != 0, "set_bubble_idt");
     native_sidt(&orig_idtr); // preserve original IDT
-    idt_set_custom_handlers(bubble_idt, &bubble_idtr, bubble_handler, bubble_handler);
+    void *nmi_handler = (void *) (orig_idtr.address + 2 * sizeof(gate_desc));
+    idt_set_custom_handlers(bubble_idt, &bubble_idtr, bubble_handler, bubble_handler, nmi_handler);
     return 0;
 }
 
@@ -87,13 +92,16 @@ int unset_bubble_idt(void)
 int set_test_case_idt(void)
 {
     ASSERT(bubble_idtr.address != 0, "set_test_case_idt");
-    idt_set_custom_handlers(test_case_idt, &test_case_idtr, fault_handler, fallback_handler);
+    void *nmi_handler = (void *) (orig_idtr.address + 2 * sizeof(gate_desc));
+    idt_set_custom_handlers(test_case_idt, &test_case_idtr, fault_handler, fallback_handler,
+                            nmi_handler);
     return 0;
 }
 
 int unset_test_case_idt(void)
 {
-    idt_set_custom_handlers(bubble_idt, &bubble_idtr, bubble_handler, bubble_handler);
+    void *nmi_handler = (void *) (orig_idtr.address + 2 * sizeof(gate_desc));
+    idt_set_custom_handlers(bubble_idt, &bubble_idtr, bubble_handler, bubble_handler, nmi_handler);
     return 0;
 }
 
@@ -108,7 +116,7 @@ __attribute__((unused)) void fallback_handler_wrapper(void)
         "fallback_handler:\n"
 
         // rax <- &latest_measurement
-        "lea rax, [r14 + "xstr(MEASUREMENT_OFFSET)"]\n"
+        "lea rax, [r14 - "xstr(MEASUREMENT_OFFSET)"]\n"
 
         // set the trace to 0xFFFF to indicate an unhandled fault
         "mov qword ptr [rax], 0xFFFF \n"
@@ -122,7 +130,7 @@ __attribute__((unused)) void fallback_handler_wrapper(void)
         "mov qword ptr [rax + 16], rcx \n"
 
         // rsp <- stored_rsp
-        "mov rsp, qword ptr [r14 + "xstr(RSP_OFFSET)"]\n"
+        "mov rsp, qword ptr [r14 - "xstr(STORED_RSP_OFFSET)"]\n"
 
         // restore registers
         "popfq\n"
@@ -139,8 +147,8 @@ __attribute__((unused)) void fallback_handler_wrapper(void)
 
     // since most faults happen within the measurement_code, we additionally store
     // a normalized value of the faulting address
-    sandbox->latest_measurement.pfc[2] =
-        sandbox->latest_measurement.pfc[1] - (uint64_t)loaded_main_section;
+    sandbox->util->latest_measurement.pfc_reading[2] =
+        sandbox->util->latest_measurement.pfc_reading[1] - (uint64_t)loaded_test_case_entry;
 
     // TODO: make run_experiment exit with an error code upon a n unhandled fault
 
@@ -208,11 +216,6 @@ __attribute__((unused)) void bubble_handler_wrapper(void)
 }
 
 // =================================================================================================
-// Allocation and Initialization
-// =================================================================================================
-
-/// Constructor
-///
 int init_fault_handler(void)
 {
     handled_faults = HANDLED_FAULTS_DEFAULT;
@@ -223,8 +226,6 @@ int init_fault_handler(void)
     return 0;
 }
 
-/// Destructor for the measurement module
-///
 void free_fault_handler(void)
 {
     SAFE_FREE(bubble_idt);
