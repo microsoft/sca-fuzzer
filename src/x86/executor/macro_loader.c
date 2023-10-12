@@ -122,7 +122,7 @@ int get_macro_bounds(uint64_t macro_id, uint8_t **start, uint64_t *size)
 // Macros: Uarch measurements
 // =================================================================================================
 // clang-format off
-#define PUSH_ABCDF()                                                                              \
+#define PUSH_ABCDF()                                                                               \
     "mov r13, rsp\n"                                                                               \
     "lea rsp, [r14 - " xstr(MACRO_STACK_TOP_OFFSET) "]\n"                                          \
     "push rax\n"                                                                                   \
@@ -147,7 +147,7 @@ void macro_measurement_start_prime(void)
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                                                //
                        PUSH_ABCDF()                                      //
-                       "lea rax, [r14 - " xstr(L1D_PRIMING_OFFSET) "]\n" //
+                       "lea rax, [r15 + " xstr(L1D_PRIMING_OFFSET) "]\n" //
                        PRIME("rax", "rbx", "rcx", "rdx", "32")           //
                        READ_PFC_START()                                  //
                        POP_ABCDF()                                       //
@@ -161,7 +161,7 @@ void macro_measurement_start_fast_prime(void)
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                                                //
                        PUSH_ABCDF()                                      //
-                       "lea rax, [r14 - " xstr(L1D_PRIMING_OFFSET) "]\n" //
+                       "lea rax, [r15 + " xstr(L1D_PRIMING_OFFSET) "]\n" //
                        PRIME("rax", "rbx", "rcx", "rdx", "1")            //
                        READ_PFC_START()                                  //
                        POP_ABCDF()                                       //
@@ -175,7 +175,7 @@ void macro_measurement_start_partial_prime(void)
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                                                //
                        PUSH_ABCDF()                                      //
-                       "lea rax, [r14 - " xstr(L1D_PRIMING_OFFSET) "]\n" //
+                       "lea rax, [r15 + " xstr(L1D_PRIMING_OFFSET) "]\n" //
                        PRIME_PARTIAL("rax", "rbx", "rcx", "rdx", "32")   //
                        READ_PFC_START()                                  //
                        POP_ABCDF()                                       //
@@ -189,7 +189,7 @@ void macro_measurement_start_fast_partial_prime(void)
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                                                //
                        PUSH_ABCDF()                                      //
-                       "lea rax, [r14 - " xstr(L1D_PRIMING_OFFSET) "]\n" //
+                       "lea rax, [r15 + " xstr(L1D_PRIMING_OFFSET) "]\n" //
                        PRIME_PARTIAL("rax", "rbx", "rcx", "rdx", "1")    //
                        READ_PFC_START()                                  //
                        POP_ABCDF()                                       //
@@ -206,7 +206,7 @@ void macro_measurement_end_probe(void)
                        "push r15\n"                                      //
                        "lfence\n"                                        //
                        READ_PFC_END()                                    //
-                       "lea r15, [r14 - " xstr(L1D_PRIMING_OFFSET) "]\n" //
+                       "lea r15, [r15 + " xstr(L1D_PRIMING_OFFSET) "]\n" //
                        PROBE("r15", "rbx", "r13", HTRACE_REGISTER)       //
                        "pop r15\n"                                       //
                        POP_ABCDF()                                       //
@@ -233,15 +233,12 @@ void macro_measurement_end_reload(void)
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                                           //
                        PUSH_ABCDF()                                 //
-                       "push r15\n"                                 //
                        "lfence\n"                                   //
                        READ_PFC_END()                               //
-                       "lea r15, [r14]\n"                           //
-                       RELOAD("r15", "rbx", "r13", HTRACE_REGISTER) //
+                       RELOAD("r14", "rbx", "r13", HTRACE_REGISTER) //
                        "mov rax, 1\n"                               //
                        "shl rax, 63\n"                              //
                        "or " HTRACE_REGISTER ", rax\n"              //
-                       "pop r15\n"                                  //
                        POP_ABCDF()                                  //
     );
     asm volatile(".quad " xstr(MACRO_END));

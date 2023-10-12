@@ -8,8 +8,8 @@
 
 #include <linux/types.h>
 
-#include "hardware_desc.h"  // L1D_ASSOCIATIVITY
-#include "measurement.h" // measurement_t
+#include "hardware_desc.h" // L1D_ASSOCIATIVITY
+#include "measurement.h"   // measurement_t
 
 // =================================================================================================
 // Sandbox data layout
@@ -21,16 +21,18 @@
 #define UNDERFLOW_PAD_SIZE (4096 - MACRO_STACK_SIZE)
 #define MAIN_AREA_SIZE     4096
 #define FAULTY_AREA_SIZE   4096
-#define REG_INIT_AREA_SIZE 320  // 8 64-bit GPRs + 8 256-bit YMMs
+#define REG_INIT_AREA_SIZE 320 // 8 64-bit GPRs + 8 256-bit YMMs
 #define OVERFLOW_PAD_SIZE  (4096 - REG_INIT_AREA_SIZE)
 
-// offsets w.r.t. the base of main_area of actor 0 (r14 will be initialized to point there)
-// note: we use these offsets to have clean immediates in the assembly code
-#define L1D_PRIMING_OFFSET (STORED_RSP_OFFSET + L1D_PRIMING_AREA_SIZE)
-#define STORED_RSP_OFFSET  (UTIL_OFFSET + 4096)
-#define MEASUREMENT_OFFSET (UTIL_OFFSET + 4096 - 8)
-#define UTIL_OFFSET        (MACRO_STACK_TOP_OFFSET + MACRO_STACK_SIZE)
+// offsets w.r.t. the base of util_t (r15 will be initialized to point there)
+#define L1D_PRIMING_OFFSET 0
+#define STORED_RSP_OFFSET  (L1D_PRIMING_AREA_SIZE)
+#define MEASUREMENT_OFFSET (STORED_RSP_OFFSET + 8)
 
+// offset of util_t w.r.t. the base of main_area of the main actor
+#define UTIL_REL_TO_MAIN (L1D_PRIMING_AREA_SIZE + 4096 + UNDERFLOW_PAD_SIZE + MACRO_STACK_SIZE)
+
+// offsets w.r.t. the base of main_area of the current actor (r14 will contain the base)
 #define MACRO_STACK_TOP_OFFSET (UNDERFLOW_PAD_SIZE)
 #define MAIN_AREA_OFFSET       0
 #define FAULTY_AREA_OFFSET     (MAIN_AREA_SIZE)

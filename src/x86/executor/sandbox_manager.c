@@ -101,10 +101,12 @@ int init_sandbox_manager(void)
     // self-test: make sure the fields of the sandbox are aligned as we expect
     actor_data_t *data = &sandbox->data[0];
     util_t *util = sandbox->util;
-    ASSERT(&data->main_area[0] - &util->l1d_priming_area[0] == L1D_PRIMING_OFFSET, "init_sandbox");
-    ASSERT(&data->main_area[0] - (uint8_t *)&util->stored_rsp == STORED_RSP_OFFSET, "init_sandbox");
-    ASSERT(&data->main_area[0] - (uint8_t *)&util->latest_measurement == MEASUREMENT_OFFSET,
+    ASSERT(&util->l1d_priming_area[0] - (uint8_t *)util == L1D_PRIMING_OFFSET, "init_sandbox");
+    ASSERT((uint8_t *)&util->stored_rsp - (uint8_t *)util == STORED_RSP_OFFSET, "init_sandbox");
+    ASSERT((uint8_t *)&util->latest_measurement - (uint8_t *)util == MEASUREMENT_OFFSET,
            "init_sandbox");
+
+    ASSERT(&data->main_area[0] - (uint8_t *)util == UTIL_REL_TO_MAIN, "init_sandbox");
 
     ASSERT(&data->main_area[0] - &data->macro_stack[64] == MACRO_STACK_TOP_OFFSET, "init_sandbox");
     ASSERT(&data->faulty_area[0] - &data->main_area[0] == FAULTY_AREA_OFFSET, "init_sandbox");
