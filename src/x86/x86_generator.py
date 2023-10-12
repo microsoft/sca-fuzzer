@@ -799,8 +799,11 @@ class X86Printer(Printer):
         return op.value
 
     def macro_to_str(self, inst: Instruction):
-        return f".macro{inst.operands[0].value}{inst.operands[1].value}:" \
-               " nop dword ptr [rax + rax*1 + 0x1]"
+        if inst.operands[1].value == ".noarg":
+            return f".macro{inst.operands[0].value}: nop dword ptr [rax + rax*1 + 0x1]"
+        else:
+            return f".macro{inst.operands[0].value}{inst.operands[1].value}:" \
+                " nop dword ptr [rax + rax*1 + 0x1]"
 
 
 class X86RandomGenerator(X86Generator, RandomGenerator):
