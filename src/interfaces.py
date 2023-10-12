@@ -13,37 +13,11 @@ from abc import ABC, abstractmethod
 import numpy as np
 from enum import Enum
 
-# ==================================================================================================
-# Actors
-# ==================================================================================================
-ActorID = int
-ActorName = str
-MAX_SECTION_SIZE = 4096  # must match MAX_SECTION_SIZE in executor
-
-
-class ActorType(Enum):
-    HOST = 0
-    GUEST = 1
-
-
-class ElfSection(NamedTuple):
-    id_: int  # section id; will match the actor id if the actor IDs are ordered and contiguous
-    offset: int
-    size: int
-
-
-class Actor:
-    type_: ActorType
-    id_: ActorID
-    elf_section: ElfSection
-
-    def __init__(self, type_: ActorType, id_: ActorID) -> None:
-        self.type_ = type_
-        self.id_ = id_
+PAGE_SIZE = 4096
 
 
 # ==================================================================================================
-# Components of a Test Case
+# Instruction Specifications
 # ==================================================================================================
 class OT(Enum):
     """Operand Type"""
@@ -80,6 +54,214 @@ class OperandSpec:
 
     def __str__(self):
         return f"{self.values}"
+
+
+class InstructionSpec:
+    name: str
+    operands: List[OperandSpec]
+    implicit_operands: List[OperandSpec]
+    category: str
+    control_flow = False
+
+    has_mem_operand = False
+    has_write = False
+    has_magic_value: bool = False
+
+    def __init__(self):
+        self.operands = []
+        self.implicit_operands = []
+
+    def __str__(self):
+        ops = ""
+        for o in self.operands:
+            ops += str(o) + " "
+        return f"{self.name} {ops}"
+
+
+class MacroSpec(NamedTuple):
+    type_: SymbolType
+    name: str
+    args: Tuple[str, str, str, str]
+
+
+# ==================================================================================================
+# Sandbox layout and constants
+# ==================================================================================================
+# Note: the constants *must* be identical to the actor_data_t and actor_code_t in executor
+
+# Data layout:
+#   +-------------------+ (page-aligned)
+#   | OVERFLOW_PAD_SIZE |
+#   +-------------------+
+#   | REG_INIT_AREA_SIZE|
+#   +-------------------+ (page-aligned)
+#   | FAULTY_AREA_SIZE  |
+#   +-------------------+ (page-aligned)
+#   | MAIN_AREA_SIZE    |
+#   +-------------------+ (page-aligned)
+#   | UNDERFLOW_PAD_SIZE|
+#   +-------------------+
+#   | MACRO_STACK_SIZE  |
+#   +-------------------+ (page-aligned)
+MACRO_STACK_SIZE = 64
+UNDERFLOW_PAD_SIZE = (PAGE_SIZE - MACRO_STACK_SIZE)
+MAIN_AREA_SIZE = PAGE_SIZE
+FAULTY_AREA_SIZE = PAGE_SIZE
+GPR_SUBREGION_SIZE = 64  # 8 64-bit GPRs
+SIMD_SUBREGION_SIZE = 256  # 8 256-bit YMMs
+REG_INIT_AREA_SIZE = (GPR_SUBREGION_SIZE + SIMD_SUBREGION_SIZE)
+OVERFLOW_PAD_SIZE = (PAGE_SIZE - REG_INIT_AREA_SIZE)
+SANDBOX_DATA_SIZE = MAIN_AREA_SIZE + FAULTY_AREA_SIZE + 2 * PAGE_SIZE
+
+
+# Code layout:
+MAX_SECTION_SIZE = PAGE_SIZE
+
+# ==================================================================================================
+# Actors
+# ==================================================================================================
+ActorID = int
+ActorName = str
+
+
+class ActorType(Enum):
+    HOST = 0
+    GUEST = 1
+
+
+class ElfSection(NamedTuple):
+    id_: int  # section id; will match the actor id if the actor IDs are ordered and contiguous
+    offset: int
+    size: int
+
+
+class Actor:
+    type_: ActorType
+    id_: ActorID
+    elf_section: ElfSection
+
+    def __init__(self, type_: ActorType, id_: ActorID) -> None:
+        self.type_ = type_
+        self.id_ = id_
+
+
+# ==================================================================================================
+# Input
+# ==================================================================================================
+# InputFragment data type represents the input for a single actor. This array is designed to be
+# easily serialized and deserialized into/from a binary file.
+# InputFragment is a fixed-size array of 64-bit unsigned integers,
+# structured into 2 sub-arrays representing memory (`main` and `faulty`),
+# and 2 sub-arrays representing CPU registers (`gpr` and `simd`).
+# The array is used to initialize sandbox memory and CPU registers.
+#
+# Ordering of GPRs:  RAX, RBX, RCX, RDX, RSI, RDI, FLAGS, (last 8 bytes unused)
+# Ordering of SIMD registers: YMM0, YMM1, ..., YMM7
+InputFragment = np.dtype(
+    [
+        ('main', np.uint64, MAIN_AREA_SIZE // 8),
+        ('faulty', np.uint64, FAULTY_AREA_SIZE // 8),
+        ('gpr', np.uint64, GPR_SUBREGION_SIZE // 8),
+        ('simd', np.uint64, SIMD_SUBREGION_SIZE // 8),
+        ('padding', np.uint64, (4096 - REG_INIT_AREA_SIZE) // 8),
+    ],
+    align=False,
+)
+
+
+class Input(np.ndarray):
+    """
+    This class represents a single input to a test case. It is a fixed-size array of
+    64-bit unsigned integers, with a few addition methods for convenience. The array
+    is used to initialize the sandbox memory and the CPU registers.
+
+    The number of elements in Input is equal to the number of actors multiplied by
+    the number of elements in InputFragment, i.e.,
+        Input.size = n_actors * InputFragment.size
+    """
+    seed: int = 0
+    data_size: int
+
+    def __init__(self, n_actors: int = 1) -> None:
+        pass  # unreachable; defined only for type checking
+
+    def __new__(cls, n_actors: int = 1):
+        obj = super().__new__(cls, (n_actors,), InputFragment, None, 0, None, None)  # type: ignore
+        obj.data_size = (MAIN_AREA_SIZE + FAULTY_AREA_SIZE + REG_INIT_AREA_SIZE) // 8
+        return obj
+
+    def __array_finalize__(self, obj):
+        if obj is None:
+            return
+
+    def __hash__(self) -> int:  # type: ignore
+        # hash of input is hash of input data, registers and memory
+        h = hash(self.tobytes())
+        return h
+
+    def get_simd128_registers(self, actor_id: int):
+        vals = []
+        for i in range(0, InputFragment['simd'].shape[actor_id], 2):
+            vals.append(int(self[0]['simd'][i + 1]) << 64 | int(self[0]['simd'][i]))
+        return vals
+
+    def __str__(self):
+        return str(self.seed)
+
+    def __repr__(self):
+        return str(self.seed)
+
+    def linear_view(self) -> np.ndarray:
+        return self[0].view((np.uint64, self[0].itemsize // 8))
+
+    def save(self, path: str) -> None:
+        with open(path, 'wb') as f:
+            f.write(self.tobytes())
+
+    def load(self, path: str) -> None:
+        with open(path, 'rb') as f:
+            contents = np.fromfile(f, dtype=np.uint64)
+            self.linear_view()[:] = contents
+
+
+class InputTaint(Input):
+    """
+    This class represents a taint vector for an input. It is a fixed-size array of
+    boolean values, with a few addition methods for convenience. The array is used
+    to indicate which input elements influence contract traces. The number of
+    elements in InputTaint is identical to Input class.
+
+    Each element is an boolean value: When it is True, the corresponding element of
+    the input impacts the contract trace.
+    """
+
+    def __new__(cls, n_actors: int = 1):
+        obj = super().__new__(cls, n_actors)  # type: ignore
+        # obj.fill(0)
+        return obj
+
+    def __init__(self, n_actors: int = 1) -> None:
+        pass  # unreachable; defined only for type checking
+
+
+# ==================================================================================================
+# Test Cases
+# ==================================================================================================
+SymbolType = int
+SymbolOffset = int
+MacroArgument = int
+
+
+class Symbol(NamedTuple):
+    aid: ActorID
+    offset: SymbolOffset
+    type_: SymbolType
+    arg: MacroArgument
+
+
+class PageTableModifier(NamedTuple):
+    mask_set: int = 0x0
+    mask_clear: int = 0xffffffffffffffff
 
 
 class Operand(ABC):
@@ -187,34 +369,6 @@ class CondOperand(Operand):
 
     def __init__(self, value):
         super().__init__(value, OT.COND, True, False)
-
-
-class InstructionSpec:
-    name: str
-    operands: List[OperandSpec]
-    implicit_operands: List[OperandSpec]
-    category: str
-    control_flow = False
-
-    has_mem_operand = False
-    has_write = False
-    has_magic_value: bool = False
-
-    def __init__(self):
-        self.operands = []
-        self.implicit_operands = []
-
-    def __str__(self):
-        ops = ""
-        for o in self.operands:
-            ops += str(o) + " "
-        return f"{self.name} {ops}"
-
-
-class MacroSpec(NamedTuple):
-    type_: SymbolType
-    name: str
-    args: Tuple[str, str, str, str]
 
 
 class Instruction:
@@ -511,18 +665,6 @@ class Function:
         self._all_bb.extend(bb_list)
 
 
-SymbolType = int
-SymbolOffset = int
-MacroArgument = int
-
-
-class Symbol(NamedTuple):
-    aid: ActorID
-    offset: SymbolOffset
-    type_: SymbolType
-    arg: MacroArgument
-
-
 class TestCase:
     asm_path: str = ''
     obj_path: str = ''
@@ -563,120 +705,8 @@ class TestCase:
         shutil.copy2(self.asm_path, path)
 
 
-class PageTableModifier(NamedTuple):
-    mask_set: int = 0x0
-    mask_clear: int = 0xffffffffffffffff
-
-
 # ==================================================================================================
-# Components of an Input
-# ==================================================================================================
-
-# Constants defining the input layout
-MAIN_AREA_SIZE = 4096
-FAULTY_AREA_SIZE = 4096
-REGISTER_REGION_SIZE = 4096
-OVERFLOW_PAD_SIZE = 4096
-GPR_SUBREGION_SIZE = 64
-SIMD_SUBREGION_SIZE = 256
-DATA_SIZE = MAIN_AREA_SIZE + FAULTY_AREA_SIZE + GPR_SUBREGION_SIZE + SIMD_SUBREGION_SIZE
-
-# InputFragment data type represents the input for a single actor. It is a fixed-size array of
-# 64-bit unsigned integers, structured into 2 sub-arrays representing memory (`main` and `faulty`),
-# and 2 sub-arrays representing CPU registers (`gpr` and `simd`).
-# The array is used to initialize sandbox memory and CPU registers.
-#
-# Ordering of GPRs:  RAX, RBX, RCX, RDX, RSI, RDI, FLAGS, (last 8 bytes unused)
-# Ordering of SIMD registers: YMM0, YMM1, ..., YMM7
-InputFragment = np.dtype(
-    [
-        ('main', np.uint64, MAIN_AREA_SIZE // 8),
-        ('faulty', np.uint64, FAULTY_AREA_SIZE // 8),
-        ('gpr', np.uint64, GPR_SUBREGION_SIZE // 8),
-        ('simd', np.uint64, SIMD_SUBREGION_SIZE // 8),
-        ('padding', np.uint64, (4096 - GPR_SUBREGION_SIZE - SIMD_SUBREGION_SIZE) // 8),
-    ],
-    align=False,
-)
-
-
-class Input(np.ndarray):
-    """
-    This class represents a single input to a test case. It is a fixed-size array of
-    64-bit unsigned integers, with a few addition methods for convenience. The array
-    is used to initialize the sandbox memory and the CPU registers.
-
-    The number of elements in Input is equal to the number of actors multiplied by
-    the number of elements in InputFragment, i.e.,
-        Input.size = n_actors * InputFragment.size
-    """
-    seed: int = 0
-    data_size: int
-
-    def __init__(self, n_actors: int = 1) -> None:
-        pass  # unreachable; defined only for type checking
-
-    def __new__(cls, n_actors: int = 1):
-        obj = super().__new__(cls, (n_actors,), InputFragment, None, 0, None, None)  # type: ignore
-        obj.data_size = DATA_SIZE // 8
-        return obj
-
-    def __array_finalize__(self, obj):
-        if obj is None:
-            return
-
-    def __hash__(self) -> int:  # type: ignore
-        # hash of input is hash of input data, registers and memory
-        h = hash(self.tobytes())
-        return h
-
-    def get_simd128_registers(self, actor_id: int):
-        vals = []
-        for i in range(0, InputFragment['simd'].shape[actor_id], 2):
-            vals.append(int(self[0]['simd'][i + 1]) << 64 | int(self[0]['simd'][i]))
-        return vals
-
-    def __str__(self):
-        return str(self.seed)
-
-    def __repr__(self):
-        return str(self.seed)
-
-    def linear_view(self) -> np.ndarray:
-        return self[0].view((np.uint64, self[0].itemsize // 8))
-
-    def save(self, path: str) -> None:
-        with open(path, 'wb') as f:
-            f.write(self.tobytes())
-
-    def load(self, path: str) -> None:
-        with open(path, 'rb') as f:
-            contents = np.fromfile(f, dtype=np.uint64)
-            self.linear_view()[:] = contents
-
-
-class InputTaint(Input):
-    """
-    This class represents a taint vector for an input. It is a fixed-size array of
-    boolean values, with a few addition methods for convenience. The array is used
-    to indicate which input elements influence contract traces. The number of
-    elements in InputTaint is identical to Input class.
-
-    Each element is an boolean value: When it is True, the corresponding element of
-    the input impacts the contract trace.
-    """
-
-    def __new__(cls, n_actors: int = 1):
-        obj = super().__new__(cls, n_actors)  # type: ignore
-        # obj.fill(0)
-        return obj
-
-    def __init__(self, n_actors: int = 1) -> None:
-        pass  # unreachable; defined only for type checking
-
-
-# ==================================================================================================
-# Custom Data Types
+# Traces
 # ==================================================================================================
 CTrace = int
 HTrace = int
