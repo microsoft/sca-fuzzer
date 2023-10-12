@@ -28,7 +28,7 @@ from unicorn import Uc, UcError, UC_MEM_WRITE, UC_MEM_READ, UC_SECOND_SCALE, UC_
 from .interfaces import CTrace, TestCase, Model, InputTaint, Instruction, ExecutionTrace, \
     TracedInstruction, TracedMemAccess, Input, Tracer, Actor, Symbol, \
     RegisterOperand, FlagsOperand, MemoryOperand, TaintTrackerInterface, TargetDesc, \
-    MAIN_AREA_SIZE, FAULTY_AREA_SIZE, OVERFLOW_PAD_SIZE, MAX_SECTION_SIZE
+    get_sandbox_addr, MAX_SECTION_SIZE, SANDBOX_DATA_SIZE
 from .config import CONF
 from .util import Logger, NotSupportedException
 
@@ -153,7 +153,7 @@ class UnicornTracer(Tracer):
         # make the trace reproducible by normalizing the addresses
         normalized_trace: List[int] = []
         for val in self.trace:
-            if model.code_start <= val and val < (model.code_start + 0x1000):
+            if model.code_start <= val and val < (model.code_start + MAX_SECTION_SIZE):
                 normalized_trace.append(val - model.code_start)
             elif model.underflow_pad_base < val and val < (model.overflow_pad_base + 0x1000):
                 normalized_trace.append(val - model.sandbox_base)
@@ -475,6 +475,7 @@ class UnicornSeq(UnicornModel):
     underflow_pad_base: UcPointer  # the base address of the underflow pad
     main_area: UcPointer  # the base address of the main area
     faulty_area: UcPointer  # the base address of the faulty area
+    reg_init_area: UcPointer  # the base address of the register initialization area
     overflow_pad_base: UcPointer  # the base address of the overflow pad
     stack_base: UcPointer  # the base address of the stack at the beginning of the test case
 
@@ -507,12 +508,12 @@ class UnicornSeq(UnicornModel):
         self.macro_interpreter = MacroInterpreter(self)
 
         # sandbox
-        self.underflow_pad_base = self.sandbox_base - OVERFLOW_PAD_SIZE
-        self.overflow_pad_base = self.sandbox_base + MAIN_AREA_SIZE + FAULTY_AREA_SIZE
-        self.main_area = self.sandbox_base
-        self.faulty_area = self.main_area + MAIN_AREA_SIZE
-        self.stack_base = self.main_area + MAIN_AREA_SIZE - 8
-        self.overflow_pad_values = bytes(OVERFLOW_PAD_SIZE)
+        self.underflow_pad_base = get_sandbox_addr(sandbox_base, "underflow_pad")
+        self.main_area = get_sandbox_addr(sandbox_base, "main")
+        self.faulty_area = get_sandbox_addr(sandbox_base, "faulty")
+        self.reg_init_area = get_sandbox_addr(sandbox_base, "reg_init")
+        self.overflow_pad_base = get_sandbox_addr(sandbox_base, "overflow_pad")
+        self.stack_base = self.faulty_area - 8
 
         # taint tracking (actual values are set by ISA-specific subclasses)
         self.initial_taints = []
@@ -570,8 +571,7 @@ class UnicornSeq(UnicornModel):
         try:
             # allocate memory
             emulator.mem_map(self.code_start, MAX_SECTION_SIZE * len(actors))
-            sandbox_size = OVERFLOW_PAD_SIZE * 2 + MAIN_AREA_SIZE + FAULTY_AREA_SIZE
-            emulator.mem_map(self.sandbox_base - OVERFLOW_PAD_SIZE, sandbox_size)
+            emulator.mem_map(get_sandbox_addr(self.sandbox_base, "start"), SANDBOX_DATA_SIZE)
 
             # write machine code to be emulated to memory
             emulator.mem_write(self.code_start, code)
