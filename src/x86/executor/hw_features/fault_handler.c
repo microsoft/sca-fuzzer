@@ -116,7 +116,7 @@ __attribute__((unused)) void fallback_handler_wrapper(void)
         "fallback_handler:\n"
 
         // rax <- &latest_measurement
-        "lea rax, [r14 - "xstr(MEASUREMENT_OFFSET)"]\n"
+        "lea rax, [r15 + "xstr(MEASUREMENT_OFFSET)"]\n"
 
         // set the trace to 0xFFFF to indicate an unhandled fault
         "mov qword ptr [rax], 0xFFFF \n"
@@ -129,8 +129,8 @@ __attribute__((unused)) void fallback_handler_wrapper(void)
         "pop rcx \n"
         "mov qword ptr [rax + 16], rcx \n"
 
-        // rsp <- stored_rsp
-        "mov rsp, qword ptr [r14 - "xstr(STORED_RSP_OFFSET)"]\n"
+        // rsp = sandbox->util->stored_rsp
+        "mov rsp, qword ptr [r15 + "xstr(STORED_RSP_OFFSET)"]\n"
 
         // restore registers
         "popfq\n"

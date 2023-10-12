@@ -7,17 +7,17 @@ LFENCE
 AND rax, 0b111111000000
 
 # delay the cond. jump
-MOV r15, 0
-LEA rbx, qword ptr [rbx + r15 + 1]
-LEA rbx, qword ptr [rbx + r15 - 1]
-LEA rbx, qword ptr [rbx + r15 + 1]
-LEA rbx, qword ptr [rbx + r15 - 1]
-LEA rbx, qword ptr [rbx + r15 + 1]
-LEA rbx, qword ptr [rbx + r15 - 1]
-LEA rbx, qword ptr [rbx + r15 + 1]
-LEA rbx, qword ptr [rbx + r15 - 1]
-LEA rbx, qword ptr [rbx + r15 + 1]
-LEA rbx, qword ptr [rbx + r15 - 1]
+MOV rcx, 0
+LEA rbx, qword ptr [rbx + rcx + 1]
+LEA rbx, qword ptr [rbx + rcx - 1]
+LEA rbx, qword ptr [rbx + rcx + 1]
+LEA rbx, qword ptr [rbx + rcx - 1]
+LEA rbx, qword ptr [rbx + rcx + 1]
+LEA rbx, qword ptr [rbx + rcx - 1]
+LEA rbx, qword ptr [rbx + rcx + 1]
+LEA rbx, qword ptr [rbx + rcx - 1]
+LEA rbx, qword ptr [rbx + rcx + 1]
+LEA rbx, qword ptr [rbx + rcx - 1]
 
 # reduce the entropy in rbx
 AND rbx, 0b1000000

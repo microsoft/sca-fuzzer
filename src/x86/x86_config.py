@@ -144,7 +144,7 @@ x86_instruction_blocklist: List[str] = [
 
 ]  # yapf: disable
 
-# x86 executor internally uses R15, R14, RSP, RBP and, thus, they are excluded
+# x86 executor internally uses R8...R15, RSP, RBP and, thus, they are excluded
 # segment registers are also excluded as we don't support their handling so far
 # same for CR* and DR*
 x86_register_blocklist: List[str] = [

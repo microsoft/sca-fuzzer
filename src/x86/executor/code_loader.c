@@ -16,8 +16,8 @@
 //   R11 - hardware trace
 //   R12 - SMI counter
 //   R13 - temporary data for macros
-//   R14 - sandbox base address
-//
+//   R14 - base address of the current actor's main data area
+//   R15 - base address of the utility area
 
 #include "code_loader.h"
 #include "asm_snippets.h"
@@ -30,7 +30,7 @@
 #include "hw_features/fault_handler.h"
 
 #define PER_SECTION_ALLOC_SIZE (MAX_EXPANDED_SECTION_SIZE + MAX_EXPANDED_MACROS_SIZE)
-#define MAX_TEMPLATE_SIZE 0x1000 // for sanity checking
+#define MAX_TEMPLATE_SIZE      0x1000 // for sanity checking
 
 #define TEMPLATE_START                     0x0fff379000000000
 #define TEMPLATE_INSERT_TC                 0x0fff2f9000000000
@@ -318,11 +318,14 @@ static inline void prologue(void)
         "push r15\n"
         "pushfq\n"
 
-        // r14 <- input base address (stored in rdi, the first argument of measurement_code)
+        // r14 = main_area of actor 0 (passed in rdi, the first argument of measurement_code)
         "mov r14, rdi\n"
 
-        // stored_rsp <- rsp
-        "mov qword ptr [r14 - "xstr(STORED_RSP_OFFSET)"], rsp\n"
+        // r15 = sandbox->util
+        "lea r15, [r14 - "xstr(UTIL_REL_TO_MAIN)"]\n"
+
+        // sandbox->util->stored_rsp = rsp
+        "mov qword ptr [r15 + "xstr(STORED_RSP_OFFSET)"], rsp\n"
 
         // clear the rest of the registers
         "mov rax, 0\n"
@@ -337,7 +340,6 @@ static inline void prologue(void)
         "mov r11, 0\n"
         "mov r12, 0\n"
         "mov r13, 0\n"
-        "mov r15, 0\n"
 
         "mov rbp, rsp\n"
         "sub rsp, 0x1000\n"
@@ -353,7 +355,7 @@ static inline void epilogue(void)
         READ_SMI_END("r12")
 
         // rax <- &latest_measurement
-        "lea rax, [r14 - "xstr(MEASUREMENT_OFFSET)"]\n"
+        "lea rax, [r15 + "xstr(MEASUREMENT_OFFSET)"]\n"
 
         // if we see no interrupts, store the hardware trace (r11)
         // otherwise, store zero
@@ -373,8 +375,8 @@ static inline void epilogue(void)
         "   mov qword ptr [rax + 0x18], 0 \n"
         "2: \n"
 
-        // rsp <- stored_rsp
-        "mov rsp, qword ptr [r14 - "xstr(STORED_RSP_OFFSET)"]\n"
+        // rsp = sandbox->util->stored_rsp
+        "mov rsp, qword ptr [r15 + "xstr(STORED_RSP_OFFSET)"]\n"
 
         // restore registers
         "popfq\n"
@@ -396,16 +398,17 @@ static inline void epilogue(void)
 static inline void epilogue_dbg_gpr(void)
 {
     asm_volatile_intel(
-        "lea r15, [r14 - "xstr(MEASUREMENT_OFFSET)"]\n"
-        "mov qword ptr [r15 + 0x00], rax\n"
-        "mov qword ptr [r15 + 0x08], rbx\n"
-        "mov qword ptr [r15 + 0x10], rcx\n"
-        "mov qword ptr [r15 + 0x18], rdx\n"
-        "mov qword ptr [r15 + 0x20], rsi\n"
-        "mov qword ptr [r15 + 0x28], rdi\n"
+        // clobber r14; not in use anymore
+        "lea r14, [r15 + "xstr(MEASUREMENT_OFFSET)"]\n"
+        "mov qword ptr [r14 + 0x00], rax\n"
+        "mov qword ptr [r14 + 0x08], rbx\n"
+        "mov qword ptr [r14 + 0x10], rcx\n"
+        "mov qword ptr [r14 + 0x18], rdx\n"
+        "mov qword ptr [r14 + 0x20], rsi\n"
+        "mov qword ptr [r14 + 0x28], rdi\n"
 
-        // rsp <- stored_rsp
-        "mov rsp, qword ptr [r14 - "xstr(STORED_RSP_OFFSET)"]\n"
+        // rsp = sandbox->util->stored_rsp
+        "mov rsp, qword ptr [r15 + "xstr(STORED_RSP_OFFSET)"]\n"
 
         // restore registers
         "popfq\n"
