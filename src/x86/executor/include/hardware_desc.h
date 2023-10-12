@@ -3,8 +3,8 @@
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#ifndef _X86_EXECUTOR_HW_H_
-#define _X86_EXECUTOR_HW_H_
+#ifndef _HARDWARE_DESC_H_
+#define _HARDWARE_DESC_H_
 
 #ifndef VENDOR_ID
 #error "Undefined VENDOR_ID"
@@ -34,4 +34,4 @@
 #define PREFETCHER_OFF 0b101111
 #endif
 
-#endif // _X86_EXECUTOR_HW_H_
+#endif // _HARDWARE_DESC_H_

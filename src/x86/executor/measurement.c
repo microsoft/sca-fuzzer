@@ -6,68 +6,25 @@
 // SPDX-License-Identifier: MIT
 
 #include "measurement.h"
-#include "fault_handler.h"
-#include "input.h"
-#include "loader.h"
+#include "code_loader.h"
+#include "data_loader.h"
+#include "input_parser.h"
 #include "main.h"
-#include "page_table.h"
-#include "sandbox.h"
+#include "sandbox_manager.h"
 #include "shortcuts.h"
-#include "test_case.h"
+#include "test_case_parser.h"
+
+#include "hw_features/fault_handler.h"
+#include "hw_features/page_table.h"
+#include "hw_features/perf_counters.h"
 
 measurement_t *measurements = NULL; // global
 
-static int pfc_write(unsigned int id, char *pfc_code_org, unsigned int usr, unsigned int os);
 int unsafe_bubble(void);
 
 // =================================================================================================
-// Performance counters and MSRs
+// CPU configuration
 // =================================================================================================
-static int pfc_configure(void)
-{
-    int err = 0;
-#if VENDOR_ID == 1 // Intel
-    // Configure PMU
-    // #0:  Htrace collection
-    //   MEM_LOAD_RETIRED.L1_HIT: Counts retired load instructions with at least one uop that hit
-    //   in the L1 data cache. This event includes all SW prefetches and lock instructions
-    //   regardless of the data source.
-    err |= pfc_write(0, "D1.01", 1, 1);
-
-    // #1: Fuzzing feedback
-    //   UOPS_ISSUED.ANY: Counts the number of uops that the Resource Allocation Table (RAT)
-    //   issues to the Reservation Station (RS).
-    err |= pfc_write(1, "0E.01", 1, 1); // 0E.01 - uops issued - fuzzing feedback
-
-    // #2: Fuzzing feeback
-    //   UOPS_RETIRED.RETIRE_SLOTS: Counts the retirement slots used.
-    err |= pfc_write(2, "C2.02", 1, 1); // C2.02 - uops retirement slots - fuzzing feedback
-
-    // #3: Fuzzing feedback
-    //   INT_MISC.CLEAR_RESTEER_CYCLES: Cycles the issue-stage is waiting for front-end to fetch
-    //   from resteered path following branch misprediction or machine clear events.
-    err |= pfc_write(3, "0D.01", 1, 1); // misprediction recovery cycles - fuzzing feedback
-
-    // #4: Interrupt detection
-    //    HW_INTERRUPTS.RECEIVED: Counts the number of hardware interruptions received
-    //    by the processor.
-    err |= pfc_write(4, "CB.01", 1, 1); // detection of interrupts
-#elif VENDOR_ID == 2                    // AMD
-    // Configure PMU
-#if CPU_FAMILY == 25
-    err |= pfc_write(0, "044.ff", 1, 1); // Local L2->L1 cache fills - htrace collection
-#elif CPU_FAMILY == 23
-    err |= pfc_write(0, "043.ff", 1, 1);
-#endif
-    err |= pfc_write(5, "02c.00", 1, 1); // SMI monitoring
-
-    err |= pfc_write(1, "0AB.88", 1, 1); // dispatched ops - fuzzing feedback
-    err |= pfc_write(2, "0C1.00", 1, 1); // retired ops - fuzzing feedback
-    err |= pfc_write(3, "091.00", 1, 1); // decode redirects - fuzzing feedback
-    // err |= pfc_write(1, "05A.ff", 1, 1); // decode redirects - fuzzing feedback
-#endif // VENDOR_ID
-    return err;
-}
 
 /// @brief Configure the CPU features and extensions
 /// @param void
@@ -122,86 +79,6 @@ int cpu_restore(void)
     return 0;
 }
 
-/// @brief  Clears the programmable performance counters and writes the
-///         configurations to the corresponding MSRs.
-/// @param  void
-/// @return 0 on success, -1 on failure
-static int pfc_write(unsigned int id, char *pfc_code_org, unsigned int usr, unsigned int os)
-{
-    // Parse the PFC code name
-    struct pfc_config config = {0};
-
-    char pfc_code[50];
-    strcpy(pfc_code, pfc_code_org);
-    char *pfc_code_p = pfc_code;
-
-    int err = 0;
-    char *evt_num = strsep(&pfc_code_p, ".");
-    err |= kstrtoul(evt_num, 16, &(config.evt_num));
-
-    char *umask = strsep(&pfc_code_p, ".");
-    err |= kstrtoul(umask, 16, &(config.umask));
-
-    char *ce;
-    while ((ce = strsep(&pfc_code_p, ".")) != NULL) {
-        if (!strcmp(ce, "Any")) {
-            config.any = 1;
-        } else if (!strcmp(ce, "EDG")) {
-            config.edge = 1;
-        } else if (!strcmp(ce, "INV")) {
-            config.inv = 1;
-        } else if (!strncmp(ce, "CMSK=", 5)) {
-            err |= kstrtoul(ce + 5, 0, &(config.cmask));
-        }
-    }
-
-    if (err)
-        return err;
-
-    // Configure the counter
-    uint64_t perf_configuration;
-#if VENDOR_ID == 1
-    uint64_t global_ctrl = native_read_msr(0x38F);
-    global_ctrl |= ((uint64_t)7 << 32) | 15;
-    wrmsr64(0x38F, global_ctrl);
-
-    perf_configuration = native_read_msr(0x186 + id);
-
-    // disable the counter
-    perf_configuration &= ~(((uint64_t)1 << 32) - 1);
-    wrmsr64(0x186 + id, perf_configuration);
-
-    // clear
-    wrmsr64(0x0C1 + id, 0ULL);
-
-    perf_configuration |= ((config.cmask & 0xFF) << 24);
-    perf_configuration |= (config.inv << 23);
-    perf_configuration |= (1ULL << 22);
-    perf_configuration |= (config.any << 21);
-    perf_configuration |= (config.edge << 18);
-    perf_configuration |= (os << 17);
-    perf_configuration |= (usr << 16);
-    perf_configuration |= ((config.umask & 0xFF) << 8);
-    perf_configuration |= (config.evt_num & 0xFF);
-    wrmsr64(0x186 + id, perf_configuration);
-#elif VENDOR_ID == 2
-    perf_configuration |= ((config.evt_num) & 0xF00) << 24;
-    perf_configuration |= (config.evt_num) & 0xFF;
-    perf_configuration |= ((config.umask) & 0xFF) << 8;
-    perf_configuration |= ((config.cmask) & 0x7F) << 24;
-    perf_configuration |= (config.inv << 23);
-    perf_configuration |= (1ULL << 22);
-    perf_configuration |= (config.edge << 18);
-    perf_configuration |= (os << 17);
-    perf_configuration |= (usr << 16);
-    wrmsr64(0xC0010200 + 2 * id, perf_configuration);
-#endif
-    return 0;
-}
-
-// =================================================================================================
-// Measurement
-// =================================================================================================
 static inline int uarch_flush(void)
 {
 #if VENDOR_ID == 1 // Intel
@@ -218,27 +95,19 @@ static inline int uarch_flush(void)
     return 0;
 }
 
-int run_experiment(long rounds)
+// =================================================================================================
+// Measurement
+// =================================================================================================
+int run_experiment(void)
 {
     // Zero-initialize the region of memory used by Prime+Probe
     if (!quick_and_dirty_mode)
-        memset(&sandbox->l1d_priming_area[0], 0, L1D_PRIMING_AREA_SIZE * sizeof(char));
+        memset(&sandbox->util->l1d_priming_area[0], 0, L1D_PRIMING_AREA_SIZE * sizeof(char));
 
+    long rounds = (long) n_inputs;
     for (long i = -uarch_reset_rounds; i < rounds; i++) {
         // ignore "warm-up" runs (i<0)uarch_reset_rounds
         long i_ = (i < 0) ? 0 : i;
-        int actor_id = 0; // we don't support multiple actors yet
-        uint64_t *current_input = (uint64_t *)get_input_fragment_unsafe(i_, actor_id);
-
-        // Zero-initialize the areas surrounding the sandbox
-        if (!quick_and_dirty_mode) {
-            memset(&sandbox->underflow_pad[0], 0, OVERFLOW_PAD_SIZE * sizeof(char));
-            // NOTE: memset is not used intentionally! somehow, it messes up with P+P measurements
-            for (int j = 0; j < OVERFLOW_PAD_SIZE / 8; j += 1) {
-                // ((uint64_t *) sandbox->underflow_pad)[j] = 0;
-                ((uint64_t *)sandbox->overflow_pad)[j] = 0;
-            }
-        }
 
         // Try to reset the uarch state
         // (we do it here because from this point on the execution is expected to be deterministic
@@ -247,7 +116,7 @@ int run_experiment(long rounds)
             uarch_flush();
 
         // Prepare sandbox
-        write_sandbox(current_input);
+        load_sandbox_data(i_);
         faulty_page_pte_store();
         faulty_page_pte_set();
 
@@ -255,16 +124,17 @@ int run_experiment(long rounds)
         set_test_case_idt();
 
         // execute
-        ((void (*)(char *))loaded_main_section)(&sandbox->main_area[0]);
+        char *main_data = &sandbox->data[0].main_area[0];
+        ((void (*)(char *))loaded_test_case_entry)(main_data);
 
         unset_test_case_idt();
         faulty_page_pte_restore();
 
         // store the measurement
         // printk(KERN_ERR "x86_executor: measurement %llu\n", result.htrace[0]);
-        measurement_t result = sandbox->latest_measurement;
+        measurement_t result = sandbox->util->latest_measurement;
         measurements[i_].htrace[0] = result.htrace[0];
-        memcpy(measurements[i_].pfc, result.pfc, sizeof(uint64_t) * NUM_PFC);
+        memcpy(measurements[i_].pfc_reading, result.pfc_reading, sizeof(uint64_t) * NUM_PFC);
     }
     return 0;
 }
@@ -300,9 +170,10 @@ __attribute__((unused)) void unsafe_bubble_wrapper(void)
 
                  : [rsp_save] "=m"(pre_bubble_rsp)
                  :);
+    uint64_t err = 0;
 
     set_bubble_idt();
-    uint64_t err = run_experiment((long)n_inputs);
+    err = run_experiment();
     unset_bubble_idt();
 
     asm volatile(""
@@ -339,11 +210,18 @@ int trace_test_case(void)
     int err = 0;
     unsigned long flags;
 
-    ASSERT(measurements, "trace_test_case");
-    ASSERT(loaded_main_section, "trace_test_case");
+    err = alloc_measurements();
+    CHECK_ERR("alloc_measurements");
+
+    // check that all main data structures were allocated
+    ASSERT(loaded_test_case_entry, "trace_test_case");
     ASSERT(inputs, "trace_test_case");
     ASSERT(inputs->metadata, "trace_test_case");
     ASSERT(inputs->data, "trace_test_case");
+
+    // ensure that the test case is executable
+    pte_t *tc_pte = get_pte((uint64_t)loaded_test_case_entry);
+    ASSERT(tc_pte && pte_present(*tc_pte) && pte_exec(*tc_pte), "trace_test_case");
 
     // Pre-measurement setup
     kernel_fpu_begin(); // Enable FPU - just in case, we might use it within the test case
@@ -378,12 +256,6 @@ int trace_test_case(void)
     return err;
 }
 
-// =================================================================================================
-// Allocation and Initialization
-// =================================================================================================
-
-/// Constructor for the measurement module
-///
 int alloc_measurements(void)
 {
     static int old_n_inputs = 0;
@@ -393,11 +265,11 @@ int alloc_measurements(void)
 
     SAFE_VFREE(measurements);
     measurements = CHECKED_VMALLOC(n_inputs * sizeof(measurement_t));
+    memset(measurements, 0, n_inputs * sizeof(measurement_t));
     return 0;
 }
 
-/// Constructor
-///
+// =================================================================================================
 int init_measurements(void)
 {
     measurements = CHECKED_VMALLOC(sizeof(measurement_t));

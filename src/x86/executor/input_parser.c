@@ -8,9 +8,10 @@
 
 #include <linux/slab.h> // PAGE_SIZE
 
-#include "input.h"
+#include "actor_manager.h"
+#include "input_parser.h"
+#include "sandbox_manager.h"
 #include "shortcuts.h"
-#include "test_case.h" // n_actors
 
 input_batch_t *inputs = NULL; // global
 size_t n_inputs = 0;          // global
@@ -168,7 +169,7 @@ ssize_t parse_input_buffer(const char *buf, size_t count, bool *finished)
 /// @param actor_id: 0 is guest 0, 1 is guest 1, and host is last
 /// @param input_id
 /// @return The input fragment for input_id of actor_id
-char *get_input_fragment(uint64_t input_id, uint64_t actor_id)
+input_fragment_t *get_input_fragment(uint64_t input_id, uint64_t actor_id)
 {
     ASSERT_ENULL(inputs != NULL, "get_input_fragment");
     if (actor_id >= n_actors) {
@@ -179,16 +180,16 @@ char *get_input_fragment(uint64_t input_id, uint64_t actor_id)
         return NULL;
     }
 
-    return inputs->data[actor_id * n_inputs + input_id].main_area;
+    return &inputs->data[actor_id * n_inputs + input_id];
 }
 
 /// @brief Unsafe version of get_input_fragment
 /// @param input_id
 /// @param actor_id
 /// @return
-char *get_input_fragment_unsafe(uint64_t input_id, uint64_t actor_id)
+input_fragment_t *get_input_fragment_unsafe(uint64_t input_id, uint64_t actor_id)
 {
-    return inputs->data[input_id * n_actors + actor_id].main_area;
+    return &inputs->data[input_id * n_actors + actor_id];
 }
 
 /// Getter for _is_receiving_inputs
@@ -196,10 +197,7 @@ char *get_input_fragment_unsafe(uint64_t input_id, uint64_t actor_id)
 bool input_parsing_completed(void) { return !_is_receiving_inputs; }
 
 // =================================================================================================
-// Allocation and Initialization
-// =================================================================================================
-/// Constructor
-int init_input_manager(void)
+int init_input_parser(void)
 {
     _is_receiving_inputs = false;
     _cursor = 0;
@@ -214,8 +212,6 @@ int init_input_manager(void)
     return 0;
 }
 
-/// Destructor
-///
 void free_input_parser(void)
 {
     SAFE_FREE(inputs);

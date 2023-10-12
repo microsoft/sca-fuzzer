@@ -3,12 +3,12 @@
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "macro.h"
+#include "macro_loader.h"
 #include "asm_snippets.h"
 #include "main.h"
-#include "sandbox.h"
+#include "sandbox_manager.h"
 #include "shortcuts.h"
-#include "test_case.h"
+#include "test_case_parser.h"
 
 // Max sizes for sanity checks
 #define MAX_MACRO_START_OFFSET 0x100
@@ -124,7 +124,7 @@ int get_macro_bounds(uint64_t macro_id, uint8_t **start, uint64_t *size)
 // clang-format off
 #define PUSH_ABCDF()                                                                              \
     "mov r13, rsp\n"                                                                               \
-    "lea rsp, [r14 + " xstr(MACRO_STACK_TOP_OFFSET) "]\n"                                          \
+    "lea rsp, [r14 - " xstr(MACRO_STACK_TOP_OFFSET) "]\n"                                          \
     "push rax\n"                                                                                   \
     "push rbx\n"                                                                                   \
     "push rcx\n"                                                                                   \
@@ -147,7 +147,7 @@ void macro_measurement_start_prime(void)
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                                                //
                        PUSH_ABCDF()                                      //
-                       "lea rax, [r14 + " xstr(L1D_PRIMING_OFFSET) "]\n" //
+                       "lea rax, [r14 - " xstr(L1D_PRIMING_OFFSET) "]\n" //
                        PRIME("rax", "rbx", "rcx", "rdx", "32")           //
                        READ_PFC_START()                                  //
                        POP_ABCDF()                                       //
@@ -161,7 +161,7 @@ void macro_measurement_start_fast_prime(void)
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                                                //
                        PUSH_ABCDF()                                      //
-                       "lea rax, [r14 + " xstr(L1D_PRIMING_OFFSET) "]\n" //
+                       "lea rax, [r14 - " xstr(L1D_PRIMING_OFFSET) "]\n" //
                        PRIME("rax", "rbx", "rcx", "rdx", "1")            //
                        READ_PFC_START()                                  //
                        POP_ABCDF()                                       //
@@ -175,7 +175,7 @@ void macro_measurement_start_partial_prime(void)
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                                                //
                        PUSH_ABCDF()                                      //
-                       "lea rax, [r14 + " xstr(L1D_PRIMING_OFFSET) "]\n" //
+                       "lea rax, [r14 - " xstr(L1D_PRIMING_OFFSET) "]\n" //
                        PRIME_PARTIAL("rax", "rbx", "rcx", "rdx", "32")   //
                        READ_PFC_START()                                  //
                        POP_ABCDF()                                       //
@@ -189,7 +189,7 @@ void macro_measurement_start_fast_partial_prime(void)
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                                                //
                        PUSH_ABCDF()                                      //
-                       "lea rax, [r14 + " xstr(L1D_PRIMING_OFFSET) "]\n" //
+                       "lea rax, [r14 - " xstr(L1D_PRIMING_OFFSET) "]\n" //
                        PRIME_PARTIAL("rax", "rbx", "rcx", "rdx", "1")    //
                        READ_PFC_START()                                  //
                        POP_ABCDF()                                       //
@@ -207,7 +207,7 @@ void macro_measurement_end_probe(void)
                        "push r13\n"                                      //
                        "lfence\n"                                        //
                        READ_PFC_END()                                    //
-                       "lea r15, [r14 + " xstr(L1D_PRIMING_OFFSET) "]\n" //
+                       "lea r15, [r14 - " xstr(L1D_PRIMING_OFFSET) "]\n" //
                        PROBE("r15", "rbx", "r13", HTRACE_REGISTER)       //
                        "pop r13\n"                                       //
                        "pop r15\n"                                       //
@@ -269,11 +269,6 @@ void macro_same_context_switch(void)
 // Under construction
 
 // =================================================================================================
-// Allocation and Initialization
-// =================================================================================================
-/// Constructor
-int init_macros_manager(void) { return 0; }
+int init_macros_loader(void) { return 0; }
 
-/// Destructor
-///
-void free_macros_manager(void) {}
+void free_macros_loader(void) {}

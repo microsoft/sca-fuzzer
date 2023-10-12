@@ -3,10 +3,12 @@
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#ifndef _X86_EXECUTOR_INPUT_H_
-#define _X86_EXECUTOR_INPUT_H_
+#ifndef _INPUT_PARSER_H_
+#define _INPUT_PARSER_H_
 
-#include "sandbox.h"
+#include "sandbox_manager.h"
+
+#define REG_INIT_AREA_SIZE_ALIGNED 4096
 
 typedef uint64_t input_fragment_size_t;
 typedef uint64_t input_fragment_permissions_field_t;
@@ -39,12 +41,12 @@ typedef struct {
 extern input_batch_t *inputs;
 extern size_t n_inputs;
 
-char *get_input_fragment(uint64_t input_id, uint64_t actor_id);
-char *get_input_fragment_unsafe(uint64_t input_id, uint64_t actor_id);
+input_fragment_t *get_input_fragment(uint64_t input_id, uint64_t actor_id);
+input_fragment_t *get_input_fragment_unsafe(uint64_t input_id, uint64_t actor_id);
 ssize_t parse_input_buffer(const char *buf, size_t count, bool *finished);
 bool input_parsing_completed(void);
 
-int init_input_manager(void);
+int init_input_parser(void);
 void free_input_parser(void);
 
-#endif // _X86_EXECUTOR_INPUT_H_
+#endif // _INPUT_PARSER_H_

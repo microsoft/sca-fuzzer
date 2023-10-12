@@ -6,6 +6,10 @@
 #ifndef _PAGE_TABLE_H_
 #define _PAGE_TABLE_H_
 
+#include <linux/kernel.h>
+
+pte_t *get_pte(uint64_t address);
+
 int faulty_page_prepare(void);
 
 /// @brief Save the current value of the faulty page PTE

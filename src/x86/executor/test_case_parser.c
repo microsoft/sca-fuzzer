@@ -5,15 +5,14 @@
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "test_case.h"
-#include "macro.h"
+#include "test_case_parser.h"
+#include "macro_loader.h"
 #include "main.h"
 #include "shortcuts.h"
 
 test_case_t *test_case = NULL; // global
 
-size_t n_actors;
-size_t n_symbols;
+static size_t n_symbols;
 
 // =================================================================================================
 // State machine for test case loading
@@ -74,8 +73,13 @@ static int __batch_tc_parsing_start(const char *buf)
     test_case->symbol_table = _allocated_symbol_table;
     test_case->metadata = _allocated_metadata;
     test_case->sections = _allocated_data;
-    n_actors = new_n_actors;
     n_symbols = new_n_symbols;
+
+    // Preserve the actor metadata
+    // FIXME: this is a temporary fixup, until we have a separate interface for actor initialization
+    n_actors = new_n_actors;
+    int err = allocate_actor_metadata();
+    CHECK_ERR("__batch_tc_parsing_start");
 
     ASSERT(ret < PAGE_SIZE, "__batch_tc_parsing_start");
     return ret;
@@ -256,17 +260,10 @@ ssize_t parse_test_case_buffer(const char *buf, size_t count, bool *finished)
 bool tc_parsing_completed(void) { return !_is_receiving_test_case; }
 
 // =================================================================================================
-// Allocation and Initialization
-// =================================================================================================
-/// Constructor
-///
-int init_test_case_manager(void)
+int init_test_case_parser(void)
 {
-    // globals
-    n_actors = 1;
-    n_symbols = 0;
-
     // locals
+    n_symbols = 0;
     _is_receiving_test_case = false;
     _cursor = 0;
     _allocated_symbol_table = CHECKED_MALLOC(1);
@@ -284,9 +281,7 @@ int init_test_case_manager(void)
     return 0;
 }
 
-/// Destructor
-///
-void free_test_case_manager(void)
+void free_test_case_parser(void)
 {
     SAFE_FREE(test_case);
     SAFE_FREE(_allocated_symbol_table);

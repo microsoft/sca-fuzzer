@@ -3,8 +3,8 @@
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#ifndef _X86_EXECUTOR_FAULT_HANDLING_H_
-#define _X86_EXECUTOR_FAULT_HANDLING_H_
+#ifndef _FAULT_HANDLER_H_
+#define _FAULT_HANDLER_H_
 
 #include <../arch/x86/include/asm/traps.h>
 #include <linux/interrupt.h>
@@ -37,4 +37,4 @@ int unset_test_case_idt(void);
 int init_fault_handler(void);
 void free_fault_handler(void);
 
-#endif // _X86_EXECUTOR_FAULT_HANDLING_H_
+#endif // _FAULT_HANDLER_H_
