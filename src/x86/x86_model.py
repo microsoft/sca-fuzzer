@@ -77,39 +77,53 @@ class X86UnicornSeq(UnicornSeq):
         """
         Set registers and stack before starting the emulation
         """
+        def patch_flags(flags: np.uint64) -> np.uint64:
+            return (flags & np.uint64(2263)) | np.uint64(2)
+
         # shortcuts to save on typing
         s_base = self.sandbox_base
         em = self.emulator
         regs = self.uc_target_desc.registers
 
-        # Memory:
-        # - initialize overflows with zeroes
-        em.mem_write(self.underflow_pad_base, self.underflow_pad_values)
-        em.mem_write(self.overflow_pad_base, self.overflow_pad_values)
+        # Initialize memory for each actor:
+        for actor_id in range(len(self.actors_sorted)):
+            input_fragment = input_[actor_id]
 
-        # - sandbox data pages
-        # Note: register init. area is not used by the model, but executor uses
-        # it to initialize registers, and we have to keep it consistent
+            # - initialize overflows with zeroes
+            em.mem_write(self.underflow_pad_base, self.underflow_pad_values)
+            em.mem_write(self.overflow_pad_base, self.overflow_pad_values)
+
+            # - sandbox data pages
+            # Note: register init. area is not used by the model, but executor uses
+            # it to initialize registers, and we have to keep it consistent
+            em.mem_write(self.main_area, input_fragment['main'].tobytes())
+            em.mem_write(self.faulty_area, input_fragment['faulty'].tobytes())
+            em.mem_write(get_sandbox_addr(s_base, "gpr"), input_fragment['gpr'].tobytes())
+            em.mem_write(get_sandbox_addr(s_base, "simd"), input_fragment['simd'].tobytes())
+
+            # patch the init values for some of the registers
+            gpr_base = get_sandbox_addr(s_base, "gpr")
+            em.mem_write(gpr_base + 6 * 8, patch_flags(input_fragment['gpr'][6]).tobytes())  # flags
+            em.mem_write(gpr_base + 7 * 8, np.uint64(self.stack_base).tobytes())  # RSP
+
+            # Set memory permissions
+            # Note: this code is at the end because we need to set the permissions
+            #       *after* the memory is initialized
+            if self.rw_protect:
+                em.mem_protect(self.faulty_area, FAULTY_AREA_SIZE, UC_PROT_NONE)
+            elif self.write_protect:
+                em.mem_protect(self.faulty_area, FAULTY_AREA_SIZE, UC_PROT_READ)
+
+        # Registers are initialized with the main actor's input
         input_fragment = input_[0]
-        em.mem_write(self.main_area, input_fragment['main'].tobytes())
-        em.mem_write(self.faulty_area, input_fragment['faulty'].tobytes())
-        em.mem_write(get_sandbox_addr(s_base, "gpr"), input_fragment['gpr'].tobytes())
-        em.mem_write(get_sandbox_addr(s_base, "simd"), input_fragment['simd'].tobytes())
 
-        # patch the init values for some of the registers
-        gpr_base = get_sandbox_addr(s_base, "gpr")
-        patched_flags = (input_fragment['gpr'][6] & np.uint64(2263)) | np.uint64(2)
-        em.mem_write(gpr_base + 6 * 8, patched_flags.tobytes())  # flags
-        em.mem_write(gpr_base + 7 * 8, np.uint64(self.stack_base).tobytes())  # RSP
-
-        # Registers
         # - initialize GPRs
         value: np.uint64
         for i, value in enumerate(input_fragment['gpr']):
             em.reg_write(regs[i], int(value))
 
         # similarly to above, patch reg. values
-        em.reg_write(ucc.UC_X86_REG_EFLAGS, patched_flags)
+        em.reg_write(ucc.UC_X86_REG_EFLAGS, int(patch_flags(input_fragment['gpr'][6])))
         em.reg_write(ucc.UC_X86_REG_RSP, self.stack_base)
         em.reg_write(ucc.UC_X86_REG_RBP, self.stack_base)
         em.reg_write(ucc.UC_X86_REG_R14, s_base)
@@ -117,14 +131,6 @@ class X86UnicornSeq(UnicornSeq):
         # - initialize SIMD
         for i, value in enumerate(input_.get_simd128_registers(0)):
             em.reg_write(self.uc_target_desc.simd128_registers[i], int(value))
-
-        # Set memory permissions
-        # Note: this code is at the end because we need to set the permissions
-        #       *after* the memory is initialized
-        if self.rw_protect:
-            em.mem_protect(self.faulty_area, FAULTY_AREA_SIZE, UC_PROT_NONE)
-        elif self.write_protect:
-            em.mem_protect(self.faulty_area, FAULTY_AREA_SIZE, UC_PROT_READ)
 
     def print_state(self, oneline: bool = False):
 
