@@ -4,6 +4,4 @@
 
 # empty - leaving initial reg values unchanged
 
-# mov rbx, qword ptr [r14]
-
 .test_case_exit:
