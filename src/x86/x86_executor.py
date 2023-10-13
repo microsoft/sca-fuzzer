@@ -3,7 +3,7 @@ import os.path
 import csv
 import numpy as np
 from collections import Counter
-from typing import List
+from typing import List, Tuple
 
 from ..interfaces import CombinedHTrace, Input, TestCase, Executor
 from ..config import CONF
@@ -132,11 +132,23 @@ class X86Executor(Executor):
             self.feedback = [r[0][1:] for r in all_results]
             return [int(r[0][0]) for r in all_results]
 
-        traces = [0 for _ in inputs]
+        if CONF.executor_mode == 'TSC':
+            traces, pfc_readings = self._merge_results_tsc(all_results, n_measurements,
+                                                           threshold_outliers)
+        else:
+            traces, pfc_readings = self._merge_results_cache(all_results, n_measurements,
+                                                             threshold_outliers)
+        self.feedback = pfc_readings
+        return traces
+
+    @staticmethod
+    def _merge_results_cache(results, n_measurements,
+                             threshold_outliers) -> Tuple[List[int], List[int]]:
+        traces = [0 for _ in results]
         pfc_readings: np.ndarray = np.zeros(shape=(n_measurements, 3), dtype=np.uint64)
 
         # merge the results of repeated measurements
-        for input_id, input_results in enumerate(all_results):
+        for input_id, input_results in enumerate(results):
             # find the max value of each perf counter for each input
             for pfc_id in range(0, 3):
                 pfc_readings[input_id][pfc_id] = max([res[pfc_id + 1] for res in input_results])
@@ -150,9 +162,28 @@ class X86Executor(Executor):
                     # merge the trace if we observed it sufficiently many time
                     # (i.e., if we can conclude it's not noise)
                     traces[input_id] |= trace
-        self.feedback = pfc_readings.tolist()
 
-        return traces
+        return traces, pfc_readings.tolist()
+
+    @staticmethod
+    def _merge_results_tsc(results, n_measurements,
+                           threshold_outliers) -> Tuple[List[int], List[int]]:
+        traces = [0 for _ in results]
+        pfc_readings: np.ndarray = np.zeros(shape=(n_measurements, 3), dtype=np.uint64)
+        tsc_mask = 0xFFFFFFFFFFF00  # mask to ignore the last 8 bits of the TSC
+
+        for input_id, input_results in enumerate(results):
+            for pfc_id in range(0, 3):
+                pfc_readings[input_id][pfc_id] = max([res[pfc_id + 1] for res in input_results])
+
+            counter: Counter = Counter()
+            for result in input_results:
+                trace = int(result[0]) & tsc_mask
+                counter[trace] += 1
+                if counter[trace] == threshold_outliers + 1:
+                    traces[input_id] = max(traces[input_id], trace)
+
+        return traces, pfc_readings.tolist()
 
     def read_base_addresses(self):
         with open('/sys/x86_executor/print_sandbox_base', 'r') as f:

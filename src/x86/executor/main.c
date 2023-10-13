@@ -374,6 +374,9 @@ static ssize_t measurement_mode_store(struct kobject *kobj, struct kobj_attribut
     case 'E':
         measurement_mode = EVICT_RELOAD;
         break;
+    case 'T':
+        measurement_mode = TSC;
+        break;
     default:
         PRINT_ERRS("measurement_mode_store", "Invalid measurement mode\n");
         return -1;

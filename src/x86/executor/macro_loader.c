@@ -39,6 +39,9 @@ void macro_measurement_start_fast_partial_prime(void);
 void macro_measurement_end_probe(void);
 void macro_measurement_start_flush(void);
 void macro_measurement_end_reload(void);
+void macro_measurement_start_tsc(void);
+void macro_measurement_end_tsc(void);
+
 void macro_same_context_switch(void);
 
 // =================================================================================================
@@ -64,6 +67,8 @@ static uint8_t *get_macro_wrapper_ptr(uint64_t macro_id)
             return (uint8_t *)macro_measurement_start_flush;
         case EVICT_RELOAD:
             return (uint8_t *)macro_measurement_start_flush;
+        case TSC:
+            return (uint8_t *)macro_measurement_start_tsc;
         default:
             PRINT_ERRS("get_macro_wrapper_ptr", "misconfigured measurement_mode\n");
             return NULL;
@@ -78,6 +83,8 @@ static uint8_t *get_macro_wrapper_ptr(uint64_t macro_id)
         case FLUSH_RELOAD:
         case EVICT_RELOAD:
             return (uint8_t *)macro_measurement_end_reload;
+        case TSC:
+            return (uint8_t *)macro_measurement_end_tsc;
         default:
             PRINT_ERRS("get_macro_wrapper_ptr", "misconfigured measurement_mode\n");
             return NULL;
@@ -201,6 +208,7 @@ uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint8_t *mac
 
 #define HTRACE_REGISTER "r11"
 
+// Prime + Probe and variants -----------------------
 void macro_measurement_start_prime(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
@@ -275,6 +283,7 @@ void macro_measurement_end_probe(void)
     asm volatile(".quad " xstr(MACRO_END));
 }
 
+// Flush + Reload and variants ----------------------
 void macro_measurement_start_flush(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
@@ -303,6 +312,40 @@ void macro_measurement_end_reload(void)
                        "or " HTRACE_REGISTER ", rax\n"              //
                        "pop r13\n"                                  //
                        POP_ABCDF()                                  //
+    );
+    asm volatile(".quad " xstr(MACRO_END));
+}
+
+// Time stamp counter -------------------------------
+void macro_measurement_start_tsc(void)
+{
+    asm volatile(".quad " xstr(MACRO_START));
+    asm_volatile_intel(""                                               //
+                       PUSH_ABCDF()                                     //
+                       "lfence; rdtsc; lfence\n"                        //
+                       "shl rdx, 32\n"                                  //
+                       "or rdx, rax\n"                                  //
+                       "xor " HTRACE_REGISTER ", " HTRACE_REGISTER "\n" //
+                       "sub " HTRACE_REGISTER ", rdx\n"                 //
+                       "lfence\n"                                       //
+                    //    READ_PFC_START()                                 //
+                       POP_ABCDF()                                      //
+                       "lfence\n"                                       //
+    );
+    asm volatile(".quad " xstr(MACRO_END));
+}
+
+void macro_measurement_end_tsc(void)
+{
+    asm volatile(".quad " xstr(MACRO_START));
+    asm_volatile_intel(""                               //
+                       PUSH_ABCDF()                     //
+                    //    READ_PFC_END()                   //
+                       "lfence; rdtsc; lfence\n"        //
+                       "shl rdx, 32\n"                  //
+                       "or rdx, rax\n"                  //
+                       "add " HTRACE_REGISTER ", rdx\n" //
+                       POP_ABCDF()                      //
     );
     asm volatile(".quad " xstr(MACRO_END));
 }
