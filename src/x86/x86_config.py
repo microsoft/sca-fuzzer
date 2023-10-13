@@ -17,6 +17,7 @@ x86_option_values = {
         'F+R',
         'E+R',
         'PP+P',
+        'TSC',
         # 'GPR' is intentionally left out
     ],
     'permitted_faults': [

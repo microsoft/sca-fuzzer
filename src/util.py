@@ -449,6 +449,9 @@ def bit_count(n):
 
 
 def pretty_trace(bits: int, merged=False, offset: str = ""):
+    if CONF.executor_mode == "TSC":
+        return f"{bits}"
+
     if not merged:
         s = f"{bits:064b}"
     else:

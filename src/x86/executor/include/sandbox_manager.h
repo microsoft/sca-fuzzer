@@ -63,12 +63,11 @@ typedef struct {
 // =================================================================================================
 // Sandbox code layout
 // =================================================================================================
+#define MAX_EXPANDED_SECTION_SIZE (0x1000 * 2)
+#define MAX_EXPANDED_MACROS_SIZE  (0x1000)
 // DBG: Uncomment the following lines to be able to see macros when using test_case_show interface
 // #define MAX_EXPANDED_SECTION_SIZE (0x400)
 // #define MAX_EXPANDED_MACROS_SIZE  (0x400)
-
-#define MAX_EXPANDED_SECTION_SIZE (0x1000 * 2)
-#define MAX_EXPANDED_MACROS_SIZE  (0x1000)
 
 typedef struct {
     uint8_t section[MAX_EXPANDED_SECTION_SIZE];

@@ -17,6 +17,7 @@ typedef enum {
     FAST_PARTIAL_PRIME_PROBE,
     FLUSH_RELOAD,
     EVICT_RELOAD,
+    TSC,
 } measurement_mode_e;
 
 #define EXECUTOR_DEBUG 0

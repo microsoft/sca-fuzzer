@@ -50,6 +50,8 @@ class FuzzerGeneric(Fuzzer):
             CONF.setattr_internal("_no_generation", True)
             CONF.setattr_internal("_default_instruction_blocklist", [])
             CONF.register_blocklist = []
+        if CONF.executor_mode == 'TSC':
+            CONF.analyser_permit_subsets = False
         # more adjustments could be implemented by subclasses!
 
     def initialize_modules(self):
