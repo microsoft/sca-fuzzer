@@ -38,12 +38,9 @@ class Conf:
 
     # ==============================================================================================
     # Execution Environment
-    permitted_faults: List[str] = []
-    """ permitted_faults: a list of faults that are permitted to happen during testing """
-    enable_vm_guests: bool = False
-    """ enable_vm_guests: if True, the executor will run parts of test cases in a guest VM """
-    n_guests: int = 0
-    """ n_guests: number of guest VMs to use while testing; ignored if enable_guest_vms is False """
+    faulty_page_properties: List[str] = []
+    """ faulty_page_properties: a list of page properties (e.g., present, writable) applied to
+    the faulty page of the sandbox data area """
 
     # ==============================================================================================
     # Program Generator
@@ -79,6 +76,12 @@ class Conf:
     for correctness """
     register_blocklist: List[str] = []
     """ register_blocklist: list of registers that will NOT be used for generating programs """
+    generator_faults_allowlist: List[str] = []
+    """ generator_faults_allowlist: by default, generator will produce programs that never
+    trigger exceptions. This option modifies this behavior by permitting the generator to produce
+    'unsafe' instruction sequences that could potentially trigger an exception. Model and executor
+     will also be configured to handle these exceptions gracefully """
+
     avoid_data_dependencies: bool = False
     """ [DEPRECATED] avoid_data_dependencies: """
     generate_memory_accesses_in_pairs: bool = False
@@ -165,6 +168,9 @@ class Conf:
     _no_generation: bool = False
     _option_values: Dict[str, List] = {}  # set by ISA-specific config.py
     _default_instruction_blocklist: List[str] = []
+    _faulty_page_properties_dict: Dict[str, bool] = {}
+    _handled_faults: List[str] = []  # set by ISA-specific config.py
+    _generator_fault_to_fault_name: Dict[str, str] = {}  # set by ISA-specific config.py
 
     # Implementation of Borg pattern
     def __init__(self) -> None:
@@ -183,15 +189,20 @@ class Conf:
         # set the rest of the options
         for var, value in config_update.items():
             # print(f"CONF: setting {name} to {value}")
-
-            # special handling
             if var == "instruction_set":
                 super().__setattr__("instruction_set", value)
                 self.set_to_arch_defaults()
                 continue
-
             if var == "instruction_blocklist":
                 self._default_instruction_blocklist.extend(value)
+                continue
+            if var == "generator_faults_allowlist":
+                self.update_handled_faults_with_generator_faults(value)
+                self.safe_set(var, value)
+                continue
+            if var == "faulty_page_properties":
+                for v in value:
+                    self.set_faulty_page_properties(v)
                 continue
 
             self.safe_set(var, value)
@@ -267,12 +278,26 @@ class Conf:
             if name == "instruction_blocklist":
                 self._default_instruction_blocklist.extend(value)
                 continue
+            if name == "faulty_page_properties":
+                self.set_faulty_page_properties(value)
+                continue
+            if name == "generator_faults_allowlist":
+                self.update_handled_faults_with_generator_faults(value)
+                continue
 
             setattr(self, name, value)
 
-    def setattr_internal(self, name, val):
-        """ Bypass value checks and set an internal config variable. Use with caution! """
-        super().__setattr__(name, val)
+    def update_handled_faults_with_generator_faults(self, new: List[str]):
+        for gen_fault in new:
+            if gen_fault not in self._generator_fault_to_fault_name:
+                raise ConfigException(f"ERROR: Unknown generator fault {gen_fault}")
+            fault = self._generator_fault_to_fault_name[gen_fault]
+            if fault not in self._handled_faults:
+                self._handled_faults.append(fault)
+
+    def set_faulty_page_properties(self, new: Dict):
+        for k, v in new.items():
+            self._faulty_page_properties_dict[k] = v
 
 
 CONF = Conf()

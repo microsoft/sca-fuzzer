@@ -21,33 +21,52 @@ from .x86_target_desc import X86TargetDesc
 from .x86_elf_parser import X86ElfParser
 
 
+class FaultFilter:
+
+    def __init__(self) -> None:
+        self.div_by_zero: bool = 'div-by-zero' in CONF.generator_faults_allowlist
+        self.div_overflow: bool = 'div-overflow' in CONF.generator_faults_allowlist
+        self.non_canonical_access: bool = 'non-canonical-access' in CONF.generator_faults_allowlist
+
+
 class X86Generator(ConfigurableGenerator, abc.ABC):
+    faults: FaultFilter
 
     def __init__(self, instruction_set: InstructionSet, seed: int):
         super(X86Generator, self).__init__(instruction_set, seed)
         self.target_desc = X86TargetDesc()
         self.elf_parser = X86ElfParser(self.target_desc)
+        self.faults = FaultFilter()
+
+        # configure instrumentation passes
         self.passes = [
-            X86SandboxPass(self.target_desc),
+            X86SandboxPass(self.target_desc, self.faults),
             X86PatchUndefinedFlagsPass(self.instruction_set, self),
             X86PatchUndefinedResultPass(),
-            X86NonCanonicalAddressPass(),
-            X86PatchOpcodesPass(),
         ]
+        if self.faults.non_canonical_access:
+            self.passes.append(X86NonCanonicalAddressPass())
+        self.passes.append(X86PatchOpcodesPass())
         self.printer = X86Printer(self.target_desc)
 
         # select PTE bits that could be set
         self.pte_bit_choices: List[Tuple[int, bool]] = []
-        if 'assist-accessed' in CONF.permitted_faults:
+        if not CONF._faulty_page_properties_dict['accessed']:
             self.pte_bit_choices.append(self.target_desc.pte_bits["ACCESSED"])
-        if 'assist-dirty' in CONF.permitted_faults:
+        if not CONF._faulty_page_properties_dict['dirty']:
             self.pte_bit_choices.append(self.target_desc.pte_bits["DIRTY"])
-        if 'PF-present' in CONF.permitted_faults:
+        if not CONF._faulty_page_properties_dict['present']:
             self.pte_bit_choices.append(self.target_desc.pte_bits["PRESENT"])
-        if 'PF-writable' in CONF.permitted_faults:
+        if not CONF._faulty_page_properties_dict['writable']:
             self.pte_bit_choices.append(self.target_desc.pte_bits["RW"])
-        if 'PF-smap' in CONF.permitted_faults:
+        if not CONF._faulty_page_properties_dict['executable']:
+            self.pte_bit_choices.append(self.target_desc.pte_bits["NX"])
+        if CONF._faulty_page_properties_dict['user']:
             self.pte_bit_choices.append(self.target_desc.pte_bits["USER"])
+        if CONF._faulty_page_properties_dict['write-through']:
+            self.pte_bit_choices.append(self.target_desc.pte_bits["PWT"])
+        if CONF._faulty_page_properties_dict['cache-disable']:
+            self.pte_bit_choices.append(self.target_desc.pte_bits["PCD"])
 
     def get_return_instruction(self) -> Instruction:
         return Instruction("RET", False, "", True)
@@ -92,9 +111,6 @@ class X86LFENCEPass(Pass):
 class X86NonCanonicalAddressPass(Pass):
 
     def run_on_test_case(self, test_case: TestCase) -> None:
-        if 'GP-noncanonical' not in CONF.permitted_faults:
-            return
-
         for func in test_case.functions:
             for bb in func:
                 memory_instructions = []
@@ -175,12 +191,14 @@ class X86SandboxPass(Pass):
     mask_3bits = "0b111"
     bit_test_names = ["BT", "BTC", "BTR", "BTS", "LOCK BT", "LOCK BTC", "LOCK BTR", "LOCK BTS"]
 
-    def __init__(self, target_desc: X86TargetDesc):
+    def __init__(self, target_desc: X86TargetDesc, faults: FaultFilter):
         super().__init__()
+        self.target_desc = target_desc
+        self.faults = faults
+
         input_memory_size = MAIN_AREA_SIZE + FAULTY_AREA_SIZE
         mask_size = int(math.log(input_memory_size, 2)) - CONF.memory_access_zeroed_bits
         self.sandbox_address_mask = "0b" + "1" * mask_size + "0" * CONF.memory_access_zeroed_bits
-        self.target_desc = target_desc
 
     def run_on_test_case(self, test_case: TestCase) -> None:
         for func in test_case.functions:
@@ -331,8 +349,8 @@ class X86SandboxPass(Pass):
             return
 
         # Prevent div by zero
-        if 'DE-zero' not in CONF.permitted_faults:
-            if "IDIV" not in inst.name or 'DE-overflow' in CONF.permitted_faults:
+        if not self.faults.div_by_zero:
+            if "IDIV" not in inst.name or self.faults.div_overflow:
                 # for unsigned division and signed divisions with overflow permitted,
                 # it is sufficient to OR the divisor with 1 to prevent div by zero
                 instrumentation = Instruction("OR", True) \
@@ -373,9 +391,9 @@ class X86SandboxPass(Pass):
                     .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
                 parent.insert_before(inst, instrumentation)
 
-        # Prevent div overflows
-        if 'DE-overflow' in CONF.permitted_faults:
+        if self.faults.div_overflow:
             return
+        # Prevent div overflows:
 
         # Check for the cases that are impossible to instrument:
         # - division by D register

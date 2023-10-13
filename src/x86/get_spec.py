@@ -323,11 +323,8 @@ SUPPORTED_EXTENSIONS = [
     "SSE4a",
     "CLFLUSHOPT",
     "CLFSH",
-    "VTX",
-    "SVM",
     "MPX",
     "SSE",
-    "SGX",
 ]
 
 

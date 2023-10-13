@@ -19,21 +19,24 @@ _option_values = {
         'TSC',
         # 'GPR' is intentionally left out
     ],
-    'permitted_faults': [
-        'DE-zero',
-        'DE-overflow',
-        'UD',
-        'UD-vtx',
-        'UD-svm',
-        'PF-present',
-        'PF-writable',
-        'PF-smap',
-        'GP-noncanonical',
-        'BP',
-        'BR',
-        'DB-instruction',
-        'assist-accessed',
-        'assist-dirty',
+    'generator_faults_allowlist': [
+        'div-by-zero',
+        'div-overflow',
+        'opcode-undefined',
+        'bounds-range-exceeded',
+        'breakpoint',
+        'debug-register',
+        'non-canonical-access',
+    ],
+    'faulty_page_properties': [
+        'present',
+        'writable',
+        'executable',
+        'user',
+        'accessed',
+        'dirty',
+        "write-through",
+        "cache-disable",
     ],
     'instruction_categories': [
         # Base x86 - user instructions
@@ -92,12 +95,12 @@ _option_values = {
         # Misc
         "CLFLUSHOPT-CLFLUSHOPT",
         "CLFSH-MISC",
-        "SGX-SGX",
-        "VTX-VTX",
-        "SVM-SYSTEM",
         "MPX-MPX",
     ]
 }
+
+# by default, we always handle page faults
+_handled_faults: List[str] = ["PF"]
 
 x86_executor_enable_prefetcher: bool = False
 """ x86_executor_enable_prefetcher: enable all prefetchers"""
@@ -159,3 +162,24 @@ register_blocklist: List[str] = [
     # XMM8-15 are somehow broken in Unicorn
     "XMM8", "XMM9", "XMM10", "XMM11", "XMM12", "XMM13", "XMM14", "XMM15",
 ]  # yapf: disable
+
+faulty_page_properties: Dict[str, bool] = {
+    "present": True,
+    "writable": True,
+    "user": False,
+    "write-through": False,
+    "cache-disable": False,
+    "accessed": True,
+    "dirty": True,
+    "executable": True
+}
+
+_generator_fault_to_fault_name = {
+    'div-by-zero': "DE",
+    'div-overflow': "DE",
+    'opcode-undefined': "UD",
+    'bounds-range-exceeded': "BR",
+    'breakpoint': "BP",
+    'debug-register': "DB",
+    'non-canonical-access': "GP",
+}

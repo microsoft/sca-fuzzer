@@ -26,9 +26,9 @@ instruction_blocklist:
   - DIV
   - IDIV
 
-permitted_faults:
-  - PF-present
-  - PF-writable
+faulty_page_properties:
+  - present: False
+  - writable: False
 
 # misc. fuzzing configuration
 enable_speculation_filter: true

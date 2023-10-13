@@ -497,20 +497,14 @@ class UnicornSeq(UnicornModel):
     handled_faults: Set[int]  # the set of fault types that do NOT terminate execution
     pending_fault_id: int = 0  # if a fault was triggered but not handled yet, its ID is stored here
     fault_mapping = {  # maps fault types to the corresponding Unicorn fault IDs
-        "DE-zero": [21],
-        "DE-overflow": [21],
-        "DB-instruction": [10],
+        "DE": [21],
+        "DB": [10],
         "BP": [21],
         "BR": [13],
         "UD": [10],
-        "UD-vtx": [10],
-        "UD-svm": [10],
-        "PF-present": [12, 13],
-        "PF-writable": [12],
-        "PF-smap": [12, 13],
-        "GP-noncanonical": [6, 7],
-        "assist-dirty": [12, 13],
-        "assist-accessed": [12, 13],
+        "PF": [12, 13],
+        "GP": [6, 7],
+        "assist": [12, 13],
     }
 
     def __init__(self, sandbox_base, code_start):
@@ -530,7 +524,7 @@ class UnicornSeq(UnicornModel):
         # fault handling
         self.pending_fault_id = 0
         self.handled_faults = set()
-        for fault in CONF.permitted_faults:
+        for fault in CONF._handled_faults:
             if fault in self.fault_mapping:
                 self.handled_faults.update(self.fault_mapping[fault])
             else:

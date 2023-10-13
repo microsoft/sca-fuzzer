@@ -11,8 +11,8 @@ instruction_categories:
   - BASE-LOGICAL
 
 # environment
-permitted_faults:
-  - assist-accessed
+faulty_page_properties:
+  - accessed: False
 
 # fuzzing configuration
 enable_speculation_filter: true

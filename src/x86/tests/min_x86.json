@@ -333,6 +333,15 @@
     ]
   },
   {"name": "AND", "category": "BASE-LOGICAL", "control_flow": false,
+  "operands": [
+    {"type_": "REG", "values": ["RAX", "RCX", "RDX", "RBX", "RSP", "RBP", "RSI", "RDI", "R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15"], "src": true, "dest": true, "width": 64},
+    {"type_": "REG", "values": ["RAX", "RCX", "RDX", "RBX", "RSP", "RBP", "RSI", "RDI", "R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15"], "src": true, "dest": true, "width": 64}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
+  ]
+},
+  {"name": "AND", "category": "BASE-LOGICAL", "control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["RAX"], "src": true, "dest": true, "width": 64},
       {"type_": "REG", "values": ["RAX"], "src": true, "dest": false, "width": 64}
@@ -3139,6 +3148,13 @@
     "operands": [
       {"type_": "REG", "values": ["RAX", "RCX", "RDX", "RBX", "RSP", "RBP", "RSI", "RDI", "R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15"], "src": false, "dest": true, "width": 64},
       {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 32}
+    ],
+    "implicit_operands": []
+  },
+  {"name": "MOV", "category": "BASE-DATAXFER", "control_flow": false,
+    "operands": [
+      {"type_": "REG", "values": ["RAX", "RCX", "RDX", "RBX", "RSP", "RBP", "RSI", "RDI", "R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15"], "src": false, "dest": true, "width": 64},
+      {"type_": "REG", "values": ["RAX", "RCX", "RDX", "RBX", "RSP", "RBP", "RSI", "RDI", "R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15"], "src": false, "dest": true, "width": 64}
     ],
     "implicit_operands": []
   },
