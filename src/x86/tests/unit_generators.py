@@ -134,7 +134,7 @@ class X86RandomGeneratorTest(unittest.TestCase):
 
     def test_x86_asm_parsing_basic(self):
         CONF.register_blocklist = []
-        CONF.setattr_internal("_default_instruction_blocklist", [])
+        CONF._default_instruction_blocklist = []
 
         instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix())
         generator = X86RandomGenerator(instruction_set, CONF.program_generator_seed)
@@ -158,7 +158,7 @@ class X86RandomGeneratorTest(unittest.TestCase):
 
     def test_x86_asm_parsing_opcode(self):
         CONF.register_blocklist = []
-        CONF.setattr_internal("_default_instruction_blocklist", [])
+        CONF._default_instruction_blocklist = []
 
         tc = self.load_tc(ASM_OPCODE)
 
@@ -170,7 +170,7 @@ class X86RandomGeneratorTest(unittest.TestCase):
 
     def test_x86_asm_parsing_section(self):
         CONF.register_blocklist = []
-        CONF.setattr_internal("_default_instruction_blocklist", [])
+        CONF._default_instruction_blocklist = []
 
         instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix())
         generator = X86RandomGenerator(instruction_set, CONF.program_generator_seed)
@@ -203,7 +203,7 @@ class X86RandomGeneratorTest(unittest.TestCase):
 
     def test_x86_asm_parsing_symbols(self):
         CONF.register_blocklist = []
-        CONF.setattr_internal("_default_instruction_blocklist", [])
+        CONF._default_instruction_blocklist = []
 
         instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix())
         generator = X86RandomGenerator(instruction_set, CONF.program_generator_seed)

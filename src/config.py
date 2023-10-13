@@ -4,6 +4,7 @@ File: Fuzzing Configuration Options
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
+import yaml
 from typing import List, Dict
 from .x86 import x86_config
 
@@ -12,7 +13,7 @@ class ConfigException(SystemExit):
     pass
 
 
-class ConfCls:
+class Conf:
     config_path: str = ""
     # ==============================================================================================
     # Fuzzer
@@ -167,12 +168,38 @@ class ConfCls:
 
     # Implementation of Borg pattern
     def __init__(self) -> None:
-        self.setattr_internal("__dict__", self._borg_shared_state)
+        setattr(self, '__dict__', self._borg_shared_state)
 
-    def __setattr__(self, name, value):
-        # print(f"CONF: setting {name} to {value}")
+    def load(self, config_path: str) -> None:
+        self.config_path = config_path
+        with open(config_path, "r") as f:
+            config_update: Dict = yaml.safe_load(f)
 
-        # Sanity checks
+        # make sure to set the architecture-dependent defaults first
+        if 'instruction_set' in config_update:
+            self.instruction_set = config_update['instruction_set']
+            self.set_to_arch_defaults()
+
+        # set the rest of the options
+        for var, value in config_update.items():
+            # print(f"CONF: setting {name} to {value}")
+
+            # special handling
+            if var == "instruction_set":
+                super().__setattr__("instruction_set", value)
+                self.set_to_arch_defaults()
+                continue
+
+            if var == "instruction_blocklist":
+                self._default_instruction_blocklist.extend(value)
+                continue
+
+            self.safe_set(var, value)
+
+    def safe_set(self, name: str, value) -> None:
+        assert name not in ["instruction_set", "instruction_blocklist", "faulty_page_properties"]
+
+        # sanity checks
         if name[0] == "_":
             raise ConfigException(
                 f"ERROR: Attempting to set an internal configuration variable {name}.")
@@ -182,65 +209,71 @@ class ConfCls:
         if type(self.__getattribute__(name)) != type(value):
             raise ConfigException(f"ERROR: Wrong type of the configuration variable {name}.\n"
                                   f"It's likely a typo in the configuration file.")
-        if name == "coverage_type" and value > "none":
-            super().__setattr__("feedback_driven_generator", "False")
-
-        # value checks
-        if self._option_values.get(name, '') != '':
-            invalid_value = None
-            if isinstance(value, List):
-                for v in value:
-                    if v not in self._option_values[name]:
-                        invalid_value = v
-                        break
-            else:
-                invalid_value = value if value not in self._option_values[name] else None
-            if invalid_value:
-                raise ConfigException(
-                    f"ERROR: Unknown value '{invalid_value}' of config variable '{name}'\n"
-                    f"Possible options: {self._option_values[name]}")
         if self.input_gen_entropy_bits + self.memory_access_zeroed_bits > 32:
             raise ConfigException(
                 "ERROR: The sum of input_gen_entropy_bits and memory_access_zeroed_bits"
                 " must be less or equal to 32 bits")
 
-        # special handling
-        if name == "instruction_set":
-            super().__setattr__("instruction_set", value)
-            self.update_arch()
+        self._check_options(name, value)
+        setattr(self, name, value)
+
+    def _check_options(self, name: str, value) -> None:
+        if name not in self._option_values:
             return
+        options = self._option_values[name]
 
-        if name == "instruction_blocklist":
-            self._default_instruction_blocklist.extend(value)
-            return
+        invalid_value = None
+        if isinstance(value, str):
+            invalid_value = value if value not in options else None
+        elif isinstance(value, List):
+            for v in value:
+                if v in options:
+                    continue
+                if isinstance(v, Dict):
+                    for k in v:
+                        if k not in options:
+                            break
+                    else:
+                        continue
+                invalid_value = v
+                break
+        else:
+            raise ConfigException(f"ERROR: Unexpected type of config variable {name}")
 
-        super().__setattr__(name, value)
+        if invalid_value:
+            raise ConfigException(
+                f"ERROR: Unknown value '{invalid_value}' of config variable '{name}'\n"
+                f"Possible options: {options}")
+        return
 
-    def update_arch(self):
-        # arch-specific config
+    def set_to_arch_defaults(self):
+        """ Set config options according to the architecture-specific defaults """
+
         if self.instruction_set == "x86-64":
             config = x86_config
-            prefix = "x86_"
         else:
             raise ConfigException(f"ERROR: Unknown architecture {self.instruction_set}")
-        options = [i for i in dir(config) if i.startswith(prefix)]
 
-        for option in options:
-            values = getattr(config, option)
-            trimmed_name = option.removeprefix(prefix)
-            if trimmed_name == "option_values":
-                self.setattr_internal("_option_values", values)
+        config_defaults = {}
+        for c in dir(config):
+            if c.startswith("__"):
+                continue
+            values = getattr(config, c)
+            if type(values) not in [bool, int, float, str, dict, list]:
+                continue
+            config_defaults[c] = values
+
+        for name, value in config_defaults.items():
+            if name == "instruction_blocklist":
+                self._default_instruction_blocklist.extend(value)
                 continue
 
-            if hasattr(self, trimmed_name):
-                setattr(self, trimmed_name, values)
-            else:
-                super().__setattr__(option, values)
+            setattr(self, name, value)
 
     def setattr_internal(self, name, val):
         """ Bypass value checks and set an internal config variable. Use with caution! """
         super().__setattr__(name, val)
 
 
-CONF = ConfCls()
-CONF.update_arch()
+CONF = Conf()
+CONF.set_to_arch_defaults()
