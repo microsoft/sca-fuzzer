@@ -57,13 +57,6 @@ static int cpu_configure(void)
     wrmsr64(0xC0011022, dc_config);
 #endif
 
-    // Ensure SVM is disabled
-    unsigned long long int msr_efer = rdmsr64(0xc0000080);
-    if (msr_efer & EFER_SVME) {
-        printk(KERN_ERR "x86_executor: ERROR: SVME is on. \nThis testing configuration is not "
-                        "supported by Revizor yet.");
-        return -1;
-    }
 #endif
     return 0;
 }

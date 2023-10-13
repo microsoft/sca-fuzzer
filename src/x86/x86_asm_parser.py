@@ -151,8 +151,7 @@ class X86AsmParser(AsmParserGeneric):
                         break
                     continue
                 elif op_spec.type == OT.REG:
-                    width = op_spec.width if "XMM" not in op_raw else 128
-                    if op_raw not in self.target_desc.registers[width]:
+                    if op_raw not in op_spec.values:
                         match = False
                         break
                     continue

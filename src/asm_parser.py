@@ -40,7 +40,7 @@ class AsmParserGeneric(AsmParser):
     def __init__(self, generator: Generator) -> None:
         self.generator = generator
         self.target_desc = generator.target_desc
-        pass
+        self.instruction_map = self._create_instruction_spec_map()
 
     def parse_file(self, input_file: str) -> TestCase:
         # FIXME: it's a dirty implementation. It should be rewritten.
@@ -50,9 +50,6 @@ class AsmParserGeneric(AsmParser):
 
         test_case = TestCase(0)
         test_case.asm_path = asm_file
-
-        # prepare a map of all instruction specs
-        instruction_map = self._create_instruction_spec_map()
 
         # load the text and clean it up
         lines = self._get_clean_lines_from_file(asm_file)
@@ -82,7 +79,7 @@ class AsmParserGeneric(AsmParser):
                 for line in lines:
                     # print(f"    {line}")
                     line_id += 1
-                    inst = self.parse_line(line, line_id, instruction_map)
+                    inst = self.parse_line(line, line_id, self.instruction_map)
                     if inst.control_flow and not self.target_desc.is_call(inst):
                         terminators_started = True
                         bb.insert_terminator(inst)
@@ -147,7 +144,7 @@ class AsmParserGeneric(AsmParser):
 
     def _create_instruction_spec_map(self) -> Dict[str, List[InstructionSpec]]:
         instruction_map: Dict[str, List[InstructionSpec]] = {}
-        for spec in self.generator.instruction_set.instructions:
+        for spec in self.generator.instruction_set.instruction_unfiltered:
             if spec.name in instruction_map:
                 instruction_map[spec.name].append(spec)
             else:

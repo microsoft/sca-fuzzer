@@ -9,7 +9,7 @@ from typing import List, Optional
 
 from ..fuzzer import FuzzerGeneric, ArchitecturalFuzzer
 from ..interfaces import TestCase, Input, InstructionSetAbstract, EquivalenceClass, Measurement
-from ..util import STAT
+from ..util import STAT, Logger
 from ..config import CONF
 from .x86_executor import X86IntelExecutor
 
@@ -20,49 +20,39 @@ def update_instruction_list():
     This functionality is implemented as a module-level function
     to avoid code duplication between X86Fuzzer and X86ArchitecturalFuzzer
     """
-    if 'UD' not in CONF.permitted_faults:
+    if 'opcode-undefined' not in CONF.generator_faults_allowlist:
         CONF._default_instruction_blocklist.extend(["UD", "UD2"])
-    if 'UD-sgx' not in CONF.permitted_faults:
-        CONF._default_instruction_blocklist.extend(["ENCLU"])
-    if 'UD-vtx' not in CONF.permitted_faults:
-        CONF._default_instruction_blocklist.extend([
-            'INVEPT', 'INVVPID', 'VMCALL', 'VMCLEAR', 'VMLAUNCH', 'VMPTRLD', 'VMPTRST', 'VMREAD',
-            'VMRESUME', 'VMWRITE', 'VMXOFF'
-        ])
-    if 'UD-svm' not in CONF.permitted_faults:
-        CONF._default_instruction_blocklist.extend(
-            ["VMRUN", "VMLOAD", "VMSAVE", "CLGI", "VMMCALL", "INVLPGA"])
-    if 'DB-instruction' not in CONF.permitted_faults:
-        CONF._default_instruction_blocklist.append("INT1")
-    if 'BP' not in CONF.permitted_faults:
-        CONF._default_instruction_blocklist.append("INT3")
-    if 'BR' not in CONF.permitted_faults:
-        CONF._default_instruction_blocklist.extend(['BNDCL', 'BNDCU'])
+    if 'bounds-range-exceeded' not in CONF.generator_faults_allowlist:
+        CONF._default_instruction_blocklist.extend(['BOUND', 'BNDCL', 'BNDCU'])
+    if 'breakpoint' not in CONF.generator_faults_allowlist:
+        CONF._default_instruction_blocklist.extend(["INT3"])
+    if 'debug-register' not in CONF.generator_faults_allowlist:
+        CONF._default_instruction_blocklist.extend(["INT1"])
 
 
 def check_instruction_list(instruction_set: InstructionSetAbstract):
+    LOG = Logger()
+    cpu_flags = run("grep 'flags' /proc/cpuinfo", shell=True, capture_output=True).stdout.decode()
     all_instruction_names = set([i.name for i in instruction_set.instructions])
-    if 'DE-overflow' in CONF.permitted_faults:
-        assert "DIV" in all_instruction_names or "IDIV" in all_instruction_names
-    if 'UD' in CONF.permitted_faults:
-        assert "UD" in all_instruction_names or "UD2" in all_instruction_names
-    if 'UD-sgx' in CONF.permitted_faults:
-        assert "ENCLU" in all_instruction_names
-        cpu_flags = run(
-            "grep 'flags' /proc/cpuinfo", shell=True, capture_output=True).stdout.decode()
-        assert "sgx" in cpu_flags
-    if 'UD-vtx' in CONF.permitted_faults:
-        assert "VMCALL" in all_instruction_names
-    if 'UD-svm' in CONF.permitted_faults:
-        assert "VMMCALL" in all_instruction_names
-    if 'DB-instruction' in CONF.permitted_faults:
-        assert "INT1" in all_instruction_names
-    if 'BP' in CONF.permitted_faults:
-        assert "INT3" in all_instruction_names
-    if 'BR' in CONF.permitted_faults:
-        cpu_flags = run(
-            "grep 'flags' /proc/cpuinfo", shell=True, capture_output=True).stdout.decode()
-        assert "mpx" in cpu_flags and "BNDCU" in all_instruction_names
+    if 'div-by-zero' in CONF.generator_faults_allowlist:
+        if 'DIV' not in all_instruction_names and 'IDIV' not in all_instruction_names:
+            LOG.warning("fuzzer", "div-by-zero enabled, but DIV/IDIV instructions are missing")
+    if 'div-overflow' in CONF.generator_faults_allowlist:
+        if 'DIV' not in all_instruction_names and 'IDIV' not in all_instruction_names:
+            LOG.warning("fuzzer", "div-overflow enabled, but DIV/IDIV instructions are missing")
+    if 'opcode-undefined' in CONF.generator_faults_allowlist:
+        if 'UD' not in all_instruction_names and 'UD2' not in all_instruction_names:
+            LOG.warning("fuzzer", "opcode-undefined enabled, but UD/UD2 instructions are missing")
+    if 'bounds-range-exceeded' in CONF.generator_faults_allowlist:
+        if "BNDCU" not in all_instruction_names:
+            LOG.warning("fuzzer", "bounds-range-exceeded enabled, but BNDCU instruction is missing")
+        assert "mpx" in cpu_flags
+    if 'breakpoint' in CONF.generator_faults_allowlist:
+        if 'INT3' not in all_instruction_names:
+            LOG.warning("fuzzer", "breakpoint enabled, but INT3 instruction is missing")
+    if 'debug-register' in CONF.generator_faults_allowlist:
+        if 'INT1' not in all_instruction_names:
+            LOG.warning("fuzzer", "debug-register enabled, but INT1 instruction is missing")
 
 
 class X86Fuzzer(FuzzerGeneric):
@@ -120,13 +110,7 @@ class X86Fuzzer(FuzzerGeneric):
                         if line and line[0] not in ["#", ".", "J"] and "LOOP" not in line:
                             fenced_asm.write('lfence\n')
 
-            # temporarily replace the instruction set with the unfiltered one
-            # otherwise, some of the instrumentation instructions might be missing
-            tmp_instruction_set = self.instruction_set.instructions
-            self.instruction_set.instructions = self.instruction_set.unfiltered_instructions
             fenced_test_case = self.asm_parser.parse_file('fenced.asm')
-            self.instruction_set.instructions = tmp_instruction_set
-
             self.executor.load_test_case(fenced_test_case)
             fenced_htraces = self.executor.trace_test_case(inputs, repetitions=1)
 
@@ -177,12 +161,10 @@ class X86ArchDiffFuzzer(FuzzerGeneric):
             htraces[i].extend(trace)
         return htraces
 
-    def _build_dummy_ecls(self, ) -> EquivalenceClass:
+    def _build_dummy_ecls(self,) -> EquivalenceClass:
         eq_cls = EquivalenceClass()
         eq_cls.ctrace = 0
-        eq_cls.measurements = [
-            Measurement(0, Input(), 0, 0)
-        ]
+        eq_cls.measurements = [Measurement(0, Input(), 0, 0)]
         eq_cls.build_htrace_map()
         return eq_cls
 
@@ -208,13 +190,7 @@ class X86ArchDiffFuzzer(FuzzerGeneric):
                     if line and line[0] not in ["#", ".", "J"] and "LOOP" not in line:
                         fenced_asm.write('lfence\n')
 
-        # temporarily replace the instruction set with the unfiltered one
-        # otherwise, some of the instrumentation instructions might be missing
-        tmp_instruction_set = self.instruction_set.instructions
-        self.instruction_set.instructions = self.instruction_set.unfiltered_instructions
         fenced_test_case = self.asm_parser.parse_file('fenced.asm')
-        self.instruction_set.instructions = tmp_instruction_set
-
         self.executor.load_test_case(fenced_test_case)
         fenced_htraces = self.get_arch_traces(inputs)
 

@@ -170,13 +170,19 @@ class Logger:
             print_stack(limit=3)
             print("\n")
 
-        print(f"ERROR: {msg}")
+        if CONF.color:
+            print(f"{RED}ERROR:{COL_RESET} {msg}")
+        else:
+            print(f"ERROR: {msg}")
         exit(1)
 
     def warning(self, src, msg) -> None:
         if self.redraw_mode:
             print("")
-        print(f"WARNING: [{src}] {msg}")
+        if CONF.color:
+            print(f"{YELLOW}WARNING:{COL_RESET} [{src}] {msg}")
+        else:
+            print(f"WARNING: [{src}] {msg}")
 
     def inform(self, src, msg, end="\n") -> None:
         if self.info:

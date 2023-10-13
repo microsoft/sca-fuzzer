@@ -57,7 +57,6 @@ instruction_categories:
 - CLFSH-MISC
 "
 
-
 ARCH_BASE="
 $BASE
 fuzzer: architectural
@@ -156,7 +155,7 @@ function assert_no_violation() {
     echo "Command: $cmd"
     echo "Exit code: $status"
     echo "Output: '$output'"
-    [[ "$status" -eq 0 && "$output" != *"=== Violations detected ==="*  ]]
+    [[ "$status" -eq 0 && "$output" != *"=== Violations detected ==="* ]]
 }
 
 function intel_only() {
@@ -274,7 +273,7 @@ EOF
 @test "Detection [meltdown-type]: MDS/LVI" {
     intel_only
     tmp_config=$(mktemp -p $TEST_DIR)
-    printf "$CT_DEH $LOGGING_OFF \npermitted_faults:\n  - assist-accessed\n" >$tmp_config
+    printf "$CT_DEH $LOGGING_OFF \nfaulty_page_properties:\n  - accessed: false\n" >$tmp_config
 
     if cat /proc/cpuinfo | grep "mds"; then
         cmd="$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/mds.asm -i 100"
@@ -293,7 +292,7 @@ EOF
 
 @test "Detection [meltdown-type]: #DE-zero speculation" {
     tmp_config=$(mktemp -p $TEST_DIR)
-    printf "$CT_DEH $LOGGING_OFF \npermitted_faults:\n  - DE-zero\n" >$tmp_config
+    printf "$CT_DEH $LOGGING_OFF \ngenerator_faults_allowlist:\n  - div-by-zero\n" >$tmp_config
     assert_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault-div-zero-speculation.asm -i 3"
 
     printf "contract_execution_clause:\n  - vspec-ops-div\n" >>$tmp_config
@@ -302,7 +301,7 @@ EOF
 
 @test "Detection [meltdown-type]: #DE-overflow speculation" {
     tmp_config=$(mktemp -p $TEST_DIR)
-    printf "$CT_DEH $LOGGING_OFF \npermitted_faults:\n  - DE-overflow\n" >$tmp_config
+    printf "$CT_DEH $LOGGING_OFF \ngenerator_faults_allowlist:\n  - div-overflow\n" >$tmp_config
     assert_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault-div-overflow-speculation.asm -i 3"
 
     printf "contract_execution_clause:\n  - vspec-ops-div\n" >>$tmp_config
@@ -311,7 +310,7 @@ EOF
 
 @test "Detection [meltdown-type]: #PF-present speculation" {
     tmp_config=$(mktemp -p $TEST_DIR)
-    printf "$CT_DEH $LOGGING_OFF \npermitted_faults:\n  - PF-present\n" >$tmp_config
+    printf "$CT_DEH $LOGGING_OFF \nfaulty_page_properties:\n  - present: false\n" >$tmp_config
     assert_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault_load.asm -i 5"
 
     printf "contract_execution_clause:\n  - nullinj-fault\n" >>$tmp_config
@@ -320,7 +319,7 @@ EOF
 
 @test "Detection [meltdown-type]: #PF-writable speculation" {
     tmp_config=$(mktemp -p $TEST_DIR)
-    printf "$CT_DEH $LOGGING_OFF \npermitted_faults:\n  - PF-writable\n" >$tmp_config
+    printf "$CT_DEH $LOGGING_OFF \nfaulty_page_properties:\n  - writable: false\n" >$tmp_config
     assert_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault_rmw.asm -i 5"
 
     printf "contract_execution_clause:\n  - nullinj-fault\n" >>$tmp_config
@@ -329,7 +328,7 @@ EOF
 
 @test "Detection [meltdown-type]: #PF-smap speculation" {
     tmp_config=$(mktemp -p $TEST_DIR)
-    printf "$CT_DEH $LOGGING_OFF \npermitted_faults:\n  - PF-smap\n" >$tmp_config
+    printf "$CT_DEH $LOGGING_OFF \nfaulty_page_properties:\n  - user: true\n" >$tmp_config
     assert_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault_load.asm -i 5"
 
     printf "contract_execution_clause:\n  - nullinj-fault\n" >>$tmp_config
@@ -337,9 +336,9 @@ EOF
 }
 
 @test "Detection [meltdown-type]: #BR speculation (MPX)" {
-    if grep "BNDCU" $ISA > /dev/null ; then
+    if grep "BNDCU" $ISA >/dev/null; then
         tmp_config=$(mktemp -p $TEST_DIR)
-        printf "$CT_SEQ $LOGGING_OFF \npermitted_faults:\n  - BR\n" >$tmp_config
+        printf "$CT_SEQ $LOGGING_OFF \ngenerator_faults_allowlist:\n  - bounds-range-exceeded\n" >$tmp_config
         assert_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault_BR.asm -i 2"
 
         printf "$CT_DEH" >>$tmp_config
@@ -351,19 +350,19 @@ EOF
 
 @test "Sequential handling: #DB-instruction" {
     tmp_config=$(mktemp -p $TEST_DIR)
-    printf "$CT_SEQ $LOGGING_OFF \npermitted_faults:\n  - DB-instruction\n" >$tmp_config
+    printf "$CT_SEQ $LOGGING_OFF \ngenerator_faults_allowlist:\n  - debug-register\n" >$tmp_config
     assert_no_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault_INT1.asm -i 100"
 }
 
 @test "Sequential handling: #BP" {
     tmp_config=$(mktemp -p $TEST_DIR)
-    printf "$CT_SEQ $LOGGING_OFF \npermitted_faults:\n  - BP\n" >$tmp_config
+    printf "$CT_SEQ $LOGGING_OFF \ngenerator_faults_allowlist:\n  - breakpoint\n" >$tmp_config
     assert_no_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault_INT3.asm -i 100"
 }
 
 @test "Sequential handling: #UD" {
     tmp_config=$(mktemp -p $TEST_DIR)
-    printf "$CT_SEQ $LOGGING_OFF \npermitted_faults:\n  - UD\n" >$tmp_config
+    printf "$CT_SEQ $LOGGING_OFF \ngenerator_faults_allowlist:\n  - opcode-undefined\n" >$tmp_config
     assert_no_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault_UD.asm -i 100"
 }
 
@@ -385,7 +384,7 @@ EOF
 
 @test "Feature: Minimization of test cases" {
     tmp_config=$(mktemp -p $TEST_DIR)
-    printf "$CT_DEH $LOGGING_OFF \nenable_priming: false \npermitted_faults:\n  - PF-present\n" >$tmp_config
+    printf "$CT_DEH $LOGGING_OFF \nenable_priming: false \nfaulty_page_properties:\n  - present: false\n" >$tmp_config
     $cli_opt minimize -s $ISA -c $tmp_config -n 10 -i $ASM_DIR/minimization-before.asm -o $TEST_DIR/res.asm --simplify --find-sources
     run diff $TEST_DIR/res.asm $ASM_DIR/minimization-after.asm
     diff $TEST_DIR/res.asm $ASM_DIR/minimization-after.asm

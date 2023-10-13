@@ -267,7 +267,7 @@ class X86IntelExecutor(X86Executor):
         super().__init__()
 
     def set_vendor_specific_features(self):
-        write_to_sysfs_file("1" if "BR" in CONF.permitted_faults else "0",
+        write_to_sysfs_file("1" if "BR" in CONF._handled_faults else "0",
                             "/sys/x86_executor/enable_mpx")
 
 

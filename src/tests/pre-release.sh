@@ -287,8 +287,8 @@ fuzz_no_verify $name 1
 name="exception-delayed-handling"
 cp template-all.yaml "${name}.yaml"
 echo "
-permitted_faults:
-    - PF-present
+faulty_page_properties:
+  - present: False
 " >> "${name}.yaml"
 cp "${name}.yaml" "${name}-verify.yaml"
 echo "
@@ -301,8 +301,8 @@ fuzz_and_verify $name 1
 name="l1tf-present"
 cp template-all.yaml "${name}.yaml"
 echo "
-permitted_faults:
-    - PF-present
+faulty_page_properties:
+  - present: False
 contract_execution_clause:
     - delayed-exception-handling
 " >> "${name}.yaml"
@@ -317,8 +317,8 @@ fuzz_and_verify $name 1
 name="l1tf-rw"
 cp template-all.yaml "${name}.yaml"
 echo "
-permitted_faults:
-    - PF-writable
+faulty_page_properties:
+  - writable: False
 contract_execution_clause:
     - delayed-exception-handling
 " >> "${name}.yaml"
@@ -333,8 +333,8 @@ fuzz_and_verify $name 1
 name="l1tf-smap"
 cp template-all.yaml "${name}.yaml"
 echo "
-permitted_faults:
-    - PF-smap
+faulty_page_properties:
+    - user: false
 contract_execution_clause:
     - delayed-exception-handling
 " >> "${name}.yaml"
@@ -349,8 +349,8 @@ fuzz_and_verify $name 1
 name="mds-assist-accessed"
 cp template-all.yaml "${name}.yaml"
 echo "
-permitted_faults:
-    - assist-accessed
+faulty_page_properties:
+    - accessed: false
 contract_execution_clause:
     - delayed-exception-handling
 " >> "${name}.yaml"
@@ -365,8 +365,8 @@ fuzz_and_verify $name 1
 name="mds-assist-dirty"
 cp template-all.yaml "${name}.yaml"
 echo "
-permitted_faults:
-    - assist-dirty
+faulty_page_properties:
+    - dirty: false
 contract_execution_clause:
     - delayed-exception-handling
 " >> "${name}.yaml"
@@ -381,8 +381,8 @@ fuzz_and_verify $name 1
 name="l1tf-gp"
 cp template-all.yaml "${name}.yaml"
 echo "
-permitted_faults:
-    - GP-noncanonical
+generator_faults_allowlist:
+    - non-canonical-access
 contract_execution_clause:
     - delayed-exception-handling
 " >> "${name}.yaml"
@@ -392,8 +392,8 @@ fuzz $name 1
 name="gp-forwarding"
 cp template-all.yaml "${name}.yaml"
 echo "
-permitted_faults:
-    - GP-noncanonical
+generator_faults_allowlist:
+    - non-canonical-access
 contract_execution_clause:
     - nullinj-fault
 " >> "${name}.yaml"
@@ -403,8 +403,8 @@ fuzz $name 1
 name="div-by-zero-speculation"
 cp template-all.yaml "${name}.yaml"
 echo "
-permitted_faults:
-    - DE-zero
+generator_faults_allowlist:
+    - div-by-zero
 contract_execution_clause:
     - delayed-exception-handling
 " >> "${name}.yaml"
@@ -414,8 +414,8 @@ fuzz $name 1
 name="div-overflow-speculation"
 cp template-all.yaml "${name}.yaml"
 echo "
-permitted_faults:
-    - DE-overflow
+generator_faults_allowlist:
+    - div-overflow
 contract_execution_clause:
     - delayed-exception-handling
 " >> "${name}.yaml"
@@ -425,12 +425,10 @@ fuzz $name 1
 name="TN-opcode-faults"
 cp template-all.yaml "${name}.yaml"
 echo "
-permitted_faults:
-    - UD
-    - UD-vtx
-    - UD-svm
-    - BP
-    - DB-instruction
+generator_faults_allowlist:
+    - opcode-undefined
+    - breakpoint
+    - debug-register
 contract_execution_clause:
     - no_speculation
 " >> "${name}.yaml"
