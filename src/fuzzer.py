@@ -47,8 +47,8 @@ class FuzzerGeneric(Fuzzer):
 
     def _adjust_config(self, existing_test_case):
         if existing_test_case:
-            CONF.setattr_internal("_no_generation", True)
-            CONF.setattr_internal("_default_instruction_blocklist", [])
+            CONF._no_generation = True
+            CONF._default_instruction_blocklist = []
             CONF.register_blocklist = []
         if CONF.executor_mode == 'TSC':
             CONF.analyser_permit_subsets = False

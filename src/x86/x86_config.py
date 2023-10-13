@@ -4,10 +4,9 @@ File: x86-specific Configuration Options
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
-from typing import List
+from typing import List, Dict
 
-# x86_option_values attribute MUST be the first attribute in the file
-x86_option_values = {
+_option_values = {
     'executor': [
         'x86-64-intel',
         'x86-64-amd',
@@ -106,10 +105,10 @@ x86_executor_enable_ssbp_patch: bool = True
 """ x86_executor_enable_ssbp_patch: enable a patch against Speculative Store Bypass"""
 x86_disable_div64: bool = True
 
-x86_instruction_categories: List[str] = ["BASE-BINARY", "BASE-BITBYTE", "BASE-COND_BR"]
-""" x86_instruction_categories: a default list of tested instruction categories """
+instruction_categories: List[str] = ["BASE-BINARY", "BASE-BITBYTE", "BASE-COND_BR"]
+""" instruction_categories: a default list of tested instruction categories """
 
-x86_instruction_blocklist: List[str] = [
+instruction_blocklist: List[str] = [
     # Hard to fix:
     # - STI - enables interrupts, thus corrupting the measurements; CLI - just in case
     "STI", "CLI",
@@ -148,7 +147,7 @@ x86_instruction_blocklist: List[str] = [
 # x86 executor internally uses R8...R15, RSP, RBP and, thus, they are excluded
 # segment registers are also excluded as we don't support their handling so far
 # same for CR* and DR*
-x86_register_blocklist: List[str] = [
+register_blocklist: List[str] = [
     # free - rax, rbx, rcx, rdx, rdi, rsi
     'R8', 'R9', 'R10', 'R11', 'R12', 'R13', 'R14', 'R15', 'RSP', 'RBP',
     'R8D', 'R9D', 'R10D', 'R11D', 'R12D', 'R13D', 'R14D', 'R15D', 'ESP', 'EBP',

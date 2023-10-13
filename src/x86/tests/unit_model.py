@@ -131,7 +131,7 @@ class X86ModelTest(unittest.TestCase):
         CONF.instruction_set = "x86-64"
         CONF.model = 'x86-unicorn'
         CONF.input_gen_seed = 10  # default
-        CONF.setattr_internal("_no_generation", True)
+        CONF._no_generation = True
 
     @classmethod
     def tearDownClass(cls):

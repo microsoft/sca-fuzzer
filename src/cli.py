@@ -7,8 +7,6 @@ SPDX-License-Identifier: MIT
 """
 
 import os
-import yaml
-from typing import Dict
 from argparse import ArgumentParser
 from .factory import get_minimizer, get_fuzzer, get_downloader
 from .config import CONF
@@ -213,11 +211,7 @@ def main() -> int:
 
     # Update configuration
     if getattr(args, 'config', None):
-        CONF.config_path = args.config
-        with open(args.config, "r") as f:
-            config_update: Dict = yaml.safe_load(f)
-        for var, value in config_update.items():
-            setattr(CONF, var, value)
+        CONF.load(args.config)
 
     # Fuzzing
     if args.subparser_name == 'fuzz':
