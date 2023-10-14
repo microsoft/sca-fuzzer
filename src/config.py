@@ -5,7 +5,9 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 import yaml
+from copy import deepcopy
 from typing import List, Dict
+from collections import OrderedDict
 from .x86 import x86_config
 
 
@@ -166,15 +168,19 @@ class Conf:
     # Internal
     _borg_shared_state: Dict = {}
     _no_generation: bool = False
-    _option_values: Dict[str, List] = {}  # set by ISA-specific config.py
+    _option_values: Dict[str, List]  # set by ISA-specific config.py
     _default_instruction_blocklist: List[str] = []
     _faulty_page_properties_dict: Dict[str, bool] = {}
-    _handled_faults: List[str] = []  # set by ISA-specific config.py
-    _generator_fault_to_fault_name: Dict[str, str] = {}  # set by ISA-specific config.py
+    _handled_faults: List[str]  # set by ISA-specific config.py
+    _generator_fault_to_fault_name: Dict[str, str]  # set by ISA-specific config.py
+    _actors: OrderedDict[str, Dict]
+    _actor_default: Dict
 
-    # Implementation of Borg pattern
     def __init__(self) -> None:
+        # implementation of Borg pattern
         setattr(self, '__dict__', self._borg_shared_state)
+        if not getattr(self, '_actors', None):
+            self._actors = OrderedDict()
 
     def load(self, config_path: str) -> None:
         self.config_path = config_path
@@ -203,6 +209,9 @@ class Conf:
             if var == "faulty_page_properties":
                 for v in value:
                     self.set_faulty_page_properties(v)
+                continue
+            if var == "actor":
+                self.set_actor_properties(value)
                 continue
 
             self.safe_set(var, value)
@@ -274,6 +283,9 @@ class Conf:
                 continue
             config_defaults[c] = values
 
+        if "_option_values" not in config_defaults:
+            raise ConfigException("ERROR: ISA-specific config.py must define _option_values")
+
         for name, value in config_defaults.items():
             if name == "instruction_blocklist":
                 self._default_instruction_blocklist.extend(value)
@@ -283,6 +295,11 @@ class Conf:
                 continue
             if name == "generator_faults_allowlist":
                 self.update_handled_faults_with_generator_faults(value)
+                continue
+            if name == "_actor_default":
+                self._actor_default = deepcopy(value)
+                self._actors = OrderedDict()
+                self._actors['main'] = deepcopy(value)
                 continue
 
             setattr(self, name, value)
@@ -298,6 +315,26 @@ class Conf:
     def set_faulty_page_properties(self, new: Dict):
         for k, v in new.items():
             self._faulty_page_properties_dict[k] = v
+
+    def set_actor_properties(self, new):
+        self._check_options("actor", new)
+        update = {k: v for tmp_dict in new for k, v in tmp_dict.items()}
+
+        name = update['name']
+        if name == "main":
+            if update.get('mode', 'host') != 'host':
+                raise ConfigException("ERROR: The main actor must be in host mode")
+
+        if name in self._actors:
+            entry = self._actors[name]
+        else:
+            entry = deepcopy(self._actor_default)
+
+        for k, v in update.items():
+            if k == "mode" and v not in self._option_values["actor_mode"]:
+                raise ConfigException(f"ERROR: Unsupported actor mode {v}")
+            entry[k] = v
+        self._actors[name] = entry
 
 
 CONF = Conf()

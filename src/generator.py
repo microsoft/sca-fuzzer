@@ -15,7 +15,7 @@ from subprocess import CalledProcessError, run
 from .isa_loader import InstructionSet
 from .interfaces import Generator, TestCase, Operand, RegisterOperand, FlagsOperand, \
     MemoryOperand, ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, \
-    Function, OperandSpec, InstructionSpec, CondOperand, Actor
+    Function, OperandSpec, InstructionSpec, CondOperand, Actor, ActorMode
 from .util import NotSupportedException, Logger
 from .config import CONF
 
@@ -95,8 +95,13 @@ class ConfigurableGenerator(Generator, abc.ABC):
         random.seed(self._state)
         self._state += 1
 
+        # create actors
+        if len(CONF._actors) != 1:
+            self.LOG.error("Generation of test cases with multiple actors is not yet supported")
+        self.create_actors(self.test_case)
+
         # create the main function
-        default_actor = self.test_case.actors["0_host"]
+        default_actor = self.test_case.actors["main"]
         func = self.generate_function(".function_0", default_actor, self.test_case)
 
         # fill the function with instructions
@@ -172,6 +177,29 @@ class ConfigurableGenerator(Generator, abc.ABC):
     @abc.abstractmethod
     def get_elf_data(self, test_case: TestCase, obj_file: str) -> None:
         pass
+
+    def create_actors(self, test_case: TestCase):
+        for name, desc in CONF._actors.items():
+            # determine the actor mode of execution
+            if desc['mode'] == "host":
+                mode = ActorMode.HOST
+            elif desc['mode'] == "guest":
+                mode = ActorMode.GUEST
+            else:
+                assert False, f"Invalid actor mode: {desc['mode']}"
+
+            # create the actor
+            if name == "main":
+                actor = test_case.actors["main"]
+            else:
+                id_ = 0  # will be assigned later by the ELF parser
+                actor = Actor(mode, id_, name)
+
+            # check for duplicates (this should never be possible, but just in case)
+            assert name not in test_case.actors or test_case.actors[name] == actor, "Duplicate actr"
+
+            # add the actor to the test case
+            test_case.actors[name] = actor
 
     @abc.abstractmethod
     def generate_function(self, name: str, owner: Actor, parent: TestCase) -> Function:
@@ -500,7 +528,7 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
     def add_required_symbols(self, test_case: TestCase):
         # add measurement_start and measurement_end symbols
         func_main = test_case.functions[0]
-        assert func_main.owner == test_case.actors["0_host"]
+        assert func_main.owner == test_case.actors["main"]
 
         bb_first = func_main[0]
         instr = Instruction("MACRO", category="MACRO") \

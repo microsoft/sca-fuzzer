@@ -1,8 +1,8 @@
 .intel_syntax noprefix
 .test_case_enter:
-.section .data.0_host
+.section .data.main
 
-.function_main:
+.function_start:
     # delay on rbx
     LEA rbx, qword ptr [rbx + rcx + 1]
     LEA rbx, qword ptr [rbx + rcx + 1]
@@ -16,8 +16,8 @@
     LEA rbx, qword ptr [rbx + rcx + 1]
     AND rbx, 0b1
 
-    .macro.switch.3_host.function_1:
-# end of function_main
+    .macro.switch.actor2.function_1:
+# end of function_start
 # --------------------------------------------------------------------------------------------------
 
 .function_fin:
@@ -26,7 +26,7 @@
 # end of function_fin
 # --------------------------------------------------------------------------------------------------
 
-.section .data.3_host
+.section .data.actor2
 .function_1:
     # a typical spectre v1 gadget
     JZ .l3
@@ -43,7 +43,7 @@
     MOV rax, qword ptr [r14 + rdx]
     MOV rsi, 0x42
 
-    .macro.switch.0_host.function_fin:
+    .macro.switch.main.function_fin:
 # end of function_1
 # --------------------------------------------------------------------------------------------------
 

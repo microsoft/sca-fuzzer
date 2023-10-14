@@ -1,6 +1,6 @@
 .intel_syntax noprefix
 .test_case_enter:
-.section .data.0_host
+.section .data.main
 
 # the leaked value - rcx
 # construct a page offset from the random value

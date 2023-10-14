@@ -204,7 +204,7 @@ class X86AsmParser(AsmParserGeneric):
         Make sure that all function labels are exposed by adding a global label
           also, add NOP at the end of each function to make size calculations easier
           also, insert .function_0 at the beginning of the file if it is missing
-          also, .test_case_exit must be within the .data.0_host section and contain a single NOP
+          also, .test_case_exit must be within the .data.main section and contain a single NOP
         """
 
         def is_instruction(line: str) -> bool:
@@ -236,8 +236,8 @@ class X86AsmParser(AsmParserGeneric):
                         if not main_function_label:
                             patched.write(".function_0:\n")
                             main_function_label = ".function_0"
-                        if ".data.0_host" not in prev_line or "measurement_end" in prev_line:
-                            patched.write(".section .data.0_host\n")
+                        if ".data.main" not in prev_line or "measurement_end" in prev_line:
+                            patched.write(".section .data.main\n")
                         patched.write(".test_case_exit:" + "nop" + "\n")
                         continue
 

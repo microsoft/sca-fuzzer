@@ -1,6 +1,6 @@
 .intel_syntax noprefix
 .test_case_enter:
-.section .data.0_host
+.section .data.main
 
 # speculative offset:
 # these shifts generate a random page offset, 64-bit aligned

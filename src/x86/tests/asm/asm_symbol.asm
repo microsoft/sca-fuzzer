@@ -1,6 +1,6 @@
 .intel_syntax noprefix
 .test_case_enter:
-.section .data.0_host
+.section .data.main
 
 .macro.measurement_start: nop dword ptr [rax + 1*rax + 1]
 
@@ -14,7 +14,7 @@ and rax, rax
 
 nop
 
-.section .data.1_guest
+.section .data.guest_1
 .function_2:
 nop
 

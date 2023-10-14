@@ -7,6 +7,7 @@ import tempfile
 import subprocess
 import os
 from pathlib import Path
+from copy import deepcopy
 
 from src.x86.x86_generator import X86RandomGenerator, X86Printer, X86PatchUndefinedFlagsPass, \
     X86Generator
@@ -14,7 +15,7 @@ from src.x86.x86_asm_parser import X86AsmParser
 from src.x86.x86_target_desc import X86TargetDesc
 from src.factory import get_program_generator
 from src.isa_loader import InstructionSet
-from src.interfaces import TestCase, Function, BasicBlock, ActorType, Symbol
+from src.interfaces import TestCase, Function, BasicBlock, ActorMode, Symbol
 from src.config import CONF
 
 CONF.instruction_set = "x86-64"
@@ -24,7 +25,7 @@ test_dir = test_path.parent
 ASM_OPCODE = """
 .intel_syntax noprefix
 .test_case_enter:
-.section .data.0_host
+.section .data.main
 .byte 0x90
 .test_case_exit:
 """
@@ -59,7 +60,7 @@ class X86RandomGeneratorTest(unittest.TestCase):
                                          CONF.instruction_categories)
         generator = X86RandomGenerator(instruction_set, CONF.program_generator_seed)
         tc = TestCase(0)
-        func = generator.generate_function(".function_0", tc.actors["0_host"], tc)
+        func = generator.generate_function(".function_0", tc.actors["main"], tc)
         printer = X86Printer(X86TargetDesc())
         all_instructions = ['.intel_syntax noprefix\n']
 
@@ -133,9 +134,6 @@ class X86RandomGeneratorTest(unittest.TestCase):
         os.unlink(asm_file.name)
 
     def test_x86_asm_parsing_basic(self):
-        CONF.register_blocklist = []
-        CONF._default_instruction_blocklist = []
-
         instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix())
         generator = X86RandomGenerator(instruction_set, CONF.program_generator_seed)
         parser = X86AsmParser(generator)
@@ -157,8 +155,6 @@ class X86RandomGeneratorTest(unittest.TestCase):
         self.assertEqual(tc.functions[1].name, ".function_end")
 
     def test_x86_asm_parsing_opcode(self):
-        CONF.register_blocklist = []
-        CONF._default_instruction_blocklist = []
 
         tc = self.load_tc(ASM_OPCODE)
 
@@ -169,8 +165,8 @@ class X86RandomGeneratorTest(unittest.TestCase):
         self.assertEqual(insts[1].name, "OPCODE")
 
     def test_x86_asm_parsing_section(self):
-        CONF.register_blocklist = []
-        CONF._default_instruction_blocklist = []
+        prev_actors = deepcopy(CONF._actors)
+        CONF._actors["guest_1"] = {"name": "guest_1", "mode": "guest"}
 
         instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix())
         generator = X86RandomGenerator(instruction_set, CONF.program_generator_seed)
@@ -179,10 +175,10 @@ class X86RandomGeneratorTest(unittest.TestCase):
             (test_dir / "asm/asm_multiactor.asm").absolute().as_posix())
 
         self.assertEqual(len(tc.actors), 2)
-        self.assertEqual(tc.actors["0_host"].type_, ActorType.HOST)
-        self.assertEqual(tc.actors["0_host"].id_, 0)
-        self.assertEqual(tc.actors["1_guest"].type_, ActorType.GUEST)
-        self.assertEqual(tc.actors["1_guest"].id_, 1)
+        self.assertEqual(tc.actors["main"].mode, ActorMode.HOST)
+        self.assertEqual(tc.actors["main"].id_, 0)
+        self.assertEqual(tc.actors["guest_1"].mode, ActorMode.GUEST)
+        self.assertEqual(tc.actors["guest_1"].id_, 1)
 
         self.assertEqual(len(tc.functions), 4)
         f1 = tc.functions[0]
@@ -201,9 +197,11 @@ class X86RandomGeneratorTest(unittest.TestCase):
         self.assertEqual(f3.owner.id_, 0)
         self.assertEqual(len(f3[0]), 1)
 
+        CONF._actors = prev_actors
+
     def test_x86_asm_parsing_symbols(self):
-        CONF.register_blocklist = []
-        CONF._default_instruction_blocklist = []
+        prev_actors = deepcopy(CONF._actors)
+        CONF._actors["guest_1"] = {"name": "guest_1", "mode": "guest"}
 
         instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix())
         generator = X86RandomGenerator(instruction_set, CONF.program_generator_seed)
@@ -216,6 +214,8 @@ class X86RandomGeneratorTest(unittest.TestCase):
         self.assertEqual(tc.symbol_table[3], Symbol(0, 14, 0, 1))  # function_1
         self.assertEqual(tc.symbol_table[4], Symbol(1, 0, 0, 2))  # function_2
 
+        CONF._actors = prev_actors
+
     def test_x86_undef_flag_patch(self):
         instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix(),
                                          CONF.instruction_categories + ["BASE-FLAGOP"])
@@ -227,7 +227,7 @@ class X86RandomGeneratorTest(unittest.TestCase):
         read_instr = generator.generate_instruction(read_instr_spec)
 
         test_case = TestCase(0)
-        test_case.functions = [Function(".function_0", test_case.actors["0_host"])]
+        test_case.functions = [Function(".function_0", test_case.actors["main"])]
         bb = BasicBlock(".bb0")
         test_case.functions[0].append(bb)
         bb.insert_after(bb.get_last(), undef_instr)

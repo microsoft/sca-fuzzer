@@ -1,6 +1,6 @@
 .intel_syntax noprefix
 .test_case_enter:
-.section .data.0_host
+.section .data.main
 .function_0:
 CALL .function_1
 .function_1:

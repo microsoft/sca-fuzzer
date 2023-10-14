@@ -29,7 +29,7 @@ class ExecutorTest(unittest.TestCase):
         with open(asm_file.name, "w") as f:
             f.write(".intel_syntax noprefix\n"
                     ".test_case_enter:\n"
-                    ".section .data.0_host\n"
+                    ".section .data.main\n"
                     "mov rax, qword ptr [r14 + 0x200]\n"
                     ".test_case_exit:\n")
 

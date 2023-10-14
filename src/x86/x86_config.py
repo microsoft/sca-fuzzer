@@ -38,6 +38,16 @@ _option_values = {
         "write-through",
         "cache-disable",
     ],
+    'actor': [
+        'name',
+        'mode',
+        # 'data_properties',  # under construction
+        # 'code_properties',  # under construction
+    ],
+    "actor_mode": [
+        'host',
+        'guest',
+    ],
     'instruction_categories': [
         # Base x86 - user instructions
         "BASE-BINARY",
@@ -163,6 +173,7 @@ register_blocklist: List[str] = [
     "XMM8", "XMM9", "XMM10", "XMM11", "XMM12", "XMM13", "XMM14", "XMM15",
 ]  # yapf: disable
 
+# FIXME: to be removed
 faulty_page_properties: Dict[str, bool] = {
     "present": True,
     "writable": True,
@@ -182,4 +193,29 @@ _generator_fault_to_fault_name = {
     'breakpoint': "BP",
     'debug-register': "DB",
     'non-canonical-access': "GP",
+}
+
+_actor_default = {
+    'name': "main",
+    'mode': "host",
+    # 'data_properties': {
+    #     'present': True,
+    #     'writable': True,
+    #     'user': False,
+    #     'write-through': False,
+    #     'cache-disable': False,
+    #     'accessed': True,
+    #     'dirty': True,
+    #     'executable': True
+    # },
+    # 'code_properties': {
+    #     'present': True,
+    #     'writable': False,
+    #     'user': False,
+    #     'write-through': False,
+    #     'cache-disable': False,
+    #     'accessed': True,
+    #     'dirty': False,
+    #     'executable': True
+    # }
 }

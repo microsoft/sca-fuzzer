@@ -25,7 +25,7 @@ test_dir = test_path.parent
 ASM_HEADER = """
 .intel_syntax noprefix
 .test_case_enter:
-.section .data.0_host
+.section .data.main
 """
 
 ASM_THREE_LOADS = ASM_HEADER + """

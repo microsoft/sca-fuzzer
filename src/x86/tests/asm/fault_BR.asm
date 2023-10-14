@@ -1,6 +1,6 @@
 .intel_syntax noprefix
 .test_case_enter:
-.section .data.0_host
+.section .data.main
 AND rax, 0b011111111111
 ADD rax, 0x1000
 BNDCU BND1, qword ptr [r14 + rax]
