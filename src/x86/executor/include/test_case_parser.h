@@ -6,7 +6,7 @@
 #ifndef _TEST_CASE_PARSER_H_
 #define _TEST_CASE_PARSER_H_
 
-#include "actor_manager.h"
+#include "actor.h"
 
 #define MAX_ACTORS              16
 #define MAX_SECTIONS            MAX_ACTORS
@@ -40,9 +40,11 @@ typedef struct {
 } tc_symbol_entry_t;
 
 typedef struct {
+    size_t actor_table_size;
     size_t symbol_table_size;
     size_t metadata_size;
     size_t sections_size;
+    actor_metadata_t *actor_table;
     tc_symbol_entry_t *symbol_table;
     tc_section_metadata_entry_t *metadata;
     tc_section_t *sections;

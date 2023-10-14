@@ -5,12 +5,44 @@
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+/// Test case serialization format:
+///     |-------------------------------------|
+///     | n_actors (uint64_t)                 | HEADER
+///     | n_symbols (uint64_t)                |
+///     |-------------------------------------|
+///     | actor_metadata_t:                   | ACTOR TABLE
+///     |   - id (actor_id_t)                 |
+///     |   - mode (actor_mode_t)             |
+///     |   - data_permissions (uint64_t)     |
+///     |   - uint64_t (code_permissions)     |
+///     | x n_actors                          |
+///     |-------------------------------------|
+///     | tc_symbol_entry_t:                  | SYMBOL TABLE
+///     |   - owner (uint64_t)                |
+///     |   - offset (uint64_t)               |
+///     |   - id (uint64_t)                   |
+///     |   - args (uint64_t)                 |
+///     | x n_symbols                         |
+///     |-------------------------------------|
+///     | tc_section_metadata_entry_t:        | METADATA
+///     |   - owner (uint64_t)                |
+///     |   - size (uint64_t)                 |
+///     |   - reserved (uint64_t)             |
+///     | x n_actors                          |
+///     |-------------------------------------|
+///     | tc_section_t:                       | DATA
+///     |   - code (char *)                   |
+///     | x n_actors                          |
+///     |-------------------------------------|
+
 #include "test_case_parser.h"
 #include "macro_loader.h"
 #include "main.h"
 #include "shortcuts.h"
 
-test_case_t *test_case = NULL; // global
+test_case_t *test_case = NULL;   // global
+actor_metadata_t *actors = NULL; // global
+size_t n_actors = 1;             // global
 
 static size_t n_symbols;
 
@@ -21,6 +53,7 @@ static bool _is_receiving_test_case = false;
 static uint64_t _cursor = 0;
 static size_t highest_n_actors = 0;
 static size_t highest_n_symbols = 0;
+static actor_metadata_t *_allocated_actor_table;
 static tc_symbol_entry_t *_allocated_symbol_table;
 static tc_section_metadata_entry_t *_allocated_metadata;
 static tc_section_t *_allocated_data;
@@ -51,6 +84,7 @@ static int __batch_tc_parsing_start(const char *buf)
     ret += 8;
 
     // Store object sizes
+    test_case->actor_table_size = new_n_actors * sizeof(actor_metadata_t);
     test_case->symbol_table_size = new_n_symbols * sizeof(tc_symbol_entry_t);
     test_case->metadata_size = new_n_actors * sizeof(tc_section_metadata_entry_t);
     test_case->sections_size = new_n_actors * sizeof(tc_section_t);
@@ -63,23 +97,22 @@ static int __batch_tc_parsing_start(const char *buf)
         highest_n_symbols = new_n_symbols;
     }
     if (new_n_actors > highest_n_actors || !_allocated_data) {
+        SAFE_FREE(_allocated_actor_table);
         SAFE_FREE(_allocated_metadata);
         SAFE_VFREE(_allocated_data);
+        _allocated_actor_table = CHECKED_MALLOC(test_case->actor_table_size);
         _allocated_metadata = CHECKED_MALLOC(test_case->metadata_size);
         _allocated_data = CHECKED_VMALLOC(test_case->sections_size);
         highest_n_actors = new_n_actors;
     }
 
+    test_case->actor_table = _allocated_actor_table;
     test_case->symbol_table = _allocated_symbol_table;
     test_case->metadata = _allocated_metadata;
     test_case->sections = _allocated_data;
     n_symbols = new_n_symbols;
-
-    // Preserve the actor metadata
-    // FIXME: this is a temporary fixup, until we have a separate interface for actor initialization
     n_actors = new_n_actors;
-    int err = allocate_actor_metadata();
-    CHECK_ERR("__batch_tc_parsing_start");
+    actors = test_case->actor_table;
 
     ASSERT(ret < PAGE_SIZE, "__batch_tc_parsing_start");
     return ret;
@@ -133,28 +166,6 @@ static int __batch_tc_parsing_end(void)
 
 /// Parse the test case sent via sysfs, according to the following format:
 ///
-///     |-------------------------------------|
-///     | n_actors (uint64_t)                 | HEADER
-///     | n_symbols (uint64_t)                |
-///     |-------------------------------------|
-///     | tc_symbol_entry_t:                  | SYMBOL TABLE
-///     |   - owner (uint64_t)                |
-///     |   - offset (uint64_t)               |
-///     |   - id (uint64_t)                   |
-///     |   - args (uint64_t)                 |
-///     | x n_symbols                         |
-///     |-------------------------------------|
-///     | tc_section_metadata_entry_t:        | METADATA
-///     |   - owner (uint64_t)                |
-///     |   - size (uint64_t)                 |
-///     |   - reserved (uint64_t)             |
-///     | x n_actors                          |
-///     |-------------------------------------|
-///     | tc_section_t:                       | DATA
-///     |   - code (char *)                   |
-///     | x n_actors                          |
-///     |-------------------------------------|
-///
 ssize_t parse_test_case_buffer(const char *buf, size_t count, bool *finished)
 {
     ASSERT(*finished == false, "parse_test_case_buffer");
@@ -165,7 +176,8 @@ ssize_t parse_test_case_buffer(const char *buf, size_t count, bool *finished)
     ssize_t consumed_bytes = 0;
     ssize_t byte_id = 0;
 
-    int symbol_table_end = TC_HEADER_SIZE + test_case->symbol_table_size;
+    int actor_table_end = TC_HEADER_SIZE + test_case->actor_table_size;
+    int symbol_table_end = actor_table_end + test_case->symbol_table_size;
     int metadata_end = symbol_table_end + test_case->metadata_size;
 
     if (!_is_receiving_test_case) // Starting a a new batch
@@ -178,15 +190,25 @@ ssize_t parse_test_case_buffer(const char *buf, size_t count, bool *finished)
 
         _cursor += consumed_bytes;
         _is_receiving_test_case = true;
+    } else if (_cursor < actor_table_end) // Parsing actor table
+    {
+        size_t at_cursor = _cursor - TC_HEADER_SIZE;
+        for (; at_cursor < test_case->actor_table_size && byte_id < count;) {
+            ((char *)test_case->actor_table)[at_cursor] = buf[byte_id];
+            byte_id++;
+            at_cursor++;
+        }
+        _cursor = at_cursor + TC_HEADER_SIZE;
+        consumed_bytes = byte_id;
     } else if (_cursor < symbol_table_end) // Parsing symbol table
     {
-        size_t st_cursor = _cursor - TC_HEADER_SIZE;
+        size_t st_cursor = _cursor - actor_table_end;
         for (; st_cursor < test_case->symbol_table_size && byte_id < count;) {
             ((char *)test_case->symbol_table)[st_cursor] = buf[byte_id];
             byte_id++;
             st_cursor++;
         }
-        _cursor = st_cursor + TC_HEADER_SIZE;
+        _cursor = st_cursor + actor_table_end;
         consumed_bytes = byte_id;
     } else if (_cursor < metadata_end) // Parsing metadata
     {
@@ -266,25 +288,32 @@ int init_test_case_parser(void)
     n_symbols = 0;
     _is_receiving_test_case = false;
     _cursor = 0;
+    _allocated_actor_table = CHECKED_MALLOC(sizeof(actor_metadata_t));
     _allocated_symbol_table = CHECKED_MALLOC(1);
     _allocated_metadata = CHECKED_MALLOC(sizeof(tc_section_metadata_entry_t));
     _allocated_data = CHECKED_VMALLOC(sizeof(tc_section_t));
 
     // Dummy test case
     test_case = CHECKED_MALLOC(sizeof(test_case_t));
+    test_case->actor_table_size = sizeof(actor_metadata_t);
     test_case->symbol_table_size = 0;
     test_case->metadata_size = sizeof(tc_section_metadata_entry_t);
     test_case->sections_size = sizeof(tc_section_t);
+    test_case->actor_table = _allocated_actor_table;
     test_case->symbol_table = _allocated_symbol_table;
     test_case->metadata = _allocated_metadata;
     test_case->sections = _allocated_data;
+
+    actors = test_case->actor_table;
     return 0;
 }
 
 void free_test_case_parser(void)
 {
     SAFE_FREE(test_case);
+    SAFE_FREE(_allocated_actor_table);
     SAFE_FREE(_allocated_symbol_table);
     SAFE_FREE(_allocated_metadata);
     SAFE_VFREE(_allocated_data);
+    actors = NULL;
 }
