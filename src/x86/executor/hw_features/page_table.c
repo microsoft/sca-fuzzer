@@ -7,7 +7,7 @@
 #include <linux/kernel.h>
 #include <linux/mm.h>
 
-#include "actor_manager.h"
+#include "actor.h"
 #include "sandbox_manager.h"
 #include "shortcuts.h"
 
@@ -85,9 +85,6 @@ void faulty_page_pte_set(void)
         // : "memory");
         _native_page_invalidate();
     }
-    // PRINT_ERR("org_pte: %lx\n", orig_pte);
-    // PRINT_ERR("pte_mask: %llx, mask_set: %llx, mask_clear: %llx, new_pte: %llx\n", pte_mask,
-            //   mask_set, mask_clear, new_pte.pte);
 }
 
 void faulty_page_pte_restore(void)

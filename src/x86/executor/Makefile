@@ -3,9 +3,8 @@ KDIR=/lib/modules/$(shell uname -r)/build
 
 obj-m += $(NAME).o
 $(NAME)-objs += hw_features/fault_handler.o hw_features/page_table.o hw_features/perf_counters.o \
-    actor_manager.o sandbox_manager.o \
     input_parser.o test_case_parser.o code_loader.o data_loader.o macro_loader.o \
-    measurement.o main.o
+        sandbox_manager.o measurement.o main.o
 VPATH += $(src)/hw_features
 
 ifneq ($(shell grep "Intel" /proc/cpuinfo),)

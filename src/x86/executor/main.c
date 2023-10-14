@@ -13,7 +13,7 @@
 // clang-format on
 
 #include "main.h"
-#include "actor_manager.h"
+#include "actor.h"
 #include "code_loader.h"
 #include "data_loader.h"
 #include "hardware_desc.h"
@@ -477,7 +477,6 @@ static int __init executor_init(void)
     int err = 0;
     err |= init_measurements();
     err |= init_sandbox_manager();
-    err |= init_actor_manager();
     err |= init_code_loader();
     err |= init_data_loader();
     err |= init_macros_loader();
@@ -519,7 +518,6 @@ static void __exit executor_exit(void)
 {
     free_measurements();
     free_sandbox_manager();
-    free_actor_manager();
     free_code_loader();
     free_data_loader();
     free_macros_loader();

@@ -203,6 +203,13 @@ class X86Executor(Executor):
             f.write((len(actors)).to_bytes(8, byteorder='little'))  # n_actors
             f.write((len(test_case.symbol_table)).to_bytes(8, byteorder='little'))  # n_symbols
 
+            # actor metadata
+            for actor in actors:
+                f.write((actor.id_).to_bytes(8, byteorder='little'))
+                f.write((actor.mode.value).to_bytes(8, byteorder='little'))
+                f.write((actor.data_properties).to_bytes(8, byteorder='little'))
+                f.write((actor.code_properties).to_bytes(8, byteorder='little'))
+
             # symbol table (first functions sorted by argument, then macros sorted by actor+offset)
             function_symbols = [s for s in test_case.symbol_table if s[2] == 0]
             macro_symbols = [s for s in test_case.symbol_table if s[2] != 0]
@@ -246,9 +253,7 @@ class X86Executor(Executor):
             # metadata
             fragment_size = (inputs[0].data_size * 8).to_bytes(8, byteorder='little')
             for id_ in range(len(inputs[0])):
-                pte = self.curr_test_case.get_actor_by_id(id_).data_properties
                 f.write(fragment_size)  # size
-                f.write((pte).to_bytes(8, byteorder='little'))  # permissions
                 f.write((0).to_bytes(8, byteorder='little'))  # reserved
 
             # data

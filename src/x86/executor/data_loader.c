@@ -4,7 +4,7 @@
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "actor_manager.h"
+#include "actor.h"
 #include "input_parser.h"
 #include "main.h"
 #include "sandbox_manager.h"

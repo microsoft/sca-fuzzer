@@ -8,7 +8,7 @@
 
 #include <linux/slab.h> // PAGE_SIZE
 
-#include "actor_manager.h"
+#include "actor.h"
 #include "input_parser.h"
 #include "sandbox_manager.h"
 #include "shortcuts.h"
@@ -153,13 +153,6 @@ ssize_t parse_input_buffer(const char *buf, size_t count, bool *finished)
     if (_cursor >= data_end) {
         _is_receiving_inputs = false;
         *finished = true;
-
-        // copy data permissions into actor metadata
-        for (size_t actor_id = 0; actor_id < n_actors; actor_id++) {
-            actor_metadata_t *actor = &actors[actor_id];
-            actor->data_permissions = inputs->metadata[actor_id * n_inputs].permission;
-        }
-
     }
     // printk(KERN_ERR "parse_input_buffer: consumed_bytes = %lu; count = %lu; _cursor = %llu; end =
     // "

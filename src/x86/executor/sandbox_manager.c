@@ -4,12 +4,12 @@
 // SPDX-License-Identifier: MIT
 
 #include "sandbox_manager.h"
-#include "actor_manager.h"
+#include "actor.h"
 #include "code_loader.h" // loaded_test_case_entry
 #include "main.h"        // set_memory_x, set_memory_nx
 #include "shortcuts.h"
 
-sandbox_t *sandbox = NULL;    // global
+sandbox_t *sandbox = NULL; // global
 
 static void *_util_n_data_unaligned = NULL;
 static void *util_n_data = NULL;
