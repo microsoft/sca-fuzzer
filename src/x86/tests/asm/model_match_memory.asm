@@ -1,6 +1,6 @@
 .intel_syntax noprefix
 .test_case_enter:
-.section .data.0_host
+.section .data.main
 
 MOV rax, qword ptr [r14]  # main page
 ADD rax, qword ptr [r14 + 4096]  # faulty page

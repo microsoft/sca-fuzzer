@@ -1,6 +1,6 @@
 .intel_syntax noprefix
 .test_case_enter:
-.section .data.0_host
+.section .data.main
 .function_main:
 .bb_main.entry:
 JMP .bb_main.0

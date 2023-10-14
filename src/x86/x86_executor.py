@@ -221,6 +221,7 @@ class X86Executor(Executor):
 
             # section metadata
             for actor in actors:
+                assert actor.elf_section is not None
                 # print("section\n")
                 f.write((actor.id_).to_bytes(8, byteorder='little'))
                 f.write((actor.elf_section.size).to_bytes(8, byteorder='little'))
@@ -228,9 +229,9 @@ class X86Executor(Executor):
 
             # code
             with open(test_case.obj_path, 'rb') as bin_file:
-                for actor in sorted(actors, key=lambda a: (a.id_)):
-                    bin_file.seek(actor.elf_section.offset)
-                    code = bin_file.read(actor.elf_section.size)
+                for actor in actors:
+                    bin_file.seek(actor.elf_section.offset)  # type: ignore
+                    code = bin_file.read(actor.elf_section.size)  # type: ignore
                     # print(code, actor.elf_section.size)
                     f.write(code)
 

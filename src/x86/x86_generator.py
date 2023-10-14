@@ -14,7 +14,7 @@ from typing import List, Dict, Set, Optional, Tuple
 from ..isa_loader import InstructionSet
 from ..interfaces import TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
     ImmediateOperand, AgenOperand, OT, Instruction, BasicBlock, InstructionSpec, \
-    PageTableModifier, MAIN_AREA_SIZE, FAULTY_AREA_SIZE, Function, ActorType
+    PageTableModifier, MAIN_AREA_SIZE, FAULTY_AREA_SIZE, Function
 from ..generator import ConfigurableGenerator, RandomGenerator, Pass, Printer, GeneratorException
 from ..config import CONF
 from .x86_target_desc import X86TargetDesc
@@ -764,7 +764,7 @@ class X86Printer(Printer):
         ".test_case_enter:\n",
     ]
     epilogue_template = [
-        ".section .data.0_host\n",
+        ".section .data.main\n",
         ".test_case_exit:\n",
     ]
 
@@ -786,8 +786,7 @@ class X86Printer(Printer):
                 f.write(line)
 
     def print_function(self, func: Function, file):
-        owner_type = "host" if func.owner.type_ == ActorType.HOST else "guest"
-        file.write(f".section .data.{func.owner.id_}_{owner_type}\n")
+        file.write(f".section .data.{func.owner.name}\n")
         file.write(f"{func.name}:\n")
         for bb in func:
             self.print_basic_block(bb, file)

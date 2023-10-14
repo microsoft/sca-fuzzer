@@ -1,6 +1,6 @@
 .intel_syntax noprefix
 .test_case_enter:
-.section .data.0_host
+.section .data.main
 MOVQ rax, XMM0
 MOVQ rbx, XMM1
 MOVQ rdx, XMM2

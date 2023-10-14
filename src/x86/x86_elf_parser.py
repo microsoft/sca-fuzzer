@@ -45,7 +45,8 @@ class FunctionMetadata:
 def elf_parser_error(msg: str) -> NoReturn:
     logger = Logger()
     logger.error("[X86ElfParser] Error while parsing assembly\n"
-                 f"       Issue: {msg}", print_last_tb=True)
+                 f"       Issue: {msg}",
+                 print_last_tb=True)
 
 
 class X86ElfParser:
@@ -71,7 +72,7 @@ class X86ElfParser:
         for section in section_entries:
             # store actor data
             actor_name = section.name
-            actor = test_case.get_actor_by_name(actor_name)
+            actor = test_case.actors[actor_name]
             actor.elf_section = ElfSection(section.id_, section.offset, section.size)
             actor.id_ = section.id_
 
@@ -113,7 +114,11 @@ class X86ElfParser:
 
                         counter += 1
 
-        # the last instruction in .data.0_host is the test case exit, and it must map to a NOP
+        # make sure that we found sections for all actors
+        if len(address_map) != len(test_case.actors):
+            self.LOG.error("ELF parser failed to find sections for all actors", print_last_tb=True)
+
+        # the last instruction in .data.main is the test case exit, and it must map to a NOP
         address_map[0][exit_addr] = Instruction("NOP", False, "BASE-NOP", True)
 
         test_case.address_map = address_map
@@ -224,11 +229,11 @@ class X86ElfParser:
         according to the macro specification (see x86_target_desc.py).
 
         Example:
-        - Input (macro instruction): MACRO 1, .0_host.function_1
+        - Input (macro instruction): MACRO 1, .main.function_1
         - Processing:
             type: 1 (actor switch)
-            arg 1: 0_host -> 0 (offset of section 0_host)
-            arg 2: function_1 -> 12 (offset of function function_1 within section 0_host)
+            arg 1: main -> 0 (offset of section main)
+            arg 2: function_1 -> 12 (offset of function function_1 within section main)
             arg 3: none
             arg 4: none
             compressed macro argument: 0 + (12 << 16) + (0 << 32) + (0 << 48) = 786432

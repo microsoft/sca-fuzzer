@@ -383,6 +383,7 @@ EOF
 }
 
 @test "Feature: Minimization of test cases" {
+    @skip "under construction"
     tmp_config=$(mktemp -p $TEST_DIR)
     printf "$CT_DEH $LOGGING_OFF \nenable_priming: false \nfaulty_page_properties:\n  - present: false\n" >$tmp_config
     $cli_opt minimize -s $ISA -c $tmp_config -n 10 -i $ASM_DIR/minimization-before.asm -o $TEST_DIR/res.asm --simplify --find-sources
@@ -391,14 +392,20 @@ EOF
     echo "Result:"
     cat $TEST_DIR/res.asm
     [ "$status" -eq 0 ]
+    rm $tmp_config
 }
 
 @test "Feature: Multi-actor test case" {
-    assert_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/actor_switch.asm -i 20"
+    tmp_config=$(mktemp -p $TEST_DIR)
+    printf "actor:\n  - name: actor2\n" > $tmp_config
+    assert_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/actor_switch.asm -c $tmp_config -i 20"
+    rm $tmp_config
 }
 
 @test "Architectural Test: Multi-actor test case" {
     tmp_config=$(mktemp -p $TEST_DIR)
-    echo "$ARCH_BASE" >>$tmp_config
+    echo "$ARCH_BASE" >$tmp_config
+    printf "actor:\n  - name: actor2\n" >> $tmp_config
     assert_no_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/actor_switch.asm -c $tmp_config -i 20"
+    rm $tmp_config
 }

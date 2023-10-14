@@ -1,6 +1,6 @@
 .intel_syntax noprefix
 .test_case_enter:
-.section .data.0_host
+.section .data.main
 AND rax, 0b111111111111  # keep the mem. access within the sandbox
 #MOV rax, 46
 MFENCE

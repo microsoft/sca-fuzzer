@@ -141,7 +141,7 @@ ActorID = int
 ActorName = str
 
 
-class ActorType(Enum):
+class ActorMode(Enum):
     HOST = 0
     GUEST = 1
 
@@ -153,13 +153,15 @@ class ElfSection(NamedTuple):
 
 
 class Actor:
-    type_: ActorType
+    name: ActorName
+    mode: ActorMode
     id_: ActorID
-    elf_section: ElfSection
+    elf_section: Optional[ElfSection] = None
 
-    def __init__(self, type_: ActorType, id_: ActorID) -> None:
-        self.type_ = type_
+    def __init__(self, mode: ActorMode, id_: ActorID, name: ActorName) -> None:
+        self.mode = mode
         self.id_ = id_
+        self.name = name
 
 
 # ==================================================================================================
@@ -696,7 +698,7 @@ class TestCase:
 
     def __init__(self, seed: int):
         self.seed = seed
-        self.actors = {"0_host": Actor(ActorType.HOST, 0)}
+        self.actors = {"main": Actor(ActorMode.HOST, 0, "main")}
         self.functions = []
         self.address_map = {}
         self.symbol_table = []
@@ -712,11 +714,6 @@ class TestCase:
             if func.name == name:
                 return func
         raise Exception(f"ERROR: Function {name} not found")
-
-    def get_actor_by_name(self, name: ActorName) -> Actor:
-        if name in self.actors:
-            return self.actors[name]
-        raise Exception(f"ERROR: Actor {name} not found")
 
     def save(self, path: str) -> None:
         shutil.copy2(self.asm_path, path)
@@ -890,6 +887,13 @@ class Generator(ABC):
 
     @abstractmethod
     def create_pte(self, test_case: TestCase) -> None:
+        pass
+
+    @abstractmethod
+    def create_actors(self, test_case: TestCase) -> None:
+        """
+        Create actors for the test case based on the description in CONF._actors
+        """
         pass
 
 

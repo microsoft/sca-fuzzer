@@ -12,8 +12,9 @@ from typing import List, Dict, Tuple
 from collections import OrderedDict
 
 from .interfaces import AsmParser, OT, Instruction, InstructionSpec, TestCase, OperandSpec, \
-    LabelOperand, Actor, ActorType, Function, BasicBlock, Generator
+    LabelOperand, Function, BasicBlock, Generator
 from .util import Logger
+from .config import CONF
 
 ControlFlowMap = Dict[str, Dict[str, List[str]]]
 ActorMap = Dict[str, str]
@@ -50,6 +51,9 @@ class AsmParserGeneric(AsmParser):
         test_case = TestCase(0)
         test_case.asm_path = asm_file
 
+        # set actors based on the config
+        self.generator.create_actors(test_case)
+
         # load the text and clean it up
         self.line_ids = {}
         lines = self._get_clean_lines_from_file(asm_file)
@@ -57,15 +61,12 @@ class AsmParserGeneric(AsmParser):
         # map lines to functions and basic blocks
         test_case_map, function_owners = self._get_tc_maps(lines)
 
-        # create actors
-        actors_by_label = self._create_actors(function_owners, test_case)
-
         # parse lines and create their object representations
         line_id = 1
         for func_name, bbs in test_case_map.items():
             # print(func_name)
             line_id += 1
-            actor = actors_by_label[function_owners[func_name]]
+            actor = test_case.actors[function_owners[func_name]]
             func = Function(func_name, actor)
             test_case.functions.append(func)
 
@@ -117,7 +118,7 @@ class AsmParserGeneric(AsmParser):
         if not test_case.functions:
             instr = Instruction("NOP", False, "BASE-NOP", False)
             bb = BasicBlock(".bb_0")
-            main = Function(".function_0", Actor(ActorType.HOST, 0))
+            main = Function(".function_0", test_case.actors["main"])
             bb.insert_after(bb.get_last(), instr)
             main.append(bb)
             bb.successors.append(main.exit)
@@ -166,33 +167,6 @@ class AsmParserGeneric(AsmParser):
             ]
             instruction_map["MACRO"] = [macro_spec]
         return instruction_map
-
-    def _create_actors(self, function_owners, test_case) -> Dict[str, Actor]:
-        actors_by_label: Dict[str, Actor] = {}
-        for actor_label in sorted(set(function_owners.values())):
-            words = actor_label.split(".")
-            assert len(words) == 3, f"Invalid actor label: {actor_label}"
-            name = words[2]
-            subwords = name.split("_")
-            assert len(subwords) == 2, f"Invalid actor label: {actor_label}"
-
-            if subwords[1] == "host":
-                type_ = ActorType.HOST
-            elif subwords[1] == "guest":
-                type_ = ActorType.GUEST
-            else:
-                parser_assert(False, 0, f"Invalid actor type: {subwords[1]}")
-
-            if name == "0_host":
-                actor = test_case.actors["0_host"]
-            else:
-                id_ = 0  # will be assigned later by the ELF parser
-                actor = Actor(type_, id_)  # type: ignore
-
-            assert name not in test_case.actors or test_case.actors[name] == actor, "Duplicate actr"
-            test_case.actors[name] = actor
-            actors_by_label[actor_label] = actor
-        return actors_by_label
 
     def _get_clean_lines_from_file(self, input_file: str) -> List[str]:
         re_redundant_spaces = re.compile(r"(?<![a-zA-Z0-9]) +")
@@ -249,7 +223,11 @@ class AsmParserGeneric(AsmParser):
                 assert len(words) == 2
                 if words[1] == "exit":
                     continue  # exit section does not represent any actor
-                current_actor = words[1]
+                subwords = words[1].split(".")
+                parser_assert(len(subwords) == 3, line_num, f"Invalid section label: {line}")
+                current_actor = subwords[2]
+                parser_assert(current_actor in CONF._actors, line_num,
+                              f"Actor {current_actor} was not defined in the config file")
                 current_function = ""
                 current_bb = ""
                 continue

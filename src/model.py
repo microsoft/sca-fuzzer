@@ -548,8 +548,9 @@ class UnicornSeq(UnicornModel):
         self.test_case = test_case
         self.macro_interpreter.load_test_case(test_case)
 
-        main_actor = test_case.actors["0_host"]
+        main_actor = test_case.actors["main"]
         self.current_actor = main_actor
+        assert main_actor.elf_section, f"Actor {main_actor.name} has no ELF section"
         actors = sorted(test_case.actors.values(), key=lambda a: (a.id_))
         self.actors_sorted = actors
 
@@ -557,6 +558,7 @@ class UnicornSeq(UnicornModel):
         sections = []
         with open(test_case.obj_path, 'rb') as bin_file:
             for actor in actors:
+                assert actor.elf_section, f"Actor {actor.name} has no ELF section"
                 bin_file.seek(actor.elf_section.offset)
                 sections.append(bin_file.read(actor.elf_section.size))
 
