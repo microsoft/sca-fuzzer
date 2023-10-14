@@ -25,8 +25,6 @@ struct idt_data {
 
 extern char *fault_handler;
 extern uint32_t handled_faults;
-extern pteval_t faulty_pte_mask_set;
-extern pteval_t faulty_pte_mask_clear;
 extern uint64_t pre_bubble_rsp;
 
 int set_bubble_idt(void);

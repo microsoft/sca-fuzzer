@@ -680,11 +680,6 @@ class Function:
         self._all_bb.extend(bb_list)
 
 
-class PageTableModifier(NamedTuple):
-    mask_set: int = 0x0
-    mask_clear: int = 0xffffffffffffffff
-
-
 class TestCase:
     asm_path: str = ''
     obj_path: str = ''
@@ -692,7 +687,6 @@ class TestCase:
     actors: Dict[ActorName, Actor]
     functions: List[Function]
     address_map: Dict[ActorID, Dict[int, Instruction]]
-    faulty_pte: PageTableModifier
     seed: int
     exit: BasicBlock
     symbol_table: List[Symbol]
@@ -714,6 +708,12 @@ class TestCase:
             if func.name == name:
                 return func
         raise Exception(f"ERROR: Function {name} not found")
+
+    def get_actor_by_id(self, aid: ActorID) -> Actor:
+        for actor in self.actors.values():
+            if actor.id_ == aid:
+                return actor
+        raise Exception(f"ERROR: Actor {aid} not found")
 
     def save(self, path: str) -> None:
         shutil.copy2(self.asm_path, path)

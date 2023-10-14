@@ -67,11 +67,11 @@ class X86UnicornSeq(UnicornSeq):
 
     def load_test_case(self, test_case: TestCase) -> None:
         # check which permissions have to be set on the pages
-        self.rw_protect = bool((0xffffffffffffffff ^ test_case.faulty_pte.mask_clear)
-                               & self.rw_fault_mask)
-        self.rw_protect |= bool(test_case.faulty_pte.mask_set & self.rw_fault_mask_unset)
-        self.write_protect = bool((0xffffffffffffffff ^ test_case.faulty_pte.mask_clear)
-                                  & self.write_fault_mask)
+        main_actor_pte: int = test_case.actors["main"].data_properties
+        inverse_pte: int = 0xffffffffffffffff ^ main_actor_pte
+        self.rw_protect = bool(self.rw_fault_mask_unset & main_actor_pte)
+        self.rw_protect |= bool(self.rw_fault_mask & inverse_pte)
+        self.write_protect = bool(self.write_fault_mask & inverse_pte)
         return super().load_test_case(test_case)
 
     def _load_input(self, input_: Input):

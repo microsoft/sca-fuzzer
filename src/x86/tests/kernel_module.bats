@@ -307,28 +307,3 @@ function set_default_config() {
     rm "$tmpinput"
     rm "$tmpresult"
 }
-
-@test "x86 executor: Detection of mispredictions" {
-    if cat /proc/cpuinfo | grep "Intel" -m1 >/dev/null; then
-        echo "P+P" >/sys/x86_executor/measurement_mode
-        echo "0 18446744073709551583" >/sys/x86_executor/faulty_pte_mask
-
-        tmpasm=$(mktemp /tmp/revizor-test.XXXXXX.asm)
-        tmpbin=$(mktemp /tmp/revizor-test.XXXXXX.o)
-        tmpinput=$(mktemp /tmp/revizor-test.XXXXXX.bin)
-        echo "MOVQ %r14, %rax; add \$4096, %rax; movq (%rax), %rax" >$tmpasm
-        load_test_case false $tmpasm $tmpbin
-        load_input false 1 $tmpinput
-
-        run bash -c "cat /sys/x86_executor/trace | awk -F, '/,/{if (\$2 > \$3) {print \"Detected\"} else {print \"Not detected\"}}'"
-        echo "Output: $output"
-        [[ "$output" == *"Detected"* ]]
-
-        rm "$tmpasm"
-    elif grep "AMD" /proc/cpuinfo -m1; then
-        # TBD
-        skip
-    else
-        skip
-    fi
-}

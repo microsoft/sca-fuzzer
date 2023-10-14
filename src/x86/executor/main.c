@@ -149,13 +149,6 @@ static struct kobj_attribute enable_mpx_attribute =
     __ATTR(enable_mpx, 0666, NULL, enable_mpx_store);
 #endif
 
-/// Bitmask that control which pte bits to flip
-//
-static ssize_t faulty_pte_mask_store(struct kobject *kobj, struct kobj_attribute *attr,
-                                     const char *buf, size_t count);
-static struct kobj_attribute pte_mask_attribute =
-    __ATTR(faulty_pte_mask, 0666, NULL, faulty_pte_mask_store);
-
 /// Measurement template selector
 ///
 static ssize_t measurement_mode_store(struct kobject *kobj, struct kobj_attribute *attr,
@@ -195,7 +188,6 @@ static struct attribute *sysfs_attributes[] = {
     &measurement_mode_attribute.attr,
     &enable_quick_and_dirty_mode_attribute.attr,
     &enable_dbg_gpr_mode_attribute.attr,
-    &pte_mask_attribute.attr,
     &dbg_dump_attribute.attr,
 #if VENDOR_ID == 1 // Intel
     &enable_mpx_attribute.attr,
@@ -241,13 +233,6 @@ static ssize_t trace_show(struct kobject *kobj, struct kobj_attribute *attr, cha
         count += retval;
     }
     count += sprintf(&buf[count], "done\n");
-    return count;
-}
-
-static ssize_t faulty_pte_mask_store(struct kobject *kobj, struct kobj_attribute *attr,
-                                     const char *buf, size_t count)
-{
-    sscanf(buf, "%lu %lu", &faulty_pte_mask_set, &faulty_pte_mask_clear);
     return count;
 }
 
@@ -447,8 +432,6 @@ static ssize_t dbg_dump_show(struct kobject *kobj, struct kobj_attribute *attr, 
     len += sprintf(&buf[len], "sandbox: %llx\n", (uint64_t)sandbox);
     len += sprintf(&buf[len], "fault_handler: %llx\n", (uint64_t)fault_handler);
     len += sprintf(&buf[len], "handled_faults: %u\n", handled_faults);
-    len += sprintf(&buf[len], "faulty_pte_mask_set: %lu\n", faulty_pte_mask_set);
-    len += sprintf(&buf[len], "faulty_pte_mask_clear: %lu\n", faulty_pte_mask_clear);
     len += sprintf(&buf[len], "quick_and_dirty_mode: %d\n", quick_and_dirty_mode);
     len += sprintf(&buf[len], "uarch_reset_rounds: %ld\n", uarch_reset_rounds);
     len += sprintf(&buf[len], "ssbp_patch_control: %llu\n", ssbp_patch_control);
