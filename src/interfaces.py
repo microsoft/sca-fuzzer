@@ -156,6 +156,8 @@ class Actor:
     mode: ActorMode
     id_: ActorID
     elf_section: Optional[ElfSection] = None
+    data_properties: int = 0
+    code_properties: int = 0  # unused so far
 
     def __init__(self, mode: ActorMode, id_: ActorID, name: ActorName) -> None:
         self.mode = mode
@@ -275,11 +277,6 @@ class Symbol(NamedTuple):
     offset: SymbolOffset
     type_: SymbolType
     arg: MacroArgument
-
-
-class PageTableModifier(NamedTuple):
-    mask_set: int = 0x0
-    mask_clear: int = 0xffffffffffffffff
 
 
 class Operand(ABC):
@@ -683,6 +680,11 @@ class Function:
         self._all_bb.extend(bb_list)
 
 
+class PageTableModifier(NamedTuple):
+    mask_set: int = 0x0
+    mask_clear: int = 0xffffffffffffffff
+
+
 class TestCase:
     asm_path: str = ''
     obj_path: str = ''
@@ -701,7 +703,6 @@ class TestCase:
         self.functions = []
         self.address_map = {}
         self.symbol_table = []
-        self.faulty_pte = PageTableModifier()
         self.exit = BasicBlock(".test_case_exit")
 
     def __iter__(self):
@@ -882,10 +883,6 @@ class Generator(ABC):
         """
         Extract ELF data from an object file and populate the test case
         """
-        pass
-
-    @abstractmethod
-    def create_pte(self, test_case: TestCase) -> None:
         pass
 
     @abstractmethod

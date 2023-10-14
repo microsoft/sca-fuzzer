@@ -97,9 +97,6 @@ class FuzzerGeneric(Fuzzer):
             self.input_gen.n_actors = len(test_case.actors)
             STAT.test_cases += 1
 
-            # Generate the execution environment
-            self.generator.create_pte(test_case)
-
             # Prepare inputs
             inputs: List[Input]
             if self.input_paths:

@@ -118,18 +118,18 @@ class X86TargetDesc(TargetDesc):
 
     pte_bits = {
         # NAME: (position, default value)
-        "PRESENT": (0, True),  # is present
-        "RW": (1, True),  # writeable
-        "USER": (2, False),  # userspace addressable
-        "PWT": (3, False),  # page write through
-        "PCD": (4, False),  # page cache disabled
-        "ACCESSED": (5, True),  # was accessed
-        "DIRTY": (6, True),  # was written to
-        "PKEY_BIT0": (59, False),  # Protection Keys, bit 1/4
-        "PKEY_BIT1": (60, False),  # Protection Keys, bit 2/4
-        "PKEY_BIT2": (61, False),  # Protection Keys, bit 3/4
-        "PKEY_BIT3": (62, False),  # Protection Keys, bit 4/4
-        "NX": (63, False),  # No execute: only valid after cpuid check
+        "present": (0, True),  # is present
+        "writable": (1, True),  # writeable
+        "user": (2, False),  # userspace addressable
+        "write-through": (3, False),  # page write through
+        "cache-disable": (4, False),  # page cache disabled
+        "accessed": (5, True),  # was accessed
+        "dirty": (6, True),  # was written to
+        "pkey_bit0": (59, False),  # Protection Keys, bit 1/4
+        "pkey_bit1": (60, False),  # Protection Keys, bit 2/4
+        "pkey_bit2": (61, False),  # Protection Keys, bit 3/4
+        "pkey_bit3": (62, False),  # Protection Keys, bit 4/4
+        "non_executable": (63, False),  # No execute: only valid after cpuid check
     }
     macro_specs = {
         "function": MacroSpec(0, "function", ("", "", "", "")),
