@@ -9,7 +9,7 @@ import math
 import re
 import random
 from copy import deepcopy
-from typing import List, Dict, Set, Optional, Tuple
+from typing import List, Dict, Set, Optional
 
 from ..isa_loader import InstructionSet
 from ..interfaces import TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
@@ -31,6 +31,7 @@ class FaultFilter:
 
 class X86Generator(ConfigurableGenerator, abc.ABC):
     faults: FaultFilter
+    target_desc: X86TargetDesc
 
     def __init__(self, instruction_set: InstructionSet, seed: int):
         super(X86Generator, self).__init__(instruction_set, seed)
@@ -49,46 +50,41 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
         self.passes.append(X86PatchOpcodesPass())
         self.printer = X86Printer(self.target_desc)
 
-        # select PTE bits that could be set
-        self.pte_bit_choices: List[Tuple[int, bool]] = []
-        if not CONF._faulty_page_properties_dict['accessed']:
-            self.pte_bit_choices.append(self.target_desc.pte_bits["ACCESSED"])
-        if not CONF._faulty_page_properties_dict['dirty']:
-            self.pte_bit_choices.append(self.target_desc.pte_bits["DIRTY"])
-        if not CONF._faulty_page_properties_dict['present']:
-            self.pte_bit_choices.append(self.target_desc.pte_bits["PRESENT"])
-        if not CONF._faulty_page_properties_dict['writable']:
-            self.pte_bit_choices.append(self.target_desc.pte_bits["RW"])
-        if not CONF._faulty_page_properties_dict['executable']:
-            self.pte_bit_choices.append(self.target_desc.pte_bits["NX"])
-        if CONF._faulty_page_properties_dict['user']:
-            self.pte_bit_choices.append(self.target_desc.pte_bits["USER"])
-        if CONF._faulty_page_properties_dict['write-through']:
-            self.pte_bit_choices.append(self.target_desc.pte_bits["PWT"])
-        if CONF._faulty_page_properties_dict['cache-disable']:
-            self.pte_bit_choices.append(self.target_desc.pte_bits["PCD"])
+    def create_actors(self, test_case: TestCase):
+        super().create_actors(test_case)
+
+        # create a PTE mask to be assigned to the faulty area of actors' sandboxes
+        pte_mask = 0
+        for name in self.target_desc.pte_bits:
+            bit_offset, value = self.target_desc.pte_bits[name]
+            if name in CONF._faulty_page_properties_dict:
+                value = CONF._faulty_page_properties_dict[name]
+            bit_value = 1 if value else 0
+            pte_mask |= bit_value << bit_offset
+
+        # set data properties
+        for actor in test_case.actors.values():
+            actor.data_properties = pte_mask
+
+        # temprorary
+        mask_set: int = 0x0
+        mask_clear: int = 0xffffffffffffffff
+        for name in self.target_desc.pte_bits:
+            bit_offset, value = self.target_desc.pte_bits[name]
+            new_value = value
+            if name in CONF._faulty_page_properties_dict:
+                new_value = CONF._faulty_page_properties_dict[name]
+            if value and not new_value:
+                mask_clear &= ~(1 << bit_offset)
+            elif not value and new_value:
+                mask_set |= 1 << bit_offset
+        test_case.faulty_pte = PageTableModifier(mask_set, mask_clear)
 
     def get_return_instruction(self) -> Instruction:
         return Instruction("RET", False, "", True)
 
     def get_unconditional_jump_instruction(self) -> Instruction:
         return Instruction("JMP", False, "UNCOND_BR", True)
-
-    def create_pte(self, test_case: TestCase):
-        """
-        Pick a random PTE bit (among the permitted ones) and set/reset it
-        """
-        if not self.pte_bit_choices:  # no choices, so PTE should stay intact
-            return
-
-        pte_bit = random.choice(self.pte_bit_choices)
-        if pte_bit[1]:
-            mask_clear = 0xffffffffffffffff ^ (1 << pte_bit[0])
-            mask_set = 0x0
-        else:
-            mask_clear = 0xffffffffffffffff
-            mask_set = 0x0 | (1 << pte_bit[0])
-        test_case.faulty_pte = PageTableModifier(mask_set, mask_clear)
 
     def get_elf_data(self, test_case: TestCase, obj_file: str) -> None:
         self.elf_parser.parse(test_case, obj_file)

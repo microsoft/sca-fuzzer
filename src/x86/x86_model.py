@@ -53,11 +53,11 @@ class X86UnicornSeq(UnicornSeq):
         self.underflow_pad_values = bytes(UNDERFLOW_PAD_SIZE)
         self.overflow_pad_values = bytes(OVERFLOW_PAD_SIZE)
 
-        self.rw_fault_mask = (1 << X86TargetDesc.pte_bits["PRESENT"][0]) + \
-            (1 << X86TargetDesc.pte_bits["ACCESSED"][0])
-        self.rw_fault_mask_unset = (1 << X86TargetDesc.pte_bits["USER"][0])
-        self.write_fault_mask = (1 << X86TargetDesc.pte_bits["RW"][0]) + \
-            (1 << X86TargetDesc.pte_bits["DIRTY"][0])
+        self.rw_fault_mask = (1 << X86TargetDesc.pte_bits["present"][0]) + \
+            (1 << X86TargetDesc.pte_bits["accessed"][0])
+        self.rw_fault_mask_unset = (1 << X86TargetDesc.pte_bits["user"][0])
+        self.write_fault_mask = (1 << X86TargetDesc.pte_bits["writable"][0]) + \
+            (1 << X86TargetDesc.pte_bits["dirty"][0])
 
         if CONF.contract_observation_clause == 'ctr' or CONF.contract_observation_clause == 'arch':
             self.initial_taints = [

@@ -182,7 +182,7 @@ faulty_page_properties: Dict[str, bool] = {
     "cache-disable": False,
     "accessed": True,
     "dirty": True,
-    "executable": True
+    "non_executable": True
 }
 
 _generator_fault_to_fault_name = {
@@ -206,7 +206,7 @@ _actor_default = {
     #     'cache-disable': False,
     #     'accessed': True,
     #     'dirty': True,
-    #     'executable': True
+    #     'non_executable': True
     # },
     # 'code_properties': {
     #     'present': True,
@@ -216,6 +216,6 @@ _actor_default = {
     #     'cache-disable': False,
     #     'accessed': True,
     #     'dirty': False,
-    #     'executable': True
+    #     'non_executable': True
     # }
 }

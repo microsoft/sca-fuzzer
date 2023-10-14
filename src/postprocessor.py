@@ -55,7 +55,6 @@ class MinimizerViolation(Minimizer):
         # Parse the test case and inputs
         test_case: TestCase = self.fuzzer.asm_parser.parse_file(test_case_asm)
         inputs: List[Input] = self.fuzzer.input_gen.generate(num_inputs)
-        self.fuzzer.generator.create_pte(test_case)
 
         # Load, boost inputs, and trace
 
@@ -384,5 +383,4 @@ class MinimizerViolation(Minimizer):
                 f.write(line)
             f.truncate()  # is it necessary??
         tc = self.fuzzer.asm_parser.parse_file(path)
-        self.fuzzer.generator.create_pte(tc)
         return tc
