@@ -13,7 +13,7 @@ import src.x86.x86_model as x86_model
 import src.model as core_model
 
 from src.interfaces import Instruction, RegisterOperand, MemoryOperand, InputTaint, LabelOperand, \
-    FlagsOperand, TestCase, Input, CTrace, PageTableModifier
+    FlagsOperand, TestCase, Input, CTrace
 from src.isa_loader import InstructionSet
 from src.x86.x86_generator import X86RandomGenerator
 from src.x86.x86_asm_parser import X86AsmParser
@@ -154,9 +154,9 @@ class X86ModelTest(unittest.TestCase):
         os.unlink(asm_file.name)
         return tc
 
-    def get_traces(self, model, asm_str, inputs, nesting=1, pte_mask: int = 0xffffffffffffffff):
+    def get_traces(self, model, asm_str, inputs, nesting=1, pte_mask: int = 0):
         tc = self.load_tc(asm_str)
-        tc.faulty_pte = PageTableModifier(0, pte_mask)
+        tc.actors["main"].data_properties = pte_mask
         model.load_test_case(tc)
         ctraces: List[CTrace] = model.trace_test_case(inputs, nesting)
         return ctraces

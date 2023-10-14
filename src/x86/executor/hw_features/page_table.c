@@ -7,13 +7,17 @@
 #include <linux/kernel.h>
 #include <linux/mm.h>
 
+#include "actor_manager.h"
 #include "sandbox_manager.h"
 #include "shortcuts.h"
 
 #include "hw_features/page_table.h"
 
-pteval_t faulty_pte_mask_set = 0;   // global
-pteval_t faulty_pte_mask_clear = 0; // global
+#define MODIFIABLE_PTE_BITS                                                                        \
+    (_PAGE_PRESENT | _PAGE_RW | _PAGE_USER | _PAGE_PWT | _PAGE_PCD | _PAGE_ACCESSED |              \
+     _PAGE_DIRTY | _PAGE_PKEY_BIT0 | _PAGE_PKEY_BIT1 | _PAGE_PKEY_BIT2 | _PAGE_PKEY_BIT3 |         \
+     _PAGE_NX)
+#define NO_CLEAR_MASK (0xffffffffffffffff & ~MODIFIABLE_PTE_BITS)
 
 static unsigned long faulty_page_addr = 0;
 static pte_t *faulty_page_ptep = NULL;
@@ -68,9 +72,12 @@ void faulty_page_pte_store(void) { orig_pte = faulty_page_ptep->pte; }
 
 void faulty_page_pte_set(void)
 {
+    uint64_t pte_mask = actors[0].data_permissions;
+    uint64_t mask_set = pte_mask & MODIFIABLE_PTE_BITS;
+    uint64_t mask_clear = pte_mask | ~MODIFIABLE_PTE_BITS;
     pte_t new_pte = (pte_t){0};
-    if ((faulty_pte_mask_set != 0) || (faulty_pte_mask_clear != 0xffffffffffffffff)) {
-        new_pte.pte = ((faulty_page_ptep->pte | faulty_pte_mask_set) & faulty_pte_mask_clear);
+    if ((mask_set != 0) || (mask_clear != NO_CLEAR_MASK)) {
+        new_pte.pte = ((orig_pte | mask_set) & mask_clear);
         set_pte_at(current->mm, faulty_page_addr, faulty_page_ptep, new_pte);
         // When testing for #PF flushing the faulty page causes a 'soft
         // lookup' kernel error on certain CPUs.
@@ -78,12 +85,18 @@ void faulty_page_pte_set(void)
         // : "memory");
         _native_page_invalidate();
     }
+    // PRINT_ERR("org_pte: %lx\n", orig_pte);
+    // PRINT_ERR("pte_mask: %llx, mask_set: %llx, mask_clear: %llx, new_pte: %llx\n", pte_mask,
+            //   mask_set, mask_clear, new_pte.pte);
 }
 
 void faulty_page_pte_restore(void)
 {
+    uint64_t pte_mask = actors[0].data_permissions;
+    uint64_t mask_set = pte_mask & MODIFIABLE_PTE_BITS;
+    uint64_t mask_clear = ~pte_mask | ~MODIFIABLE_PTE_BITS;
     pte_t new_pte = (pte_t){0};
-    if ((faulty_pte_mask_set != 0) || (faulty_pte_mask_clear != 0xffffffffffffffff)) {
+    if ((mask_set != 0) || (mask_clear != NO_CLEAR_MASK)) {
         new_pte.pte = orig_pte;
         set_pte_at(current->mm, faulty_page_addr, faulty_page_ptep, new_pte);
         _native_page_invalidate();
@@ -93,9 +106,6 @@ void faulty_page_pte_restore(void)
 // =================================================================================================
 int init_page_table_manager(void)
 {
-    faulty_pte_mask_set = 0x0;
-    faulty_pte_mask_clear = 0xffffffffffffffff;
-
     orig_pte = 0;
     faulty_page_ptep = NULL;
     return 0;

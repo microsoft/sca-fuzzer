@@ -25,6 +25,7 @@ TRACE_NUM_ELEMENTS = 6
 class X86Executor(Executor):
     previous_num_inputs: int = 0
     feedback: List[int]
+    curr_test_case: TestCase
 
     def __init__(self):
         super().__init__()
@@ -75,9 +76,8 @@ class X86Executor(Executor):
         pass
 
     def load_test_case(self, test_case: TestCase):
-        masks = f"{test_case.faulty_pte.mask_set} {test_case.faulty_pte.mask_clear}"
-        write_to_sysfs_file(masks, "/sys/x86_executor/faulty_pte_mask")
         self.__write_test_case(test_case)
+        self.curr_test_case = test_case
 
     def trace_test_case(self,
                         inputs: List[Input],
@@ -245,9 +245,10 @@ class X86Executor(Executor):
 
             # metadata
             fragment_size = (inputs[0].data_size * 8).to_bytes(8, byteorder='little')
-            for _ in range(len(inputs[0])):
+            for id_ in range(len(inputs[0])):
+                pte = self.curr_test_case.get_actor_by_id(id_).data_properties
                 f.write(fragment_size)  # size
-                f.write((0).to_bytes(8, byteorder='little'))  # permissions; not implemented
+                f.write((pte).to_bytes(8, byteorder='little'))  # permissions
                 f.write((0).to_bytes(8, byteorder='little'))  # reserved
 
             # data

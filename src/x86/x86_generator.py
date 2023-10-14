@@ -14,7 +14,7 @@ from typing import List, Dict, Set, Optional
 from ..isa_loader import InstructionSet
 from ..interfaces import TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
     ImmediateOperand, AgenOperand, OT, Instruction, BasicBlock, InstructionSpec, \
-    PageTableModifier, MAIN_AREA_SIZE, FAULTY_AREA_SIZE, Function
+    MAIN_AREA_SIZE, FAULTY_AREA_SIZE, Function
 from ..generator import ConfigurableGenerator, RandomGenerator, Pass, Printer, GeneratorException
 from ..config import CONF
 from .x86_target_desc import X86TargetDesc
@@ -65,20 +65,6 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
         # set data properties
         for actor in test_case.actors.values():
             actor.data_properties = pte_mask
-
-        # temprorary
-        mask_set: int = 0x0
-        mask_clear: int = 0xffffffffffffffff
-        for name in self.target_desc.pte_bits:
-            bit_offset, value = self.target_desc.pte_bits[name]
-            new_value = value
-            if name in CONF._faulty_page_properties_dict:
-                new_value = CONF._faulty_page_properties_dict[name]
-            if value and not new_value:
-                mask_clear &= ~(1 << bit_offset)
-            elif not value and new_value:
-                mask_set |= 1 << bit_offset
-        test_case.faulty_pte = PageTableModifier(mask_set, mask_clear)
 
     def get_return_instruction(self) -> Instruction:
         return Instruction("RET", False, "", True)
