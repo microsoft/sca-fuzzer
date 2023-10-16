@@ -6,8 +6,10 @@
 #include "sandbox_manager.h"
 #include "actor.h"
 #include "code_loader.h" // loaded_test_case_entry
-#include "main.h"        // set_memory_x, set_memory_nx
+#include "hw_features/guest_page_tables.h"
+#include "main.h" // set_memory_x, set_memory_nx
 #include "shortcuts.h"
+#include "test_case_parser.h"
 
 sandbox_t *sandbox = NULL; // global
 
@@ -63,27 +65,36 @@ static int allocate_code(size_t n_actors)
 
 int allocate_sandbox(void)
 {
-    if (old_n_actors >= n_actors)
-        return 0;
-
     int err = 0;
-    err = allocate_util_and_data(n_actors);
-    CHECK_ERR("allocate_sandbox");
 
-    err = allocate_code(n_actors);
-    CHECK_ERR("allocate_sandbox");
+    // Allocate sandbox in host memory
+    if (old_n_actors < n_actors) {
+        err = allocate_util_and_data(n_actors);
+        CHECK_ERR("allocate_util_and_data");
 
-    // initialize pointers
-    sandbox = CHECKED_MALLOC(sizeof(sandbox_t));
-    sandbox->data = (actor_data_t *)((unsigned long)util_n_data + sizeof(util_t));
-    sandbox->code = (actor_code_t *)code;
-    sandbox->util = (util_t *)util_n_data;
+        err = allocate_code(n_actors);
+        CHECK_ERR("allocate_code");
 
-    // point to the main section of the first actor
-    loaded_test_case_entry = code;
+        // initialize pointers
+        sandbox = CHECKED_MALLOC(sizeof(sandbox_t));
+        sandbox->data = (actor_data_t *)((unsigned long)util_n_data + sizeof(util_t));
+        sandbox->code = (actor_code_t *)code;
+        sandbox->util = (util_t *)util_n_data;
 
+        // point to the main section of the first actor
+        loaded_test_case_entry = code;
+    }
+
+    // when necessary, map the sandbox into guest memory
+    if (n_actors > 1) {
+        if (test_case->features.includes_vm_actors) {
+            err = map_sandbox_to_guest_memory();
+            CHECK_ERR("map_sandbox_to_guest_memory");
+        }
+    }
     old_n_actors = n_actors;
-    return 0;
+
+    return err;
 }
 
 /// @brief Returns the number of pages allocated for the sandbox, including util area, code and data
@@ -119,7 +130,6 @@ int init_sandbox_manager(void)
            "init_sandbox");
 
     ASSERT(&data->main_area[0] - (uint8_t *)util == UTIL_REL_TO_MAIN, "init_sandbox");
-
     ASSERT(&data->main_area[0] - &data->macro_stack[64] == MACRO_STACK_TOP_OFFSET, "init_sandbox");
     ASSERT(&data->faulty_area[0] - &data->main_area[0] == FAULTY_AREA_OFFSET, "init_sandbox");
     ASSERT(&data->reg_init_area[0] - &data->main_area[0] == REG_INIT_OFFSET, "init_sandbox");
@@ -139,4 +149,5 @@ void free_sandbox_manager(void)
         SAFE_VFREE(code);
         loaded_test_case_entry = NULL;
     }
+    free_guest_page_tables();
 }

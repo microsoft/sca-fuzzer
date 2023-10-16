@@ -25,7 +25,8 @@
 #include "test_case_parser.h"
 
 #include "hw_features/fault_handler.h"
-#include "hw_features/page_table.h"
+#include "hw_features/host_page_tables.h"
+#include "hw_features/page_tables_common.h"
 #include "hw_features/perf_counters.h"
 
 // Version-dependent includes
@@ -495,7 +496,17 @@ static int __init executor_init(void)
     // Check CPU vendor
     struct cpuinfo_x86 *c = &cpu_data(0);
     if (c->x86_vendor != X86_VENDOR_INTEL && c->x86_vendor != X86_VENDOR_AMD) {
-        printk(KERN_ERR "x86_executor: This CPU vendor is not supported\n");
+        printk(KERN_ERR "ERROR: x86_executor:  This CPU vendor is not supported\n");
+        return -1;
+    }
+
+    // Check memory configuration
+    unsigned int phys_addr_width = cpuid_eax(0x80000008) & 0xFF;
+    if (phys_addr_width != PHYSICAL_WIDTH) {
+        printk(
+            KERN_ERR
+            "x86_executor: ERROR: The width of physical addresses is %d instead of expected %d\n",
+            phys_addr_width, PHYSICAL_WIDTH);
         return -1;
     }
 

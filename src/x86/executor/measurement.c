@@ -17,7 +17,7 @@
 #include "test_case_parser.h"
 
 #include "hw_features/fault_handler.h"
-#include "hw_features/page_table.h"
+#include "hw_features/host_page_tables.h"
 #include "hw_features/perf_counters.h"
 
 measurement_t *measurements = NULL; // global

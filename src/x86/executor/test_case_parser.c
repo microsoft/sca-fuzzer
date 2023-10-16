@@ -111,6 +111,8 @@ static int __batch_tc_parsing_start(const char *buf)
     test_case->symbol_table = _allocated_symbol_table;
     test_case->metadata = _allocated_metadata;
     test_case->sections = _allocated_data;
+
+    // set globals
     n_symbols = new_n_symbols;
     n_actors = new_n_actors;
     actors = test_case->actor_table;
@@ -121,7 +123,7 @@ static int __batch_tc_parsing_start(const char *buf)
 
 /// @brief Finalize parsing:
 ///        - do sanity checks
-///        - ...
+///        - set test case features
 /// @param void
 /// @return Error code; 0 if successful
 static int __batch_tc_parsing_end(void)
@@ -264,10 +266,6 @@ ssize_t parse_test_case_buffer(const char *buf, size_t count, bool *finished)
             curr_section_end = curr_section_end + test_case->metadata[curr_section_id].size;
         }
     }
-
-    // printk(KERN_ERR "parse_test_case_buffer: consumed_bytes = %lu; count = %lu; _cursor = %llu, "
-    //                 "fid: %ld, finished: %d\n",
-    //        consumed_bytes, count, _cursor, curr_section_id, *finished);
 
     // Check whether we are done
     if (curr_section_id >= n_actors) {

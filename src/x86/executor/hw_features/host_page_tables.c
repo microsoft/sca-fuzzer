@@ -11,7 +11,7 @@
 #include "sandbox_manager.h"
 #include "shortcuts.h"
 
-#include "hw_features/page_table.h"
+#include "hw_features/host_page_tables.h"
 
 #define MODIFIABLE_PTE_BITS                                                                        \
     (_PAGE_PRESENT | _PAGE_RW | _PAGE_USER | _PAGE_PWT | _PAGE_PCD | _PAGE_ACCESSED |              \
@@ -64,7 +64,7 @@ pte_t *get_pte(uint64_t address)
 }
 
 // =================================================================================================
-// Faulty page management
+// Manipulation of Host Page Tables
 // =================================================================================================
 int faulty_page_prepare(void)
 {
@@ -76,7 +76,10 @@ int faulty_page_prepare(void)
     return 0;
 }
 
+/// @brief Save the current value of the faulty page PTE
+/// @param void
 void faulty_page_pte_store(void) { orig_pte = faulty_page_ptep->pte; }
+
 
 void faulty_page_pte_set(void)
 {
@@ -95,6 +98,8 @@ void faulty_page_pte_set(void)
     }
 }
 
+/// @brief Restore the saved value of the faulty page PTE
+/// @param
 void faulty_page_pte_restore(void)
 {
     uint64_t pte_mask = actors[0].data_permissions;

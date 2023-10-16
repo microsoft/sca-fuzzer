@@ -2,9 +2,10 @@ NAME = x86_executor
 KDIR=/lib/modules/$(shell uname -r)/build
 
 obj-m += $(NAME).o
-$(NAME)-objs += hw_features/fault_handler.o hw_features/page_table.o hw_features/perf_counters.o \
+$(NAME)-objs += hw_features/fault_handler.o hw_features/perf_counters.o \
+	hw_features/host_page_tables.o hw_features/guest_page_tables.o \
     input_parser.o test_case_parser.o code_loader.o data_loader.o macro_loader.o \
-        sandbox_manager.o measurement.o main.o
+    sandbox_manager.o measurement.o main.o
 VPATH += $(src)/hw_features
 
 # build flags
@@ -27,6 +28,7 @@ EXTRA_CFLAGS += \
 EXTRA_CFLAGS += -DVENDOR_ID=$(VENDOR_ID)
 EXTRA_CFLAGS += -DCPU_FAMILY=$(CPU_FAMILY)
 EXTRA_CFLAGS += -DFORCE_SMAP_OFF
+EXTRA_CFLAGS += -DPHYSICAL_WIDTH=$(shell grep -m1 "bits physical," /proc/cpuinfo | awk '{print $$4}')
 
 ifdef VMBUILD
 EXTRA_CFLAGS += -DVMBUILD

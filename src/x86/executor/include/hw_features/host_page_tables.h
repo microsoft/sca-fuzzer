@@ -11,15 +11,8 @@
 pte_t *get_pte(uint64_t address);
 
 int faulty_page_prepare(void);
-
-/// @brief Save the current value of the faulty page PTE
-/// @param void
 void faulty_page_pte_store(void);
-
-/// @brief Restore the saved value of the faulty page PTE
-/// @param
 void faulty_page_pte_restore(void);
-
 void faulty_page_pte_set(void);
 
 int map_user_pages(void);
