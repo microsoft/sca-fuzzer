@@ -6,6 +6,7 @@
 #include <asm/io.h>
 #include <asm/msr-index.h>
 #include <asm/processor-flags.h>
+#include <asm/virtext.h>
 #include <linux/types.h>
 
 #include "shortcuts.h"
@@ -196,6 +197,7 @@ int restore_orig_vmcs_state(void)
 int init_vmx(void)
 {
     int err = 0;
+    ASSERT_MSG(cpu_has_vmx(), "init_vmx", "VMX is not supported on this CPU");
 
     // check that the hw-specific region sizes match our constants
     size_t vmxon_size = (rdmsr64(MSR_IA32_VMX_BASIC) >> 32) & 0xFFF;
