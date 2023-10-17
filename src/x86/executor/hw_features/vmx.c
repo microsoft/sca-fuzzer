@@ -56,7 +56,30 @@ static inline void vmxoff(uint8_t *fail_invalid, uint8_t *fail_valid)
                          : "cc", "memory");
     *fail_invalid = inv;
     *fail_valid = val;
-    return;
+}
+
+static inline void vmptrst(uint64_t *dest, uint8_t *fail_invalid, uint8_t *fail_valid)
+{
+    uint64_t tmp;
+    uint8_t inv, val;
+    __asm__ __volatile__("vmptrst %[tmp]; setc %[inval]; setz %[val]\n"
+                         : [tmp] "=m"(tmp), [val] "=rm"(val), [inval] "=rm"(inv)
+                         :
+                         : "cc", "memory");
+    *dest = tmp;
+    *fail_invalid = inv;
+    *fail_valid = val;
+}
+
+static inline void vmptrld(uint64_t vmcs_hpa, uint8_t *fail_invalid, uint8_t *fail_valid)
+{
+    uint8_t inv, val;
+    __asm__ __volatile__("vmptrld %[pa]; setc %[inval]; setz %[val]\n"
+                         : [val] "=rm"(val), [inval] "=rm"(inv)
+                         : [pa] "m"(vmcs_hpa)
+                         : "cc", "memory");
+    *fail_invalid = inv;
+    *fail_valid = val;
 }
 
 // =================================================================================================
@@ -141,6 +164,33 @@ int stop_vmx_operation(void)
     vmx_is_on = false;
     return 0;
 }
+
+int store_orig_vmcs_state(void)
+{
+    if (!orig_vmxon_state)
+        return 0; // VMX was not in use when we started; nothing to store
+
+    uint8_t fail_invalid, fail_valid = 0;
+    vmptrst(&orig_vmcs_ptr, &fail_invalid, &fail_valid);
+    CHECK_VMFAIL("store_orig_vmcs_state");
+    return 0;
+}
+
+int restore_orig_vmcs_state(void)
+{
+    if (!orig_vmxon_state)
+        return 0; // VMX was not in use when we started; nothing to restore
+
+    // PRINT_ERR("vmptrld(%llx)\n", orig_vmcs_ptr);
+    if (orig_vmcs_ptr == 0xFFFFFFFFFFFFFFFF)
+        return 0; // VMCS was not initialized; nothing to restore
+
+    uint8_t fail_invalid, fail_valid = 0;
+    vmptrld(orig_vmcs_ptr, &fail_invalid, &fail_valid);
+    CHECK_VMFAIL("restore_orig_vmcs_state");
+    return 0;
+}
+
 
 // =================================================================================================
 int init_vmx(void)

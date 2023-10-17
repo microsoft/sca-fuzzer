@@ -133,6 +133,9 @@ int run_experiment(void)
     if (test_case->features.includes_vm_actors) {
         err = start_vmx_operation();
         CHECK_ERR("start_vmx_operation");
+
+        err = store_orig_vmcs_state();
+        CHECK_ERR("store_orig_vmcs_state");
     }
 
     // Zero-initialize the region of memory used by Prime+Probe
@@ -182,6 +185,9 @@ cleanup:
     if (vmx_is_on) {
         err = stop_vmx_operation();
         CHECK_ERR("stop_vmx_operation");
+
+        err = restore_orig_vmcs_state();
+        CHECK_ERR("restore_orig_vmcs_state");
     }
 
     return err;

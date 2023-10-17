@@ -50,6 +50,9 @@ extern bool vmx_is_on;
 
 int start_vmx_operation(void);
 int stop_vmx_operation(void);
+int store_orig_vmcs_state(void);
+int restore_orig_vmcs_state(void);
+
 
 int init_vmx(void);
 void free_vmx(void);
