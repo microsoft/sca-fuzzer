@@ -19,6 +19,7 @@
 #include "hw_features/fault_handler.h"
 #include "hw_features/host_page_tables.h"
 #include "hw_features/perf_counters.h"
+#include "hw_features/vmx.h"
 
 measurement_t *measurements = NULL; // global
 cpu_state_t *orig_cpu_state = NULL; // global
@@ -128,6 +129,12 @@ int run_experiment(void)
         wrmsr64(MSR_LSTAR, (uint64_t)fault_handler);
     }
 
+    // // If necessary, enable VMX
+    if (test_case->features.includes_vm_actors) {
+        err = start_vmx_operation();
+        CHECK_ERR("start_vmx_operation");
+    }
+
     // Zero-initialize the region of memory used by Prime+Probe
     if (!quick_and_dirty_mode)
         memset(&sandbox->util->l1d_priming_area[0], 0, L1D_PRIMING_AREA_SIZE * sizeof(char));
@@ -170,6 +177,13 @@ int run_experiment(void)
 cleanup:
     recover_orig_state();
     CHECK_ERR("run_experiment:cleanup");
+
+    // If necessary, disable VMX
+    if (vmx_is_on) {
+        err = stop_vmx_operation();
+        CHECK_ERR("stop_vmx_operation");
+    }
+
     return err;
 }
 

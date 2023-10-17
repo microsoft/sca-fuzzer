@@ -6,10 +6,12 @@
 #include "sandbox_manager.h"
 #include "actor.h"
 #include "code_loader.h" // loaded_test_case_entry
-#include "hw_features/guest_page_tables.h"
 #include "main.h" // set_memory_x, set_memory_nx
 #include "shortcuts.h"
 #include "test_case_parser.h"
+
+#include "hw_features/guest_page_tables.h"
+#include "hw_features/vmx.h"
 
 sandbox_t *sandbox = NULL; // global
 
@@ -85,11 +87,17 @@ int allocate_sandbox(void)
         loaded_test_case_entry = code;
     }
 
-    // when necessary, map the sandbox into guest memory
+    // when necessary, map the sandbox into guest memory and allocate VM management data structures
     if (n_actors > 1) {
         if (test_case->features.includes_vm_actors) {
+            err = allocate_guest_page_tables();
+            CHECK_ERR("allocate_guest_page_tables");
+
             err = map_sandbox_to_guest_memory();
             CHECK_ERR("map_sandbox_to_guest_memory");
+
+            err = init_vmx();
+            CHECK_ERR("init_vmx");
         }
     }
     old_n_actors = n_actors;
@@ -149,5 +157,9 @@ void free_sandbox_manager(void)
         SAFE_VFREE(code);
         loaded_test_case_entry = NULL;
     }
+
+    // since sandbox manager called allocators, it is responsible for also freeing the memory
+    // note that the below calls are safe even if the corresponding allocations were not made
     free_guest_page_tables();
+    free_vmx();
 }
