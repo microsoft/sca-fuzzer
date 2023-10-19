@@ -8,6 +8,7 @@
 
 #include <linux/kernel.h>
 #include <linux/slab.h>  // kfree, kmalloc
+#include <linux/vmalloc.h>  // vfree, vmalloc
 
 #include <../arch/x86/include/asm/desc.h>
 
