@@ -10,6 +10,16 @@ from typing import List, Dict
 from collections import OrderedDict
 from .x86 import x86_config
 
+def try_get_cpu_vendor():
+    try:
+        import cpuinfo
+        if 'AuthenticAMD' in cpuinfo.get_cpu_info()['vendor_id_raw']:
+            return 'x86-64-amd'
+        if 'GenuineIntel' in cpuinfo.get_cpu_info()['vendor_id_raw']:
+            return 'x86-64-intel'
+    except:
+        pass
+    return 'default'
 
 class ConfigException(SystemExit):
     pass
@@ -121,7 +131,7 @@ class Conf:
 
     # ==============================================================================================
     # Executor
-    executor: str = 'x86-64-intel'
+    executor: str = try_get_cpu_vendor()
     """ executor: executor type """
     executor_mode: str = 'P+P'
     """ executor_mode: hardware trace collection mode """
