@@ -127,7 +127,7 @@ class ARMModelTest(unittest.TestCase):
         tc = tc_from_str(self.default_isa, asm)
         reg_values = [0, 1, 2, 3, 4, 5, 6]
         input_ = Input()
-        input_[input_.register_start:input_.data_size - 1] = reg_values
+        input_[input_.register_start:input_.data_size] = reg_values
 
         model = arm64_model.ARM64UnicornSeq(0x10000, 0x20000)
         model.tracer = core_model.L1DTracer()
