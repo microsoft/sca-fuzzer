@@ -6,6 +6,8 @@ SPDX-License-Identifier: MIT
 """
 from typing import List
 
+arm64_input_register_region_size: int = 7 * 8
+
 # x86_option_values attribute MUST be the first attribute in the file
 arm64_option_values = {
     'executor_mode': ['P+P'],
