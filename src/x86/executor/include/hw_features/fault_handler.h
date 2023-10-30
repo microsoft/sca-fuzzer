@@ -26,6 +26,7 @@ struct idt_data {
 extern char *fault_handler;
 extern uint32_t handled_faults;
 extern uint64_t pre_bubble_rsp;
+extern struct desc_ptr test_case_idtr;
 
 int set_bubble_idt(void);
 int unset_bubble_idt(void);

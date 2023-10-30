@@ -15,16 +15,16 @@
 
 #include "hw_features/fault_handler.h"
 
-uint32_t handled_faults = 0; // global
-char *fault_handler = NULL;  // global
-uint64_t pre_bubble_rsp = 0; // global
+uint32_t handled_faults = 0;          // global
+char *fault_handler = NULL;           // global
+uint64_t pre_bubble_rsp = 0;          // global
+struct desc_ptr test_case_idtr = {0}; // global
 
 static gate_desc *bubble_idt = NULL;
 static gate_desc *test_case_idt = NULL;
 
 static struct desc_ptr orig_idtr = {0};
 static struct desc_ptr bubble_idtr = {0};
-static struct desc_ptr test_case_idtr = {0};
 
 void fallback_handler(void);
 void bubble_handler(void);
@@ -371,6 +371,7 @@ int init_fault_handler(void)
 
     bubble_idt = CHECKED_ZALLOC(sizeof(gate_desc) * 256);
     test_case_idt = CHECKED_ZALLOC(sizeof(gate_desc) * 256);
+    test_case_idtr.address = (unsigned long)test_case_idt;
     return 0;
 }
 
