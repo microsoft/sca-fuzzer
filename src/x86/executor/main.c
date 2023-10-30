@@ -72,6 +72,8 @@ unsigned inputs_top = 0;
 bool inputs_ready = false;
 bool tc_ready = false;
 
+bool unfinished_call = false;
+
 // =================================================================================================
 // SysFS interface to the module
 
@@ -201,6 +203,7 @@ static struct attribute *sysfs_attributes[] = {
 int next_measurement_id = -1;
 static ssize_t trace_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
+    unfinished_call = true;
     int count = 0;
     int retval = 0;
 
@@ -232,6 +235,7 @@ static ssize_t trace_show(struct kobject *kobj, struct kobj_attribute *attr, cha
             return -1;
         count += retval;
     }
+    unfinished_call = false;
     count += sprintf(&buf[count], "done\n");
     return count;
 }
@@ -516,6 +520,13 @@ static int __init executor_init(void)
 
 static void __exit executor_exit(void)
 {
+    if (unfinished_call) {
+        PRINT_ERR("CRITICAL ERROR: executor crashed while handling a sysfs call\n"
+                  "Removing the module is no longer safe as it may lead to system blocking\n"
+                  "Reboot to remove the module\n");
+        return;
+    }
+
     free_measurements();
     free_sandbox_manager();
     free_code_loader();
