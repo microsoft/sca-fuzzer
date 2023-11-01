@@ -134,6 +134,7 @@ class Logger:
     dbg_model: bool = False
     dbg_coverage: bool = False
     dbg_generator: bool = False
+    dbg_traces_no_ctr: bool = False
 
     def __init__(self) -> None:
         self.__dict__ = self._borg_shared_state
@@ -309,8 +310,9 @@ class Logger:
                 break
             ctrace_full = model.dbg_get_trace_detailed(inputs[i], nesting)
             print(f"- Input {i}:")
-            print(f"  CTr: {ctrace_colorize(ctrace_full) if CONF.color else ctrace_full} "
-                  f"| Hash: {ctraces[i]}")
+            if not self.dbg_traces_no_ctr:
+                print(f"  CTr: {ctrace_colorize(ctrace_full) if CONF.color else ctrace_full} "
+                      f"| Hash: {ctraces[i]}")
             print(f"  HTr: {pretty_trace(htraces[i])}")
             if CONF.color and hw_feedback[i][0] > hw_feedback[i][1]:
                 print(f"  Feedback: {YELLOW}{hw_feedback[i]}{COL_RESET}")
