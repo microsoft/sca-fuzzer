@@ -63,6 +63,7 @@ class UnicornTargetDesc:
 # Macro interpretation
 # ==================================================================================================
 class MacroInterpreter:
+    next_switch_target: Tuple[int, int] = (0, 0)
 
     def __init__(self, model: UnicornSeq):
         self.model = model
@@ -76,9 +77,12 @@ class MacroInterpreter:
 
     def interpret(self, macro: Instruction, address: int):
         macros: Dict[str, Callable] = {
-            "switch": self.macro_switch,
             "measurement_start": self.macro_measurement_start,
             "measurement_end": self.macro_measurement_end,
+            "switch": self.macro_switch,
+            "switch_h2u": self.macro_switch_h2u,
+            "switch_u2h": self.macro_switch_u2h,
+            "select_switch_h2u_target": self.macro_select_switch_h2u_target,
         }
 
         actor_id = self.model.current_actor.id_
@@ -118,6 +122,33 @@ class MacroInterpreter:
         function_symbol = self._find_function_by_id(function_id)
         function_addr = section_addr + function_symbol.offset
         model.emulator.reg_write(model.uc_target_desc.pc_register, function_addr)
+
+        # data area base and SP update
+        new_base = model.sandbox_base + SANDBOX_DATA_SIZE * section_id
+        new_sp = get_sandbox_addr(new_base, "sp")
+        model.emulator.reg_write(model.uc_target_desc.actor_base_register, new_base)
+        model.emulator.reg_write(model.uc_target_desc.sp_register, new_sp)
+
+        # actor update
+        actor_name = self.sid_to_actor_name[section_id]
+        model.current_actor = self.test_case.actors[actor_name]
+
+    def macro_select_switch_h2u_target(self, arg1: int, arg2: int, arg3: int, arg4: int):
+        self.next_switch_target = (arg1, arg2)
+
+    def macro_switch_h2u(self, arg1: int, arg2: int, arg3: int, arg4: int):
+        self.macro_switch(self.next_switch_target[0], self.next_switch_target[1], 0, 0)
+
+    def macro_switch_u2h(self, arg1: int, arg2: int, arg3: int, arg4: int):
+        """ Switch the active actor, update data area base and SP, and jump to
+            the test case end
+        """
+        model = self.model
+        section_id = arg1
+
+        # PC update
+        target = model.exit_addr
+        model.emulator.reg_write(model.uc_target_desc.pc_register, target)
 
         # data area base and SP update
         new_base = model.sandbox_base + SANDBOX_DATA_SIZE * section_id

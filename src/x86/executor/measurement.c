@@ -5,6 +5,8 @@
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include <asm/msr-index.h>
+
 #include "measurement.h"
 #include "code_loader.h"
 #include "data_loader.h"
@@ -94,6 +96,16 @@ static inline int uarch_flush(void)
 int run_experiment(void)
 {
     int err = 0;
+    uint64_t orig_lstar = 0;
+
+    // If necessary, configure userspace
+    if (test_case->features.includes_user_actors) {
+        err = map_user_pages();
+        if (err)
+            goto cleanup;
+        orig_lstar = rdmsr64(MSR_LSTAR);
+        wrmsr64(MSR_LSTAR, (uint64_t)fault_handler);
+    }
 
     // Zero-initialize the region of memory used by Prime+Probe
     if (!quick_and_dirty_mode)
@@ -131,6 +143,14 @@ int run_experiment(void)
         measurements[i_].htrace[0] = result.htrace[0];
         memcpy(measurements[i_].pfc_reading, result.pfc_reading, sizeof(uint64_t) * NUM_PFC);
     }
+
+cleanup:
+    if (test_case->features.includes_user_actors) {
+        wrmsr64(MSR_LSTAR, orig_lstar);
+        err = unmap_user_pages();
+    }
+    CHECK_ERR("run_experiment:cleanup");
+
     return err;
 }
 

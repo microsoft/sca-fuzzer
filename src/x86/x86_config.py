@@ -47,6 +47,7 @@ _option_values = {
     "actor_mode": [
         'host',
         'guest',
+        'user',
     ],
     'instruction_categories': [
         # Base x86 - user instructions
@@ -80,6 +81,8 @@ _option_values = {
         # "BASE-SYSCALL",     # Not supported: System instructions
         # "BASE-SYSRET",      # Not supported: System instructions
         # "BASE-SYSTEM",      # Not supported: System instructions
+        "LONGMODE-SYSCALL",
+        "LONGMODE-SYSRET",
 
         # SIMD extensions
         "SSE-SSE",

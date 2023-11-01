@@ -143,6 +143,7 @@ ActorName = str
 class ActorMode(Enum):
     HOST = 0
     GUEST = 1
+    USER = 2
 
 
 class ElfSection(NamedTuple):

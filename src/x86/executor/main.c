@@ -248,6 +248,12 @@ static ssize_t test_case_store(struct kobject *kobj, struct kobj_attribute *attr
     tc_ready = false;
 
     if (finished) {
+        // check compatibility
+        if (test_case->features.includes_user_actors) {
+            // SMAP must be disabled for user actors to work
+            ASSERT(!(__read_cr4() & X86_CR4_SMAP & X86_CR4_SMEP), "test_case_store");
+        }
+
         // prepare sandboxes
         int err = allocate_sandbox();
         CHECK_ERR("allocate_sandbox");

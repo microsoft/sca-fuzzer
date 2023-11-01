@@ -40,6 +40,12 @@ typedef struct {
 } tc_symbol_entry_t;
 
 typedef struct {
+    bool includes_vm_actors;
+    bool includes_user_actors;
+} tc_features_t;
+
+typedef struct {
+    tc_features_t features;
     size_t actor_table_size;
     size_t symbol_table_size;
     size_t metadata_size;

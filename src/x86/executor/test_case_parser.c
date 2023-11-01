@@ -161,6 +161,19 @@ static int __batch_tc_parsing_end(void)
         PRINT_ERRS("__batch_tc_parsing_end", "Symbol table does not contain main function\n");
         return -1;
     }
+
+    // Set test case features
+    // (so far only VM mode; more to come in the future)
+    for (int i = 0; i < n_actors; i++) {
+        if (actors[i].mode == MODE_GUEST) {
+            test_case->features.includes_vm_actors = true;
+            break;
+        }
+        if (actors[i].mode == MODE_USER) {
+            test_case->features.includes_user_actors = true;
+            break;
+        }
+    }
     return 0;
 }
 

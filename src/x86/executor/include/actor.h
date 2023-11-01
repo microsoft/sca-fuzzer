@@ -14,6 +14,7 @@ typedef uint64_t actor_mode_t;
 enum {
     MODE_HOST = 0,
     MODE_GUEST = 1,
+    MODE_USER = 2,
 };
 
 typedef struct {

@@ -77,14 +77,19 @@ typedef struct {
 // =================================================================================================
 // sandbox_t
 // =================================================================================================
-
 typedef struct {
     actor_data_t *data;
     actor_code_t *code;
     util_t *util;
 } sandbox_t;
 
+#define N_UTIL_PAGES (sizeof(util_t) / PAGE_SIZE)
+#define N_DATA_PAGES_PER_ACTOR (sizeof(actor_data_t) / PAGE_SIZE)
+#define N_CODE_PAGES_PER_ACTOR (sizeof(actor_code_t) / PAGE_SIZE)
+
 extern sandbox_t *sandbox;
+
+int get_n_sandbox_pages(void);
 
 int allocate_sandbox(void);
 int init_sandbox_manager(void);

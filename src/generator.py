@@ -185,6 +185,8 @@ class ConfigurableGenerator(Generator, abc.ABC):
                 mode = ActorMode.HOST
             elif desc['mode'] == "guest":
                 mode = ActorMode.GUEST
+            elif desc['mode'] == "user":
+                mode = ActorMode.USER
             else:
                 assert False, f"Invalid actor mode: {desc['mode']}"
 

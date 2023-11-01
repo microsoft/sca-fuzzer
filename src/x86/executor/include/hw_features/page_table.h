@@ -22,6 +22,9 @@ void faulty_page_pte_restore(void);
 
 void faulty_page_pte_set(void);
 
+int map_user_pages(void);
+int unmap_user_pages(void);
+
 int init_page_table_manager(void);
 void free_page_table_manager(void);
 
