@@ -7,6 +7,7 @@ $(NAME)-objs += hw_features/fault_handler.o hw_features/page_table.o hw_features
         sandbox_manager.o measurement.o main.o
 VPATH += $(src)/hw_features
 
+# build flags
 ifneq ($(shell grep "Intel" /proc/cpuinfo),)
 	VENDOR_ID=1
 else ifneq ($(shell grep "AMD" /proc/cpuinfo),)
@@ -30,6 +31,19 @@ ifdef VMBUILD
 EXTRA_CFLAGS += -DVMBUILD
 endif
 
+# disable objtool warnings - a lot of code in the module violates the checks intentionally,
+# so it's impossible to fix
+CONFIG_RETHUNK=n
+CONFIG_RETPOLINE=n
+CONFIG_STACK_VALIDATION=n
+CONFIG_X86_KERNEL_IBT=n
+CONFIG_HAVE_UACCESS_VALIDATION=n
+
+
+# file-specific flags
+CFLAGS_code_loader.o := -Wno-attribute-warning  # workaround for __write_overflow_field warning
+
+# build targets
 all:
 ifeq ($(shell cat /sys/devices/virtual/dmi/id/sys_vendor), QEMU)
 ifndef VMBUILD
