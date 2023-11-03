@@ -279,6 +279,7 @@ void __attribute__((noipa)) macro_measurement_start_prime(void)
                        PUSH_ABCDF()                                      //
                        "lea rax, [r15 + " xstr(L1D_PRIMING_OFFSET) "]\n" //
                        PRIME("rax", "rbx", "rcx", "rdx", "32")           //
+                       "xor " HTRACE_REGISTER ", " HTRACE_REGISTER "\n"  //
                        READ_PFC_START()                                  //
                        POP_ABCDF()                                       //
                        "lfence\n"                                        //
@@ -293,6 +294,7 @@ void __attribute__((noipa)) macro_measurement_start_fast_prime(void)
                        PUSH_ABCDF()                                      //
                        "lea rax, [r15 + " xstr(L1D_PRIMING_OFFSET) "]\n" //
                        PRIME("rax", "rbx", "rcx", "rdx", "1")            //
+                       "xor " HTRACE_REGISTER ", " HTRACE_REGISTER "\n"  //
                        READ_PFC_START()                                  //
                        POP_ABCDF()                                       //
                        "lfence\n"                                        //
@@ -307,6 +309,7 @@ void __attribute__((noipa)) macro_measurement_start_partial_prime(void)
                        PUSH_ABCDF()                                      //
                        "lea rax, [r15 + " xstr(L1D_PRIMING_OFFSET) "]\n" //
                        PRIME_PARTIAL("rax", "rbx", "rcx", "rdx", "32")   //
+                       "xor " HTRACE_REGISTER ", " HTRACE_REGISTER "\n"  //
                        READ_PFC_START()                                  //
                        POP_ABCDF()                                       //
                        "lfence\n"                                        //
@@ -321,6 +324,7 @@ void __attribute__((noipa)) macro_measurement_start_fast_partial_prime(void)
                        PUSH_ABCDF()                                      //
                        "lea rax, [r15 + " xstr(L1D_PRIMING_OFFSET) "]\n" //
                        PRIME_PARTIAL("rax", "rbx", "rcx", "rdx", "1")    //
+                       "xor " HTRACE_REGISTER ", " HTRACE_REGISTER "\n"  //
                        READ_PFC_START()                                  //
                        POP_ABCDF()                                       //
                        "lfence\n"                                        //
@@ -332,6 +336,8 @@ void __attribute__((noipa)) macro_measurement_end_probe(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                                                //
+                       "cmp " HTRACE_REGISTER ", 0\n"                    // skip if already called
+                       "jnz 99f\n"                                       //
                        PUSH_ABCDF()                                      //
                        "push r15\n"                                      //
                        "push r11\n"                                      //
@@ -342,6 +348,7 @@ void __attribute__((noipa)) macro_measurement_end_probe(void)
                        "pop r11\n"                                       //
                        "pop r15\n"                                       //
                        POP_ABCDF()                                       //
+                       "99:\n"                                           //
     );
     asm volatile(".quad " xstr(MACRO_END));
 }
