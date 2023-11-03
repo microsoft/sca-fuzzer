@@ -16,7 +16,7 @@ SPDX-License-Identifier: MIT
 """
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Optional, Set, Dict, Callable
+from typing import List, Tuple, Optional, Set, Dict
 
 import copy
 import re
@@ -26,7 +26,7 @@ from unicorn import Uc, UcError, UC_MEM_WRITE, UC_MEM_READ, UC_SECOND_SCALE, UC_
     UC_HOOK_MEM_WRITE, UC_HOOK_CODE, UC_HOOK_MEM_UNMAPPED
 
 from .interfaces import CTrace, TestCase, Model, InputTaint, Instruction, ExecutionTrace, \
-    TracedInstruction, TracedMemAccess, Input, Tracer, Actor, Symbol, \
+    TracedInstruction, TracedMemAccess, Input, Tracer, Actor, \
     RegisterOperand, FlagsOperand, MemoryOperand, TaintTrackerInterface, TargetDesc, \
     get_sandbox_addr, MAX_SECTION_SIZE, SANDBOX_DATA_SIZE
 from .config import CONF
@@ -35,8 +35,6 @@ from .util import Logger, NotSupportedException
 # ==================================================================================================
 # Custom Data Types and Constants
 # ==================================================================================================
-CRITICAL_ERROR = uc.UC_ERR_NOMEM  # the model never handles this error, hence it will always crash
-
 Checkpoint = Tuple[object, int, int, int]
 """ context : UnicornContext, next_instruction, flags, spec_window) """
 
@@ -66,107 +64,13 @@ class MacroInterpreter:
     next_switch_target: Tuple[int, int] = (0, 0)
 
     def __init__(self, model: UnicornSeq):
-        self.model = model
-
-    def load_test_case(self, test_case: TestCase):
-        self.test_case = test_case
-        self.function_table = [symbol for symbol in test_case.symbol_table if symbol.type_ == 0]
-        self.function_table.sort(key=lambda s: [s.arg])
-        self.macro_table = [symbol for symbol in test_case.symbol_table if symbol.type_ != 0]
-        self.sid_to_actor_name = {actor.id_: name for name, actor in test_case.actors.items()}
+        pass
 
     def interpret(self, macro: Instruction, address: int):
-        macros: Dict[str, Callable] = {
-            "measurement_start": self.macro_measurement_start,
-            "measurement_end": self.macro_measurement_end,
-            "switch": self.macro_switch,
-            "switch_h2u": self.macro_switch_h2u,
-            "switch_u2h": self.macro_switch_u2h,
-            "select_switch_h2u_target": self.macro_select_switch_h2u_target,
-        }
+        pass
 
-        actor_id = self.model.current_actor.id_
-        macro_offset = address - (self.model.code_start + MAX_SECTION_SIZE * actor_id)
-        macro_args = self._get_macro_args(actor_id, macro_offset)
-
-        interpreter_func = macros[macro.operands[0].value.lower()[1:]]
-        interpreter_func(*macro_args)
-
-    def _get_macro_args(self, section_id: int, section_offset: int) -> Tuple[int, int, int, int]:
-        # find the macro entry in the symbol table
-        for symbol in self.macro_table:
-            if symbol.aid == section_id and symbol.offset == section_offset:
-                args = symbol.arg
-                return args & 0xFFFF, (args >> 16) & 0xFFFF, (args >> 32) & 0xFFFF, \
-                    (args >> 48) & 0xFFFF
-        Logger().warning("get_macro_args", "macro not found in symbol table")
-        raise UcError(CRITICAL_ERROR)
-
-    def _find_function_by_id(self, function_id: int) -> Symbol:
-        if function_id < 0 or function_id >= len(self.function_table):
-            Logger().warning("find_function_by_id", "function not found in symbol table")
-            raise UcError(CRITICAL_ERROR)
-        return self.function_table[function_id]
-
-    def macro_switch(self, arg1: int, arg2: int, arg3: int, arg4: int):
-        """
-        Switch the active actor, update data area base and SP,
-          and jump to the corresponding function address
-        """
-        model = self.model
-        section_id = arg1
-        section_addr = model.code_start + MAX_SECTION_SIZE * section_id
-
-        # PC update
-        function_id = arg2
-        function_symbol = self._find_function_by_id(function_id)
-        function_addr = section_addr + function_symbol.offset
-        model.emulator.reg_write(model.uc_target_desc.pc_register, function_addr)
-
-        # data area base and SP update
-        new_base = model.sandbox_base + SANDBOX_DATA_SIZE * section_id
-        new_sp = get_sandbox_addr(new_base, "sp")
-        model.emulator.reg_write(model.uc_target_desc.actor_base_register, new_base)
-        model.emulator.reg_write(model.uc_target_desc.sp_register, new_sp)
-
-        # actor update
-        actor_name = self.sid_to_actor_name[section_id]
-        model.current_actor = self.test_case.actors[actor_name]
-
-    def macro_select_switch_h2u_target(self, arg1: int, arg2: int, arg3: int, arg4: int):
-        self.next_switch_target = (arg1, arg2)
-
-    def macro_switch_h2u(self, arg1: int, arg2: int, arg3: int, arg4: int):
-        self.macro_switch(self.next_switch_target[0], self.next_switch_target[1], 0, 0)
-
-    def macro_switch_u2h(self, arg1: int, arg2: int, arg3: int, arg4: int):
-        """ Switch the active actor, update data area base and SP, and jump to
-            the test case end
-        """
-        model = self.model
-        section_id = arg1
-
-        # PC update
-        target = model.exit_addr
-        model.emulator.reg_write(model.uc_target_desc.pc_register, target)
-
-        # data area base and SP update
-        new_base = model.sandbox_base + SANDBOX_DATA_SIZE * section_id
-        new_sp = get_sandbox_addr(new_base, "sp")
-        model.emulator.reg_write(model.uc_target_desc.actor_base_register, new_base)
-        model.emulator.reg_write(model.uc_target_desc.sp_register, new_sp)
-
-        # actor update
-        actor_name = self.sid_to_actor_name[section_id]
-        model.current_actor = self.test_case.actors[actor_name]
-
-    def macro_measurement_start(self, arg1: int, arg2: int, arg3: int, arg4: int):
-        if not self.model.in_speculation:
-            self.model.tracer.enable_tracing = True
-
-    def macro_measurement_end(self, arg1: int, arg2: int, arg3: int, arg4: int):
-        if not self.model.in_speculation:
-            self.model.tracer.enable_tracing = False
+    def load_test_case(self, test_case: TestCase):
+        pass
 
 
 # ==================================================================================================
@@ -540,7 +444,6 @@ class UnicornSeq(UnicornModel):
 
     def __init__(self, sandbox_base, code_start):
         super().__init__(sandbox_base, code_start)
-        self.macro_interpreter = MacroInterpreter(self)
 
         # sandbox
         self.underflow_pad_base = get_sandbox_addr(sandbox_base, "underflow_pad")
