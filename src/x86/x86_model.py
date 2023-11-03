@@ -11,11 +11,11 @@ import copy
 
 import unicorn.x86_const as ucc  # type: ignore
 from unicorn import Uc, UcError, UC_MEM_WRITE, UC_ARCH_X86, UC_MODE_64, UC_PROT_READ, \
-    UC_PROT_NONE, UC_ERR_WRITE_PROT, UC_ERR_NOMEM
+    UC_PROT_NONE, UC_ERR_WRITE_PROT, UC_ERR_NOMEM, UC_ERR_EXCEPTION
 
 from ..interfaces import Input, FlagsOperand, RegisterOperand, MemoryOperand, AgenOperand, \
     TestCase, Instruction, Symbol, SANDBOX_DATA_SIZE, FAULTY_AREA_SIZE, OVERFLOW_PAD_SIZE, \
-    UNDERFLOW_PAD_SIZE, MAX_SECTION_SIZE, get_sandbox_addr
+    UNDERFLOW_PAD_SIZE, MAX_SECTION_SIZE, get_sandbox_addr, ActorMode
 from ..model import UnicornModel, UnicornTracer, UnicornSpec, UnicornSeq, BaseTaintTracker, \
     MacroInterpreter
 from ..util import UnreachableCode, NotSupportedException, BLUE, COL_RESET, Logger
@@ -36,7 +36,7 @@ CRITICAL_ERROR = UC_ERR_NOMEM  # the model never handles this error, hence it wi
 
 
 class X86MacroInterpreter(MacroInterpreter):
-    next_switch_target: Tuple[int, int] = (0, 0)
+    pseudo_lstar: int
 
     def __init__(self, model: UnicornSeq):
         self.model = model
@@ -47,6 +47,7 @@ class X86MacroInterpreter(MacroInterpreter):
         self.function_table.sort(key=lambda s: [s.arg])
         self.macro_table = [symbol for symbol in test_case.symbol_table if symbol.type_ != 0]
         self.sid_to_actor_name = {actor.id_: name for name, actor in test_case.actors.items()}
+        self.pseudo_lstar = self.model.exit_addr
 
     def _get_macro_args(self, section_id: int, section_offset: int) -> Tuple[int, int, int, int]:
         # find the macro entry in the symbol table
@@ -72,6 +73,7 @@ class X86MacroInterpreter(MacroInterpreter):
             "switch_h2u": self.macro_switch_h2u,
             "switch_u2h": self.macro_switch_u2h,
             "select_switch_h2u_target": self.macro_select_switch_h2u_target,
+            "select_switch_u2h_target": self.macro_select_switch_u2h_target,
         }
 
         actor_id = self.model.current_actor.id_
@@ -139,16 +141,32 @@ class X86MacroInterpreter(MacroInterpreter):
         actor_name = self.sid_to_actor_name[section_id]
         model.current_actor = self.test_case.actors[actor_name]
 
-    def macro_switch_u2h(self, arg1: int, arg2: int, arg3: int, arg4: int):
+    def macro_select_switch_u2h_target(self, section_id: int, function_id: int, _: int, __: int):
+        """ Set LSTAR to the target address if in host mode; otherwise, throw an exception """
+        if self.model.current_actor.mode != ActorMode.HOST:
+            self.model.pending_fault_id = UC_ERR_EXCEPTION
+            self.model.emulator.emu_stop()
+            return
+
+        # update LSTAR
+        section_addr = self.model.code_start + MAX_SECTION_SIZE * section_id
+        function_symbol = self._find_function_by_id(function_id)
+        function_addr = section_addr + function_symbol.offset
+        self.pseudo_lstar = function_addr
+
+        # emulate register update
+        self.model.emulator.reg_write(ucc.UC_X86_REG_RAX, function_addr)
+        self.model.emulator.reg_write(ucc.UC_X86_REG_RDX, function_addr >> 32)
+        self.model.emulator.reg_write(ucc.UC_X86_REG_RCX, 0xc0000082)
+
+    def macro_switch_u2h(self, section_id: int, _: int, __: int, ___: int):
         """ Switch the active actor, update data area base and SP, and jump to
-            the test case end
+            the pseudo_lstar
         """
         model = self.model
-        section_id = arg1
 
         # PC update
-        target = model.exit_addr
-        model.emulator.reg_write(model.uc_target_desc.pc_register, target)
+        model.emulator.reg_write(model.uc_target_desc.pc_register, self.pseudo_lstar)
 
         # data area base and SP update
         new_base = model.sandbox_base + SANDBOX_DATA_SIZE * section_id

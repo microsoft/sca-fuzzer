@@ -149,6 +149,8 @@ class X86TargetDesc(TargetDesc):
             MacroSpec(5, "switch_u2h", ("actor_id", "", "", "")),
         "select_switch_h2u_target":
             MacroSpec(6, "select_switch_h2u_target", ("actor_id", "function_id", "", "")),
+        "select_switch_u2h_target":
+            MacroSpec(7, "select_switch_u2h_target", ("actor_id", "function_id", "", "")),
     }
 
     def __init__(self):

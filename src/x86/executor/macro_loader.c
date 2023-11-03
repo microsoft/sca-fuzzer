@@ -46,6 +46,7 @@ void macro_same_context_switch(void);
 void macro_context_switch_h2u(void);
 void macro_context_switch_u2h(void);
 void macro_select_switch_h2u_target(void);
+void macro_select_switch_u2h_target(void);
 
 // =================================================================================================
 // Helper functions
@@ -144,6 +145,8 @@ static uint8_t *get_macro_wrapper_ptr(uint64_t macro_id)
         return (uint8_t *)macro_context_switch_u2h;
     case MACRO_SELECT_SWITCH_H2U_TARGET:
         return (uint8_t *)macro_select_switch_h2u_target;
+    case MACRO_SELECT_SWITCH_U2H_TARGET:
+        return (uint8_t *)macro_select_switch_u2h_target;
     default:
         PRINT_ERRS("get_macro_wrapper_ptr", "macro_id %llu is not valid\n", macro_id);
         return NULL;
@@ -223,6 +226,17 @@ uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint8_t *mac
     }
     case MACRO_SWITCH_H2U: {
         cursor += update_r14_rsp(arg1, macro_dest, cursor);
+        break;
+    }
+    case MACRO_SELECT_SWITCH_U2H_TARGET: {
+        // movabs rax, function_addr
+        uint64_t function_addr = get_function_addr(arg1, arg2, main_prologue_size);
+        macro_dest[cursor] = 0x48;
+        cursor++;
+        macro_dest[cursor] = 0xb8;
+        cursor++;
+        *((uint64_t *)(macro_dest + cursor)) = function_addr;
+        cursor += 8;
         break;
     }
     case MACRO_SWITCH_U2H: {
@@ -445,8 +459,18 @@ void __attribute__((noipa)) macro_context_switch_h2u(void)
     asm_volatile_intel(""
                        "pushfq\n"
                        "pop r11\n"
-                       "sysretq\n"
-                       "");
+                       "sysretq\n");
+    asm volatile(".quad " xstr(MACRO_END));
+}
+
+void __attribute__((noipa)) macro_select_switch_u2h_target(void)
+{
+    asm volatile(".quad " xstr(MACRO_START));
+    asm_volatile_intel(""
+                       "mov rdx, rax\n"
+                       "shr rdx, 32\n"
+                       "mov rcx, 0xc0000082\n"
+                       "wrmsr\n");
     asm volatile(".quad " xstr(MACRO_END));
 }
 

@@ -480,7 +480,6 @@ class UnicornSeq(UnicornModel):
         Instantiate emulator and copy the test case into the emulator's memory
         """
         self.test_case = test_case
-        self.macro_interpreter.load_test_case(test_case)
 
         main_actor = test_case.actors["main"]
         self.current_actor = main_actor
@@ -529,6 +528,8 @@ class UnicornSeq(UnicornModel):
 
         except UcError as e:
             self.LOG.error("[UnicornModel:load_test_case] %s" % e)
+
+        self.macro_interpreter.load_test_case(test_case)
 
     def _execute_test_case(self, inputs: List[Input], nesting: int):
         """
