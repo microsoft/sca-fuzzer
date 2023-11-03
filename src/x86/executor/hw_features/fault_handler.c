@@ -152,16 +152,16 @@ __attribute__((unused)) void fallback_handler_wrapper(void)
     sandbox->util->latest_measurement.pfc_reading[2] =
         sandbox->util->latest_measurement.pfc_reading[1] - (uint64_t)loaded_test_case_entry;
 
-    // TODO: make run_experiment exit with an error code upon a n unhandled fault
-
+    uint64_t cr2 = read_cr2();
     PRINT_ERRS("fallback_handler",
                "Test case triggered an unhandled fault:\n"
                "  Faulting address: 0x%llx\n"
                "  Error code: 0x%llx\n"
+               "  CR2: 0x%llx\n"
                "  (sandbox code start: 0x%llx; data start: 0x%llx)\n",
                sandbox->util->latest_measurement.pfc_reading[1],
-               sandbox->util->latest_measurement.pfc_reading[0], (uint64_t)sandbox->code[0].section,
-               (uint64_t)sandbox->data[0].main_area);
+               sandbox->util->latest_measurement.pfc_reading[0], cr2,
+               (uint64_t)sandbox->code[0].section, (uint64_t)sandbox->data[0].main_area);
 
     // return 1 to indicate an unhandled fault
     asm_volatile_intel(""
