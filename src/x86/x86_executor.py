@@ -201,6 +201,11 @@ class X86Executor(Executor):
     def __write_test_case(self, test_case: TestCase):
         actors = sorted(test_case.actors.values(), key=lambda a: (a.id_))
 
+        # sanity check
+        for symbol in test_case.symbol_table:
+            if symbol.type_ < 0:
+                self.LOG.error("attempt to use template as a test case")
+
         with open('/sys/x86_executor/test_case', 'wb') as f:
             # header
             f.write((len(actors)).to_bytes(8, byteorder='little'))  # n_actors

@@ -221,7 +221,7 @@ class X86AsmParser(AsmParserGeneric):
         with open(asm_file, "r") as f:
             with open(patched_asm_file, "w") as patched:
                 for line in f:
-                    line = line.strip()
+                    line = line.strip().lower()
                     if line.startswith(".macro.measurement_start:"):
                         has_measurement_start = True
                     elif line.startswith(".macro.measurement_end:"):
@@ -256,6 +256,7 @@ class X86AsmParser(AsmParserGeneric):
         with open(patched_asm_file, "r") as f:
             with open(patched_asm_file + ".tmp", "w") as patched:
                 for line in f:
+                    line = line.lower()
                     if line.startswith(".macro") and "nop" not in line:
                         patched.write(line[:-1] + macro_placeholder + "\n")
                     else:
@@ -267,6 +268,7 @@ class X86AsmParser(AsmParserGeneric):
             with open(patched_asm_file, "r") as f:
                 with open(patched_asm_file + ".tmp", "w") as patched:
                     for line in f:
+                        line = line.lower()
                         patched.write(line)
                         if line.startswith(main_function_label):
                             patched.write(".macro.measurement_start:" + macro_placeholder + "\n")
@@ -278,6 +280,7 @@ class X86AsmParser(AsmParserGeneric):
                 with open(patched_asm_file + ".tmp", "w") as patched:
                     prev_line = ""
                     for line in f:
+                        line = line.lower()
                         if line.startswith(".test_case_exit:"):
                             if prev_line.startswith(".section"):
                                 patched.write(".function_end:\n")
