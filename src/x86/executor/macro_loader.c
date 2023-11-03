@@ -189,8 +189,8 @@ uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint8_t *mac
     size_t cursor = 0;
     uint16_t arg1 = args & 0xFFFF;
     uint16_t arg2 = (args >> 16) & 0xFFFF;
-    uint16_t arg3 = (args >> 32) & 0xFFFF;
-    uint16_t arg4 = (args >> 48) & 0xFFFF;
+    // uint16_t arg3 = (args >> 32) & 0xFFFF;
+    // uint16_t arg4 = (args >> 48) & 0xFFFF;
 
     switch (macro_type) {
     case MACRO_MEASUREMENT_START:
@@ -210,6 +210,17 @@ uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint8_t *mac
         cursor += 4;
         break;
     }
+    case MACRO_SELECT_SWITCH_H2U_TARGET: {
+        // movabs rcx, function_addr
+        uint64_t function_addr = get_function_addr(arg1, arg2, main_prologue_size);
+        macro_dest[cursor] = 0x48;
+        cursor++;
+        macro_dest[cursor] = 0xb9;
+        cursor++;
+        *((uint64_t *)(macro_dest + cursor)) = function_addr;
+        cursor += 8;
+        break;
+    }
     case MACRO_SWITCH_H2U: {
         cursor += update_r14_rsp(arg1, macro_dest, cursor);
         break;
@@ -225,18 +236,6 @@ uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint8_t *mac
         macro_dest[cursor] = 0xbb;
         cursor++;
         *((uint64_t *)(macro_dest + cursor)) = new_rsp;
-        cursor += 8;
-        break;
-    }
-    case MACRO_SELECT_SWITCH_H2U_TARGET: {
-        cursor += update_r14(arg1, macro_dest, cursor);
-        // movabs rcx, function_addr
-        uint64_t function_addr = get_function_addr(arg1, arg2, main_prologue_size);
-        macro_dest[cursor] = 0x48;
-        cursor++;
-        macro_dest[cursor] = 0xb9;
-        cursor++;
-        *((uint64_t *)(macro_dest + cursor)) = function_addr;
         cursor += 8;
         break;
     }
@@ -273,7 +272,7 @@ uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint8_t *mac
 #define HTRACE_REGISTER "r13"
 
 // Prime + Probe and variants -----------------------
-void macro_measurement_start_prime(void)
+void __attribute__((noipa)) macro_measurement_start_prime(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                                                //
@@ -287,7 +286,7 @@ void macro_measurement_start_prime(void)
     asm volatile(".quad " xstr(MACRO_END));
 }
 
-void macro_measurement_start_fast_prime(void)
+void __attribute__((noipa)) macro_measurement_start_fast_prime(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                                                //
@@ -301,7 +300,7 @@ void macro_measurement_start_fast_prime(void)
     asm volatile(".quad " xstr(MACRO_END));
 }
 
-void macro_measurement_start_partial_prime(void)
+void __attribute__((noipa)) macro_measurement_start_partial_prime(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                                                //
@@ -315,7 +314,7 @@ void macro_measurement_start_partial_prime(void)
     asm volatile(".quad " xstr(MACRO_END));
 }
 
-void macro_measurement_start_fast_partial_prime(void)
+void __attribute__((noipa)) macro_measurement_start_fast_partial_prime(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                                                //
@@ -329,7 +328,7 @@ void macro_measurement_start_fast_partial_prime(void)
     asm volatile(".quad " xstr(MACRO_END));
 }
 
-void macro_measurement_end_probe(void)
+void __attribute__((noipa)) macro_measurement_end_probe(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                                                //
@@ -348,7 +347,7 @@ void macro_measurement_end_probe(void)
 }
 
 // Flush + Reload and variants ----------------------
-void macro_measurement_start_flush(void)
+void __attribute__((noipa)) macro_measurement_start_flush(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                  //
@@ -362,7 +361,7 @@ void macro_measurement_start_flush(void)
     asm volatile(".quad " xstr(MACRO_END));
 }
 
-void macro_measurement_end_reload(void)
+void __attribute__((noipa)) macro_measurement_end_reload(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                                           //
@@ -381,7 +380,7 @@ void macro_measurement_end_reload(void)
 }
 
 // Time stamp counter -------------------------------
-void macro_measurement_start_tsc(void)
+void __attribute__((noipa)) macro_measurement_start_tsc(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                                               //
@@ -399,7 +398,7 @@ void macro_measurement_start_tsc(void)
     asm volatile(".quad " xstr(MACRO_END));
 }
 
-void macro_measurement_end_tsc(void)
+void __attribute__((noipa)) macro_measurement_end_tsc(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                               //
@@ -418,23 +417,22 @@ void macro_measurement_end_tsc(void)
 // Macros: Context switches
 // =================================================================================================
 
-void macro_same_context_switch(void)
+void __attribute__((noipa)) macro_same_context_switch(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     // Nothing here; everything is implemented in inject_macro_arguments->MACRO_SWITCH
     asm volatile(".quad " xstr(MACRO_END));
 }
 
-void macro_select_switch_h2u_target(void)
+void __attribute__((noipa)) macro_select_switch_h2u_target(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
-    // Nothing here: implementation in inject_macro_arguments
+    // Nothing here: implementation in inject_macro_arguments->MACRO_SELECT_SWITCH_H2U_TARGET
     asm volatile(".quad " xstr(MACRO_END));
 }
 
 /// @brief Macro to switch host -> user actor
-
-void macro_context_switch_h2u(void)
+void __attribute__((noipa)) macro_context_switch_h2u(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""
@@ -446,12 +444,12 @@ void macro_context_switch_h2u(void)
 }
 
 /// @brief Macro to switch user -> host actor
-void macro_context_switch_u2h(void)
+void __attribute__((noipa)) macro_context_switch_u2h(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""
                        "pushfq\n"
-                       "pop r11\n"
+                       "pop rsp\n"
                        "xchg rsp, r11\n"
                        "syscall\n"
                        "");
