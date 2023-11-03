@@ -78,8 +78,9 @@ int set_bubble_idt(void)
 {
     ASSERT(pre_bubble_rsp != 0, "set_bubble_idt");
     native_sidt(&orig_idtr); // preserve original IDT
-    void *nmi_handler = (void *)(orig_idtr.address + 2 * sizeof(gate_desc));
-    idt_set_custom_handlers(bubble_idt, &bubble_idtr, bubble_handler, bubble_handler, nmi_handler);
+    // void *nmi_handler = (void *)(orig_idtr.address + 2 * sizeof(gate_desc));
+    idt_set_custom_handlers(bubble_idt, &bubble_idtr, bubble_handler, bubble_handler,
+                            bubble_handler);
     return 0;
 }
 
@@ -92,16 +93,17 @@ int unset_bubble_idt(void)
 int set_test_case_idt(void)
 {
     ASSERT(bubble_idtr.address != 0, "set_test_case_idt");
-    void *nmi_handler = (void *)(orig_idtr.address + 2 * sizeof(gate_desc));
+    // void *nmi_handler = (void *)(orig_idtr.address + 2 * sizeof(gate_desc));
     idt_set_custom_handlers(test_case_idt, &test_case_idtr, fault_handler, fallback_handler,
-                            nmi_handler);
+                            fallback_handler);
     return 0;
 }
 
 int unset_test_case_idt(void)
 {
-    void *nmi_handler = (void *)(orig_idtr.address + 2 * sizeof(gate_desc));
-    idt_set_custom_handlers(bubble_idt, &bubble_idtr, bubble_handler, bubble_handler, nmi_handler);
+    // void *nmi_handler = (void *)(orig_idtr.address + 2 * sizeof(gate_desc));
+    idt_set_custom_handlers(bubble_idt, &bubble_idtr, bubble_handler, bubble_handler,
+                            bubble_handler);
     return 0;
 }
 
