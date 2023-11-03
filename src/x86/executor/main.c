@@ -90,9 +90,12 @@ static struct kobj_attribute trace_attribute = __ATTR(trace, 0664, trace_show, N
 ///
 static ssize_t test_case_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf,
                                size_t count);
-static ssize_t test_case_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf);
-static struct kobj_attribute test_case_attribute =
-    __ATTR(test_case, 0666, test_case_show, test_case_store);
+static struct kobj_attribute test_case_attribute = __ATTR(test_case, 0666, NULL, test_case_store);
+
+static ssize_t test_case_bin_read(struct file *file, struct kobject *kobj,
+                                  struct bin_attribute *bin_attr, char *to, loff_t pos,
+                                  size_t count);
+static struct bin_attribute test_case_bin_attribute = __BIN_ATTR_RO(test_case_bin, 0);
 
 /// Loading inputs
 ///
@@ -197,6 +200,11 @@ static struct attribute *sysfs_attributes[] = {
     NULL, /* need to NULL terminate the list of attributes */
 };
 
+static struct bin_attribute *bin_sysfs_attributes[] = {
+    &test_case_bin_attribute, //
+    NULL,                     /* need to NULL terminate the list of attributes */
+};
+
 // =================================================================================================
 // Implementation of the sysfs attributes
 
@@ -267,12 +275,20 @@ static ssize_t test_case_store(struct kobject *kobj, struct kobj_attribute *attr
     return consumed_bytes;
 }
 
-static ssize_t test_case_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+static ssize_t test_case_bin_read(struct file *file, struct kobject *kobj,
+                                  struct bin_attribute *bin_attr, char *to, loff_t pos,
+                                  size_t count)
 {
-    for (int i = 0; i < 0xfff; i++) {
-        sprintf(&buf[i], "%c", loaded_test_case_entry[i]);
-    }
-    return 0xfff;
+    loff_t max_pos = n_actors * sizeof(actor_code_t);
+    if (pos > max_pos)
+        return 0;
+
+    loff_t chunk_end = pos + PAGE_SIZE;
+    if (chunk_end > max_pos)
+        chunk_end = max_pos;
+    count = chunk_end - pos;
+    memcpy(to, &loaded_test_case_entry[pos], count);
+    return count;
 }
 
 static ssize_t inputs_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf,
@@ -517,6 +533,22 @@ static int __init executor_init(void)
     }
     if (err != 0) {
         printk(KERN_ERR "x86_executor: Failed to create a sysfs group\n");
+        kobject_put(kobj_interface);
+        return err;
+    }
+
+    // Create binary attributes (used for passing large amounts of data)
+    i = 0;
+    struct bin_attribute *bin_attr;
+    for (bin_attr = bin_sysfs_attributes[i]; !err; i++) {
+        bin_attr = bin_sysfs_attributes[i];
+        if (bin_attr == NULL)
+            break;
+
+        err = sysfs_create_bin_file(kobj_interface, bin_attr);
+    }
+    if (err != 0) {
+        printk(KERN_ERR "x86_executor: Failed to create a binary sysfs files\n");
         kobject_put(kobj_interface);
         return err;
     }
