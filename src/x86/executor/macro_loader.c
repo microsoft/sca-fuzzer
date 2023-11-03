@@ -240,17 +240,7 @@ uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint8_t *mac
         break;
     }
     case MACRO_SWITCH_U2H: {
-        cursor += update_r14(arg1, macro_dest, cursor);
-        // we have to update RSP at the very last moment, so store it in R11 for now
-        uint64_t new_rsp = (uint64_t)sandbox->data[arg1].main_area + LOCAL_RSP_OFFSET;
-
-        // movabs r11, new_rsp
-        macro_dest[cursor] = 0x49;
-        cursor++;
-        macro_dest[cursor] = 0xbb;
-        cursor++;
-        *((uint64_t *)(macro_dest + cursor)) = new_rsp;
-        cursor += 8;
+        cursor += update_r14_rsp(arg1, macro_dest, cursor);
         break;
     }
     default:
@@ -470,7 +460,10 @@ void __attribute__((noipa)) macro_select_switch_u2h_target(void)
                        "mov rdx, rax\n"
                        "shr rdx, 32\n"
                        "mov rcx, 0xc0000082\n"
-                       "wrmsr\n");
+                       "wrmsr\n"
+                       "mov rax, 0\n"
+                       "mov rdx, 0\n"
+                       );
     asm volatile(".quad " xstr(MACRO_END));
 }
 
@@ -479,9 +472,6 @@ void __attribute__((noipa)) macro_context_switch_u2h(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""
-                       "pushfq\n"
-                       "pop rsp\n"
-                       "xchg rsp, r11\n"
                        "syscall\n"
                        "");
     asm volatile(".quad " xstr(MACRO_END));

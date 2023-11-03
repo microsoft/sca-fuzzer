@@ -28,7 +28,7 @@ from unicorn import Uc, UcError, UC_MEM_WRITE, UC_MEM_READ, UC_SECOND_SCALE, UC_
 from .interfaces import CTrace, TestCase, Model, InputTaint, Instruction, ExecutionTrace, \
     TracedInstruction, TracedMemAccess, Input, Tracer, Actor, \
     RegisterOperand, FlagsOperand, MemoryOperand, TaintTrackerInterface, TargetDesc, \
-    get_sandbox_addr, MAX_SECTION_SIZE, SANDBOX_DATA_SIZE
+    get_sandbox_addr, SANDBOX_DATA_SIZE, SANDBOX_CODE_SIZE
 from .config import CONF
 from .util import Logger, NotSupportedException
 
@@ -499,7 +499,7 @@ class UnicornSeq(UnicornModel):
         code = b''
         for section in sections:
             code += section
-            padding = MAX_SECTION_SIZE - (len(section) % MAX_SECTION_SIZE)
+            padding = SANDBOX_CODE_SIZE - (len(section) % SANDBOX_CODE_SIZE)
             code += b'\x90' * padding  # fill with NOPs
         self.code_end = self.code_start + len(code)
         self.exit_addr = self.code_start + main_actor.elf_section.size - 1
@@ -513,7 +513,7 @@ class UnicornSeq(UnicornModel):
 
         try:
             # allocate memory
-            emulator.mem_map(self.code_start, MAX_SECTION_SIZE * len(actors))
+            emulator.mem_map(self.code_start, SANDBOX_CODE_SIZE * len(actors))
             emulator.mem_map(self.data_start, self.data_end - self.data_start)
 
             # write machine code to be emulated to memory
@@ -646,7 +646,7 @@ class UnicornSeq(UnicornModel):
         # preserve context and trace the instruction
         model.previous_context = model.emulator.context_save()
         aid = model.current_actor.id_
-        section_start = model.code_start + MAX_SECTION_SIZE * aid
+        section_start = model.code_start + SANDBOX_CODE_SIZE * aid
         model.current_instruction = model.test_case.address_map[aid][address - section_start]
         model.trace_instruction(emulator, address, size, model)
 

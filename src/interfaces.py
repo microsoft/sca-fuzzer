@@ -131,7 +131,7 @@ def get_sandbox_addr(sandbox_base: int, name: str):
 
 
 # - Code layout:
-MAX_SECTION_SIZE = PAGE_SIZE
+SANDBOX_CODE_SIZE = 3 * PAGE_SIZE
 
 # ==================================================================================================
 # Actors

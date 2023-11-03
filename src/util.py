@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import NoReturn, Dict
 from pprint import pformat
 from traceback import print_stack
-from .interfaces import EquivalenceClass, MAX_SECTION_SIZE
+from .interfaces import EquivalenceClass, SANDBOX_CODE_SIZE
 from .config import CONF
 
 MASK_64BIT = pow(2, 64)
@@ -391,7 +391,7 @@ class Logger:
         if not self.dbg_model:
             return
 
-        section_offset = address - (model.code_start + model.current_actor.id_ * MAX_SECTION_SIZE)
+        section_offset = address - (model.code_start + model.current_actor.id_ * SANDBOX_CODE_SIZE)
         address_map = model.test_case.address_map[model.current_actor.id_]
         if section_offset not in address_map:
             return

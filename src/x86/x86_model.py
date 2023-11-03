@@ -15,7 +15,7 @@ from unicorn import Uc, UcError, UC_MEM_WRITE, UC_ARCH_X86, UC_MODE_64, UC_PROT_
 
 from ..interfaces import Input, FlagsOperand, RegisterOperand, MemoryOperand, AgenOperand, \
     TestCase, Instruction, Symbol, SANDBOX_DATA_SIZE, FAULTY_AREA_SIZE, OVERFLOW_PAD_SIZE, \
-    UNDERFLOW_PAD_SIZE, MAX_SECTION_SIZE, get_sandbox_addr, ActorMode
+    UNDERFLOW_PAD_SIZE, SANDBOX_CODE_SIZE, get_sandbox_addr, ActorMode
 from ..model import UnicornModel, UnicornTracer, UnicornSpec, UnicornSeq, BaseTaintTracker, \
     MacroInterpreter
 from ..util import UnreachableCode, NotSupportedException, BLUE, COL_RESET, Logger
@@ -77,7 +77,7 @@ class X86MacroInterpreter(MacroInterpreter):
         }
 
         actor_id = self.model.current_actor.id_
-        macro_offset = address - (self.model.code_start + MAX_SECTION_SIZE * actor_id)
+        macro_offset = address - (self.model.code_start + SANDBOX_CODE_SIZE * actor_id)
         macro_args = self._get_macro_args(actor_id, macro_offset)
 
         interpreter_func = macros[macro.operands[0].value.lower()[1:]]
@@ -97,7 +97,7 @@ class X86MacroInterpreter(MacroInterpreter):
           and jump to the corresponding function address
         """
         model = self.model
-        section_addr = model.code_start + MAX_SECTION_SIZE * section_id
+        section_addr = model.code_start + SANDBOX_CODE_SIZE * section_id
 
         # PC update
         function_symbol = self._find_function_by_id(function_id)
@@ -118,7 +118,7 @@ class X86MacroInterpreter(MacroInterpreter):
         """
         Decode arguments and store destination into RCX
         """
-        section_addr = self.model.code_start + MAX_SECTION_SIZE * section_id
+        section_addr = self.model.code_start + SANDBOX_CODE_SIZE * section_id
         function_symbol = self._find_function_by_id(function_id)
         function_addr = section_addr + function_symbol.offset
         self.model.emulator.reg_write(ucc.UC_X86_REG_RCX, function_addr)
@@ -137,6 +137,11 @@ class X86MacroInterpreter(MacroInterpreter):
         model.emulator.reg_write(model.uc_target_desc.actor_base_register, new_base)
         model.emulator.reg_write(model.uc_target_desc.sp_register, new_sp)
 
+        # side effects
+        flags = model.emulator.reg_read(ucc.UC_X86_REG_EFLAGS)
+        rsp = model.emulator.reg_read(ucc.UC_X86_REG_RSP)
+        model.emulator.mem_write(rsp - 8, flags.to_bytes(8, byteorder='little'))  # type: ignore
+
         # actor update
         actor_name = self.sid_to_actor_name[section_id]
         model.current_actor = self.test_case.actors[actor_name]
@@ -147,17 +152,18 @@ class X86MacroInterpreter(MacroInterpreter):
             self.model.pending_fault_id = UC_ERR_EXCEPTION
             self.model.emulator.emu_stop()
             return
+        model = self.model
 
         # update LSTAR
-        section_addr = self.model.code_start + MAX_SECTION_SIZE * section_id
+        section_addr = model.code_start + SANDBOX_CODE_SIZE * section_id
         function_symbol = self._find_function_by_id(function_id)
         function_addr = section_addr + function_symbol.offset
         self.pseudo_lstar = function_addr
 
-        # emulate register update
-        self.model.emulator.reg_write(ucc.UC_X86_REG_RAX, function_addr)
-        self.model.emulator.reg_write(ucc.UC_X86_REG_RDX, function_addr >> 32)
-        self.model.emulator.reg_write(ucc.UC_X86_REG_RCX, 0xc0000082)
+        # side effects
+        model.emulator.reg_write(ucc.UC_X86_REG_RAX, 0)
+        model.emulator.reg_write(ucc.UC_X86_REG_RDX, 0)
+        model.emulator.reg_write(ucc.UC_X86_REG_RCX, 0xc0000082)
 
     def macro_switch_u2h(self, section_id: int, _: int, __: int, ___: int):
         """ Switch the active actor, update data area base and SP, and jump to
