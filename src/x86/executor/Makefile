@@ -20,7 +20,7 @@ endif
 endif
 
 EXTRA_CFLAGS += -I$(src)/include
-EXTRA_CFLAGS += -std=gnu11 -Wno-declaration-after-statement -msse2
+EXTRA_CFLAGS += -std=gnu11 -Wno-declaration-after-statement -Wno-comment -msse2
 EXTRA_CFLAGS += -g -DDEBUG
 EXTRA_CFLAGS += \
     -DL1D_ASSOCIATIVITY=$(shell cat /sys/devices/system/cpu/cpu0/cache/index0/ways_of_associativity)

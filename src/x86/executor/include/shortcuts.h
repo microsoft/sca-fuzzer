@@ -6,9 +6,11 @@
 #ifndef _SHORTCUTS_H_
 #define _SHORTCUTS_H_
 
+#include <asm/io.h>
 #include <linux/kernel.h>
-#include <linux/slab.h>  // kfree, kmalloc
-#include <linux/vmalloc.h>  // vfree, vmalloc
+#include <linux/mm.h>
+#include <linux/slab.h>    // kfree, kmalloc
+#include <linux/vmalloc.h> // vfree, vmalloc
 
 #include <../arch/x86/include/asm/desc.h>
 

@@ -146,10 +146,16 @@ int map_user_pages(void)
     }
     old_n_actors = n_actors;
 
-    for (int actor_id = 0; actor_id < n_actors; actor_id++) {
-        // PRINT_ERR("actor_id: %d code: %llx; data: %llx \n", actor_id,
-                //   (uint64_t)&sandbox->code[actor_id], (uint64_t)&sandbox->data[actor_id]);
+    // enable user access to util pages so that the actors can store measurement results
+    for (int i = 0; i < N_UTIL_PAGES; i++) {
+        uint64_t va = (uint64_t)sandbox->util + i * 4096;
+        pteval_t *orig_pte = &orig_ptes[i];
+        err = preserve_and_set_user(va, orig_pte);
+        CHECK_ERR("preserve_and_set_user");
+    }
 
+    // enable user access to code and data pages of the sandbox that belong to user actors
+    for (int actor_id = 0; actor_id < n_actors; actor_id++) {
         // skip non-user actors
         actor_metadata_t *actor = &actors[actor_id];
         if (actor->mode != MODE_USER) {
@@ -204,6 +210,15 @@ int unmap_user_pages(void)
             CHECK_ERR("restore_user");
         }
     }
+
+    // restore PTE for util pages
+    for (int i = 0; i < N_UTIL_PAGES; i++) {
+        uint64_t va = (uint64_t)sandbox->util + i * 4096;
+        pteval_t *orig_pte = &orig_ptes[i];
+        err = restore_user(va, orig_pte);
+        CHECK_ERR("restore_user");
+    }
+
     return 0;
 }
 
