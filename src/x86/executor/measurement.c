@@ -7,11 +7,11 @@
 
 #include <asm/msr-index.h>
 
-#include "measurement.h"
 #include "code_loader.h"
 #include "data_loader.h"
 #include "input_parser.h"
 #include "main.h"
+#include "measurement.h"
 #include "sandbox_manager.h"
 #include "shortcuts.h"
 #include "test_case_parser.h"
@@ -111,7 +111,7 @@ int run_experiment(void)
     if (!quick_and_dirty_mode)
         memset(&sandbox->util->l1d_priming_area[0], 0, L1D_PRIMING_AREA_SIZE * sizeof(char));
 
-    long rounds = (long) n_inputs;
+    long rounds = (long)n_inputs;
     for (long i = -uarch_reset_rounds; i < rounds; i++) {
         // ignore "warm-up" runs (i<0)uarch_reset_rounds
         long i_ = (i < 0) ? 0 : i;
@@ -136,6 +136,8 @@ int run_experiment(void)
 
         unset_test_case_idt();
         faulty_page_pte_restore();
+        if (err)
+            goto cleanup;
 
         // store the measurement
         // printk(KERN_ERR "x86_executor: measurement %llu\n", result.htrace[0]);
@@ -147,7 +149,7 @@ int run_experiment(void)
 cleanup:
     if (test_case->features.includes_user_actors) {
         wrmsr64(MSR_LSTAR, orig_lstar);
-        err = unmap_user_pages();
+        err |= unmap_user_pages();
     }
     CHECK_ERR("run_experiment:cleanup");
 
@@ -210,7 +212,7 @@ __attribute__((unused)) void unsafe_bubble_wrapper(void)
                  "mov %[err], %%rax\n"
 
                  "ret\n"
-                 : [rsp_save] "=m"(pre_bubble_rsp), [err] "=r"(err)
+                 : [rsp_save] "=m"(pre_bubble_rsp), [err] "+a"(err)
                  :);
     // Unreachable
     asm volatile("UD2\n");
@@ -239,19 +241,16 @@ int trace_test_case(void)
     ASSERT(tc_pte && pte_present(*tc_pte) && pte_exec(*tc_pte), "trace_test_case");
 
     // Pre-measurement setup
-    kernel_fpu_begin(); // Enable FPU - just in case, we might use it within the test case
-
     err |= pfc_configure();
-    CHECK_ERR("pfc_configure");
-
-    err |= cpu_configure();
-    CHECK_ERR("cpu_configure");
+    CHECK_ERR("trace_test_case:pfc_configure");
 
     err |= faulty_page_prepare();
-    CHECK_ERR("faulty_page_prepare");
+    CHECK_ERR("trace_test_case:faulty_page_prepare");
 
+    kernel_fpu_begin(); // Enable FPU - just in case, we might use it within the test case
+    err |= cpu_configure();
     if (err)
-        return err;
+        goto trace_test_case_cleanup;
 
     // prevent preemption
     get_cpu();
@@ -265,9 +264,11 @@ int trace_test_case(void)
     // Post-measurement cleanup
     raw_local_irq_restore(flags);
     put_cpu();
+
+trace_test_case_cleanup:
     cpu_restore();
     kernel_fpu_end();
-
+    CHECK_ERR("trace_test_case:cleanup");
     return err;
 }
 
