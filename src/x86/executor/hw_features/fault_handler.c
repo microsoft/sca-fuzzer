@@ -153,19 +153,10 @@ __attribute__((unused)) void fallback_handler_wrapper(void)
         sandbox->util->latest_measurement.pfc_reading[1] - (uint64_t)loaded_test_case_entry;
 
     uint64_t cr2 = read_cr2();
-    PRINT_ERRS("fallback_handler",
-               "Test case triggered an unhandled fault:\n"
-               "  Faulting address: 0x%llx\n"
-               "  Error code: 0x%llx\n"
-               "  CR2: 0x%llx\n"
-               "  (sandbox code start: 0x%llx; data start: 0x%llx)\n",
-               sandbox->util->latest_measurement.pfc_reading[1],
-               sandbox->util->latest_measurement.pfc_reading[0], cr2,
-               (uint64_t)sandbox->code[0].section, (uint64_t)sandbox->data[0].main_area);
+    restore_orig_cpu_state();
 
     // return 1 to indicate an unhandled fault
-    asm_volatile_intel(""
-                       "mov rax, 1\n"
+    asm_volatile_intel("mov rax, 1\n"
                        "ret\n");
 }
 
@@ -204,6 +195,8 @@ __attribute__((unused)) void bubble_handler_wrapper(void)
 
     // the code below MUST match the epilogue of unsafe_bubble in measurement.c
     unset_bubble_idt();
+    restore_orig_cpu_state();
+
     asm volatile(""
                  "mov %[rsp_save], %%rsp\n"
                  "pop %%rbp\n"
@@ -220,8 +213,8 @@ __attribute__((unused)) void bubble_handler_wrapper(void)
                  "pop %%rdx\n"
                  "pop %%rcx\n"
                  "pop %%rbx\n"
-                 "mov $1, %%rax\n"
 
+                 "mov $1, %%rax\n"
                  "ret\n"
                  : [rsp_save] "=m"(pre_bubble_rsp)
                  :);

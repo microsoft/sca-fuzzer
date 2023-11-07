@@ -10,17 +10,24 @@
 #include <linux/version.h>
 
 #define HTRACE_WIDTH 1
-#define NUM_PFC 5
+#define NUM_PFC      5
 
 typedef struct Measurement {
     uint64_t htrace[HTRACE_WIDTH];
     uint64_t pfc_reading[NUM_PFC];
 } __attribute__((packed)) measurement_t;
 
+typedef struct {
+    uint64_t lstar;
+} __attribute__((packed)) cpu_state_t;
+
 extern measurement_t *measurements;
 
 int trace_test_case(void);
 int run_experiment(void);
+
+void restore_orig_cpu_state(void);
+
 int alloc_measurements(void);
 int init_measurements(void);
 void free_measurements(void);

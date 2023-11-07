@@ -21,6 +21,7 @@
 #include "hw_features/perf_counters.h"
 
 measurement_t *measurements = NULL; // global
+cpu_state_t *orig_cpu_state = NULL; // global
 
 int unsafe_bubble(void);
 
@@ -90,20 +91,32 @@ static inline int uarch_flush(void)
     return 0;
 }
 
+static inline void clear_orig_cpu_state(void) {
+    orig_cpu_state->lstar = 0;
+}
+
+void restore_orig_cpu_state(void) {
+    if (orig_cpu_state->lstar) {
+        wrmsr64(MSR_LSTAR, orig_cpu_state->lstar);
+        orig_cpu_state->lstar = 0;
+    }
+    unset_bubble_idt();   // restores original IDT regardless of the current IDTR value
+}
+
 // =================================================================================================
 // Measurement
 // =================================================================================================
 int run_experiment(void)
 {
     int err = 0;
-    uint64_t orig_lstar = 0;
+    clear_orig_cpu_state();
 
     // If necessary, configure userspace
     if (test_case->features.includes_user_actors) {
         err = map_user_pages();
-        if (err)
-            goto cleanup;
-        orig_lstar = rdmsr64(MSR_LSTAR);
+        CHECK_ERR("run_experiment:map_user_pages");
+
+        orig_cpu_state->lstar = rdmsr64(MSR_LSTAR);
         wrmsr64(MSR_LSTAR, (uint64_t)fault_handler);
     }
 
@@ -147,8 +160,8 @@ int run_experiment(void)
     }
 
 cleanup:
+    restore_orig_cpu_state();
     if (test_case->features.includes_user_actors) {
-        wrmsr64(MSR_LSTAR, orig_lstar);
         err |= unmap_user_pages();
     }
     CHECK_ERR("run_experiment:cleanup");
@@ -289,9 +302,14 @@ int alloc_measurements(void)
 int init_measurements(void)
 {
     measurements = CHECKED_VMALLOC(sizeof(measurement_t));
+    orig_cpu_state = CHECKED_ZALLOC(sizeof(cpu_state_t));
     return 0;
 }
 
 /// Destructor for the measurement module
 ///
-void free_measurements(void) { SAFE_VFREE(measurements); }
+void free_measurements(void)
+{
+    SAFE_VFREE(measurements);
+    SAFE_FREE(orig_cpu_state);
+}
