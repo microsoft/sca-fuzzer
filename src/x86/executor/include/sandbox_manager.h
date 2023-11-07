@@ -47,7 +47,8 @@ typedef struct {
     uint8_t l1d_priming_area[L1D_PRIMING_AREA_SIZE];
     uint64_t stored_rsp;              // stores the stack pointer before calling the test case
     measurement_t latest_measurement; // measurement results
-    uint8_t unused[4096 - 8 - sizeof(measurement_t)];
+    uint64_t nested_fault;            // non-zero if a fault occurs during a fault handler
+    uint8_t unused[4096 - 16 - sizeof(measurement_t)];
 } __attribute__((packed)) util_t;
 
 /// @brief Data structure representing the memory accessible by the actor's code

@@ -113,4 +113,43 @@
         x = NULL;                                                                                  \
     }
 
+// Fault handling
+#define CALL_16_TIMES(macro, arg, id)                                                              \
+    macro(arg, id##0) macro(arg, id##1) macro(arg, id##2) macro(arg, id##3) macro(arg, id##4)      \
+        macro(arg, id##5) macro(arg, id##6) macro(arg, id##7) macro(arg, id##8) macro(arg, id##9)  \
+            macro(arg, id##a) macro(arg, id##b) macro(arg, id##c) macro(arg, id##d)                \
+                macro(arg, id##e) macro(arg, id##f)
+#define CALL_256_TIMES(macro, arg)                                                                 \
+    CALL_16_TIMES(macro, arg, 0)                                                                   \
+    CALL_16_TIMES(macro, arg, 1)                                                                   \
+    CALL_16_TIMES(macro, arg, 2)                                                                   \
+    CALL_16_TIMES(macro, arg, 3)                                                                   \
+    CALL_16_TIMES(macro, arg, 4)                                                                   \
+    CALL_16_TIMES(macro, arg, 5)                                                                   \
+    CALL_16_TIMES(macro, arg, 6)                                                                   \
+    CALL_16_TIMES(macro, arg, 7)                                                                   \
+    CALL_16_TIMES(macro, arg, 8)                                                                   \
+    CALL_16_TIMES(macro, arg, 9)                                                                   \
+    CALL_16_TIMES(macro, arg, a)                                                                   \
+    CALL_16_TIMES(macro, arg, b)                                                                   \
+    CALL_16_TIMES(macro, arg, c)                                                                   \
+    CALL_16_TIMES(macro, arg, d)                                                                   \
+    CALL_16_TIMES(macro, arg, e)                                                                   \
+    CALL_16_TIMES(macro, arg, f)
+
+#define MULTI_ENTRY_HANDLER_ID(name, id)                                                           \
+    asm volatile(".global " #name "_" #id "\n"                                                     \
+                 "" #name "_" #id ":\n"                                                            \
+                 "mov $0x" #id ", %%rax\n"                                                         \
+                 "jmp " #name "\n" ::                                                              \
+                     : "memory");
+#define MULTI_ENTRY_HANDLER(name) CALL_256_TIMES(MULTI_ENTRY_HANDLER_ID, name)
+
+#define MULTI_ENTRY_HANDLER_DECLARATIONS_ID(name, id) void name##_##id(void);
+#define MULTI_ENTRY_HANDLER_DECLARATIONS(name)                                                     \
+    CALL_256_TIMES(MULTI_ENTRY_HANDLER_DECLARATIONS_ID, name)
+
+#define MULTI_ENTRY_HANDLER_LIST_ID(name, id) name##_##id,
+#define MULTI_ENTRY_HANDLER_LIST(name)        CALL_256_TIMES(MULTI_ENTRY_HANDLER_LIST_ID, name)
+
 #endif // _SHORTCUTS_H_
