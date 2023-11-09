@@ -26,6 +26,7 @@ EXTRA_CFLAGS += \
     -DL1D_ASSOCIATIVITY=$(shell cat /sys/devices/system/cpu/cpu0/cache/index0/ways_of_associativity)
 EXTRA_CFLAGS += -DVENDOR_ID=$(VENDOR_ID)
 EXTRA_CFLAGS += -DCPU_FAMILY=$(CPU_FAMILY)
+EXTRA_CFLAGS += -DFORCE_SMAP_OFF
 
 ifdef VMBUILD
 EXTRA_CFLAGS += -DVMBUILD

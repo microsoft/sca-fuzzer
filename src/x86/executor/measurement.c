@@ -113,6 +113,12 @@ int run_experiment(void)
 
     // If necessary, configure userspace
     if (test_case->features.includes_user_actors) {
+#ifdef FORCE_SMAP_OFF
+        uint64_t cr4 = __read_cr4();
+        cr4 &= ~(X86_CR4_SMAP | X86_CR4_SMEP);
+        asm volatile("mov %0, %%cr4" : : "r"(cr4));
+#endif
+
         err = map_user_pages();
         CHECK_ERR("run_experiment:map_user_pages");
 
