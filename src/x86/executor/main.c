@@ -211,7 +211,6 @@ static struct bin_attribute *bin_sysfs_attributes[] = {
 int next_measurement_id = -1;
 static ssize_t trace_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
-    unfinished_call = true;
     int count = 0;
     int retval = 0;
 
@@ -220,6 +219,7 @@ static ssize_t trace_show(struct kobject *kobj, struct kobj_attribute *attr, cha
     ASSERT(tc_parsing_completed(), "trace_show");
 
     // start a new measurement?
+    unfinished_call = true;
     if (next_measurement_id < 0) {
         int err = trace_test_case();
         if (err)
@@ -228,6 +228,7 @@ static ssize_t trace_show(struct kobject *kobj, struct kobj_attribute *attr, cha
         // start printing the results
         next_measurement_id = n_inputs - 1;
     }
+    unfinished_call = false;
 
     // print the results, but make sure we can continue later if we run out of space in buf
     for (; next_measurement_id >= 0; next_measurement_id--) {
@@ -243,7 +244,6 @@ static ssize_t trace_show(struct kobject *kobj, struct kobj_attribute *attr, cha
             return -1;
         count += retval;
     }
-    unfinished_call = false;
     count += sprintf(&buf[count], "done\n");
     return count;
 }
