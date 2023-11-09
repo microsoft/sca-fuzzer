@@ -91,16 +91,18 @@ static inline int uarch_flush(void)
     return 0;
 }
 
-static inline void clear_orig_cpu_state(void) {
-    orig_cpu_state->lstar = 0;
-}
+static inline void clear_orig_cpu_state(void) { orig_cpu_state->lstar = 0; }
 
-void restore_orig_cpu_state(void) {
+void recover_orig_state(void)
+{
     if (orig_cpu_state->lstar) {
         wrmsr64(MSR_LSTAR, orig_cpu_state->lstar);
         orig_cpu_state->lstar = 0;
     }
-    unset_bubble_idt();   // restores original IDT regardless of the current IDTR value
+    unset_bubble_idt(); // restores original IDT regardless of the current IDTR value
+    if (test_case->features.includes_user_actors) {
+        unmap_user_pages();
+    }
 }
 
 // =================================================================================================
@@ -166,12 +168,8 @@ int run_experiment(void)
     }
 
 cleanup:
-    restore_orig_cpu_state();
-    if (test_case->features.includes_user_actors) {
-        err |= unmap_user_pages();
-    }
+    recover_orig_state();
     CHECK_ERR("run_experiment:cleanup");
-
     return err;
 }
 

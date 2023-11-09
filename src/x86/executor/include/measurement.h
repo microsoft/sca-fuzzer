@@ -26,7 +26,7 @@ extern measurement_t *measurements;
 int trace_test_case(void);
 int run_experiment(void);
 
-void restore_orig_cpu_state(void);
+void recover_orig_state(void);
 
 int alloc_measurements(void);
 int init_measurements(void);

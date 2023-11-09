@@ -140,7 +140,7 @@
 #define MULTI_ENTRY_HANDLER_ID(name, id)                                                           \
     asm volatile(".global " #name "_" #id "\n"                                                     \
                  "" #name "_" #id ":\n"                                                            \
-                 "mov $0x" #id ", %%rax\n"                                                         \
+                 "mov $0x" #id ", %%r13\n"                                                         \
                  "jmp " #name "\n" ::                                                              \
                      : "memory");
 #define MULTI_ENTRY_HANDLER(name) CALL_256_TIMES(MULTI_ENTRY_HANDLER_ID, name)
