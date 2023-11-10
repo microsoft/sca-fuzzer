@@ -323,7 +323,9 @@ class Conf:
         name = update['name']
         if name == "main":
             if update.get('mode', 'host') != 'host':
-                raise ConfigException("ERROR: The main actor must be in host mode")
+                raise ConfigException("ERROR: The main actor must be in 'host' mode")
+            if update.get('privilege_level', 'kernel') != 'kernel':
+                raise ConfigException("ERROR: The main actor must have 'kernel' privilege_level")
 
         if name in self._actors:
             entry = self._actors[name]
@@ -333,6 +335,8 @@ class Conf:
         for k, v in update.items():
             if k == "mode" and v not in self._option_values["actor_mode"]:
                 raise ConfigException(f"ERROR: Unsupported actor mode {v}")
+            if k == "privilege_level" and v not in self._option_values["actor_privilege_level"]:
+                raise ConfigException(f"ERROR: Unsupported actor privilege_level {v}")
             entry[k] = v
         self._actors[name] = entry
 

@@ -15,7 +15,7 @@ from unicorn import Uc, UcError, UC_MEM_WRITE, UC_ARCH_X86, UC_MODE_64, UC_PROT_
 
 from ..interfaces import Input, FlagsOperand, RegisterOperand, MemoryOperand, AgenOperand, \
     TestCase, Instruction, Symbol, SANDBOX_DATA_SIZE, FAULTY_AREA_SIZE, OVERFLOW_PAD_SIZE, \
-    UNDERFLOW_PAD_SIZE, SANDBOX_CODE_SIZE, get_sandbox_addr, ActorMode
+    UNDERFLOW_PAD_SIZE, SANDBOX_CODE_SIZE, get_sandbox_addr, ActorPL
 from ..model import UnicornModel, UnicornTracer, UnicornSpec, UnicornSeq, BaseTaintTracker, \
     MacroInterpreter
 from ..util import UnreachableCode, NotSupportedException, BLUE, COL_RESET, Logger
@@ -147,8 +147,8 @@ class X86MacroInterpreter(MacroInterpreter):
         model.current_actor = self.test_case.actors[actor_name]
 
     def macro_select_switch_u2h_target(self, section_id: int, function_id: int, _: int, __: int):
-        """ Set LSTAR to the target address if in host mode; otherwise, throw an exception """
-        if self.model.current_actor.mode != ActorMode.HOST:
+        """ Set LSTAR to the target address if in kernel mode; otherwise, throw an exception """
+        if self.model.current_actor.privilege_level != ActorPL.KERNEL:
             self.model.pending_fault_id = UC_ERR_EXCEPTION
             self.model.emulator.emu_stop()
             return

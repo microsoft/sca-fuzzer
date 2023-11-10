@@ -143,7 +143,11 @@ ActorName = str
 class ActorMode(Enum):
     HOST = 0
     GUEST = 1
-    USER = 2
+
+
+class ActorPL(Enum):
+    KERNEL = 0
+    USER = 1
 
 
 class ElfSection(NamedTuple):
@@ -155,13 +159,15 @@ class ElfSection(NamedTuple):
 class Actor:
     name: ActorName
     mode: ActorMode
+    privilege_level: ActorPL
     id_: ActorID
     elf_section: Optional[ElfSection] = None
     data_properties: int = 0
     code_properties: int = 0  # unused so far
 
-    def __init__(self, mode: ActorMode, id_: ActorID, name: ActorName) -> None:
+    def __init__(self, mode: ActorMode, pl: ActorPL, id_: ActorID, name: ActorName) -> None:
         self.mode = mode
+        self.privilege_level = pl
         self.id_ = id_
         self.name = name
 
@@ -694,7 +700,7 @@ class TestCase:
 
     def __init__(self, seed: int):
         self.seed = seed
-        self.actors = {"main": Actor(ActorMode.HOST, 0, "main")}
+        self.actors = {"main": Actor(ActorMode.HOST, ActorPL.KERNEL, 0, "main")}
         self.functions = []
         self.address_map = {}
         self.symbol_table = []

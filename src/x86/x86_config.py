@@ -41,12 +41,16 @@ _option_values = {
     'actor': [
         'name',
         'mode',
+        'privilege_level',
         # 'data_properties',  # under construction
         # 'code_properties',  # under construction
     ],
     "actor_mode": [
         'host',
         'guest',
+    ],
+    "actor_privilege_level": [
+        'kernel',
         'user',
     ],
     'instruction_categories': [
@@ -201,6 +205,7 @@ _generator_fault_to_fault_name = {
 _actor_default = {
     'name': "main",
     'mode': "host",
+    'privilege_level': "kernel",
     # 'data_properties': {
     #     'present': True,
     #     'writable': True,

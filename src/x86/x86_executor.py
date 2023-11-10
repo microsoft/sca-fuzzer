@@ -210,6 +210,7 @@ class X86Executor(Executor):
             for actor in actors:
                 f.write((actor.id_).to_bytes(8, byteorder='little'))
                 f.write((actor.mode.value).to_bytes(8, byteorder='little'))
+                f.write((actor.privilege_level.value).to_bytes(8, byteorder='little'))
                 f.write((actor.data_properties).to_bytes(8, byteorder='little'))
                 f.write((actor.code_properties).to_bytes(8, byteorder='little'))
 

@@ -158,7 +158,7 @@ int map_user_pages(void)
     for (int actor_id = 0; actor_id < n_actors; actor_id++) {
         // skip non-user actors
         actor_metadata_t *actor = &actors[actor_id];
-        if (actor->mode != MODE_USER) {
+        if (actor->pl != PL_USER) {
             continue;
         }
         int org_ptes_offset =
@@ -189,7 +189,7 @@ int unmap_user_pages(void)
     for (int actor_id = 0; actor_id < n_actors; actor_id++) {
         // skip non-user actors
         actor_metadata_t *actor = &actors[actor_id];
-        if (actor->mode != MODE_USER) {
+        if (actor->pl != PL_USER) {
             continue;
         }
         int org_ptes_offset =
