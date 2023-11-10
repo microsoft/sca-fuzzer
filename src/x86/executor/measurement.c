@@ -229,6 +229,7 @@ __attribute__((unused)) void unsafe_bubble_wrapper(void)
                  "mov %[err], %%rax\n"
 
                  "ret\n"
+                 "int3\n" // Silences objtool warnings about no int3 after ret
                  : [rsp_save] "=m"(pre_bubble_rsp), [err] "+a"(err)
                  :);
     // Unreachable
