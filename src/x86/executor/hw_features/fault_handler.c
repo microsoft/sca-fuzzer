@@ -177,6 +177,7 @@ __attribute__((unused)) void nmi_handler_wrapper(void)
                  "pop %%rbx\n"
                  "mov $0, %%rax\n"
                  "ret\n"
+                 "int3\n" // Silences objtool warnings about no int3 after ret
                  : [rsp_save] "=m"(pre_bubble_rsp)
                  :);
 }
@@ -267,7 +268,9 @@ __attribute__((unused)) void fallback_handler_wrapper(void)
 
     // return 1 to indicate an unhandled fault
     asm_volatile_intel("mov rax, 1\n"
-                       "ret\n");
+                       "ret\n"
+                       "int3\n" // Silences objtool warnings about no int3 after ret
+                       );
 }
 
 __attribute__((unused)) void bubble_handler_wrapper(void)
@@ -355,6 +358,7 @@ __attribute__((unused)) void bubble_handler_wrapper(void)
 
                  "mov $1, %%rax\n"
                  "ret\n"
+                 "int3\n" // Silences objtool warnings about no int3 after ret
                  : [rsp_save] "=m"(pre_bubble_rsp)
                  :);
 }

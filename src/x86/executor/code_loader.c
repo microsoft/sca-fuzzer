@@ -356,6 +356,7 @@ static inline void epilogue(void)
         // return 0
         "mov rax, 0\n"
         "ret\n"
+        "int3\n" // Silences objtool warnings about no int3 after ret
     );
 }
 
@@ -388,6 +389,7 @@ static inline void epilogue_dbg_gpr(void)
         // return 0
         "mov rax, 0\n"
         "ret\n"
+        "int3\n" // Silences objtool warnings about no int3 after ret
     );
 }
 // clang-format on
