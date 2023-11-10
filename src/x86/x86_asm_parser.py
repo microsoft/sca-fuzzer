@@ -222,9 +222,9 @@ class X86AsmParser(AsmParserGeneric):
             with open(patched_asm_file, "w") as patched:
                 for line in f:
                     line = line.strip().lower()
-                    if line.startswith(".macro.measurement_start:"):
+                    if line.startswith(".macro.measurement_start"):
                         has_measurement_start = True
-                    elif line.startswith(".macro.measurement_end:"):
+                    elif line.startswith(".macro.measurement_end"):
                         has_measurement_end = True
 
                     if not enter_found:
