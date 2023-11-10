@@ -13,6 +13,7 @@
 ///     | actor_metadata_t:                   | ACTOR TABLE
 ///     |   - id (actor_id_t)                 |
 ///     |   - mode (actor_mode_t)             |
+///     |   - pl (actor_pl_t)                 |
 ///     |   - data_permissions (uint64_t)     |
 ///     |   - uint64_t (code_permissions)     |
 ///     | x n_actors                          |
@@ -160,6 +161,19 @@ static int __batch_tc_parsing_end(void)
     if (!has_main) {
         PRINT_ERRS("__batch_tc_parsing_end", "Symbol table does not contain main function\n");
         return -1;
+    }
+
+    // Set test case features
+    // (so far only VM mode; more to come in the future)
+    for (int i = 0; i < n_actors; i++) {
+        if (actors[i].mode == MODE_GUEST) {
+            test_case->features.includes_vm_actors = true;
+            break;
+        }
+        if (actors[i].pl == PL_USER) {
+            test_case->features.includes_user_actors = true;
+            break;
+        }
     }
     return 0;
 }

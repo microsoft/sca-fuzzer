@@ -41,12 +41,17 @@ _option_values = {
     'actor': [
         'name',
         'mode',
+        'privilege_level',
         # 'data_properties',  # under construction
         # 'code_properties',  # under construction
     ],
     "actor_mode": [
         'host',
         'guest',
+    ],
+    "actor_privilege_level": [
+        'kernel',
+        'user',
     ],
     'instruction_categories': [
         # Base x86 - user instructions
@@ -80,6 +85,8 @@ _option_values = {
         # "BASE-SYSCALL",     # Not supported: System instructions
         # "BASE-SYSRET",      # Not supported: System instructions
         # "BASE-SYSTEM",      # Not supported: System instructions
+        "LONGMODE-SYSCALL",
+        "LONGMODE-SYSRET",
 
         # SIMD extensions
         "SSE-SSE",
@@ -198,6 +205,7 @@ _generator_fault_to_fault_name = {
 _actor_default = {
     'name': "main",
     'mode': "host",
+    'privilege_level': "kernel",
     # 'data_properties': {
     #     'present': True,
     #     'writable': True,

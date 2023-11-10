@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import NoReturn, Dict
 from pprint import pformat
 from traceback import print_stack
-from .interfaces import EquivalenceClass, MAX_SECTION_SIZE
+from .interfaces import EquivalenceClass, SANDBOX_CODE_SIZE
 from .config import CONF
 
 MASK_64BIT = pow(2, 64)
@@ -129,8 +129,9 @@ class Logger:
     # debugging specific modules
     dbg_timestamp: bool = False
     dbg_violation: bool = False
-    dbg_traces: bool = False
-    dbg_traces_all: bool = False
+    dbg_dump_htraces: bool = False
+    dbg_dump_ctraces: bool = False
+    dbg_dump_traces_unlimited: bool = False
     dbg_model: bool = False
     dbg_coverage: bool = False
     dbg_generator: bool = False
@@ -151,8 +152,8 @@ class Logger:
                 self.debug = True
 
         if not __debug__:
-            if self.dbg_timestamp or self.dbg_model or self.dbg_coverage or self.dbg_traces\
-               or self.dbg_generator:
+            if self.dbg_timestamp or self.dbg_model or self.dbg_coverage or self.dbg_dump_htraces \
+               or self.dbg_dump_ctraces or self.dbg_generator:
                 self.warning(
                     "", "Current value of `logging_modes` requires debugging mode!\n"
                     "Remove '-O' from python arguments")
@@ -283,14 +284,14 @@ class Logger:
     def trc_fuzzer_dump_traces(self, model, inputs, htraces, ctraces, hw_feedback, nesting):
         if not __debug__:
             return
-        if not self.dbg_traces:
+        if not self.dbg_dump_htraces and not self.dbg_dump_ctraces:
             return
 
         print("\n================================ Collected Traces =============================")
 
         if CONF.contract_observation_clause == 'l1d':
             for i in range(len(htraces)):
-                if i > 100 and not self.dbg_traces_all:
+                if i > 100 and not self.dbg_dump_traces_unlimited:
                     self.warning("fuzzer", "Trace output is limited to 100 traces")
                     break
                 ctrace = ctraces[i]
@@ -304,14 +305,16 @@ class Logger:
         org_debug_state = self.dbg_model
         self.dbg_model = False
         for i in range(len(htraces)):
-            if i > 100 and not self.dbg_traces_all:
+            if i > 100 and not self.dbg_dump_traces_unlimited:
                 self.warning("fuzzer", "Trace output is limited to 100 traces")
                 break
             ctrace_full = model.dbg_get_trace_detailed(inputs[i], nesting)
             print(f"- Input {i}:")
-            print(f"  CTr: {ctrace_colorize(ctrace_full) if CONF.color else ctrace_full} "
-                  f"| Hash: {ctraces[i]}")
-            print(f"  HTr: {pretty_trace(htraces[i])}")
+            if self.dbg_dump_ctraces:
+                print(f"  CTr: {ctrace_colorize(ctrace_full) if CONF.color else ctrace_full} "
+                      f"| Hash: {ctraces[i]}")
+            if self.dbg_dump_htraces:
+                print(f"  HTr: {pretty_trace(htraces[i])}")
             if CONF.color and hw_feedback[i][0] > hw_feedback[i][1]:
                 print(f"  Feedback: {YELLOW}{hw_feedback[i]}{COL_RESET}")
             else:
@@ -389,7 +392,7 @@ class Logger:
         if not self.dbg_model:
             return
 
-        section_offset = address - (model.code_start + model.current_actor.id_ * MAX_SECTION_SIZE)
+        section_offset = address - (model.code_start + model.current_actor.id_ * SANDBOX_CODE_SIZE)
         address_map = model.test_case.address_map[model.current_actor.id_]
         if section_offset not in address_map:
             return

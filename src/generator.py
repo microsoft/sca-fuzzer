@@ -15,7 +15,7 @@ from subprocess import CalledProcessError, run
 from .isa_loader import InstructionSet
 from .interfaces import Generator, TestCase, Operand, RegisterOperand, FlagsOperand, \
     MemoryOperand, ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, \
-    Function, OperandSpec, InstructionSpec, CondOperand, Actor, ActorMode
+    Function, OperandSpec, InstructionSpec, CondOperand, Actor, ActorMode, ActorPL
 from .util import NotSupportedException, Logger
 from .config import CONF
 
@@ -188,12 +188,19 @@ class ConfigurableGenerator(Generator, abc.ABC):
             else:
                 assert False, f"Invalid actor mode: {desc['mode']}"
 
+            if desc['privilege_level'] == "kernel":
+                pl = ActorPL.KERNEL
+            elif desc['privilege_level'] == "user":
+                pl = ActorPL.USER
+            else:
+                assert False, f"Invalid actor privilege_level: {desc['privilege_level']}"
+
             # create the actor
             if name == "main":
                 actor = test_case.actors["main"]
             else:
                 id_ = 0  # will be assigned later by the ELF parser
-                actor = Actor(mode, id_, name)
+                actor = Actor(mode, pl, id_, name)
 
             # check for duplicates (this should never be possible, but just in case)
             assert name not in test_case.actors or test_case.actors[name] == actor, "Duplicate actr"

@@ -131,11 +131,26 @@ class X86TargetDesc(TargetDesc):
         "pkey_bit3": (62, False),  # Protection Keys, bit 4/4
         "non_executable": (63, False),  # No execute: only valid after cpuid check
     }
+
+    # FIXME: macro IDs should not be hardcoded but rather received from the executor
+    # or at least we need a test that will check that the IDs match
     macro_specs = {
-        "function": MacroSpec(0, "function", ("", "", "", "")),
-        "measurement_start": MacroSpec(1, "measurement_start", ("", "", "", "")),
-        "measurement_end": MacroSpec(2, "measurement_end", ("", "", "", "")),
-        "switch": MacroSpec(3, "switch", ("actor_id", "function_id", "", "")),
+        "function":
+            MacroSpec(0, "function", ("", "", "", "")),
+        "measurement_start":
+            MacroSpec(1, "measurement_start", ("", "", "", "")),
+        "measurement_end":
+            MacroSpec(2, "measurement_end", ("", "", "", "")),
+        "switch":
+            MacroSpec(3, "switch", ("actor_id", "function_id", "", "")),
+        "switch_h2u":
+            MacroSpec(4, "switch_h2u", ("actor_id", "", "", "")),
+        "switch_u2h":
+            MacroSpec(5, "switch_u2h", ("actor_id", "", "", "")),
+        "select_switch_h2u_target":
+            MacroSpec(6, "select_switch_h2u_target", ("actor_id", "function_id", "", "")),
+        "select_switch_u2h_target":
+            MacroSpec(7, "select_switch_u2h_target", ("actor_id", "function_id", "", "")),
     }
 
     def __init__(self):

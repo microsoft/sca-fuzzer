@@ -46,6 +46,8 @@ logging_modes:
   - stat
   # - dbg_timestamp
   # - dbg_violation
-  # - dbg_traces
+  # - dbg_dump_htraces
+  # - dbg_dump_ctraces
+  # - dbg_dump_traces_unlimited
   # - dbg_model
   # - dbg_coverage

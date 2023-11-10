@@ -166,7 +166,7 @@ class X86RandomGeneratorTest(unittest.TestCase):
 
     def test_x86_asm_parsing_section(self):
         prev_actors = deepcopy(CONF._actors)
-        CONF._actors["guest_1"] = {"name": "guest_1", "mode": "guest"}
+        CONF._actors["guest_1"] = {"name": "guest_1", "mode": "guest", "privilege_level": "kernel"}
 
         instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix())
         generator = X86RandomGenerator(instruction_set, CONF.program_generator_seed)
@@ -201,7 +201,7 @@ class X86RandomGeneratorTest(unittest.TestCase):
 
     def test_x86_asm_parsing_symbols(self):
         prev_actors = deepcopy(CONF._actors)
-        CONF._actors["guest_1"] = {"name": "guest_1", "mode": "guest"}
+        CONF._actors["guest_1"] = {"name": "guest_1", "mode": "guest", "privilege_level": "kernel"}
 
         instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix())
         generator = X86RandomGenerator(instruction_set, CONF.program_generator_seed)

@@ -6,18 +6,19 @@ SPDX-License-Identifier: MIT
 """
 import re
 import numpy as np
-from typing import Tuple, Dict, List, Set, NamedTuple
+from typing import Tuple, Dict, List, Set, NamedTuple, Callable
 import copy
 
 import unicorn.x86_const as ucc  # type: ignore
-from unicorn import Uc, UC_MEM_WRITE, UC_ARCH_X86, UC_MODE_64, UC_PROT_READ, UC_PROT_NONE, \
-    UC_ERR_WRITE_PROT
+from unicorn import Uc, UcError, UC_MEM_WRITE, UC_ARCH_X86, UC_MODE_64, UC_PROT_READ, \
+    UC_PROT_NONE, UC_ERR_WRITE_PROT, UC_ERR_NOMEM, UC_ERR_EXCEPTION
 
 from ..interfaces import Input, FlagsOperand, RegisterOperand, MemoryOperand, AgenOperand, \
-    TestCase, SANDBOX_DATA_SIZE, FAULTY_AREA_SIZE, OVERFLOW_PAD_SIZE, UNDERFLOW_PAD_SIZE, \
-    get_sandbox_addr
-from ..model import UnicornModel, UnicornTracer, UnicornSpec, UnicornSeq, BaseTaintTracker
-from ..util import UnreachableCode, NotSupportedException, BLUE, COL_RESET
+    TestCase, Instruction, Symbol, SANDBOX_DATA_SIZE, FAULTY_AREA_SIZE, OVERFLOW_PAD_SIZE, \
+    UNDERFLOW_PAD_SIZE, SANDBOX_CODE_SIZE, get_sandbox_addr, ActorPL
+from ..model import UnicornModel, UnicornTracer, UnicornSpec, UnicornSeq, BaseTaintTracker, \
+    MacroInterpreter
+from ..util import UnreachableCode, NotSupportedException, BLUE, COL_RESET, Logger
 from ..config import CONF
 from .x86_target_desc import X86UnicornTargetDesc, X86TargetDesc
 
@@ -31,6 +32,158 @@ FLAGS_IF = 0b001000000000
 FLAGS_DF = 0b010000000000
 FLAGS_OF = 0b100000000000
 
+CRITICAL_ERROR = UC_ERR_NOMEM  # the model never handles this error, hence it will always crash
+
+
+class X86MacroInterpreter(MacroInterpreter):
+    pseudo_lstar: int
+
+    def __init__(self, model: UnicornSeq):
+        self.model = model
+
+    def load_test_case(self, test_case: TestCase):
+        self.test_case = test_case
+        self.function_table = [symbol for symbol in test_case.symbol_table if symbol.type_ == 0]
+        self.function_table.sort(key=lambda s: [s.arg])
+        self.macro_table = [symbol for symbol in test_case.symbol_table if symbol.type_ != 0]
+        self.sid_to_actor_name = {actor.id_: name for name, actor in test_case.actors.items()}
+        self.pseudo_lstar = self.model.exit_addr
+
+    def _get_macro_args(self, section_id: int, section_offset: int) -> Tuple[int, int, int, int]:
+        # find the macro entry in the symbol table
+        for symbol in self.macro_table:
+            if symbol.aid == section_id and symbol.offset == section_offset:
+                args = symbol.arg
+                return args & 0xFFFF, (args >> 16) & 0xFFFF, (args >> 32) & 0xFFFF, \
+                    (args >> 48) & 0xFFFF
+        Logger().warning("get_macro_args", "macro not found in symbol table")
+        raise UcError(CRITICAL_ERROR)
+
+    def _find_function_by_id(self, function_id: int) -> Symbol:
+        if function_id < 0 or function_id >= len(self.function_table):
+            Logger().warning("find_function_by_id", "function not found in symbol table")
+            raise UcError(CRITICAL_ERROR)
+        return self.function_table[function_id]
+
+    def interpret(self, macro: Instruction, address: int):
+        macros: Dict[str, Callable] = {
+            "measurement_start": self.macro_measurement_start,
+            "measurement_end": self.macro_measurement_end,
+            "switch": self.macro_switch,
+            "switch_h2u": self.macro_switch_h2u,
+            "switch_u2h": self.macro_switch_u2h,
+            "select_switch_h2u_target": self.macro_select_switch_h2u_target,
+            "select_switch_u2h_target": self.macro_select_switch_u2h_target,
+        }
+
+        actor_id = self.model.current_actor.id_
+        macro_offset = address - (self.model.code_start + SANDBOX_CODE_SIZE * actor_id)
+        macro_args = self._get_macro_args(actor_id, macro_offset)
+
+        interpreter_func = macros[macro.operands[0].value.lower()[1:]]
+        interpreter_func(*macro_args)
+
+    def macro_measurement_start(self, _: int, __: int, ___: int, ____: int):
+        if not self.model.in_speculation:
+            self.model.tracer.enable_tracing = True
+
+    def macro_measurement_end(self, _: int, __: int, ___: int, ____: int):
+        if not self.model.in_speculation:
+            self.model.tracer.enable_tracing = False
+
+    def macro_switch(self, section_id: int, function_id: int, _: int, __: int):
+        """
+        Switch the active actor, update data area base and SP,
+          and jump to the corresponding function address
+        """
+        model = self.model
+        section_addr = model.code_start + SANDBOX_CODE_SIZE * section_id
+
+        # PC update
+        function_symbol = self._find_function_by_id(function_id)
+        function_addr = section_addr + function_symbol.offset
+        model.emulator.reg_write(model.uc_target_desc.pc_register, function_addr)
+
+        # data area base and SP update
+        new_base = model.sandbox_base + SANDBOX_DATA_SIZE * section_id
+        new_sp = get_sandbox_addr(new_base, "sp")
+        model.emulator.reg_write(model.uc_target_desc.actor_base_register, new_base)
+        model.emulator.reg_write(model.uc_target_desc.sp_register, new_sp)
+
+        # actor update
+        actor_name = self.sid_to_actor_name[section_id]
+        model.current_actor = self.test_case.actors[actor_name]
+
+    def macro_select_switch_h2u_target(self, section_id: int, function_id: int, _: int, __: int):
+        """
+        Decode arguments and store destination into RCX
+        """
+        section_addr = self.model.code_start + SANDBOX_CODE_SIZE * section_id
+        function_symbol = self._find_function_by_id(function_id)
+        function_addr = section_addr + function_symbol.offset
+        self.model.emulator.reg_write(ucc.UC_X86_REG_RCX, function_addr)
+
+    def macro_switch_h2u(self, section_id: int, _: int, __: int, ___: int):
+        """ Read the destination from RCX and jump to it; also update data area base and SP """
+        model = self.model
+
+        # PC update
+        target = model.emulator.reg_read(ucc.UC_X86_REG_RCX)
+        model.emulator.reg_write(model.uc_target_desc.pc_register, target)
+
+        # data area base and SP update
+        new_base = model.sandbox_base + SANDBOX_DATA_SIZE * section_id
+        new_sp = get_sandbox_addr(new_base, "sp")
+        model.emulator.reg_write(model.uc_target_desc.actor_base_register, new_base)
+        model.emulator.reg_write(model.uc_target_desc.sp_register, new_sp)
+
+        # side effects
+        flags = model.emulator.reg_read(ucc.UC_X86_REG_EFLAGS)
+        rsp = model.emulator.reg_read(ucc.UC_X86_REG_RSP)
+        model.emulator.mem_write(rsp - 8, flags.to_bytes(8, byteorder='little'))  # type: ignore
+
+        # actor update
+        actor_name = self.sid_to_actor_name[section_id]
+        model.current_actor = self.test_case.actors[actor_name]
+
+    def macro_select_switch_u2h_target(self, section_id: int, function_id: int, _: int, __: int):
+        """ Set LSTAR to the target address if in kernel mode; otherwise, throw an exception """
+        if self.model.current_actor.privilege_level != ActorPL.KERNEL:
+            self.model.pending_fault_id = UC_ERR_EXCEPTION
+            self.model.emulator.emu_stop()
+            return
+        model = self.model
+
+        # update LSTAR
+        section_addr = model.code_start + SANDBOX_CODE_SIZE * section_id
+        function_symbol = self._find_function_by_id(function_id)
+        function_addr = section_addr + function_symbol.offset
+        self.pseudo_lstar = function_addr
+
+        # side effects
+        model.emulator.reg_write(ucc.UC_X86_REG_RAX, 0)
+        model.emulator.reg_write(ucc.UC_X86_REG_RDX, 0)
+        model.emulator.reg_write(ucc.UC_X86_REG_RCX, 0xc0000082)
+
+    def macro_switch_u2h(self, section_id: int, _: int, __: int, ___: int):
+        """ Switch the active actor, update data area base and SP, and jump to
+            the pseudo_lstar
+        """
+        model = self.model
+
+        # PC update
+        model.emulator.reg_write(model.uc_target_desc.pc_register, self.pseudo_lstar)
+
+        # data area base and SP update
+        new_base = model.sandbox_base + SANDBOX_DATA_SIZE * section_id
+        new_sp = get_sandbox_addr(new_base, "sp")
+        model.emulator.reg_write(model.uc_target_desc.actor_base_register, new_base)
+        model.emulator.reg_write(model.uc_target_desc.sp_register, new_sp)
+
+        # actor update
+        actor_name = self.sid_to_actor_name[section_id]
+        model.current_actor = self.test_case.actors[actor_name]
+
 
 class X86UnicornSeq(UnicornSeq):
     """
@@ -42,6 +195,7 @@ class X86UnicornSeq(UnicornSeq):
 
     def __init__(self, sandbox_base, code_start):
         super().__init__(sandbox_base, code_start)
+        self.macro_interpreter = X86MacroInterpreter(self)
 
         self.target_desc = X86TargetDesc()
         self.uc_target_desc = X86UnicornTargetDesc()
