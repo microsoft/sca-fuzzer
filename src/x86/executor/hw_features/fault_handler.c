@@ -7,6 +7,7 @@
 #include <linux/interrupt.h>
 
 #include "code_loader.h"
+#include "main.h"
 #include "measurement.h"
 #include "sandbox_manager.h"
 #include "shortcuts.h"
@@ -27,6 +28,17 @@ static struct desc_ptr test_case_idtr = {0};
 
 void fallback_handler(void);
 void bubble_handler(void);
+void nmi_handler(void);
+
+MULTI_ENTRY_HANDLER_DECLARATIONS(fallback_handler);
+static void *fallback_handlers[] = {
+    MULTI_ENTRY_HANDLER_LIST(fallback_handler) NULL,
+};
+
+MULTI_ENTRY_HANDLER_DECLARATIONS(bubble_handler);
+static void *bubble_handlers[] = {
+    MULTI_ENTRY_HANDLER_LIST(bubble_handler) NULL,
+};
 
 // =================================================================================================
 // IDT management
@@ -41,7 +53,7 @@ static void inline native_lidt(void *dtr)
     asm volatile("lidt %0" ::"m"(*((struct desc_ptr *)dtr)));
 }
 
-static void set_intr_gate(gate_desc *idt, int interrupt_id, void *handler)
+static void set_intr_gate_default(gate_desc *idt, int interrupt_id, void *handler)
 {
     gate_desc desc = {
         .offset_low = (u16)(unsigned long)handler,
@@ -55,18 +67,35 @@ static void set_intr_gate(gate_desc *idt, int interrupt_id, void *handler)
 }
 
 void idt_set_custom_handlers(gate_desc *idt, struct desc_ptr *idtr, void *main_handler,
-                             void *secondary_handler, void *nmi_handler)
+                             void **secondary_handlers)
 {
     for (uint8_t idx = 0; idx < 255; idx++) {
-        if (idx == 2) {
-            set_intr_gate(idt, idx, nmi_handler);
+        if (idx == X86_TRAP_NMI) {
+            set_intr_gate_default(idt, idx, nmi_handler);
             continue;
         }
 
         if (BIT_CHECK(handled_faults, idx)) {
-            set_intr_gate(idt, idx, main_handler);
-        } else {
-            set_intr_gate(idt, idx, secondary_handler);
+            set_intr_gate_default(idt, idx, main_handler);
+            continue;
+        }
+
+        switch (idx) {
+        // if we ever get a machine check exception, the CPU is definitely in a bad state
+        // so we should let OS handle it
+        case X86_TRAP_DF:
+        case X86_TRAP_MC:
+        case 9:
+        case 15:
+        case 22 ... 31: {
+            gate_desc *org_handler = &((gate_desc *)orig_idtr.address)[idx];
+            write_idt_entry(idt, idx, org_handler);
+            break;
+        }
+        default:
+            // all other exceptions are dispatched to the secondary handler
+            set_intr_gate_default(idt, idx, secondary_handlers[idx]);
+            break;
         }
     }
     idtr->address = (unsigned long)idt;
@@ -78,8 +107,8 @@ int set_bubble_idt(void)
 {
     ASSERT(pre_bubble_rsp != 0, "set_bubble_idt");
     native_sidt(&orig_idtr); // preserve original IDT
-    void *nmi_handler = (void *)(orig_idtr.address + 2 * sizeof(gate_desc));
-    idt_set_custom_handlers(bubble_idt, &bubble_idtr, bubble_handler, bubble_handler, nmi_handler);
+    idt_set_custom_handlers(bubble_idt, &bubble_idtr, bubble_handler, bubble_handlers);
+    sandbox->util->nested_fault = 0;
     return 0;
 }
 
@@ -92,109 +121,44 @@ int unset_bubble_idt(void)
 int set_test_case_idt(void)
 {
     ASSERT(bubble_idtr.address != 0, "set_test_case_idt");
-    void *nmi_handler = (void *)(orig_idtr.address + 2 * sizeof(gate_desc));
-    idt_set_custom_handlers(test_case_idt, &test_case_idtr, fault_handler, fallback_handler,
-                            nmi_handler);
+    idt_set_custom_handlers(test_case_idt, &test_case_idtr, fault_handler, fallback_handlers);
+    sandbox->util->nested_fault = 0;
     return 0;
 }
 
 int unset_test_case_idt(void)
 {
-    void *nmi_handler = (void *)(orig_idtr.address + 2 * sizeof(gate_desc));
-    idt_set_custom_handlers(bubble_idt, &bubble_idtr, bubble_handler, bubble_handler, nmi_handler);
+    idt_set_custom_handlers(bubble_idt, &bubble_idtr, bubble_handler, bubble_handlers);
     return 0;
 }
 
 // =================================================================================================
 // Handlers
 // =================================================================================================
-__attribute__((unused)) void fallback_handler_wrapper(void)
+__attribute__((unused)) void nmi_handler_wrapper(void)
 {
-    // clang-format off
-    asm_volatile_intel(
-        ".global fallback_handler\n"
-        "fallback_handler:\n"
+    asm volatile(".global nmi_handler\n"
+                 "nmi_handler:\n"
+                 :
+                 :
+                 : "memory");
 
-        // rax <- &latest_measurement
-        "lea rax, [r15 + "xstr(MEASUREMENT_OFFSET)"]\n"
-
-        // set the trace to 0xFFFF to indicate an unhandled fault
-        "mov qword ptr [rax], 0xFFFF \n"
-
-        // set PFC[0] to the error code
-        "pop rbx \n"
-        "mov qword ptr [rax + 8], rbx \n"
-
-        // set PFC[1] to the faulting address
-        "pop rcx \n"
-        "mov qword ptr [rax + 16], rcx \n"
-
-        // rsp = sandbox->util->stored_rsp
-        "mov rsp, qword ptr [r15 + "xstr(STORED_RSP_OFFSET)"]\n"
-
-        // restore registers
-        "popfq\n"
-        "pop r15\n"
-        "pop r14\n"
-        "pop r13\n"
-        "pop r12\n"
-        "pop r11\n"
-        "pop r10\n"
-        "pop rbp\n"
-        "pop rbx\n"
-    );
-    // clang-format on
-
-    // since most faults happen within the measurement_code, we additionally store
-    // a normalized value of the faulting address
-    sandbox->util->latest_measurement.pfc_reading[2] =
-        sandbox->util->latest_measurement.pfc_reading[1] - (uint64_t)loaded_test_case_entry;
-
-    // TODO: make run_experiment exit with an error code upon a n unhandled fault
-
-    PRINT_ERRS("fallback_handler_wrapper", "Test case triggered an unhandled fault\n");
-
-    // return 1 to indicate an unhandled fault
-    asm_volatile_intel(""
-                       "mov rax, 1\n"
-                       "ret\n");
-}
-
-__attribute__((unused)) void bubble_handler_wrapper(void)
-{
-    static uint64_t fault_stack[5] = {0};
     asm volatile(""
-                 ".global bubble_handler\n"
-                 "bubble_handler:\n"
-                 "nop\n"
+                 // note: NMIs are disabled in this handler,
+                 // hence we don't need to check for nested interrupts
 
-                 "pop %%rax\n"
-                 "pop %%rbx\n"
-                 "pop %%rcx\n"
-                 "pop %%rdx\n"
-                 "mov %%rax, %[fault_stack0]\n"
-                 "mov %%rbx, %[fault_stack1]\n"
-                 "mov %%rcx, %[fault_stack2]\n"
-                 "mov %%rdx, %[fault_stack3]\n"
-                 "mov %%rsi, %[fault_stack4]\n"
-                 : [fault_stack0] "=m"(fault_stack[0]), [fault_stack1] "=m"(fault_stack[1]),
-                   [fault_stack2] "=m"(fault_stack[2]), [fault_stack3] "=m"(fault_stack[3]),
-                   [fault_stack4] "=m"(fault_stack[4]));
+                 // rsp = sandbox->util->stored_rsp
+                 "mov %[util_base], %%r15\n"
+                 "lea " xstr(STORED_RSP_OFFSET) "(%%r15), %%rax\n"
+                                                "mov (%%rax), %%rsp\n"
+                                                // restore flags
+                                                "popfq\n"
+                 : [util_base] "=m"(sandbox->util)
+                 :
+                 : "rax", "rbx", "rcx", "r10", "r11", "r12", "r13", "r14", "r15");
+    recover_orig_state();
+    PRINT_ERR("WARNING: Caught NMI; leaving it unhandled\n")
 
-    PRINT_ERRS("bubble_handler", "run_experiment triggered a fault\n");
-    PRINT_ERR("Fault stack (applies only to exceptions):\n"
-              "  1 [Error]:\t0x%llx\n"
-              "  2 [RIP]:\t0x%llx\n"
-              "    (run_experiment base: 0x%llx, offset: 0x%llx)\n"
-              "  3 [CS]:\t0x%llx\n"
-              "  4 [RFLAGS]:\t0x%llx\n"
-              "  5 [RSP]:\t0x%llx\n",
-              fault_stack[0], fault_stack[1], (uint64_t)run_experiment,
-              (fault_stack[1] - (uint64_t)run_experiment), fault_stack[2], fault_stack[3],
-              fault_stack[4]);
-
-    // the code below MUST match the epilogue of unsafe_bubble in measurement.c
-    unset_bubble_idt();
     asm volatile(""
                  "mov %[rsp_save], %%rsp\n"
                  "pop %%rbp\n"
@@ -211,8 +175,185 @@ __attribute__((unused)) void bubble_handler_wrapper(void)
                  "pop %%rdx\n"
                  "pop %%rcx\n"
                  "pop %%rbx\n"
-                 "mov $1, %%rax\n"
+                 "mov $0, %%rax\n"
+                 "ret\n"
+                 : [rsp_save] "=m"(pre_bubble_rsp)
+                 :);
+}
 
+__attribute__((unused)) void fallback_handler_wrapper(void)
+{
+    static uint64_t fault_data[6] = {0};
+
+    // clang-format off
+    MULTI_ENTRY_HANDLER(fallback_handler);
+    asm volatile(""
+        ".global fallback_handler\n"
+        "fallback_handler:\n"
+    : : : "memory");
+
+    asm volatile(""
+        "mov %%r13, %%r14\n"          // r14 <- error code
+        "mov %[util_base], %%r15\n"          // r15 <- util_base
+
+        // check for nested faults
+        "lea %[nested_flag], %%rax\n"
+        "cmpq $0, (%%rax)\n"
+        "jne .nested_fault\n"
+        "movq $1, (%%rax)\n"
+
+        // store error info
+        "lea %[fault_data], %%rax\n"
+        "mov %%r14, (%%rax)\n"
+        "pop %%rbx\n"
+        "movq %%rbx, 8(%%rax)\n"
+        "pop %%rbx\n"
+        "movq %%rbx, 16(%%rax)\n"
+        "pop %%rbx\n"
+        "movq %%rbx, 24(%%rax)\n"
+        "pop %%rbx\n"
+        "movq %%rbx, 32(%%rax)\n"
+        "pop %%rbx\n"
+        "movq %%rbx, 40(%%rax)\n"
+
+        // rsp = sandbox->util->stored_rsp
+        "lea "xstr(STORED_RSP_OFFSET)"(%%r15), %%rax\n"
+        "mov (%%rax), %%rsp\n"
+
+        // restore registers
+        "popfq\n"
+        "pop %%r15\n"
+        "pop %%r14\n"
+        "pop %%r13\n"
+        "pop %%r12\n"
+        "pop %%r11\n"
+        "pop %%r10\n"
+        "pop %%rbp\n"
+        "pop %%rbx\n"
+        "jmp .fallback_handler_end\n"
+
+        // BUG on nested fault
+        ".nested_fault:\n"
+        "mov %[recover_orig_state], %%rax\n"
+        "call *%%rax\n"
+        "sti\n"
+        "ud2\n"
+
+        ".fallback_handler_end:\n"
+
+        : [util_base] "=m"(sandbox->util),
+          [nested_flag] "+m"(sandbox->util->nested_fault),
+          [fault_data] "=m"(fault_data[0])
+        : [recover_orig_state] "r"(&recover_orig_state)
+        : "rax", "rbx", "rcx", "r10", "r11", "r12", "r13", "r14", "r15"
+    );
+    // clang-format on
+
+    uint64_t cr2 = read_cr2();
+    PRINT_ERR("[fallback_handler] Test case triggered an unhandled fault:\n"
+              "Exception ID: 0x%llx\n"
+              "  1 [Error code]:\t0x%llx\n"
+              "  2 [RIP]:\t0x%llx\n"
+              "  (sandbox code start: 0x%llx; data start: 0x%llx)\n"
+              "  3 [CS]:\t0x%llx\n"
+              "  4 [RFLAGS]:\t0x%llx\n"
+              "  5 [RSP]:\t0x%llx\n"
+              "  CR2:\t\t0x%llx\n",
+              fault_data[0], fault_data[1], fault_data[2], (uint64_t)sandbox->code[0].section,
+              (uint64_t)sandbox->data[0].main_area, fault_data[3], fault_data[4], fault_data[5],
+              cr2);
+
+    recover_orig_state();
+
+    // return 1 to indicate an unhandled fault
+    asm_volatile_intel("mov rax, 1\n"
+                       "ret\n");
+}
+
+__attribute__((unused)) void bubble_handler_wrapper(void)
+{
+    static uint64_t fault_data[6] = {0};
+    MULTI_ENTRY_HANDLER(bubble_handler);
+    asm volatile(".global bubble_handler\n"
+                 "bubble_handler:\n"
+                 :
+                 :
+                 : "memory");
+
+    asm volatile(""
+                 "mov %%r13, %%r14\n" // r14 <- error code
+
+                 // check for nested faults
+                 "lea %[nested_flag], %%rax\n"
+                 "cmpq $0, (%%rax)\n"
+                 "jne .nested_fault_bubble\n"
+                 "movq $1, (%%rax)\n"
+
+                 // store error info
+                 "lea %[fault_data], %%rax\n"
+                 "mov %%r14, (%%rax)\n"
+                 "pop %%rbx\n"
+                 "movq %%rbx, 8(%%rax)\n"
+                 "pop %%rbx\n"
+                 "movq %%rbx, 16(%%rax)\n"
+                 "pop %%rbx\n"
+                 "movq %%rbx, 24(%%rax)\n"
+                 "pop %%rbx\n"
+                 "movq %%rbx, 32(%%rax)\n"
+                 "pop %%rbx\n"
+                 "movq %%rbx, 40(%%rax)\n"
+
+                 "jmp .bubble_handler_end\n"
+
+                 // BUG on nested fault
+                 ".nested_fault_bubble:\n"
+                 "mov %[recover_orig_state], %%rax\n"
+                 "call *%%rax\n"
+                 "sti\n"
+                 "ud2\n"
+
+                 ".bubble_handler_end:\n"
+                 : [fault_data] "=m"(fault_data[0]), [nested_flag] "+m"(sandbox->util->nested_fault)
+                 : [recover_orig_state] "r"(&recover_orig_state)
+                 : "rax", "rbx", "r13");
+
+    uint64_t cr2 = read_cr2();
+    PRINT_ERRS("bubble_handler", "run_experiment triggered a fault\n");
+    PRINT_ERR("Fault stack (applies only to exceptions):\n"
+              "Exception ID: 0x%llx\n"
+              "  1 [Error code]:\t0x%llx\n"
+              "  2 [RIP]:\t0x%llx\n"
+              "    (run_experiment base: 0x%llx, offset: 0x%llx)\n"
+              "  3 [CS]:\t0x%llx\n"
+              "  4 [RFLAGS]:\t0x%llx\n"
+              "  5 [RSP]:\t0x%llx\n"
+              "  CR2:\t\t0x%llx\n",
+              fault_data[0], fault_data[1], fault_data[2], (uint64_t)run_experiment,
+              (fault_data[2] - (uint64_t)run_experiment), fault_data[3], fault_data[4],
+              fault_data[5], cr2);
+
+    // the code below MUST match the epilogue of unsafe_bubble in measurement.c
+    unset_bubble_idt();
+    recover_orig_state();
+
+    asm volatile(""
+                 "mov %[rsp_save], %%rsp\n"
+                 "pop %%rbp\n"
+                 "pop %%r15\n"
+                 "pop %%r14\n"
+                 "pop %%r13\n"
+                 "pop %%r12\n"
+                 "pop %%r11\n"
+                 "pop %%r10\n"
+                 "pop %%r9\n"
+                 "pop %%r8\n"
+                 "pop %%rdi\n"
+                 "pop %%rsi\n"
+                 "pop %%rdx\n"
+                 "pop %%rcx\n"
+                 "pop %%rbx\n"
+
+                 "mov $1, %%rax\n"
                  "ret\n"
                  : [rsp_save] "=m"(pre_bubble_rsp)
                  :);

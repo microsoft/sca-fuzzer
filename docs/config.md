@@ -22,7 +22,8 @@ For a complete list, see `src/config.py`.
   `stat` - statistics the end of the fuzzing campaign;
   `dbg_timestamp` - periodically print the timestamp during the fuzzing process;
   `dbg_violation` - detailed information about the fuzzing progress and about the detected vulnerabilities;
-  `dbg_traces` - print ALL hardware and contract traces (use carefully, produces lots of text);
+  `dbg_dump_htraces` - print ALL hardware traces (use carefully, produces lots of text);
+  `dbg_dump_ctraces` - print ALL contract traces (use carefully, produces lots of text);
   `dbg_model` - print a detailed trace of ALL executions on the model (use carefully, produces lots of text);
   `dbg_coverage` - periodically report detailed information about the changes in coverage.
 * `multiline_output` [bool]: Print each output message on a separate line.

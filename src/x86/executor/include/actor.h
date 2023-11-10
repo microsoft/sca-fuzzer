@@ -10,15 +10,22 @@
 
 typedef uint64_t actor_id_t;
 typedef uint64_t actor_mode_t;
+typedef uint64_t actor_pl_t;
 
 enum {
     MODE_HOST = 0,
     MODE_GUEST = 1,
 };
 
+enum {
+    PL_KERNEL = 0,
+    PL_USER = 1,
+};
+
 typedef struct {
     actor_id_t id;
     actor_mode_t mode;
+    actor_pl_t pl;
     uint64_t data_permissions;
     uint64_t code_permissions;
 } actor_metadata_t;

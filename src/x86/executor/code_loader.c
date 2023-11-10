@@ -13,9 +13,9 @@
 //   R8 - performance counter #3
 //   R9 - performance counter #2
 //   R10 - performance counter #1
-//   R11 - hardware trace
+//   R11 - temporary data for macros
 //   R12 - SMI counter
-//   R13 - temporary data for macros
+//   R13 - hardware trace
 //   R14 - base address of the current actor's main data area
 //   R15 - base address of the utility area
 
@@ -247,8 +247,10 @@ static uint64_t expand_macro(tc_symbol_entry_t *macro, uint8_t *jmp_location, ui
     int err = get_macro_bounds(macro->id, &macro_start, &macro_size);
     CHECK_ERR("get_macro_bounds");
 
-    dest_cursor += inject_macro_arguments(macro->id, macro->args, &macro_dest[dest_cursor],
-                                          main_prologue_size);
+    uint64_t macro_arg_size = inject_macro_arguments(macro->id, macro->args,
+                                                     &macro_dest[dest_cursor], main_prologue_size);
+    ASSERT(macro_arg_size >= 0, "expand_macro");
+    dest_cursor += macro_arg_size;
     memcpy(&macro_dest[dest_cursor], macro_start, macro_size);
     dest_cursor += macro_size;
 
@@ -319,10 +321,10 @@ static inline void epilogue(void)
         // rax <- &latest_measurement
         "lea rax, [r15 + "xstr(MEASUREMENT_OFFSET)"]\n"
 
-        // if we see no interrupts, store the hardware trace (r11)
+        // if we see no interrupts, store the hardware trace (r13)
         // otherwise, store zero
         "cmp r12, 0; jne 1f \n"
-        "   mov qword ptr [rax + 0x00], r11 \n"
+        "   mov qword ptr [rax + 0x00], r13 \n"
         "   mov qword ptr [rax + 0x08], r10 \n"
         "   mov qword ptr [rax + 0x10], r9 \n"
         "   mov qword ptr [rax + 0x18], r8 \n"

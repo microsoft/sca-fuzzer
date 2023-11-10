@@ -86,6 +86,22 @@ int allocate_sandbox(void)
     return 0;
 }
 
+/// @brief Returns the number of pages allocated for the sandbox, including util area, code and data
+/// @param void
+/// @return number of pages; -1 on error
+int get_sandbox_size_pages(void) {
+    if (sandbox == NULL) {
+        return -1;
+    }
+
+    int n_pages = 0;
+    n_pages += sizeof(util_t) / PAGE_SIZE;
+    n_pages += sizeof(actor_data_t) / PAGE_SIZE * n_actors;
+    n_pages += sizeof(actor_code_t) / PAGE_SIZE * n_actors;
+
+    return n_pages;
+}
+
 // =================================================================================================
 int init_sandbox_manager(void)
 {

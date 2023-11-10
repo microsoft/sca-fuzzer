@@ -5,11 +5,13 @@
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include "measurement.h"
+#include <asm/msr-index.h>
+
 #include "code_loader.h"
 #include "data_loader.h"
 #include "input_parser.h"
 #include "main.h"
+#include "measurement.h"
 #include "sandbox_manager.h"
 #include "shortcuts.h"
 #include "test_case_parser.h"
@@ -19,6 +21,7 @@
 #include "hw_features/perf_counters.h"
 
 measurement_t *measurements = NULL; // global
+cpu_state_t *orig_cpu_state = NULL; // global
 
 int unsafe_bubble(void);
 
@@ -88,18 +91,48 @@ static inline int uarch_flush(void)
     return 0;
 }
 
+static inline void clear_orig_cpu_state(void) { orig_cpu_state->lstar = 0; }
+
+void recover_orig_state(void)
+{
+    if (orig_cpu_state->lstar) {
+        wrmsr64(MSR_LSTAR, orig_cpu_state->lstar);
+        orig_cpu_state->lstar = 0;
+    }
+    unset_bubble_idt(); // restores original IDT regardless of the current IDTR value
+    if (test_case->features.includes_user_actors) {
+        unmap_user_pages();
+    }
+}
+
 // =================================================================================================
 // Measurement
 // =================================================================================================
 int run_experiment(void)
 {
     int err = 0;
+    clear_orig_cpu_state();
+
+    // If necessary, configure userspace
+    if (test_case->features.includes_user_actors) {
+#ifdef FORCE_SMAP_OFF
+        uint64_t cr4 = __read_cr4();
+        cr4 &= ~(X86_CR4_SMAP | X86_CR4_SMEP);
+        asm volatile("mov %0, %%cr4" : : "r"(cr4));
+#endif
+
+        err = map_user_pages();
+        CHECK_ERR("run_experiment:map_user_pages");
+
+        orig_cpu_state->lstar = rdmsr64(MSR_LSTAR);
+        wrmsr64(MSR_LSTAR, (uint64_t)fault_handler);
+    }
 
     // Zero-initialize the region of memory used by Prime+Probe
     if (!quick_and_dirty_mode)
         memset(&sandbox->util->l1d_priming_area[0], 0, L1D_PRIMING_AREA_SIZE * sizeof(char));
 
-    long rounds = (long) n_inputs;
+    long rounds = (long)n_inputs;
     for (long i = -uarch_reset_rounds; i < rounds; i++) {
         // ignore "warm-up" runs (i<0)uarch_reset_rounds
         long i_ = (i < 0) ? 0 : i;
@@ -124,6 +157,8 @@ int run_experiment(void)
 
         unset_test_case_idt();
         faulty_page_pte_restore();
+        if (err)
+            goto cleanup;
 
         // store the measurement
         // printk(KERN_ERR "x86_executor: measurement %llu\n", result.htrace[0]);
@@ -131,6 +166,10 @@ int run_experiment(void)
         measurements[i_].htrace[0] = result.htrace[0];
         memcpy(measurements[i_].pfc_reading, result.pfc_reading, sizeof(uint64_t) * NUM_PFC);
     }
+
+cleanup:
+    recover_orig_state();
+    CHECK_ERR("run_experiment:cleanup");
     return err;
 }
 
@@ -190,7 +229,7 @@ __attribute__((unused)) void unsafe_bubble_wrapper(void)
                  "mov %[err], %%rax\n"
 
                  "ret\n"
-                 : [rsp_save] "=m"(pre_bubble_rsp), [err] "=r"(err)
+                 : [rsp_save] "=m"(pre_bubble_rsp), [err] "+a"(err)
                  :);
     // Unreachable
     asm volatile("UD2\n");
@@ -219,19 +258,16 @@ int trace_test_case(void)
     ASSERT(tc_pte && pte_present(*tc_pte) && pte_exec(*tc_pte), "trace_test_case");
 
     // Pre-measurement setup
-    kernel_fpu_begin(); // Enable FPU - just in case, we might use it within the test case
-
     err |= pfc_configure();
-    CHECK_ERR("pfc_configure");
-
-    err |= cpu_configure();
-    CHECK_ERR("cpu_configure");
+    CHECK_ERR("trace_test_case:pfc_configure");
 
     err |= faulty_page_prepare();
-    CHECK_ERR("faulty_page_prepare");
+    CHECK_ERR("trace_test_case:faulty_page_prepare");
 
+    kernel_fpu_begin(); // Enable FPU - just in case, we might use it within the test case
+    err |= cpu_configure();
     if (err)
-        return err;
+        goto trace_test_case_cleanup;
 
     // prevent preemption
     get_cpu();
@@ -245,9 +281,11 @@ int trace_test_case(void)
     // Post-measurement cleanup
     raw_local_irq_restore(flags);
     put_cpu();
+
+trace_test_case_cleanup:
     cpu_restore();
     kernel_fpu_end();
-
+    CHECK_ERR("trace_test_case:cleanup");
     return err;
 }
 
@@ -268,9 +306,14 @@ int alloc_measurements(void)
 int init_measurements(void)
 {
     measurements = CHECKED_VMALLOC(sizeof(measurement_t));
+    orig_cpu_state = CHECKED_ZALLOC(sizeof(cpu_state_t));
     return 0;
 }
 
 /// Destructor for the measurement module
 ///
-void free_measurements(void) { SAFE_VFREE(measurements); }
+void free_measurements(void)
+{
+    SAFE_VFREE(measurements);
+    SAFE_FREE(orig_cpu_state);
+}

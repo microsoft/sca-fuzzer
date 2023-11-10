@@ -51,7 +51,7 @@ class ExecutorTest(unittest.TestCase):
         executor = X86IntelExecutor()
         executor.load_test_case(self.tc)
         out = subprocess.check_output(
-            "cat /sys/x86_executor/test_case > tmp.o ;"
+            "cat /sys/x86_executor/test_case_bin > tmp.o ;"
             " objdump -D -b binary -m i386:x86-64 tmp.o",
             shell=True).decode()
         self.assertIn("mov    0x200(%r14),%rax", out)

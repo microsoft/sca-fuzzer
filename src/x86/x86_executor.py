@@ -147,13 +147,8 @@ class X86Executor(Executor):
         traces = [0 for _ in results]
         pfc_readings: np.ndarray = np.zeros(shape=(n_measurements, 3), dtype=np.uint64)
 
-        # merge the results of repeated measurements
+        # remove outliers and merge hardware traces and PFC readings
         for input_id, input_results in enumerate(results):
-            # find the max value of each perf counter for each input
-            for pfc_id in range(0, 3):
-                pfc_readings[input_id][pfc_id] = max([res[pfc_id + 1] for res in input_results])
-
-            # remove outliers and merge hardware traces
             counter: Counter = Counter()
             for result in input_results:
                 trace = int(result[0])
@@ -162,6 +157,14 @@ class X86Executor(Executor):
                     # merge the trace if we observed it sufficiently many time
                     # (i.e., if we can conclude it's not noise)
                     traces[input_id] |= trace
+
+                    # set the PFC reading value to the one that maximizes the first counter
+                    # (normally, the first counter is the number of issued uops)
+                    pfc_reading = result[1:]
+                    if pfc_reading[0] > pfc_readings[input_id][0]:
+                        pfc_readings[input_id][0] = pfc_reading[0]
+                        pfc_readings[input_id][1] = pfc_reading[1]
+                        pfc_readings[input_id][2] = pfc_reading[2]
 
         return traces, pfc_readings.tolist()
 
@@ -207,6 +210,7 @@ class X86Executor(Executor):
             for actor in actors:
                 f.write((actor.id_).to_bytes(8, byteorder='little'))
                 f.write((actor.mode.value).to_bytes(8, byteorder='little'))
+                f.write((actor.privilege_level.value).to_bytes(8, byteorder='little'))
                 f.write((actor.data_properties).to_bytes(8, byteorder='little'))
                 f.write((actor.code_properties).to_bytes(8, byteorder='little'))
 

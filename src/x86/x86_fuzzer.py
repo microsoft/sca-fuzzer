@@ -213,7 +213,7 @@ class X86ArchDiffFuzzer(FuzzerGeneric):
                 eq_cls.build_htrace_map()
                 return self._build_dummy_ecls()
 
-            if "dbg_traces" in CONF.logging_modes:
+            if "dbg_dump_htraces" in CONF.logging_modes:
                 print(f"Input #{i}")
                 print(f"Fenced:       {[hex(v) for v in fenced_htraces[i]]}")
                 print(f"Non-fenced:   {[hex(v) for v in htraces[i]]}")

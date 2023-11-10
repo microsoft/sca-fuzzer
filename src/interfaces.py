@@ -132,7 +132,7 @@ def get_sandbox_addr(sandbox_base: int, name: str):
 
 
 # - Code layout:
-MAX_SECTION_SIZE = PAGE_SIZE
+SANDBOX_CODE_SIZE = 3 * PAGE_SIZE
 
 # ==================================================================================================
 # Actors
@@ -146,6 +146,11 @@ class ActorMode(Enum):
     GUEST = 1
 
 
+class ActorPL(Enum):
+    KERNEL = 0
+    USER = 1
+
+
 class ElfSection(NamedTuple):
     id_: int  # section id; will match the actor id if the actor IDs are ordered and contiguous
     offset: int
@@ -155,13 +160,15 @@ class ElfSection(NamedTuple):
 class Actor:
     name: ActorName
     mode: ActorMode
+    privilege_level: ActorPL
     id_: ActorID
     elf_section: Optional[ElfSection] = None
     data_properties: int = 0
     code_properties: int = 0  # unused so far
 
-    def __init__(self, mode: ActorMode, id_: ActorID, name: ActorName) -> None:
+    def __init__(self, mode: ActorMode, pl: ActorPL, id_: ActorID, name: ActorName) -> None:
         self.mode = mode
+        self.privilege_level = pl
         self.id_ = id_
         self.name = name
 
@@ -694,7 +701,7 @@ class TestCase:
 
     def __init__(self, seed: int):
         self.seed = seed
-        self.actors = {"main": Actor(ActorMode.HOST, 0, "main")}
+        self.actors = {"main": Actor(ActorMode.HOST, ActorPL.KERNEL, 0, "main")}
         self.functions = []
         self.address_map = {}
         self.symbol_table = []

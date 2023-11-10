@@ -72,6 +72,8 @@ unsigned inputs_top = 0;
 bool inputs_ready = false;
 bool tc_ready = false;
 
+bool unfinished_call = false;
+
 // =================================================================================================
 // SysFS interface to the module
 
@@ -88,9 +90,12 @@ static struct kobj_attribute trace_attribute = __ATTR(trace, 0664, trace_show, N
 ///
 static ssize_t test_case_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf,
                                size_t count);
-static ssize_t test_case_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf);
-static struct kobj_attribute test_case_attribute =
-    __ATTR(test_case, 0666, test_case_show, test_case_store);
+static struct kobj_attribute test_case_attribute = __ATTR(test_case, 0666, NULL, test_case_store);
+
+static ssize_t test_case_bin_read(struct file *file, struct kobject *kobj,
+                                  struct bin_attribute *bin_attr, char *to, loff_t pos,
+                                  size_t count);
+static struct bin_attribute test_case_bin_attribute = __BIN_ATTR_RO(test_case_bin, 0);
 
 /// Loading inputs
 ///
@@ -195,6 +200,11 @@ static struct attribute *sysfs_attributes[] = {
     NULL, /* need to NULL terminate the list of attributes */
 };
 
+static struct bin_attribute *bin_sysfs_attributes[] = {
+    &test_case_bin_attribute, //
+    NULL,                     /* need to NULL terminate the list of attributes */
+};
+
 // =================================================================================================
 // Implementation of the sysfs attributes
 
@@ -209,6 +219,7 @@ static ssize_t trace_show(struct kobject *kobj, struct kobj_attribute *attr, cha
     ASSERT(tc_parsing_completed(), "trace_show");
 
     // start a new measurement?
+    unfinished_call = true;
     if (next_measurement_id < 0) {
         int err = trace_test_case();
         if (err)
@@ -217,6 +228,7 @@ static ssize_t trace_show(struct kobject *kobj, struct kobj_attribute *attr, cha
         // start printing the results
         next_measurement_id = n_inputs - 1;
     }
+    unfinished_call = false;
 
     // print the results, but make sure we can continue later if we run out of space in buf
     for (; next_measurement_id >= 0; next_measurement_id--) {
@@ -244,6 +256,15 @@ static ssize_t test_case_store(struct kobject *kobj, struct kobj_attribute *attr
     tc_ready = false;
 
     if (finished) {
+        // check compatibility
+        if (test_case->features.includes_user_actors) {
+#ifndef FORCE_SMAP_OFF
+            // ensure that SMAP and SMEP are disabled
+            uint64_t cr4 = __read_cr4();
+            ASSERT(!(__read_cr4() & (X86_CR4_SMAP | X86_CR4_SMEP)), "test_case_store");
+#endif
+        }
+
         // prepare sandboxes
         int err = allocate_sandbox();
         CHECK_ERR("allocate_sandbox");
@@ -257,12 +278,20 @@ static ssize_t test_case_store(struct kobject *kobj, struct kobj_attribute *attr
     return consumed_bytes;
 }
 
-static ssize_t test_case_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+static ssize_t test_case_bin_read(struct file *file, struct kobject *kobj,
+                                  struct bin_attribute *bin_attr, char *to, loff_t pos,
+                                  size_t count)
 {
-    for (int i = 0; i < 0xfff; i++) {
-        sprintf(&buf[i], "%c", loaded_test_case_entry[i]);
-    }
-    return 0xfff;
+    loff_t max_pos = n_actors * sizeof(actor_code_t);
+    if (pos > max_pos)
+        return 0;
+
+    loff_t chunk_end = pos + PAGE_SIZE;
+    if (chunk_end > max_pos)
+        chunk_end = max_pos;
+    count = chunk_end - pos;
+    memcpy(to, &loaded_test_case_entry[pos], count);
+    return count;
 }
 
 static ssize_t inputs_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf,
@@ -511,11 +540,34 @@ static int __init executor_init(void)
         return err;
     }
 
+    // Create binary attributes (used for passing large amounts of data)
+    i = 0;
+    struct bin_attribute *bin_attr;
+    for (bin_attr = bin_sysfs_attributes[i]; !err; i++) {
+        bin_attr = bin_sysfs_attributes[i];
+        if (bin_attr == NULL)
+            break;
+
+        err = sysfs_create_bin_file(kobj_interface, bin_attr);
+    }
+    if (err != 0) {
+        printk(KERN_ERR "x86_executor: Failed to create a binary sysfs files\n");
+        kobject_put(kobj_interface);
+        return err;
+    }
+
     return 0;
 }
 
 static void __exit executor_exit(void)
 {
+    if (unfinished_call) {
+        PRINT_ERR("CRITICAL ERROR: executor crashed while handling a sysfs call\n"
+                  "Removing the module is no longer safe as it may lead to system blocking\n"
+                  "Reboot to remove the module\n");
+        return;
+    }
+
     free_measurements();
     free_sandbox_manager();
     free_code_loader();
