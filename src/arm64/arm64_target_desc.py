@@ -174,5 +174,16 @@ class ARM64UnicornTargetDesc(UnicornTargetDesc):
         "27": ucc.UC_ARM64_REG_X27,
         "28": ucc.UC_ARM64_REG_X28,
         "29": ucc.UC_ARM64_REG_X29,
-        "30": ucc.UC_ARM64_REG_X30
+        "30": ucc.UC_ARM64_REG_X30,
+        "FLAGS": ucc.UC_ARM64_REG_NZCV,
+        "CF": ucc.UC_ARM64_REG_NZCV,
+        "PF": ucc.UC_ARM64_REG_NZCV,
+        "AF": ucc.UC_ARM64_REG_NZCV,
+        "ZF": ucc.UC_ARM64_REG_NZCV,
+        "SF": ucc.UC_ARM64_REG_NZCV,
+        "TF": ucc.UC_ARM64_REG_NZCV,
+        "IF": ucc.UC_ARM64_REG_NZCV,
+        "DF": ucc.UC_ARM64_REG_NZCV,
+        "OF": ucc.UC_ARM64_REG_NZCV,
+        "AC": ucc.UC_ARM64_REG_NZCV,
     }
