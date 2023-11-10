@@ -167,6 +167,32 @@ def get_operands_list(insn, raw_insn):
     return operands_list
 
 
+def gdb_array_iter(gdb_arr):
+    r = gdb_arr.type.range()
+    for i in range(r[0], r[1]+1):
+        yield gdb_arr[i]
+
+
+def get_qualifiers(insn, raw_insn):
+    qualifiers = []
+    qualifier_type = gdb.lookup_type("enum aarch64_opnd_qualifier")
+
+    for raw_qualifiers_row in gdb_array_iter(raw_insn["qualifiers_list"]):
+        processed_row = []
+
+        for k in gdb_array_iter(raw_qualifiers_row):
+            qlf = str(k.cast(qualifier_type)).replace("AARCH64_OPND_QLF_", "")
+            if qlf == "NIL":
+                break
+
+            processed_row.append(qlf)
+
+        if processed_row:
+            qualifiers.append(processed_row)
+
+    return qualifiers or [[]]
+
+
 def process_operand(insn, operand: str):
     supported_immediate_types = {
         "AIMM": ["[0-4095]"],
@@ -225,16 +251,35 @@ def process_operand(insn, operand: str):
 
 
 def get_operands(insn, raw_insn):
-    operands = []
+    operands_general = []
 
     for operand in get_operands_list(insn, raw_insn):
         operand_info = process_operand(insn, operand)
-        if operand_info is None:  # ignore instructions with unsupported operands
-            return None
+        if operand_info is None:  # ignore instructions with unsupported operands_general
+            return []
 
-        operands.append(operand_info)
+        operands_general.append(operand_info)
 
-    return operands
+    operands_all_widths = []
+    all_qualifiers = get_qualifiers(insn, raw_insn)
+
+    for qualifier_row in all_qualifiers:
+        operands = [o.copy() for o in operands_general]
+        for i, qualifier in enumerate(qualifier_row):
+            if qualifier == "W" or qualifier == "WSP":
+                operands[i]["width"] = 32
+            elif qualifier == "X" or qualifier == "SP":
+                operands[i]["width"] = 64
+            elif qualifier == "imm_0_31":
+                assert operands[i]["type_"] == "IMM"
+                operands[i]["values"] = ["[0-31]"]
+            elif qualifier == "imm_0_63":
+                assert operands[i]["type_"] == "IMM"
+                operands[i]["values"] = ["[0-63]"]
+        
+        operands_all_widths.append(operands)
+
+    return operands_all_widths
 
 
 @functools.cache
@@ -266,7 +311,7 @@ def get_aarch64_opcode_table_json(supported_features: int):
             continue
 
         # ignore psuedo instructions
-        if raw_insn["flags"] & (F_PSEUDO | F_ALIAS) != 0:
+        if raw_insn["flags"] & (F_PSEUDO) != 0:
             continue
 
         name = raw_insn["name"].string().upper().replace(".C", ".")  # B.C should be B.
@@ -276,30 +321,31 @@ def get_aarch64_opcode_table_json(supported_features: int):
         # branch to labels only
         control_flow = ("branch" in iclass) and ("branch_reg" not in iclass)
 
-        insn = {
+        basic_insn = {
             "name": name,
             "comment": iclass,
-            "control_flow": control_flow,  
+            "control_flow": control_flow,
             "category": "general",  # for compatibility with get_spec.py
             "featureset": featureset,
             "featureset_bits": hex(featureset_bits),
         }
 
-        operands = get_operands(insn, raw_insn)
-        implicit_operands = get_implicit_operands(insn, implicit_mapping)
+        operands_all_widths = get_operands(basic_insn, raw_insn)
+        implicit_operands = get_implicit_operands(basic_insn, implicit_mapping)
 
-        # skip instructions with unsupported types of operands
-        if operands is None or implicit_operands is None:
-            continue
+        # process all possible supported widths of operands
+        for i, operands in enumerate(operands_all_widths):
+            insn = basic_insn.copy()
 
-        # ignore instructions with labels as operands, as the fuzzer expects
-        # all labels to be in control flow only
-        if any(op["type_"] == "LABEL" for op in operands) and not control_flow:
-            continue
+            # ignore instructions with labels as operands, as the fuzzer expects
+            # all labels to be in control flow only
+            if any(op["type_"] == "LABEL" for op in operands) and not control_flow:
+                continue
 
-        insn["operands"] = operands
-        insn["implicit_operands"] = implicit_operands
-        processed_instructions.append(insn)
+            insn["operands"] = operands
+            insn["implicit_operands"] = implicit_operands
+            insn["qualifiers"] = ",".join(get_qualifiers(insn, raw_insn)[i])
+            processed_instructions.append(insn)
 
     return sorted(processed_instructions, key=lambda i: i["name"])
 
