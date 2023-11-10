@@ -58,6 +58,8 @@ Then build and install the kernel module:
 ```bash
 # building a kernel module require kernel headers
 sudo apt-get install linux-headers-$(uname -r)
+# required for cpuid.h
+sudo apt-get install linux-headers-generic
 
 # get the source code
 git clone https://github.com/microsoft/sca-fuzzer.git
