@@ -89,7 +89,7 @@ int allocate_sandbox(void)
 /// @brief Returns the number of pages allocated for the sandbox, including util area, code and data
 /// @param void
 /// @return number of pages; -1 on error
-int get_n_sandbox_pages(void) {
+int get_sandbox_size_pages(void) {
     if (sandbox == NULL) {
         return -1;
     }

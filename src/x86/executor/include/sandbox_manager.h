@@ -90,7 +90,7 @@ typedef struct {
 
 extern sandbox_t *sandbox;
 
-int get_n_sandbox_pages(void);
+int get_sandbox_size_pages(void);
 
 int allocate_sandbox(void);
 int init_sandbox_manager(void);

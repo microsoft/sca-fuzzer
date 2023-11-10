@@ -142,7 +142,7 @@ int map_user_pages(void)
     if (n_actors > old_n_actors) {
         // the number of actors has increased, so we need to allocate more space for preserving PTEs
         SAFE_FREE(orig_ptes);
-        orig_ptes = CHECKED_ZALLOC(sizeof(pteval_t) * get_n_sandbox_pages());
+        orig_ptes = CHECKED_ZALLOC(sizeof(pteval_t) * get_sandbox_size_pages());
     }
     old_n_actors = n_actors;
 
@@ -227,7 +227,7 @@ int init_page_table_manager(void)
 {
     orig_pte = 0;
     faulty_page_ptep = NULL;
-    orig_ptes = CHECKED_ZALLOC(sizeof(pteval_t) * get_n_sandbox_pages());
+    orig_ptes = CHECKED_ZALLOC(sizeof(pteval_t) * get_sandbox_size_pages());
     return 0;
 }
 
