@@ -208,7 +208,7 @@ def process_operand(insn, operand: str):
         "SIMM9": ["[-256-255]"],
     }
 
-    if operand.startswith("R") and operand != "RPRFMOP":
+    if operand in ("Ra", "Rd", "Rd_SP", "Rm", "Rn", "Rn_SP", "Rt"): # ignore 'Rm_EXT', 'Rm_SFT' for now
         type_ = "REG"
         width = 64
         is_dest = "Rd" in operand or (
@@ -227,7 +227,7 @@ def process_operand(insn, operand: str):
         width = 64
         is_dest = insn["name"].startswith("STR")
         values = []
-    elif operand.startswith("COND"):
+    elif operand == "COND": # ignore COND1 for now which disallows AL,NV as condition
         type_ = "COND"
         width = 0
         is_dest = False
@@ -323,9 +323,8 @@ def get_aarch64_opcode_table_json(supported_features: int):
 
         basic_insn = {
             "name": name,
-            "comment": iclass,
+            "category": iclass,
             "control_flow": control_flow,
-            "category": "general",  # for compatibility with get_spec.py
             "featureset": featureset,
             "featureset_bits": hex(featureset_bits),
         }
