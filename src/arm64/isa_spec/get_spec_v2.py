@@ -58,7 +58,7 @@ def gdb_assembler_main():
     gdb.execute("set logging file /dev/null", to_string=True)
     gdb.execute("set logging on", to_string=True)
 
-    gdb.execute("catch syscall exit_group", to_string=True)
+    gdb.execute("break read_a_source_file", to_string=True)
     gdb.execute(f"r -o /dev/null -march={args} /dev/null", to_string=True)
 
     featureset_int = int(gdb.parse_and_eval("cpu_variant"))
@@ -303,7 +303,7 @@ def get_aarch64_opcode_table_json(supported_features: int):
     # Extract the data
     processed_instructions = []
     for raw_insn in raw_instructions:
-        featureset = str(raw_insn["avariant"]).split("<")[1].split(">")[0]
+        featureset = str(raw_insn["avariant"]).split("<")[1].split(">")[0].replace(".lto_priv", "")
         featureset_bits = get_feature_bits(featureset)
 
         # only support instruction with features supported by the current CPU
@@ -378,18 +378,46 @@ def find_libopcodes():
     return libopcodes_files[0]
 
 
-def check_libbinutils_dbg_installed():
-    print("Checking if libbinutils-dbg package is installed...")
-    try:
-        subprocess.run(
-            ["dpkg", "-s", "libbinutils-dbg"],
-            check=True,
+
+def check_required_packages():
+    # the -dbg packges are for debug symbols for aarch64-linux-gnu-as and libopcodes
+    required_packages = ["binutils", "gdb", "libbinutils-dbg", "binutils-aarch64-linux-gnu-dbg"]
+    missing_packages = []
+
+    print("Checking required packages for ARM64 specification production...")
+
+    for package in required_packages:
+        # Check if the package exists in the repository
+        package_exists = subprocess.run(
+            ["apt-cache", "search", f"^{package}$"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
-    except subprocess.CalledProcessError:
+
+        # If the package does not exist, then it shouldn't be considered missing
+        # For instance, Debian bullseye does not have binutils-aarch64-linux-gnu-dbg
+        # as it holds all the necessary debug information in libbinutils-dbg
+        if not package_exists.stdout:
+            continue
+
+        # Check if the package is installed
+        try:
+            subprocess.run(
+                ["dpkg", "-s", package],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            print(f"{package} is installed.")
+        except subprocess.CalledProcessError:
+            missing_packages.append(package)
+
+    if missing_packages:
+        missing_str = " ".join(missing_packages)
         raise RuntimeError(
-            "libbinutils-dbg package is not installed. This package is essential for generating the instructions. Please install it to proceed."
+            f"The following package(s) are missing: {', '.join(missing_packages)}. "
+            "Please install them to proceed. You can do this by running: "
+            f"`sudo apt-get install {missing_str}`"
         )
 
 
@@ -477,7 +505,7 @@ def standalone_main():
     args = parse_args()  # Parse command-line arguments
 
     # Function to be executed when this script is run outside GDB
-    check_libbinutils_dbg_installed()
+    check_required_packages()
     download_mapping_file(MAPPING_INC_URL, MAPPING_INC_PATH)
 
     # obtain current processor featureset
