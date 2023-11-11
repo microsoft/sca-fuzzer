@@ -127,7 +127,7 @@ class ARMGenerator(ConfigurableGenerator, abc.ABC):
                     msg += f"\n  Line {line}\n    (the line was parsed as {parsed})"
             return msg
         try:
-            out = run(f"aarch64-linux-gnu-as {asm_file} -o {bin_file}",
+            out = run(f"aarch64-linux-gnu-gcc -x assembler -march=native -c {asm_file} -o {bin_file}",
                       shell=True,
                       check=True,
                       capture_output=True)
