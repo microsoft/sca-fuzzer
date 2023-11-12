@@ -206,6 +206,8 @@ def process_operand(insn, operand: str):
         "HALF": ["[0-65535]"],
         "BIT_NUM": ["[0-63]"],
         "SIMM9": ["[-256-255]"],
+        "BARRIER": ["[0-15]"],
+        "BARRIER_ISB": ["[0-15]"],
     }
 
     if operand in ("Ra", "Rd", "Rd_SP", "Rm", "Rm_EXT", "Rn", "Rn_SP", "Rt"): # ignore 'Rm_SFT' for now
