@@ -30,7 +30,7 @@ class ARMGenerator(ConfigurableGenerator, abc.ABC):
         super(ARMGenerator, self).__init__(instruction_set, seed)
         self.target_desc = ARMTargetDesc()
         self.printer = ARMPrinter()
-        self.re_tokenize = re.compile(r"^([^ .]+\.?)([^ ]+)? ([^ ,]+)(,[^ ,]+)?(,[^ ,]+)?( //.*)?")
+        self.re_tokenize = re.compile(r"^([^ .]+\.?)([^ ]+)? ([^ ,]+)(,[^ ,]+)?(,[^ ,]+)?(,[^ ,]+)?( //.*)?")
         self.re_tokenize_nops = re.compile(r"^([^ .]+\.?)([^ ]+)?")
         self.passes = [
             ARMPatchUndefinedLoadsPass(self.target_desc),
@@ -157,7 +157,7 @@ class ARMGenerator(ConfigurableGenerator, abc.ABC):
 
         name = matches[0][0]
         operand_tokens = ["COND"] if matches[0][1] else []
-        operand_tokens += [op.removeprefix(",") for op in matches[0][2:5] if op]
+        operand_tokens += [op.removeprefix(",") for op in matches[0][2:6] if op]
         comment = matches[0][-1][3:]
 
         # find a spec that describes this instruction
@@ -170,7 +170,7 @@ class ARMGenerator(ConfigurableGenerator, abc.ABC):
 
         # - check the other operands
         for op_id, op_raw in enumerate(operand_tokens):
-            if "COND" == op_raw:
+            if "COND" == op_raw or op_raw in self.target_desc.branch_conditions:
                 matching_specs = [s for s in matching_specs if s.operands[op_id].type == OT.COND]
             elif "." == op_raw[0]:  # match label
                 matching_specs = [s for s in matching_specs if s.operands[op_id].type == OT.LABEL]
