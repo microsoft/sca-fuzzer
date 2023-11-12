@@ -208,7 +208,7 @@ def process_operand(insn, operand: str):
         "SIMM9": ["[-256-255]"],
     }
 
-    if operand in ("Ra", "Rd", "Rd_SP", "Rm", "Rn", "Rn_SP", "Rt"): # ignore 'Rm_EXT', 'Rm_SFT' for now
+    if operand in ("Ra", "Rd", "Rd_SP", "Rm", "Rm_EXT", "Rn", "Rn_SP", "Rt"): # ignore 'Rm_SFT' for now
         type_ = "REG"
         width = 64
         is_dest = "Rd" in operand or (
@@ -317,32 +317,22 @@ def get_aarch64_opcode_table_json(supported_features: int):
         name = raw_insn["name"].string().upper().replace(".C", ".")  # B.C should be B.
         iclass = str(raw_insn["iclass"])
 
-        # not branch_reg as the fuzzer expects control_flow instructions to
-        # branch to labels only
-        control_flow = ("branch" in iclass) and ("branch_reg" not in iclass)
-
         basic_insn = {
             "name": name,
             "category": iclass,
-            "control_flow": control_flow,
             "featureset": featureset,
             "featureset_bits": hex(featureset_bits),
         }
 
         operands_all_widths = get_operands(basic_insn, raw_insn)
-        implicit_operands = get_implicit_operands(basic_insn, implicit_mapping)
 
         # process all possible supported widths of operands
         for i, operands in enumerate(operands_all_widths):
             insn = basic_insn.copy()
 
-            # ignore instructions with labels as operands, as the fuzzer expects
-            # all labels to be in control flow only
-            if any(op["type_"] == "LABEL" for op in operands) and not control_flow:
-                continue
-
+            insn["control_flow"] = any(op["type_"] == "LABEL" for op in operands)
             insn["operands"] = operands
-            insn["implicit_operands"] = implicit_operands
+            insn["implicit_operands"] = get_implicit_operands(insn, implicit_mapping)
             insn["qualifiers"] = ",".join(get_qualifiers(insn, raw_insn)[i])
             processed_instructions.append(insn)
 
