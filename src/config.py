@@ -151,6 +151,37 @@ class ConfCls:
     """ logging_modes: """
 
     # ==============================================================================================
+    # External programs
+    exe_objdump: str = "objdump"
+    """ exe_objdump: a path to the 'objdump' utility Revizor will use. """
+    exe_objcopy: str = "objcopy"
+    """ exe_objcopy: a path to the 'objcopy' utility Revizor will use. """
+    exe_strip: str = "strip"
+    """ exe_strip: a path to the 'strip' utility Revizor will use. """
+    exe_as: str = "as"
+    """ exe_as: a path to the 'as' utility Revizor will use. """
+    exe_lscpu: str = "lscpu"
+    """ exe_lscpu: a path to the 'lscpu' utility Revizor will use. """
+    exe_tar: str = "tar"
+    """ exe_tar: a path to the 'tar' utility Revizor will use. """
+    exe_rm: str = "rm"
+    """ exe_rm: a path to the 'rm' utility Revizor will use. """
+    exe_mkdir: str = "mkdir"
+    """ exe_mkdir: a path to the 'mkdir' utility Revizor will use. """
+    exe_touch: str = "touch"
+    """ exe_touch: a path to the 'touch' utility Revizor will use. """
+    exe_awk: str = "awk"
+    """ exe_awk: a path to the 'awk' utility Revizor will use. """
+    exe_bash: str = "bash"
+    """ exe_bash: a path to the 'bash' utility Revizor will use. """
+    exe_modprobe: str = "modprobe"
+    """ exe_modprobe: a path to the 'modprobe' utility Revizor will use. """
+    exe_wrmsr: str = "wrmsr"
+    """ exe_wrmsr: a path to the 'wrmsr' utility Revizor will use. """
+    exe_wget: str = "wget"
+    """ exe_wget: a path to the 'wget' utility Revizor will use. """
+
+    # ==============================================================================================
     # Internal
     _instance = None
     _no_generation: bool = False

@@ -81,7 +81,7 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
     def map_addresses(self, test_case: TestCase, bin_file: str) -> None:
         # get a list of relative instruction addresses
         dump = run(
-            f"objdump --no-show-raw-insn -D -M intel -b binary -m i386:x86-64 {bin_file} "
+            f"{CONF.exe_objdump} --no-show-raw-insn -D -M intel -b binary -m i386:x86-64 {bin_file} "
             "| awk '/ [0-9a-f]+:/{print $1}'",
             shell=True,
             check=True,

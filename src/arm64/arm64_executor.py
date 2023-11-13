@@ -17,7 +17,7 @@ from service import LOGGER
 
 
 def write_to_sysfs_file(value, path: str) -> None:
-    subprocess.run(f"sudo bash -c 'echo -n {value} > {path}'", shell=True, check=True)
+    subprocess.run(f"sudo {CONF.exe_bash} -c 'echo -n {value} > {path}'", shell=True, check=True)
 
 
 def write_to_sysfs_file_bytes(value: bytes, path: str) -> None:
@@ -34,7 +34,7 @@ class ARMExecutor(Executor):
         # check the execution environment: is SMT disabled?
         smt_on: Optional[bool] = None
         try:
-            out = subprocess.run("lscpu", shell=True, check=True, capture_output=True)
+            out = subprocess.run(CONF.exe_lscpu, shell=True, check=True, capture_output=True)
         except subprocess.CalledProcessError:
             LOGGER.error("Could not check if hyperthreading is enabled.\n"
                          "       Is lscpu installed?")

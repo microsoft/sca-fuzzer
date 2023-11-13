@@ -11,7 +11,7 @@ from service import LOGGER
 
 
 def write_to_sysfs_file(value, path: str) -> None:
-    subprocess.run(f"sudo bash -c 'echo -n {value} > {path}'", shell=True, check=True)
+    subprocess.run(f"sudo %s -c 'echo -n {value} > {path}'" % CONF.exe_bash, shell=True, check=True)
 
 
 def write_to_sysfs_file_bytes(value: bytes, path: str) -> None:
@@ -28,7 +28,7 @@ class X86IntelExecutor(Executor):
         # check the execution environment: is SMT disabled?
         smt_on: Optional[bool] = None
         try:
-            out = subprocess.run("lscpu", shell=True, check=True, capture_output=True)
+            out = subprocess.run(CONF.exe_lscpu, shell=True, check=True, capture_output=True)
         except subprocess.CalledProcessError:
             LOGGER.error("Could not check if hyperthreading is enabled.\n"
                          "       Is lscpu installed?")
@@ -44,8 +44,8 @@ class X86IntelExecutor(Executor):
             LOGGER.warning("executor", "SMT is on! You may experience false positives.")
 
         # disable prefetching
-        subprocess.run('sudo modprobe msr', shell=True, check=True)
-        subprocess.run('sudo wrmsr -a 0x1a4 15', shell=True, check=True)
+        subprocess.run('sudo %s msr' % CONF.exe_modprobe, shell=True, check=True)
+        subprocess.run('sudo %s -a 0x1a4 15' % CONF.exe_wrmsr, shell=True, check=True)
 
         # is kernel module ready?
         if not os.path.isfile("/sys/x86_executor/trace"):

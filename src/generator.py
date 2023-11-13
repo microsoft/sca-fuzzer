@@ -132,7 +132,7 @@ class ConfigurableGenerator(Generator, abc.ABC):
     def assemble(asm_file: str, bin_file: str) -> None:
         """Assemble the test case into a stripped binary"""
         try:
-            run(f"as {asm_file} -o {bin_file}", shell=True, check=True, capture_output=True)
+            run(f"{CONF.exe_as} {asm_file} -o {bin_file}", shell=True, check=True, capture_output=True)
         except CalledProcessError as e:
             error_msg = e.stderr.decode()
             if "Assembler messages:" not in error_msg:
@@ -152,8 +152,8 @@ class ConfigurableGenerator(Generator, abc.ABC):
                     print(msg + " -> " + line)
             raise e
 
-        run(f"strip --remove-section=.note.gnu.property {bin_file}", shell=True, check=True)
-        run(f"objcopy {bin_file} -O binary {bin_file}", shell=True, check=True)
+        run(f"{CONF.exe_strip} --remove-section=.note.gnu.property {bin_file}", shell=True, check=True)
+        run(f"{CONF.exe_objcopy} {bin_file} -O binary {bin_file}", shell=True, check=True)
 
     def parse_existing_test_case(self, asm_file: str) -> TestCase:
         test_case = TestCase()

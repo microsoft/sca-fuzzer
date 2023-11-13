@@ -79,7 +79,7 @@ class ARMGenerator(ConfigurableGenerator, abc.ABC):
     def map_addresses(self, test_case: TestCase, bin_file: str) -> None:
         # get a list of relative instruction addresses
         dump = run(
-            f"aarch64-linux-gnu-objdump -D -b binary -m aarch64 {bin_file} "
+            f"{CONF.exe_objdump} -D -b binary -m aarch64 {bin_file} "
             "| awk '/ [0-9a-f]+:/{print $1}'",
             shell=True,
             check=True,
@@ -127,7 +127,7 @@ class ARMGenerator(ConfigurableGenerator, abc.ABC):
                     msg += f"\n  Line {line}\n    (the line was parsed as {parsed})"
             return msg
         try:
-            out = run(f"aarch64-linux-gnu-as {asm_file} -o {bin_file}",
+            out = run(f"{CONF.exe_as} {asm_file} -o {bin_file}",
                       shell=True,
                       check=True,
                       capture_output=True)
@@ -142,10 +142,10 @@ class ARMGenerator(ConfigurableGenerator, abc.ABC):
         if "Assembler messages:" in output:
             LOGGER.warning("generator", pretty_error_msg(output))
 
-        run(f"aarch64-linux-gnu-strip --remove-section=.note.gnu.property {bin_file}",
+        run(f"{CONF.exe_strip} --remove-section=.note.gnu.property {bin_file}",
             shell=True,
             check=True)
-        run(f"aarch64-linux-gnu-objcopy {bin_file} -O binary {bin_file}", shell=True, check=True)
+        run(f"{CONF.exe_objcopy} {bin_file} -O binary {bin_file}", shell=True, check=True)
 
     def parse_line(self, line: str, line_num: int,
                    instruction_map: Dict[str, List[InstructionSpec]]) -> Instruction:
