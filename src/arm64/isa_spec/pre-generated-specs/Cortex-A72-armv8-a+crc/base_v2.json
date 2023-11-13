@@ -1,0 +1,8513 @@
+[
+  {
+    "name": "ADC",
+    "category": "addsub_carry",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": false,
+        "src": true,
+        "type_": "FLAGS",
+        "width": 0,
+        "values": [
+          "r",
+          "",
+          "",
+          "r",
+          "r",
+          "",
+          "",
+          "",
+          "r"
+        ]
+      }
+    ],
+    "qualifiers": "W,W,W"
+  },
+  {
+    "name": "ADC",
+    "category": "addsub_carry",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": false,
+        "src": true,
+        "type_": "FLAGS",
+        "width": 0,
+        "values": [
+          "r",
+          "",
+          "",
+          "r",
+          "r",
+          "",
+          "",
+          "",
+          "r"
+        ]
+      }
+    ],
+    "qualifiers": "X,X,X"
+  },
+  {
+    "name": "ADCS",
+    "category": "addsub_carry",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": true,
+        "src": true,
+        "type_": "FLAGS",
+        "width": 0,
+        "values": [
+          "r/w",
+          "",
+          "",
+          "r/w",
+          "r/w",
+          "",
+          "",
+          "",
+          "r/w"
+        ]
+      }
+    ],
+    "qualifiers": "W,W,W"
+  },
+  {
+    "name": "ADCS",
+    "category": "addsub_carry",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": true,
+        "src": true,
+        "type_": "FLAGS",
+        "width": 0,
+        "values": [
+          "r/w",
+          "",
+          "",
+          "r/w",
+          "r/w",
+          "",
+          "",
+          "",
+          "r/w"
+        ]
+      }
+    ],
+    "qualifiers": "X,X,X"
+  },
+  {
+    "name": "ADD",
+    "category": "addsub_ext",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd_SP",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn_SP",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm_EXT",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W,W"
+  },
+  {
+    "name": "ADD",
+    "category": "addsub_ext",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd_SP",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn_SP",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm_EXT",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X,W"
+  },
+  {
+    "name": "ADD",
+    "category": "addsub_imm",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd_SP",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn_SP",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "AIMM",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-4095]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W"
+  },
+  {
+    "name": "ADD",
+    "category": "addsub_imm",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd_SP",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn_SP",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "AIMM",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-4095]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X"
+  },
+  {
+    "name": "ADDS",
+    "category": "addsub_ext",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn_SP",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm_EXT",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W,W"
+  },
+  {
+    "name": "ADDS",
+    "category": "addsub_ext",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn_SP",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm_EXT",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X,W"
+  },
+  {
+    "name": "ADDS",
+    "category": "addsub_imm",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn_SP",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "AIMM",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-4095]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W"
+  },
+  {
+    "name": "ADDS",
+    "category": "addsub_imm",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn_SP",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "AIMM",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-4095]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X"
+  },
+  {
+    "name": "ADR",
+    "category": "pcreladdr",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": true,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_PCREL21",
+        "type_": "LABEL",
+        "width": 0,
+        "values": []
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": false,
+        "src": true,
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "PC"
+        ]
+      }
+    ],
+    "qualifiers": "X"
+  },
+  {
+    "name": "ADRP",
+    "category": "pcreladdr",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": true,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_ADRP",
+        "type_": "LABEL",
+        "width": 0,
+        "values": []
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": false,
+        "src": true,
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "PC"
+        ]
+      }
+    ],
+    "qualifiers": "X"
+  },
+  {
+    "name": "AND",
+    "category": "log_imm",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd_SP",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "LIMM",
+        "type_": "IMM",
+        "width": 32,
+        "values": [
+          "bitmask"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W"
+  },
+  {
+    "name": "AND",
+    "category": "log_imm",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd_SP",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "LIMM",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "bitmask"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X"
+  },
+  {
+    "name": "ANDS",
+    "category": "log_imm",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "LIMM",
+        "type_": "IMM",
+        "width": 32,
+        "values": [
+          "bitmask"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W"
+  },
+  {
+    "name": "ANDS",
+    "category": "log_imm",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "LIMM",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "bitmask"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X"
+  },
+  {
+    "name": "ASR",
+    "category": "dp_2src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W,W"
+  },
+  {
+    "name": "ASR",
+    "category": "dp_2src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X,X"
+  },
+  {
+    "name": "ASRV",
+    "category": "dp_2src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W,W"
+  },
+  {
+    "name": "ASRV",
+    "category": "dp_2src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X,X"
+  },
+  {
+    "name": "AUTIA1716",
+    "category": "ic_system",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [],
+    "implicit_operands": [
+      {
+        "dest": false,
+        "src": true,
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "X16"
+        ]
+      },
+      {
+        "dest": true,
+        "src": true,
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "X17"
+        ]
+      }
+    ],
+    "qualifiers": ""
+  },
+  {
+    "name": "AUTIASP",
+    "category": "ic_system",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [],
+    "implicit_operands": [
+      {
+        "dest": true,
+        "src": true,
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "LR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "SP"
+        ]
+      }
+    ],
+    "qualifiers": ""
+  },
+  {
+    "name": "AUTIAZ",
+    "category": "ic_system",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [],
+    "implicit_operands": [
+      {
+        "dest": true,
+        "src": true,
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "LR"
+        ]
+      }
+    ],
+    "qualifiers": ""
+  },
+  {
+    "name": "AUTIB1716",
+    "category": "ic_system",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [],
+    "implicit_operands": [
+      {
+        "dest": false,
+        "src": true,
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "X16"
+        ]
+      },
+      {
+        "dest": true,
+        "src": true,
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "X17"
+        ]
+      }
+    ],
+    "qualifiers": ""
+  },
+  {
+    "name": "AUTIBSP",
+    "category": "ic_system",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [],
+    "implicit_operands": [
+      {
+        "dest": true,
+        "src": true,
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "LR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "SP"
+        ]
+      }
+    ],
+    "qualifiers": ""
+  },
+  {
+    "name": "AUTIBZ",
+    "category": "ic_system",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [],
+    "implicit_operands": [
+      {
+        "dest": true,
+        "src": true,
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "LR"
+        ]
+      }
+    ],
+    "qualifiers": ""
+  },
+  {
+    "name": "B",
+    "category": "branch_imm",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": true,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_PCREL26",
+        "type_": "LABEL",
+        "width": 0,
+        "values": []
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": false,
+        "src": true,
+        "type_": "FLAGS",
+        "width": 0,
+        "values": [
+          "r",
+          "",
+          "",
+          "r",
+          "r",
+          "",
+          "",
+          "",
+          "r"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "PC"
+        ]
+      }
+    ],
+    "qualifiers": ""
+  },
+  {
+    "name": "B.",
+    "category": "condbranch",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": true,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "COND",
+        "type_": "COND",
+        "width": 0,
+        "values": []
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_PCREL19",
+        "type_": "LABEL",
+        "width": 0,
+        "values": []
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": false,
+        "src": true,
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "PC"
+        ]
+      }
+    ],
+    "qualifiers": ""
+  },
+  {
+    "name": "BFM",
+    "category": "bitfield",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "IMMR",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-31]"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "IMMS",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-31]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W,imm_0_31,imm_0_31"
+  },
+  {
+    "name": "BFM",
+    "category": "bitfield",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "IMMR",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-63]"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "IMMS",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-63]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X,imm_0_63,imm_0_63"
+  },
+  {
+    "name": "BL",
+    "category": "branch_imm",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": true,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_PCREL26",
+        "type_": "LABEL",
+        "width": 0,
+        "values": []
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": false,
+        "src": true,
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "PC"
+        ]
+      }
+    ],
+    "qualifiers": ""
+  },
+  {
+    "name": "BLR",
+    "category": "branch_reg",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X"
+  },
+  {
+    "name": "BR",
+    "category": "branch_reg",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X"
+  },
+  {
+    "name": "CBNZ",
+    "category": "compbranch",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": true,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_PCREL19",
+        "type_": "LABEL",
+        "width": 0,
+        "values": []
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": false,
+        "src": true,
+        "type_": "FLAGS",
+        "width": 0,
+        "values": [
+          "r",
+          "",
+          "",
+          "r",
+          "r",
+          "",
+          "",
+          "",
+          "r"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "PC"
+        ]
+      }
+    ],
+    "qualifiers": "W"
+  },
+  {
+    "name": "CBNZ",
+    "category": "compbranch",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": true,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_PCREL19",
+        "type_": "LABEL",
+        "width": 0,
+        "values": []
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": false,
+        "src": true,
+        "type_": "FLAGS",
+        "width": 0,
+        "values": [
+          "r",
+          "",
+          "",
+          "r",
+          "r",
+          "",
+          "",
+          "",
+          "r"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "PC"
+        ]
+      }
+    ],
+    "qualifiers": "X"
+  },
+  {
+    "name": "CBZ",
+    "category": "compbranch",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": true,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_PCREL19",
+        "type_": "LABEL",
+        "width": 0,
+        "values": []
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": false,
+        "src": true,
+        "type_": "FLAGS",
+        "width": 0,
+        "values": [
+          "r",
+          "",
+          "",
+          "r",
+          "r",
+          "",
+          "",
+          "",
+          "r"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "PC"
+        ]
+      }
+    ],
+    "qualifiers": "W"
+  },
+  {
+    "name": "CBZ",
+    "category": "compbranch",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": true,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_PCREL19",
+        "type_": "LABEL",
+        "width": 0,
+        "values": []
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": false,
+        "src": true,
+        "type_": "FLAGS",
+        "width": 0,
+        "values": [
+          "r",
+          "",
+          "",
+          "r",
+          "r",
+          "",
+          "",
+          "",
+          "r"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "PC"
+        ]
+      }
+    ],
+    "qualifiers": "X"
+  },
+  {
+    "name": "CCMN",
+    "category": "condcmp_imm",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "CCMP_IMM",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-31]"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "NZCV",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-15]"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "COND",
+        "type_": "COND",
+        "width": 0,
+        "values": []
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": true,
+        "src": true,
+        "type_": "FLAGS",
+        "width": 0,
+        "values": [
+          "r/w",
+          "",
+          "",
+          "r/w",
+          "r/w",
+          "",
+          "",
+          "",
+          "r/w"
+        ]
+      }
+    ],
+    "qualifiers": "W"
+  },
+  {
+    "name": "CCMN",
+    "category": "condcmp_imm",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "CCMP_IMM",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-31]"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "NZCV",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-15]"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "COND",
+        "type_": "COND",
+        "width": 0,
+        "values": []
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": true,
+        "src": true,
+        "type_": "FLAGS",
+        "width": 0,
+        "values": [
+          "r/w",
+          "",
+          "",
+          "r/w",
+          "r/w",
+          "",
+          "",
+          "",
+          "r/w"
+        ]
+      }
+    ],
+    "qualifiers": "X"
+  },
+  {
+    "name": "CCMN",
+    "category": "condcmp_reg",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "NZCV",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-15]"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "COND",
+        "type_": "COND",
+        "width": 0,
+        "values": []
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": true,
+        "src": true,
+        "type_": "FLAGS",
+        "width": 0,
+        "values": [
+          "r/w",
+          "",
+          "",
+          "r/w",
+          "r/w",
+          "",
+          "",
+          "",
+          "r/w"
+        ]
+      }
+    ],
+    "qualifiers": "W,W"
+  },
+  {
+    "name": "CCMN",
+    "category": "condcmp_reg",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "NZCV",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-15]"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "COND",
+        "type_": "COND",
+        "width": 0,
+        "values": []
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": true,
+        "src": true,
+        "type_": "FLAGS",
+        "width": 0,
+        "values": [
+          "r/w",
+          "",
+          "",
+          "r/w",
+          "r/w",
+          "",
+          "",
+          "",
+          "r/w"
+        ]
+      }
+    ],
+    "qualifiers": "X,X"
+  },
+  {
+    "name": "CCMP",
+    "category": "condcmp_imm",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "CCMP_IMM",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-31]"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "NZCV",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-15]"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "COND",
+        "type_": "COND",
+        "width": 0,
+        "values": []
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": true,
+        "src": true,
+        "type_": "FLAGS",
+        "width": 0,
+        "values": [
+          "r/w",
+          "",
+          "",
+          "r/w",
+          "r/w",
+          "",
+          "",
+          "",
+          "r/w"
+        ]
+      }
+    ],
+    "qualifiers": "W"
+  },
+  {
+    "name": "CCMP",
+    "category": "condcmp_imm",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "CCMP_IMM",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-31]"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "NZCV",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-15]"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "COND",
+        "type_": "COND",
+        "width": 0,
+        "values": []
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": true,
+        "src": true,
+        "type_": "FLAGS",
+        "width": 0,
+        "values": [
+          "r/w",
+          "",
+          "",
+          "r/w",
+          "r/w",
+          "",
+          "",
+          "",
+          "r/w"
+        ]
+      }
+    ],
+    "qualifiers": "X"
+  },
+  {
+    "name": "CCMP",
+    "category": "condcmp_reg",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "NZCV",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-15]"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "COND",
+        "type_": "COND",
+        "width": 0,
+        "values": []
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": true,
+        "src": true,
+        "type_": "FLAGS",
+        "width": 0,
+        "values": [
+          "r/w",
+          "",
+          "",
+          "r/w",
+          "r/w",
+          "",
+          "",
+          "",
+          "r/w"
+        ]
+      }
+    ],
+    "qualifiers": "W,W"
+  },
+  {
+    "name": "CCMP",
+    "category": "condcmp_reg",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "NZCV",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-15]"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "COND",
+        "type_": "COND",
+        "width": 0,
+        "values": []
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": true,
+        "src": true,
+        "type_": "FLAGS",
+        "width": 0,
+        "values": [
+          "r/w",
+          "",
+          "",
+          "r/w",
+          "r/w",
+          "",
+          "",
+          "",
+          "r/w"
+        ]
+      }
+    ],
+    "qualifiers": "X,X"
+  },
+  {
+    "name": "CLREX",
+    "category": "ic_system",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "UIMM4",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-15]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": ""
+  },
+  {
+    "name": "CLS",
+    "category": "dp_1src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W"
+  },
+  {
+    "name": "CLS",
+    "category": "dp_1src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X"
+  },
+  {
+    "name": "CLZ",
+    "category": "dp_1src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W"
+  },
+  {
+    "name": "CLZ",
+    "category": "dp_1src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X"
+  },
+  {
+    "name": "CMN",
+    "category": "addsub_ext",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn_SP",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm_EXT",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W"
+  },
+  {
+    "name": "CMN",
+    "category": "addsub_ext",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn_SP",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm_EXT",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,W"
+  },
+  {
+    "name": "CMN",
+    "category": "addsub_imm",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn_SP",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "AIMM",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-4095]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W"
+  },
+  {
+    "name": "CMN",
+    "category": "addsub_imm",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn_SP",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "AIMM",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-4095]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X"
+  },
+  {
+    "name": "CMP",
+    "category": "addsub_ext",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn_SP",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm_EXT",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W"
+  },
+  {
+    "name": "CMP",
+    "category": "addsub_ext",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn_SP",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm_EXT",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,W"
+  },
+  {
+    "name": "CMP",
+    "category": "addsub_imm",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn_SP",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "AIMM",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-4095]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W"
+  },
+  {
+    "name": "CMP",
+    "category": "addsub_imm",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn_SP",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "AIMM",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-4095]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X"
+  },
+  {
+    "name": "CRC32B",
+    "category": "dp_2src",
+    "featureset": "aarch64_feature_crc",
+    "featureset_bits": "0x80000",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W,W"
+  },
+  {
+    "name": "CRC32CB",
+    "category": "dp_2src",
+    "featureset": "aarch64_feature_crc",
+    "featureset_bits": "0x80000",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W,W"
+  },
+  {
+    "name": "CRC32CH",
+    "category": "dp_2src",
+    "featureset": "aarch64_feature_crc",
+    "featureset_bits": "0x80000",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W,W"
+  },
+  {
+    "name": "CRC32CW",
+    "category": "dp_2src",
+    "featureset": "aarch64_feature_crc",
+    "featureset_bits": "0x80000",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W,W"
+  },
+  {
+    "name": "CRC32H",
+    "category": "dp_2src",
+    "featureset": "aarch64_feature_crc",
+    "featureset_bits": "0x80000",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W,W"
+  },
+  {
+    "name": "CRC32W",
+    "category": "dp_2src",
+    "featureset": "aarch64_feature_crc",
+    "featureset_bits": "0x80000",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W,W"
+  },
+  {
+    "name": "CSDB",
+    "category": "ic_system",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [],
+    "implicit_operands": [],
+    "qualifiers": ""
+  },
+  {
+    "name": "CSEL",
+    "category": "condsel",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "COND",
+        "type_": "COND",
+        "width": 0,
+        "values": []
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": false,
+        "src": true,
+        "type_": "FLAGS",
+        "width": 0,
+        "values": [
+          "r",
+          "",
+          "",
+          "r",
+          "r",
+          "",
+          "",
+          "",
+          "r"
+        ]
+      }
+    ],
+    "qualifiers": "W,W,W"
+  },
+  {
+    "name": "CSEL",
+    "category": "condsel",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "COND",
+        "type_": "COND",
+        "width": 0,
+        "values": []
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": false,
+        "src": true,
+        "type_": "FLAGS",
+        "width": 0,
+        "values": [
+          "r",
+          "",
+          "",
+          "r",
+          "r",
+          "",
+          "",
+          "",
+          "r"
+        ]
+      }
+    ],
+    "qualifiers": "X,X,X"
+  },
+  {
+    "name": "CSINC",
+    "category": "condsel",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "COND",
+        "type_": "COND",
+        "width": 0,
+        "values": []
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": false,
+        "src": true,
+        "type_": "FLAGS",
+        "width": 0,
+        "values": [
+          "r",
+          "",
+          "",
+          "r",
+          "r",
+          "",
+          "",
+          "",
+          "r"
+        ]
+      }
+    ],
+    "qualifiers": "W,W,W"
+  },
+  {
+    "name": "CSINC",
+    "category": "condsel",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "COND",
+        "type_": "COND",
+        "width": 0,
+        "values": []
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": false,
+        "src": true,
+        "type_": "FLAGS",
+        "width": 0,
+        "values": [
+          "r",
+          "",
+          "",
+          "r",
+          "r",
+          "",
+          "",
+          "",
+          "r"
+        ]
+      }
+    ],
+    "qualifiers": "X,X,X"
+  },
+  {
+    "name": "CSINV",
+    "category": "condsel",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "COND",
+        "type_": "COND",
+        "width": 0,
+        "values": []
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": false,
+        "src": true,
+        "type_": "FLAGS",
+        "width": 0,
+        "values": [
+          "r",
+          "",
+          "",
+          "r",
+          "r",
+          "",
+          "",
+          "",
+          "r"
+        ]
+      }
+    ],
+    "qualifiers": "W,W,W"
+  },
+  {
+    "name": "CSINV",
+    "category": "condsel",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "COND",
+        "type_": "COND",
+        "width": 0,
+        "values": []
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": false,
+        "src": true,
+        "type_": "FLAGS",
+        "width": 0,
+        "values": [
+          "r",
+          "",
+          "",
+          "r",
+          "r",
+          "",
+          "",
+          "",
+          "r"
+        ]
+      }
+    ],
+    "qualifiers": "X,X,X"
+  },
+  {
+    "name": "CSNEG",
+    "category": "condsel",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "COND",
+        "type_": "COND",
+        "width": 0,
+        "values": []
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": false,
+        "src": true,
+        "type_": "FLAGS",
+        "width": 0,
+        "values": [
+          "r",
+          "",
+          "",
+          "r",
+          "r",
+          "",
+          "",
+          "",
+          "r"
+        ]
+      }
+    ],
+    "qualifiers": "W,W,W"
+  },
+  {
+    "name": "CSNEG",
+    "category": "condsel",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "COND",
+        "type_": "COND",
+        "width": 0,
+        "values": []
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": false,
+        "src": true,
+        "type_": "FLAGS",
+        "width": 0,
+        "values": [
+          "r",
+          "",
+          "",
+          "r",
+          "r",
+          "",
+          "",
+          "",
+          "r"
+        ]
+      }
+    ],
+    "qualifiers": "X,X,X"
+  },
+  {
+    "name": "DGH",
+    "category": "ic_system",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [],
+    "implicit_operands": [],
+    "qualifiers": ""
+  },
+  {
+    "name": "DMB",
+    "category": "ic_system",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "BARRIER",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-15]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": ""
+  },
+  {
+    "name": "DRPS",
+    "category": "branch_reg",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [],
+    "implicit_operands": [],
+    "qualifiers": ""
+  },
+  {
+    "name": "DSB",
+    "category": "ic_system",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "BARRIER",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-15]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": ""
+  },
+  {
+    "name": "EOR",
+    "category": "log_imm",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd_SP",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "LIMM",
+        "type_": "IMM",
+        "width": 32,
+        "values": [
+          "bitmask"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W"
+  },
+  {
+    "name": "EOR",
+    "category": "log_imm",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd_SP",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "LIMM",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "bitmask"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X"
+  },
+  {
+    "name": "ERET",
+    "category": "branch_reg",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [],
+    "implicit_operands": [],
+    "qualifiers": ""
+  },
+  {
+    "name": "ESB",
+    "category": "ic_system",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [],
+    "implicit_operands": [],
+    "qualifiers": ""
+  },
+  {
+    "name": "EXTR",
+    "category": "extract",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "IMMS",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-31]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W,W,imm_0_31"
+  },
+  {
+    "name": "EXTR",
+    "category": "extract",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "IMMS",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-63]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X,X,imm_0_63"
+  },
+  {
+    "name": "HINT",
+    "category": "ic_system",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "UIMM7",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-127]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": ""
+  },
+  {
+    "name": "ISB",
+    "category": "ic_system",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "BARRIER_ISB",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-15]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": ""
+  },
+  {
+    "name": "LDR",
+    "category": "ldst_imm9",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "SIMM9",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[-256-255]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,S_S"
+  },
+  {
+    "name": "LDR",
+    "category": "ldst_imm9",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "SIMM9",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[-256-255]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,S_D"
+  },
+  {
+    "name": "LDR",
+    "category": "loadlit",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": true,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_PCREL19",
+        "type_": "LABEL",
+        "width": 0,
+        "values": []
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": false,
+        "src": true,
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "PC"
+        ]
+      }
+    ],
+    "qualifiers": "W"
+  },
+  {
+    "name": "LDR",
+    "category": "loadlit",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": true,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_PCREL19",
+        "type_": "LABEL",
+        "width": 0,
+        "values": []
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": false,
+        "src": true,
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "PC"
+        ]
+      }
+    ],
+    "qualifiers": "X"
+  },
+  {
+    "name": "LDRB",
+    "category": "ldst_imm9",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "SIMM9",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[-256-255]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,S_B"
+  },
+  {
+    "name": "LDRH",
+    "category": "ldst_imm9",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "SIMM9",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[-256-255]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,S_H"
+  },
+  {
+    "name": "LDRSB",
+    "category": "ldst_imm9",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "SIMM9",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[-256-255]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,S_B"
+  },
+  {
+    "name": "LDRSB",
+    "category": "ldst_imm9",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "SIMM9",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[-256-255]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,S_B"
+  },
+  {
+    "name": "LDRSH",
+    "category": "ldst_imm9",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "SIMM9",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[-256-255]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,S_H"
+  },
+  {
+    "name": "LDRSH",
+    "category": "ldst_imm9",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "SIMM9",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[-256-255]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,S_H"
+  },
+  {
+    "name": "LDRSW",
+    "category": "ldst_imm9",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "SIMM9",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[-256-255]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,S_S"
+  },
+  {
+    "name": "LDRSW",
+    "category": "loadlit",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": true,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_PCREL19",
+        "type_": "LABEL",
+        "width": 0,
+        "values": []
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": false,
+        "src": true,
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "PC"
+        ]
+      }
+    ],
+    "qualifiers": "X"
+  },
+  {
+    "name": "LDTR",
+    "category": "ldst_unpriv",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,S_S"
+  },
+  {
+    "name": "LDTR",
+    "category": "ldst_unpriv",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,S_D"
+  },
+  {
+    "name": "LDTRB",
+    "category": "ldst_unpriv",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,S_B"
+  },
+  {
+    "name": "LDTRH",
+    "category": "ldst_unpriv",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,S_H"
+  },
+  {
+    "name": "LDTRSB",
+    "category": "ldst_unpriv",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,S_B"
+  },
+  {
+    "name": "LDTRSB",
+    "category": "ldst_unpriv",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,S_B"
+  },
+  {
+    "name": "LDTRSH",
+    "category": "ldst_unpriv",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,S_H"
+  },
+  {
+    "name": "LDTRSH",
+    "category": "ldst_unpriv",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,S_H"
+  },
+  {
+    "name": "LDTRSW",
+    "category": "ldst_unpriv",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,S_S"
+  },
+  {
+    "name": "LDUR",
+    "category": "ldst_unscaled",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,S_S"
+  },
+  {
+    "name": "LDUR",
+    "category": "ldst_unscaled",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,S_D"
+  },
+  {
+    "name": "LDURB",
+    "category": "ldst_unscaled",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,S_B"
+  },
+  {
+    "name": "LDURH",
+    "category": "ldst_unscaled",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,S_H"
+  },
+  {
+    "name": "LDURSB",
+    "category": "ldst_unscaled",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,S_B"
+  },
+  {
+    "name": "LDURSB",
+    "category": "ldst_unscaled",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,S_B"
+  },
+  {
+    "name": "LDURSH",
+    "category": "ldst_unscaled",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,S_H"
+  },
+  {
+    "name": "LDURSH",
+    "category": "ldst_unscaled",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,S_H"
+  },
+  {
+    "name": "LDURSW",
+    "category": "ldst_unscaled",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,S_S"
+  },
+  {
+    "name": "LSL",
+    "category": "dp_2src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W,W"
+  },
+  {
+    "name": "LSL",
+    "category": "dp_2src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X,X"
+  },
+  {
+    "name": "LSLV",
+    "category": "dp_2src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W,W"
+  },
+  {
+    "name": "LSLV",
+    "category": "dp_2src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X,X"
+  },
+  {
+    "name": "LSR",
+    "category": "dp_2src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W,W"
+  },
+  {
+    "name": "LSR",
+    "category": "dp_2src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X,X"
+  },
+  {
+    "name": "LSRV",
+    "category": "dp_2src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W,W"
+  },
+  {
+    "name": "LSRV",
+    "category": "dp_2src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X,X"
+  },
+  {
+    "name": "MADD",
+    "category": "dp_3src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Ra",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W,W,W"
+  },
+  {
+    "name": "MADD",
+    "category": "dp_3src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Ra",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X,X,X"
+  },
+  {
+    "name": "MNEG",
+    "category": "dp_3src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W,W"
+  },
+  {
+    "name": "MNEG",
+    "category": "dp_3src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X,X"
+  },
+  {
+    "name": "MOV",
+    "category": "addsub_imm",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd_SP",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn_SP",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "WSP,W"
+  },
+  {
+    "name": "MOV",
+    "category": "addsub_imm",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd_SP",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn_SP",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,WSP"
+  },
+  {
+    "name": "MOV",
+    "category": "addsub_imm",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd_SP",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn_SP",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "SP,X"
+  },
+  {
+    "name": "MOV",
+    "category": "addsub_imm",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd_SP",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn_SP",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,SP"
+  },
+  {
+    "name": "MOVK",
+    "category": "movewide",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "HALF",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-65535]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W"
+  },
+  {
+    "name": "MOVK",
+    "category": "movewide",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "HALF",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-65535]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X"
+  },
+  {
+    "name": "MOVN",
+    "category": "movewide",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "HALF",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-65535]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W"
+  },
+  {
+    "name": "MOVN",
+    "category": "movewide",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "HALF",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-65535]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X"
+  },
+  {
+    "name": "MOVZ",
+    "category": "movewide",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "HALF",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-65535]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W"
+  },
+  {
+    "name": "MOVZ",
+    "category": "movewide",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "HALF",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-65535]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X"
+  },
+  {
+    "name": "MSUB",
+    "category": "dp_3src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Ra",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W,W,W"
+  },
+  {
+    "name": "MSUB",
+    "category": "dp_3src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Ra",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X,X,X"
+  },
+  {
+    "name": "MUL",
+    "category": "dp_3src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W,W"
+  },
+  {
+    "name": "MUL",
+    "category": "dp_3src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X,X"
+  },
+  {
+    "name": "NGC",
+    "category": "addsub_carry",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W"
+  },
+  {
+    "name": "NGC",
+    "category": "addsub_carry",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X"
+  },
+  {
+    "name": "NGCS",
+    "category": "addsub_carry",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W"
+  },
+  {
+    "name": "NGCS",
+    "category": "addsub_carry",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X"
+  },
+  {
+    "name": "NOP",
+    "category": "ic_system",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [],
+    "implicit_operands": [],
+    "qualifiers": ""
+  },
+  {
+    "name": "ORR",
+    "category": "log_imm",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd_SP",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "LIMM",
+        "type_": "IMM",
+        "width": 32,
+        "values": [
+          "bitmask"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W"
+  },
+  {
+    "name": "ORR",
+    "category": "log_imm",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd_SP",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "LIMM",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "bitmask"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X"
+  },
+  {
+    "name": "PACIA1716",
+    "category": "ic_system",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [],
+    "implicit_operands": [
+      {
+        "dest": true,
+        "src": true,
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "X17"
+        ]
+      }
+    ],
+    "qualifiers": ""
+  },
+  {
+    "name": "PACIASP",
+    "category": "ic_system",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [],
+    "implicit_operands": [
+      {
+        "dest": false,
+        "src": true,
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "SP"
+        ]
+      },
+      {
+        "dest": true,
+        "src": true,
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "LR"
+        ]
+      }
+    ],
+    "qualifiers": ""
+  },
+  {
+    "name": "PACIAZ",
+    "category": "ic_system",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [],
+    "implicit_operands": [
+      {
+        "dest": true,
+        "src": true,
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "LR"
+        ]
+      }
+    ],
+    "qualifiers": ""
+  },
+  {
+    "name": "PACIB1716",
+    "category": "ic_system",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [],
+    "implicit_operands": [
+      {
+        "dest": true,
+        "src": true,
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "X17"
+        ]
+      }
+    ],
+    "qualifiers": ""
+  },
+  {
+    "name": "PACIBSP",
+    "category": "ic_system",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [],
+    "implicit_operands": [
+      {
+        "dest": false,
+        "src": true,
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "SP"
+        ]
+      },
+      {
+        "dest": true,
+        "src": true,
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "LR"
+        ]
+      }
+    ],
+    "qualifiers": ""
+  },
+  {
+    "name": "PACIBZ",
+    "category": "ic_system",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [],
+    "implicit_operands": [
+      {
+        "dest": true,
+        "src": true,
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "LR"
+        ]
+      }
+    ],
+    "qualifiers": ""
+  },
+  {
+    "name": "PSSBB",
+    "category": "ic_system",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [],
+    "implicit_operands": [],
+    "qualifiers": ""
+  },
+  {
+    "name": "RBIT",
+    "category": "dp_1src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W"
+  },
+  {
+    "name": "RBIT",
+    "category": "dp_1src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X"
+  },
+  {
+    "name": "RET",
+    "category": "branch_reg",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X"
+  },
+  {
+    "name": "REV",
+    "category": "dp_1src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W"
+  },
+  {
+    "name": "REV",
+    "category": "dp_1src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X"
+  },
+  {
+    "name": "REV16",
+    "category": "dp_1src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W"
+  },
+  {
+    "name": "REV16",
+    "category": "dp_1src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X"
+  },
+  {
+    "name": "REV32",
+    "category": "dp_1src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X"
+  },
+  {
+    "name": "ROR",
+    "category": "dp_2src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W,W"
+  },
+  {
+    "name": "ROR",
+    "category": "dp_2src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X,X"
+  },
+  {
+    "name": "ROR",
+    "category": "extract",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "IMMS",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-31]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W,imm_0_31"
+  },
+  {
+    "name": "ROR",
+    "category": "extract",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "IMMS",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-63]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X,imm_0_63"
+  },
+  {
+    "name": "RORV",
+    "category": "dp_2src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W,W"
+  },
+  {
+    "name": "RORV",
+    "category": "dp_2src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X,X"
+  },
+  {
+    "name": "SBC",
+    "category": "addsub_carry",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": false,
+        "src": true,
+        "type_": "FLAGS",
+        "width": 0,
+        "values": [
+          "r",
+          "",
+          "",
+          "r",
+          "r",
+          "",
+          "",
+          "",
+          "r"
+        ]
+      }
+    ],
+    "qualifiers": "W,W,W"
+  },
+  {
+    "name": "SBC",
+    "category": "addsub_carry",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": false,
+        "src": true,
+        "type_": "FLAGS",
+        "width": 0,
+        "values": [
+          "r",
+          "",
+          "",
+          "r",
+          "r",
+          "",
+          "",
+          "",
+          "r"
+        ]
+      }
+    ],
+    "qualifiers": "X,X,X"
+  },
+  {
+    "name": "SBCS",
+    "category": "addsub_carry",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": true,
+        "src": true,
+        "type_": "FLAGS",
+        "width": 0,
+        "values": [
+          "r/w",
+          "",
+          "",
+          "r/w",
+          "r/w",
+          "",
+          "",
+          "",
+          "r/w"
+        ]
+      }
+    ],
+    "qualifiers": "W,W,W"
+  },
+  {
+    "name": "SBCS",
+    "category": "addsub_carry",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": true,
+        "src": true,
+        "type_": "FLAGS",
+        "width": 0,
+        "values": [
+          "r/w",
+          "",
+          "",
+          "r/w",
+          "r/w",
+          "",
+          "",
+          "",
+          "r/w"
+        ]
+      }
+    ],
+    "qualifiers": "X,X,X"
+  },
+  {
+    "name": "SBFM",
+    "category": "bitfield",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "IMMR",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-31]"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "IMMS",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-31]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W,imm_0_31,imm_0_31"
+  },
+  {
+    "name": "SBFM",
+    "category": "bitfield",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "IMMR",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-63]"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "IMMS",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-63]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X,imm_0_63,imm_0_63"
+  },
+  {
+    "name": "SDIV",
+    "category": "dp_2src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W,W"
+  },
+  {
+    "name": "SDIV",
+    "category": "dp_2src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X,X"
+  },
+  {
+    "name": "SEV",
+    "category": "ic_system",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [],
+    "implicit_operands": [],
+    "qualifiers": ""
+  },
+  {
+    "name": "SEVL",
+    "category": "ic_system",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [],
+    "implicit_operands": [],
+    "qualifiers": ""
+  },
+  {
+    "name": "SMULH",
+    "category": "dp_3src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X,X"
+  },
+  {
+    "name": "SSBB",
+    "category": "ic_system",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [],
+    "implicit_operands": [],
+    "qualifiers": ""
+  },
+  {
+    "name": "STR",
+    "category": "ldst_imm9",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": true,
+        "src": false,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "SIMM9",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[-256-255]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,S_S"
+  },
+  {
+    "name": "STR",
+    "category": "ldst_imm9",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": true,
+        "src": false,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "SIMM9",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[-256-255]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,S_D"
+  },
+  {
+    "name": "STRB",
+    "category": "ldst_imm9",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": true,
+        "src": false,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "SIMM9",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[-256-255]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,S_B"
+  },
+  {
+    "name": "STRH",
+    "category": "ldst_imm9",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": true,
+        "src": false,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "SIMM9",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[-256-255]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,S_H"
+  },
+  {
+    "name": "STTR",
+    "category": "ldst_unpriv",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,S_S"
+  },
+  {
+    "name": "STTR",
+    "category": "ldst_unpriv",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,S_D"
+  },
+  {
+    "name": "STTRB",
+    "category": "ldst_unpriv",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,S_B"
+  },
+  {
+    "name": "STTRH",
+    "category": "ldst_unpriv",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,S_H"
+  },
+  {
+    "name": "STUR",
+    "category": "ldst_unscaled",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,S_S"
+  },
+  {
+    "name": "STUR",
+    "category": "ldst_unscaled",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,S_D"
+  },
+  {
+    "name": "STURB",
+    "category": "ldst_unscaled",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,S_B"
+  },
+  {
+    "name": "STURH",
+    "category": "ldst_unscaled",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_SIMM9",
+        "type_": "MEM",
+        "width": 64,
+        "values": []
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,S_H"
+  },
+  {
+    "name": "SUB",
+    "category": "addsub_ext",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd_SP",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn_SP",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm_EXT",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W,W"
+  },
+  {
+    "name": "SUB",
+    "category": "addsub_ext",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd_SP",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn_SP",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm_EXT",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X,W"
+  },
+  {
+    "name": "SUB",
+    "category": "addsub_imm",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd_SP",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn_SP",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "AIMM",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-4095]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W"
+  },
+  {
+    "name": "SUB",
+    "category": "addsub_imm",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd_SP",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn_SP",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "AIMM",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-4095]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X"
+  },
+  {
+    "name": "SUBS",
+    "category": "addsub_ext",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn_SP",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm_EXT",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W,W"
+  },
+  {
+    "name": "SUBS",
+    "category": "addsub_ext",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn_SP",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm_EXT",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X,W"
+  },
+  {
+    "name": "SUBS",
+    "category": "addsub_imm",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn_SP",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "AIMM",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-4095]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W"
+  },
+  {
+    "name": "SUBS",
+    "category": "addsub_imm",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn_SP",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR",
+          "SP"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "AIMM",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-4095]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X"
+  },
+  {
+    "name": "SXTB",
+    "category": "bitfield",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W"
+  },
+  {
+    "name": "SXTH",
+    "category": "bitfield",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W"
+  },
+  {
+    "name": "TBNZ",
+    "category": "testbranch",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": true,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "BIT_NUM",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-63]"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_PCREL14",
+        "type_": "LABEL",
+        "width": 0,
+        "values": []
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": false,
+        "src": true,
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "PC"
+        ]
+      }
+    ],
+    "qualifiers": "X,imm_0_63"
+  },
+  {
+    "name": "TBZ",
+    "category": "testbranch",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": true,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rt",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "BIT_NUM",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-63]"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "ADDR_PCREL14",
+        "type_": "LABEL",
+        "width": 0,
+        "values": []
+      }
+    ],
+    "implicit_operands": [
+      {
+        "dest": false,
+        "src": true,
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "PC"
+        ]
+      }
+    ],
+    "qualifiers": "X,imm_0_63"
+  },
+  {
+    "name": "TST",
+    "category": "log_imm",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "LIMM",
+        "type_": "IMM",
+        "width": 32,
+        "values": [
+          "bitmask"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W"
+  },
+  {
+    "name": "TST",
+    "category": "log_imm",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "LIMM",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "bitmask"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X"
+  },
+  {
+    "name": "UBFM",
+    "category": "bitfield",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "IMMR",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-31]"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "IMMS",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-31]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W,imm_0_31,imm_0_31"
+  },
+  {
+    "name": "UBFM",
+    "category": "bitfield",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "IMMR",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-63]"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "IMMS",
+        "type_": "IMM",
+        "width": 64,
+        "values": [
+          "[0-63]"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X,imm_0_63,imm_0_63"
+  },
+  {
+    "name": "UDIV",
+    "category": "dp_2src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W,W"
+  },
+  {
+    "name": "UDIV",
+    "category": "dp_2src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X,X"
+  },
+  {
+    "name": "UMULH",
+    "category": "dp_3src",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": false,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rm",
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "X,X,X"
+  },
+  {
+    "name": "UXTB",
+    "category": "bitfield",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W"
+  },
+  {
+    "name": "UXTH",
+    "category": "bitfield",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [
+      {
+        "dest": true,
+        "src": false,
+        "comment": "Rd",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      },
+      {
+        "dest": false,
+        "src": true,
+        "comment": "Rn",
+        "type_": "REG",
+        "width": 32,
+        "values": [
+          "GPR"
+        ]
+      }
+    ],
+    "implicit_operands": [],
+    "qualifiers": "W,W"
+  },
+  {
+    "name": "WFE",
+    "category": "ic_system",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [],
+    "implicit_operands": [],
+    "qualifiers": ""
+  },
+  {
+    "name": "WFI",
+    "category": "ic_system",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [],
+    "implicit_operands": [],
+    "qualifiers": ""
+  },
+  {
+    "name": "XPACLRI",
+    "category": "ic_system",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [],
+    "implicit_operands": [
+      {
+        "dest": true,
+        "src": true,
+        "type_": "REG",
+        "width": 64,
+        "values": [
+          "LR"
+        ]
+      }
+    ],
+    "qualifiers": ""
+  },
+  {
+    "name": "YIELD",
+    "category": "ic_system",
+    "featureset": "aarch64_feature_v8",
+    "featureset_bits": "0x1",
+    "is_alias": true,
+    "control_flow": false,
+    "operands": [],
+    "implicit_operands": [],
+    "qualifiers": ""
+  }
+]
