@@ -10,6 +10,11 @@
 
 #define DEBUG 0
 
+// Choice between Prime+Probe or Flush+Reload attack
+// NOTE: Currently Prime+Probe is not functional
+#define CACHE_TIMING_ATTACK_FLUSH_RELOAD
+//#define CACHE_TIMING_ATTACK_PRIME_PROBE
+
 // Cache configuration
 #ifndef L1D_ASSOCIATIVITY
 #warning "Unsupported/undefined L1D associativity. Falling back to 2-way"
@@ -93,7 +98,11 @@ extern volatile size_t n_inputs;
 // Shared functions
 int trace_test_case(void);
 int load_template(size_t tc_size);
+
+#if defined(CACHE_TIMING_ATTACK_PRIME_PROBE)
 void template_l1d_prime_probe(void);
+#elif defined(CACHE_TIMING_ATTACK_FLUSH_RELOAD)
 void template_l1d_flush_reload(void);
+#endif
 
 #endif

@@ -42,8 +42,13 @@ int (*set_memory_nx)(unsigned long, int) = 0;
 long uarch_reset_rounds = UARCH_RESET_ROUNDS_DEFAULT;
 char pre_run_flush = PRE_RUN_FLUSH_DEFAULT;
 char enable_faulty_page = ENABLE_FAULTY_DEFAULT;
-char *measurement_template = (char *)&template_l1d_flush_reload; // template_l1d_prime_probe is an alternative but is currently non-functional
 char *measurement_code = NULL;
+
+#if defined(CACHE_TIMING_ATTACK_FLUSH_RELOAD)
+char *measurement_template = (char *)&template_l1d_flush_reload;
+#elif defined(CACHE_TIMING_ATTACK_PRIME_PROBE)
+char *measurement_template = (char *)&template_l1d_prime_probe;
+#endif
 
 sandbox_t *sandbox = NULL;
 void *stack_base = NULL;
@@ -363,7 +368,13 @@ static ssize_t measurement_mode_store(struct kobject *kobj, struct kobj_attribut
 {
     if (buf[0] == 'P')
     {
-        measurement_template = (char *)&template_l1d_flush_reload;  // template_l1d_prime_probe is an alternative but is currently non-functional
+#if defined(CACHE_TIMING_ATTACK_FLUSH_RELOAD)
+        measurement_template = (char *)&template_l1d_flush_reload;
+#elif defined(CACHE_TIMING_ATTACK_PRIME_PROBE)
+        measurement_template = (char *)&template_l1d_prime_probe;
+#else
+        printk(KERN_ERR "arm64_executor: Neither l1d_flush_reload nor l1d_prime_probe is enabled.\n");
+#endif
     }
 
     return count;
