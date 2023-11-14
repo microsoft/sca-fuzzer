@@ -36,6 +36,7 @@ class InstructionSet(InstructionSetAbstract):
             instruction.name = instruction_node["name"]
             instruction.category = instruction_node["category"]
             instruction.control_flow = instruction_node["control_flow"]
+            instruction.is_alias = instruction_node.get("is_alias", False)
 
             for op_node in instruction_node["operands"]:
                 op = self.parse_operand(op_node, instruction)

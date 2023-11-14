@@ -13,9 +13,7 @@ arm64_option_values = {
     'executor_mode': ['P+P'],
 }
 
-arm64_instruction_categories: List[str] = [
-    "general",  # base instruction set
-]
+arm64_instruction_categories: List[str] = [] # support all categories
 arm64_instruction_blocklist: List[str] = [
     "ADCS",
     "ADDG",
