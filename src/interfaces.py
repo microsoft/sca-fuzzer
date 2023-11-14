@@ -170,6 +170,7 @@ class InstructionSpec:
     implicit_operands: List[OperandSpec]
     category: str
     control_flow = False
+    is_alias: bool = False
 
     has_mem_operand = False
     has_write = False
@@ -196,22 +197,24 @@ class Instruction:
     next: Optional[Instruction] = None
     previous: Optional[Instruction] = None
     is_instrumentation: bool
+    is_alias: bool = False
 
     # TODO: remove latest_reg_operand from this class. It belongs in the generator
     latest_reg_operand: Optional[Operand] = None  # for avoiding dependencies
 
-    def __init__(self, name: str, is_instrumentation=False, category="", control_flow=False):
+    def __init__(self, name: str, is_instrumentation=False, category="", control_flow=False, is_alias=False):
         self.name = name
         self.operands = []
         self.implicit_operands = []
         self.is_instrumentation = is_instrumentation
         self.category = category
         self.control_flow = control_flow
+        self.is_alias = is_alias
 
     @classmethod
     def from_spec(cls, spec: InstructionSpec, is_instrumentation=False):
         # Make sure there are exactly three vertices, though :)
-        return cls(spec.name, is_instrumentation, spec.category, spec.control_flow)
+        return cls(spec.name, is_instrumentation, spec.category, spec.control_flow, spec.is_alias)
 
     def __str__(self) -> str:
         op_list = [

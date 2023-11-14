@@ -80,9 +80,9 @@ class ARMRandomGeneratorTest(unittest.TestCase):
             addr, name = line.split(": ")
             if "b." in name:
                 name = "b."
-            mapped_name = tc.address_map[int(addr, 16)].name
-            if mapped_name != "UNMAPPED":
-                self.assertEqual(name.upper(), mapped_name)
+            inst = tc.address_map[int(addr, 16)]
+            if inst.name != "UNMAPPED" and not inst.is_alias:
+                self.assertEqual(name.upper(), inst.name)
 
         asm_file.close()
         os.unlink(asm_file.name)

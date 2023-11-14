@@ -18,10 +18,11 @@ MAPPING_INC_URL = "https://raw.githubusercontent.com/capstone-engine/capstone/46
 MAPPING_INC_PATH = "AArch64MappingInsn.inc"
 
 # Default output path for the generated JSON file
-DEFAULT_OUTPUT_JSON_PATH = "base_v2.json"
+DEFAULT_OUTPUT_JSON_PATH = "base.json"
 
 # constants from binutils:include/opcode/aarch64.h
 F_ALIAS = (1 << 0)
+F_HAS_ALIAS = (1 << 1)
 F_COND = (1 << 4)
 F_SF = (1 << 5)
 F_PSEUDO = (1 << 21)
@@ -158,8 +159,11 @@ def get_operands_list(insn, raw_insn):
             if op_str == "NIL":
                 break  # Stop if we hit the NIL operand
             operands_list.append(op_str)
-            if op_str.startswith("ADDR_UIMM") or op_str.startswith("ADDR_SIMM"):
+
+            # add non-optional immediate offset operands to load/store instructions
+            if (insn["category"] in ("ldst_imm9", "ldst_pos")) and (op_str.startswith("ADDR_UIMM") or op_str.startswith("ADDR_SIMM")):
                 operands_list.append(op_str.replace("ADDR_", ""))
+
             index += 1
         except (gdb.error, IndexError):
             # If an IndexError is raised, we've reached the end of the operands.
@@ -278,7 +282,19 @@ def get_operands(insn, raw_insn):
             elif qualifier == "imm_0_63":
                 assert operands[i]["type_"] == "IMM"
                 operands[i]["values"] = ["[0-63]"]
-        
+
+        # if there are any registers operands with different widths, discard the instruction,
+        # since it would require an extension mark which we don't support right now.
+        widths = set(op["width"] for op in operands if op["type_"] == "REG")
+        if len(widths) > 1:
+            continue
+
+        # modify width of bitmask operands
+        new_width = next(iter(widths), 0)
+        for op in operands:
+            if op["type_"] == "IMM" and op["values"] == ["bitmask"]:
+                op["width"] = new_width
+
         operands_all_widths.append(operands)
 
     return operands_all_widths
@@ -324,6 +340,7 @@ def get_aarch64_opcode_table_json(supported_features: int):
             "category": iclass,
             "featureset": featureset,
             "featureset_bits": hex(featureset_bits),
+            "is_alias": raw_insn["flags"] & (F_ALIAS | F_HAS_ALIAS) != 0,
         }
 
         operands_all_widths = get_operands(basic_insn, raw_insn)
