@@ -70,7 +70,6 @@ class X86ElfParser:
         # add collected data to the test case
         address_map: Dict[ActorID, Dict[int, Instruction]] = {}
         for section in section_entries:
-            # store actor data
             actor_name = section.name
             actor = test_case.actors[actor_name]
             actor.elf_section = ElfSection(section.id_, section.offset, section.size)
@@ -116,6 +115,9 @@ class X86ElfParser:
 
         # make sure that we found sections for all actors
         if len(address_map) != len(test_case.actors):
+            for actor_name in test_case.actors:
+                if test_case.actors[actor_name].id_ == 0 and actor_name != "main":
+                    self.LOG.error(f"ELF parser failed to find section for actor `{actor_name}`")
             self.LOG.error("ELF parser failed to find sections for all actors", print_last_tb=True)
 
         # the last instruction in .data.main is the test case exit, and it must map to a NOP
@@ -145,7 +147,7 @@ class X86ElfParser:
 
             # collect section info
             for id_, s in enumerate(data.iter_sections()):
-                if ".data." not in s.name:
+                if s.name[:6] != ".data.":
                     continue
                 s_entry = SectionMetadata()
                 s_entry.elf_section_id = id_
@@ -270,6 +272,8 @@ class X86ElfParser:
                 symbol_args += (get_section_id(arg) << i * 16)
             elif macro_spec.args[i] == "function_id":
                 symbol_args += (get_function_id("." + arg) << i * 16)
+            elif macro_spec.args[i] == "int":
+                symbol_args += int(arg)
             else:
                 raise ValueError(f"Invalid macro argument {macro_spec.args[i]}")
 

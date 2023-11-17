@@ -41,6 +41,7 @@ class AsmParserGeneric(AsmParser):
 
     def __init__(self, generator: Generator) -> None:
         self.generator = generator
+        self.generator.asm_parser = self
         self.target_desc = generator.target_desc
         self.instruction_map = self._create_instruction_spec_map()
 

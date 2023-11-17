@@ -404,6 +404,7 @@ class Instruction:
     next: Optional[Instruction] = None
     previous: Optional[Instruction] = None
     is_instrumentation: bool
+    is_from_template: bool = False
     section_offset: int = 0
     section_id: int = 0
 
@@ -668,7 +669,7 @@ class Function:
     def __init__(self, name: str, owner: Actor):
         self.name = name
         self.owner = owner
-        self.exit = BasicBlock(f".exit_{name.lstrip('.function_')}")
+        self.exit = BasicBlock(f".exit_{name.removeprefix('.function_')}")
         self._all_bb = []
 
     def __len__(self):
@@ -848,6 +849,7 @@ class AsmParser(ABC):
 class Generator(ABC):
     instruction_set: InstructionSetAbstract
     target_desc: TargetDesc
+    asm_parser: AsmParser
     _state: int = 0
 
     def __init__(self, instruction_set: InstructionSetAbstract, seed: int):
@@ -873,7 +875,15 @@ class Generator(ABC):
     @abstractmethod
     def create_test_case(self, path: str, disable_assembler: bool = False) -> TestCase:
         """
-        Create a simple test case with a single BB
+        Generate a random test case base on the config options.
+        Run instrumentation passes and print the result into a file
+        """
+        pass
+
+    @abstractmethod
+    def create_test_case_from_template(self, template: str) -> TestCase:
+        """
+        Generate a test case based on a template by expanding RANDOM_* macros.
         Run instrumentation passes and print the result into a file
         """
         pass

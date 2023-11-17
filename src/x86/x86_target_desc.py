@@ -135,6 +135,12 @@ class X86TargetDesc(TargetDesc):
     # FIXME: macro IDs should not be hardcoded but rather received from the executor
     # or at least we need a test that will check that the IDs match
     macro_specs = {
+        # macros with negative IDs are used for generation
+        # and are not supposed to reach the final binary
+        "random_instructions":
+            MacroSpec(-1, "random_instructions", ("int", "int", "", "")),
+
+        # macros with positive IDs are used for execution and can be interpreted by executor/model
         "function":
             MacroSpec(0, "function", ("", "", "", "")),
         "measurement_start":

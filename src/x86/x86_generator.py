@@ -97,7 +97,7 @@ class X86NonCanonicalAddressPass(Pass):
             for bb in func:
                 memory_instructions = []
                 for instr in bb:
-                    if instr.is_instrumentation:
+                    if instr.is_instrumentation or instr.is_from_template:
                         continue
                     if instr.name in ["DIV", "IDIV"]:
                         # Instrumentation is difficult to combine
@@ -193,6 +193,9 @@ class X86SandboxPass(Pass):
                 corrupted_cf = []
                 enclu = []
                 for inst in bb:
+                    if inst.is_instrumentation or inst.is_from_template:
+                        continue
+
                     if inst.has_mem_operand(True):
                         memory_instructions.append(inst)
                     if inst.name in ["DIV", "REX DIV", "IDIV", "REX IDIV"]:
@@ -570,6 +573,9 @@ class X86PatchUndefinedFlagsPass(Pass):
                 # walk the list in inverse order
                 while all_instructions:
                     inst = all_instructions.pop()
+                    if inst.is_from_template:
+                        continue
+
                     flags: Optional[FlagsOperand] = inst.get_flags_operand()
                     if not flags:
                         continue
@@ -645,6 +651,8 @@ class X86PatchUndefinedResultPass(Pass):
                 # collect all instructions that require patching
                 bit_scan = []
                 for inst in bb:
+                    if inst.is_instrumentation or inst.is_from_template:
+                        continue
                     if inst.name in ["BSF", "BSR"]:
                         bit_scan.append(inst)
 
@@ -718,6 +726,8 @@ class X86PatchOpcodesPass(Pass):
                 # collect all UD instructions
                 to_patch = []
                 for inst in bb:
+                    if inst.is_instrumentation or inst.is_from_template:
+                        continue
                     if inst.name in self.opcodes.keys():
                         to_patch.append(inst)
 
@@ -776,7 +786,7 @@ class X86Printer(Printer):
         self.print_basic_block(func.exit, file)
 
     def print_basic_block(self, bb: BasicBlock, file):
-        file.write(f"{bb.name}:\n")
+        file.write(f"{bb.name.upper()}:\n")
         for inst in bb:
             file.write(self.instruction_to_str(inst) + "\n")
         for inst in bb.terminators:
@@ -798,7 +808,7 @@ class X86Printer(Printer):
         return op.value
 
     def macro_to_str(self, inst: Instruction):
-        if inst.operands[1].value == ".noarg":
+        if inst.operands[1].value.lower() == ".noarg":
             return f".macro{inst.operands[0].value}: nop dword ptr [rax + rax*1 + 0x1]"
         else:
             return f".macro{inst.operands[0].value}{inst.operands[1].value}:" \
