@@ -62,13 +62,13 @@ class X86Fuzzer(FuzzerGeneric):
         super()._adjust_config(existing_test_case)
         update_instruction_list()
 
-    def start(self,
-              num_test_cases: int,
-              num_inputs: int,
-              timeout: int,
-              nonstop: bool = False) -> bool:
+    def _start(self,
+               num_test_cases: int,
+               num_inputs: int,
+               timeout: int,
+               nonstop: bool = False) -> bool:
         check_instruction_list(self.instruction_set)
-        return super().start(num_test_cases, num_inputs, timeout, nonstop)
+        return super()._start(num_test_cases, num_inputs, timeout, nonstop)
 
     def filter(self, test_case: TestCase, inputs: List[Input]) -> bool:
         """ This function implements a multi-stage algorithm that gradually filters out
@@ -129,13 +129,13 @@ class X86ArchitecturalFuzzer(ArchitecturalFuzzer):
         super()._adjust_config(existing_test_case)
         update_instruction_list()
 
-    def start(self,
-              num_test_cases: int,
-              num_inputs: int,
-              timeout: int,
-              nonstop: bool = False) -> bool:
+    def _start(self,
+               num_test_cases: int,
+               num_inputs: int,
+               timeout: int,
+               nonstop: bool = False) -> bool:
         check_instruction_list(self.instruction_set)
-        return super().start(num_test_cases, num_inputs, timeout, nonstop)
+        return super()._start(num_test_cases, num_inputs, timeout, nonstop)
 
 
 class X86ArchDiffFuzzer(FuzzerGeneric):
@@ -145,13 +145,13 @@ class X86ArchDiffFuzzer(FuzzerGeneric):
         super()._adjust_config(existing_test_case)
         update_instruction_list()
 
-    def start(self,
-              num_test_cases: int,
-              num_inputs: int,
-              timeout: int,
-              nonstop: bool = False) -> bool:
+    def _start(self,
+               num_test_cases: int,
+               num_inputs: int,
+               timeout: int,
+               nonstop: bool = False) -> bool:
         check_instruction_list(self.instruction_set)
-        return super().start(num_test_cases, num_inputs, timeout, nonstop)
+        return super()._start(num_test_cases, num_inputs, timeout, nonstop)
 
     def get_arch_traces(self, inputs) -> List[List[int]]:
         htraces: List[List[int]] = [

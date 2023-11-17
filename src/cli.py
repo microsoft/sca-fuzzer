@@ -57,6 +57,45 @@ def main() -> int:
         '--nonstop', action='store_true', help="Don't stop after detecting an unexpected result")
 
     # ==============================================================================================
+    # Template-based fuzzing
+    parser_fuzz = subparsers.add_parser('tfuzz', add_help=True)
+    parser_fuzz.add_argument("-s", "--instruction-set", type=str, required=True)
+    parser_fuzz.add_argument("-c", "--config", type=str, required=False)
+    parser_fuzz.add_argument(
+        "-n",
+        "--num-test-cases",
+        type=int,
+        default=1,
+        help="Number of test cases.",
+    )
+    parser_fuzz.add_argument(
+        "-i",
+        "--num-inputs",
+        type=int,
+        default=100,
+        help="Number of inputs per test case.",
+    )
+    parser_fuzz.add_argument(
+        '-w',
+        '--working-directory',
+        type=str,
+        default='',
+    )
+    parser_fuzz.add_argument(
+        '-t',
+        '--template',
+        type=str,
+        required=True,
+        help="The template to use for generating test cases")
+    parser_fuzz.add_argument(
+        '--timeout',
+        type=int,
+        default=0,
+        help="Run fuzzing with a time limit [seconds]. No timeout when set to zero.")
+    parser_fuzz.add_argument(
+        '--nonstop', action='store_true', help="Don't stop after detecting an unexpected result")
+
+    # ==============================================================================================
     # Standalone interface to trace analysis
     parser_analyser = subparsers.add_parser('analyse', add_help=True)
     parser_analyser.add_argument(
@@ -214,25 +253,29 @@ def main() -> int:
         CONF.load(args.config)
 
     # Fuzzing
-    if args.subparser_name == 'fuzz':
+    if args.subparser_name == 'fuzz' or args.subparser_name == 'tfuzz':
         # Make sure we're ready for fuzzing
         if args.working_directory and not os.path.isdir(args.working_directory):
             SystemExit("The working directory does not exist")
 
-        # Normal fuzzing mode
-        fuzzer = get_fuzzer(args.instruction_set, args.working_directory, args.testcase, "")
-        exit_code = fuzzer.start(
-            args.num_test_cases,
-            args.num_inputs,
-            args.timeout,
-            args.nonstop,
-        )
+        testcase = args.testcase if args.subparser_name == 'fuzz' else args.template
+        fuzzer = get_fuzzer(args.instruction_set, args.working_directory, testcase, "")
+        if args.subparser_name == 'tfuzz':
+            exit_code = fuzzer.start_from_template(args.num_test_cases, args.num_inputs,
+                                                   args.timeout, args.nonstop)
+        elif testcase:
+            # deprecated mode; will be removed soon (duplicates `reproduce`)
+            exit_code = fuzzer.start_from_asm(args.num_test_cases, args.num_inputs, args.timeout,
+                                              args.nonstop)
+        else:
+            exit_code = fuzzer.start_random(args.num_test_cases, args.num_inputs, args.timeout,
+                                            args.nonstop)
         return exit_code
 
     # Reproducing a violation
     if args.subparser_name == 'reproduce':
         fuzzer = get_fuzzer(args.instruction_set, "", args.testcase, args.inputs)
-        exit_code = fuzzer.start(1, args.num_inputs, 0, False)
+        exit_code = fuzzer.start_from_asm(1, args.num_inputs, 0, False)
         return exit_code
 
     # Stand-alone generation
@@ -252,16 +295,8 @@ def main() -> int:
     if args.subparser_name == "minimize":
         fuzzer = get_fuzzer(args.instruction_set, "", args.infile, "")
         minimizer = get_minimizer(fuzzer, args.instruction_set)
-        minimizer.run(
-            args.infile,
-            args.outfile,
-            args.num_inputs,
-            not args.no_minimize,
-            args.simplify,
-            args.add_fences,
-            args.find_sources,
-            args.find_min_inputs
-        )
+        minimizer.run(args.infile, args.outfile, args.num_inputs, not args.no_minimize,
+                      args.simplify, args.add_fences, args.find_sources, args.find_min_inputs)
         return 0
 
     if args.subparser_name == "download_spec":

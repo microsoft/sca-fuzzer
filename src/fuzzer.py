@@ -7,7 +7,7 @@ SPDX-License-Identifier: MIT
 import shutil
 from pathlib import Path
 from datetime import datetime
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Callable
 import copy
 
 from . import factory
@@ -22,6 +22,7 @@ class FuzzerGeneric(Fuzzer):
     instruction_set: InstructionSet
     existing_test_case: str
     input_paths: List[str]
+    generation_function: Callable[[str], TestCase]
 
     generator: Generator
     input_gen: InputGenerator
@@ -45,11 +46,7 @@ class FuzzerGeneric(Fuzzer):
         self.work_dir = work_dir
         self.LOG = Logger()
 
-    def _adjust_config(self, existing_test_case):
-        if existing_test_case:
-            CONF._no_generation = True
-            CONF._default_instruction_blocklist = []
-            CONF.register_blocklist = []
+    def _adjust_config(self, _: str):
         if CONF.executor_mode == 'TSC':
             CONF.analyser_permit_subsets = False
         # more adjustments could be implemented by subclasses!
@@ -66,16 +63,40 @@ class FuzzerGeneric(Fuzzer):
                                              self.analyser)
         self.asm_parser = factory.get_asm_parser(self.generator)
 
-    def start(self,
-              num_test_cases: int,
-              num_inputs: int,
-              timeout: int,
-              nonstop: bool = False) -> bool:
+    def start_random(self,
+                     num_test_cases: int,
+                     num_inputs: int,
+                     timeout: int,
+                     nonstop: bool = False) -> bool:
+        self.initialize_modules()
+        self.generation_function = self.generator.create_test_case
+        return self._start(num_test_cases, num_inputs, timeout, nonstop)
+
+    def start_from_template(self,
+                            num_test_cases: int,
+                            num_inputs: int,
+                            timeout: int,
+                            nonstop: bool = False) -> bool:
+        self.initialize_modules()
+        self.generation_function = self.generator.create_test_case_from_template
+        return self._start(num_test_cases, num_inputs, timeout, nonstop)
+
+    def start_from_asm(self,
+                       num_test_cases: int,
+                       num_inputs: int,
+                       timeout: int,
+                       nonstop: bool = False) -> bool:
+        self.initialize_modules()
+        self.generation_function = self.asm_parser.parse_file
+        return self._start(num_test_cases, num_inputs, timeout, nonstop)
+
+    def _start(self,
+               num_test_cases: int,
+               num_inputs: int,
+               timeout: int,
+               nonstop: bool = False) -> bool:
         start_time = datetime.today()
         self.LOG.fuzzer_start(num_test_cases, start_time)
-
-        # create all main modules
-        self.initialize_modules()
 
         for i in range(num_test_cases):
             self.LOG.fuzzer_start_round(i)
@@ -89,11 +110,7 @@ class FuzzerGeneric(Fuzzer):
                     break
 
             # Generate a test case
-            test_case: TestCase
-            if self.existing_test_case:
-                test_case = self.asm_parser.parse_file(self.existing_test_case)
-            else:
-                test_case = self.generator.create_test_case('generated.asm')
+            test_case: TestCase = self.generation_function(self.existing_test_case)
             self.input_gen.n_actors = len(test_case.actors)
             STAT.test_cases += 1
 

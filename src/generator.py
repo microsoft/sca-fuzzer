@@ -9,8 +9,9 @@ from __future__ import annotations
 import random
 import abc
 import re
-from typing import List
+from typing import List, Tuple, Optional
 from subprocess import CalledProcessError, run
+from copy import deepcopy
 
 from .isa_loader import InstructionSet
 from .interfaces import Generator, TestCase, Operand, RegisterOperand, FlagsOperand, \
@@ -49,6 +50,7 @@ class ConfigurableGenerator(Generator, abc.ABC):
     """
     instruction_set: InstructionSet
     test_case: TestCase
+    parsed_template: Optional[TestCase] = None
     passes: List[Pass]  # set by subclasses
     printer: Printer  # set by subclasses
 
@@ -84,16 +86,21 @@ class ConfigurableGenerator(Generator, abc.ABC):
     def set_seed(self, seed: int) -> None:
         self._state = seed
 
-    def create_test_case(self, asm_file: str, disable_assembler: bool = False) -> TestCase:
-        self.test_case = TestCase(self._state)
-
-        # set seeds
+    def update_seed(self) -> None:
         if self._state == 0:
             self._state = random.randint(1, 1000000)
             self.LOG.inform("prog_gen",
                             f"Setting program_generator_seed to random value: {self._state}")
         random.seed(self._state)
         self._state += 1
+
+    def create_test_case(self, asm_file: str, disable_assembler: bool = False) -> TestCase:
+        self.test_case = TestCase(self._state)
+        if not asm_file:
+            asm_file = 'generated.asm'
+
+        # set seeds
+        self.update_seed()
 
         # create actors
         if len(CONF._actors) != 1:
@@ -133,6 +140,39 @@ class ConfigurableGenerator(Generator, abc.ABC):
         self.get_elf_data(self.test_case, obj_file)
 
         return self.test_case
+
+    def create_test_case_from_template(self, template: str) -> TestCase:
+        self.update_seed()
+
+        if self.parsed_template:
+            test_case = deepcopy(self.parsed_template)
+        else:
+            test_case = self.asm_parser.parse_file(template)
+            self.parsed_template = deepcopy(test_case)
+
+        self.test_case = test_case
+        for func in test_case.functions:
+            for bb in func:
+                for instr in bb:
+                    instr.is_from_template = True
+
+        self.expand_template(test_case)
+        for p in self.passes:
+            p.run_on_test_case(self.test_case)
+
+        asm_file = 'generated.asm'
+        self.printer.print(self.test_case, asm_file)
+        test_case.asm_path = asm_file
+
+        bin_file = asm_file[:-4]
+        obj_file = bin_file + ".o"
+        self.assemble(asm_file, obj_file, bin_file)
+        self.test_case.bin_path = bin_file
+        self.test_case.obj_path = obj_file
+
+        self.test_case.symbol_table = []
+        self.get_elf_data(self.test_case, obj_file)
+        return test_case
 
     @staticmethod
     def assemble(asm_file: str, obj_file: str, bin_file: str) -> None:
@@ -254,6 +294,10 @@ class ConfigurableGenerator(Generator, abc.ABC):
 
     @abc.abstractmethod
     def generate_cond_operand(self, spec: OperandSpec, _: Instruction) -> Operand:
+        pass
+
+    @abc.abstractmethod
+    def expand_template(self, test_case: TestCase) -> None:
         pass
 
     @abc.abstractmethod
@@ -453,6 +497,31 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         cond = random.choice(list(self.target_desc.branch_conditions))
         return CondOperand(cond)
 
+    def expand_template(self, test_case: TestCase):
+        instr_to_expand: List[Tuple[Instruction, BasicBlock]] = []
+        for func in test_case.functions:
+            for bb in func:
+                for instr in bb:
+                    if instr.name == "MACRO" and instr.operands[0].value == ".RANDOM_INSTRUCTIONS":
+                        instr_to_expand.append((instr, bb))
+
+        for inst, bb in instr_to_expand:
+            operands = inst.operands[1].value.split(".")
+            assert len(operands) >= 3 and len(operands) <= 5
+            n_instr = int(operands[1])
+            n_mem = int(operands[2])
+            predecessor = inst.previous
+
+            # replace the macro with random instructions
+            bb.delete(inst)
+            for _ in range(n_instr):
+                spec = self._pick_random_instruction_spec(n_mem / n_instr)
+                inst = self.generate_instruction(spec)
+                if predecessor:
+                    bb.insert_after(predecessor, inst)
+                else:
+                    bb.insert_before(bb.get_first(), inst)
+
     def add_terminators_in_function(self, func: Function):
 
         def add_fallthrough(bb: BasicBlock, destination: BasicBlock):
@@ -498,10 +567,13 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
             inst = self.generate_instruction(spec)
             bb.insert_after(bb.get_last(), inst)
 
-    def _pick_random_instruction_spec(self) -> InstructionSpec:
+    def _pick_random_instruction_spec(self, memory_access_probability: float = 0.0) \
+            -> InstructionSpec:
         # ensure the requested avg. number of mem. accesses
         search_for_memory_access = False
-        memory_access_probability = CONF.avg_mem_accesses / CONF.program_size
+        if not memory_access_probability:
+            memory_access_probability = CONF.avg_mem_accesses / CONF.program_size
+
         if CONF.generate_memory_accesses_in_pairs:
             memory_access_probability = 1 if self.had_recent_memory_access else \
                 (CONF.avg_mem_accesses / 2) / (CONF.program_size - CONF.avg_mem_accesses / 2)
