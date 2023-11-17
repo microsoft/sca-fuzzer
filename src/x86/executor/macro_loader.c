@@ -92,6 +92,18 @@ static uint64_t update_r14_rsp(int section_id, uint8_t *macro_dest, uint64_t cur
     return cursor - old_cursor;
 }
 
+static uint64_t insert_lfence(uint8_t *macro_dest, uint64_t cursor)
+{
+    int old_cursor = cursor;
+    macro_dest[cursor] = 0x0f;
+    cursor++;
+    macro_dest[cursor] = 0xae;
+    cursor++;
+    macro_dest[cursor] = 0xe8;
+    cursor++;
+    return cursor - old_cursor;
+}
+
 // =================================================================================================
 // Macro management
 // =================================================================================================
@@ -432,6 +444,7 @@ void __attribute__((noipa)) macro_same_context_switch(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     // Nothing here; everything is implemented in inject_macro_arguments->MACRO_SWITCH
+    asm volatile("lfence");
     asm volatile(".quad " xstr(MACRO_END));
 }
 
@@ -449,7 +462,9 @@ void __attribute__((noipa)) macro_context_switch_h2u(void)
     asm_volatile_intel(""
                        "pushfq\n"
                        "pop r11\n"
-                       "sysretq\n");
+                       "sysretq\n"
+                       "lfence\n"
+                       );
     asm volatile(".quad " xstr(MACRO_END));
 }
 
@@ -473,6 +488,7 @@ void __attribute__((noipa)) macro_context_switch_u2h(void)
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""
                        "syscall\n"
+                       "lfence\n"
                        "");
     asm volatile(".quad " xstr(MACRO_END));
 }
