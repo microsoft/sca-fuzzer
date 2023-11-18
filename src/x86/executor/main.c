@@ -10,6 +10,7 @@
 #include <linux/sysfs.h>
 #include <linux/version.h>
 #include <linux/kobject.h>
+#include <asm/virtext.h>
 // clang-format on
 
 #include "main.h"
@@ -25,6 +26,7 @@
 #include "test_case_parser.h"
 
 #include "hw_features/fault_handler.h"
+#include "hw_features/guest_page_tables.h"
 #include "hw_features/host_page_tables.h"
 #include "hw_features/page_tables_common.h"
 #include "hw_features/perf_counters.h"
@@ -182,6 +184,11 @@ static struct kobj_attribute enable_dbg_gpr_mode_attribute =
 static ssize_t dbg_dump_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf);
 static struct kobj_attribute dbg_dump_attribute = __ATTR(dbg_dump_mode, 0666, dbg_dump_show, NULL);
 
+static ssize_t dbg_guest_page_tables_show(struct kobject *kobj, struct kobj_attribute *attr,
+                                          char *buf);
+static struct kobj_attribute dbg_guest_page_tables_attribute =
+    __ATTR(dbg_guest_page_tables, 0666, dbg_guest_page_tables_show, NULL);
+
 static struct attribute *sysfs_attributes[] = {
     &trace_attribute.attr,
     &test_case_attribute.attr,
@@ -196,6 +203,7 @@ static struct attribute *sysfs_attributes[] = {
     &enable_quick_and_dirty_mode_attribute.attr,
     &enable_dbg_gpr_mode_attribute.attr,
     &dbg_dump_attribute.attr,
+    &dbg_guest_page_tables_attribute.attr,
 #if VENDOR_ID == 1 // Intel
     &enable_mpx_attribute.attr,
 #endif
@@ -445,7 +453,7 @@ static ssize_t enable_dbg_gpr_mode(struct kobject *kobj, struct kobj_attribute *
     return count;
 }
 
-/// Dump all global variables into the kernel log
+/// Dump all global variables
 ///
 static ssize_t dbg_dump_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
@@ -470,6 +478,22 @@ static ssize_t dbg_dump_show(struct kobject *kobj, struct kobj_attribute *attr, 
     len += sprintf(&buf[len], "pre_run_flush: %d\n", pre_run_flush);
     len += sprintf(&buf[len], "mpx_control: %llu\n", mpx_control);
     return len;
+}
+
+/// Dump guest page tables into the kernel log
+static ssize_t dbg_guest_page_tables_show(struct kobject *kobj, struct kobj_attribute *attr,
+                                          char *buf)
+{
+    if (n_actors < 2)
+        return sprintf(buf, "No actors to print tables for\n");
+
+    int err = dbg_dump_guest_page_tables(1);
+    if (err)
+        return err;
+    err = dbg_dump_ept();
+    if (err)
+        return err;
+    return sprintf(buf, "done (see dmesg)\n");
 }
 
 // ============================================================================
