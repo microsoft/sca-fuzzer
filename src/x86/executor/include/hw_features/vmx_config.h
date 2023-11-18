@@ -24,6 +24,11 @@
 #define SECONDARY_EXEC_ENABLE_PCONFIG          (1ULL << 27)
 #define SECONDARY_EXEC_ENABLE_ENCLV_EXITING    (1ULL << 28)
 
+#define VM_EXIT_UINV               (1ULL << 19)
+#define VM_ENTRY_CET               (1ULL << 20)
+#define VM_ENTRY_LOAD_IA32_LBR_CTL (1ULL << 21)
+#define VM_ENTRY_LOAD_IA32_PKRS    (1ULL << 22)
+
 // ----------------------------------------------------------------------------------------------
 // VMCS control fields
 
@@ -81,6 +86,7 @@
 #define NOT_SUPPORTED_ENTRY_CTRL                                                                   \
     (VM_ENTRY_SMM | VM_ENTRY_DEACT_DUAL_MONITOR | VM_ENTRY_LOAD_IA32_PERF_GLOBAL_CTRL |            \
      VM_ENTRY_LOAD_IA32_PAT | VM_ENTRY_LOAD_IA32_EFER | VM_ENTRY_LOAD_BNDCFGS |                    \
-     VM_ENTRY_PT_CONCEAL_PIP | VM_ENTRY_LOAD_IA32_RTIT_CTL)
+     VM_ENTRY_PT_CONCEAL_PIP | VM_ENTRY_LOAD_IA32_RTIT_CTL | VM_EXIT_UINV | VM_ENTRY_CET |         \
+     VM_ENTRY_LOAD_IA32_LBR_CTL | VM_ENTRY_LOAD_IA32_PKRS)
 
 #endif // _VMX_CONFIG_H_
