@@ -266,6 +266,8 @@ static ssize_t test_case_store(struct kobject *kobj, struct kobj_attribute *attr
     tc_ready = false;
 
     if (finished) {
+        int err = 0;
+
         // check compatibility
         if (test_case->features.includes_user_actors) {
 #ifndef FORCE_SMAP_OFF
@@ -274,9 +276,13 @@ static ssize_t test_case_store(struct kobject *kobj, struct kobj_attribute *attr
             ASSERT(!(__read_cr4() & (X86_CR4_SMAP | X86_CR4_SMEP)), "test_case_store");
 #endif
         }
+        if (test_case->features.includes_vm_actors) {
+            err = vmx_check_cpu_compatibility();
+            CHECK_ERR("vmx_check_cpu_compatibility");
+        }
 
         // prepare sandboxes
-        int err = allocate_sandbox();
+        err = allocate_sandbox();
         CHECK_ERR("allocate_sandbox");
 
         err = load_sandbox_code();
