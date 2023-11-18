@@ -39,6 +39,7 @@ static int set_vmcs_host_state(void);
 static int set_vmcs_exec_control(void);
 static int set_vmcs_exit_control(void);
 static int set_vmcs_entry_control(void);
+static int make_vmcs_launched(void);
 
 // =================================================================================================
 // Error decoding
@@ -409,6 +410,9 @@ int set_vmcs_state(void)
 
         err = set_vmcs_entry_control();
         CHECK_ERR("set_vmcs_entry_control");
+
+        err = make_vmcs_launched();
+        CHECK_ERR("set_vmcs_state:make_vmcs_launched");
     }
 
     // uint64_t invept_desc[2] = {0};
@@ -434,8 +438,9 @@ static int set_vmcs_guest_state(void)
     CHECKED_VMWRITE(GUEST_DR7, 0x400);
 
     // - RSP, RIP, and RFLAGS
+    // (see also make_vmcs_launched)
     CHECKED_VMWRITE(GUEST_RSP, (uint64_t)&guest_v_memory->data.main_area[LOCAL_RSP_OFFSET]);
-    CHECKED_VMWRITE(GUEST_RIP, (uint64_t)&guest_v_memory->code.section[0]);
+    CHECKED_VMWRITE(GUEST_RIP, (uint64_t)&guest_v_memory->vmlaunch_page[0]);
     CHECKED_VMWRITE(GUEST_RFLAGS, (X86_EFLAGS_FIXED));
 
     // - Segments (values mainly based on https://www.sandpile.org/x86/initial.htm)
@@ -501,8 +506,7 @@ static int set_vmcs_host_state(void)
     CHECKED_VMWRITE(HOST_CR4, __read_cr4());
 
     // - RSP and RIP
-    CHECKED_VMWRITE(HOST_RSP, (uint64_t)&sandbox->data[0].main_area[LOCAL_RSP_OFFSET]);
-    CHECKED_VMWRITE(HOST_RIP, (uint64_t)fault_handler); // FIXME
+    // set later (make_vmcs_launched)
 
     // - Segment selectors
     CHECKED_VMWRITE(HOST_CS_SELECTOR, __KERNEL_CS);
@@ -633,6 +637,33 @@ static int set_vmcs_entry_control(void)
     return 0;
 }
 
+static int make_vmcs_launched(void)
+{
+    uint8_t err_inv, err_val = 0;
+
+    asm volatile(""
+                 "lea (1f), %%rax\n"
+                 "mov $0x00006c16, %%rcx\n"
+                 "vmwrite %%rax, %%rcx\n"
+                 "mov %%rsp, %%rax\n"
+                 "mov $0x00006c14, %%rcx\n"
+                 "vmwrite %%rax, %%rcx\n"
+                 "vmlaunch; setc %[inval]; setz %[val]\n"
+                 "1:\n"
+                 : [val] "=rm"(err_val), [inval] "=rm"(err_inv)
+                 :
+                 : "cc", "memory", "rax", "rcx");
+    // PRINT_ERR("make_vmcs_launched: exited with VMfailInvalid=%d, VMfailValid=%d\n", err_inv,
+            //   err_val);
+
+    guest_memory_t *guest_v_memory = (guest_memory_t *)(GUEST_V_MEMORY_START);
+    CHECKED_VMWRITE(GUEST_RIP, (uint64_t)&guest_v_memory->code.section[0]);
+    CHECKED_VMWRITE(HOST_RSP, (uint64_t)&sandbox->data[0].main_area[LOCAL_RSP_OFFSET]);
+    CHECKED_VMWRITE(HOST_RIP, (uint64_t)fault_handler); // FIXME
+
+    return 0;
+}
+
 int print_vmx_exit_info(void)
 {
     uint8_t err_inv, err_val = 0;
@@ -727,6 +758,7 @@ int init_vmx(void)
 
     // VMCS
     vmcss = CHECKED_VMALLOC(VMCS_SIZE);
+    invalid_vmcs = CHECKED_ZALLOC(VMCS_SIZE);
 
     return err;
 }
@@ -735,4 +767,5 @@ void free_vmx(void)
 {
     SAFE_FREE(vmxon_page_hva);
     SAFE_VFREE(vmcss);
+    SAFE_FREE(invalid_vmcs);
 }

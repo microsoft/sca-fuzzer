@@ -113,8 +113,8 @@ void recover_orig_state(void)
     // restore VMX state
     if (test_case->features.includes_vm_actors) {
         print_vmx_exit_info(); // uncomment to debug VMX exits
-        stop_vmx_operation();
         restore_orig_vmcs_state();
+        stop_vmx_operation();
     }
 }
 

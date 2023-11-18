@@ -518,21 +518,17 @@ void __attribute__((noipa)) macro_switch_u2h(void)
     asm volatile(".quad " xstr(MACRO_END));
 }
 
-/// @brief Macro to switch host -> guest actor
 void __attribute__((noipa)) macro_switch_h2g(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
-    asm_volatile_intel(""
-                       "vmlaunch\n");
+    // Nothing here: implementation in inject_macro_arguments->MACRO_SWITCH_H2G
     asm volatile(".quad " xstr(MACRO_END));
 }
 
-/// @brief Macro to switch guest -> host actor
 void __attribute__((noipa)) macro_switch_g2h(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
-    asm_volatile_intel(""
-                       "vmcall\n");
+    asm_volatile_intel("vmcall\n");
     asm volatile(".quad " xstr(MACRO_END));
 }
 
