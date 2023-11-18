@@ -113,21 +113,24 @@ int set_guest_page_tables(void)
 
         // set the last level of the page table for each area of the actor sandbox
         for (int i = 0; i < sizeof(util_t); i += 4096) {
-            uint64_t vaddr = ((uint64_t)&guest_p_memory->util) + i;
+            uint64_t vaddr = ((uint64_t)&guest_v_memory->util) + i;
+            uint64_t paddr = ((uint64_t)&guest_p_memory->util) + i;
             size_t pt_index = PT_INDEX(vaddr);
-            INIT_PTE_DEFAULT(page_table_hva->pt[pt_index], vaddr);
+            INIT_PTE_DEFAULT(page_table_hva->pt[pt_index], paddr);
             page_table_hva->pt[pt_index].dirty = 1;
         }
         for (int i = 0; i < sizeof(actor_data_t); i += 4096) {
-            uint64_t vaddr = ((uint64_t)&guest_p_memory->data) + i;
+            uint64_t vaddr = ((uint64_t)&guest_v_memory->data) + i;
+            uint64_t paddr = ((uint64_t)&guest_p_memory->data) + i;
             size_t pt_index = PT_INDEX(vaddr);
-            INIT_PTE_DEFAULT(page_table_hva->pt[pt_index], vaddr);
+            INIT_PTE_DEFAULT(page_table_hva->pt[pt_index], paddr);
             page_table_hva->pt[pt_index].dirty = 1;
         }
         for (int i = 0; i < sizeof(actor_code_t); i += 4096) {
-            uint64_t vaddr = ((uint64_t)&guest_p_memory->code) + i;
+            uint64_t vaddr = ((uint64_t)&guest_v_memory->code) + i;
+            uint64_t paddr = ((uint64_t)&guest_p_memory->code) + i;
             size_t pt_index = PT_INDEX(vaddr);
-            INIT_PTE_DEFAULT(page_table_hva->pt[pt_index], vaddr);
+            INIT_PTE_DEFAULT(page_table_hva->pt[pt_index], paddr);
             page_table_hva->pt[pt_index].dirty = 1;
         }
     }
