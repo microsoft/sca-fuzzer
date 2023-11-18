@@ -27,6 +27,9 @@ static uint64_t orig_vmcs_ptr = 0;
 
 static void *vmxon_page_hva = NULL;
 static uint64_t vmxon_page_hpa = 0;
+
+static vmcs_t *vmcss = NULL;
+
 // =================================================================================================
 // Error decoding
 // =================================================================================================
@@ -70,34 +73,34 @@ static vmx_basic_exit_reason_t vmx_basic_exit_reason_to_str[] = {VMX_EXIT_REASON
 // Helper functions
 // =================================================================================================
 /// @brief Runs VMXON and indicates whether it failed
-/// @param fail_invalid Set if VMXOFF failed due to VMfailInvalid
-/// @param fail_valid Set if VMXOFF failed due to VMfailValid
-static inline void vmxon(uint64_t phys, uint8_t *fail_invalid, uint8_t *fail_valid)
+/// @param err_inv Set if VMXOFF failed due to VMfailInvalid
+/// @param err_val Set if VMXOFF failed due to VMfailValid
+static inline void vmxon(uint64_t phys, uint8_t *err_inv, uint8_t *err_val)
 {
     uint8_t inv, val;
     __asm__ __volatile__("vmxon %[pa]; setc %[inval]; setz %[val]\n"
                          : [val] "=rm"(val), [inval] "=rm"(inv)
                          : [pa] "m"(phys)
                          : "cc", "memory");
-    *fail_invalid = inv;
-    *fail_valid = val;
+    *err_inv = inv;
+    *err_val = val;
 }
 
 /// @brief Runs VMXOFF and indicates whether it failed
-/// @param fail_invalid Set if VMXOFF failed due to VMfailInvalid
-/// @param fail_valid Set if VMXOFF failed due to VMfailValid
-static inline void vmxoff(uint8_t *fail_invalid, uint8_t *fail_valid)
+/// @param err_inv Set if VMXOFF failed due to VMfailInvalid
+/// @param err_val Set if VMXOFF failed due to VMfailValid
+static inline void vmxoff(uint8_t *err_inv, uint8_t *err_val)
 {
     uint8_t inv, val;
     __asm__ __volatile__("vmxoff; setc %[inval]; setz %[val]\n"
                          : [val] "=rm"(val), [inval] "=rm"(inv)
                          :
                          : "cc", "memory");
-    *fail_invalid = inv;
-    *fail_valid = val;
+    *err_inv = inv;
+    *err_val = val;
 }
 
-static inline void vmptrst(uint64_t *dest, uint8_t *fail_invalid, uint8_t *fail_valid)
+static inline void vmptrst(uint64_t *dest, uint8_t *err_inv, uint8_t *err_val)
 {
     uint64_t tmp;
     uint8_t inv, val;
@@ -106,20 +109,83 @@ static inline void vmptrst(uint64_t *dest, uint8_t *fail_invalid, uint8_t *fail_
                          :
                          : "cc", "memory");
     *dest = tmp;
-    *fail_invalid = inv;
-    *fail_valid = val;
+    *err_inv = inv;
+    *err_val = val;
 }
 
-static inline void vmptrld(uint64_t vmcs_hpa, uint8_t *fail_invalid, uint8_t *fail_valid)
+static inline void vmptrld(uint64_t vmcs_hpa, uint8_t *err_inv, uint8_t *err_val)
 {
     uint8_t inv, val;
     __asm__ __volatile__("vmptrld %[pa]; setc %[inval]; setz %[val]\n"
                          : [val] "=rm"(val), [inval] "=rm"(inv)
                          : [pa] "m"(vmcs_hpa)
                          : "cc", "memory");
-    *fail_invalid = inv;
-    *fail_valid = val;
+    *err_inv = inv;
+    *err_val = val;
 }
+
+static inline void vmclear(uint64_t vmcs_hpa, uint8_t *err_inv, uint8_t *err_val)
+{
+    uint8_t inv, val;
+    __asm__ __volatile__("vmclear %[pa]; setc %[inval]; setz %[val]\n"
+                         : [val] "=rm"(val), [inval] "=rm"(inv)
+                         : [pa] "m"(vmcs_hpa)
+                         : "cc", "memory");
+    *err_inv = inv;
+    *err_val = val;
+}
+
+static inline void vmread(uint64_t field, uint64_t *dest, uint8_t *err_inv, uint8_t *err_val)
+{
+    uint8_t inv, val;
+    uint64_t dest_local;
+    __asm__ __volatile__("vmread %[field], %[dest]; setc %[inval]; setz %[val]\n"
+                         : [dest] "=rm"(dest_local), [val] "=rm"(val), [inval] "=rm"(inv)
+                         : [field] "r"(field)
+                         : "cc", "memory");
+    *err_inv = inv;
+    *err_val = val;
+    *dest = dest_local;
+}
+
+static inline void vmwrite(uint64_t field, uint64_t value, uint8_t *err_inv, uint8_t *err_val)
+{
+    uint8_t inv, valid;
+    __asm__ __volatile__("vmwrite %[value], %[field]; setc %[inval]; setz %[valid]\n"
+                         : [valid] "=rm"(valid), [inval] "=rm"(inv)
+                         : [field] "r"(field), [value] "rm"(value)
+                         : "cc", "memory");
+    *err_inv = inv;
+    *err_val = valid;
+}
+#define CHECKED_VMWRITE(field, value)                                                              \
+    {                                                                                              \
+        vmwrite(field, value, &err_inv, &err_val);                                                 \
+        CHECK_VMFAIL("CHECKED_VMWRITE");                                                           \
+    }
+
+static int check_vmx_controls(uint32_t options, uint32_t msr)
+{
+    uint64_t msr_value = rdmsr64(msr);
+    uint32_t mask_low = msr_value & 0xFFFFFFFF; // 1 low bits indicate must-one
+    uint32_t mask_high = msr_value >> 32;       // zero high bits indicate must-zero
+
+    if ((~options & mask_low) || (options & ~mask_high)) {
+        PRINT_ERR("VMX MSR 0x%x: bits not supported (value 0x%x, mask l-0x%x h-0x%x)\n", msr,
+                  options, mask_low, mask_high);
+        return -1;
+    }
+
+    return 0;
+}
+
+#define VMWRITE_GUEST_SEGMENT(segment, selector, base, limit, ar)                                  \
+    {                                                                                              \
+        CHECKED_VMWRITE(GUEST_##segment##_SELECTOR, selector);                                     \
+        CHECKED_VMWRITE(GUEST_##segment##_BASE, base);                                             \
+        CHECKED_VMWRITE(GUEST_##segment##_LIMIT, limit);                                           \
+        CHECKED_VMWRITE(GUEST_##segment##_AR_BYTES, ar);                                           \
+    }
 
 // =================================================================================================
 // VMX management interface
@@ -129,6 +195,8 @@ static inline void vmptrld(uint64_t vmcs_hpa, uint8_t *fail_invalid, uint8_t *fa
 /// @return 0 on success, negative error code on failure
 int start_vmx_operation(void)
 {
+    uint8_t err_inv, err_val = 0;
+
     orig_vmxon_state = ((__read_cr4() & X86_CR4_VMXE) != 0);
     unsigned long cr4 = __read_cr4();
     unsigned long cr0 = read_cr0();
@@ -168,31 +236,26 @@ int start_vmx_operation(void)
         ((vmxon_region_t *)vmxon_page_hva)->reserved_31 = 0;
 
         // Run VMXON
-        uint8_t fail_invalid, fail_valid = 0;
-        vmxon(vmxon_page_hpa, &fail_invalid, &fail_valid);
+        vmxon(vmxon_page_hpa, &err_inv, &err_val);
         CHECK_VMFAIL("vmx_start_operation");
     }
-    // if (orig_vmxon_state)
-    //     printk(KERN_INFO "VMX was already activated.\n");
-    // else
-    //     printk(KERN_WARNING "Activated VMXON (was off before).\n");
 
     vmx_is_on = true;
     return 0;
 }
 
 /// @brief Disable VMX operation and do VMXOFF
-/// @return 0 on success, negative error code on failure
-int stop_vmx_operation(void)
+/// Should never fail as this function can be used in exception handlers;
+/// instead, it prints warnings upon errors.
+/// @return void
+void stop_vmx_operation(void)
 {
     // PRINT_ERR("Stopping VMX operation\n");
-    ASSERT(vmx_is_on, "vmx_stop_operation");
+    uint8_t err_inv, err_val = 0;
 
     // Run VMXOFF
-    if (!orig_vmxon_state) {
-        uint8_t fail_invalid, fail_valid = 0;
-        vmxoff(&fail_invalid, &fail_valid);
-        CHECK_VMFAIL("vmx_stop_operation");
+    if (vmx_is_on && !orig_vmxon_state) {
+        vmxoff(&err_inv, &err_val);
         orig_vmxon_state = false;
     }
 
@@ -201,32 +264,46 @@ int stop_vmx_operation(void)
     __write_cr4(orig_cr4);
 
     vmx_is_on = false;
-    return 0;
+    if (err_inv || err_val)
+        PRINT_ERRS("stop_vmx_operation", "Exited with VMfailInvalid=%d, VMfailValid=%d\n", err_inv,
+                   err_val);
 }
 
+/// @brief Restore the VMCS state that was active when we started
+/// @param void
+/// @return 0 on success, negative error code on failure
 int store_orig_vmcs_state(void)
 {
     if (!orig_vmxon_state)
         return 0; // VMX was not in use when we started; nothing to store
 
-    uint8_t fail_invalid, fail_valid = 0;
-    vmptrst(&orig_vmcs_ptr, &fail_invalid, &fail_valid);
+    uint8_t err_inv, err_val = 0;
+    vmptrst(&orig_vmcs_ptr, &err_inv, &err_val);
     CHECK_VMFAIL("store_orig_vmcs_state");
     return 0;
 }
 
-int restore_orig_vmcs_state(void)
+/// @brief Restore the VMCS state that was active when we started
+/// Should never fail as this function can be used in exception handlers;
+/// instead, it prints warnings upon errors.
+/// @return void
+void restore_orig_vmcs_state(void)
 {
+    uint8_t err_inv, err_val = 0;
     if (!orig_vmxon_state)
-        return 0; // VMX was not in use when we started; nothing to restore
+        return; // VMX was not in use when we started; nothing to restore
 
     // PRINT_ERR("vmptrld(%llx)\n", orig_vmcs_ptr);
     if (orig_vmcs_ptr == 0xFFFFFFFFFFFFFFFF)
-        return 0; // VMCS was not initialized; nothing to restore
+        return; // VMCS was not initialized; nothing to restore
 
-    uint8_t fail_invalid, fail_valid = 0;
-    vmptrld(orig_vmcs_ptr, &fail_invalid, &fail_valid);
-    CHECK_VMFAIL("restore_orig_vmcs_state");
+    // vmclear(orig_vmcs_ptr, &err_inv, &err_val);
+    vmptrld(orig_vmcs_ptr, &err_inv, &err_val);
+    if (err_inv || err_val)
+        PRINT_ERRS("restore_orig_vmcs_state", "Exited with VMfailInvalid=%d, VMfailValid=%d\n",
+                   err_inv, err_val);
+}
+
     return 0;
 }
 
@@ -323,10 +400,14 @@ int init_vmx(void)
     vmxon_page_hpa = virt_to_phys(vmxon_page_hva);
     ASSERT((vmxon_page_hpa & 0xFFF) == 0, "init_vmx"); // VMXON region must be 4KB-aligned
 
+    // VMCS
+    vmcss = CHECKED_VMALLOC(VMCS_SIZE);
+
     return err;
 }
 
 void free_vmx(void)
 {
     SAFE_FREE(vmxon_page_hva);
+    SAFE_VFREE(vmcss);
 }

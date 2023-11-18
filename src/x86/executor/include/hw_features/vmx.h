@@ -37,12 +37,20 @@
 // =================================================================================================
 // Host VMX data structures
 #define VMXON_SIZE 4096 // 4KB, as defined in SDM "Enabling and Entering VMX Operation"
+#define VMCS_SIZE  4096 // 4KB, as defined in SDM "Format of the VMCS Region"
 
 typedef struct {
     uint32_t revision_id : 30;
     uint32_t reserved_31 : 1;
     uint8_t data[VMXON_SIZE - 4];
 } __attribute__((packed)) vmxon_region_t;
+
+typedef struct {
+    uint32_t revision_id : 30;
+    uint32_t reserved_31 : 1;
+    uint32_t abort_indicator;
+    uint8_t data[VMCS_SIZE - 8];
+} __attribute__((packed)) vmcs_t;
 
 // =================================================================================================
 // Module interface
