@@ -11,7 +11,7 @@
 #include "sandbox_manager.h"
 #include "shortcuts.h"
 
-#include "hw_features/guest_page_tables.h"
+#include "hw_features/guest_memory.h"
 
 #define INIT_PTE(PTE, PADDR, P, W, US, PWT, PCD, XD, A)                                            \
     {                                                                                              \
@@ -41,6 +41,8 @@ eptp_t *ept_ptr = NULL; // global
 static actor_page_table_t *_allocated_page_tables = NULL;
 static void *_allocated_extended_page_tables = NULL;
 static void *_allocated_guest_gdts = NULL;
+static uint8_t *_vmlaunch_page = NULL;
+
 static v2p_t *_v2p_translations = NULL;
 
 // =================================================================================================
@@ -141,12 +143,19 @@ int set_guest_page_tables(void)
             INIT_PTE_DEFAULT(page_table_hva->pt[pt_index], paddr);
             page_table_hva->pt[pt_index].dirty = 1;
         }
+        { // VMLAUNCH page (indentation is for readability)
+            uint64_t vaddr = (uint64_t)&guest_v_memory->vmlaunch_page[0];
+            uint64_t paddr = (uint64_t)&guest_p_memory->vmlaunch_page[0];
+            size_t pt_index = PT_INDEX(vaddr);
+            INIT_PTE_DEFAULT(page_table_hva->pt[pt_index], paddr);
+            page_table_hva->pt[pt_index].dirty = 1;
+        }
     }
     return 0;
 }
 
 /// @brief Map sandbox_t from host memory into the guest memory of each guest actor, according to
-/// the layout defined in guest_memory_t (see guest_page_tables.h), with the base address equal to
+/// the layout defined in guest_memory_t (see guest_memory.h), with the base address equal to
 /// GUEST_MEMORY_START
 /// @param void
 /// @return 0 on success, -1 on failure
@@ -210,10 +219,16 @@ int set_extended_page_tables(void)
             INIT_EPTE_DEFAULT(ept[PT_INDEX(gpa)], hpa);
             ept[PT_INDEX(gpa)].dirty = 1;
         }
-        { // indent for readability
+        { // GDT - indent for readability
             uint64_t gpa = (uint64_t)&guest_memory->gdt[0];
             void *hva = _allocated_guest_gdts + actor_id * PAGE_SIZE;
             uint64_t hpa = vmalloc_to_phys_recorded(hva);
+            INIT_EPTE_DEFAULT(ept[PT_INDEX(gpa)], hpa);
+            ept[PT_INDEX(gpa)].dirty = 1;
+        }
+        { // VMLAUNCH page - indent for readability
+            uint64_t gpa = (uint64_t)&guest_memory->vmlaunch_page[0];
+            uint64_t hpa = virt_to_phys((void *)_vmlaunch_page);
             INIT_EPTE_DEFAULT(ept[PT_INDEX(gpa)], hpa);
             ept[PT_INDEX(gpa)].dirty = 1;
         }
@@ -227,7 +242,6 @@ int set_extended_page_tables(void)
             ept[PT_INDEX(gpa)].ept_mem_type = 6;
             ept[PT_INDEX(gpa)].ignore_pat = 1;
         }
-
     }
     return 0;
 }
@@ -414,7 +428,8 @@ int allocate_guest_page_tables()
     old_n_actors = n_actors;
     SAFE_VFREE(_allocated_page_tables);
     SAFE_VFREE(_allocated_extended_page_tables);
-    SAFE_FREE(_allocated_guest_gdts);
+    SAFE_VFREE(_allocated_guest_gdts);
+    SAFE_FREE(_vmlaunch_page);
     SAFE_FREE(_v2p_translations);
 
     _allocated_page_tables =
@@ -427,7 +442,13 @@ int allocate_guest_page_tables()
     size_t ept_allocation_size = 4 * PAGE_SIZE;
     _allocated_extended_page_tables = CHECKED_VMALLOC(ept_allocation_size);
 
-    _allocated_guest_gdts = CHECKED_ZALLOC(n_actors * PAGE_SIZE);
+    _allocated_guest_gdts = CHECKED_VMALLOC(n_actors * PAGE_SIZE);
+
+    // A page with a single VMCALL instruction; used to put the VM into launched state
+    _vmlaunch_page = CHECKED_ZALLOC(PAGE_SIZE);
+    _vmlaunch_page[0] = 0x0f;
+    _vmlaunch_page[1] = 0x01;
+    _vmlaunch_page[2] = 0xc1;
 
     _v2p_translations = CHECKED_ZALLOC(N_TRANSLATIONS * sizeof(v2p_t));
     return 0;
@@ -437,7 +458,8 @@ void free_guest_page_tables(void)
 {
     SAFE_VFREE(_allocated_page_tables);
     SAFE_VFREE(_allocated_extended_page_tables);
-    SAFE_FREE(_allocated_guest_gdts);
+    SAFE_VFREE(_allocated_guest_gdts);
     SAFE_FREE(ept_ptr);
+    SAFE_FREE(_vmlaunch_page);
     SAFE_FREE(_v2p_translations);
 }

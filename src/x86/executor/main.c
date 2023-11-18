@@ -26,7 +26,7 @@
 #include "test_case_parser.h"
 
 #include "hw_features/fault_handler.h"
-#include "hw_features/guest_page_tables.h"
+#include "hw_features/guest_memory.h"
 #include "hw_features/host_page_tables.h"
 #include "hw_features/page_tables_common.h"
 #include "hw_features/perf_counters.h"

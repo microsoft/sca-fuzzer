@@ -5,11 +5,11 @@
 
 #include "macro_loader.h"
 #include "asm_snippets.h"
+#include "hw_features/guest_memory.h"
 #include "main.h"
 #include "sandbox_manager.h"
 #include "shortcuts.h"
 #include "test_case_parser.h"
-#include "hw_features/guest_page_tables.h"
 
 // Max sizes for sanity checks
 #define MAX_MACRO_START_OFFSET 0x100
