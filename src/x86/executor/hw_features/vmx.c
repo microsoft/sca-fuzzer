@@ -230,6 +230,83 @@ int restore_orig_vmcs_state(void)
     return 0;
 }
 
+int print_vmx_exit_info(void)
+{
+    uint8_t err_inv, err_val = 0;
+    uint64_t value = 0;
+
+    // Abort reasons
+    PRINT_ERR("VMX Abort indicators:\n");
+    for (int actor_id = 0; actor_id < n_actors; actor_id++) {
+        if (actors[actor_id].mode == MODE_GUEST)
+            PRINT_ERR("  actor 0x%x: %d\n", actor_id, vmcss[actor_id].abort_indicator);
+    }
+
+    // VM exit reason
+    PRINT_ERR("VMXC exit info:\n");
+    vmread(VM_EXIT_REASON, &value, &err_inv, &err_val);
+    CHECK_VMFAIL("print_vmx_exit_info:VM_EXIT_REASON");
+    PRINT_ERR("  VM exit reason: 0x%llx\n", value);
+    if (value != 0) {
+        uint16_t basic_reason = value & 0xFFFF;
+        char *exit_type;
+        if (value & (1ULL << 31))
+            exit_type = "entry";
+        else
+            exit_type = "exit";
+
+        for (int i = 0; i < EXIT_REASON_TPAUSE; i++) {
+            if (basic_reason == vmx_basic_exit_reason_to_str[i].basic_exit_reason) {
+                PRINT_ERR("    decoded: %s [%s]\n", vmx_basic_exit_reason_to_str[i].str, exit_type);
+                break;
+            }
+        }
+    }
+
+    vmread(EXIT_QUALIFICATION, &value, &err_inv, &err_val);
+    CHECK_VMFAIL("print_vmx_exit_info:EXIT_QUALIFICATION");
+    PRINT_ERR("  Exit qualification: 0x%llx\n", value);
+
+    vmread(GUEST_LINEAR_ADDRESS, &value, &err_inv, &err_val);
+    CHECK_VMFAIL("print_vmx_exit_info:GUEST_LINEAR_ADDRESS");
+    PRINT_ERR("  Guest linear address: 0x%llx\n", value);
+
+    vmread(GUEST_PHYSICAL_ADDRESS, &value, &err_inv, &err_val);
+    CHECK_VMFAIL("print_vmx_exit_info:GUEST_PHYSICAL_ADDRESS");
+    PRINT_ERR("  Guest physical address: 0x%llx\n", value);
+
+    vmread(VM_EXIT_INTR_INFO, &value, &err_inv, &err_val);
+    CHECK_VMFAIL("print_vmx_exit_info:VM_EXIT_INTR_INFO");
+    PRINT_ERR("  VM exit interrupt info: 0x%llx\n", value);
+
+    vmread(VM_EXIT_INTR_ERROR_CODE, &value, &err_inv, &err_val);
+    CHECK_VMFAIL("print_vmx_exit_info:VM_EXIT_INTR_ERROR_CODE");
+    PRINT_ERR("  VM exit interrupt error code: 0x%llx\n", value);
+
+    vmread(IDT_VECTORING_INFO_FIELD, &value, &err_inv, &err_val);
+    CHECK_VMFAIL("print_vmx_exit_info:IDT_VECTORING_INFO_FIELD");
+    PRINT_ERR("  IDT vectoring info field: 0x%llx\n", value);
+
+    vmread(IDT_VECTORING_ERROR_CODE, &value, &err_inv, &err_val);
+    CHECK_VMFAIL("print_vmx_exit_info:IDT_VECTORING_ERROR_CODE");
+    PRINT_ERR("  IDT vectoring error code: 0x%llx\n", value);
+
+    vmread(VM_EXIT_INSTRUCTION_LEN, &value, &err_inv, &err_val);
+    CHECK_VMFAIL("print_vmx_exit_info:VM_EXIT_INSTRUCTION_LEN");
+    PRINT_ERR("  VM exit instruction length: 0x%llx\n", value);
+
+    vmread(VMX_INSTRUCTION_INFO, &value, &err_inv, &err_val);
+    CHECK_VMFAIL("print_vmx_exit_info:VMX_INSTRUCTION_INFO");
+    PRINT_ERR("  VM exit instruction info: 0x%llx\n", value);
+
+    vmread(VM_INSTRUCTION_ERROR, &value, &err_inv, &err_val);
+    CHECK_VMFAIL("print_vmx_exit_info:VM_INSTRUCTION_ERROR");
+    PRINT_ERR("  VM exit instruction error: 0x%llx\n", value);
+    if (value > 0 && value < 22)
+        PRINT_ERR("    decoded: %s\n", vmx_instruction_error_to_str[value]);
+
+    return 0;
+}
 
 // =================================================================================================
 int init_vmx(void)
