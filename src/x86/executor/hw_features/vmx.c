@@ -27,6 +27,44 @@ static uint64_t orig_vmcs_ptr = 0;
 
 static void *vmxon_page_hva = NULL;
 static uint64_t vmxon_page_hpa = 0;
+// =================================================================================================
+// Error decoding
+// =================================================================================================
+static const char *vmx_instruction_error_to_str[] = {
+    "Unknown error: 0",
+    "VMXERR_VMCALL_IN_VMX_ROOT_OPERATION",
+    "VMXERR_VMCLEAR_INVALID_ADDRESS",
+    "VMXERR_VMCLEAR_VMXON_POINTER",
+    "VMXERR_VMLAUNCH_NONCLEAR_VMCS",
+    "VMXERR_VMRESUME_NONLAUNCHED_VMCS",
+    "VMXERR_VMRESUME_AFTER_VMXOFF",
+    "VMXERR_ENTRY_INVALID_CONTROL_FIELD",
+    "VMXERR_ENTRY_INVALID_HOST_STATE_FIELD",
+    "VMXERR_VMPTRLD_INVALID_ADDRESS",
+    "VMXERR_VMPTRLD_VMXON_POINTER",
+    "VMXERR_VMPTRLD_INCORRECT_VMCS_REVISION_ID",
+    "VMXERR_UNSUPPORTED_VMCS_COMPONENT",
+    "VMXERR_VMWRITE_READ_ONLY_VMCS_COMPONENT",
+    "VMXERR_VMXON_IN_VMX_ROOT_OPERATION",
+    "VMXERR_ENTRY_INVALID_EXECUTIVE_VMCS_POINTER",
+    "VMXERR_ENTRY_NONLAUNCHED_EXECUTIVE_VMCS",
+    "VMXERR_ENTRY_EXECUTIVE_VMCS_POINTER_NOT_VMXON_POINTER",
+    "VMXERR_VMCALL_NONCLEAR_VMCS",
+    "VMXERR_VMCALL_INVALID_VM_EXIT_CONTROL_FIELDS",
+    "VMXERR_VMCALL_INCORRECT_MSEG_REVISION_ID",
+    "VMXERR_VMXOFF_UNDER_DUAL_MONITOR_TREATMENT_OF_SMIS_AND_SMM",
+    "VMXERR_VMCALL_INVALID_SMM_MONITOR_FEATURES",
+    "VMXERR_ENTRY_INVALID_VM_EXECUTION_CONTROL_FIELDS_IN_EXECUTIVE_VMCS",
+    "VMXERR_ENTRY_EVENTS_BLOCKED_BY_MOV_SS",
+    "VMXERR_INVALID_OPERAND_TO_INVEPT_INVVPID",
+    NULL};
+
+typedef struct {
+    uint16_t basic_exit_reason;
+    const char *str;
+} vmx_basic_exit_reason_t;
+
+static vmx_basic_exit_reason_t vmx_basic_exit_reason_to_str[] = {VMX_EXIT_REASONS, {0, NULL}};
 
 // =================================================================================================
 // Helper functions
