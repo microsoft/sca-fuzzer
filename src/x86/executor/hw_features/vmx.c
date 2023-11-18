@@ -468,6 +468,56 @@ static int set_vmcs_guest_state(void)
 static int set_vmcs_host_state(void)
 {
     uint8_t err_inv, err_val = 0;
+
+    // get TR, GDTR, IDTR and LDTR bases (will be necessary later, in several places)
+    uint64_t tr;
+    struct desc_ptr gdtr, idtr, ldtr;
+    asm volatile("str %[tr]\n"
+                 "sgdt %[gdtr]\n"
+                 "sidt %[idtr]\n"
+                 "sldt %[ldtr]\n"
+                 : [tr] "=m"(tr), [gdtr] "=m"(gdtr), [idtr] "=m"(idtr), [ldtr] "=m"(ldtr)
+                 :
+                 : "memory");
+    struct ldttss_desc *tr_register = (struct ldttss_desc *)(gdtr.address + tr);
+    uint64_t tr_base = ((uint64_t)tr_register->base0 | ((tr_register->base1) << 16) |
+                        ((tr_register->base2) << 24) | ((uint64_t)tr_register->base3 << 32));
+
+    // SDM 25.5 Host-State Area
+    // - Control registers
+    CHECKED_VMWRITE(HOST_CR0, read_cr0());
+    CHECKED_VMWRITE(HOST_CR3, __read_cr3());
+    CHECKED_VMWRITE(HOST_CR4, __read_cr4());
+
+    // - RSP and RIP
+    CHECKED_VMWRITE(HOST_RSP, (uint64_t)&sandbox->data[0].main_area[LOCAL_RSP_OFFSET]);
+    CHECKED_VMWRITE(HOST_RIP, (uint64_t)fault_handler); // FIXME
+
+    // - Segment selectors
+    CHECKED_VMWRITE(HOST_CS_SELECTOR, __KERNEL_CS);
+    CHECKED_VMWRITE(HOST_SS_SELECTOR, __KERNEL_DS);
+    CHECKED_VMWRITE(HOST_DS_SELECTOR, 0);
+    CHECKED_VMWRITE(HOST_ES_SELECTOR, 0);
+    CHECKED_VMWRITE(HOST_FS_SELECTOR, 0);
+    CHECKED_VMWRITE(HOST_GS_SELECTOR, 0);
+    CHECKED_VMWRITE(HOST_TR_SELECTOR, tr);
+
+    // - Segment bases
+    CHECKED_VMWRITE(HOST_FS_BASE, rdmsr64(MSR_FS_BASE));
+    CHECKED_VMWRITE(HOST_GS_BASE, rdmsr64(MSR_GS_BASE));
+    CHECKED_VMWRITE(HOST_TR_BASE, tr_base);
+    CHECKED_VMWRITE(HOST_GDTR_BASE, gdtr.address);
+    CHECKED_VMWRITE(HOST_IDTR_BASE, test_case_idtr.address);
+
+    // - MSRs
+    CHECKED_VMWRITE(HOST_IA32_SYSENTER_CS, rdmsr64(MSR_IA32_SYSENTER_CS));
+    CHECKED_VMWRITE(HOST_IA32_SYSENTER_ESP, rdmsr64(MSR_IA32_SYSENTER_ESP));
+    CHECKED_VMWRITE(HOST_IA32_SYSENTER_EIP, rdmsr64(MSR_IA32_SYSENTER_EIP));
+    CHECKED_VMWRITE(HOST_IA32_EFER, rdmsr64(MSR_EFER));
+
+    ASSERT((VM_EXIT_LOAD_IA32_PERF_GLOBAL_CTRL & NOT_SUPPORTED_EXIT_CTRL) != 0,
+           "set_vmcs_host_state");
+    ASSERT((VM_EXIT_LOAD_IA32_PAT & NOT_SUPPORTED_EXIT_CTRL) != 0, "set_vmcs_host_state");
     return 0;
 }
 
