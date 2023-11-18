@@ -195,7 +195,7 @@ __attribute__((unused)) void fallback_handler_wrapper(void)
 
     asm volatile(""
         "mov %%r13, %%r14\n"          // r14 <- error code
-        "mov %[util_base], %%r15\n"          // r15 <- util_base
+        "mov %[util_base], %%r15\n"   // r15 <- util_base
 
         // check for nested faults
         "lea %[nested_flag], %%rax\n"
@@ -270,7 +270,7 @@ __attribute__((unused)) void fallback_handler_wrapper(void)
     asm_volatile_intel("mov rax, 1\n"
                        "ret\n"
                        "int3\n" // Silences objtool warnings about no int3 after ret
-                       );
+    );
 }
 
 __attribute__((unused)) void bubble_handler_wrapper(void)
