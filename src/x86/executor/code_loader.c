@@ -129,7 +129,7 @@ static int load_section_main(void)
 
             // expand the macro that would collect htrace after the exception
             tc_symbol_entry_t measurement_end =
-                (tc_symbol_entry_t){.id = MACRO_MEASUREMENT_END, .offset = 0, .owner = 0};
+                (tc_symbol_entry_t){.id = MACRO_FAULT_HANDLER, .offset = 0, .owner = 0, .args = 0};
             uint8_t *macro_dest = &main_actor_code[MAX_EXPANDED_SECTION_SIZE + main_macros_cursor];
 
             main_macros_cursor += expand_macro(&measurement_end, fault_handler, macro_dest);

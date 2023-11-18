@@ -137,6 +137,7 @@ static uint8_t *get_macro_wrapper_ptr(uint64_t macro_id)
             PRINT_ERRS("get_macro_wrapper_ptr", "misconfigured measurement_mode\n");
             return NULL;
         }
+    case MACRO_FAULT_HANDLER:
     case MACRO_MEASUREMENT_END:
         switch (measurement_mode) {
         case PRIME_PROBE:
@@ -219,6 +220,10 @@ uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint8_t *mac
     case MACRO_MEASUREMENT_START:
     case MACRO_MEASUREMENT_END:
         break;
+    case MACRO_FAULT_HANDLER: {
+        cursor += update_r14(arg1, macro_dest, cursor);
+        break;
+    }
     case MACRO_SWITCH: {
         cursor += update_r14_rsp(arg1, macro_dest, cursor);
 
@@ -264,7 +269,16 @@ uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint8_t *mac
         break;
     }
     case MACRO_SWITCH_H2G: {
-        cursor += update_r14_rsp(arg1, macro_dest, cursor);
+        cursor += update_r14(arg1, macro_dest, cursor);
+        // vmresume
+        macro_dest[cursor] = 0x0f;
+        cursor++;
+        macro_dest[cursor] = 0x01;
+        cursor++;
+        macro_dest[cursor] = 0xc3;
+        cursor++;
+        // vmlaunch can fall through to the next instruction, so we need to restore R14
+        cursor += update_r14(0, macro_dest, cursor);
         break;
     }
     case MACRO_SWITCH_G2H: {
@@ -490,8 +504,7 @@ void __attribute__((noipa)) macro_select_switch_u2h_target(void)
                        "mov rcx, 0xc0000082\n"
                        "wrmsr\n"
                        "mov rax, 0\n"
-                       "mov rdx, 0\n"
-                       );
+                       "mov rdx, 0\n");
     asm volatile(".quad " xstr(MACRO_END));
 }
 
