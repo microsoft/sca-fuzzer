@@ -525,6 +525,66 @@ static int set_vmcs_exec_control(void)
 {
     // int err = 0;
     uint8_t err_inv, err_val = 0;
+
+    // SDM 25.6.1 Pin-Based VM-Execution Controls
+    uint32_t pin_based_vm_exec_control = DEFAULT_PIN_BASED_VM_EXEC_CONTROL |
+                                         (rdmsr64(MSR_IA32_VMX_TRUE_PINBASED_CTLS) & 0xFFFFFFFFULL);
+    if (check_vmx_controls(pin_based_vm_exec_control, MSR_IA32_VMX_TRUE_PINBASED_CTLS))
+        return -1;
+    CHECKED_VMWRITE(PIN_BASED_VM_EXEC_CONTROL, pin_based_vm_exec_control);
+
+    // SDM 25.6.2 Processor-Based VM-Execution Controls
+    // - primary
+    uint32_t primary_vm_exec_control = DEFAULT_PRIMARY_VM_EXEC_CONTROL |
+                                       (rdmsr64(MSR_IA32_VMX_TRUE_PROCBASED_CTLS) & 0xFFFFFFFFULL);
+    if (check_vmx_controls(primary_vm_exec_control, MSR_IA32_VMX_TRUE_PROCBASED_CTLS))
+        return -1;
+    CHECKED_VMWRITE(CPU_BASED_VM_EXEC_CONTROL, primary_vm_exec_control);
+
+    // - secondary
+    uint32_t secondary_vm_exec_control =
+        DEFAULT_SECONDARY_VM_EXEC_CONTROL | (rdmsr64(MSR_IA32_VMX_PROCBASED_CTLS2) & 0xFFFFFFFFULL);
+    if (check_vmx_controls(secondary_vm_exec_control, MSR_IA32_VMX_PROCBASED_CTLS2))
+        return -1;
+    CHECKED_VMWRITE(SECONDARY_VM_EXEC_CONTROL, secondary_vm_exec_control);
+
+    // SDM 25.6.3 Exception Bitmap
+    CHECKED_VMWRITE(EXCEPTION_BITMAP, DEFAULT_EXCEPTION_BITMAP);
+
+    // SDM 25.6.4 I/O-Bitmap Addresses
+    ASSERT((CPU_BASED_USE_IO_BITMAPS & primary_vm_exec_control) == 0, "set_vmcs_exec_control");
+
+    // SDM 25.6.5 Time-Stamp Counter Offset and Multiplier
+    ASSERT((CPU_BASED_USE_TSC_OFFSETTING & primary_vm_exec_control) == 0, "set_vmcs_exec_control");
+
+    // SDM 25.6.6 Guest/Host Masks and Read Shadows for CR0 and CR4
+    uint64_t cr0 = read_cr0();
+    uint64_t cr4 = __read_cr4();
+    CHECKED_VMWRITE(CR0_GUEST_HOST_MASK, cr0);
+    CHECKED_VMWRITE(CR4_GUEST_HOST_MASK, cr4);
+    CHECKED_VMWRITE(CR0_READ_SHADOW, cr0);
+    CHECKED_VMWRITE(CR4_READ_SHADOW, cr4);
+
+    // SDM 25.6.7 CR3-Target Controls
+    CHECKED_VMWRITE(CR3_TARGET_COUNT, 0);
+
+    // SDM 25.6.8 Controls for APIC Virtualization
+    ASSERT((SECONDARY_EXEC_VIRTUALIZE_APIC_ACCESSES & secondary_vm_exec_control) == 0,
+           "set_vmcs_exec_control");
+
+    // SDM 25.6.9 MSR-Bitmap Address
+    ASSERT((CPU_BASED_USE_MSR_BITMAPS & primary_vm_exec_control) == 0, "set_vmcs_exec_control");
+
+    // SDM 25.6.10 Executive-VMCS Pointer
+    // (no idea, leaving it blank for the time being)
+
+    // SDM 25.6.11 Extended-Page-Table Pointer (EPTP)
+    CHECKED_VMWRITE(EPT_POINTER, *(uint64_t *)ept_ptr);
+
+    // SDM 25.6.12 Virtual-Processor Identifier (VPID)
+    ASSERT((SECONDARY_EXEC_ENABLE_VPID & secondary_vm_exec_control) == 0, "set_vmcs_exec_control");
+
+    // Misc. features (25.6.14--23) are disabled
     return 0;
 }
 
