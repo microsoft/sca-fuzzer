@@ -6,12 +6,12 @@
 #ifndef _GUEST_PAGE_TABLES_H_
 #define _GUEST_PAGE_TABLES_H_
 
-#include "page_tables_common.h"
+#include "hw_features/page_tables_common.h"
 #include "sandbox_manager.h"
 
 // start of guest's physical memory; this is an arbitrary large aligned number
-#define GUEST_P_MEMORY_START 0x8000000000ULL
-#define GUEST_V_MEMORY_START GUEST_P_MEMORY_START // virtual and physical addresses match
+#define GUEST_P_MEMORY_START 0
+#define GUEST_V_MEMORY_START 0x8000000000ULL
 #define GUEST_MEMORY_SIZE    (64 * 4096)          // max size that could be mapped by a single PTE
 
 // Memory layout within the guest memory
