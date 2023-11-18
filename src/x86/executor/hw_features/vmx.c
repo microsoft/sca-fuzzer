@@ -208,6 +208,16 @@ int vmx_check_cpu_compatibility(void)
     uint64_t msr_value = 0;
     ASSERT_MSG(cpu_has_vmx(), "vmx_check_cpu_compatibility", "VMX is not supported on this CPU");
 
+    // Control registers
+    uint64_t cr0 = read_cr0();
+    uint64_t cr4 = __read_cr4();
+    uint64_t efer = rdmsr64(MSR_EFER);
+    ASSERT((cr0 & X86_CR0_PE) != 0, "set_vmcs_guest_state");
+    ASSERT((cr0 & X86_CR0_PG) != 0, "set_vmcs_guest_state");
+    ASSERT((cr4 & X86_CR4_PAE) != 0, "set_vmcs_guest_state");
+    ASSERT((efer & EFER_LME) != 0, "set_vmcs_guest_state");
+    ASSERT((efer & EFER_LMA) != 0, "set_vmcs_guest_state");
+
     // True controls are usable
     msr_value = rdmsr64(MSR_IA32_VMX_BASIC);
     ASSERT((msr_value & VMX_BASIC_TRUE_CTLS) != 0, "vmx_check_cpu_compatibility");
