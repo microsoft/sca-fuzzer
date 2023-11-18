@@ -27,6 +27,7 @@ typedef struct {
     util_t util;
     actor_data_t data;
     actor_code_t code;
+    uint8_t gdt[PAGE_SIZE];
     actor_page_table_t guest_page_tables;
 } __attribute__((packed)) guest_memory_t;
 
