@@ -9,8 +9,11 @@
 #include <asm/virtext.h>
 #include <linux/types.h>
 
+#include "actor.h"
 #include "shortcuts.h"
 
+#include "hw_features/fault_handler.h"
+#include "hw_features/guest_page_tables.h"
 #include "hw_features/vmx.h"
 #include "hw_features/vmx_config.h"
 
@@ -29,6 +32,12 @@ static void *vmxon_page_hva = NULL;
 static uint64_t vmxon_page_hpa = 0;
 
 static vmcs_t *vmcss = NULL;
+
+static int set_vmcs_guest_state(void);
+static int set_vmcs_host_state(void);
+static int set_vmcs_exec_control(void);
+static int set_vmcs_exit_control(void);
+static int set_vmcs_entry_control(void);
 
 // =================================================================================================
 // Error decoding
@@ -338,6 +347,95 @@ void restore_orig_vmcs_state(void)
         PRINT_ERRS("restore_orig_vmcs_state", "Exited with VMfailInvalid=%d, VMfailValid=%d\n",
                    err_inv, err_val);
 }
+
+int set_vmcs_state(void)
+{
+    int err = 0;
+    uint8_t err_inv, err_val = 0;
+
+    // if necessary, allocate additional memory for VMCSs
+    static int old_n_actors = 0;
+    if (n_actors > old_n_actors) {
+        SAFE_VFREE(vmcss);
+        vmcss = CHECKED_VMALLOC(n_actors * VMCS_SIZE);
+    }
+    old_n_actors = n_actors;
+
+    // initialize VMCSs for all guest actors
+    for (int actor_id = 0; actor_id < n_actors; actor_id++) {
+        // skip non-guest actors
+        actor_metadata_t *actor = &actors[actor_id];
+        if (actor->mode != MODE_GUEST)
+            continue;
+
+        vmcs_t *vmcs_hva = (vmcs_t *)(&vmcss[actor_id]);
+        uint64_t vmcs_hpa = vmalloc_to_phys(vmcs_hva);
+
+        // initialize VMCS revision identifier
+        memset(vmcs_hva, 0, VMCS_SIZE);
+        vmcs_hva->revision_id = rdmsr64(MSR_IA32_VMX_BASIC);
+        vmcs_hva->abort_indicator = 0;
+
+        // load VMCS
+        vmclear(vmcs_hpa, &err_inv, &err_val);
+        CHECK_VMFAIL("set_vmcs_state:vmclear");
+
+        vmptrld(vmcs_hpa, &err_inv, &err_val);
+        CHECK_VMFAIL("set_vmcs_state:vmptrld");
+
+        // set VMCS fields
+        err = set_vmcs_guest_state();
+        CHECK_ERR("set_vmcs_guest_state");
+
+        err = set_vmcs_host_state();
+        CHECK_ERR("set_vmcs_host_state");
+
+        err = set_vmcs_exec_control();
+        CHECK_ERR("set_vmcs_exec_control");
+
+        err = set_vmcs_exit_control();
+        CHECK_ERR("set_vmcs_exit_control");
+
+        err = set_vmcs_entry_control();
+        CHECK_ERR("set_vmcs_entry_control");
+    }
+
+    // uint64_t invept_desc[2] = {0};
+    // invept_desc[0] = *(uint64_t *)ept_ptr;
+    // asm volatile("mov $2, %%rax; invept (%0), %%rax" ::"r"(invept_desc) : "rax");
+
+    return 0;
+}
+
+static int set_vmcs_guest_state(void)
+{
+    uint8_t err_inv, err_val = 0;
+
+    return 0;
+}
+
+static int set_vmcs_host_state(void)
+{
+    uint8_t err_inv, err_val = 0;
+    return 0;
+}
+
+static int set_vmcs_exec_control(void)
+{
+    // int err = 0;
+    uint8_t err_inv, err_val = 0;
+    return 0;
+}
+
+static int set_vmcs_exit_control(void)
+{
+    uint8_t err_inv, err_val = 0;
+    return 0;
+}
+
+static int set_vmcs_entry_control(void)
+{
+    uint8_t err_inv, err_val = 0;
 
     return 0;
 }
