@@ -591,12 +591,33 @@ static int set_vmcs_exec_control(void)
 static int set_vmcs_exit_control(void)
 {
     uint8_t err_inv, err_val = 0;
+
+    uint64_t exit_ctls = DEFAULT_EXIT_CTRL | (rdmsr64(MSR_IA32_VMX_TRUE_EXIT_CTLS) & 0xFFFFFFFFULL);
+    if (check_vmx_controls(exit_ctls, MSR_IA32_VMX_TRUE_EXIT_CTLS))
+        return -1;
+    CHECKED_VMWRITE(VM_EXIT_CONTROLS, exit_ctls);
+
+    // SDM 25.7.2 VM-Exit Controls for MSRs
+    CHECKED_VMWRITE(VM_EXIT_MSR_STORE_COUNT, 0);
+    CHECKED_VMWRITE(VM_EXIT_MSR_LOAD_COUNT, 0);
     return 0;
 }
 
 static int set_vmcs_entry_control(void)
 {
     uint8_t err_inv, err_val = 0;
+
+    uint64_t entry_ctls =
+        DEFAULT_ENTRY_CTRL | (rdmsr64(MSR_IA32_VMX_TRUE_ENTRY_CTLS) & 0xFFFFFFFFULL);
+    if (check_vmx_controls(entry_ctls, MSR_IA32_VMX_TRUE_ENTRY_CTLS))
+        return -1;
+    CHECKED_VMWRITE(VM_ENTRY_CONTROLS, entry_ctls);
+
+    // SDM 25.8.2 VM-Entry Controls for MSRs
+    CHECKED_VMWRITE(VM_ENTRY_MSR_LOAD_COUNT, 0);
+
+    // SDM 25.8.3 VM-Entry Controls for Event Injection
+    CHECKED_VMWRITE(VM_ENTRY_INTR_INFO_FIELD, 0);
 
     return 0;
 }
