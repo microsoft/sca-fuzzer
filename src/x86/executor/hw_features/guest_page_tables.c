@@ -152,7 +152,7 @@ int set_guest_page_tables(void)
 /// @return 0 on success, -1 on failure
 int set_extended_page_tables(void)
 {
-    // FIXME: this implementation is incorrect, and won't work for n_guests > 1
+    // FIXME: this implementation won't work for n_guests > 1
     // each actor should have it's own EPT - otherwise we will have collisions
     ASSERT(n_actors <= 2, "set_extended_page_tables");
 
@@ -164,6 +164,7 @@ int set_extended_page_tables(void)
     ept_pml4_pte *epml4 = _allocated_extended_page_tables;
     ept_pdpt_pte *epdpt = _allocated_extended_page_tables + PAGE_SIZE;
     ept_pdt_pte *epdt = _allocated_extended_page_tables + 2 * PAGE_SIZE;
+    ept_pt_pte *ept = _allocated_extended_page_tables + 3 * PAGE_SIZE;
 
     // set the first two levels of EPT (they are the same for all actors)
     size_t epml4_index = PML4_INDEX(GUEST_P_MEMORY_START);
@@ -174,6 +175,10 @@ int set_extended_page_tables(void)
     uint64_t epdt_hpa = vmalloc_to_phys_recorded((void *)epdt);
     INIT_EPTE_DEFAULT(epdpt[epdpt_index], epdt_hpa);
 
+    size_t epdt_index = PDT_INDEX(GUEST_P_MEMORY_START);
+    uint64_t ept_hpa = vmalloc_to_phys_recorded((void *)ept);
+    INIT_EPTE_DEFAULT(epdt[epdt_index], ept_hpa);
+
     // set the last two level of EPT for each guest actor
     for (int actor_id = 0; actor_id < n_actors; actor_id++) {
         // skip non-guest actors
@@ -181,44 +186,48 @@ int set_extended_page_tables(void)
         if (actor->mode != MODE_GUEST)
             continue;
 
-        // set the third level of EPT to point to the actor's forth level of EPT
-        size_t epdt_index = PDT_INDEX(GUEST_P_MEMORY_START);
-        ept_pt_pte *actor_ept = _allocated_extended_page_tables + (3 + actor_id) * PAGE_SIZE;
-        uint64_t actor_ept_hpa = vmalloc_to_phys_recorded(actor_ept);
-        INIT_EPTE_DEFAULT(epdt[epdt_index], actor_ept_hpa);
-
-        // map util_t into guest memory (the same for all actors, i.e., shared memory)
+        // map util_t into guest memory (the same phys range for all actors, i.e., shared)
         for (int i = 0; i < sizeof(util_t); i += 4096) {
             uint64_t gpa = ((uint64_t)&guest_memory->util) + i;
             void *hva = ((void *)&sandbox->util) + i;
             uint64_t hpa = vmalloc_to_phys_recorded(hva);
-            INIT_EPTE_DEFAULT(actor_ept[PT_INDEX(gpa)], hpa);
-            actor_ept[PT_INDEX(gpa)].dirty = 1;
+            INIT_EPTE_DEFAULT(ept[PT_INDEX(gpa)], hpa);
+            ept[PT_INDEX(gpa)].dirty = 1;
         }
 
-        // map actor_data_t and actor_code_t into guest memory (each actor has its own)
+        // map actor_data_t, actor_code_t, and GDT into guest memory (each actor has its own)
         for (int i = 0; i < sizeof(actor_data_t); i += 4096) {
             uint64_t gpa = ((uint64_t)&guest_memory->data) + i;
             void *hva = ((void *)&sandbox->data[actor_id]) + i;
             uint64_t hpa = vmalloc_to_phys_recorded(hva);
-            INIT_EPTE_DEFAULT(actor_ept[PT_INDEX(gpa)], hpa);
-            actor_ept[PT_INDEX(gpa)].dirty = 1;
+            INIT_EPTE_DEFAULT(ept[PT_INDEX(gpa)], hpa);
+            ept[PT_INDEX(gpa)].dirty = 1;
         }
         for (int i = 0; i < sizeof(actor_code_t); i += 4096) {
             uint64_t gpa = ((uint64_t)&guest_memory->code) + i;
             void *hva = ((void *)&sandbox->code[actor_id]) + i;
             uint64_t hpa = vmalloc_to_phys_recorded(hva);
-            INIT_EPTE_DEFAULT(actor_ept[PT_INDEX(gpa)], hpa);
-            actor_ept[PT_INDEX(gpa)].dirty = 1;
+            INIT_EPTE_DEFAULT(ept[PT_INDEX(gpa)], hpa);
+            ept[PT_INDEX(gpa)].dirty = 1;
+        }
+        { // indent for readability
+            uint64_t gpa = (uint64_t)&guest_memory->gdt[0];
+            void *hva = _allocated_guest_gdts + actor_id * PAGE_SIZE;
+            uint64_t hpa = vmalloc_to_phys_recorded(hva);
+            INIT_EPTE_DEFAULT(ept[PT_INDEX(gpa)], hpa);
+            ept[PT_INDEX(gpa)].dirty = 1;
         }
 
         // map guest page tables
         for (int i = 0; i < sizeof(actor_page_table_t); i += 4096) {
             uint64_t gpa = ((uint64_t)&guest_memory->guest_page_tables) + i;
-            uint64_t hpa = vmalloc_to_phys_recorded((void *)&_allocated_page_tables[actor_id] + i);
-            INIT_EPTE_DEFAULT(actor_ept[PT_INDEX(gpa)], hpa);
-            actor_ept[PT_INDEX(gpa)].dirty = 1;
+            uint64_t hva = ((uint64_t)&_allocated_page_tables[actor_id]) + i;
+            uint64_t hpa = vmalloc_to_phys_recorded((void *)hva);
+            INIT_EPTE_DEFAULT(ept[PT_INDEX(gpa)], hpa);
+            ept[PT_INDEX(gpa)].ept_mem_type = 6;
+            ept[PT_INDEX(gpa)].ignore_pat = 1;
         }
+
     }
     return 0;
 }
@@ -232,7 +241,9 @@ int update_eptp(void)
     ept_ptr = CHECKED_ZALLOC(sizeof(eptp_t));
     ept_ptr->memory_type = VMX_BASIC_MEM_TYPE_WB;
     ept_ptr->page_walk_length = 3;
-    ept_ptr->ad_enabled = native_read_msr(MSR_IA32_VMX_EPT_VPID_CAP) & 0x00200000;
+    // ept_ptr->ad_enabled = native_read_msr(MSR_IA32_VMX_EPT_VPID_CAP) & 0x00200000;
+    ept_ptr->ad_enabled = 0;
+    ept_ptr->superv_sdw_stack = 0;
     ept_ptr->paddr = vmalloc_to_phys_recorded(_allocated_extended_page_tables) >> 12;
     return 0;
 }
@@ -413,7 +424,7 @@ int allocate_guest_page_tables()
     // EPT will requires 1 page for PML4, 1 page for PDPT, 1 page for PDT, and one PT per actor
     // (assuming that we have no more than 64 actors, and one PDT will suffice for all of them)
     ASSERT(n_actors < 64, "allocate_guest_page_tables");
-    size_t ept_allocation_size = (3 + n_actors) * PAGE_SIZE;
+    size_t ept_allocation_size = 4 * PAGE_SIZE;
     _allocated_extended_page_tables = CHECKED_VMALLOC(ept_allocation_size);
 
     _allocated_guest_gdts = CHECKED_ZALLOC(n_actors * PAGE_SIZE);
