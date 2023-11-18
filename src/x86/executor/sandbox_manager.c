@@ -95,9 +95,6 @@ int allocate_sandbox(void)
 
             err = map_sandbox_to_guest_memory();
             CHECK_ERR("map_sandbox_to_guest_memory");
-
-            err = init_vmx();
-            CHECK_ERR("init_vmx");
         }
     }
     old_n_actors = n_actors;
@@ -161,5 +158,4 @@ void free_sandbox_manager(void)
     // since sandbox manager called allocators, it is responsible for also freeing the memory
     // note that the below calls are safe even if the corresponding allocations were not made
     free_guest_page_tables();
-    free_vmx();
 }

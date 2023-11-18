@@ -28,6 +28,7 @@
 #include "hw_features/host_page_tables.h"
 #include "hw_features/page_tables_common.h"
 #include "hw_features/perf_counters.h"
+#include "hw_features/vmx.h"
 
 // Version-dependent includes
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 6)
@@ -503,10 +504,9 @@ static int __init executor_init(void)
     // Check memory configuration
     unsigned int phys_addr_width = cpuid_eax(0x80000008) & 0xFF;
     if (phys_addr_width != PHYSICAL_WIDTH) {
-        printk(
-            KERN_ERR
-            "x86_executor: ERROR: The width of physical addresses is %d instead of expected %d\n",
-            phys_addr_width, PHYSICAL_WIDTH);
+        printk(KERN_ERR "x86_executor: ERROR: The width of physical addresses is %d instead of "
+                        "expected %d\n",
+               phys_addr_width, PHYSICAL_WIDTH);
         return -1;
     }
 
@@ -525,6 +525,9 @@ static int __init executor_init(void)
     err |= init_fault_handler();
     err |= init_page_table_manager();
     err |= init_perf_counters();
+#if VENDOR_ID == 1 // Intel
+    err = init_vmx();
+#endif
     CHECK_ERR("executor_init");
 
     // Create a pseudo file system interface
@@ -589,6 +592,9 @@ static void __exit executor_exit(void)
     free_fault_handler();
     free_page_table_manager();
     free_perf_counters();
+#if VENDOR_ID == 1 // Intel
+    free_vmx();
+#endif
 
     if (kobj_interface)
         kobject_put(kobj_interface);
