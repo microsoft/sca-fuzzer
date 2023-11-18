@@ -32,6 +32,7 @@ static void *vmxon_page_hva = NULL;
 static uint64_t vmxon_page_hpa = 0;
 
 static vmcs_t *vmcss = NULL;
+static vmcs_t *invalid_vmcs = NULL;
 
 static int set_vmcs_guest_state(void);
 static int set_vmcs_host_state(void);
@@ -344,14 +345,14 @@ int store_orig_vmcs_state(void)
 void restore_orig_vmcs_state(void)
 {
     uint8_t err_inv, err_val = 0;
-    if (!orig_vmxon_state)
-        return; // VMX was not in use when we started; nothing to restore
+    if (!orig_vmxon_state || orig_vmcs_ptr == 0xFFFFFFFFFFFFFFFF) {
+        // load invalid VMCS to make sure there is not usable current VMCC
+        vmptrld((uint64_t)invalid_vmcs, &err_inv, &err_val);
+        return;
+    }
 
-    // PRINT_ERR("vmptrld(%llx)\n", orig_vmcs_ptr);
-    if (orig_vmcs_ptr == 0xFFFFFFFFFFFFFFFF)
-        return; // VMCS was not initialized; nothing to restore
-
-    // vmclear(orig_vmcs_ptr, &err_inv, &err_val);
+    PRINT_ERR("restore orig\n"); // FIXME
+    vmclear(orig_vmcs_ptr, &err_inv, &err_val);
     vmptrld(orig_vmcs_ptr, &err_inv, &err_val);
     if (err_inv || err_val)
         PRINT_ERRS("restore_orig_vmcs_state", "Exited with VMfailInvalid=%d, VMfailValid=%d\n",
