@@ -96,13 +96,25 @@ static inline void clear_orig_cpu_state(void) { orig_cpu_state->lstar = 0; }
 
 void recover_orig_state(void)
 {
+    // restore MSRs
     if (orig_cpu_state->lstar) {
         wrmsr64(MSR_LSTAR, orig_cpu_state->lstar);
         orig_cpu_state->lstar = 0;
     }
+
+    // restore IDT
     unset_bubble_idt(); // restores original IDT regardless of the current IDTR value
+
+    // restore host page tables
     if (test_case->features.includes_user_actors) {
         unmap_user_pages();
+    }
+
+    // restore VMX state
+    if (test_case->features.includes_vm_actors) {
+        print_vmx_exit_info(); // uncomment to debug VMX exits
+        stop_vmx_operation();
+        restore_orig_vmcs_state();
     }
 }
 
@@ -121,9 +133,9 @@ int run_experiment(void)
         cr4 &= ~(X86_CR4_SMAP | X86_CR4_SMEP);
         asm volatile("mov %0, %%cr4" : : "r"(cr4));
 #endif
-
         err = map_user_pages();
-        CHECK_ERR("run_experiment:map_user_pages");
+        if (err)
+            goto cleanup;
 
         orig_cpu_state->lstar = rdmsr64(MSR_LSTAR);
         wrmsr64(MSR_LSTAR, (uint64_t)fault_handler);
@@ -132,10 +144,14 @@ int run_experiment(void)
     // // If necessary, enable VMX
     if (test_case->features.includes_vm_actors) {
         err = start_vmx_operation();
-        CHECK_ERR("start_vmx_operation");
-
+        if (err)
+            goto cleanup;
         err = store_orig_vmcs_state();
-        CHECK_ERR("store_orig_vmcs_state");
+        if (err)
+            goto cleanup;
+        err = set_vmcs_state();
+        if (err)
+            goto cleanup;
     }
 
     // Zero-initialize the region of memory used by Prime+Probe
@@ -180,16 +196,6 @@ int run_experiment(void)
 cleanup:
     recover_orig_state();
     CHECK_ERR("run_experiment:cleanup");
-
-    // If necessary, disable VMX
-    if (vmx_is_on) {
-        err = stop_vmx_operation();
-        CHECK_ERR("stop_vmx_operation");
-
-        err = restore_orig_vmcs_state();
-        CHECK_ERR("restore_orig_vmcs_state");
-    }
-
     return err;
 }
 

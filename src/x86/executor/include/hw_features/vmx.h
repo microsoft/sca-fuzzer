@@ -48,11 +48,13 @@ typedef struct {
 // Module interface
 extern bool vmx_is_on;
 
+int vmx_check_cpu_compatibility(void);
 int start_vmx_operation(void);
-int stop_vmx_operation(void);
+void stop_vmx_operation(void);
 int store_orig_vmcs_state(void);
-int restore_orig_vmcs_state(void);
-
+void restore_orig_vmcs_state(void);
+int set_vmcs_state(void);
+int print_vmx_exit_info(void);
 
 int init_vmx(void);
 void free_vmx(void);
