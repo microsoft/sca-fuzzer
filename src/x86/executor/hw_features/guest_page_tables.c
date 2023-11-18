@@ -40,6 +40,7 @@ eptp_t *ept_ptr = NULL; // global
 
 static actor_page_table_t *_allocated_page_tables = NULL;
 static void *_allocated_extended_page_tables = NULL;
+static void *_allocated_guest_gdts = NULL;
 static v2p_t *_v2p_translations = NULL;
 
 // =================================================================================================
@@ -129,6 +130,13 @@ int set_guest_page_tables(void)
         for (int i = 0; i < sizeof(actor_code_t); i += 4096) {
             uint64_t vaddr = ((uint64_t)&guest_v_memory->code) + i;
             uint64_t paddr = ((uint64_t)&guest_p_memory->code) + i;
+            size_t pt_index = PT_INDEX(vaddr);
+            INIT_PTE_DEFAULT(page_table_hva->pt[pt_index], paddr);
+            page_table_hva->pt[pt_index].dirty = 1;
+        }
+        { // GDT (indentation is for readability)
+            uint64_t vaddr = (uint64_t)&guest_v_memory->gdt[0];
+            uint64_t paddr = (uint64_t)&guest_p_memory->gdt[0];
             size_t pt_index = PT_INDEX(vaddr);
             INIT_PTE_DEFAULT(page_table_hva->pt[pt_index], paddr);
             page_table_hva->pt[pt_index].dirty = 1;
@@ -234,6 +242,7 @@ int map_sandbox_to_guest_memory(void)
     int err = 0;
     ASSERT(_allocated_page_tables != NULL, "map_sandbox_to_guest_memory");
     ASSERT(_allocated_extended_page_tables != NULL, "map_sandbox_to_guest_memory");
+    ASSERT(_allocated_guest_gdts != NULL, "map_sandbox_to_guest_memory");
 
     err = set_guest_page_tables();
     CHECK_ERR("set_guest_page_tables");
@@ -394,6 +403,7 @@ int allocate_guest_page_tables()
     old_n_actors = n_actors;
     SAFE_VFREE(_allocated_page_tables);
     SAFE_VFREE(_allocated_extended_page_tables);
+    SAFE_FREE(_allocated_guest_gdts);
     SAFE_FREE(_v2p_translations);
 
     _allocated_page_tables =
@@ -406,6 +416,8 @@ int allocate_guest_page_tables()
     size_t ept_allocation_size = (3 + n_actors) * PAGE_SIZE;
     _allocated_extended_page_tables = CHECKED_VMALLOC(ept_allocation_size);
 
+    _allocated_guest_gdts = CHECKED_ZALLOC(n_actors * PAGE_SIZE);
+
     _v2p_translations = CHECKED_ZALLOC(N_TRANSLATIONS * sizeof(v2p_t));
     return 0;
 }
@@ -414,6 +426,7 @@ void free_guest_page_tables(void)
 {
     SAFE_VFREE(_allocated_page_tables);
     SAFE_VFREE(_allocated_extended_page_tables);
+    SAFE_FREE(_allocated_guest_gdts);
     SAFE_FREE(ept_ptr);
     SAFE_FREE(_v2p_translations);
 }
