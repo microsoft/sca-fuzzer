@@ -410,6 +410,57 @@ int set_vmcs_state(void)
 static int set_vmcs_guest_state(void)
 {
     uint8_t err_inv, err_val = 0;
+    guest_memory_t *guest_v_memory = (guest_memory_t *)(GUEST_V_MEMORY_START);
+    guest_memory_t *guest_p_memory = (guest_memory_t *)(GUEST_P_MEMORY_START);
+
+    // SDM 25.4 Guest-State Area
+    // - Control registers
+    CHECKED_VMWRITE(GUEST_CR0, read_cr0());
+    CHECKED_VMWRITE(GUEST_CR3, (uint64_t)&guest_p_memory->guest_page_tables.pml4[0]);
+    CHECKED_VMWRITE(GUEST_CR4, __read_cr4());
+
+    // - Debug register
+    CHECKED_VMWRITE(GUEST_DR7, 0x400);
+
+    // - RSP, RIP, and RFLAGS
+    CHECKED_VMWRITE(GUEST_RSP, (uint64_t)&guest_v_memory->data.main_area[LOCAL_RSP_OFFSET]);
+    CHECKED_VMWRITE(GUEST_RIP, (uint64_t)&guest_v_memory->code.section[0]);
+    CHECKED_VMWRITE(GUEST_RFLAGS, (X86_EFLAGS_FIXED));
+
+    // - Segments (values mainly based on https://www.sandpile.org/x86/initial.htm)
+    VMWRITE_GUEST_SEGMENT(CS, 0x1, 0, 0xFFFF, 0xa09B);
+    VMWRITE_GUEST_SEGMENT(SS, 0x2, 0, 0xFFFF, 0xc093);
+    VMWRITE_GUEST_SEGMENT(DS, 0, 0, 0xFFFF, 0x10000); // 0xc093
+    VMWRITE_GUEST_SEGMENT(ES, 0, 0, 0xFFFF, 0x10000);
+    VMWRITE_GUEST_SEGMENT(FS, 0, 0, 0xFFFF, 0x10000);
+    VMWRITE_GUEST_SEGMENT(GS, 0, 0, 0xFFFF, 0x10000);
+    VMWRITE_GUEST_SEGMENT(LDTR, 0, 0, 0xFFFF, 0x10000); // 0xc082);
+    VMWRITE_GUEST_SEGMENT(TR, 0, 0, 0xFFFF, 0x8b);
+
+    // - GDTR and IDTR (left empty for the time being; attempt to use will cause VM exit)
+    CHECKED_VMWRITE(GUEST_GDTR_BASE, (uint64_t)&guest_v_memory->gdt[0]);
+    CHECKED_VMWRITE(GUEST_GDTR_LIMIT, 0xFFFF);
+    CHECKED_VMWRITE(GUEST_IDTR_BASE, 0);
+    CHECKED_VMWRITE(GUEST_IDTR_LIMIT, 0xFFFF);
+
+    // - MSRs
+    CHECKED_VMWRITE(GUEST_IA32_DEBUGCTL, 0);
+    CHECKED_VMWRITE(GUEST_SYSENTER_CS, 0x1);
+    CHECKED_VMWRITE(GUEST_SYSENTER_ESP,
+                    (uint64_t)&guest_v_memory->data.main_area[LOCAL_RSP_OFFSET]);
+    CHECKED_VMWRITE(GUEST_SYSENTER_EIP, (uint64_t)&guest_v_memory->code.section[0]);
+
+    ASSERT((VM_ENTRY_LOAD_IA32_PERF_GLOBAL_CTRL & NOT_SUPPORTED_ENTRY_CTRL) != 0,
+           "set_vmcs_guest_state");
+    ASSERT((VM_ENTRY_LOAD_IA32_PAT & NOT_SUPPORTED_ENTRY_CTRL) != 0, "set_vmcs_guest_state");
+    ASSERT((VM_ENTRY_LOAD_IA32_EFER & NOT_SUPPORTED_ENTRY_CTRL) != 0, "set_vmcs_guest_state");
+
+    // SDM 25.4.2 Guest Non-Register State
+    CHECKED_VMWRITE(GUEST_ACTIVITY_STATE, 0);
+    CHECKED_VMWRITE(GUEST_INTERRUPTIBILITY_INFO, 0b1000); // block all possible interrupts
+    CHECKED_VMWRITE(GUEST_PENDING_DBG_EXCEPTIONS, 0);
+    CHECKED_VMWRITE(VMCS_LINK_POINTER, -1LL);
+    CHECKED_VMWRITE(VMX_PREEMPTION_TIMER_VALUE, 0xFFFF); // FIXME: make configurable
 
     return 0;
 }
