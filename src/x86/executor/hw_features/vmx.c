@@ -191,6 +191,41 @@ static int check_vmx_controls(uint32_t options, uint32_t msr)
 // VMX management interface
 // (functions exposed to the rest of the executor)
 // =================================================================================================
+
+/// @brief Check whether the target CPU is compatible with our implementation of VMX management
+/// @return 0 is compatible, -1 otherwise
+int vmx_check_cpu_compatibility(void)
+{
+    uint64_t msr_value = 0;
+    ASSERT_MSG(cpu_has_vmx(), "vmx_check_cpu_compatibility", "VMX is not supported on this CPU");
+
+    // True controls are usable
+    msr_value = rdmsr64(MSR_IA32_VMX_BASIC);
+    ASSERT((msr_value & VMX_BASIC_TRUE_CTLS) != 0, "vmx_check_cpu_compatibility");
+
+    // Pin-based controls
+    msr_value = rdmsr64(MSR_IA32_VMX_TRUE_PINBASED_CTLS);
+    ASSERT((msr_value & NOT_SUPPORTED_PIN_BASED_VM_EXEC_CONTROL) == 0,
+           "vmx_check_cpu_compatibility");
+
+    // Primary processor-based controls
+    msr_value = rdmsr64(MSR_IA32_VMX_TRUE_PROCBASED_CTLS);
+    ASSERT((msr_value & NOT_SUPPORTED_PRIMARY_VM_EXEC_CONTROL) == 0, "vmx_check_cpu_compatibility");
+
+    // Secondary
+    msr_value = rdmsr64(MSR_IA32_VMX_PROCBASED_CTLS2);
+    ASSERT((msr_value & NOT_SUPPORTED_SECONDARY_VM_EXEC_CONTROL) == 0,
+           "vmx_check_cpu_compatibility");
+
+    // Exit/entry
+    msr_value = rdmsr64(MSR_IA32_VMX_TRUE_EXIT_CTLS);
+    ASSERT((msr_value & NOT_SUPPORTED_EXIT_CTRL) == 0, "vmx_check_cpu_compatibility");
+    msr_value = rdmsr64(MSR_IA32_VMX_TRUE_ENTRY_CTLS);
+    ASSERT((msr_value & NOT_SUPPORTED_ENTRY_CTRL) == 0, "vmx_check_cpu_compatibility");
+
+    return 0;
+}
+
 /// @brief Enable VMX operation and do VMXON
 /// @return 0 on success, negative error code on failure
 int start_vmx_operation(void)
@@ -389,7 +424,6 @@ int print_vmx_exit_info(void)
 int init_vmx(void)
 {
     int err = 0;
-    ASSERT_MSG(cpu_has_vmx(), "init_vmx", "VMX is not supported on this CPU");
 
     // check that the hw-specific region sizes match our constants
     size_t vmxon_size = (rdmsr64(MSR_IA32_VMX_BASIC) >> 32) & 0xFFF;
