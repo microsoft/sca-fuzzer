@@ -136,7 +136,8 @@ typedef struct {
     uint64_t read_access : 1;
     uint64_t write_access : 1;
     uint64_t execute_access : 1;
-    uint64_t reserved_7_3 : 5;
+    uint64_t reserved_6_3 : 4;
+    uint64_t reserved_7 : 1;
     uint64_t accessed : 1;
     uint64_t ignored_9 : 1;
     uint64_t user_ex_access : 1;
@@ -150,8 +151,8 @@ typedef struct {
     uint64_t read_access : 1;
     uint64_t write_access : 1;
     uint64_t execute_access : 1;
-    uint64_t reserved_6_3 : 5;
-    uint64_t ignored_7 : 1;
+    uint64_t reserved_6_3 : 4;
+    uint64_t reserved_7 : 1;
     uint64_t accessed : 1;
     uint64_t ignored_9 : 1;
     uint64_t user_ex_access : 1;
