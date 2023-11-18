@@ -438,8 +438,8 @@ static int set_vmcs_guest_state(void)
     CHECKED_VMWRITE(GUEST_RFLAGS, (X86_EFLAGS_FIXED));
 
     // - Segments (values mainly based on https://www.sandpile.org/x86/initial.htm)
-    VMWRITE_GUEST_SEGMENT(CS, 0x1, 0, 0xFFFF, 0xa09B);
-    VMWRITE_GUEST_SEGMENT(SS, 0x2, 0, 0xFFFF, 0xc093);
+    VMWRITE_GUEST_SEGMENT(CS, 0x10, 0, 0xFFFF, 0xa09B);
+    VMWRITE_GUEST_SEGMENT(SS, 0x20, 0, 0xFFFF, 0xc093);
     VMWRITE_GUEST_SEGMENT(DS, 0, 0, 0xFFFF, 0x10000); // 0xc093
     VMWRITE_GUEST_SEGMENT(ES, 0, 0, 0xFFFF, 0x10000);
     VMWRITE_GUEST_SEGMENT(FS, 0, 0, 0xFFFF, 0x10000);
@@ -455,7 +455,7 @@ static int set_vmcs_guest_state(void)
 
     // - MSRs
     CHECKED_VMWRITE(GUEST_IA32_DEBUGCTL, 0);
-    CHECKED_VMWRITE(GUEST_SYSENTER_CS, 0x1);
+    CHECKED_VMWRITE(GUEST_SYSENTER_CS, 0x10);
     CHECKED_VMWRITE(GUEST_SYSENTER_ESP,
                     (uint64_t)&guest_v_memory->data.main_area[LOCAL_RSP_OFFSET]);
     CHECKED_VMWRITE(GUEST_SYSENTER_EIP, (uint64_t)&guest_v_memory->code.section[0]);
