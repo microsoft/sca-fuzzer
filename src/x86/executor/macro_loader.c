@@ -9,6 +9,7 @@
 #include "sandbox_manager.h"
 #include "shortcuts.h"
 #include "test_case_parser.h"
+#include "hw_features/guest_page_tables.h"
 
 // Max sizes for sanity checks
 #define MAX_MACRO_START_OFFSET 0x100
@@ -43,10 +44,12 @@ void macro_measurement_start_tsc(void);
 void macro_measurement_end_tsc(void);
 
 void macro_same_context_switch(void);
-void macro_context_switch_h2u(void);
-void macro_context_switch_u2h(void);
+void macro_switch_h2u(void);
+void macro_switch_u2h(void);
 void macro_select_switch_h2u_target(void);
 void macro_select_switch_u2h_target(void);
+void macro_switch_h2g(void);
+void macro_switch_g2h(void);
 
 // =================================================================================================
 // Helper functions
@@ -64,7 +67,13 @@ static uint64_t update_r14(int section_id, uint8_t *macro_dest, uint64_t cursor)
     int old_cursor = cursor;
 
     // calculate the new R14 value
-    uint64_t new_r14 = (uint64_t)sandbox->data[section_id].main_area;
+    uint64_t new_r14 = 0;
+    if (actors[section_id].mode == MODE_HOST)
+        new_r14 = (uint64_t)sandbox->data[section_id].main_area;
+    else { // MODE_GUEST
+        guest_memory_t *guest_memory = (guest_memory_t *)GUEST_V_MEMORY_START;
+        new_r14 = (uint64_t)guest_memory->data.main_area;
+    }
 
     // movabs r14, new_r14
     macro_dest[cursor] = 0x49;
@@ -81,8 +90,15 @@ static uint64_t update_r14_rsp(int section_id, uint8_t *macro_dest, uint64_t cur
     int old_cursor = cursor;
     cursor += update_r14(section_id, macro_dest, cursor);
 
+    uint64_t new_rsp = 0;
+    if (actors[section_id].mode == MODE_HOST)
+        new_rsp = (uint64_t)sandbox->data[section_id].main_area + LOCAL_RSP_OFFSET;
+    else { // MODE_GUEST
+        guest_memory_t *guest_memory = (guest_memory_t *)GUEST_V_MEMORY_START;
+        new_rsp = (uint64_t)guest_memory->data.main_area + LOCAL_RSP_OFFSET;
+    }
+
     // movabs rsp, new_rsp
-    uint64_t new_rsp = (uint64_t)sandbox->data[section_id].main_area + LOCAL_RSP_OFFSET;
     macro_dest[cursor] = 0x48;
     cursor++;
     macro_dest[cursor] = 0xbc;
@@ -140,13 +156,17 @@ static uint8_t *get_macro_wrapper_ptr(uint64_t macro_id)
     case MACRO_SWITCH:
         return (uint8_t *)macro_same_context_switch;
     case MACRO_SWITCH_H2U:
-        return (uint8_t *)macro_context_switch_h2u;
+        return (uint8_t *)macro_switch_h2u;
     case MACRO_SWITCH_U2H:
-        return (uint8_t *)macro_context_switch_u2h;
+        return (uint8_t *)macro_switch_u2h;
     case MACRO_SELECT_SWITCH_H2U_TARGET:
         return (uint8_t *)macro_select_switch_h2u_target;
     case MACRO_SELECT_SWITCH_U2H_TARGET:
         return (uint8_t *)macro_select_switch_u2h_target;
+    case MACRO_SWITCH_H2G:
+        return (uint8_t *)macro_switch_h2g;
+    case MACRO_SWITCH_G2H:
+        return (uint8_t *)macro_switch_g2h;
     default:
         PRINT_ERRS("get_macro_wrapper_ptr", "macro_id %llu is not valid\n", macro_id);
         return NULL;
@@ -213,6 +233,14 @@ uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint8_t *mac
         cursor += 4;
         break;
     }
+    case MACRO_SWITCH_H2U: {
+        cursor += update_r14_rsp(arg1, macro_dest, cursor);
+        break;
+    }
+    case MACRO_SWITCH_U2H: {
+        cursor += update_r14_rsp(arg1, macro_dest, cursor);
+        break;
+    }
     case MACRO_SELECT_SWITCH_H2U_TARGET: {
         // movabs rcx, function_addr
         uint64_t function_addr = get_function_addr(arg1, arg2, main_prologue_size);
@@ -222,10 +250,6 @@ uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint8_t *mac
         cursor++;
         *((uint64_t *)(macro_dest + cursor)) = function_addr;
         cursor += 8;
-        break;
-    }
-    case MACRO_SWITCH_H2U: {
-        cursor += update_r14_rsp(arg1, macro_dest, cursor);
         break;
     }
     case MACRO_SELECT_SWITCH_U2H_TARGET: {
@@ -239,7 +263,11 @@ uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint8_t *mac
         cursor += 8;
         break;
     }
-    case MACRO_SWITCH_U2H: {
+    case MACRO_SWITCH_H2G: {
+        cursor += update_r14_rsp(arg1, macro_dest, cursor);
+        break;
+    }
+    case MACRO_SWITCH_G2H: {
         cursor += update_r14_rsp(arg1, macro_dest, cursor);
         break;
     }
@@ -443,7 +471,7 @@ void __attribute__((noipa)) macro_select_switch_h2u_target(void)
 }
 
 /// @brief Macro to switch host -> user actor
-void __attribute__((noipa)) macro_context_switch_h2u(void)
+void __attribute__((noipa)) macro_switch_h2u(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""
@@ -468,12 +496,30 @@ void __attribute__((noipa)) macro_select_switch_u2h_target(void)
 }
 
 /// @brief Macro to switch user -> host actor
-void __attribute__((noipa)) macro_context_switch_u2h(void)
+void __attribute__((noipa)) macro_switch_u2h(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""
                        "syscall\n"
                        "");
+    asm volatile(".quad " xstr(MACRO_END));
+}
+
+/// @brief Macro to switch host -> guest actor
+void __attribute__((noipa)) macro_switch_h2g(void)
+{
+    asm volatile(".quad " xstr(MACRO_START));
+    asm_volatile_intel(""
+                       "vmlaunch\n");
+    asm volatile(".quad " xstr(MACRO_END));
+}
+
+/// @brief Macro to switch guest -> host actor
+void __attribute__((noipa)) macro_switch_g2h(void)
+{
+    asm volatile(".quad " xstr(MACRO_START));
+    asm_volatile_intel(""
+                       "vmcall\n");
     asm volatile(".quad " xstr(MACRO_END));
 }
 

@@ -74,6 +74,8 @@ class X86MacroInterpreter(MacroInterpreter):
             "switch_u2h": self.macro_switch_u2h,
             "select_switch_h2u_target": self.macro_select_switch_h2u_target,
             "select_switch_u2h_target": self.macro_select_switch_u2h_target,
+            "switch_h2g": self.macro_switch_h2g,
+            "switch_g2h": self.macro_switch_g2h,
         }
 
         actor_id = self.model.current_actor.id_
@@ -183,6 +185,12 @@ class X86MacroInterpreter(MacroInterpreter):
         # actor update
         actor_name = self.sid_to_actor_name[section_id]
         model.current_actor = self.test_case.actors[actor_name]
+
+    def macro_switch_h2g(self, section_id: int, _: int, __: int, ___: int):
+        pass
+
+    def macro_switch_g2h(self, section_id: int, _: int, __: int, ___: int):
+        pass
 
 
 class X86UnicornSeq(UnicornSeq):
