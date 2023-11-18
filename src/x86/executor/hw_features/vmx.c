@@ -15,8 +15,8 @@
 #include "hw_features/vmx_config.h"
 
 #define CHECK_VMFAIL(src)                                                                          \
-    ASSERT_MSG(fail_invalid == 0, src, "Exited with VMfailInvalid");                               \
-    ASSERT_MSG(fail_valid == 0, src, "Exited with VMfailValid");
+    ASSERT(err_inv == 0, src);                                                                     \
+    ASSERT(err_val == 0, src);
 
 bool vmx_is_on = false; // global
 
