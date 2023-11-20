@@ -202,6 +202,8 @@ int set_extended_page_tables(void)
             uint64_t hpa = vmalloc_to_phys_recorded(hva);
             INIT_EPTE_DEFAULT(ept[PT_INDEX(gpa)], hpa);
             ept[PT_INDEX(gpa)].dirty = 1;
+            ept[PT_INDEX(gpa)].ept_mem_type = 6;
+            ept[PT_INDEX(gpa)].ignore_pat = 1;
         }
 
         // map actor_data_t, actor_code_t, and GDT into guest memory (each actor has its own)
@@ -211,6 +213,8 @@ int set_extended_page_tables(void)
             uint64_t hpa = vmalloc_to_phys_recorded(hva);
             INIT_EPTE_DEFAULT(ept[PT_INDEX(gpa)], hpa);
             ept[PT_INDEX(gpa)].dirty = 1;
+            ept[PT_INDEX(gpa)].ept_mem_type = 6;
+            ept[PT_INDEX(gpa)].ignore_pat = 1;
         }
         for (int i = 0; i < sizeof(actor_code_t); i += 4096) {
             uint64_t gpa = ((uint64_t)&guest_memory->code) + i;
@@ -218,6 +222,8 @@ int set_extended_page_tables(void)
             uint64_t hpa = vmalloc_to_phys_recorded(hva);
             INIT_EPTE_DEFAULT(ept[PT_INDEX(gpa)], hpa);
             ept[PT_INDEX(gpa)].dirty = 1;
+            ept[PT_INDEX(gpa)].ept_mem_type = 6;
+            ept[PT_INDEX(gpa)].ignore_pat = 1;
         }
         { // GDT - indent for readability
             uint64_t gpa = (uint64_t)&guest_memory->gdt[0];
@@ -225,12 +231,16 @@ int set_extended_page_tables(void)
             uint64_t hpa = vmalloc_to_phys_recorded(hva);
             INIT_EPTE_DEFAULT(ept[PT_INDEX(gpa)], hpa);
             ept[PT_INDEX(gpa)].dirty = 1;
+            ept[PT_INDEX(gpa)].ept_mem_type = 6;
+            ept[PT_INDEX(gpa)].ignore_pat = 1;
         }
         { // VMLAUNCH page - indent for readability
             uint64_t gpa = (uint64_t)&guest_memory->vmlaunch_page[0];
             uint64_t hpa = virt_to_phys((void *)_vmlaunch_page);
             INIT_EPTE_DEFAULT(ept[PT_INDEX(gpa)], hpa);
             ept[PT_INDEX(gpa)].dirty = 1;
+            ept[PT_INDEX(gpa)].ept_mem_type = 6;
+            ept[PT_INDEX(gpa)].ignore_pat = 1;
         }
 
         // map guest page tables

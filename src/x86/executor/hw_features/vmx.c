@@ -430,7 +430,9 @@ static int set_vmcs_guest_state(void)
 
     // SDM 25.4 Guest-State Area
     // - Control registers
-    CHECKED_VMWRITE(GUEST_CR0, read_cr0());
+    uint64_t cr0 = read_cr0();
+    cr0 &= ~X86_CR0_CD;
+    CHECKED_VMWRITE(GUEST_CR0, cr0);
     CHECKED_VMWRITE(GUEST_CR3, (uint64_t)&guest_p_memory->guest_page_tables.pml4[0]);
     CHECKED_VMWRITE(GUEST_CR4, __read_cr4());
 
