@@ -149,14 +149,14 @@ class X86TargetDesc(TargetDesc):
             MacroSpec(2, "measurement_end", ("", "", "", "")),
         "switch":
             MacroSpec(3, "switch", ("actor_id", "function_id", "", "")),
-        "switch_h2u":
-            MacroSpec(4, "switch_h2u", ("actor_id", "", "", "")),
-        "switch_u2h":
-            MacroSpec(5, "switch_u2h", ("actor_id", "", "", "")),
-        "select_switch_h2u_target":
-            MacroSpec(6, "select_switch_h2u_target", ("actor_id", "function_id", "", "")),
-        "select_switch_u2h_target":
-            MacroSpec(7, "select_switch_u2h_target", ("actor_id", "function_id", "", "")),
+        "switch_k2u":
+            MacroSpec(4, "switch_k2u", ("actor_id", "", "", "")),
+        "switch_u2k":
+            MacroSpec(5, "switch_u2k", ("actor_id", "", "", "")),
+        "set_k2u_target":
+            MacroSpec(6, "set_k2u_target", ("actor_id", "function_id", "", "")),
+        "set_u2k_target":
+            MacroSpec(7, "set_u2k_target", ("actor_id", "function_id", "", "")),
         "switch_h2g":
             MacroSpec(8, "switch_h2g", ("actor_id", "", "", "")),
         "switch_g2h":

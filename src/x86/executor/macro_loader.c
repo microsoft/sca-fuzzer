@@ -44,10 +44,10 @@ void macro_measurement_start_tsc(void);
 void macro_measurement_end_tsc(void);
 
 void macro_same_context_switch(void);
-void macro_switch_h2u(void);
-void macro_switch_u2h(void);
-void macro_select_switch_h2u_target(void);
-void macro_select_switch_u2h_target(void);
+void macro_switch_k2u(void);
+void macro_switch_u2k(void);
+void macro_set_k2u_target(void);
+void macro_set_u2k_target(void);
 void macro_switch_h2g(void);
 void macro_switch_g2h(void);
 
@@ -156,14 +156,14 @@ static uint8_t *get_macro_wrapper_ptr(uint64_t macro_id)
         }
     case MACRO_SWITCH:
         return (uint8_t *)macro_same_context_switch;
-    case MACRO_SWITCH_H2U:
-        return (uint8_t *)macro_switch_h2u;
-    case MACRO_SWITCH_U2H:
-        return (uint8_t *)macro_switch_u2h;
-    case MACRO_SELECT_SWITCH_H2U_TARGET:
-        return (uint8_t *)macro_select_switch_h2u_target;
-    case MACRO_SELECT_SWITCH_U2H_TARGET:
-        return (uint8_t *)macro_select_switch_u2h_target;
+    case MACRO_SWITCH_K2U:
+        return (uint8_t *)macro_switch_k2u;
+    case MACRO_SWITCH_U2K:
+        return (uint8_t *)macro_switch_u2k;
+    case MACRO_SET_K2U_TARGET:
+        return (uint8_t *)macro_set_k2u_target;
+    case MACRO_SET_U2K_TARGET:
+        return (uint8_t *)macro_set_u2k_target;
     case MACRO_SWITCH_H2G:
         return (uint8_t *)macro_switch_h2g;
     case MACRO_SWITCH_G2H:
@@ -238,15 +238,15 @@ uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint8_t *mac
         cursor += 4;
         break;
     }
-    case MACRO_SWITCH_H2U: {
+    case MACRO_SWITCH_K2U: {
         cursor += update_r14_rsp(arg1, macro_dest, cursor);
         break;
     }
-    case MACRO_SWITCH_U2H: {
+    case MACRO_SWITCH_U2K: {
         cursor += update_r14_rsp(arg1, macro_dest, cursor);
         break;
     }
-    case MACRO_SELECT_SWITCH_H2U_TARGET: {
+    case MACRO_SET_K2U_TARGET: {
         // movabs rcx, function_addr
         uint64_t function_addr = get_function_addr(arg1, arg2, main_prologue_size);
         macro_dest[cursor] = 0x48;
@@ -257,7 +257,7 @@ uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint8_t *mac
         cursor += 8;
         break;
     }
-    case MACRO_SELECT_SWITCH_U2H_TARGET: {
+    case MACRO_SET_U2K_TARGET: {
         // movabs rax, function_addr
         uint64_t function_addr = get_function_addr(arg1, arg2, main_prologue_size);
         macro_dest[cursor] = 0x48;
@@ -477,15 +477,15 @@ void __attribute__((noipa)) macro_same_context_switch(void)
     asm volatile(".quad " xstr(MACRO_END));
 }
 
-void __attribute__((noipa)) macro_select_switch_h2u_target(void)
+void __attribute__((noipa)) macro_set_k2u_target(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
-    // Nothing here: implementation in inject_macro_arguments->MACRO_SELECT_SWITCH_H2U_TARGET
+    // Nothing here: implementation in inject_macro_arguments->MACRO_SET_K2U_TARGET
     asm volatile(".quad " xstr(MACRO_END));
 }
 
 /// @brief Macro to switch host -> user actor
-void __attribute__((noipa)) macro_switch_h2u(void)
+void __attribute__((noipa)) macro_switch_k2u(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""
@@ -495,7 +495,7 @@ void __attribute__((noipa)) macro_switch_h2u(void)
     asm volatile(".quad " xstr(MACRO_END));
 }
 
-void __attribute__((noipa)) macro_select_switch_u2h_target(void)
+void __attribute__((noipa)) macro_set_u2k_target(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""
@@ -509,7 +509,7 @@ void __attribute__((noipa)) macro_select_switch_u2h_target(void)
 }
 
 /// @brief Macro to switch user -> host actor
-void __attribute__((noipa)) macro_switch_u2h(void)
+void __attribute__((noipa)) macro_switch_u2k(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""
