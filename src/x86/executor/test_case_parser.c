@@ -124,6 +124,7 @@ static int __batch_tc_parsing_start(const char *buf)
 /// @brief Finalize parsing:
 ///        - do sanity checks
 ///        - set test case features
+///        - type-check actor switch targets
 /// @param void
 /// @return Error code; 0 if successful
 static int __batch_tc_parsing_end(void)
@@ -136,6 +137,7 @@ static int __batch_tc_parsing_end(void)
     tc_symbol_entry_t *prev_e = NULL;
     for (tc_symbol_entry_t *e = test_case->symbol_table; e < test_case->symbol_table + n_symbols;
          e++) {
+        // check for start, end, and main
         if (e->id == MACRO_MEASUREMENT_START)
             has_start = true;
         if (e->id == MACRO_MEASUREMENT_END)
@@ -143,12 +145,20 @@ static int __batch_tc_parsing_end(void)
         if (e->owner == 0 && e->offset == 0)
             has_main = true;
 
+        // check ordering
         if (prev_e && e->id != NONMACRO_FUNCTION && prev_e->id != NONMACRO_FUNCTION) {
             if (e->owner < prev_e->owner)
                 macros_ordered = false;
             if (e->owner == prev_e->owner && e->offset < prev_e->offset)
                 macros_ordered = false;
         }
+
+        // check targets
+        if (e->id == MACRO_SET_K2U_TARGET)
+            ASSERT((actors[e->args & 0xFF].pl == PL_USER), "__batch_tc_parsing_end");
+        if (e->id == MACRO_SET_U2K_TARGET)
+            ASSERT((actors[e->args & 0xFF].pl == PL_KERNEL), "__batch_tc_parsing_end");
+
         prev_e = e;
     }
     if (!macros_ordered) {
@@ -242,7 +252,8 @@ ssize_t parse_test_case_buffer(const char *buf, size_t count, bool *finished)
             curr_section_start = metadata_end;
             curr_section_end = metadata_end + test_case->metadata[0].size;
         }
-        // printk(KERN_ERR "parse_test_case_buffer: curr_section_start = %lu; curr_section_end = "
+        // printk(KERN_ERR "parse_test_case_buffer: curr_section_start = %lu; curr_section_end =
+        // "
         //                 "%lu; curr_section_id = %lu\n",
         //        curr_section_start, curr_section_end, curr_section_id);
 
@@ -282,8 +293,8 @@ ssize_t parse_test_case_buffer(const char *buf, size_t count, bool *finished)
         ASSERT_MSG(consumed_bytes == count, "parse_test_case_buffer",
                    "consumed_bytes (%lu) != count (%lu)\n", consumed_bytes, count);
     }
-    // printk(KERN_ERR "parse_test_case_buffer: consumed_bytes = %lu; count = %lu; _cursor = %llu, "
-    // "fid: %ld, finished: %d\n",
+    // printk(KERN_ERR "parse_test_case_buffer: consumed_bytes = %lu; count = %lu; _cursor =
+    // %llu, " "fid: %ld, finished: %d\n",
     //    consumed_bytes, count, _cursor, curr_section_id, *finished);
 
     return consumed_bytes;

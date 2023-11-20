@@ -8,7 +8,8 @@ from typing import Dict, List, Tuple, NoReturn
 
 from subprocess import run
 from elftools.elf.elffile import ELFFile, SymbolTableSection  # type: ignore
-from ..interfaces import ElfSection, Symbol, TestCase, Instruction, ActorID
+from ..interfaces import ElfSection, Symbol, TestCase, Instruction, ActorID, MacroSpec, ActorPL, \
+    ActorMode
 from ..util import Logger
 from .x86_target_desc import X86TargetDesc
 
@@ -109,7 +110,7 @@ class X86ElfParser:
                         if inst.name == "MACRO":
                             test_case.symbol_table.append(
                                 self._symbol_from_macro_inst(inst, section_entries,
-                                                             function_entries))
+                                                             function_entries, test_case))
 
                         counter += 1
 
@@ -225,7 +226,8 @@ class X86ElfParser:
         return instruction_addresses
 
     def _symbol_from_macro_inst(self, inst: Instruction, symbol_entries: List[SectionMetadata],
-                                function_entries: List[FunctionMetadata]) -> Symbol:
+                                function_entries: List[FunctionMetadata],
+                                test_case: TestCase) -> Symbol:
         """
         Convert a macro instruction to a symbol table entry by parsing its symbolic arguments
         according to the macro specification (see x86_target_desc.py).
@@ -256,6 +258,20 @@ class X86ElfParser:
                     return entry.id_
             elf_parser_error(f"Macro references an unknown function {name}")
 
+        def validate_actor_id(aid: int, macro_spec: MacroSpec) -> None:
+            actor = None
+            for actor in test_case.actors.values():
+                if actor.id_ == aid:
+                    break
+            if actor is None:
+                elf_parser_error(f"Macro references an unknown actor id {aid}")
+            if macro_spec.name == "set_k2u_target" and \
+               actor.privilege_level != ActorPL.USER and actor.mode != ActorMode.HOST:
+                elf_parser_error("Macro set_k2u_target expects a user actor")
+            if macro_spec.name == "set_u2k_target" and \
+               actor.privilege_level != ActorPL.KERNEL and actor.mode != ActorMode.HOST:
+                elf_parser_error("Macro set_u2k_target expects a kernel actor")
+
         assert inst.name == "MACRO"
         macro_name = inst.operands[0].value[1:]
         if macro_name.lower() not in self.target_desc.macro_specs:
@@ -269,7 +285,9 @@ class X86ElfParser:
             if macro_spec.args[i] == "":
                 continue
             elif macro_spec.args[i] == "actor_id":
-                symbol_args += (get_section_id(arg) << i * 16)
+                actor_id = get_section_id(arg)
+                validate_actor_id(actor_id, macro_spec)
+                symbol_args += (actor_id << i * 16)
             elif macro_spec.args[i] == "function_id":
                 symbol_args += (get_function_id("." + arg) << i * 16)
             elif macro_spec.args[i] == "int":
