@@ -236,7 +236,7 @@ int set_extended_page_tables(void)
         }
         { // VMLAUNCH page - indent for readability
             uint64_t gpa = (uint64_t)&guest_memory->vmlaunch_page[0];
-            uint64_t hpa = virt_to_phys((void *)_vmlaunch_page);
+            uint64_t hpa = vmalloc_to_phys_recorded((void *)_vmlaunch_page);
             INIT_EPTE_DEFAULT(ept[PT_INDEX(gpa)], hpa);
             ept[PT_INDEX(gpa)].dirty = 1;
             ept[PT_INDEX(gpa)].ept_mem_type = 6;
