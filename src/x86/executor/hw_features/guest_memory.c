@@ -316,7 +316,7 @@ int dbg_dump_guest_page_tables(int actor_id)
         pml4e_t l4e = l4[curr_l4_id];
         if (!l4e.present)
             continue;
-        ASSERT(curr_l4_id == 1, "dbg_dump_guest_page_tables");
+        ASSERT(curr_l4_id == 0, "dbg_dump_guest_page_tables");
 
         uint64_t l3_gpa_offset = ((uint64_t)l4e.paddr << 12) - page_table_gpa;
         pdpte_t *l3 = (pdpte_t *)(page_table_hva + l3_gpa_offset);
