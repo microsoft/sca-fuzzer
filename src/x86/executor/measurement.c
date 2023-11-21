@@ -112,7 +112,8 @@ void recover_orig_state(void)
 
     // restore VMX state
     if (test_case->features.includes_vm_actors) {
-        print_vmx_exit_info(); // uncomment to debug VMX exits
+        // if (vmx_is_on)
+            // print_vmx_exit_info(); // uncomment to debug VMX exits
         restore_orig_vmcs_state();
         stop_vmx_operation();
     }
@@ -194,6 +195,7 @@ int run_experiment(void)
     }
 
 cleanup:
+    // print_vmx_exit_info(); // uncomment to debug VMX exits
     recover_orig_state();
     CHECK_ERR("run_experiment:cleanup");
     return err;
