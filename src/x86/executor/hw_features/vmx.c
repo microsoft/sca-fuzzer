@@ -346,11 +346,8 @@ int store_orig_vmcs_state(void)
 void restore_orig_vmcs_state(void)
 {
     uint8_t err_inv, err_val = 0;
-    if (!orig_vmxon_state || orig_vmcs_ptr == 0xFFFFFFFFFFFFFFFF) {
-        // load invalid VMCS to make sure there is not usable current VMCC
-        vmptrld((uint64_t)invalid_vmcs, &err_inv, &err_val);
+    if (!orig_vmxon_state || orig_vmcs_ptr == 0xFFFFFFFFFFFFFFFF)
         return;
-    }
 
     PRINT_ERR("restore orig\n"); // FIXME
     vmclear(orig_vmcs_ptr, &err_inv, &err_val);
@@ -475,7 +472,7 @@ static int set_vmcs_guest_state(void)
 
     // SDM 25.4.2 Guest Non-Register State
     CHECKED_VMWRITE(GUEST_ACTIVITY_STATE, 0);
-    CHECKED_VMWRITE(GUEST_INTERRUPTIBILITY_INFO, 0b1000); // block all possible interrupts
+    CHECKED_VMWRITE(GUEST_INTERRUPTIBILITY_INFO, 0b1000); // block NMI
     CHECKED_VMWRITE(GUEST_PENDING_DBG_EXCEPTIONS, 0);
     CHECKED_VMWRITE(VMCS_LINK_POINTER, -1LL);
     CHECKED_VMWRITE(VMX_PREEMPTION_TIMER_VALUE, 0xFFFF); // FIXME: make configurable
@@ -656,12 +653,13 @@ static int make_vmcs_launched(void)
                  :
                  : "cc", "memory", "rax", "rcx");
     // PRINT_ERR("make_vmcs_launched: exited with VMfailInvalid=%d, VMfailValid=%d\n", err_inv,
-            //   err_val);
+    //           err_val);
 
     guest_memory_t *guest_v_memory = (guest_memory_t *)(GUEST_V_MEMORY_START);
     CHECKED_VMWRITE(GUEST_RIP, (uint64_t)&guest_v_memory->code.section[0]);
+    CHECKED_VMWRITE(GUEST_RSP, (uint64_t)&guest_v_memory->data.main_area[LOCAL_RSP_OFFSET]);
+    CHECKED_VMWRITE(HOST_RIP, (uint64_t)fault_handler);
     CHECKED_VMWRITE(HOST_RSP, (uint64_t)&sandbox->data[0].main_area[LOCAL_RSP_OFFSET]);
-    CHECKED_VMWRITE(HOST_RIP, (uint64_t)fault_handler); // FIXME
 
     return 0;
 }
