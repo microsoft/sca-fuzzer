@@ -198,7 +198,7 @@ int set_extended_page_tables(void)
         // map util_t into guest memory (the same phys range for all actors, i.e., shared)
         for (int i = 0; i < sizeof(util_t); i += 4096) {
             uint64_t gpa = ((uint64_t)&guest_memory->util) + i;
-            void *hva = ((void *)&sandbox->util) + i;
+            void *hva = ((void *)&sandbox->util[0]) + i;
             uint64_t hpa = vmalloc_to_phys_recorded(hva);
             INIT_EPTE_DEFAULT(ept[PT_INDEX(gpa)], hpa);
             ept[PT_INDEX(gpa)].dirty = 1;
