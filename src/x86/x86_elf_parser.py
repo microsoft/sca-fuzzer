@@ -271,6 +271,12 @@ class X86ElfParser:
             if macro_spec.name == "set_u2k_target" and \
                actor.privilege_level != ActorPL.KERNEL and actor.mode != ActorMode.HOST:
                 elf_parser_error("Macro set_u2k_target expects a kernel actor")
+            if macro_spec.name == "set_h2g_target" and \
+               actor.mode != ActorMode.HOST and actor.privilege_level != ActorPL.KERNEL:
+                elf_parser_error("Macro set_h2g_target expects a host actor")
+            if macro_spec.name == "set_g2h_target" and \
+               actor.mode != ActorMode.GUEST and actor.privilege_level != ActorPL.KERNEL:
+                elf_parser_error("Macro set_g2h_target expects a guest actor")
 
         assert inst.name == "MACRO"
         macro_name = inst.operands[0].value[1:]

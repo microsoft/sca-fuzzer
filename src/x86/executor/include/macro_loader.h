@@ -20,6 +20,8 @@ typedef enum {
     MACRO_SWITCH_H2G = 8,
     MACRO_SWITCH_G2H = 9,
     MACRO_FAULT_HANDLER = 10,
+    MACRO_SET_H2G_TARGET = 11,
+    MACRO_SET_G2H_TARGET = 12,
 } macro_name_e;
 
 #define JMP_32BIT_RELATIVE 0xE9

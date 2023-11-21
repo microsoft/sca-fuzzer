@@ -50,13 +50,22 @@ void macro_set_k2u_target(void);
 void macro_set_u2k_target(void);
 void macro_switch_h2g(void);
 void macro_switch_g2h(void);
+void macro_set_h2g_target(void);
+void macro_set_g2h_target(void);
 
 // =================================================================================================
 // Helper functions
 // =================================================================================================
 static uint64_t get_function_addr(int section_id, int function_id, uint64_t main_prologue_size)
 {
-    uint64_t section_base = (uint64_t)sandbox->code[section_id].section;
+    uint64_t section_base = 0;
+    if (actors[section_id].mode == MODE_HOST)
+        section_base = (uint64_t)sandbox->code[section_id].section;
+    else { // MODE_GUEST
+        guest_memory_t *guest_memory = (guest_memory_t *)GUEST_V_MEMORY_START;
+        section_base = (uint64_t)guest_memory->code.section;
+    }
+
     if (section_id == 0)
         section_base += main_prologue_size;
     return section_base + test_case->symbol_table[function_id].offset;
@@ -104,6 +113,29 @@ static uint64_t update_r14_rsp(int section_id, uint8_t *macro_dest, uint64_t cur
     macro_dest[cursor] = 0xbc;
     cursor++;
     *((uint64_t *)(macro_dest + cursor)) = new_rsp;
+    cursor += 8;
+    return cursor - old_cursor;
+}
+
+static uint64_t update_r15(int section_id, uint8_t *macro_dest, uint64_t cursor)
+{
+    int old_cursor = cursor;
+
+    // calculate the new R15 value
+    uint64_t new_r15 = 0;
+    if (actors[section_id].mode == MODE_HOST)
+        new_r15 = (uint64_t)sandbox->util;
+    else { // MODE_GUEST
+        guest_memory_t *guest_memory = (guest_memory_t *)GUEST_V_MEMORY_START;
+        new_r15 = (uint64_t)&guest_memory->util;
+    }
+
+    // movabs r15, new_r15
+    macro_dest[cursor] = 0x49;
+    cursor++;
+    macro_dest[cursor] = 0xbf;
+    cursor++;
+    *((uint64_t *)(macro_dest + cursor)) = new_r15;
     cursor += 8;
     return cursor - old_cursor;
 }
@@ -168,6 +200,10 @@ static uint8_t *get_macro_wrapper_ptr(uint64_t macro_id)
         return (uint8_t *)macro_switch_h2g;
     case MACRO_SWITCH_G2H:
         return (uint8_t *)macro_switch_g2h;
+    case MACRO_SET_H2G_TARGET:
+        return (uint8_t *)macro_set_h2g_target;
+    case MACRO_SET_G2H_TARGET:
+        return (uint8_t *)macro_set_g2h_target;
     default:
         PRINT_ERRS("get_macro_wrapper_ptr", "macro_id %llu is not valid\n", macro_id);
         return NULL;
@@ -222,6 +258,7 @@ uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint8_t *mac
         break;
     case MACRO_FAULT_HANDLER: {
         cursor += update_r14(arg1, macro_dest, cursor);
+        cursor += update_r15(arg1, macro_dest, cursor);
         break;
     }
     case MACRO_SWITCH: {
@@ -257,12 +294,14 @@ uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint8_t *mac
         cursor += 8;
         break;
     }
-    case MACRO_SET_U2K_TARGET: {
-        // movabs rax, function_addr
+    case MACRO_SET_U2K_TARGET:
+    case MACRO_SET_H2G_TARGET:
+    case MACRO_SET_G2H_TARGET: {
+        // movabs r11, function_addr
         uint64_t function_addr = get_function_addr(arg1, arg2, main_prologue_size);
-        macro_dest[cursor] = 0x48;
+        macro_dest[cursor] = 0x49;
         cursor++;
-        macro_dest[cursor] = 0xb8;
+        macro_dest[cursor] = 0xbb;
         cursor++;
         *((uint64_t *)(macro_dest + cursor)) = function_addr;
         cursor += 8;
@@ -270,6 +309,7 @@ uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint8_t *mac
     }
     case MACRO_SWITCH_H2G: {
         cursor += update_r14(arg1, macro_dest, cursor);
+        cursor += update_r15(arg1, macro_dest, cursor);
         // vmresume
         macro_dest[cursor] = 0x0f;
         cursor++;
@@ -279,10 +319,12 @@ uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint8_t *mac
         cursor++;
         // vmlaunch can fall through to the next instruction, so we need to restore R14
         cursor += update_r14(0, macro_dest, cursor);
+        cursor += update_r15(0, macro_dest, cursor);
         break;
     }
     case MACRO_SWITCH_G2H: {
-        cursor += update_r14_rsp(arg1, macro_dest, cursor);
+        cursor += update_r14(arg1, macro_dest, cursor);
+        cursor += update_r15(arg1, macro_dest, cursor);
         break;
     }
     default:
@@ -298,8 +340,8 @@ uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint8_t *mac
 // =================================================================================================
 // clang-format off
 #define PUSH_ABCDF()                                                                               \
-    "mov r11, rsp\n"                                                                               \
-    "lea rsp, [r14 - " xstr(MACRO_STACK_TOP_OFFSET) "]\n"                                          \
+    "mov qword ptr [r14 - " xstr(MACRO_STACK_TOP_OFFSET) " - 8], rsp\n"                            \
+    "lea rsp, [r14 - " xstr(MACRO_STACK_TOP_OFFSET) " - 8]\n"                                      \
     "push rax\n"                                                                                   \
     "push rbx\n"                                                                                   \
     "push rcx\n"                                                                                   \
@@ -312,7 +354,7 @@ uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint8_t *mac
     "pop rcx\n"                                                                                    \
     "pop rbx\n"                                                                                    \
     "pop rax\n"                                                                                    \
-    "mov rsp, r11\n"
+    "pop rsp\n"
 // clang-format on
 
 #define HTRACE_REGISTER "r13"
@@ -386,12 +428,10 @@ void __attribute__((noipa)) macro_measurement_end_probe(void)
                        "jnz 99f\n"                                       //
                        PUSH_ABCDF()                                      //
                        "push r15\n"                                      //
-                       "push r11\n"                                      //
                        "lfence\n"                                        //
                        READ_PFC_END()                                    //
                        "lea r15, [r15 + " xstr(L1D_PRIMING_OFFSET) "]\n" //
                        PROBE("r15", "rbx", "r11", HTRACE_REGISTER)       //
-                       "pop r11\n"                                       //
                        "pop r15\n"                                       //
                        POP_ABCDF()                                       //
                        "99:\n"                                           //
@@ -419,14 +459,12 @@ void __attribute__((noipa)) macro_measurement_end_reload(void)
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                                           //
                        PUSH_ABCDF()                                 //
-                       "push r11\n"                                 //
                        "lfence\n"                                   //
                        READ_PFC_END()                               //
                        RELOAD("r14", "rbx", "r11", HTRACE_REGISTER) //
                        "mov rax, 1\n"                               //
                        "shl rax, 63\n"                              //
                        "or " HTRACE_REGISTER ", rax\n"              //
-                       "pop r11\n"                                  //
                        POP_ABCDF()                                  //
     );
     asm volatile(".quad " xstr(MACRO_END));
@@ -498,13 +536,15 @@ void __attribute__((noipa)) macro_switch_k2u(void)
 void __attribute__((noipa)) macro_set_u2k_target(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
-    asm_volatile_intel(""
-                       "mov rdx, rax\n"
-                       "shr rdx, 32\n"
-                       "mov rcx, 0xc0000082\n"
-                       "wrmsr\n"
-                       "mov rax, 0\n"
-                       "mov rdx, 0\n");
+    asm_volatile_intel(""                      // r11 contains the target address
+                       PUSH_ABCDF()            //
+                       "mov rax, r11\n"        //
+                       "mov rdx, r11\n"        //
+                       "shr rdx, 32\n"         //
+                       "mov rcx, 0xc0000082\n" //
+                       "wrmsr\n"               //
+                       POP_ABCDF()             //
+    );
     asm volatile(".quad " xstr(MACRO_END));
 }
 
@@ -529,6 +569,30 @@ void __attribute__((noipa)) macro_switch_g2h(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel("vmcall\n");
+    asm volatile(".quad " xstr(MACRO_END));
+}
+
+void __attribute__((noipa)) macro_set_h2g_target(void)
+{
+    asm volatile(".quad " xstr(MACRO_START));
+    asm_volatile_intel(""                      // r11 contains the target address
+                       PUSH_ABCDF()            //
+                       "mov rcx, 0x0000681e\n" // GUEST_RIP
+                       "vmwrite rcx, r11 \n"   //
+                       POP_ABCDF()             //
+    );
+    asm volatile(".quad " xstr(MACRO_END));
+}
+
+void __attribute__((noipa)) macro_set_g2h_target(void)
+{
+    asm volatile(".quad " xstr(MACRO_START));
+    asm_volatile_intel(""                      // r11 contains the target address
+                       PUSH_ABCDF()            //
+                       "mov rcx, 0x00006c16\n" // HOST_RIP
+                       "vmwrite rcx, r11 \n"   //
+                       POP_ABCDF()             //
+    );
     asm volatile(".quad " xstr(MACRO_END));
 }
 

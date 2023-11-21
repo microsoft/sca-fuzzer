@@ -76,6 +76,8 @@ class X86MacroInterpreter(MacroInterpreter):
             "set_u2k_target": self.macro_set_u2k_target,
             "switch_h2g": self.macro_switch_h2g,
             "switch_g2h": self.macro_switch_g2h,
+            "set_h2g_target": self.macro_set_h2g_target,
+            "set_g2h_target": self.macro_set_g2h_target,
         }
 
         actor_id = self.model.current_actor.id_
@@ -162,11 +164,6 @@ class X86MacroInterpreter(MacroInterpreter):
         function_addr = section_addr + function_symbol.offset
         self.pseudo_lstar = function_addr
 
-        # side effects
-        model.emulator.reg_write(ucc.UC_X86_REG_RAX, 0)
-        model.emulator.reg_write(ucc.UC_X86_REG_RDX, 0)
-        model.emulator.reg_write(ucc.UC_X86_REG_RCX, 0xc0000082)
-
     def macro_switch_u2k(self, section_id: int, _: int, __: int, ___: int):
         """ Switch the active actor, update data area base and SP, and jump to
             the pseudo_lstar
@@ -190,6 +187,12 @@ class X86MacroInterpreter(MacroInterpreter):
         pass
 
     def macro_switch_g2h(self, section_id: int, _: int, __: int, ___: int):
+        pass
+
+    def macro_set_h2g_target(self, section_id: int, function_id: int, _: int, __: int):
+        pass
+
+    def macro_set_g2h_target(self, section_id: int, function_id: int, _: int, __: int):
         pass
 
 

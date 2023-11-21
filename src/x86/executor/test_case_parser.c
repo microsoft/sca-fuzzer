@@ -158,6 +158,10 @@ static int __batch_tc_parsing_end(void)
             ASSERT((actors[e->args & 0xFF].pl == PL_USER), "__batch_tc_parsing_end");
         if (e->id == MACRO_SET_U2K_TARGET)
             ASSERT((actors[e->args & 0xFF].pl == PL_KERNEL), "__batch_tc_parsing_end");
+        if (e->id == MACRO_SET_H2G_TARGET)
+            ASSERT((actors[e->args & 0xFF].mode == MODE_GUEST), "__batch_tc_parsing_end");
+        if (e->id == MACRO_SET_G2H_TARGET)
+            ASSERT((actors[e->args & 0xFF].mode == MODE_HOST), "__batch_tc_parsing_end");
 
         prev_e = e;
     }
