@@ -62,6 +62,9 @@ int load_sandbox_code(void)
     int err = 0;
     ASSERT(sandbox->code != NULL, "load_sandbox_code");
 
+    // reset the code
+    memset(sandbox->code, 0x90, sizeof(actor_code_t) * n_actors);
+
     for (int section_id = 0; section_id < n_actors; section_id++) {
         if (section_id == 0)
             err |= load_section_main();
@@ -85,9 +88,6 @@ static int load_section_main(void)
     uint64_t main_template_cursor = 0;
     main_macros_cursor = 0;
     main_actor_code = (uint8_t *)&sandbox->code[0].section;
-
-    // reset the code
-    memset(&main_actor_code[0], 0x90, PER_SECTION_ALLOC_SIZE);
 
     // get the template
     uint8_t *template;
