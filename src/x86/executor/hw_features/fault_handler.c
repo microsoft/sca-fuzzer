@@ -156,8 +156,8 @@ __attribute__((unused)) void nmi_handler_wrapper(void)
                  : [util_base] "=m"(sandbox->util)
                  :
                  : "rax", "rbx", "rcx", "r10", "r11", "r12", "r13", "r14", "r15");
+    printk(KERN_WARNING "WARN: unhandled NMI\n");
     recover_orig_state();
-    PRINT_ERR("WARNING: Caught NMI; leaving it unhandled\n")
 
     asm volatile(""
                  "mov %[rsp_save], %%rsp\n"
