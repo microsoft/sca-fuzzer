@@ -467,13 +467,13 @@ static int set_vmcs_host_state(void)
     uint8_t err_inv, err_val = 0;
 
     // get TR, GDTR, IDTR and LDTR bases (will be necessary later, in several places)
-    uint64_t tr;
-    struct desc_ptr gdtr, idtr, ldtr;
+    uint64_t tr, ldtr = 0;
+    struct desc_ptr gdtr, idtr;
     asm volatile("str %[tr]\n"
                  "sgdt %[gdtr]\n"
                  "sidt %[idtr]\n"
                  "sldt %[ldtr]\n"
-                 : [tr] "=m"(tr), [gdtr] "=m"(gdtr), [idtr] "=m"(idtr), [ldtr] "=m"(ldtr)
+                 : [tr] "=r"(tr), [gdtr] "=m"(gdtr), [idtr] "=m"(idtr), [ldtr] "=r"(ldtr)
                  :
                  : "memory");
     struct ldttss_desc *tr_register = (struct ldttss_desc *)(gdtr.address + tr);
