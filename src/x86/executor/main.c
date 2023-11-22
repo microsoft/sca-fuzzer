@@ -558,7 +558,7 @@ static int __init executor_init(void)
     err |= init_perf_counters();
     err |= init_special_register_manager();
 #if VENDOR_ID == 1 // Intel
-    err = init_vmx();
+    err |= init_vmx();
 #endif
     CHECK_ERR("executor_init");
 
