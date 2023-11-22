@@ -20,9 +20,9 @@
 #include "hw_features/host_page_tables.h"
 #include "hw_features/perf_counters.h"
 #include "hw_features/vmx.h"
+#include "hw_features/special_registers.h"
 
 measurement_t *measurements = NULL; // global
-cpu_state_t *orig_cpu_state = NULL; // global
 
 int unsafe_bubble(void);
 
@@ -65,17 +65,6 @@ static int cpu_configure(void)
     return 0;
 }
 
-/// @brief Restores the CPU features and extensions
-/// @param void
-/// @return 0 on success, -1 on failure
-int cpu_restore(void)
-{
-#if VENDOR_ID == 1 // Intel
-    wrmsr64(MSR_IA32_BNDCFGS, 0ULL);
-#endif
-    return 0;
-}
-
 static inline int uarch_flush(void)
 {
 #if VENDOR_ID == 1 // Intel
@@ -92,31 +81,42 @@ static inline int uarch_flush(void)
     return 0;
 }
 
-static inline void clear_orig_cpu_state(void) { orig_cpu_state->lstar = 0; }
+static int set_execution_environment(void)
+{
+    int err = 0;
+    err = set_special_registers();
 
+    // If necessary, enable VMX
+    if (test_case->features.includes_vm_actors) {
+        err = start_vmx_operation();
+        if (err)
+            return -1;
+        err = store_orig_vmcs_state();
+        if (err)
+            return -1;
+        err = set_vmcs_state();
+        if (err)
+            return -1;
+    }
+    return 0;
+}
+
+
+/// @brief Restores the CPU state to the state before the test case execution. This function is
+/// written in a fail-safe manner, so that it can be called in fault handlers.
+/// @param void
 void recover_orig_state(void)
 {
-    // restore MSRs
-    if (orig_cpu_state->lstar) {
-        wrmsr64(MSR_LSTAR, orig_cpu_state->lstar);
-        orig_cpu_state->lstar = 0;
-    }
-
-    // restore IDT
-    unset_bubble_idt(); // restores original IDT regardless of the current IDTR value
-
-    // restore host page tables
-    if (test_case->features.includes_user_actors) {
-        unmap_user_pages();
-    }
-
     // restore VMX state
     if (test_case->features.includes_vm_actors) {
         // if (vmx_is_on)
-            // print_vmx_exit_info(); // uncomment to debug VMX exits
+        //     print_vmx_exit_info(); // uncomment to debug VMX exits
         restore_orig_vmcs_state();
         stop_vmx_operation();
     }
+
+    restore_special_registers();
+    unset_bubble_idt(); // restores original IDT regardless of the current IDTR value
 }
 
 // =================================================================================================
@@ -125,35 +125,10 @@ void recover_orig_state(void)
 int run_experiment(void)
 {
     int err = 0;
-    clear_orig_cpu_state();
 
-    // If necessary, configure userspace
-    if (test_case->features.includes_user_actors) {
-#ifdef FORCE_SMAP_OFF
-        uint64_t cr4 = __read_cr4();
-        cr4 &= ~(X86_CR4_SMAP | X86_CR4_SMEP);
-        asm volatile("mov %0, %%cr4" : : "r"(cr4));
-#endif
-        err = map_user_pages();
-        if (err)
-            goto cleanup;
 
-        orig_cpu_state->lstar = rdmsr64(MSR_LSTAR);
-        wrmsr64(MSR_LSTAR, (uint64_t)fault_handler);
-    }
-
-    // // If necessary, enable VMX
-    if (test_case->features.includes_vm_actors) {
-        err = start_vmx_operation();
-        if (err)
-            goto cleanup;
-        err = store_orig_vmcs_state();
-        if (err)
-            goto cleanup;
-        err = set_vmcs_state();
-        if (err)
-            goto cleanup;
-    }
+    if (set_execution_environment())
+        goto cleanup;
 
     // Zero-initialize the region of memory used by Prime+Probe
     if (!quick_and_dirty_mode)
@@ -282,7 +257,7 @@ int trace_test_case(void)
     ASSERT(inputs->metadata, "trace_test_case");
     ASSERT(inputs->data, "trace_test_case");
 
-    // ensure that the test case is executable
+    // check that the test case is executable
     pte_t *tc_pte = get_pte((uint64_t)loaded_test_case_entry);
     ASSERT(tc_pte && pte_present(*tc_pte) && pte_exec(*tc_pte), "trace_test_case");
 
@@ -312,7 +287,6 @@ int trace_test_case(void)
     put_cpu();
 
 trace_test_case_cleanup:
-    cpu_restore();
     kernel_fpu_end();
     CHECK_ERR("trace_test_case:cleanup");
     return err;
@@ -335,7 +309,6 @@ int alloc_measurements(void)
 int init_measurements(void)
 {
     measurements = CHECKED_VMALLOC(sizeof(measurement_t));
-    orig_cpu_state = CHECKED_ZALLOC(sizeof(cpu_state_t));
     return 0;
 }
 
@@ -344,5 +317,4 @@ int init_measurements(void)
 void free_measurements(void)
 {
     SAFE_VFREE(measurements);
-    SAFE_FREE(orig_cpu_state);
 }

@@ -31,6 +31,7 @@
 #include "hw_features/page_tables_common.h"
 #include "hw_features/perf_counters.h"
 #include "hw_features/vmx.h"
+#include "hw_features/special_registers.h"
 
 // Version-dependent includes
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 6)
@@ -555,6 +556,7 @@ static int __init executor_init(void)
     err |= init_fault_handler();
     err |= init_page_table_manager();
     err |= init_perf_counters();
+    err |= init_special_register_manager();
 #if VENDOR_ID == 1 // Intel
     err = init_vmx();
 #endif
@@ -622,6 +624,7 @@ static void __exit executor_exit(void)
     free_fault_handler();
     free_page_table_manager();
     free_perf_counters();
+    free_special_register_manager();
 #if VENDOR_ID == 1 // Intel
     free_vmx();
 #endif

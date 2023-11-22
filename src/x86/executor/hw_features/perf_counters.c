@@ -100,10 +100,6 @@ int pfc_configure(void)
 {
     int err = 0;
 
-    // Make sure that PCE bit is set in CR4
-    uint64_t cr4 = __read_cr4();
-    __write_cr4(cr4 | (1 << 8));
-
 #if VENDOR_ID == 1 // Intel
     // Configure PMU
     // #0:  Htrace collection

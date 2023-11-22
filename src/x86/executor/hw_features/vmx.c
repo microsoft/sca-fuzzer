@@ -24,8 +24,6 @@
 bool vmx_is_on = false; // global
 
 static bool orig_vmxon_state = false;
-static unsigned long orig_cr0 = 0;
-static unsigned long orig_cr4 = 0;
 static uint64_t orig_vmcs_ptr = 0;
 
 static void *vmxon_page_hva = NULL;
@@ -256,26 +254,16 @@ int start_vmx_operation(void)
     orig_vmxon_state = ((__read_cr4() & X86_CR4_VMXE) != 0);
     unsigned long cr4 = __read_cr4();
     unsigned long cr0 = read_cr0();
-    orig_cr4 = cr4;
-    orig_cr0 = cr0;
 
     if (!orig_vmxon_state) {
-        // Ensure bits in CR0 and CR4 are valid in VMX operation:
-        // - Bit X is 1 in _FIXED0: bit X is fixed to 1 in CRx.
-        // - Bit X is 0 in _FIXED1: bit X is fixed to 0 in CRx.
-        // (source: SDM, 24.8 "restrictions on VMX operation")
-        cr0 &= rdmsr64(MSR_IA32_VMX_CR0_FIXED1);
-        cr0 |= rdmsr64(MSR_IA32_VMX_CR0_FIXED0);
-        cr4 &= rdmsr64(MSR_IA32_VMX_CR4_FIXED1);
-        cr4 |= rdmsr64(MSR_IA32_VMX_CR4_FIXED0);
-        write_cr0(cr0);
+        // Note: registers are already configured in special_registers.c:set_msrs_for_vmx
 
-        // Enable VMX operation:
-        // (source: SDM, 24.7 "Enabling and entering VMX operation")
-        // - CR4.VMXE = 1
-        cr4 |= X86_CR4_VMXE;
-        __write_cr4(cr4);
-        // - Configure IA32_FEATURE_CONTROL MSR to allow VMXON
+        // Check SDM 24.8 "restrictions on VMX operation" and 24.7 "Enabling and entering VMX"
+        ASSERT(((cr0 & rdmsr64(MSR_IA32_VMX_CR0_FIXED1)) | rdmsr64(MSR_IA32_VMX_CR0_FIXED0)) == cr0,
+               "start_vmx_operation");
+        ASSERT((cr4 | X86_CR4_VMXE) == cr4, "start_vmx_operation");
+
+        // Configure IA32_FEATURE_CONTROL MSR to allow VMXON
         //   Bit 0: Lock bit. If clear, VMXON causes a #GP.
         //   Bit 2: Enables VMXON outside of SMX operation. If clear, VMXON
         //          outside of SMX causes a #GP.
@@ -315,10 +303,6 @@ void stop_vmx_operation(void)
         orig_vmxon_state = false;
     }
 
-    // Restore CR0 and CR4
-    write_cr0(orig_cr0);
-    __write_cr4(orig_cr4);
-
     vmx_is_on = false;
     if (err_inv || err_val)
         PRINT_ERRS("stop_vmx_operation", "Exited with VMfailInvalid=%d, VMfailValid=%d\n", err_inv,
@@ -349,7 +333,6 @@ void restore_orig_vmcs_state(void)
     if (!orig_vmxon_state || orig_vmcs_ptr == 0xFFFFFFFFFFFFFFFF)
         return;
 
-    PRINT_ERR("restore orig\n"); // FIXME
     vmclear(orig_vmcs_ptr, &err_inv, &err_val);
     vmptrld(orig_vmcs_ptr, &err_inv, &err_val);
     if (err_inv || err_val)
@@ -428,7 +411,6 @@ static int set_vmcs_guest_state(void)
     // SDM 25.4 Guest-State Area
     // - Control registers
     uint64_t cr0 = read_cr0();
-    cr0 &= ~X86_CR0_CD;
     CHECKED_VMWRITE(GUEST_CR0, cr0);
     CHECKED_VMWRITE(GUEST_CR3, (uint64_t)&guest_p_memory->guest_page_tables.pml4[0]);
     CHECKED_VMWRITE(GUEST_CR4, __read_cr4());
