@@ -23,6 +23,7 @@
     ASSERT(err_val == 0, src);
 
 bool vmx_is_on = false; // global
+uint64_t *vmcs_hpas = NULL; // global
 
 static bool orig_vmxon_state = false;
 static uint64_t orig_vmcs_ptr = 0;
@@ -31,14 +32,13 @@ static void *vmxon_page_hva = NULL;
 static uint64_t vmxon_page_hpa = 0;
 
 static vmcs_t *vmcss = NULL;
-static vmcs_t *invalid_vmcs = NULL;
 
 static int set_vmcs_guest_state(void);
 static int set_vmcs_host_state(void);
-static int set_vmcs_exec_control(void);
+static int set_vmcs_exec_control(int);
 static int set_vmcs_exit_control(void);
 static int set_vmcs_entry_control(void);
-static int make_vmcs_launched(void);
+static int make_vmcs_launched(int);
 
 // =================================================================================================
 // Error decoding
@@ -372,6 +372,7 @@ int set_vmcs_state(void)
 
         vmcs_t *vmcs_hva = (vmcs_t *)(&vmcss[actor_id]);
         uint64_t vmcs_hpa = vmalloc_to_phys(vmcs_hva);
+        vmcs_hpas[actor_id] = vmcs_hpa;
 
         // initialize VMCS revision identifier
         memset(vmcs_hva, 0, VMCS_SIZE);
@@ -392,7 +393,7 @@ int set_vmcs_state(void)
         err = set_vmcs_host_state();
         CHECK_ERR("set_vmcs_host_state");
 
-        err = set_vmcs_exec_control();
+        err = set_vmcs_exec_control(actor_id);
         CHECK_ERR("set_vmcs_exec_control");
 
         err = set_vmcs_exit_control();
@@ -401,7 +402,7 @@ int set_vmcs_state(void)
         err = set_vmcs_entry_control();
         CHECK_ERR("set_vmcs_entry_control");
 
-        err = make_vmcs_launched();
+        err = make_vmcs_launched(actor_id);
         CHECK_ERR("set_vmcs_state:make_vmcs_launched");
     }
 
@@ -527,7 +528,7 @@ static int set_vmcs_host_state(void)
     return 0;
 }
 
-static int set_vmcs_exec_control(void)
+static int set_vmcs_exec_control(int actor_id)
 {
     // int err = 0;
     uint8_t err_inv, err_val = 0;
@@ -585,7 +586,7 @@ static int set_vmcs_exec_control(void)
     // (no idea, leaving it blank for the time being)
 
     // SDM 25.6.11 Extended-Page-Table Pointer (EPTP)
-    CHECKED_VMWRITE(EPT_POINTER, *(uint64_t *)ept_ptr);
+    CHECKED_VMWRITE(EPT_POINTER, ((uint64_t *)ept_ptr)[actor_id]);
 
     // SDM 25.6.12 Virtual-Processor Identifier (VPID)
     ASSERT((SECONDARY_EXEC_ENABLE_VPID & secondary_vm_exec_control) == 0, "set_vmcs_exec_control");
@@ -628,25 +629,34 @@ static int set_vmcs_entry_control(void)
     return 0;
 }
 
-static int make_vmcs_launched(void)
+static int make_vmcs_launched(int actor_id)
 {
     uint8_t err_inv, err_val = 0;
 
-    asm volatile(""
-                 "lea (1f), %%rax\n"
-                 "mov $0x00006c16, %%rcx\n"
-                 "vmwrite %%rax, %%rcx\n"
-                 "mov %%rsp, %%rax\n"
-                 "mov $0x00006c14, %%rcx\n"
-                 "vmwrite %%rax, %%rcx\n"
-                 "vmlaunch; setc %[inval]; setz %[val]\n"
-                 "1:\n"
-                 : [val] "=rm"(err_val), [inval] "=rm"(err_inv)
-                 :
-                 : "cc", "memory", "rax", "rcx");
-    // PRINT_ERR("make_vmcs_launched: exited with VMfailInvalid=%d, VMfailValid=%d\n", err_inv,
-    //           err_val);
+    // load VMCS
+    uint64_t vmcs_hpa = vmcs_hpas[actor_id];
+    vmptrld(vmcs_hpa, &err_inv, &err_val);
+    CHECK_VMFAIL("make_vmcs_launched:vmptrld");
 
+    // launch VM
+    asm volatile(""
+            "lea (1f), %%rax\n"
+            "mov $0x00006c16, %%rcx\n"
+            "vmwrite %%rax, %%rcx\n"
+            "mov %%rsp, %%rax\n"
+            "mov $0x00006c14, %%rcx\n"
+            "vmwrite %%rax, %%rcx\n"
+            "vmlaunch; setc %[inval]; setz %[val]\n"
+            "1:\n"
+            : [val] "=rm"(err_val), [inval] "=rm"(err_inv)
+            :
+            : "cc", "memory", "rax", "rcx");
+
+    // PRINT_ERR("make_vmcs_launched: exited with VMfailInvalid=%d, VMfailValid=%d\n", err_inv,
+                // err_val);
+    // print_vmx_exit_info();
+
+    // finalize VMCS fields
     guest_memory_t *guest_v_memory = (guest_memory_t *)(GUEST_V_MEMORY_START);
     CHECKED_VMWRITE(GUEST_RIP, (uint64_t)&guest_v_memory->code.section[0]);
     CHECKED_VMWRITE(GUEST_RSP, (uint64_t)&guest_v_memory->data.main_area[LOCAL_RSP_OFFSET]);
@@ -750,7 +760,7 @@ int init_vmx(void)
 
     // VMCS
     vmcss = CHECKED_VMALLOC(VMCS_SIZE);
-    invalid_vmcs = CHECKED_ZALLOC(VMCS_SIZE);
+    vmcs_hpas = CHECKED_ZALLOC(sizeof(uint64_t) * MAX_ACTORS);
 
     return err;
 }
@@ -759,5 +769,5 @@ void free_vmx(void)
 {
     SAFE_FREE(vmxon_page_hva);
     SAFE_VFREE(vmcss);
-    SAFE_FREE(invalid_vmcs);
+    SAFE_FREE(vmcs_hpas);
 }

@@ -6,6 +6,7 @@
 #include "macro_loader.h"
 #include "asm_snippets.h"
 #include "hw_features/guest_memory.h"
+#include "hw_features/vmx.h"
 #include "main.h"
 #include "sandbox_manager.h"
 #include "shortcuts.h"
@@ -294,8 +295,36 @@ uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint8_t *mac
         cursor += 8;
         break;
     }
+    case MACRO_SET_H2G_TARGET: {
+        // movabs r11, &vmcs_hpa
+        macro_dest[cursor] = 0x49;
+        cursor++;
+        macro_dest[cursor] = 0xbb;
+        cursor++;
+        *((uint64_t **)(macro_dest + cursor)) = &vmcs_hpas[arg1];
+        cursor += 8;
+
+        // vmptrld [r11]
+        macro_dest[cursor] = 0x41;
+        cursor++;
+        macro_dest[cursor] = 0x0f;
+        cursor++;
+        macro_dest[cursor] = 0xc7;
+        cursor++;
+        macro_dest[cursor] = 0x33;
+        cursor++;
+
+        // movabs r11, function_addr
+        uint64_t function_addr = get_function_addr(arg1, arg2, main_prologue_size);
+        macro_dest[cursor] = 0x49;
+        cursor++;
+        macro_dest[cursor] = 0xbb;
+        cursor++;
+        *((uint64_t *)(macro_dest + cursor)) = function_addr;
+        cursor += 8;
+        break;
+    }
     case MACRO_SET_U2K_TARGET:
-    case MACRO_SET_H2G_TARGET:
     case MACRO_SET_G2H_TARGET: {
         // movabs r11, function_addr
         uint64_t function_addr = get_function_addr(arg1, arg2, main_prologue_size);

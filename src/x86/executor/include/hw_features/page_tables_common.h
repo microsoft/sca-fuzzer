@@ -129,6 +129,7 @@ typedef struct {
     uint64_t superv_sdw_stack : 1;
     uint64_t reserved_11_08 : 4;
     uint64_t paddr : (PHYSICAL_WIDTH - 12);
+    uint64_t reserved_51_M : (52 - PHYSICAL_WIDTH);
     uint64_t reserved_63_52 : 12;
 } __attribute__((packed)) eptp_t;
 

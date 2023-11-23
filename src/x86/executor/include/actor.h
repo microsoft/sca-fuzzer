@@ -8,6 +8,8 @@
 
 #include <linux/types.h>
 
+#define MAX_ACTORS 16
+
 typedef uint64_t actor_id_t;
 typedef uint64_t actor_mode_t;
 typedef uint64_t actor_pl_t;

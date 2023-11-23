@@ -55,6 +55,7 @@ typedef struct {
 // =================================================================================================
 // Module interface
 extern bool vmx_is_on;
+extern uint64_t *vmcs_hpas;
 
 int vmx_check_cpu_compatibility(void);
 int start_vmx_operation(void);

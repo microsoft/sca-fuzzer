@@ -8,7 +8,6 @@
 
 #include "actor.h"
 
-#define MAX_ACTORS              16
 #define MAX_SECTIONS            MAX_ACTORS
 #define MAX_SYMBOLS             128
 #define MAX_SECTION_SIZE        4096 // NOTE: must be exactly 1 page to detect sysfs buffering
