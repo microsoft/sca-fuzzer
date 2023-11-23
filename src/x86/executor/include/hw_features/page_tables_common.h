@@ -135,7 +135,7 @@ typedef struct {
     uint64_t paddr : (PHYSICAL_WIDTH - 12);
     uint64_t reserved_51_M : (52 - PHYSICAL_WIDTH);
     uint64_t ignored_63_52 : 12;
-} __attribute__((packed)) ept_pml4_pte;
+} __attribute__((packed)) epml4e_t;
 
 // Table 28-3. Format of an EPT Page-Directory-Pointer-Table Entry (EPT PDPTE)
 typedef struct {
@@ -151,7 +151,7 @@ typedef struct {
     uint64_t paddr : (PHYSICAL_WIDTH - 12);
     uint64_t reserved_51_M : (52 - PHYSICAL_WIDTH);
     uint64_t ignored_63_52 : 12;
-} __attribute__((packed)) ept_pdpt_pte;
+} __attribute__((packed)) epdpte_t;
 
 typedef struct {
     uint64_t read_access : 1;
@@ -166,7 +166,7 @@ typedef struct {
     uint64_t paddr : (PHYSICAL_WIDTH - 12);
     uint64_t reserved_51_M : (52 - PHYSICAL_WIDTH);
     uint64_t ignored_63_52 : 12;
-} __attribute__((packed)) ept_pdt_pte;
+} __attribute__((packed)) epdte_t;
 
 typedef struct {
     uint64_t read_access : 1;
@@ -189,6 +189,6 @@ typedef struct {
     uint64_t subpg_write_perm : 1;
     uint64_t ignored_62 : 1;
     uint64_t suppress_ve : 1;
-} __attribute__((packed)) ept_pt_pte;
+} __attribute__((packed)) epte_t_;
 
 #endif // _PAGE_TABLES_COMMON_H_

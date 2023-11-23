@@ -81,7 +81,7 @@ void *phys_to_vmalloc(uint64_t paddr)
     return 0;
 }
 
-static inline void set_last_ept_level(ept_pt_pte *ept, uint64_t gpa, void *hva)
+static inline void set_last_ept_level(epte_t_ *ept, uint64_t gpa, void *hva)
 {
     uint64_t hpa = vmalloc_to_phys_recorded(hva);
     INIT_EPTE_DEFAULT(ept[PT_INDEX(gpa)], hpa);
@@ -205,7 +205,7 @@ int set_extended_page_tables(void)
         INIT_EPTE_DEFAULT(actor_ept_base->l2[l2_index], l1_hpa);
 
         // map util_t into guest memory (the same phys range for all actors, i.e., shared)
-        ept_pt_pte *l1 = actor_ept_base->l1;
+        epte_t_ *l1 = actor_ept_base->l1;
         for (int i = 0; i < sizeof(util_t); i += 4096) {
             set_last_ept_level(l1, ((uint64_t)&guest_memory->util) + i,
                                ((void *)sandbox->util) + i);
@@ -401,29 +401,29 @@ int dbg_dump_ept(int actor_id)
     printk(KERN_INFO "------- EPT dump -----------------------------------\n");
     actor_ept_t *actor_ept_base = &_allocated_extended_page_tables[actor_id];
 
-    ept_pml4_pte *l4 = actor_ept_base->l4;
+    epml4e_t *l4 = actor_ept_base->l4;
     for (uint64_t curr_l4_id = 0; curr_l4_id < ENTRIES_PER_PAGE; curr_l4_id += 1) {
         // L4
-        ept_pml4_pte l4e = l4[curr_l4_id];
+        epml4e_t l4e = l4[curr_l4_id];
         if (!l4e.read_access)
             continue;
-        ept_pdpt_pte *l3 = phys_to_vmalloc(((uint64_t)l4e.paddr << 12));
+        epdpte_t *l3 = phys_to_vmalloc(((uint64_t)l4e.paddr << 12));
         ASSERT(l3 == actor_ept_base->l3, "dbg_dump_ept");
 
         // L3
         for (uint64_t curr_l3_id = 0; curr_l3_id < ENTRIES_PER_PAGE; curr_l3_id += 1) {
-            ept_pdpt_pte l3e = l3[curr_l3_id];
+            epdpte_t l3e = l3[curr_l3_id];
             if (!l3e.read_access)
                 continue;
-            ept_pdt_pte *l2 = phys_to_vmalloc(((uint64_t)l3e.paddr << 12));
+            epdte_t *l2 = phys_to_vmalloc(((uint64_t)l3e.paddr << 12));
             ASSERT(l2 == actor_ept_base->l2, "dbg_dump_ept");
 
             // L2
             for (uint64_t curr_l2_id = 0; curr_l2_id < ENTRIES_PER_PAGE; curr_l2_id += 1) {
-                ept_pdt_pte l2e = l2[curr_l2_id];
+                epdte_t l2e = l2[curr_l2_id];
                 if (!l2e.read_access)
                     continue;
-                ept_pt_pte *l1 = phys_to_vmalloc(((uint64_t)l2e.paddr << 12));
+                epte_t_ *l1 = phys_to_vmalloc(((uint64_t)l2e.paddr << 12));
 
                 void *ept_hva_min = &actor_ept_base->l1[0];
                 void *ept_hva_max = &actor_ept_base->l1[ENTRIES_PER_PAGE];
@@ -431,7 +431,7 @@ int dbg_dump_ept(int actor_id)
 
                 // L1
                 for (uint64_t curr_l1_id = 0; curr_l1_id < ENTRIES_PER_PAGE; curr_l1_id += 1) {
-                    ept_pt_pte l1e = l1[curr_l1_id];
+                    epte_t_ l1e = l1[curr_l1_id];
                     if (!l1e.read_access)
                         continue;
                     uint64_t hpa = ((uint64_t)l1e.paddr << 12);

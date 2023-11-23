@@ -23,10 +23,10 @@ typedef struct {
 } actor_page_table_t;
 
 typedef struct {
-    ept_pml4_pte l4[ENTRIES_PER_PAGE];
-    ept_pdpt_pte l3[ENTRIES_PER_PAGE];
-    ept_pdt_pte l2[ENTRIES_PER_PAGE];
-    ept_pt_pte l1[ENTRIES_PER_PAGE];
+    epml4e_t l4[ENTRIES_PER_PAGE];
+    epdpte_t l3[ENTRIES_PER_PAGE];
+    epdte_t l2[ENTRIES_PER_PAGE];
+    epte_t_ l1[ENTRIES_PER_PAGE];
 } actor_ept_t;
 
 // Guest memory layout; it is identical for both physical and virtual memory
