@@ -22,6 +22,13 @@ typedef struct {
     pte_t_ pt[ENTRIES_PER_PAGE];
 } actor_page_table_t;
 
+typedef struct {
+    ept_pml4_pte l4[ENTRIES_PER_PAGE];
+    ept_pdpt_pte l3[ENTRIES_PER_PAGE];
+    ept_pdt_pte l2[ENTRIES_PER_PAGE];
+    ept_pt_pte l1[ENTRIES_PER_PAGE];
+} actor_ept_t;
+
 // Guest memory layout; it is identical for both physical and virtual memory
 typedef struct {
     util_t util;
@@ -40,7 +47,7 @@ typedef struct {
 extern eptp_t *ept_ptr;
 
 int dbg_dump_guest_page_tables(int actor_id);
-int dbg_dump_ept(void);
+int dbg_dump_ept(int actor_id);
 
 int map_sandbox_to_guest_memory(void);
 
