@@ -273,7 +273,11 @@ EOF
 @test "Detection [meltdown-type]: MDS/LVI" {
     intel_only
     tmp_config=$(mktemp -p $TEST_DIR)
-    printf "$CT_DEH $LOGGING_OFF \nfaulty_page_properties:\n  - accessed: false\n" >$tmp_config
+    echo "$CT_DEH $LOGGING_OFF" >$tmp_config
+    echo "actor:\n" >>$tmp_config
+    echo "  - name: 'main'" >>$tmp_config
+    echo "  - data_properties:" >>$tmp_config
+    echo "    - accessed: false" >>$tmp_config
 
     if cat /proc/cpuinfo | grep "mds"; then
         cmd="$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/mds.asm -i 100"
@@ -310,7 +314,11 @@ EOF
 
 @test "Detection [meltdown-type]: #PF-present speculation" {
     tmp_config=$(mktemp -p $TEST_DIR)
-    printf "$CT_DEH $LOGGING_OFF \nfaulty_page_properties:\n  - present: false\n" >$tmp_config
+    echo "$CT_DEH $LOGGING_OFF" >$tmp_config
+    echo "actor:\n" >>$tmp_config
+    echo "  - name: 'main'" >>$tmp_config
+    echo "  - data_properties:" >>$tmp_config
+    echo "    - present: false" >>$tmp_config
     assert_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault_load.asm -i 5"
 
     printf "contract_execution_clause:\n  - nullinj-fault\n" >>$tmp_config
@@ -319,7 +327,11 @@ EOF
 
 @test "Detection [meltdown-type]: #PF-writable speculation" {
     tmp_config=$(mktemp -p $TEST_DIR)
-    printf "$CT_DEH $LOGGING_OFF \nfaulty_page_properties:\n  - writable: false\n" >$tmp_config
+    echo "$CT_DEH $LOGGING_OFF" >$tmp_config
+    echo "actor:\n" >>$tmp_config
+    echo "  - name: 'main'" >>$tmp_config
+    echo "  - data_properties:" >>$tmp_config
+    echo "    - writable: false" >>$tmp_config
     assert_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault_rmw.asm -i 5"
 
     printf "contract_execution_clause:\n  - nullinj-fault\n" >>$tmp_config
@@ -328,7 +340,11 @@ EOF
 
 @test "Detection [meltdown-type]: #PF-smap speculation" {
     tmp_config=$(mktemp -p $TEST_DIR)
-    printf "$CT_DEH $LOGGING_OFF \nfaulty_page_properties:\n  - user: true\n" >$tmp_config
+    echo "$CT_DEH $LOGGING_OFF" >$tmp_config
+    echo "actor:\n" >>$tmp_config
+    echo "  - name: 'main'" >>$tmp_config
+    echo "  - data_properties:" >>$tmp_config
+    echo "    - user: true" >>$tmp_config
     assert_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault_load.asm -i 5"
 
     printf "contract_execution_clause:\n  - nullinj-fault\n" >>$tmp_config
@@ -385,7 +401,7 @@ EOF
 @test "Feature: Minimization of test cases" {
     skip
     tmp_config=$(mktemp -p $TEST_DIR)
-    printf "$CT_DEH $LOGGING_OFF \nenable_priming: false \nfaulty_page_properties:\n  - present: false\n" >$tmp_config
+    printf "$CT_DEH $LOGGING_OFF \nenable_priming: false\n" >$tmp_config
     $cli_opt minimize -s $ISA -c $tmp_config -n 10 -i $ASM_DIR/minimization-before.asm -o $TEST_DIR/res.asm --simplify --find-sources
     run diff $TEST_DIR/res.asm $ASM_DIR/minimization-after.asm
     diff $TEST_DIR/res.asm $ASM_DIR/minimization-after.asm

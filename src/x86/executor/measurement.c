@@ -17,6 +17,7 @@
 #include "test_case_parser.h"
 
 #include "hw_features/fault_handler.h"
+#include "hw_features/guest_memory.h"
 #include "hw_features/host_page_tables.h"
 #include "hw_features/perf_counters.h"
 #include "hw_features/vmx.h"
@@ -36,6 +37,8 @@ int unsafe_bubble(void);
 static int cpu_configure(void)
 {
 #if VENDOR_ID == 1 // Intel
+    // FIXME: this needs to be moved into special_registers.c module
+
     // Configure uarch patches
     wrmsr64(MSR_IA32_SPEC_CTRL, ssbp_patch_control);
 
@@ -89,14 +92,13 @@ static int set_execution_environment(void)
     // If necessary, enable VMX
     if (test_case->features.includes_vm_actors) {
         err = start_vmx_operation();
-        if (err)
-            return -1;
+        CHECK_ERR("set_execution_environment:start_vmx_operation");
+
         err = store_orig_vmcs_state();
-        if (err)
-            return -1;
+        CHECK_ERR("set_execution_environment:store_orig_vmcs_state");
+
         err = set_vmcs_state();
-        if (err)
-            return -1;
+        CHECK_ERR("set_execution_environment:set_vmcs_state");
     }
     return 0;
 }
@@ -117,6 +119,7 @@ void recover_orig_state(void)
 
     restore_special_registers();
     unset_bubble_idt(); // restores original IDT regardless of the current IDTR value
+    restore_orig_sandbox_page_tables();
 }
 
 // =================================================================================================
@@ -126,6 +129,8 @@ int run_experiment(void)
 {
     int err = 0;
 
+    if (set_sandbox_page_tables())
+        goto cleanup;
 
     if (set_execution_environment())
         goto cleanup;
@@ -147,8 +152,7 @@ int run_experiment(void)
 
         // Prepare sandbox
         load_sandbox_data(i_);
-        faulty_page_pte_store();
-        faulty_page_pte_set();
+        set_faulty_page_permissions();
 
         // Catch all exceptions
         set_test_case_idt();
@@ -158,7 +162,7 @@ int run_experiment(void)
         err = ((int (*)(char *))loaded_test_case_entry)(main_data);
 
         unset_test_case_idt();
-        faulty_page_pte_restore();
+        restore_faulty_page_permissions();
         if (err)
             goto cleanup;
 
@@ -170,7 +174,6 @@ int run_experiment(void)
     }
 
 cleanup:
-    // print_vmx_exit_info(); // uncomment to debug VMX exits
     recover_orig_state();
     CHECK_ERR("run_experiment:cleanup");
     return err;
@@ -264,9 +267,6 @@ int trace_test_case(void)
     // Pre-measurement setup
     err |= pfc_configure();
     CHECK_ERR("trace_test_case:pfc_configure");
-
-    err |= faulty_page_prepare();
-    CHECK_ERR("trace_test_case:faulty_page_prepare");
 
     kernel_fpu_begin(); // Enable FPU - just in case, we might use it within the test case
     err |= cpu_configure();

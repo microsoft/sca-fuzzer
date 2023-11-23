@@ -160,4 +160,9 @@ static inline uint64_t vmalloc_to_phys(void *hva)
     return hpa;
 }
 
+static inline void native_page_invalidate(uint64_t va)
+{
+    asm volatile("invlpg (%0)" ::"r"(va) : "memory");
+}
+
 #endif // _SHORTCUTS_H_

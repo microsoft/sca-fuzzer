@@ -820,6 +820,7 @@ class TargetDesc(ABC):
     reg_normalized: Dict[str, str]
     reg_denormalized: Dict[str, Dict[int, str]]
     macro_specs: Dict[str, MacroSpec]
+    pte_bits: Dict[str, Tuple[int, bool]]
 
     @staticmethod
     @abstractmethod

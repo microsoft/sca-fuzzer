@@ -12,29 +12,11 @@
 #include "shortcuts.h"
 
 #include "hw_features/host_page_tables.h"
+#include "hw_features/page_tables_common.h"
 
-#define MODIFIABLE_PTE_BITS                                                                        \
-    (_PAGE_PRESENT | _PAGE_RW | _PAGE_USER | _PAGE_PWT | _PAGE_PCD | _PAGE_ACCESSED |              \
-     _PAGE_DIRTY | _PAGE_PKEY_BIT0 | _PAGE_PKEY_BIT1 | _PAGE_PKEY_BIT2 | _PAGE_PKEY_BIT3 |         \
-     _PAGE_NX)
-#define NO_CLEAR_MASK (0xffffffffffffffff & ~MODIFIABLE_PTE_BITS)
-
-typedef struct {
-    pteval_t data_ptes[N_DATA_PAGES_PER_ACTOR];
-    pteval_t code_ptes[N_CODE_PAGES_PER_ACTOR];
-} actor_orig_ptes_t;
-
-static pteval_t *orig_ptes;
-
-// the three variables below duplicate orig_ptes; kept for compatibility, and to be removed soon
-static unsigned long faulty_page_addr = 0;
-static pte_t *faulty_page_ptep = NULL;
-static pteval_t orig_pte;
-
-static inline void _native_page_invalidate(uint64_t va)
-{
-    asm volatile("invlpg (%0)" ::"r"(va) : "memory");
-}
+static sandbox_ptes_t *orig_ptes;
+static sandbox_pteps_t *sandbox_pteps;
+static pte_t_ *faulty_ptes = NULL;
 
 pte_t *get_pte(uint64_t address)
 {
@@ -66,72 +48,125 @@ pte_t *get_pte(uint64_t address)
 // =================================================================================================
 // Manipulation of Host Page Tables
 // =================================================================================================
-int faulty_page_prepare(void)
-{
-    ASSERT(sandbox != NULL, "faulty_page_prepare");
-    ASSERT(sandbox->data[0].faulty_area != NULL, "faulty_page_prepare");
-    faulty_page_addr = (unsigned long)&(sandbox->data[0].faulty_area[0]);
-    faulty_page_ptep = get_pte(faulty_page_addr);
-    ASSERT(faulty_page_ptep != NULL, "faulty_page_prepare");
-    return 0;
-}
-
-/// @brief Save the current value of the faulty page PTE
+/// @brief Cache the PTE pointers for all sandbox pages.
 /// @param void
-void faulty_page_pte_store(void) { orig_pte = faulty_page_ptep->pte; }
-
-
-void faulty_page_pte_set(void)
+/// @return 0 on success, -1 on failure
+int cache_host_pteps(void)
 {
-    uint64_t pte_mask = actors[0].data_permissions;
-    uint64_t mask_set = pte_mask & MODIFIABLE_PTE_BITS;
-    uint64_t mask_clear = pte_mask | ~MODIFIABLE_PTE_BITS;
-    pte_t new_pte = (pte_t){0};
-    if ((mask_set != 0) || (mask_clear != NO_CLEAR_MASK)) {
-        new_pte.pte = ((orig_pte | mask_set) & mask_clear);
-        set_pte_at(current->mm, faulty_page_addr, faulty_page_ptep, new_pte);
-        // When testing for #PF flushing the faulty page causes a 'soft
-        // lookup' kernel error on certain CPUs.
-        // asm volatile("clflush (%0)\nlfence\n" ::"r"(faulty_page_addr)
-        // : "memory");
-        _native_page_invalidate(faulty_page_addr);
+    ASSERT(sandbox_pteps != NULL, "cache_host_pteps");
+    ASSERT(sandbox != NULL, "cache_host_pteps");
+
+    static int old_n_actors = 1;
+    if (n_actors > old_n_actors) {
+        SAFE_FREE(sandbox_pteps->data_pteps);
+        SAFE_FREE(sandbox_pteps->code_pteps);
+        sandbox_pteps->data_pteps =
+            CHECKED_ZALLOC(N_DATA_PAGES_PER_ACTOR * n_actors * sizeof(pte_t_ *));
+        sandbox_pteps->code_pteps =
+            CHECKED_ZALLOC(N_CODE_PAGES_PER_ACTOR * n_actors * sizeof(pte_t_ *));
     }
-}
+    old_n_actors = n_actors;
 
-/// @brief Restore the saved value of the faulty page PTE
-/// @param
-void faulty_page_pte_restore(void)
-{
-    uint64_t pte_mask = actors[0].data_permissions;
-    uint64_t mask_set = pte_mask & MODIFIABLE_PTE_BITS;
-    uint64_t mask_clear = ~pte_mask | ~MODIFIABLE_PTE_BITS;
-    pte_t new_pte = (pte_t){0};
-    if ((mask_set != 0) || (mask_clear != NO_CLEAR_MASK)) {
-        new_pte.pte = orig_pte;
-        set_pte_at(current->mm, faulty_page_addr, faulty_page_ptep, new_pte);
-        _native_page_invalidate(faulty_page_addr);
+    // cache the PTE pointers for the util pages
+    for (int i = 0; i < N_UTIL_PAGES; i++) {
+        uint64_t va = (uint64_t)sandbox->util + i * 4096;
+        pte_t *ptep = get_pte(va);
+        ASSERT(ptep != NULL, "cache_host_pteps");
+        sandbox_pteps->util_pteps[i] = (pte_t_ *)&ptep->pte;
     }
-}
 
-// =================================================================================================
-// Management of User Pages
-// =================================================================================================
-static int preserve_and_set_user(uint64_t va, pteval_t *orig_pte)
-{
-    pte_t *ptep = get_pte(va);
-    ASSERT(ptep != NULL, "preserve_and_set_user");
-    *orig_pte = ptep->pte;
-    ptep->pte |= _PAGE_USER;
-    _native_page_invalidate(va);
+    // cache the PTE pointers for the code and data pages of the sandbox
+    for (int actor_id = 0; actor_id < n_actors; actor_id++) {
+        // cache the PTE pointers for the data pages of the actor
+        for (int i = 0; i < N_DATA_PAGES_PER_ACTOR; i++) {
+            uint64_t va = ((uint64_t)&sandbox->data[actor_id]) + i * 4096;
+            pte_t *ptep = get_pte(va);
+            ASSERT(ptep != NULL, "cache_host_pteps");
+            sandbox_pteps->data_pteps[actor_id * N_DATA_PAGES_PER_ACTOR + i] = (pte_t_ *)&ptep->pte;
+        }
+        // cache the PTE pointers for the code pages of the actor
+        for (int i = 0; i < N_CODE_PAGES_PER_ACTOR; i++) {
+            uint64_t va = ((uint64_t)&sandbox->code[actor_id]) + i * 4096;
+            pte_t *ptep = get_pte(va);
+            ASSERT(ptep != NULL, "cache_host_pteps");
+            sandbox_pteps->code_pteps[actor_id * N_CODE_PAGES_PER_ACTOR + i] = (pte_t_ *)&ptep->pte;
+        }
+    }
     return 0;
 }
 
-static int restore_user(uint64_t va, pteval_t *orig_pte)
+/// @brief Preserve the original PTEs for all sandbox pages.
+/// @param void
+/// @return 0 on success, -1 on failure
+int store_orig_host_permissions(void)
 {
-    pte_t *ptep = get_pte(va);
-    ASSERT(ptep != NULL, "restore_user");
-    ptep->pte = *orig_pte;
-    _native_page_invalidate(va);
+    ASSERT(sandbox_pteps->util_pteps[0] != NULL, "store_orig_host_permissions");
+    ASSERT(sandbox_pteps->data_pteps[0] != NULL, "store_orig_host_permissions");
+    ASSERT(sandbox_pteps->code_pteps[0] != NULL, "store_orig_host_permissions");
+
+    static int old_n_actors = 1;
+    if (n_actors > old_n_actors) {
+        SAFE_FREE(orig_ptes->data_ptes);
+        SAFE_FREE(orig_ptes->code_ptes);
+        orig_ptes->data_ptes = CHECKED_ZALLOC(N_DATA_PAGES_PER_ACTOR * n_actors * sizeof(pte_t_));
+        orig_ptes->code_ptes = CHECKED_ZALLOC(N_CODE_PAGES_PER_ACTOR * n_actors * sizeof(pte_t_));
+
+        SAFE_FREE(faulty_ptes);
+        faulty_ptes = CHECKED_ZALLOC(sizeof(pte_t_) * n_actors);
+    }
+    old_n_actors = n_actors;
+
+    // save the original PTEs for the util pages
+    for (int i = 0; i < N_UTIL_PAGES; i++) {
+        orig_ptes->util_ptes[i] = *sandbox_pteps->util_pteps[i];
+    }
+
+    // save the original PTEs for the code and data pages of the sandbox
+    for (int actor_id = 0; actor_id < n_actors; actor_id++) {
+        // save the original PTEs for the data pages of the actor
+        for (int i = 0; i < N_DATA_PAGES_PER_ACTOR; i++) {
+            int page_id = actor_id * N_DATA_PAGES_PER_ACTOR + i;
+            orig_ptes->data_ptes[page_id] = *sandbox_pteps->data_pteps[page_id];
+        }
+        // save the original PTEs for the code pages of the actor
+        for (int i = 0; i < N_CODE_PAGES_PER_ACTOR; i++) {
+            int page_id = actor_id * N_CODE_PAGES_PER_ACTOR + i;
+            orig_ptes->code_ptes[page_id] = *sandbox_pteps->code_pteps[page_id];
+        }
+    }
+    return 0;
+}
+
+/// @brief Restore the original PTEs for all sandbox pages.
+/// @param
+/// @return
+int restore_orig_host_permissions(void)
+{
+    ASSERT(sandbox_pteps->util_pteps[0] != NULL, "restore_orig_host_permissions");
+    ASSERT(sandbox_pteps->data_pteps[0] != NULL, "restore_orig_host_permissions");
+    ASSERT(sandbox_pteps->code_pteps[0] != NULL, "restore_orig_host_permissions");
+
+    // restore the original PTEs for the util pages
+    for (int i = 0; i < N_UTIL_PAGES; i++) {
+        *sandbox_pteps->util_pteps[i] = orig_ptes->util_ptes[i];
+        native_page_invalidate((uint64_t)sandbox->util + i * 4096);
+    }
+
+    // restore the original PTEs for the code and data pages of the sandbox
+    for (int actor_id = 0; actor_id < n_actors; actor_id++) {
+        // restore the original PTEs for the data pages of the actor
+        for (int i = 0; i < N_DATA_PAGES_PER_ACTOR; i++) {
+            int page_id = actor_id * N_DATA_PAGES_PER_ACTOR + i;
+            *sandbox_pteps->data_pteps[page_id] = orig_ptes->data_ptes[page_id];
+            native_page_invalidate((uint64_t)&sandbox->data[actor_id] + i * 4096);
+        }
+        // restore the original PTEs for the code pages of the actor
+        for (int i = 0; i < N_CODE_PAGES_PER_ACTOR; i++) {
+            int page_id = actor_id * N_CODE_PAGES_PER_ACTOR + i;
+            *sandbox_pteps->code_pteps[page_id] = orig_ptes->code_ptes[page_id];
+            native_page_invalidate((uint64_t)&sandbox->code[actor_id] + i * 4096);
+        }
+    }
     return 0;
 }
 
@@ -139,24 +174,16 @@ static int restore_user(uint64_t va, pteval_t *orig_pte)
 /// user-type actors
 /// @param void
 /// @return 0 on success, -1 on failure
-int map_user_pages(void)
+int set_user_pages(void)
 {
-    int err = 0;
-
-    static int old_n_actors = 0;
-    if (n_actors > old_n_actors) {
-        // the number of actors has increased, so we need to allocate more space for preserving PTEs
-        SAFE_FREE(orig_ptes);
-        orig_ptes = CHECKED_ZALLOC(sizeof(pteval_t) * get_sandbox_size_pages());
-    }
-    old_n_actors = n_actors;
+    ASSERT(sandbox_pteps->util_pteps[0] != NULL, "restore_orig_host_permissions");
+    ASSERT(sandbox_pteps->data_pteps[0] != NULL, "restore_orig_host_permissions");
+    ASSERT(sandbox_pteps->code_pteps[0] != NULL, "restore_orig_host_permissions");
 
     // enable user access to util pages so that the actors can store measurement results
     for (int i = 0; i < N_UTIL_PAGES; i++) {
-        uint64_t va = (uint64_t)sandbox->util + i * 4096;
-        pteval_t *orig_pte = &orig_ptes[i];
-        err = preserve_and_set_user(va, orig_pte);
-        CHECK_ERR("preserve_and_set_user");
+        sandbox_pteps->util_pteps[i]->user_supervisor = 1;
+        native_page_invalidate((uint64_t)sandbox->util + i * 4096);
     }
 
     // enable user access to code and data pages of the sandbox that belong to user actors
@@ -166,74 +193,84 @@ int map_user_pages(void)
         if (actor->pl != PL_USER) {
             continue;
         }
-        int org_ptes_offset =
-            N_UTIL_PAGES + actor_id * (N_CODE_PAGES_PER_ACTOR + N_DATA_PAGES_PER_ACTOR);
-        actor_orig_ptes_t *actor_orig_ptes = (actor_orig_ptes_t *)&orig_ptes[org_ptes_offset];
 
-        // configure PTEs for each area of the actor sandbox while preserving the old values
-        for (int i = 0; i < sizeof(actor_data_t); i += 4096) {
-            uint64_t va = ((uint64_t)&sandbox->data[actor_id]) + i;
-            pteval_t *orig_pte = &actor_orig_ptes->data_ptes[i / 4096];
-            err = preserve_and_set_user(va, orig_pte);
-            CHECK_ERR("preserve_and_set_user");
+        // configure PTEs for each area of the actor sandbox
+        for (int i = 0; i < N_DATA_PAGES_PER_ACTOR; i++) {
+            int page_id = actor_id * N_DATA_PAGES_PER_ACTOR + i;
+            sandbox_pteps->data_pteps[page_id]->user_supervisor = 1;
+            native_page_invalidate((uint64_t)&sandbox->data[actor_id] + i * 4096);
         }
-        for (int i = 0; i < sizeof(actor_code_t); i += 4096) {
-            uint64_t va = ((uint64_t)&sandbox->code[actor_id]) + i;
-            pteval_t *orig_pte = &actor_orig_ptes->code_ptes[i / 4096];
-            err = preserve_and_set_user(va, orig_pte);
-            CHECK_ERR("preserve_and_set_user");
+        for (int i = 0; i < N_CODE_PAGES_PER_ACTOR; i++) {
+            int page_id = actor_id * N_CODE_PAGES_PER_ACTOR + i;
+            sandbox_pteps->code_pteps[page_id]->user_supervisor = 1;
+            native_page_invalidate((uint64_t)&sandbox->code[actor_id] + i * 4096);
         }
     }
+
     return 0;
 }
 
-int unmap_user_pages(void)
+/// @brief Fast modification of the faulty page host PTE; sets the permissions according to
+/// actor_t->data_permissions
+/// @param void
+void set_faulty_page_host_permissions(void)
 {
-    int err = 0;
-
     for (int actor_id = 0; actor_id < n_actors; actor_id++) {
-        // skip non-user actors
-        actor_metadata_t *actor = &actors[actor_id];
-        if (actor->pl != PL_USER) {
-            continue;
-        }
-        int org_ptes_offset =
-            N_UTIL_PAGES + actor_id * (N_CODE_PAGES_PER_ACTOR + N_DATA_PAGES_PER_ACTOR);
-        actor_orig_ptes_t *actor_orig_ptes = (actor_orig_ptes_t *)&orig_ptes[org_ptes_offset];
+        uint64_t pte_mask = actors[actor_id].data_permissions;
+        uint64_t mask_set = pte_mask & MODIFIABLE_PTE_BITS;
+        uint64_t mask_clear = pte_mask | ~MODIFIABLE_PTE_BITS;
 
-        // configure PTEs for each area of the actor sandbox while preserving the old values
-        for (int i = 0; i < sizeof(actor_data_t); i += 4096) {
-            uint64_t va = ((uint64_t)&sandbox->data[actor_id]) + i;
-            pteval_t *orig_pte = &actor_orig_ptes->data_ptes[i / 4096];
-            err = restore_user(va, orig_pte);
-            CHECK_ERR("restore_user");
-        }
-        for (int i = 0; i < sizeof(actor_code_t); i += 4096) {
-            uint64_t va = ((uint64_t)&sandbox->code[actor_id]) + i;
-            pteval_t *orig_pte = &actor_orig_ptes->code_ptes[i / 4096];
-            err = restore_user(va, orig_pte);
-            CHECK_ERR("restore_user");
+        if ((mask_set != 0) || (mask_clear != NO_CLEAR_MASK)) {
+            int page_id = actor_id * N_DATA_PAGES_PER_ACTOR + FAULTY_PAGE_ID;
+            pte_t_ *ptep = sandbox_pteps->data_pteps[page_id];
+            faulty_ptes[actor_id] = *ptep;
+            uint64_t pte = *(uint64_t *)ptep;
+
+            *(uint64_t *)ptep = (pte | mask_set) & mask_clear;
+            native_page_invalidate((uint64_t)&sandbox->data[actor_id] + FAULTY_PAGE_ID * 4096);
         }
     }
+}
 
-    // restore PTE for util pages
-    for (int i = 0; i < N_UTIL_PAGES; i++) {
-        uint64_t va = (uint64_t)sandbox->util + i * 4096;
-        pteval_t *orig_pte = &orig_ptes[i];
-        err = restore_user(va, orig_pte);
-        CHECK_ERR("restore_user");
+/// @brief Fast recovery of original permissions of the faulty page host PTE
+/// @param void
+void restore_faulty_page_host_permissions(void)
+{
+    for (int actor_id = 0; actor_id < n_actors; actor_id++) {
+        int page_id = actor_id * N_DATA_PAGES_PER_ACTOR + FAULTY_PAGE_ID;
+        *sandbox_pteps->data_pteps[page_id] = faulty_ptes[actor_id];
+        native_page_invalidate((uint64_t)&sandbox->data[actor_id] + FAULTY_PAGE_ID * 4096);
     }
-
-    return 0;
 }
 
 // =================================================================================================
 int init_page_table_manager(void)
 {
-    orig_pte = 0;
-    faulty_page_ptep = NULL;
-    orig_ptes = CHECKED_ZALLOC(sizeof(pteval_t) * get_sandbox_size_pages());
+    orig_ptes = CHECKED_ZALLOC(sizeof(sandbox_ptes_t));
+    orig_ptes->data_ptes = CHECKED_ZALLOC(N_DATA_PAGES_PER_ACTOR * sizeof(pte_t));
+    orig_ptes->code_ptes = CHECKED_ZALLOC(N_CODE_PAGES_PER_ACTOR * sizeof(pte_t));
+    orig_ptes->util_ptes = CHECKED_ZALLOC(N_UTIL_PAGES * sizeof(pte_t));
+
+    sandbox_pteps = CHECKED_ZALLOC(sizeof(sandbox_pteps_t));
+    sandbox_pteps->data_pteps = CHECKED_ZALLOC(N_DATA_PAGES_PER_ACTOR * sizeof(pte_t *));
+    sandbox_pteps->code_pteps = CHECKED_ZALLOC(N_CODE_PAGES_PER_ACTOR * sizeof(pte_t *));
+    sandbox_pteps->util_pteps = CHECKED_ZALLOC(N_UTIL_PAGES * sizeof(pte_t *));
+
+    faulty_ptes = (pte_t_ *)CHECKED_ZALLOC(sizeof(pte_t_));
     return 0;
 }
 
-void free_page_table_manager(void) { SAFE_FREE(orig_ptes); }
+void free_page_table_manager(void)
+{
+    SAFE_FREE(sandbox_pteps->data_pteps);
+    SAFE_FREE(sandbox_pteps->code_pteps);
+    SAFE_FREE(sandbox_pteps->util_pteps);
+    SAFE_FREE(sandbox_pteps);
+
+    SAFE_FREE(orig_ptes->data_ptes);
+    SAFE_FREE(orig_ptes->code_ptes);
+    SAFE_FREE(orig_ptes->util_ptes);
+    SAFE_FREE(orig_ptes);
+
+    SAFE_FREE(faulty_ptes);
+}

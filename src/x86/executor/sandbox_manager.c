@@ -6,11 +6,12 @@
 #include "sandbox_manager.h"
 #include "actor.h"
 #include "code_loader.h" // loaded_test_case_entry
-#include "main.h" // set_memory_x, set_memory_nx
+#include "main.h"        // set_memory_x, set_memory_nx
 #include "shortcuts.h"
 #include "test_case_parser.h"
 
 #include "hw_features/guest_memory.h"
+#include "hw_features/host_page_tables.h"
 #include "hw_features/vmx.h"
 
 sandbox_t *sandbox = NULL; // global
@@ -19,7 +20,6 @@ static void *_util_n_data_unaligned = NULL;
 static void *util_n_data = NULL;
 static void *code = NULL;
 
-static int old_n_actors = 0;
 static size_t old_x_size = 0;
 
 static int allocate_util_and_data(size_t n_actors)
@@ -68,6 +68,7 @@ static int allocate_code(size_t n_actors)
 int allocate_sandbox(void)
 {
     int err = 0;
+    static int old_n_actors = 0;
 
     // Allocate sandbox in host memory
     if (old_n_actors < n_actors) {
@@ -87,15 +88,16 @@ int allocate_sandbox(void)
         loaded_test_case_entry = code;
     }
 
-    // when necessary, map the sandbox into guest memory and allocate VM management data structures
-    if (n_actors > 1) {
-        if (test_case->features.includes_vm_actors) {
-            err = allocate_guest_page_tables();
-            CHECK_ERR("allocate_guest_page_tables");
+    err = cache_host_pteps();
+    CHECK_ERR("cache_host_pteps");
 
-            err = map_sandbox_to_guest_memory();
-            CHECK_ERR("map_sandbox_to_guest_memory");
-        }
+    // when necessary, map the sandbox into guest memory and allocate VM management data structures
+    if (test_case->features.includes_vm_actors) {
+        err = allocate_guest_page_tables();
+        CHECK_ERR("allocate_guest_page_tables");
+
+        err = map_sandbox_to_guest_memory();
+        CHECK_ERR("map_sandbox_to_guest_memory");
     }
     old_n_actors = n_actors;
 
@@ -105,7 +107,8 @@ int allocate_sandbox(void)
 /// @brief Returns the number of pages allocated for the sandbox, including util area, code and data
 /// @param void
 /// @return number of pages; -1 on error
-int get_sandbox_size_pages(void) {
+int get_sandbox_size_pages(void)
+{
     if (sandbox == NULL) {
         return -1;
     }
@@ -118,15 +121,63 @@ int get_sandbox_size_pages(void) {
     return n_pages;
 }
 
+/// @brief Sets PTE values for the sandbox based on the current test case configuration
+/// @param
+/// @return 0 on success; -1 on error
+int set_sandbox_page_tables(void)
+{
+    int err = 0;
+
+    err = store_orig_host_permissions();
+    CHECK_ERR("store_orig_host_permissions");
+
+    if (test_case->features.includes_user_actors) {
+        err = set_user_pages();
+        CHECK_ERR("set_user_pages");
+    }
+    return 0;
+}
+
+void restore_orig_sandbox_page_tables(void) { restore_orig_host_permissions(); }
+
+/// @brief Fast modification of the faulty page PTE; sets the permissions according to
+/// actor_t->data_permissions
+void set_faulty_page_permissions(void)
+{
+    // todo - ept
+    set_faulty_page_host_permissions();
+    set_faulty_page_guest_permissions();
+}
+
+/// @brief Fast recovery of original permissions of the faulty page PTE
+void restore_faulty_page_permissions(void)
+{
+    // todo - ept
+    restore_faulty_page_host_permissions();
+    restore_faulty_page_guest_permissions();
+}
+
 // =================================================================================================
 int init_sandbox_manager(void)
 {
-    int err = allocate_sandbox();
-    CHECK_ERR("allocate_sandbox");
+    int err = 0;
+    err = allocate_util_and_data(1);
+    CHECK_ERR("allocate_util_and_data");
+
+    err = allocate_code(1);
+    CHECK_ERR("allocate_code");
+
+    // initialize pointers
+    sandbox = CHECKED_MALLOC(sizeof(sandbox_t));
+    sandbox->data = (actor_data_t *)((unsigned long)util_n_data + sizeof(util_t));
+    sandbox->code = (actor_code_t *)code;
+    sandbox->util = (util_t *)util_n_data;
+    loaded_test_case_entry = code;
+
+    // self-test: make sure the sandbox is aligned as we expect
     int offset = (unsigned long)sandbox->data[0].main_area % 0x2000;
     ASSERT(offset == 0, "init_sandbox_manager");
 
-    // self-test: make sure the fields of the sandbox are aligned as we expect
     actor_data_t *data = &sandbox->data[0];
     util_t *util = sandbox->util;
     ASSERT(&util->l1d_priming_area[0] - (uint8_t *)util == L1D_PRIMING_OFFSET, "init_sandbox");

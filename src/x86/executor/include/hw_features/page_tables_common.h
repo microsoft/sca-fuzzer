@@ -16,6 +16,12 @@
 #error "PHYSICAL_WIDTH must be defined by the makefile"
 #endif
 
+#define MODIFIABLE_PTE_BITS                                                                        \
+    (_PAGE_PRESENT | _PAGE_RW | _PAGE_PWT | _PAGE_PCD | _PAGE_ACCESSED |              \
+     _PAGE_DIRTY | _PAGE_PKEY_BIT0 | _PAGE_PKEY_BIT1 | _PAGE_PKEY_BIT2 | _PAGE_PKEY_BIT3 |         \
+     _PAGE_NX)
+#define NO_CLEAR_MASK (0xffffffffffffffff & ~MODIFIABLE_PTE_BITS)
+
 // =================================================================================================
 // Normal page tables
 // =================================================================================================

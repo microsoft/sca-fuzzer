@@ -40,6 +40,9 @@
 #define OVERFLOW_PAD_OFFSET    (REG_INIT_OFFSET + REG_INIT_AREA_SIZE)
 #define LOCAL_RSP_OFFSET       (FAULTY_AREA_OFFSET - 8)
 
+// area page IDs
+#define FAULTY_PAGE_ID (MACRO_STACK_SIZE + UNDERFLOW_PAD_SIZE + MAIN_AREA_SIZE) / PAGE_SIZE
+
 /// @brief Utility data structure used by various primitives in the test case.
 ///        Must be allocated strictly before the main actor data as its code accesses
 ///        fields of util_t by using constant offsets from the base of its main_area.
@@ -66,9 +69,6 @@ typedef struct {
 // =================================================================================================
 #define MAX_EXPANDED_SECTION_SIZE (0x1000 * 2)
 #define MAX_EXPANDED_MACROS_SIZE  (0x1000)
-// DBG: Uncomment the following lines to be able to see macros when using test_case_show interface
-// #define MAX_EXPANDED_SECTION_SIZE (0x400)
-// #define MAX_EXPANDED_MACROS_SIZE  (0x400)
 
 typedef struct {
     uint8_t section[MAX_EXPANDED_SECTION_SIZE];
@@ -91,6 +91,12 @@ typedef struct {
 extern sandbox_t *sandbox;
 
 int get_sandbox_size_pages(void);
+
+int set_sandbox_page_tables(void);
+void restore_orig_sandbox_page_tables(void);
+
+void set_faulty_page_permissions(void);
+void restore_faulty_page_permissions(void);
 
 int allocate_sandbox(void);
 int init_sandbox_manager(void);

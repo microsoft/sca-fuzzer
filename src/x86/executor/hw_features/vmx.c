@@ -16,6 +16,7 @@
 #include "hw_features/guest_memory.h"
 #include "hw_features/vmx.h"
 #include "hw_features/vmx_config.h"
+#include "hw_features/special_registers.h"
 
 #define CHECK_VMFAIL(src)                                                                          \
     ASSERT(err_inv == 0, src);                                                                     \
@@ -251,7 +252,7 @@ int start_vmx_operation(void)
 {
     uint8_t err_inv, err_val = 0;
 
-    orig_vmxon_state = ((__read_cr4() & X86_CR4_VMXE) != 0);
+    orig_vmxon_state = ((orig_special_registers_state->cr4 & X86_CR4_VMXE) != 0);
     unsigned long cr4 = __read_cr4();
     unsigned long cr0 = read_cr0();
 
@@ -333,7 +334,16 @@ void restore_orig_vmcs_state(void)
     if (!orig_vmxon_state || orig_vmcs_ptr == 0xFFFFFFFFFFFFFFFF)
         return;
 
-    vmclear(orig_vmcs_ptr, &err_inv, &err_val);
+    if (!vmx_is_on) {
+        PRINT_ERR("ERROR: attempting to restore VMX state while VMX is not on\n");
+        return;
+    }
+
+    if (!orig_vmcs_ptr) {
+        PRINT_ERR("ERROR: attempting to restore VMX state but no state was stored\n");
+        return;
+    }
+
     vmptrld(orig_vmcs_ptr, &err_inv, &err_val);
     if (err_inv || err_val)
         PRINT_ERRS("restore_orig_vmcs_state", "Exited with VMfailInvalid=%d, VMfailValid=%d\n",

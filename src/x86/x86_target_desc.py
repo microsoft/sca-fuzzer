@@ -125,10 +125,10 @@ class X86TargetDesc(TargetDesc):
         "cache-disable": (4, False),  # page cache disabled
         "accessed": (5, True),  # was accessed
         "dirty": (6, True),  # was written to
-        "pkey_bit0": (59, False),  # Protection Keys, bit 1/4
-        "pkey_bit1": (60, False),  # Protection Keys, bit 2/4
-        "pkey_bit2": (61, False),  # Protection Keys, bit 3/4
-        "pkey_bit3": (62, False),  # Protection Keys, bit 4/4
+        # "pkey_bit0": (59, False),  # Protection Keys, bit 1/4
+        # "pkey_bit1": (60, False),  # Protection Keys, bit 2/4
+        # "pkey_bit2": (61, False),  # Protection Keys, bit 3/4
+        # "pkey_bit3": (62, False),  # Protection Keys, bit 4/4
         "non_executable": (63, False),  # No execute: only valid after cpuid check
     }
 

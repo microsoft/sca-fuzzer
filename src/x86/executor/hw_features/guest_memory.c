@@ -12,6 +12,7 @@
 #include "shortcuts.h"
 
 #include "hw_features/guest_memory.h"
+#include "hw_features/page_tables_common.h"
 
 #define INIT_PTE(PTE, PADDR, P, W, US, PWT, PCD, XD, A)                                            \
     {                                                                                              \
@@ -42,6 +43,7 @@ static actor_page_table_t *_allocated_page_tables = NULL;
 static void *_allocated_extended_page_tables = NULL;
 static void *_allocated_guest_gdts = NULL;
 static uint8_t *_vmlaunch_page = NULL;
+static pte_t_ *faulty_ptes = NULL;
 
 static v2p_t *_v2p_translations = NULL;
 
@@ -89,6 +91,13 @@ void *phys_to_vmalloc(uint64_t paddr)
 /// @return 0 on success, -1 on failure
 int set_guest_page_tables(void)
 {
+    static int old_n_actors = 0;
+    if (n_actors > old_n_actors) {
+        SAFE_FREE(faulty_ptes);
+        faulty_ptes = (pte_t_ *)CHECKED_ZALLOC(sizeof(pte_t_) * n_actors);
+    }
+    old_n_actors = n_actors;
+
     for (int actor_id = 0; actor_id < n_actors; actor_id++) {
         // skip non-guest actors
         actor_metadata_t *actor = &actors[actor_id];
@@ -265,8 +274,7 @@ int update_eptp(void)
     ept_ptr = CHECKED_ZALLOC(sizeof(eptp_t));
     ept_ptr->memory_type = VMX_BASIC_MEM_TYPE_WB;
     ept_ptr->page_walk_length = 3;
-    // ept_ptr->ad_enabled = native_read_msr(MSR_IA32_VMX_EPT_VPID_CAP) & 0x00200000;
-    ept_ptr->ad_enabled = 0;
+    ept_ptr->ad_enabled = 1; // native_read_msr(MSR_IA32_VMX_EPT_VPID_CAP) & 0x00200000;
     ept_ptr->superv_sdw_stack = 0;
     ept_ptr->paddr = vmalloc_to_phys_recorded(_allocated_extended_page_tables) >> 12;
     return 0;
@@ -289,6 +297,49 @@ int map_sandbox_to_guest_memory(void)
     CHECK_ERR("update_eptp");
 
     return 0;
+}
+
+/// @brief Set permissions on the faulty page based on the actor's metadata (for each actor)
+/// @param void
+void set_faulty_page_guest_permissions(void)
+{
+    guest_memory_t *guest_v_memory = (guest_memory_t *)(GUEST_V_MEMORY_START);
+    uint64_t vaddr = ((uint64_t)&guest_v_memory->data.faulty_area[0]);
+    size_t index = PT_INDEX(vaddr);
+
+    for (int actor_id = 0; actor_id < n_actors; actor_id++) {
+        actor_metadata_t *actor = &actors[actor_id];
+        if (actor->mode != MODE_GUEST)
+            continue;
+
+        uint64_t pte_mask = actor->data_permissions;
+        uint64_t mask_set = pte_mask & MODIFIABLE_PTE_BITS;
+        uint64_t mask_clear = pte_mask | ~MODIFIABLE_PTE_BITS;
+
+        if ((mask_set != 0) || (mask_clear != NO_CLEAR_MASK)) {
+            pte_t_ *ptep = &_allocated_page_tables[actor_id].pt[index];
+            uint64_t pte = *(uint64_t *)ptep;
+
+            faulty_ptes[actor_id] = *ptep;
+            *(uint64_t *)ptep = (pte | mask_set) & mask_clear;
+            // native_page_invalidate(vaddr);
+        }
+    }
+}
+
+void restore_faulty_page_guest_permissions(void)
+{
+    guest_memory_t *guest_v_memory = (guest_memory_t *)(GUEST_V_MEMORY_START);
+    uint64_t vaddr = ((uint64_t)&guest_v_memory->data.faulty_area[0]);
+    size_t index = PT_INDEX(vaddr);
+
+    for (int actor_id = 0; actor_id < n_actors; actor_id++) {
+        actor_metadata_t *actor = &actors[actor_id];
+        if (actor->mode != MODE_GUEST)
+            continue;
+
+        _allocated_page_tables[actor_id].pt[index] = faulty_ptes[actor_id];
+    }
 }
 
 // =================================================================================================
@@ -461,6 +512,8 @@ int allocate_guest_page_tables()
     _vmlaunch_page[2] = 0xc1;
 
     _v2p_translations = CHECKED_ZALLOC(N_TRANSLATIONS * sizeof(v2p_t));
+
+    faulty_ptes = (pte_t_ *)CHECKED_ZALLOC(sizeof(pte_t_));
     return 0;
 }
 
@@ -472,4 +525,5 @@ void free_guest_page_tables(void)
     SAFE_FREE(ept_ptr);
     SAFE_FREE(_vmlaunch_page);
     SAFE_FREE(_v2p_translations);
+    SAFE_FREE(faulty_ptes);
 }

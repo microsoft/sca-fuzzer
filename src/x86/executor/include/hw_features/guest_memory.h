@@ -43,6 +43,10 @@ int dbg_dump_guest_page_tables(int actor_id);
 int dbg_dump_ept(void);
 
 int map_sandbox_to_guest_memory(void);
+
+void set_faulty_page_guest_permissions(void);
+void restore_faulty_page_guest_permissions(void);
+
 int allocate_guest_page_tables(void);
 void free_guest_page_tables(void);
 

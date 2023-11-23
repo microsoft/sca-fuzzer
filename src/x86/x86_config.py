@@ -28,21 +28,11 @@ _option_values = {
         'debug-register',
         'non-canonical-access',
     ],
-    'faulty_page_properties': [
-        'present',
-        'writable',
-        'executable',
-        'user',
-        'accessed',
-        'dirty',
-        "write-through",
-        "cache-disable",
-    ],
     'actor': [
         'name',
         'mode',
         'privilege_level',
-        # 'data_properties',  # under construction
+        'data_properties',
         # 'code_properties',  # under construction
     ],
     "actor_mode": [
@@ -52,6 +42,16 @@ _option_values = {
     "actor_privilege_level": [
         'kernel',
         'user',
+    ],
+    "actor_data_properties": [
+        'present',
+        'writable',
+        'user',
+        'write-through',
+        'cache-disable',
+        'accessed',
+        'dirty',
+        'non_executable',
     ],
     'instruction_categories': [
         # Base x86 - user instructions
@@ -180,17 +180,6 @@ register_blocklist: List[str] = [
     "XMM8", "XMM9", "XMM10", "XMM11", "XMM12", "XMM13", "XMM14", "XMM15",
 ]  # yapf: disable
 
-# FIXME: to be removed
-faulty_page_properties: Dict[str, bool] = {
-    "present": True,
-    "writable": True,
-    "user": False,
-    "write-through": False,
-    "cache-disable": False,
-    "accessed": True,
-    "dirty": True,
-    "non_executable": True
-}
 
 _generator_fault_to_fault_name = {
     'div-by-zero': "DE",
@@ -206,16 +195,16 @@ _actor_default = {
     'name': "main",
     'mode': "host",
     'privilege_level': "kernel",
-    # 'data_properties': {
-    #     'present': True,
-    #     'writable': True,
-    #     'user': False,
-    #     'write-through': False,
-    #     'cache-disable': False,
-    #     'accessed': True,
-    #     'dirty': True,
-    #     'non_executable': True
-    # },
+    'data_properties': {
+        'present': True,
+        'writable': True,
+        'user': False,
+        'write-through': False,
+        'cache-disable': False,
+        'accessed': True,
+        'dirty': True,
+        'non_executable': True
+    },
     # 'code_properties': {
     #     'present': True,
     #     'writable': False,

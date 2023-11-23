@@ -26,7 +26,7 @@ static int set_msrs_for_user_actors(void)
 #ifdef FORCE_SMAP_OFF
     uint64_t cr4 = __read_cr4();
     cr4 &= ~(X86_CR4_SMAP | X86_CR4_SMEP);
-    asm volatile("mov %0, %%cr4" : : "r"(cr4));  // use asm to bypass checks
+    asm volatile("mov %0, %%cr4" : : "r"(cr4)); // use asm to bypass checks
 #endif
     // set default syscall entry point
     wrmsr64(MSR_LSTAR, (uint64_t)fault_handler);
@@ -67,11 +67,11 @@ int set_special_registers(void)
 
     // set required features in CRs
     uint64_t cr0 = read_cr0();
-    cr0 &= ~X86_CR0_CD;  // enable caching; required for collecting traces
+    cr0 &= ~X86_CR0_CD; // enable caching; required for collecting traces
     write_cr0(cr0);
 
     uint64_t cr4 = __read_cr4();
-    cr4 |= X86_CR4_PCE;  // enable perf counters
+    cr4 |= X86_CR4_PCE; // enable perf counters
     __write_cr4(cr4);
 
     if (test_case->features.includes_user_actors) {

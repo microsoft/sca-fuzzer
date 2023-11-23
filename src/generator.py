@@ -242,6 +242,15 @@ class ConfigurableGenerator(Generator, abc.ABC):
                 id_ = 0  # will be assigned later by the ELF parser
                 actor = Actor(mode, pl, id_, name)
 
+            # create a PTE mask to be assigned to the faulty area of actors' sandboxes
+            pte_mask = 0
+            for bit_name in self.target_desc.pte_bits:
+                bit_offset, _ = self.target_desc.pte_bits[bit_name]
+                p_value = desc["data_properties"][bit_name]
+                bit_value = 1 if p_value else 0
+                pte_mask |= bit_value << bit_offset
+            actor.data_properties = pte_mask
+
             # check for duplicates (this should never be possible, but just in case)
             assert name not in test_case.actors or test_case.actors[name] == actor, "Duplicate actr"
 

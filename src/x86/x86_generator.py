@@ -50,22 +50,6 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
         self.passes.append(X86PatchOpcodesPass())
         self.printer = X86Printer(self.target_desc)
 
-    def create_actors(self, test_case: TestCase):
-        super().create_actors(test_case)
-
-        # create a PTE mask to be assigned to the faulty area of actors' sandboxes
-        pte_mask = 0
-        for name in self.target_desc.pte_bits:
-            bit_offset, value = self.target_desc.pte_bits[name]
-            if name in CONF._faulty_page_properties_dict:
-                value = CONF._faulty_page_properties_dict[name]
-            bit_value = 1 if value else 0
-            pte_mask |= bit_value << bit_offset
-
-        # set data properties
-        for actor in test_case.actors.values():
-            actor.data_properties = pte_mask
-
     def get_return_instruction(self) -> Instruction:
         return Instruction("RET", False, "", True)
 
