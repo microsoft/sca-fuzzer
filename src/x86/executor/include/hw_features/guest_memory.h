@@ -54,6 +54,9 @@ int map_sandbox_to_guest_memory(void);
 void set_faulty_page_guest_permissions(void);
 void restore_faulty_page_guest_permissions(void);
 
+void set_faulty_page_ept_permissions(void);
+void restore_faulty_page_ept_permissions(void);
+
 int allocate_guest_page_tables(void);
 void free_guest_page_tables(void);
 

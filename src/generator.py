@@ -219,6 +219,16 @@ class ConfigurableGenerator(Generator, abc.ABC):
         pass
 
     def create_actors(self, test_case: TestCase):
+        def pte_properties_to_mask(properties: dict, type_: int) -> int:
+            bits = self.target_desc.pte_bits if type_ == 0 else self.target_desc.epte_bits
+            mask = 0
+            for bit_name in bits:
+                bit_offset, _ = bits[bit_name]
+                p_value = properties[bit_name]
+                bit_value = 1 if p_value else 0
+                mask |= bit_value << bit_offset
+            return mask
+
         for name, desc in CONF._actors.items():
             # determine the actor mode of execution
             if desc['mode'] == "host":
@@ -243,13 +253,9 @@ class ConfigurableGenerator(Generator, abc.ABC):
                 actor = Actor(mode, pl, id_, name)
 
             # create a PTE mask to be assigned to the faulty area of actors' sandboxes
-            pte_mask = 0
-            for bit_name in self.target_desc.pte_bits:
-                bit_offset, _ = self.target_desc.pte_bits[bit_name]
-                p_value = desc["data_properties"][bit_name]
-                bit_value = 1 if p_value else 0
-                pte_mask |= bit_value << bit_offset
-            actor.data_properties = pte_mask
+            actor.data_properties = pte_properties_to_mask(desc["data_properties"], 0)
+            if actor.mode == ActorMode.GUEST:
+                actor.data_ept_properties = pte_properties_to_mask(desc["data_ept_properties"], 1)
 
             # check for duplicates (this should never be possible, but just in case)
             assert name not in test_case.actors or test_case.actors[name] == actor, "Duplicate actr"

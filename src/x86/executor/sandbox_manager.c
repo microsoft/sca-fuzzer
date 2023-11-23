@@ -144,17 +144,17 @@ void restore_orig_sandbox_page_tables(void) { restore_orig_host_permissions(); }
 /// actor_t->data_permissions
 void set_faulty_page_permissions(void)
 {
-    // todo - ept
     set_faulty_page_host_permissions();
     set_faulty_page_guest_permissions();
+    set_faulty_page_ept_permissions();
 }
 
 /// @brief Fast recovery of original permissions of the faulty page PTE
 void restore_faulty_page_permissions(void)
 {
-    // todo - ept
     restore_faulty_page_host_permissions();
     restore_faulty_page_guest_permissions();
+    restore_faulty_page_ept_permissions();
 }
 
 // =================================================================================================

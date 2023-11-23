@@ -27,6 +27,7 @@ typedef struct {
     actor_mode_t mode;
     actor_pl_t pl;
     uint64_t data_permissions;
+    uint64_t data_ept_properties;
     uint64_t code_permissions;
 } actor_metadata_t;
 

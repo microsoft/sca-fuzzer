@@ -163,6 +163,7 @@ class Actor:
     id_: ActorID
     elf_section: Optional[ElfSection] = None
     data_properties: int = 0
+    data_ept_properties: int = 0
     code_properties: int = 0  # unused so far
 
     def __init__(self, mode: ActorMode, pl: ActorPL, id_: ActorID, name: ActorName) -> None:
@@ -821,6 +822,7 @@ class TargetDesc(ABC):
     reg_denormalized: Dict[str, Dict[int, str]]
     macro_specs: Dict[str, MacroSpec]
     pte_bits: Dict[str, Tuple[int, bool]]
+    epte_bits: Dict[str, Tuple[int, bool]]
 
     @staticmethod
     @abstractmethod

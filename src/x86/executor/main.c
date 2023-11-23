@@ -497,7 +497,7 @@ static ssize_t dbg_guest_page_tables_show(struct kobject *kobj, struct kobj_attr
     int err = dbg_dump_guest_page_tables(1);
     if (err)
         return err;
-    err = dbg_dump_ept();
+    err = dbg_dump_ept(1);
     if (err)
         return err;
     return sprintf(buf, "done (see dmesg)\n");

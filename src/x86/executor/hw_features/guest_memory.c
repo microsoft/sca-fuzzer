@@ -44,6 +44,7 @@ static actor_ept_t *_allocated_extended_page_tables = NULL;
 static void *_allocated_guest_gdts = NULL;
 static uint8_t *_vmlaunch_page = NULL;
 static pte_t_ *faulty_ptes = NULL;
+static epte_t_ *faulty_eptes = NULL;
 
 static v2p_t *_v2p_translations = NULL;
 
@@ -103,7 +104,9 @@ int set_guest_page_tables(void)
     static int old_n_actors = 0;
     if (n_actors > old_n_actors) {
         SAFE_FREE(faulty_ptes);
+        SAFE_FREE(faulty_eptes);
         faulty_ptes = (pte_t_ *)CHECKED_ZALLOC(sizeof(pte_t_) * n_actors);
+        faulty_eptes = (epte_t_ *)CHECKED_ZALLOC(sizeof(epte_t_) * n_actors);
     }
     old_n_actors = n_actors;
 
@@ -316,6 +319,47 @@ void restore_faulty_page_guest_permissions(void)
     }
 }
 
+/// @brief Set EPT permissions on the faulty page based on the actor's metadata (for each actor)
+/// @param void
+void set_faulty_page_ept_permissions(void)
+{
+    guest_memory_t *guest_p_memory = (guest_memory_t *)(GUEST_P_MEMORY_START);
+    uint64_t gpa = ((uint64_t)&guest_p_memory->data.faulty_area[0]);
+    size_t index = PT_INDEX(gpa);
+
+    for (int actor_id = 0; actor_id < n_actors; actor_id++) {
+        actor_metadata_t *actor = &actors[actor_id];
+        if (actor->mode != MODE_GUEST)
+            continue;
+
+        uint64_t pte_mask = actor->data_ept_properties;
+        uint64_t mask_set = pte_mask & MODIFIABLE_EPTE_BITS;
+        uint64_t mask_clear = pte_mask | ~MODIFIABLE_EPTE_BITS;
+
+        if ((mask_set != 0) || (mask_clear != NO_CLEAR_MASK_EPT)) {
+            epte_t_ *ptep = &_allocated_extended_page_tables[actor_id].l1[index];
+            faulty_eptes[actor_id] = *ptep;
+            *(uint64_t *)ptep = (*(uint64_t *)ptep | mask_set) & mask_clear;
+            // native_page_invalidate(vaddr);
+        }
+    }
+}
+
+void restore_faulty_page_ept_permissions(void)
+{
+    guest_memory_t *guest_p_memory = (guest_memory_t *)(GUEST_P_MEMORY_START);
+    uint64_t gpa = ((uint64_t)&guest_p_memory->data.faulty_area[0]);
+    size_t index = PT_INDEX(gpa);
+
+    for (int actor_id = 0; actor_id < n_actors; actor_id++) {
+        actor_metadata_t *actor = &actors[actor_id];
+        if (actor->mode != MODE_GUEST)
+            continue;
+
+        _allocated_extended_page_tables[actor_id].l1[index] = faulty_eptes[actor_id];
+    }
+}
+
 // =================================================================================================
 // Debugging Interfaces
 // =================================================================================================
@@ -491,6 +535,7 @@ int allocate_guest_page_tables()
     _v2p_translations = CHECKED_ZALLOC(N_TRANSLATIONS * sizeof(v2p_t));
 
     faulty_ptes = (pte_t_ *)CHECKED_ZALLOC(sizeof(pte_t_));
+    faulty_eptes = (epte_t_ *)CHECKED_ZALLOC(sizeof(epte_t_));
     return 0;
 }
 
@@ -503,4 +548,5 @@ void free_guest_page_tables(void)
     SAFE_FREE(_vmlaunch_page);
     SAFE_FREE(_v2p_translations);
     SAFE_FREE(faulty_ptes);
+    SAFE_FREE(faulty_eptes);
 }

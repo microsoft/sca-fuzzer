@@ -326,7 +326,19 @@ class Conf:
                     for property_ in v:
                         for p_key, p_value in property_.items():
                             if p_key not in self._option_values["actor_data_properties"]:
-                                raise ConfigException(f"ERROR: Unsupported actor data prop {p_key}")
+                                raise ConfigException(
+                                    f"ERROR: Unsupported actor data_properties value {p_key}")
+                            entry[k][p_key] = p_value
+                    continue
+                if k == "data_ept_properties":
+                    if update.get('mode', 'host') != 'guest':
+                        raise ConfigException(
+                            "ERROR: data_ept_properties can only be used in guest mode")
+                    for property_ in v:
+                        for p_key, p_value in property_.items():
+                            if p_key not in self._option_values["actor_data_ept_properties"]:
+                                raise ConfigException(
+                                    f"ERROR: Unsupported actor data_ept_properties value {p_key}")
                             entry[k][p_key] = p_value
                     continue
 

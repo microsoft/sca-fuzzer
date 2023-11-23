@@ -33,6 +33,7 @@ _option_values = {
         'mode',
         'privilege_level',
         'data_properties',
+        'data_ept_properties',
         # 'code_properties',  # under construction
     ],
     "actor_mode": [
@@ -52,6 +53,14 @@ _option_values = {
         'accessed',
         'dirty',
         'non_executable',
+    ],
+    "actor_data_ept_properties": [
+        "present",
+        "writable",
+        "executable",
+        "accessed",
+        "dirty",
+        "user",
     ],
     'instruction_categories': [
         # Base x86 - user instructions
@@ -205,6 +214,14 @@ _actor_default = {
         'dirty': True,
         'non_executable': True
     },
+    'data_ept_properties': {
+        'present': True,
+        'writable': True,
+        'executable': False,
+        'accessed': True,
+        'dirty': True,
+        'user': False,
+    }
     # 'code_properties': {
     #     'present': True,
     #     'writable': False,

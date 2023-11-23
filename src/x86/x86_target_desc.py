@@ -132,6 +132,16 @@ class X86TargetDesc(TargetDesc):
         "non_executable": (63, False),  # No execute: only valid after cpuid check
     }
 
+    epte_bits = {
+        # NAME: (position, default value)
+        "present": (0, True),  # is present
+        "writable": (1, True),  # writeable
+        "executable": (2, True),  # executable
+        "accessed": (8, True),  # was accessed
+        "dirty": (9, True),  # was written to
+        "user": (10, False),  # userspace addressable
+    }
+
     # FIXME: macro IDs should not be hardcoded but rather received from the executor
     # or at least we need a test that will check that the IDs match
     macro_specs = {
