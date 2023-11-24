@@ -239,8 +239,8 @@ class Input(np.ndarray):
     def __repr__(self):
         return str(self.seed)
 
-    def linear_view(self) -> np.ndarray:
-        return self[0].view((np.uint64, self[0].itemsize // 8))
+    def linear_view(self, actor_id) -> np.ndarray:
+        return self[actor_id].view((np.uint64, self[actor_id].itemsize // 8))
 
     def save(self, path: str) -> None:
         with open(path, 'wb') as f:
@@ -249,7 +249,7 @@ class Input(np.ndarray):
     def load(self, path: str) -> None:
         with open(path, 'rb') as f:
             contents = np.fromfile(f, dtype=np.uint64)
-            self.linear_view()[:] = contents
+            self.linear_view(0)[:] = contents
 
 
 class InputTaint(Input):
@@ -265,7 +265,7 @@ class InputTaint(Input):
 
     def __new__(cls, n_actors: int = 1):
         obj = super().__new__(cls, n_actors)  # type: ignore
-        # obj.fill(0)
+        obj.fill(False)
         return obj
 
     def __init__(self, n_actors: int = 1) -> None:

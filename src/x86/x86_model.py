@@ -245,6 +245,7 @@ class X86UnicornSeq(UnicornSeq):
         self.target_desc = X86TargetDesc()
         self.uc_target_desc = X86UnicornTargetDesc()
         self.taint_tracker = X86TaintTracker([], sandbox_base)
+        self.original_tain_tracker = self.taint_tracker
 
         self.architecture = (UC_ARCH_X86, UC_MODE_64)
         self.flags_id = ucc.UC_X86_REG_EFLAGS
