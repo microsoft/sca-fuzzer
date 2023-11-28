@@ -194,11 +194,12 @@ static uint64_t expand_section(uint64_t section_id, uint8_t *dest)
     }
 
     // otherwise, expand the macros
+    tc_symbol_entry_t dummy_macro = {.offset = 0};
     for (src_cursor = 0; src_cursor < section_size; src_cursor++, dest_cursor++) {
-        // PRINT_ERR("macro id: %lu, offset: %lu\n", macro->id, macro->offset);
         // PRINT_ERR("dest_cursor: 0x%lx, src_cursor: %lu, %lx\n", dest_cursor, src_cursor,
         //   section[src_cursor]);
         if (src_cursor == macro->offset) {
+            // PRINT_ERR("macro id: %lu, offset: %lu\n", macro->id, macro->offset);
             // if we found a macro -> expand it
             ASSERT(macro->owner == section_id, "expand_section");
             ASSERT(macro->id != 0, "expand_section");
@@ -208,6 +209,9 @@ static uint64_t expand_section(uint64_t section_id, uint8_t *dest)
             src_cursor += 4; // skip the remaining bytes of the current macro placeholder
             macro++;         // move to next macro
 
+            // if we're done with macros in this section, assign a dummy macro
+            if (macro->owner != section_id)
+                macro = &dummy_macro;
         } else {
             // otherwise -> just copy the code from the section
             dest[dest_cursor] = section[src_cursor];
@@ -218,9 +222,6 @@ static uint64_t expand_section(uint64_t section_id, uint8_t *dest)
 
     // ensure that we did not have an overrun
     ASSERT(src_cursor == section_size, "expand_section");
-    ASSERT(macro - test_case->symbol_table <= test_case->symbol_table_size / sizeof(*macro) ||
-               macro->owner != section_id,
-           "expand_section");
 
     return dest_cursor;
 }

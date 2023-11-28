@@ -14,15 +14,15 @@
 
 #include "hw_features/fault_handler.h"
 #include "hw_features/guest_memory.h"
+#include "hw_features/special_registers.h"
 #include "hw_features/vmx.h"
 #include "hw_features/vmx_config.h"
-#include "hw_features/special_registers.h"
 
 #define CHECK_VMFAIL(src)                                                                          \
     ASSERT(err_inv == 0, src);                                                                     \
     ASSERT(err_val == 0, src);
 
-bool vmx_is_on = false; // global
+bool vmx_is_on = false;     // global
 uint64_t *vmcs_hpas = NULL; // global
 
 static bool orig_vmxon_state = false;
