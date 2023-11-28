@@ -53,6 +53,7 @@ _option_values = {
         'accessed',
         'dirty',
         'non_executable',
+        'randomized',
     ],
     "actor_data_ept_properties": [
         "present",
@@ -61,6 +62,7 @@ _option_values = {
         "accessed",
         "dirty",
         "user",
+        'randomized',
     ],
     'instruction_categories': [
         # Base x86 - user instructions
@@ -212,7 +214,8 @@ _actor_default = {
         'cache-disable': False,
         'accessed': True,
         'dirty': True,
-        'non_executable': True
+        'non_executable': True,
+        'randomized': False,
     },
     'data_ept_properties': {
         'present': True,
@@ -221,6 +224,7 @@ _actor_default = {
         'accessed': True,
         'dirty': True,
         'user': False,
+        'randomized': False,
     }
     # 'code_properties': {
     #     'present': True,

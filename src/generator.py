@@ -221,10 +221,22 @@ class ConfigurableGenerator(Generator, abc.ABC):
     def create_actors(self, test_case: TestCase):
         def pte_properties_to_mask(properties: dict, type_: int) -> int:
             bits = self.target_desc.pte_bits if type_ == 0 else self.target_desc.epte_bits
+
+            probability_of_default = 0
+            if properties['randomized']:
+                count_non_default = 0
+                for bit_name in bits:
+                    if bits[bit_name][1] != properties[bit_name]:
+                        count_non_default += 1
+                probability_of_default = count_non_default / len(properties)
+
             mask = 0
             for bit_name in bits:
-                bit_offset, _ = bits[bit_name]
-                p_value = properties[bit_name]
+                bit_offset, default_value = bits[bit_name]
+                if random.random() < probability_of_default:
+                    p_value = default_value
+                else:
+                    p_value = properties[bit_name]
                 bit_value = 1 if p_value else 0
                 mask |= bit_value << bit_offset
             return mask
