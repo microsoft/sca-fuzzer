@@ -53,6 +53,7 @@ X86_SIMPLE_EXECUTION_CLAUSES: Dict[str, Type[x86_model.UnicornModel]] = {
     "vspec-all-div": x86_model.x86UnicornVspecAllDIV,
     "vspec-all-memory-faults": x86_model.X86UnicornVspecAllMemoryFaults,
     "vspec-all-memory-assists": x86_model.X86UnicornVspecAllMemoryAssists,
+    "expose-observer": model.ExposeObserverModel,
 }
 
 EXECUTORS = {

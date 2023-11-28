@@ -183,6 +183,8 @@ class FuzzerGeneric(Fuzzer):
         #     and check if violations persist.
         if CONF.model_min_nesting < CONF.model_max_nesting and \
            "seq" not in CONF.contract_execution_clause and \
+           "seq-assist" not in CONF.contract_execution_clause and \
+           "sandbox" not in CONF.contract_execution_clause and \
            "no_speculation" not in CONF.contract_execution_clause:
             self.input_gen.reset_boosting_state()
             ctraces, boosted_inputs = self.trace_and_boost(inputs, CONF.model_max_nesting)
