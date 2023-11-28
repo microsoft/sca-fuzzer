@@ -197,6 +197,9 @@ class X86MacroInterpreter(MacroInterpreter):
         model.emulator.reg_write(model.uc_target_desc.actor_base_register, new_base)
         model.emulator.reg_write(model.uc_target_desc.sp_register, new_sp)
 
+        # reset flags
+        model.emulator.reg_write(ucc.UC_X86_REG_EFLAGS, 0b10)
+
         # actor update
         actor_name = self.sid_to_actor_name[section_id]
         model.current_actor = self.test_case.actors[actor_name]
