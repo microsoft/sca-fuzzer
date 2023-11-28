@@ -13,6 +13,7 @@ from subprocess import run
 from typing import List
 from .interfaces import Input, TestCase, Minimizer, Fuzzer, InstructionSetAbstract
 from .config import CONF
+from .util import Logger
 
 INSTRUCTION_REPLACEMENTS = {
     "CMOV": "MOV",
@@ -46,6 +47,8 @@ class MinimizerViolation(Minimizer):
         self.instruction_set_spec = instruction_set_spec
         self.fuzzer = fuzzer
         self.fuzzer.initialize_modules()
+        self.LOG = Logger()
+        self.LOG.info = False
 
     def run(self, test_case_asm: str, outfile: str, num_inputs: int, enable_minimize: bool,
             enable_simplify: bool, enable_add_fences: bool, enable_find_sources: bool,
@@ -54,6 +57,7 @@ class MinimizerViolation(Minimizer):
 
         # Parse the test case and inputs
         test_case: TestCase = self.fuzzer.asm_parser.parse_file(test_case_asm)
+        self.fuzzer.input_gen.n_actors = len(test_case.actors)
         inputs: List[Input] = self.fuzzer.input_gen.generate(num_inputs)
 
         # Load, boost inputs, and trace
@@ -113,7 +117,7 @@ class MinimizerViolation(Minimizer):
         passing_ids = []
         while True:
             cursor -= 1
-            line = instructions[cursor].strip()
+            line = instructions[cursor].strip().lower()
 
             # Did we reach the header?
             if line == ".test_case_enter:":
@@ -121,8 +125,10 @@ class MinimizerViolation(Minimizer):
 
             # Preserve instructions used for sandboxing, fences, and labels
             if not line or \
-               "LFENCE" in line or \
-               line[0] == '.':
+               "lfence" in line or \
+               line[0] == '.' or \
+               'macro' in line or \
+               'fixed' in line:
                 continue
 
             # Remove instrumentation only if the instrumented instruction is also removed
@@ -191,7 +197,7 @@ class MinimizerViolation(Minimizer):
                ".test_case_exit:" in instructions[i] or \
                ".section" in instructions[i] or \
                ".function" in instructions[i] or \
-               ".macro.measurement" in instructions[i] or \
+               ".macro" in instructions[i] or \
                "syntax" in instructions[i]:
                 continue
 
@@ -355,7 +361,7 @@ class MinimizerViolation(Minimizer):
     @staticmethod
     def _simplify_instruction(instructions, i) -> List:
         tmp = list(instructions)  # make a copy
-        words = tmp[i].split(" ")
+        words = tmp[i].upper().split(" ")
         for key in INSTRUCTION_REPLACEMENTS:
             if key in words[0]:
                 tmp[i] = " ".join([INSTRUCTION_REPLACEMENTS[key]] + words[1:])
