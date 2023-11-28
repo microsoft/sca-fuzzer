@@ -231,10 +231,10 @@ class FuzzerGeneric(Fuzzer):
                                         CONF.model_max_nesting)
 
         # 3. Check if the violation is reproducible
-        violations = self.filter_non_reproducible(violations, boosted_inputs, htraces)
-        if not violations:
-            STAT.fp_flaky += 1
-            if CONF.ignore_flaky_violations:
+        if CONF.ignore_flaky_violations:
+            violations = self.filter_non_reproducible(violations, boosted_inputs, htraces)
+            if not violations:
+                STAT.fp_flaky += 1
                 return None
 
         # 4. Check if the violation survives priming
