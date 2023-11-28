@@ -165,10 +165,14 @@ class FuzzerGeneric(Fuzzer):
         else:
             htraces = self.executor.trace_test_case(boosted_inputs)
         feedback = self.executor.get_last_feedback()
+        if NullHTrace in htraces:
+            self.LOG.warning(
+                "", "Executor returned Null htrace; "
+                "set enable_fast_path_executor to False")
 
         # Check for violations, but also check that the noise didn't completely corrupt htraces
         violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces, stats=True)
-        if not violations and NullHTrace not in htraces:
+        if not violations:
             # nothing detected -> we are done here, move to next test case
             STAT.no_fast_violation += 1
             self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces, feedback,
