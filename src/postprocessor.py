@@ -144,7 +144,13 @@ class MinimizerViolation(Minimizer):
             tmp_test_case = self._get_test_case_from_instructions(tmp_instructions)
 
             # Run and check if the vuln. is still there
-            if check_func(tmp_test_case, inputs):
+            check_passed = False
+            for i in range(10):
+                if check_func(tmp_test_case, inputs):
+                    check_passed = True
+                    break
+
+            if check_passed:
                 previous_removed = True
                 print(".", end="", flush=True)
                 instructions = tmp_instructions
