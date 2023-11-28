@@ -306,9 +306,13 @@ class FuzzerGeneric(Fuzzer):
             f.write("* Statistics:\n")
             f.write(str(STAT) + "\n")
 
-            f.write("\n## Generation Seeds\n")
+            f.write("\n## Generation Properties\n")
             f.write(f"* Program seed: {test_case.seed}\n")
             f.write(f"* Input seed: {inputs[0].seed}\n")
+            f.write("* Faulty page properties:\n")
+            for actor_id in test_case.actors:
+                actor = test_case.actors[actor_id]
+                f.write(f"  * Actor {actor_id}: {actor.data_properties}\n")
 
             f.write("\n## Counterexample Inputs\n")
             for m in violation.measurements:
