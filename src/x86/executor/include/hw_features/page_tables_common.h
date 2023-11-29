@@ -12,7 +12,7 @@
 #define ENTRIES_PER_PAGE (PAGE_SIZE / sizeof(uint64_t))
 
 #ifndef PHYSICAL_WIDTH
-#define PHYSICAL_WIDTH 40 // unused in the build; used only for syntax highlighting
+#define PHYSICAL_WIDTH 51 // unused in the build; used only for syntax highlighting
 #error "PHYSICAL_WIDTH must be defined by the makefile"
 #endif
 
