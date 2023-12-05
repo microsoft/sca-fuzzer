@@ -44,8 +44,8 @@ class X86IntelExecutor(Executor):
             LOGGER.warning("executor", "SMT is on! You may experience false positives.")
 
         # disable prefetching
-        subprocess.run('sudo %s msr' % CONF.exe_modprobe, shell=True, check=True)
-        subprocess.run('sudo %s -a 0x1a4 15' % CONF.exe_wrmsr, shell=True, check=True)
+        subprocess.run(f"sudo {CONF.exe_modprobe} msr", shell=True, check=True)
+        subprocess.run(f"sudo {CONF.exe_wrmsr} -a 0x1a4 15", shell=True, check=True)
 
         # is kernel module ready?
         if not os.path.isfile("/sys/x86_executor/trace"):
