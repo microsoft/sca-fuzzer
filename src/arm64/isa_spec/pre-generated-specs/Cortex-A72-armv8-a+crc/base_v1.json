@@ -1,0 +1,1489 @@
+[
+{"name": "ADR", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "label whose address is to be calculated (field \"immhi:immlo\")", "type_": "LABEL", "values": [], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "PACDB", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register or sp (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR", "SP"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "PACDZB", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "PACDA", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register or sp (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR", "SP"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "PACDZA", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "ADDS", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "ADDS", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "CBZ", "category": "general", "control_flow": true,
+  "operands": [
+    {"dest": false, "src": true, "comment": "32-bit general-purpose register to be tested (field \"rt\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "label to be conditionally branched to (field imm19)", "type_": "LABEL", "values": [], "width": 0}
+  ],
+  "implicit_operands": [
+    {"values": ["PC"], "type_": "REG", "width": 64, "src": true, "dest": false}
+  ]
+},
+{"name": "CBZ", "category": "general", "control_flow": true,
+  "operands": [
+    {"dest": false, "src": true, "comment": "64-bit general-purpose register to be tested (field \"rt\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "label to be conditionally branched to (field imm19)", "type_": "LABEL", "values": [], "width": 0}
+  ],
+  "implicit_operands": [
+    {"values": ["PC"], "type_": "REG", "width": 64, "src": true, "dest": false}
+  ]
+},
+{"name": "CCMN", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "flag bit specifier, an immediate [0-15], giving the alternative state for 4-bit nzcv condition flags (field \"nzcv\")", "type_": "IMM", "values": ["[0-15]"], "width": 0},
+    {"dest": false, "src": false, "comment": "standard condition (field \"cond\")", "type_": "COND", "values": [], "width": 0}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "CCMN", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "flag bit specifier, an immediate [0-15], giving the alternative state for 4-bit nzcv condition flags (field \"nzcv\")", "type_": "IMM", "values": ["[0-15]"], "width": 0},
+    {"dest": false, "src": false, "comment": "standard condition (field \"cond\")", "type_": "COND", "values": [], "width": 0}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "LSLV", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register holding a shift amount from 0 to 31 in its bottom 5 bits (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "LSLV", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register holding a shift amount from 0 to 63 in its bottom 6 bits (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "LDRB", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose register to be transferred (field \"rt\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose base register or sp (field \"rn\")", "type_": "MEM", "width": 64},
+    {"dest": false, "src": true, "comment": "signed immediate byte offset [-256-255] (field \"imm9\")", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "LDR", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose register to be transferred (field \"rt\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose base register or sp (field \"rn\")", "type_": "MEM", "width": 64},
+    {"dest": false, "src": true, "comment": "signed immediate byte offset [-256-255] (field \"imm9\")", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "LDR", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose register to be transferred (field \"rt\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose base register or sp (field \"rn\")", "type_": "MEM", "width": 64},
+    {"dest": false, "src": true, "comment": "signed immediate byte offset [-256-255] (field \"imm9\")", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "ADDS", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit source general-purpose register or wsp (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR", "SP"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "UDF", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": false, "src": true, "comment": "16-bit unsigned immediate [0-65535] (field \"imm16\")", "type_": "IMM", "values": ["[0-65535]"], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "ASRV", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register holding a shift amount from 0 to 31 in its bottom 5 bits (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "ASRV", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register holding a shift amount from 0 to 63 in its bottom 6 bits (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "ADCS", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "ADCS", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "CCMP", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "flag bit specifier, an immediate [0-15], giving the alternative state for 4-bit nzcv condition flags (field \"nzcv\")", "type_": "IMM", "values": ["[0-15]"], "width": 0},
+    {"dest": false, "src": false, "comment": "standard condition (field \"cond\")", "type_": "COND", "values": [], "width": 0}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "CCMP", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "flag bit specifier, an immediate [0-15], giving the alternative state for 4-bit nzcv condition flags (field \"nzcv\")", "type_": "IMM", "values": ["[0-15]"], "width": 0},
+    {"dest": false, "src": false, "comment": "standard condition (field \"cond\")", "type_": "COND", "values": [], "width": 0}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "MOVZ", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "16-bit unsigned immediate [0-65535] (field \"imm16\")", "type_": "IMM", "values": ["[0-65535]"], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "MOVZ", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "16-bit unsigned immediate [0-65535] (field \"imm16\")", "type_": "IMM", "values": ["[0-65535]"], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "GMI", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"xd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit source general-purpose register or sp (field \"xn\")", "type_": "REG", "width": 64, "values": ["GPR", "SP"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"xm\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "SMULH", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register holding multiplicand (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register holding multiplier (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "CCMN", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "five bit unsigned (positive) immediate (field \"imm5\")", "type_": "IMM", "values": ["[0-31]"], "width": 5},
+    {"dest": false, "src": true, "comment": "flag bit specifier, an immediate [0-15], giving the alternative state for 4-bit nzcv condition flags (field \"nzcv\")", "type_": "IMM", "values": ["[0-15]"], "width": 0},
+    {"dest": false, "src": false, "comment": "standard condition (field \"cond\")", "type_": "COND", "values": [], "width": 0}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "CCMN", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "five bit unsigned (positive) immediate (field \"imm5\")", "type_": "IMM", "values": ["[0-31]"], "width": 5},
+    {"dest": false, "src": true, "comment": "flag bit specifier, an immediate [0-15], giving the alternative state for 4-bit nzcv condition flags (field \"nzcv\")", "type_": "IMM", "values": ["[0-15]"], "width": 0},
+    {"dest": false, "src": false, "comment": "standard condition (field \"cond\")", "type_": "COND", "values": [], "width": 0}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "ADD", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit destination general-purpose register or wsp (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR", "SP"]},
+    {"dest": false, "src": true, "comment": "32-bit source general-purpose register or wsp (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR", "SP"]},
+    {"dest": false, "src": true, "comment": "unsigned immediate [0-4095] (field \"imm12\")", "type_": "IMM", "values": ["[0-4095]"], "width": 0}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "ADD", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit destination general-purpose register or sp (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR", "SP"]},
+    {"dest": false, "src": true, "comment": "64-bit source general-purpose register or sp (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR", "SP"]},
+    {"dest": false, "src": true, "comment": "unsigned immediate [0-4095] (field \"imm12\")", "type_": "IMM", "values": ["[0-4095]"], "width": 0}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "LDRSW", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": false, "src": true, "comment": "64-bit general-purpose register to be loaded (field \"rt\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "label from which the data is to be loaded (field imm19)", "type_": "LABEL", "values": [], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "AND", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "AND", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "EOR", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "EOR", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "CCMP", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "five bit unsigned (positive) immediate (field \"imm5\")", "type_": "IMM", "values": ["[0-31]"], "width": 5},
+    {"dest": false, "src": true, "comment": "flag bit specifier, an immediate [0-15], giving the alternative state for 4-bit nzcv condition flags (field \"nzcv\")", "type_": "IMM", "values": ["[0-15]"], "width": 0},
+    {"dest": false, "src": false, "comment": "standard condition (field \"cond\")", "type_": "COND", "values": [], "width": 0}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "CCMP", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "five bit unsigned (positive) immediate (field \"imm5\")", "type_": "IMM", "values": ["[0-31]"], "width": 5},
+    {"dest": false, "src": true, "comment": "flag bit specifier, an immediate [0-15], giving the alternative state for 4-bit nzcv condition flags (field \"nzcv\")", "type_": "IMM", "values": ["[0-15]"], "width": 0},
+    {"dest": false, "src": false, "comment": "standard condition (field \"cond\")", "type_": "COND", "values": [], "width": 0}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "LDR", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": false, "src": true, "comment": "32-bit general-purpose register to be loaded (field \"rt\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "label from which the data is to be loaded (field imm19)", "type_": "LABEL", "values": [], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "LDR", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": false, "src": true, "comment": "64-bit general-purpose register to be loaded (field \"rt\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "label from which the data is to be loaded (field imm19)", "type_": "LABEL", "values": [], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "B", "category": "general", "control_flow": true,
+  "operands": [
+    {"dest": false, "src": true, "comment": "label to be unconditionally branched to (field imm26)", "type_": "LABEL", "values": [], "width": 0}
+  ],
+  "implicit_operands": [
+    {"values": ["PC"], "type_": "REG", "width": 64, "src": true, "dest": false}
+  ]
+},
+{"name": "REV16", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "REV16", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "EOR", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit destination general-purpose register or wsp (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR", "SP"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "bitmask immediate (field \"imms:immr\")", "type_": "IMM", "values": ["bitmask"], "width": 32}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "EOR", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit destination general-purpose register or sp (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR", "SP"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "bitmask immediate (field \"n:imms:immr\")", "type_": "IMM", "values": ["bitmask"], "width": 64}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "AUTDB", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register or sp (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR", "SP"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "AUTDZB", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "SBFM", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "right rotate amount [0-31] (field \"immr\")", "type_": "IMM", "values": ["[0-31]"], "width": 0},
+    {"dest": false, "src": true, "comment": "leftmost bit number to be moved from the source [0-31] (field \"imms\")", "type_": "IMM", "values": ["[0-31]"], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "SBFM", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "right rotate amount [0-63] (field \"immr\")", "type_": "IMM", "values": ["[0-63]"], "width": 0},
+    {"dest": false, "src": true, "comment": "leftmost bit number to be moved from the source [0-63] (field \"imms\")", "type_": "IMM", "values": ["[0-63]"], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "AUTDA", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register or sp (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR", "SP"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "AUTDZA", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "SUBPS", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"xd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit source general-purpose register or sp (field \"xn\")", "type_": "REG", "width": 64, "values": ["GPR", "SP"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register or sp (field \"xm\")", "type_": "REG", "width": 64, "values": ["GPR", "SP"]}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "SETF8", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["", "", "", "", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "SETF16", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["", "", "", "", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "LSRV", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register holding a shift amount from 0 to 31 in its bottom 5 bits (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "LSRV", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register holding a shift amount from 0 to 63 in its bottom 6 bits (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "ADD", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "ADD", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "UBFM", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "right rotate amount [0-31] (field \"immr\")", "type_": "IMM", "values": ["[0-31]"], "width": 0},
+    {"dest": false, "src": true, "comment": "leftmost bit number to be moved from the source [0-31] (field \"imms\")", "type_": "IMM", "values": ["[0-31]"], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "UBFM", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "right rotate amount [0-63] (field \"immr\")", "type_": "IMM", "values": ["[0-63]"], "width": 0},
+    {"dest": false, "src": true, "comment": "leftmost bit number to be moved from the source [0-63] (field \"imms\")", "type_": "IMM", "values": ["[0-63]"], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "CSINC", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": false, "comment": "standard condition (field \"cond\")", "type_": "COND", "values": [], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "CSINC", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": false, "comment": "standard condition (field \"cond\")", "type_": "COND", "values": [], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "BL", "category": "general", "control_flow": true,
+  "operands": [
+    {"dest": false, "src": true, "comment": "label to be unconditionally branched to (field imm26)", "type_": "LABEL", "values": [], "width": 0}
+  ],
+  "implicit_operands": [
+    {"values": ["PC"], "type_": "REG", "width": 64, "src": true, "dest": false}
+  ]
+},
+{"name": "AND", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit destination general-purpose register or wsp (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR", "SP"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "bitmask immediate (field \"imms:immr\")", "type_": "IMM", "values": ["bitmask"], "width": 32}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "AND", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit destination general-purpose register or sp (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR", "SP"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "bitmask immediate (field \"n:imms:immr\")", "type_": "IMM", "values": ["bitmask"], "width": 64}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "BC.", "category": "general", "control_flow": true,
+  "operands": [
+    {"dest": false, "src": false, "comment": "standard condition (field \"cond\")", "type_": "COND", "values": [], "width": 0},
+    {"dest": false, "src": true, "comment": "label to be conditionally branched to (field imm19)", "type_": "LABEL", "values": [], "width": 0}
+  ],
+  "implicit_operands": [
+    {"values": ["PC"], "type_": "REG", "width": 64, "src": true, "dest": false}
+  ]
+},
+{"name": "CBNZ", "category": "general", "control_flow": true,
+  "operands": [
+    {"dest": false, "src": true, "comment": "32-bit general-purpose register to be tested (field \"rt\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "label to be conditionally branched to (field imm19)", "type_": "LABEL", "values": [], "width": 0}
+  ],
+  "implicit_operands": [
+    {"values": ["PC"], "type_": "REG", "width": 64, "src": true, "dest": false}
+  ]
+},
+{"name": "CBNZ", "category": "general", "control_flow": true,
+  "operands": [
+    {"dest": false, "src": true, "comment": "64-bit general-purpose register to be tested (field \"rt\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "label to be conditionally branched to (field imm19)", "type_": "LABEL", "values": [], "width": 0}
+  ],
+  "implicit_operands": [
+    {"values": ["PC"], "type_": "REG", "width": 64, "src": true, "dest": false}
+  ]
+},
+{"name": "ORN", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "ORN", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "SUBG", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit destination general-purpose register or sp (field \"xd\")", "type_": "REG", "width": 64, "values": ["GPR", "SP"]},
+    {"dest": false, "src": true, "comment": "64-bit source general-purpose register or sp (field \"xn\")", "type_": "REG", "width": 64, "values": ["GPR", "SP"]},
+    {"dest": false, "src": true, "comment": "unsigned immediate, multiple of 16 [0-1008] (field \"uimm6\")", "type_": "IMM", "values": ["[0-1008]"], "width": 0},
+    {"dest": false, "src": true, "comment": "unsigned immediate [0-15] (field \"uimm4\")", "type_": "IMM", "values": ["[0-15]"], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "CRC32B", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose accumulator output register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose accumulator input register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose data source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "CRC32H", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose accumulator output register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose accumulator input register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose data source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "CRC32W", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose accumulator output register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose accumulator input register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose data source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "CRC32X", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose accumulator output register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose accumulator input register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose data source register (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "CRC32CB", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose accumulator output register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose accumulator input register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose data source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "CRC32CH", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose accumulator output register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose accumulator input register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose data source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "CRC32CW", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose accumulator output register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose accumulator input register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose data source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "CRC32CX", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose accumulator output register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose accumulator input register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose data source register (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "RMIF", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "shift amount [0-63], default 0 (field \"imm6\")", "type_": "IMM", "values": ["[0-63]"], "width": 0},
+    {"dest": false, "src": true, "comment": "flag bit mask, an immediate [0-15], which selects the bits that are inserted into the nzcv condition flags (field \"mask\")", "type_": "IMM", "values": ["[0-15]"], "width": 0}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["", "", "", "", "w", "", "", "", ""]}
+  ]
+},
+{"name": "MSUB", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register holding multiplicand (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register holding multiplier (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register holding minuend (field \"ra\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "MSUB", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register holding multiplicand (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register holding multiplier (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register holding minuend (field \"ra\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "RORV", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register holding a shift amount from 0 to 31 in its bottom 5 bits (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "RORV", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register holding a shift amount from 0 to 63 in its bottom 6 bits (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "LDRSB", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose register to be transferred (field \"rt\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose base register or sp (field \"rn\")", "type_": "MEM", "width": 64},
+    {"dest": false, "src": true, "comment": "signed immediate byte offset [-256-255] (field \"imm9\")", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "LDRSB", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose register to be transferred (field \"rt\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose base register or sp (field \"rn\")", "type_": "MEM", "width": 64},
+    {"dest": false, "src": true, "comment": "signed immediate byte offset [-256-255] (field \"imm9\")", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "UMSUBL", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register holding multiplicand (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register holding multiplier (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register holding minuend (field \"ra\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "CSEL", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": false, "comment": "standard condition (field \"cond\")", "type_": "COND", "values": [], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "CSEL", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": false, "comment": "standard condition (field \"cond\")", "type_": "COND", "values": [], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "CSINV", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": false, "comment": "standard condition (field \"cond\")", "type_": "COND", "values": [], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "CSINV", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": false, "comment": "standard condition (field \"cond\")", "type_": "COND", "values": [], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "SBC", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "SBC", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "RBIT", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "RBIT", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "BFM", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "right rotate amount [0-31] (field \"immr\")", "type_": "IMM", "values": ["[0-31]"], "width": 0},
+    {"dest": false, "src": true, "comment": "leftmost bit number to be moved from the source [0-31] (field \"imms\")", "type_": "IMM", "values": ["[0-31]"], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "BFM", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "right rotate amount [0-63] (field \"immr\")", "type_": "IMM", "values": ["[0-63]"], "width": 0},
+    {"dest": false, "src": true, "comment": "leftmost bit number to be moved from the source [0-63] (field \"imms\")", "type_": "IMM", "values": ["[0-63]"], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "ADRP", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "label whose 4kb page address is to be calculated (field immhi:immlo)", "type_": "LABEL", "values": [], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "SUBP", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"xd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit source general-purpose register or sp (field \"xn\")", "type_": "REG", "width": 64, "values": ["GPR", "SP"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register or sp (field \"xm\")", "type_": "REG", "width": 64, "values": ["GPR", "SP"]}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "RETAA", "category": "general", "control_flow": false,
+  "operands": [
+    
+  ],
+  "implicit_operands": []
+},
+{"name": "RETAB", "category": "general", "control_flow": false,
+  "operands": [
+    
+  ],
+  "implicit_operands": []
+},
+{"name": "ANDS", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "ANDS", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "SUB", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit destination general-purpose register or wsp (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR", "SP"]},
+    {"dest": false, "src": true, "comment": "32-bit source general-purpose register or wsp (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR", "SP"]},
+    {"dest": false, "src": true, "comment": "unsigned immediate [0-4095] (field \"imm12\")", "type_": "IMM", "values": ["[0-4095]"], "width": 0}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "SUB", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit destination general-purpose register or sp (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR", "SP"]},
+    {"dest": false, "src": true, "comment": "64-bit source general-purpose register or sp (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR", "SP"]},
+    {"dest": false, "src": true, "comment": "unsigned immediate [0-4095] (field \"imm12\")", "type_": "IMM", "values": ["[0-4095]"], "width": 0}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "B.", "category": "general", "control_flow": true,
+  "operands": [
+    {"dest": false, "src": false, "comment": "standard condition (field \"cond\")", "type_": "COND", "values": [], "width": 0},
+    {"dest": false, "src": true, "comment": "label to be conditionally branched to (field imm19)", "type_": "LABEL", "values": [], "width": 0}
+  ],
+  "implicit_operands": [
+    {"values": ["PC"], "type_": "REG", "width": 64, "src": true, "dest": false}
+  ]
+},
+{"name": "UDIV", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "UDIV", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "RET", "category": "general", "control_flow": false,
+  "operands": [
+    
+  ],
+  "implicit_operands": []
+},
+{"name": "SUBS", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "SUBS", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "STRB", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": false, "src": true, "comment": "32-bit general-purpose register to be transferred (field \"rt\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": true, "src": false, "comment": "64-bit general-purpose base register or sp (field \"rn\")", "type_": "MEM", "width": 64},
+    {"dest": false, "src": true, "comment": "signed immediate byte offset [-256-255] (field \"imm9\")", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "BIC", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "BIC", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "ORR", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit destination general-purpose register or wsp (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR", "SP"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "bitmask immediate (field \"imms:immr\")", "type_": "IMM", "values": ["bitmask"], "width": 32}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "ORR", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit destination general-purpose register or sp (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR", "SP"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "bitmask immediate (field \"n:imms:immr\")", "type_": "IMM", "values": ["bitmask"], "width": 64}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "LDRSW", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose register to be transferred (field \"rt\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose base register or sp (field \"rn\")", "type_": "MEM", "width": 64},
+    {"dest": false, "src": true, "comment": "signed immediate byte offset [-256-255] (field \"imm9\")", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "LDRH", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose register to be transferred (field \"rt\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose base register or sp (field \"rn\")", "type_": "MEM", "width": 64},
+    {"dest": false, "src": true, "comment": "signed immediate byte offset [-256-255] (field \"imm9\")", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "SUBS", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit source general-purpose register or wsp (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR", "SP"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "BICS", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "BICS", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "MOVN", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "16-bit unsigned immediate [0-65535] (field \"imm16\")", "type_": "IMM", "values": ["[0-65535]"], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "MOVN", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "16-bit unsigned immediate [0-65535] (field \"imm16\")", "type_": "IMM", "values": ["[0-65535]"], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "ANDS", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "bitmask immediate (field \"imms:immr\")", "type_": "IMM", "values": ["bitmask"], "width": 32}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "ANDS", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "bitmask immediate (field \"n:imms:immr\")", "type_": "IMM", "values": ["bitmask"], "width": 64}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "STRH", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": false, "src": true, "comment": "32-bit general-purpose register to be transferred (field \"rt\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": true, "src": false, "comment": "64-bit general-purpose base register or sp (field \"rn\")", "type_": "MEM", "width": 64},
+    {"dest": false, "src": true, "comment": "signed immediate byte offset [-256-255] (field \"imm9\")", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "PACGA", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register or sp (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR", "SP"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "EON", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "EON", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "ORR", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "ORR", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "ERETAA", "category": "general", "control_flow": false,
+  "operands": [
+    
+  ],
+  "implicit_operands": []
+},
+{"name": "ERETAB", "category": "general", "control_flow": false,
+  "operands": [
+    
+  ],
+  "implicit_operands": []
+},
+{"name": "UMULH", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register holding multiplicand (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register holding multiplier (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "SBCS", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "SBCS", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "UMADDL", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register holding multiplicand (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register holding multiplier (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register holding addend (field \"ra\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "SDIV", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "SDIV", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "SMSUBL", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register holding multiplicand (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register holding multiplier (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register holding minuend (field \"ra\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "REV", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "REV", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "EXTR", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "least significant bit position from which to extract [0-31] (field \"imms\")", "type_": "IMM", "values": ["[0-31]"], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "EXTR", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "least significant bit position from which to extract [0-63] (field \"imms\")", "type_": "IMM", "values": ["[0-63]"], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "CLS", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "CLS", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "LDRSH", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose register to be transferred (field \"rt\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose base register or sp (field \"rn\")", "type_": "MEM", "width": 64},
+    {"dest": false, "src": true, "comment": "signed immediate byte offset [-256-255] (field \"imm9\")", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "LDRSH", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose register to be transferred (field \"rt\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose base register or sp (field \"rn\")", "type_": "MEM", "width": 64},
+    {"dest": false, "src": true, "comment": "signed immediate byte offset [-256-255] (field \"imm9\")", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "SUBS", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit source general-purpose register or wsp (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR", "SP"]},
+    {"dest": false, "src": true, "comment": "unsigned immediate [0-4095] (field \"imm12\")", "type_": "IMM", "values": ["[0-4095]"], "width": 0}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "SUBS", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit source general-purpose register or sp (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR", "SP"]},
+    {"dest": false, "src": true, "comment": "unsigned immediate [0-4095] (field \"imm12\")", "type_": "IMM", "values": ["[0-4095]"], "width": 0}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "CSNEG", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": false, "comment": "standard condition (field \"cond\")", "type_": "COND", "values": [], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "CSNEG", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": false, "comment": "standard condition (field \"cond\")", "type_": "COND", "values": [], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "ADDS", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit source general-purpose register or wsp (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR", "SP"]},
+    {"dest": false, "src": true, "comment": "unsigned immediate [0-4095] (field \"imm12\")", "type_": "IMM", "values": ["[0-4095]"], "width": 0}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "ADDS", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit source general-purpose register or sp (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR", "SP"]},
+    {"dest": false, "src": true, "comment": "unsigned immediate [0-4095] (field \"imm12\")", "type_": "IMM", "values": ["[0-4095]"], "width": 0}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "SUB", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit destination general-purpose register or wsp (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR", "SP"]},
+    {"dest": false, "src": true, "comment": "32-bit source general-purpose register or wsp (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR", "SP"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "ADD", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit destination general-purpose register or wsp (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR", "SP"]},
+    {"dest": false, "src": true, "comment": "32-bit source general-purpose register or wsp (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR", "SP"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "CLZ", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "CLZ", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "ADC", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "ADC", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "SUB", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "SUB", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": [
+    {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+  ]
+},
+{"name": "REV32", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "ADDG", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit destination general-purpose register or sp (field \"xd\")", "type_": "REG", "width": 64, "values": ["GPR", "SP"]},
+    {"dest": false, "src": true, "comment": "64-bit source general-purpose register or sp (field \"xn\")", "type_": "REG", "width": 64, "values": ["GPR", "SP"]},
+    {"dest": false, "src": true, "comment": "unsigned immediate, multiple of 16 [0-1008] (field \"uimm6\")", "type_": "IMM", "values": ["[0-1008]"], "width": 0},
+    {"dest": false, "src": true, "comment": "unsigned immediate [0-15] (field \"uimm4\")", "type_": "IMM", "values": ["[0-15]"], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "MOVK", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "16-bit unsigned immediate [0-65535] (field \"imm16\")", "type_": "IMM", "values": ["[0-65535]"], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "MOVK", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "16-bit unsigned immediate [0-65535] (field \"imm16\")", "type_": "IMM", "values": ["[0-65535]"], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "SMADDL", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register holding multiplicand (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register holding multiplier (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register holding addend (field \"ra\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "MADD", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register holding multiplicand (field \"rn\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register holding multiplier (field \"rm\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "32-bit general-purpose source register holding addend (field \"ra\")", "type_": "REG", "width": 32, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "MADD", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register holding multiplicand (field \"rn\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register holding multiplier (field \"rm\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": false, "src": true, "comment": "64-bit general-purpose source register holding addend (field \"ra\")", "type_": "REG", "width": 64, "values": ["GPR"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "IRG", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": true, "src": false, "comment": "64-bit destination general-purpose register or sp (field \"xd\")", "type_": "REG", "width": 64, "values": ["GPR", "SP"]},
+    {"dest": false, "src": true, "comment": "64-bit source general-purpose register or sp (field \"xn\")", "type_": "REG", "width": 64, "values": ["GPR", "SP"]}
+  ],
+  "implicit_operands": []
+},
+{"name": "STR", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": false, "src": true, "comment": "32-bit general-purpose register to be transferred (field \"rt\")", "type_": "REG", "width": 32, "values": ["GPR"]},
+    {"dest": true, "src": false, "comment": "64-bit general-purpose base register or sp (field \"rn\")", "type_": "MEM", "width": 64},
+    {"dest": false, "src": true, "comment": "signed immediate byte offset [-256-255] (field \"imm9\")", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+  ],
+  "implicit_operands": []
+},
+{"name": "STR", "category": "general", "control_flow": false,
+  "operands": [
+    {"dest": false, "src": true, "comment": "64-bit general-purpose register to be transferred (field \"rt\")", "type_": "REG", "width": 64, "values": ["GPR"]},
+    {"dest": true, "src": false, "comment": "64-bit general-purpose base register or sp (field \"rn\")", "type_": "MEM", "width": 64},
+    {"dest": false, "src": true, "comment": "signed immediate byte offset [-256-255] (field \"imm9\")", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+  ],
+  "implicit_operands": []
+}
+]

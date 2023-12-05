@@ -1,3 +1,19 @@
+diff --git a/qemu/accel/tcg/translate-all.c b/qemu/accel/tcg/translate-all.c
+index 232a9178..48366fe9 100644
+--- a/qemu/accel/tcg/translate-all.c
++++ b/qemu/accel/tcg/translate-all.c
+@@ -792,7 +792,10 @@ static inline size_t size_code_gen_buffer(size_t tb_size)
+ {
+     /* Size the buffer.  */
+     if (tb_size == 0) {
+-        tb_size = DEFAULT_CODE_GEN_BUFFER_SIZE;
++        // DEFAULT_CODE_GEN_BUFFER_SIZE is 1GiB which results in ENOMEM with small RAM sizes
++        // such as Raspberry Pi V3 which only has 1GiB RAM.
++        // No need to require that much memory for the emulation, fix by reducing default to 256MiB.
++        tb_size = GiB / 4;
+     }
+     if (tb_size < MIN_CODE_GEN_BUFFER_SIZE) {
+         tb_size = MIN_CODE_GEN_BUFFER_SIZE;
 diff --git a/qemu/tcg/aarch64/tcg-target.inc.c b/qemu/tcg/aarch64/tcg-target.inc.c
 index 85185611..b2f44318 100644
 --- a/qemu/tcg/aarch64/tcg-target.inc.c
@@ -5,7 +21,7 @@ index 85185611..b2f44318 100644
 @@ -1702,8 +1702,14 @@ static void tcg_out_tlb_read(TCGContext *s, TCGReg addr_reg, MemOp opc,
      tcg_out_logicali(s, I3404_ANDI, TARGET_LONG_BITS == 64,
                       TCG_REG_X3, x3, compare_mask);
-
+ 
 +
      /* Perform the address comparison. */
 -    tcg_out_cmp(s, TARGET_LONG_BITS == 64, TCG_REG_X0, TCG_REG_X3, 0);
@@ -15,6 +31,6 @@ index 85185611..b2f44318 100644
 +    else
 +        /* slow_path, so data access will go via load_helper() */
 +        tcg_out_cmp(s, TARGET_LONG_BITS == 64, TCG_REG_XZR, 1, 0);
-
+ 
      /* If not equal, we jump to the slow path. */
      *label_ptr = s->code_ptr;

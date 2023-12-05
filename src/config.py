@@ -160,6 +160,8 @@ class ConfCls:
     """ exe_strip: a path to the 'strip' utility Revizor will use. """
     exe_as: str = "as"
     """ exe_as: a path to the 'as' utility Revizor will use. """
+    exe_cc: str = "cc"
+    """ exe_cc: a path to the 'cc' utility Revizor will use. """
     exe_lscpu: str = "lscpu"
     """ exe_lscpu: a path to the 'lscpu' utility Revizor will use. """
     exe_tar: str = "tar"

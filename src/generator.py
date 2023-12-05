@@ -177,6 +177,7 @@ class ConfigurableGenerator(Generator, abc.ABC):
             for line in f:
                 # remove extra spaces
                 line = line.strip()
+                line = line.replace(" // instrumentation", "")
                 line = re_redundant_spaces.sub("", line)
 
                 # skip comments and empty lines

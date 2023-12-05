@@ -1,0 +1,54 @@
+instruction_set: arm64
+contract_observation_clause: ct
+contract_execution_clause:
+  - seq
+
+instruction_categories: 
+  # - addsub_carry
+  # - addsub_ext
+  - addsub_imm
+  # - bitfield
+  # - branch_imm
+  # - branch_reg
+  # - compbranch
+  - condbranch
+  # - condcmp_imm
+  # - condcmp_reg
+  # - condsel
+  # - dp_1src
+  # - dp_2src
+  # - dp_3src
+  # - extract
+  # - ic_system
+  - ldst_imm9
+  # - ldst_unpriv
+  # - ldst_unscaled
+  # - loadlit
+  # - log_imm
+  # - movewide
+  # - pcreladdr
+  # - testbranch 
+
+instruction_blocklist: []
+
+program_size: 16
+min_bb_per_function: 4
+max_bb_per_function: 4
+avg_mem_accesses: 4
+input_gen_entropy_bits: 9
+
+logging_modes:
+  - info
+  - stat
+  # - dbg_timestamp
+  # - dbg_violation
+  # - dbg_traces
+  # - dbg_model
+  # - dbg_coverage
+
+executor_repetitions: 3
+
+# run tests only on core #3, it is recommended to be used together with `isolcpus=3` as a
+# kernel param, which isolates core #3 from the kernel scheduler. On Raspberry Pi this can 
+# be achieved by appending "isolcpus=3" to /boot/cmdline.txt and rebooting.
+executor_taskset: 3

@@ -20,6 +20,8 @@ class MinimizerViolation(Minimizer):
     def __init__(self, instruction_set_spec):
         CONF.coverage_type = 'none'
         self.instruction_set_spec = instruction_set_spec
+        self.fence_op = "DMB #15\nISB #15" if CONF.instruction_set == "arm64" else "LFENCE"
+        # note that (on ARM64), 'ISB #15' === 'ISB' and 'DMB #15' === 'DMB SY'
 
     def _get_all_violations(self, fuzzer: Fuzzer, test_case: TestCase,
                             inputs: List[Input]) -> List[EquivalenceClass]:
@@ -75,7 +77,7 @@ class MinimizerViolation(Minimizer):
 
             # Preserve instructions used for sandboxing, fences, and labels
             if not line or \
-               "LFENCE" in line or \
+               self.fence_op in line or \
                line[0] == '.':
                 continue
 
@@ -147,6 +149,6 @@ class MinimizerViolation(Minimizer):
     def add_fences(self, fuzzer: Fuzzer, test_case: TestCase, inputs: List[Input]) -> TestCase:
 
         def push_fence(instructions, i):
-            return instructions[:i] + ["LFENCE\n"] + instructions[i:]
+            return instructions[:i] + [self.fence_op + "\n"] + instructions[i:]
 
         return self._probe_test_case(fuzzer, test_case, inputs, push_fence)
