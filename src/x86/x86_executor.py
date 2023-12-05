@@ -11,7 +11,7 @@ from service import LOGGER
 
 
 def write_to_sysfs_file(value, path: str) -> None:
-    subprocess.run(f"sudo %s -c 'echo -n {value} > {path}'" % CONF.exe_bash, shell=True, check=True)
+    subprocess.run(f"sudo {CONF.exe_bash} -c 'echo -n {value} > {path}'", shell=True, check=True)
 
 
 def write_to_sysfs_file_bytes(value: bytes, path: str) -> None:

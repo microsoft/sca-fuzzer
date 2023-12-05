@@ -22,3 +22,8 @@ logging_modes:
 
 executor_repetitions: 1
 
+exe_objdump: aarch64-linux-gnu-objdump
+exe_cc: aarch64-linux-gnu-gcc
+exe_strip: aarch64-linux-gnu-strip
+exe_objcopy: aarch64-linux-gnu-objcopy
+
