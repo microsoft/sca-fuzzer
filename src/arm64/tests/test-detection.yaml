@@ -8,7 +8,6 @@ min_bb_per_function: 2
 max_bb_per_function: 2
 avg_mem_accesses: 4
 input_gen_entropy_bits: 9
-input_register_region_size: 56
 enable_faulty_page: false
 
 logging_modes:
