@@ -6,7 +6,9 @@ SPDX-License-Identifier: MIT
 """
 import numpy as np
 import unicorn as uni
+from unicorn import Uc
 import unicorn.arm64_const as ucc
+from typing import Tuple
 from model import UnicornModel, UnicornSeq, UnicornSpec, UnicornBpas, BaseTaintTracker
 from interfaces import Input
 from arm64.arm64_target_desc import ARMTargetDesc, ARM64UnicornTargetDesc
@@ -122,3 +124,134 @@ class ARM64UnicornSpec(UnicornSpec, ARM64UnicornModel):
 
 class ARM64UnicornBpas(UnicornBpas, ARM64UnicornModel):
     pass
+
+def twos_complement(n: int, nbits: int) -> int:
+    n &= (1 << nbits) - 1
+    sign_bit = 1 << (nbits - 1)
+    if n & sign_bit:
+        return n - 2 * sign_bit
+    else:
+        return n
+
+# flag values taken from unicorn/qemu/target/arm/cpu.h
+FLAG_N = 1 << 31
+FLAG_Z = 1 << 30
+FLAG_C = 1 << 29
+FLAG_V = 1 << 28
+
+class ARM64UnicornCond(ARM64UnicornSpec):
+    """
+    Contract for conditional branch mispredictions.
+    Forces all cond. branches to speculatively go into a wrong target
+    """
+
+    @staticmethod
+    def decode(reg_read, code: bytearray, flags: int) -> Tuple[int, bool]:
+        instruction = int.from_bytes(code, byteorder='little')
+        first_byte = instruction >> 24
+        if first_byte == 0x54 and instruction & 0x10 == 0:
+            # B.cond instruction
+            target = twos_complement(instruction >> 5, 19)
+            condition = instruction & 0xf
+            n = (flags & FLAG_N) != 0
+            z = (flags & FLAG_Z) != 0
+            c = (flags & FLAG_C) != 0
+            v = (flags & FLAG_V) != 0
+            # table here is useful: https://community.arm.com/arm-community-blogs/b/architectures-and-processors-blog/posts/condition-codes-1-condition-flags-and-codes
+            will_jump = [
+                z, # 0 = b.eq "equal"
+                not z, # 1 = b.ne "not equal"
+                c, # 2 = b.cs "carry set"
+                not c, # 3 = b.cc "carry clear"
+                n, # 4 = b.mi "minus"
+                not n, # 5 = b.pl "plus"
+                v, # 6 = b.vs "overflow set"
+                not v, # 7 = b.vc "overflow clear"
+                c and not z, # 8 = b.hi "higher than"
+                not c or z, # 9 = b.ls "lower or same"
+                n == v, # a = b.ge "greater than or equal"
+                n != v, # b = b.lt "less than"
+                not z and n == v, # c = b.gt "greater than"
+                z or n != v, # d = b.le "less than or equal"
+                True, # e = b.al "always"
+                False, # f = b.nv "never"
+            ][condition]
+            return (target, will_jump)
+        if 0xb4 <= first_byte <= 0xb7 or 0x34 <= first_byte <= 0x37:
+            # CBZ/CBNZ/TBZ/TBNZ
+            register_index = instruction & 0x1f
+            is_32bit = first_byte >> 4 == 0x3
+            if register_index <= 28:
+                register_value = reg_read(ucc.UC_ARM64_REG_X0 + register_index)
+            elif register_index <= 30:
+                # for some reason UC_ARM64_REG_X29 != UC_ARM64_REG_X0 + 29
+                register_value = reg_read(ucc.UC_ARM64_REG_X29 + (register_index - 29))
+            elif register_index == 31:
+                # xzr "zero register"
+                register_value = 0
+            if is_32bit:
+                register_value &= 0xffff_ffff
+            if first_byte & 0xf <= 0x5:
+                # CBZ/CBNZ
+                target = twos_complement(instruction >> 5, 19)
+                if first_byte & 0xf == 4:
+                    # CBZ
+                    will_jump = register_value == 0
+                else:
+                    # CBNZ
+                    will_jump = register_value != 0
+            else:
+                target = twos_complement(instruction >> 5, 14)
+                bit_number = (instruction >> 19) & 0x1f
+                if not is_32bit:
+                    bit_number += 32
+                bit = register_value & (1 << bit_number)
+                if first_byte & 0xf == 6:
+                    # TBZ
+                    will_jump = bit == 0
+                else:
+                    # TBNZ
+                    will_jump = bit != 0
+            return (target, will_jump)
+        return (0, False)
+
+    @staticmethod
+    def speculate_instruction(emulator: Uc, address, size, model: UnicornModel) -> None:
+        # reached max spec. window? skip
+        if len(model.checkpoints) >= model.nesting:
+            return
+
+        # decode the instruction
+        code = emulator.mem_read(address, size)
+        flags = emulator.reg_read(ucc.UC_ARM64_REG_NZCV)
+        target, will_jump = ARM64UnicornCond.decode(emulator.reg_read, code, flags)
+
+        # not a a cond. jump? ignore
+        if not target:
+            return
+        # multiply by size of instruction
+        target *= 4
+
+        # Take a checkpoint
+        next_instr = address + target if will_jump else address + size
+        model.checkpoint(emulator, next_instr)
+
+        # Simulate misprediction
+        if will_jump:
+            emulator.reg_write(ucc.UC_ARM64_REG_PC, address + size)
+        else:
+            emulator.reg_write(ucc.UC_ARM64_REG_PC, address + target)
+
+    @staticmethod
+    def speculate_mem_access(emulator, access, address, size, value, model):
+        pass  # cond does not need to speculate mem accesses
+
+class ARM64UnicornCondBpas(ARM64UnicornSpec):
+    @staticmethod
+    def speculate_mem_access(emulator, access, address, size, value, model: UnicornSpec):
+        ARM64UnicornBpas.speculate_mem_access(emulator, access, address, size, value, model)
+
+    @staticmethod
+    def speculate_instruction(emulator: Uc, address, size, model) -> None:
+        ARM64UnicornCond.speculate_instruction(emulator, address, size, model)
+        ARM64UnicornBpas.speculate_instruction(emulator, address, size, model)
