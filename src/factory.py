@@ -111,7 +111,11 @@ def get_model(bases: Tuple[int, int]) -> interfaces.Model:
 
         model_instance.taint_tracker_cls = x86_model.X86TaintTracker
     elif CONF.instruction_set == 'arm64':
-        if "seq" in CONF.contract_execution_clause:
+        if "cond" in CONF.contract_execution_clause and "bpas" in CONF.contract_execution_clause:
+            model_instance = arm64_model.ARM64UnicornCondBpas(bases[0], bases[1])
+        elif "cond" in CONF.contract_execution_clause:
+            model_instance = arm64_model.ARM64UnicornCond(bases[0], bases[1])
+        elif "seq" in CONF.contract_execution_clause:
             model_instance = arm64_model.ARM64UnicornSeq(bases[0], bases[1])
         elif "bpas" in CONF.contract_execution_clause:
             model_instance = arm64_model.ARM64UnicornBpas(bases[0], bases[1])
