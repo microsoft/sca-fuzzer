@@ -6,6 +6,26 @@ SPDX-License-Identifier: MIT
 """
 from typing import List, Dict
 
+# Import cpuinfo if available
+cpuinfo_imported = False
+try:
+    import cpuinfo
+    cpuinfo_imported = True
+except ImportError:
+    pass
+
+def try_get_cpu_vendor():
+    if cpuinfo_imported:
+        if 'AuthenticAMD' in cpuinfo.get_cpu_info()['vendor_id_raw']:
+            return 'x86-64-amd'
+        if 'GenuineIntel' in cpuinfo.get_cpu_info()['vendor_id_raw']:
+            return 'x86-64-intel'
+        else:
+            print('WARNING: Unknown CPU vendor, assuming Intel')
+            return 'x86-64-intel'
+    else:
+        return 'x86-64-intel'
+
 _option_values = {
     'executor': [
         'x86-64-intel',
@@ -124,6 +144,10 @@ x86_executor_enable_prefetcher: bool = False
 x86_executor_enable_ssbp_patch: bool = True
 """ x86_executor_enable_ssbp_patch: enable a patch against Speculative Store Bypass"""
 x86_disable_div64: bool = True
+
+# Overwrite executor
+executor: str = try_get_cpu_vendor()
+""" executor: the default executor depending on the current platform """
 
 instruction_categories: List[str] = ["BASE-BINARY", "BASE-BITBYTE", "BASE-COND_BR"]
 """ instruction_categories: a default list of tested instruction categories """
