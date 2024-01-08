@@ -197,14 +197,15 @@ class MinimizerViolation(Minimizer):
 
         for i in range(len(instructions)):
             print(".", end="", flush=True)
-            if not instructions[i].startswith("."):
+            line = instructions[i].strip().lower()
+            if not line.startswith("."):
                 continue
-            if ".test_case_enter:" in instructions[i] or \
-               ".test_case_exit:" in instructions[i] or \
-               ".section" in instructions[i] or \
-               ".function" in instructions[i] or \
-               ".macro" in instructions[i] or \
-               "syntax" in instructions[i]:
+            if ".test_case_enter:" in line or \
+               ".test_case_exit:" in line or \
+               ".section" in line or \
+               ".function" in line or \
+               ".macro" in line or \
+               "syntax" in line:
                 continue
 
             label = instructions[i].strip().replace(":", "")
