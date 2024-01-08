@@ -30,7 +30,7 @@ from .interfaces import CTrace, TestCase, Model, InputTaint, Instruction, Execut
     RegisterOperand, FlagsOperand, MemoryOperand, TaintTrackerInterface, TargetDesc, \
     get_sandbox_addr, SANDBOX_DATA_SIZE, SANDBOX_CODE_SIZE
 from .config import CONF
-from .util import Logger, NotSupportedException
+from .util import Logger, NotSupportedException, stable_hash_bytes
 
 # ==================================================================================================
 # Custom Data Types and Constants
@@ -827,12 +827,7 @@ class ExposeObserverModel(UnicornModel):  # unicorn is not actually used; it's f
 
         for input_ in inputs:
             input_fragment = input_[self.observer_id]
-            ctrace = hash(input_fragment['main'].sum())
-            ctrace += hash(input_fragment['faulty'].sum())
-            ctrace += hash(input_fragment['gpr'].sum())
-            ctrace += hash(input_fragment['simd'].sum())
-            contract_traces.append(ctrace)
-
+            contract_traces.append(stable_hash_bytes(input_fragment.tobytes()))
             taints.append(base_taint)
 
         return contract_traces, taints

@@ -20,7 +20,8 @@ dependencies = [
     "pyyaml",
     "types-pyyaml",
     "numpy",
-    "pyelftools"
+    "pyelftools",
+    "xxhash"
 ]
 maintainers = [{name = "Oleksii Oleksenko", email = ""}]
 
