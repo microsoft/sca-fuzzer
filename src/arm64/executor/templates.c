@@ -163,7 +163,6 @@ inline void epilogue(void) {
     "mrs x1, pmevcntr2_el0 \n" \
     "sub x21, x1, x21 \n");
 
-#if defined(CACHE_TIMING_ATTACK_PRIME_PROBE)
 // =================================================================================================
 // L1D Prime+Probe
 // =================================================================================================
@@ -254,9 +253,7 @@ void template_l1d_prime_probe(void) {
     epilogue();
     asm volatile(".long "xstr(TEMPLATE_RETURN));
 }
-#endif // CACHE_TIMING_ATTACK_PRIME_PROBE
 
-#if defined(CACHE_TIMING_ATTACK_FLUSH_RELOAD)
 // =================================================================================================
 // Flush+Reload
 // =================================================================================================
@@ -340,5 +337,4 @@ void template_l1d_flush_reload(void) {
     epilogue();
     asm volatile(".long "xstr(TEMPLATE_RETURN));
 }
-#endif // CACHE_TIMING_ATTACK_FLUSH_RELOAD
 
