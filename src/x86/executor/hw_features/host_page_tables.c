@@ -138,7 +138,7 @@ int store_orig_host_permissions(void)
 }
 
 /// @brief Restore the original PTEs for all sandbox pages.
-/// @param
+/// @param void
 /// @return
 int restore_orig_host_permissions(void)
 {

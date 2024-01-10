@@ -122,7 +122,7 @@ int get_sandbox_size_pages(void)
 }
 
 /// @brief Sets PTE values for the sandbox based on the current test case configuration
-/// @param
+/// @param void
 /// @return 0 on success; -1 on error
 int set_sandbox_page_tables(void)
 {
