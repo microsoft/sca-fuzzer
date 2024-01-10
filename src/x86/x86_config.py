@@ -4,7 +4,7 @@ File: x86-specific Configuration Options
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
-from typing import List, Dict
+from typing import List
 
 _option_values = {
     'executor': [

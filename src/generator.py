@@ -218,11 +218,11 @@ class ConfigurableGenerator(Generator, abc.ABC):
     def get_elf_data(self, test_case: TestCase, obj_file: str) -> None:
         pass
 
-    def create_actors(self, test_case: TestCase):
+    def create_actors(self, test_case: TestCase) -> None:
         def pte_properties_to_mask(properties: dict, type_: int) -> int:
             bits = self.target_desc.pte_bits if type_ == 0 else self.target_desc.epte_bits
 
-            probability_of_default = 0
+            probability_of_default = 0.0
             if properties['randomized']:
                 count_non_default = 0
                 for bit_name in bits:
