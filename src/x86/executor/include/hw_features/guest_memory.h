@@ -12,7 +12,7 @@
 // start of guest's physical memory; this is an arbitrary large aligned number
 #define GUEST_P_MEMORY_START 0
 #define GUEST_V_MEMORY_START 0x0ULL
-#define GUEST_MEMORY_SIZE    (64 * 4096)          // max size that could be mapped by a single PTE
+#define GUEST_MEMORY_SIZE    (512 * 4096) // max size that could be mapped by a single last-level PT
 
 // Memory layout within the guest memory
 typedef struct {
