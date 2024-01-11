@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-if [ $1 != "--ignore-errors" ]; then
+if [ "$1" != "" ] && [ $1 != "--ignore-errors" ]; then
     set -e
 fi
 
@@ -35,7 +35,16 @@ cd - >/dev/null || exit
 echo ""
 echo "===== x86 unit tests ====="
 cd $SCRIPT_DIR/../.. || exit
-python3 -m unittest discover src/x86/tests -p "unit_*.py" -v
+# Note: we intentionally do not use the 'discover' option because it causes cross-contamination
+# of config options between unit tests
+python3 -m unittest src.x86.tests.unit_executor -v
+echo "-------------"
+python3 -m unittest src.x86.tests.unit_generators -v
+echo "-------------"
+python3 -m unittest src.x86.tests.unit_isa_loader -v
+echo "-------------"
+python3 -m unittest src.x86.tests.unit_model -v
+echo "-------------"
 cd - >/dev/null || exit
 
 echo ""
