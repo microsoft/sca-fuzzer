@@ -407,6 +407,7 @@ class Instruction:
     is_from_template: bool = False
     section_offset: int = 0
     section_id: int = 0
+    size: int = 0
 
     # TODO: remove latest_reg_operand from this class. It belongs in the generator
     latest_reg_operand: Optional[Operand] = None  # for avoiding dependencies

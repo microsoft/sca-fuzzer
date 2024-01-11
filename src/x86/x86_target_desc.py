@@ -60,7 +60,9 @@ class X86TargetDesc(TargetDesc):
         "XMM12": "XMM12",
         "XMM13": "XMM13",
         "XMM14": "XMM14",
-        "XMM15": "XMM15"
+        "XMM15": "XMM15",
+        "CR0": "CR0",
+        "XCR0": "XCR0",
     }  # yapf: disable
     reg_denormalized = {
         "A": {64: "RAX", 32: "EAX", 16: "AX", 8: "AL"},
@@ -284,6 +286,7 @@ class X86UnicornTargetDesc(UnicornTargetDesc):
         "XMM15": ucc.UC_X86_REG_XMM15,
         "RIP": -1,
         "RSP": -1,
+        "XCR0": -1,
     }
 
     registers: List[int] = [

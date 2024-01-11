@@ -75,6 +75,7 @@ class X86Transformer:
         "DX": 16,
         "AL": 8,
         "AH": 8,
+        "CL": 8,
         "TMM0": 0,
         "MXCSR": 32,
         'ES': 16,
@@ -82,6 +83,8 @@ class X86Transformer:
         'DS': 16,
         'FS': 16,
         'GS': 16,
+        'CR0': 32,
+        'XCR0': 64,
     }
     not_control_flow = ["INT", "INT1", "INT3", "INTO"]
     """ a list of instructions that have RIP as an operand but should
