@@ -612,6 +612,10 @@ class X86FaultModelAbstract(X86UnicornSpec):
     @staticmethod
     def trace_instruction(emulator, address, size, model: UnicornModel) -> None:
         assert isinstance(model, X86FaultModelAbstract)
+        # check that the instruction size is correct (may be wrong for invalid instructions)
+        if model.current_instruction.size != size and model.current_instruction.size != 0:
+            size = model.current_instruction.size
+
         model.curr_instruction_addr = address
         model.next_instruction_addr = address + size
         X86UnicornSpec.trace_instruction(emulator, address, size, model)
@@ -646,7 +650,7 @@ class X86UnicornDEH(X86FaultModelAbstract):
 
     def __init__(self, *args):
         super().__init__(*args)
-        self.relevant_faults.update([6, 12, 13, 21])
+        self.relevant_faults.update([6, 10, 12, 13, 21])
         self.dependencies = set()
         self.dependency_checkpoints = []
 

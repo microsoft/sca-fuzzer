@@ -42,9 +42,6 @@ def check_instruction_list(instruction_set: InstructionSetAbstract):
     if 'div-overflow' in CONF.generator_faults_allowlist:
         if 'DIV' not in all_instruction_names and 'IDIV' not in all_instruction_names:
             LOG.warning("fuzzer", "div-overflow enabled, but DIV/IDIV instructions are missing")
-    if 'opcode-undefined' in CONF.generator_faults_allowlist:
-        if 'UD' not in all_instruction_names and 'UD2' not in all_instruction_names:
-            LOG.warning("fuzzer", "opcode-undefined enabled, but UD/UD2 instructions are missing")
     if 'bounds-range-exceeded' in CONF.generator_faults_allowlist:
         if "BNDCU" not in all_instruction_names:
             LOG.warning("fuzzer", "bounds-range-exceeded enabled, but BNDCU instruction is missing")

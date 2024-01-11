@@ -104,6 +104,8 @@ class X86ElfParser:
                         # store instruction data
                         inst.section_id = section.id_
                         inst.section_offset = address
+                        inst.size = instruction_addresses[section.name][counter + 1] - address if \
+                            counter + 1 < len(instruction_addresses[section.name]) else 0
                         address_map[actor.id_][address] = inst
 
                         # add macros to the symbol table

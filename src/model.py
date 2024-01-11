@@ -476,6 +476,7 @@ class UnicornSeq(UnicornModel):
         else:
             self.taint_tracker = DummyTaintTracker([])
         self.pending_fault_id = 0
+        self.current_actor = self.test_case.actors["main"]
 
     def load_test_case(self, test_case: TestCase) -> None:
         """
@@ -484,7 +485,6 @@ class UnicornSeq(UnicornModel):
         self.test_case = test_case
 
         main_actor = test_case.actors["main"]
-        self.current_actor = main_actor
         assert main_actor.elf_section, f"Actor {main_actor.name} has no ELF section"
         actors = sorted(test_case.actors.values(), key=lambda a: (a.id_))
         self.actors_sorted = actors
@@ -632,6 +632,7 @@ class UnicornSeq(UnicornModel):
 
         # an expected fault - terminate execution
         if errno in self.handled_faults:
+            self.current_actor = self.test_case.actors['main']  # faults are handled by main actor
             return self.exit_addr
 
         # unexpected fault - throw an error
