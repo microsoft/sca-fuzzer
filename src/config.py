@@ -31,17 +31,11 @@ class Conf:
     enable_fast_path_model: bool = True
     """ enable_fast_path_boosting: if enabled, the same contract trace will be used
     for all inputs in the same taint-based input class """
-    enable_fast_path_executor: bool = True
+    enable_fast_path_executor: bool = False
     """ enable_fast_path_executor: if True, the executor will first collect hardware traces
     with (almost) no noise filtering, and will re-collect traces with noise filtering if
     a violation is detected
     """
-
-    # ==============================================================================================
-    # Execution Environment
-    faulty_page_properties: List[str] = []
-    """ faulty_page_properties: a list of page properties (e.g., present, writable) applied to
-    the faulty page of the sandbox data area """
 
     # ==============================================================================================
     # Program Generator
@@ -169,7 +163,6 @@ class Conf:
     _no_generation: bool = False
     _option_values: Dict[str, List]  # set by ISA-specific config.py
     _default_instruction_blocklist: List[str] = []
-    _faulty_page_properties_dict: Dict[str, bool] = {}
     _handled_faults: List[str]  # set by ISA-specific config.py
     _generator_fault_to_fault_name: Dict[str, str]  # set by ISA-specific config.py
     _actors: OrderedDict[str, Dict]
@@ -205,18 +198,14 @@ class Conf:
                 self.update_handled_faults_with_generator_faults(value)
                 self.safe_set(var, value)
                 continue
-            if var == "faulty_page_properties":
-                for v in value:
-                    self.set_faulty_page_properties(v)
-                continue
-            if var == "actor":
+            if var == "actors":
                 self.set_actor_properties(value)
                 continue
 
             self.safe_set(var, value)
 
     def safe_set(self, name: str, value) -> None:
-        assert name not in ["instruction_set", "instruction_blocklist", "faulty_page_properties"]
+        assert name not in ["instruction_set", "instruction_blocklist"]
 
         # sanity checks
         if name[0] == "_":
@@ -289,9 +278,6 @@ class Conf:
             if name == "instruction_blocklist":
                 self._default_instruction_blocklist.extend(value)
                 continue
-            if name == "faulty_page_properties":
-                self.set_faulty_page_properties(value)
-                continue
             if name == "generator_faults_allowlist":
                 self.update_handled_faults_with_generator_faults(value)
                 continue
@@ -311,33 +297,52 @@ class Conf:
             if fault not in self._handled_faults:
                 self._handled_faults.append(fault)
 
-    def set_faulty_page_properties(self, new: Dict):
-        for k, v in new.items():
-            self._faulty_page_properties_dict[k] = v
-
     def set_actor_properties(self, new):
-        self._check_options("actor", new)
-        update = {k: v for tmp_dict in new for k, v in tmp_dict.items()}
+        for actor_dict in new:
+            name = next(iter(actor_dict))
+            self._check_options("actor", actor_dict[name])
+            update = {k: v for tmp_dict in actor_dict[name] for k, v in tmp_dict.items()}
 
-        name = update['name']
-        if name == "main":
-            if update.get('mode', 'host') != 'host':
-                raise ConfigException("ERROR: The main actor must be in 'host' mode")
-            if update.get('privilege_level', 'kernel') != 'kernel':
-                raise ConfigException("ERROR: The main actor must have 'kernel' privilege_level")
+            if name == "main":
+                if update.get('mode', 'host') != 'host':
+                    raise ConfigException("ERROR: The main actor must be in 'host' mode")
+                if update.get('privilege_level', 'kernel') != 'kernel':
+                    raise ConfigException(
+                        "ERROR: The main actor must have 'kernel' privilege_level")
 
-        if name in self._actors:
-            entry = self._actors[name]
-        else:
-            entry = deepcopy(self._actor_default)
+            if name in self._actors:
+                entry = self._actors[name]
+            else:
+                entry = deepcopy(self._actor_default)
 
-        for k, v in update.items():
-            if k == "mode" and v not in self._option_values["actor_mode"]:
-                raise ConfigException(f"ERROR: Unsupported actor mode {v}")
-            if k == "privilege_level" and v not in self._option_values["actor_privilege_level"]:
-                raise ConfigException(f"ERROR: Unsupported actor privilege_level {v}")
-            entry[k] = v
-        self._actors[name] = entry
+            for k, v in update.items():
+                if k == "mode" and v not in self._option_values["actor_mode"]:
+                    raise ConfigException(f"ERROR: Unsupported actor mode {v}")
+                if k == "privilege_level" and v not in self._option_values["actor_privilege_level"]:
+                    raise ConfigException(f"ERROR: Unsupported actor privilege_level {v}")
+
+                if k == "data_properties":
+                    for property_ in v:
+                        for p_key, p_value in property_.items():
+                            if p_key not in self._option_values["actor_data_properties"]:
+                                raise ConfigException(
+                                    f"ERROR: Unsupported actor data_properties value {p_key}")
+                            entry[k][p_key] = p_value
+                    continue
+                if k == "data_ept_properties":
+                    if update.get('mode', 'host') != 'guest':
+                        raise ConfigException(
+                            "ERROR: data_ept_properties can only be used in guest mode")
+                    for property_ in v:
+                        for p_key, p_value in property_.items():
+                            if p_key not in self._option_values["actor_data_ept_properties"]:
+                                raise ConfigException(
+                                    f"ERROR: Unsupported actor data_ept_properties value {p_key}")
+                            entry[k][p_key] = p_value
+                    continue
+
+                entry[k] = v
+            self._actors[name] = entry
 
 
 CONF = Conf()

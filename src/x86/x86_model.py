@@ -37,6 +37,8 @@ CRITICAL_ERROR = UC_ERR_NOMEM  # the model never handles this error, hence it wi
 
 class X86MacroInterpreter(MacroInterpreter):
     pseudo_lstar: int
+    curr_guest_target: int = 0
+    curr_host_target: int = 0
 
     def __init__(self, model: UnicornSeq):
         self.model = model
@@ -70,10 +72,14 @@ class X86MacroInterpreter(MacroInterpreter):
             "measurement_start": self.macro_measurement_start,
             "measurement_end": self.macro_measurement_end,
             "switch": self.macro_switch,
-            "switch_h2u": self.macro_switch_h2u,
-            "switch_u2h": self.macro_switch_u2h,
-            "select_switch_h2u_target": self.macro_select_switch_h2u_target,
-            "select_switch_u2h_target": self.macro_select_switch_u2h_target,
+            "switch_k2u": self.macro_switch_k2u,
+            "switch_u2k": self.macro_switch_u2k,
+            "set_k2u_target": self.macro_set_k2u_target,
+            "set_u2k_target": self.macro_set_u2k_target,
+            "switch_h2g": self.macro_switch_h2g,
+            "switch_g2h": self.macro_switch_g2h,
+            "set_h2g_target": self.macro_set_h2g_target,
+            "set_g2h_target": self.macro_set_g2h_target,
         }
 
         actor_id = self.model.current_actor.id_
@@ -114,7 +120,7 @@ class X86MacroInterpreter(MacroInterpreter):
         actor_name = self.sid_to_actor_name[section_id]
         model.current_actor = self.test_case.actors[actor_name]
 
-    def macro_select_switch_h2u_target(self, section_id: int, function_id: int, _: int, __: int):
+    def macro_set_k2u_target(self, section_id: int, function_id: int, _: int, __: int):
         """
         Decode arguments and store destination into RCX
         """
@@ -123,7 +129,7 @@ class X86MacroInterpreter(MacroInterpreter):
         function_addr = section_addr + function_symbol.offset
         self.model.emulator.reg_write(ucc.UC_X86_REG_RCX, function_addr)
 
-    def macro_switch_h2u(self, section_id: int, _: int, __: int, ___: int):
+    def macro_switch_k2u(self, section_id: int, _: int, __: int, ___: int):
         """ Read the destination from RCX and jump to it; also update data area base and SP """
         model = self.model
 
@@ -146,7 +152,7 @@ class X86MacroInterpreter(MacroInterpreter):
         actor_name = self.sid_to_actor_name[section_id]
         model.current_actor = self.test_case.actors[actor_name]
 
-    def macro_select_switch_u2h_target(self, section_id: int, function_id: int, _: int, __: int):
+    def macro_set_u2k_target(self, section_id: int, function_id: int, _: int, __: int):
         """ Set LSTAR to the target address if in kernel mode; otherwise, throw an exception """
         if self.model.current_actor.privilege_level != ActorPL.KERNEL:
             self.model.pending_fault_id = UC_ERR_EXCEPTION
@@ -160,12 +166,7 @@ class X86MacroInterpreter(MacroInterpreter):
         function_addr = section_addr + function_symbol.offset
         self.pseudo_lstar = function_addr
 
-        # side effects
-        model.emulator.reg_write(ucc.UC_X86_REG_RAX, 0)
-        model.emulator.reg_write(ucc.UC_X86_REG_RDX, 0)
-        model.emulator.reg_write(ucc.UC_X86_REG_RCX, 0xc0000082)
-
-    def macro_switch_u2h(self, section_id: int, _: int, __: int, ___: int):
+    def macro_switch_u2k(self, section_id: int, _: int, __: int, ___: int):
         """ Switch the active actor, update data area base and SP, and jump to
             the pseudo_lstar
         """
@@ -184,6 +185,53 @@ class X86MacroInterpreter(MacroInterpreter):
         actor_name = self.sid_to_actor_name[section_id]
         model.current_actor = self.test_case.actors[actor_name]
 
+    def macro_switch_h2g(self, section_id: int, _: int, __: int, ___: int):
+        model = self.model
+
+        # PC update
+        model.emulator.reg_write(model.uc_target_desc.pc_register, self.curr_host_target)
+
+        # data area base and SP update
+        new_base = model.sandbox_base + SANDBOX_DATA_SIZE * section_id
+        new_sp = get_sandbox_addr(new_base, "sp")
+        model.emulator.reg_write(model.uc_target_desc.actor_base_register, new_base)
+        model.emulator.reg_write(model.uc_target_desc.sp_register, new_sp)
+
+        # reset flags
+        model.emulator.reg_write(ucc.UC_X86_REG_EFLAGS, 0b10)
+
+        # actor update
+        actor_name = self.sid_to_actor_name[section_id]
+        model.current_actor = self.test_case.actors[actor_name]
+
+    def macro_switch_g2h(self, section_id: int, _: int, __: int, ___: int):
+        model = self.model
+
+        # PC update
+        model.emulator.reg_write(model.uc_target_desc.pc_register, self.curr_guest_target)
+
+        # data area base and SP update
+        new_base = model.sandbox_base + SANDBOX_DATA_SIZE * section_id
+        new_sp = get_sandbox_addr(new_base, "sp")
+        model.emulator.reg_write(model.uc_target_desc.actor_base_register, new_base)
+        model.emulator.reg_write(model.uc_target_desc.sp_register, new_sp)
+
+        # actor update
+        actor_name = self.sid_to_actor_name[section_id]
+        model.current_actor = self.test_case.actors[actor_name]
+
+    def macro_set_h2g_target(self, section_id: int, function_id: int, _: int, __: int):
+        section_addr = self.model.code_start + SANDBOX_CODE_SIZE * section_id
+        function_symbol = self._find_function_by_id(function_id)
+        function_addr = section_addr + function_symbol.offset
+        self.curr_host_target = function_addr
+
+    def macro_set_g2h_target(self, section_id: int, function_id: int, _: int, __: int):
+        section_addr = self.model.code_start + SANDBOX_CODE_SIZE * section_id
+        function_symbol = self._find_function_by_id(function_id)
+        function_addr = section_addr + function_symbol.offset
+        self.curr_guest_target = function_addr
+
 
 class X86UnicornSeq(UnicornSeq):
     """
@@ -200,6 +248,7 @@ class X86UnicornSeq(UnicornSeq):
         self.target_desc = X86TargetDesc()
         self.uc_target_desc = X86UnicornTargetDesc()
         self.taint_tracker = X86TaintTracker([], sandbox_base)
+        self.original_tain_tracker = self.taint_tracker
 
         self.architecture = (UC_ARCH_X86, UC_MODE_64)
         self.flags_id = ucc.UC_X86_REG_EFLAGS

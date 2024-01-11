@@ -5,6 +5,7 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 
+import xxhash
 from datetime import datetime
 from typing import NoReturn, Dict
 from pprint import pformat
@@ -488,6 +489,10 @@ def ctrace_colorize(ctrace):
             res += CYAN + item + COL_RESET
         res += "', "
     return res + "]"
+
+
+def stable_hash_bytes(data: bytes) -> int:
+    return xxhash.xxh64(data, seed=0).intdigest()
 
 
 class NotSupportedException(Exception):

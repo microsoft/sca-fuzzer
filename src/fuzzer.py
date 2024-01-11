@@ -165,10 +165,14 @@ class FuzzerGeneric(Fuzzer):
         else:
             htraces = self.executor.trace_test_case(boosted_inputs)
         feedback = self.executor.get_last_feedback()
+        if NullHTrace in htraces:
+            self.LOG.warning(
+                "", "Executor returned Null htrace; "
+                "set enable_fast_path_executor to False")
 
         # Check for violations, but also check that the noise didn't completely corrupt htraces
         violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces, stats=True)
-        if not violations and NullHTrace not in htraces:
+        if not violations:
             # nothing detected -> we are done here, move to next test case
             STAT.no_fast_violation += 1
             self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces, feedback,
@@ -183,6 +187,8 @@ class FuzzerGeneric(Fuzzer):
         #     and check if violations persist.
         if CONF.model_min_nesting < CONF.model_max_nesting and \
            "seq" not in CONF.contract_execution_clause and \
+           "seq-assist" not in CONF.contract_execution_clause and \
+           "sandbox" not in CONF.contract_execution_clause and \
            "no_speculation" not in CONF.contract_execution_clause:
             self.input_gen.reset_boosting_state()
             ctraces, boosted_inputs = self.trace_and_boost(inputs, CONF.model_max_nesting)
@@ -225,10 +231,10 @@ class FuzzerGeneric(Fuzzer):
                                         CONF.model_max_nesting)
 
         # 3. Check if the violation is reproducible
-        violations = self.filter_non_reproducible(violations, boosted_inputs, htraces)
-        if not violations:
-            STAT.fp_flaky += 1
-            if CONF.ignore_flaky_violations:
+        if CONF.ignore_flaky_violations:
+            violations = self.filter_non_reproducible(violations, boosted_inputs, htraces)
+            if not violations:
+                STAT.fp_flaky += 1
                 return None
 
         # 4. Check if the violation survives priming
@@ -300,9 +306,13 @@ class FuzzerGeneric(Fuzzer):
             f.write("* Statistics:\n")
             f.write(str(STAT) + "\n")
 
-            f.write("\n## Generation Seeds\n")
+            f.write("\n## Generation Properties\n")
             f.write(f"* Program seed: {test_case.seed}\n")
             f.write(f"* Input seed: {inputs[0].seed}\n")
+            f.write("* Faulty page properties:\n")
+            for actor_id in test_case.actors:
+                actor = test_case.actors[actor_id]
+                f.write(f"  * Actor {actor_id}: {actor.data_properties}\n")
 
             f.write("\n## Counterexample Inputs\n")
             for m in violation.measurements:
@@ -470,10 +480,9 @@ class ArchitecturalFuzzer(FuzzerGeneric):
         # to invoke the analyser
         for i, input_ in enumerate(inputs):
             if ctraces[i] != htraces[i]:
-                if "dbg_violation" in CONF.logging_modes:
-                    print(f"Input #{i}")
-                    print(f"Model: {[hex(v) for v in ctraces[i]]}")
-                    print(f"CPU:   {[hex(v) for v in htraces[i]]}")
+                print(f"\nInput #{i}")
+                print(f"Model: {[hex(v) for v in ctraces[i]]}")
+                print(f"CPU:   {[hex(v) for v in htraces[i]]}")
 
                 eq_cls = EquivalenceClass()
                 eq_cls.ctrace = ctraces[i][0]

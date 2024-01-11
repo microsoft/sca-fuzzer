@@ -50,22 +50,6 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
         self.passes.append(X86PatchOpcodesPass())
         self.printer = X86Printer(self.target_desc)
 
-    def create_actors(self, test_case: TestCase):
-        super().create_actors(test_case)
-
-        # create a PTE mask to be assigned to the faulty area of actors' sandboxes
-        pte_mask = 0
-        for name in self.target_desc.pte_bits:
-            bit_offset, value = self.target_desc.pte_bits[name]
-            if name in CONF._faulty_page_properties_dict:
-                value = CONF._faulty_page_properties_dict[name]
-            bit_value = 1 if value else 0
-            pte_mask |= bit_value << bit_offset
-
-        # set data properties
-        for actor in test_case.actors.values():
-            actor.data_properties = pte_mask
-
     def get_return_instruction(self) -> Instruction:
         return Instruction("RET", False, "", True)
 
@@ -270,12 +254,20 @@ class X86SandboxPass(Pass):
                     .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
                     .add_op(ImmediateOperand(mask, imm_width)) \
                     .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
+                parent.insert_before(instr, apply_mask)
+
                 add_base = Instruction("ADD", True) \
                     .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
                     .add_op(RegisterOperand("R14", 64, True, False)) \
                     .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
-                parent.insert_before(instr, apply_mask)
                 parent.insert_before(instr, add_base)
+
+                # restore the original register value
+                remove_base = Instruction("SUB", True) \
+                    .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
+                    .add_op(RegisterOperand("R14", 64, True, False)) \
+                    .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
+                parent.insert_after(instr, remove_base)
             return
 
         raise GeneratorException("Attempt to sandbox an instruction without memory operands")

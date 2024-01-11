@@ -9,20 +9,21 @@ def write_actor_metadata(f, entry):
     f.write((entry[1]).to_bytes(8, byteorder='little'))  # mode
     f.write((entry[2]).to_bytes(8, byteorder='little'))  # pl
     f.write((entry[3]).to_bytes(8, byteorder='little'))  # data permissions
-    f.write((entry[4]).to_bytes(8, byteorder='little'))  # code permissions
+    f.write((entry[4]).to_bytes(8, byteorder='little'))  # data ept properties
+    f.write((entry[5]).to_bytes(8, byteorder='little'))  # code permissions
 
 
 def write_st_entry(f, entry):
-    f.write((entry[0]).to_bytes(8, byteorder='little'))
-    f.write((entry[1]).to_bytes(8, byteorder='little'))
-    f.write((entry[2]).to_bytes(8, byteorder='little'))
-    f.write((entry[3]).to_bytes(8, byteorder='little'))
+    f.write((entry[0]).to_bytes(8, byteorder='little'))  # owner
+    f.write((entry[1]).to_bytes(8, byteorder='little'))  # offset
+    f.write((entry[2]).to_bytes(8, byteorder='little'))  # id
+    f.write((entry[3]).to_bytes(8, byteorder='little'))  # args
 
 
 def write_metadata_entry(f, entry):
-    f.write((entry[0]).to_bytes(8, byteorder='little'))
-    f.write((entry[1]).to_bytes(8, byteorder='little'))
-    f.write((entry[2]).to_bytes(8, byteorder='little'))
+    f.write((entry[0]).to_bytes(8, byteorder='little'))  # owner
+    f.write((entry[1]).to_bytes(8, byteorder='little'))  # size
+    f.write((entry[2]).to_bytes(8, byteorder='little'))  # reserved
 
 
 def main(asm_file: str, obj_file: str):
@@ -43,7 +44,7 @@ def main(asm_file: str, obj_file: str):
         f.write((n_symbols).to_bytes(8, byteorder='little'))
 
         # write actor metadata
-        write_actor_metadata(f, (0, 0, 0, 0x8000000000000063, 0))
+        write_actor_metadata(f, (0, 0, 0, 0x8000000000000063, 0, 0))
 
         # write the symbol table
         # - symbol 1: main

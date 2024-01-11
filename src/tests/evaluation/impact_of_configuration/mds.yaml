@@ -16,5 +16,7 @@ contract_execution_clause:
   - cond
 
 x86_executor_enable_ssbp_patch: true
-faulty_page_properties:
-  - accessed: False
+actor:
+  - name: "main"
+  - data_properties:
+    - accessed: False

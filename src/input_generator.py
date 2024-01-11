@@ -79,18 +79,19 @@ class NumpyRandomInputGenerator(InputGenerator):
         if len(inputs) != len(taints):
             raise Exception("Error: Cannot extend inputs. "
                             "The number of taints does not match the number of inputs.")
+        n_actors = len(inputs[0])
 
         # create inputs
         new_inputs = []
         for i, input_ in enumerate(inputs):
             new_input, self._boosting_state = self._generate_one(self._boosting_state)
-
-            taint = taints[i].linear_view()
-            input_old = input_.linear_view()
-            input_new = new_input.linear_view()
-            for j in range(input_.data_size):
-                if taint[j]:
-                    input_new[j] = input_old[j]
+            for actor_id in range(n_actors):
+                taint = taints[i].linear_view(actor_id)
+                input_old = input_.linear_view(actor_id)
+                input_new = new_input.linear_view(actor_id)
+                for j in range(input_.data_size):
+                    if taint[j]:
+                        input_new[j] = input_old[j]
             new_inputs.append(new_input)
 
         return new_inputs

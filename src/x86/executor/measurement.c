@@ -17,11 +17,13 @@
 #include "test_case_parser.h"
 
 #include "hw_features/fault_handler.h"
-#include "hw_features/page_table.h"
+#include "hw_features/guest_memory.h"
+#include "hw_features/host_page_tables.h"
 #include "hw_features/perf_counters.h"
+#include "hw_features/vmx.h"
+#include "hw_features/special_registers.h"
 
 measurement_t *measurements = NULL; // global
-cpu_state_t *orig_cpu_state = NULL; // global
 
 int unsafe_bubble(void);
 
@@ -35,6 +37,8 @@ int unsafe_bubble(void);
 static int cpu_configure(void)
 {
 #if VENDOR_ID == 1 // Intel
+    // FIXME: this needs to be moved into special_registers.c module
+
     // Configure uarch patches
     wrmsr64(MSR_IA32_SPEC_CTRL, ssbp_patch_control);
 
@@ -64,17 +68,6 @@ static int cpu_configure(void)
     return 0;
 }
 
-/// @brief Restores the CPU features and extensions
-/// @param void
-/// @return 0 on success, -1 on failure
-int cpu_restore(void)
-{
-#if VENDOR_ID == 1 // Intel
-    wrmsr64(MSR_IA32_BNDCFGS, 0ULL);
-#endif
-    return 0;
-}
-
 static inline int uarch_flush(void)
 {
 #if VENDOR_ID == 1 // Intel
@@ -91,18 +84,42 @@ static inline int uarch_flush(void)
     return 0;
 }
 
-static inline void clear_orig_cpu_state(void) { orig_cpu_state->lstar = 0; }
+static int set_execution_environment(void)
+{
+    int err = 0;
+    err = set_special_registers();
 
+    // If necessary, enable VMX
+    if (test_case->features.includes_vm_actors) {
+        err = start_vmx_operation();
+        CHECK_ERR("set_execution_environment:start_vmx_operation");
+
+        err = store_orig_vmcs_state();
+        CHECK_ERR("set_execution_environment:store_orig_vmcs_state");
+
+        err = set_vmcs_state();
+        CHECK_ERR("set_execution_environment:set_vmcs_state");
+    }
+    return 0;
+}
+
+
+/// @brief Restores the CPU state to the state before the test case execution. This function is
+/// written in a fail-safe manner, so that it can be called in fault handlers.
+/// @param void
 void recover_orig_state(void)
 {
-    if (orig_cpu_state->lstar) {
-        wrmsr64(MSR_LSTAR, orig_cpu_state->lstar);
-        orig_cpu_state->lstar = 0;
+    // restore VMX state
+    if (test_case->features.includes_vm_actors) {
+        // if (vmx_is_on)
+        //     print_vmx_exit_info(); // uncomment to debug VMX exits
+        restore_orig_vmcs_state();
+        stop_vmx_operation();
     }
+
+    restore_special_registers();
     unset_bubble_idt(); // restores original IDT regardless of the current IDTR value
-    if (test_case->features.includes_user_actors) {
-        unmap_user_pages();
-    }
+    restore_orig_sandbox_page_tables();
 }
 
 // =================================================================================================
@@ -111,22 +128,12 @@ void recover_orig_state(void)
 int run_experiment(void)
 {
     int err = 0;
-    clear_orig_cpu_state();
 
-    // If necessary, configure userspace
-    if (test_case->features.includes_user_actors) {
-#ifdef FORCE_SMAP_OFF
-        uint64_t cr4 = __read_cr4();
-        cr4 &= ~(X86_CR4_SMAP | X86_CR4_SMEP);
-        asm volatile("mov %0, %%cr4" : : "r"(cr4));
-#endif
+    if (set_sandbox_page_tables())
+        goto cleanup;
 
-        err = map_user_pages();
-        CHECK_ERR("run_experiment:map_user_pages");
-
-        orig_cpu_state->lstar = rdmsr64(MSR_LSTAR);
-        wrmsr64(MSR_LSTAR, (uint64_t)fault_handler);
-    }
+    if (set_execution_environment())
+        goto cleanup;
 
     // Zero-initialize the region of memory used by Prime+Probe
     if (!quick_and_dirty_mode)
@@ -145,8 +152,7 @@ int run_experiment(void)
 
         // Prepare sandbox
         load_sandbox_data(i_);
-        faulty_page_pte_store();
-        faulty_page_pte_set();
+        set_faulty_page_permissions();
 
         // Catch all exceptions
         set_test_case_idt();
@@ -156,7 +162,7 @@ int run_experiment(void)
         err = ((int (*)(char *))loaded_test_case_entry)(main_data);
 
         unset_test_case_idt();
-        faulty_page_pte_restore();
+        restore_faulty_page_permissions();
         if (err)
             goto cleanup;
 
@@ -254,16 +260,13 @@ int trace_test_case(void)
     ASSERT(inputs->metadata, "trace_test_case");
     ASSERT(inputs->data, "trace_test_case");
 
-    // ensure that the test case is executable
+    // check that the test case is executable
     pte_t *tc_pte = get_pte((uint64_t)loaded_test_case_entry);
     ASSERT(tc_pte && pte_present(*tc_pte) && pte_exec(*tc_pte), "trace_test_case");
 
     // Pre-measurement setup
     err |= pfc_configure();
     CHECK_ERR("trace_test_case:pfc_configure");
-
-    err |= faulty_page_prepare();
-    CHECK_ERR("trace_test_case:faulty_page_prepare");
 
     kernel_fpu_begin(); // Enable FPU - just in case, we might use it within the test case
     err |= cpu_configure();
@@ -284,7 +287,6 @@ int trace_test_case(void)
     put_cpu();
 
 trace_test_case_cleanup:
-    cpu_restore();
     kernel_fpu_end();
     CHECK_ERR("trace_test_case:cleanup");
     return err;
@@ -307,7 +309,6 @@ int alloc_measurements(void)
 int init_measurements(void)
 {
     measurements = CHECKED_VMALLOC(sizeof(measurement_t));
-    orig_cpu_state = CHECKED_ZALLOC(sizeof(cpu_state_t));
     return 0;
 }
 
@@ -316,5 +317,4 @@ int init_measurements(void)
 void free_measurements(void)
 {
     SAFE_VFREE(measurements);
-    SAFE_FREE(orig_cpu_state);
 }

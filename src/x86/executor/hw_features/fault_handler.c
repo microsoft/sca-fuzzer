@@ -15,16 +15,16 @@
 
 #include "hw_features/fault_handler.h"
 
-uint32_t handled_faults = 0; // global
-char *fault_handler = NULL;  // global
-uint64_t pre_bubble_rsp = 0; // global
+uint32_t handled_faults = 0;          // global
+char *fault_handler = NULL;           // global
+uint64_t pre_bubble_rsp = 0;          // global
+struct desc_ptr test_case_idtr = {0}; // global
 
 static gate_desc *bubble_idt = NULL;
 static gate_desc *test_case_idt = NULL;
 
 static struct desc_ptr orig_idtr = {0};
 static struct desc_ptr bubble_idtr = {0};
-static struct desc_ptr test_case_idtr = {0};
 
 void fallback_handler(void);
 void bubble_handler(void);
@@ -156,8 +156,8 @@ __attribute__((unused)) void nmi_handler_wrapper(void)
                  : [util_base] "=m"(sandbox->util)
                  :
                  : "rax", "rbx", "rcx", "r10", "r11", "r12", "r13", "r14", "r15");
+    printk(KERN_WARNING "WARN: unhandled NMI\n");
     recover_orig_state();
-    PRINT_ERR("WARNING: Caught NMI; leaving it unhandled\n")
 
     asm volatile(""
                  "mov %[rsp_save], %%rsp\n"
@@ -195,7 +195,7 @@ __attribute__((unused)) void fallback_handler_wrapper(void)
 
     asm volatile(""
         "mov %%r13, %%r14\n"          // r14 <- error code
-        "mov %[util_base], %%r15\n"          // r15 <- util_base
+        "mov %[util_base], %%r15\n"   // r15 <- util_base
 
         // check for nested faults
         "lea %[nested_flag], %%rax\n"
@@ -270,7 +270,7 @@ __attribute__((unused)) void fallback_handler_wrapper(void)
     asm_volatile_intel("mov rax, 1\n"
                        "ret\n"
                        "int3\n" // Silences objtool warnings about no int3 after ret
-                       );
+    );
 }
 
 __attribute__((unused)) void bubble_handler_wrapper(void)
@@ -371,6 +371,7 @@ int init_fault_handler(void)
 
     bubble_idt = CHECKED_ZALLOC(sizeof(gate_desc) * 256);
     test_case_idt = CHECKED_ZALLOC(sizeof(gate_desc) * 256);
+    test_case_idtr.address = (unsigned long)test_case_idt;
     return 0;
 }
 

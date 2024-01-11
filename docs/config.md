@@ -54,7 +54,6 @@ For a complete list, see `src/config.py`.
 * `instruction_blocklist` [list(str)]: List of instructions to be excluded by the generator.
   Used to filter out instructions from the instruction set file passed via command line (`--instruction-set`).
 * `generator_faults_allowlist` [list(str)]: by default, generator will produce programs that never trigger exceptions. This option modifies this behavior by permitting the generator to produce 'unsafe' instruction sequences that could potentially trigger an exception. Model and executor will also be configured to handle these exceptions gracefully
-* `faulty_page_properties` [list(str)]: List of page properties (e.g., present, writable) applied to the faulty page of the sandbox data area
 
 # Input Generator Configuration
 

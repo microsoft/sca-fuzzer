@@ -26,9 +26,11 @@ instruction_blocklist:
   - DIV
   - IDIV
 
-faulty_page_properties:
-  - present: False
-  - writable: False
+actor:
+  - name: "main"
+  - data_properties:
+    - present: False
+    - writable: False
 
 # misc. fuzzing configuration
 enable_speculation_filter: true

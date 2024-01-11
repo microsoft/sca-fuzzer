@@ -62,6 +62,9 @@ int load_sandbox_code(void)
     int err = 0;
     ASSERT(sandbox->code != NULL, "load_sandbox_code");
 
+    // reset the code
+    memset(sandbox->code, 0x90, sizeof(actor_code_t) * n_actors);
+
     for (int section_id = 0; section_id < n_actors; section_id++) {
         if (section_id == 0)
             err |= load_section_main();
@@ -85,9 +88,6 @@ static int load_section_main(void)
     uint64_t main_template_cursor = 0;
     main_macros_cursor = 0;
     main_actor_code = (uint8_t *)&sandbox->code[0].section;
-
-    // reset the code
-    memset(&main_actor_code[0], 0x90, PER_SECTION_ALLOC_SIZE);
 
     // get the template
     uint8_t *template;
@@ -129,7 +129,7 @@ static int load_section_main(void)
 
             // expand the macro that would collect htrace after the exception
             tc_symbol_entry_t measurement_end =
-                (tc_symbol_entry_t){.id = MACRO_MEASUREMENT_END, .offset = 0, .owner = 0};
+                (tc_symbol_entry_t){.id = MACRO_FAULT_HANDLER, .offset = 0, .owner = 0, .args = 0};
             uint8_t *macro_dest = &main_actor_code[MAX_EXPANDED_SECTION_SIZE + main_macros_cursor];
 
             main_macros_cursor += expand_macro(&measurement_end, fault_handler, macro_dest);
@@ -194,11 +194,12 @@ static uint64_t expand_section(uint64_t section_id, uint8_t *dest)
     }
 
     // otherwise, expand the macros
+    tc_symbol_entry_t dummy_macro = {.offset = 0};
     for (src_cursor = 0; src_cursor < section_size; src_cursor++, dest_cursor++) {
-        // PRINT_ERR("macro id: %lu, offset: %lu\n", macro->id, macro->offset);
         // PRINT_ERR("dest_cursor: 0x%lx, src_cursor: %lu, %lx\n", dest_cursor, src_cursor,
         //   section[src_cursor]);
         if (src_cursor == macro->offset) {
+            // PRINT_ERR("macro id: %lu, offset: %lu\n", macro->id, macro->offset);
             // if we found a macro -> expand it
             ASSERT(macro->owner == section_id, "expand_section");
             ASSERT(macro->id != 0, "expand_section");
@@ -208,6 +209,9 @@ static uint64_t expand_section(uint64_t section_id, uint8_t *dest)
             src_cursor += 4; // skip the remaining bytes of the current macro placeholder
             macro++;         // move to next macro
 
+            // if we're done with macros in this section, assign a dummy macro
+            if (macro->owner != section_id)
+                macro = &dummy_macro;
         } else {
             // otherwise -> just copy the code from the section
             dest[dest_cursor] = section[src_cursor];
@@ -218,9 +222,6 @@ static uint64_t expand_section(uint64_t section_id, uint8_t *dest)
 
     // ensure that we did not have an overrun
     ASSERT(src_cursor == section_size, "expand_section");
-    ASSERT(macro - test_case->symbol_table <= test_case->symbol_table_size / sizeof(*macro) ||
-               macro->owner != section_id,
-           "expand_section");
 
     return dest_cursor;
 }

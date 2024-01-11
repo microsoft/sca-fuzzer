@@ -11,8 +11,10 @@ instruction_categories:
   - BASE-LOGICAL
 
 # environment
-faulty_page_properties:
-  - accessed: False
+actor:
+  - name: "main"
+  - data_properties:
+    - accessed: False
 
 # fuzzing configuration
 enable_speculation_filter: true
