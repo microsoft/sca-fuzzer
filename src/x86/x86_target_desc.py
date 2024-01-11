@@ -125,11 +125,21 @@ class X86TargetDesc(TargetDesc):
         "cache-disable": (4, False),  # page cache disabled
         "accessed": (5, True),  # was accessed
         "dirty": (6, True),  # was written to
-        "pkey_bit0": (59, False),  # Protection Keys, bit 1/4
-        "pkey_bit1": (60, False),  # Protection Keys, bit 2/4
-        "pkey_bit2": (61, False),  # Protection Keys, bit 3/4
-        "pkey_bit3": (62, False),  # Protection Keys, bit 4/4
+        # "pkey_bit0": (59, False),  # Protection Keys, bit 1/4
+        # "pkey_bit1": (60, False),  # Protection Keys, bit 2/4
+        # "pkey_bit2": (61, False),  # Protection Keys, bit 3/4
+        # "pkey_bit3": (62, False),  # Protection Keys, bit 4/4
         "non_executable": (63, False),  # No execute: only valid after cpuid check
+    }
+
+    epte_bits = {
+        # NAME: (position, default value)
+        "present": (0, True),  # is present
+        "writable": (1, True),  # writeable
+        "executable": (2, True),  # executable
+        "accessed": (8, True),  # was accessed
+        "dirty": (9, True),  # was written to
+        "user": (10, False),  # userspace addressable
     }
 
     # FIXME: macro IDs should not be hardcoded but rather received from the executor
@@ -137,26 +147,21 @@ class X86TargetDesc(TargetDesc):
     macro_specs = {
         # macros with negative IDs are used for generation
         # and are not supposed to reach the final binary
-        "random_instructions":
-            MacroSpec(-1, "random_instructions", ("int", "int", "", "")),
+        "random_instructions": MacroSpec(-1, "random_instructions", ("int", "int", "", "")),
 
         # macros with positive IDs are used for execution and can be interpreted by executor/model
-        "function":
-            MacroSpec(0, "function", ("", "", "", "")),
-        "measurement_start":
-            MacroSpec(1, "measurement_start", ("", "", "", "")),
-        "measurement_end":
-            MacroSpec(2, "measurement_end", ("", "", "", "")),
-        "switch":
-            MacroSpec(3, "switch", ("actor_id", "function_id", "", "")),
-        "switch_h2u":
-            MacroSpec(4, "switch_h2u", ("actor_id", "", "", "")),
-        "switch_u2h":
-            MacroSpec(5, "switch_u2h", ("actor_id", "", "", "")),
-        "select_switch_h2u_target":
-            MacroSpec(6, "select_switch_h2u_target", ("actor_id", "function_id", "", "")),
-        "select_switch_u2h_target":
-            MacroSpec(7, "select_switch_u2h_target", ("actor_id", "function_id", "", "")),
+        "function": MacroSpec(0, "function", ("", "", "", "")),
+        "measurement_start": MacroSpec(1, "measurement_start", ("", "", "", "")),
+        "measurement_end": MacroSpec(2, "measurement_end", ("", "", "", "")),
+        "switch": MacroSpec(4, "switch", ("actor_id", "function_id", "", "")),
+        "set_k2u_target": MacroSpec(5, "set_k2u_target", ("actor_id", "function_id", "", "")),
+        "switch_k2u": MacroSpec(6, "switch_k2u", ("actor_id", "", "", "")),
+        "set_u2k_target": MacroSpec(7, "set_u2k_target", ("actor_id", "function_id", "", "")),
+        "switch_u2k": MacroSpec(8, "switch_u2k", ("actor_id", "", "", "")),
+        "set_h2g_target": MacroSpec(9, "set_h2g_target", ("actor_id", "function_id", "", "")),
+        "switch_h2g": MacroSpec(10, "switch_h2g", ("actor_id", "", "", "")),
+        "set_g2h_target": MacroSpec(11, "set_g2h_target", ("actor_id", "function_id", "", "")),
+        "switch_g2h": MacroSpec(12, "switch_g2h", ("actor_id", "", "", "")),
     }
 
     def __init__(self):

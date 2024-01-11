@@ -30,7 +30,7 @@ from .interfaces import CTrace, TestCase, Model, InputTaint, Instruction, Execut
     RegisterOperand, FlagsOperand, MemoryOperand, TaintTrackerInterface, TargetDesc, \
     get_sandbox_addr, SANDBOX_DATA_SIZE, SANDBOX_CODE_SIZE
 from .config import CONF
-from .util import Logger, NotSupportedException
+from .util import Logger, NotSupportedException, stable_hash_bytes
 
 # ==================================================================================================
 # Custom Data Types and Constants
@@ -278,6 +278,7 @@ class UnicornModel(Model, ABC):
     uc_target_desc: UnicornTargetDesc
     tracer: UnicornTracer
     taint_tracker: TaintTrackerInterface
+    original_tain_tracker: TaintTrackerInterface
     macro_interpreter: MacroInterpreter
 
     # checkpointing
@@ -470,6 +471,7 @@ class UnicornSeq(UnicornModel):
         self.speculation_window = 0
         self.tracer.init_trace(self.emulator, self.uc_target_desc)
         if self.tainting_enabled:
+            self.taint_tracker = self.original_tain_tracker
             self.taint_tracker.reset(self.initial_taints)
         else:
             self.taint_tracker = DummyTaintTracker([])
@@ -793,6 +795,85 @@ class UnicornSpec(UnicornSeq):
 
 
 # ==================================================================================================
+# Actor-based Models
+# ==================================================================================================
+class ExposeObserverModel(UnicornModel):  # unicorn is not actually used; it's for compatibility
+    """ The model that exposes all data that belongs to the actor called `observer` """
+    observer_id: int = -1
+    test_case: TestCase
+
+    def __init__(self, sandbox_base: int, code_base: int):
+        super().__init__(sandbox_base, code_base)
+
+    def load_test_case(self, test_case: TestCase) -> None:
+        if 'observer' not in test_case.actors:
+            raise NotSupportedException("ExposeActorModel requires that the test case has an "
+                                        "actor named `observer`")
+        self.observer_id = test_case.actors['observer'].id_
+        self.test_case = test_case
+
+    def trace_test_case(self, inputs: List[Input], nesting: int) -> List[CTrace]:
+        ctraces, _ = self._execute_test_case(inputs, nesting)
+        return ctraces
+
+    def trace_test_case_with_taints(self, inputs, nesting) -> Tuple[List[CTrace], List[InputTaint]]:
+        return self._execute_test_case(inputs, nesting)
+
+    def _execute_test_case(self, inputs: List[Input], _) -> Tuple[List[CTrace], List[InputTaint]]:
+        taints = []
+        contract_traces = []
+
+        base_taint = self._create_base_taint()
+
+        for input_ in inputs:
+            input_fragment = input_[self.observer_id]
+            contract_traces.append(stable_hash_bytes(input_fragment.tobytes()))
+            taints.append(base_taint)
+
+        return contract_traces, taints
+
+    def _create_base_taint(self) -> InputTaint:
+        n_actors = len(self.test_case.actors)
+        base_taint = InputTaint(n_actors)
+
+        # create a view of the taint array as a 64-bit array
+        # note that it *does not* copy the taint, only casts it into a different type
+        linear_view = base_taint.linear_view(self.observer_id)
+        actor_offset = self.observer_id * 0x4000 // 8
+
+        # taint the whole actor
+        for i in range(actor_offset, actor_offset + linear_view.size):
+            linear_view[i - actor_offset] = True
+
+        return base_taint
+
+    # The following methods are not implemented or not used by this model
+    def dbg_get_trace_detailed(self, _, __) -> List[str]:
+        return []
+
+    def _load_input(self, _):
+        pass
+
+    @staticmethod
+    def instruction_hook(_, __, ___, ____) -> None:
+        pass
+
+    @staticmethod
+    def trace_instruction(_, __, ___, ____) -> None:
+        pass
+
+    @staticmethod
+    def trace_mem_access(_, __, ___, ____, _____, ______) -> None:
+        pass
+
+    def reset_model(self):
+        pass
+
+    def print_state(self, _):
+        pass
+
+
+# ==================================================================================================
 # Implementation of Tainting
 # ==================================================================================================
 class DummyTaintTracker(TaintTrackerInterface):
@@ -967,7 +1048,8 @@ class BaseTaintTracker(TaintTrackerInterface):
         if self._instruction:
             self._finalize_instruction()
 
-        taint = InputTaint()
+        n_actors = len(CONF._actors)
+        taint = InputTaint(n_actors)
         tainted_positions = []
         register_start = taint[0].dtype.fields['gpr'][1] // 8
         simd_start = taint[0].dtype.fields['simd'][1] // 8
@@ -996,18 +1078,14 @@ class BaseTaintTracker(TaintTrackerInterface):
         tainted_positions = list(dict.fromkeys(tainted_positions))
         tainted_positions.sort()
 
-        # create a view of the taint array as a 64-bit array
-        # note that it *does not* copy the taint, only casts it into a different type
-        linear_view = taint.linear_view()
+        for actor_id in range(0, n_actors):
+            # create a view of the taint array as a 64-bit array
+            # note that it *does not* copy the taint, only casts it into a different type
+            linear_view = taint.linear_view(actor_id)
+            actor_offset = actor_id * 0x4000 // 8
 
-        for i in range(linear_view.size):
-            if i in tainted_positions:
-                linear_view[i] = True
-            else:
-                linear_view[i] = False
-
-        # all taints but the first are unused
-        for i in range(1, len(taint)):
-            taint[i].fill(False)
+            for i in range(actor_offset, actor_offset + linear_view.size):
+                if i in tainted_positions:
+                    linear_view[i - actor_offset] = True
 
         return taint

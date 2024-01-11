@@ -17,10 +17,6 @@ typedef struct Measurement {
     uint64_t pfc_reading[NUM_PFC];
 } __attribute__((packed)) measurement_t;
 
-typedef struct {
-    uint64_t lstar;
-} __attribute__((packed)) cpu_state_t;
-
 extern measurement_t *measurements;
 
 int trace_test_case(void);

@@ -10,6 +10,7 @@
 #include <linux/sysfs.h>
 #include <linux/version.h>
 #include <linux/kobject.h>
+#include <asm/virtext.h>
 // clang-format on
 
 #include "main.h"
@@ -25,8 +26,12 @@
 #include "test_case_parser.h"
 
 #include "hw_features/fault_handler.h"
-#include "hw_features/page_table.h"
+#include "hw_features/guest_memory.h"
+#include "hw_features/host_page_tables.h"
+#include "hw_features/page_tables_common.h"
 #include "hw_features/perf_counters.h"
+#include "hw_features/vmx.h"
+#include "hw_features/special_registers.h"
 
 // Version-dependent includes
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 6)
@@ -180,6 +185,11 @@ static struct kobj_attribute enable_dbg_gpr_mode_attribute =
 static ssize_t dbg_dump_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf);
 static struct kobj_attribute dbg_dump_attribute = __ATTR(dbg_dump_mode, 0666, dbg_dump_show, NULL);
 
+static ssize_t dbg_guest_page_tables_show(struct kobject *kobj, struct kobj_attribute *attr,
+                                          char *buf);
+static struct kobj_attribute dbg_guest_page_tables_attribute =
+    __ATTR(dbg_guest_page_tables, 0666, dbg_guest_page_tables_show, NULL);
+
 static struct attribute *sysfs_attributes[] = {
     &trace_attribute.attr,
     &test_case_attribute.attr,
@@ -194,6 +204,7 @@ static struct attribute *sysfs_attributes[] = {
     &enable_quick_and_dirty_mode_attribute.attr,
     &enable_dbg_gpr_mode_attribute.attr,
     &dbg_dump_attribute.attr,
+    &dbg_guest_page_tables_attribute.attr,
 #if VENDOR_ID == 1 // Intel
     &enable_mpx_attribute.attr,
 #endif
@@ -256,6 +267,8 @@ static ssize_t test_case_store(struct kobject *kobj, struct kobj_attribute *attr
     tc_ready = false;
 
     if (finished) {
+        int err = 0;
+
         // check compatibility
         if (test_case->features.includes_user_actors) {
 #ifndef FORCE_SMAP_OFF
@@ -264,9 +277,13 @@ static ssize_t test_case_store(struct kobject *kobj, struct kobj_attribute *attr
             ASSERT(!(__read_cr4() & (X86_CR4_SMAP | X86_CR4_SMEP)), "test_case_store");
 #endif
         }
+        if (test_case->features.includes_vm_actors) {
+            err = vmx_check_cpu_compatibility();
+            CHECK_ERR("vmx_check_cpu_compatibility");
+        }
 
         // prepare sandboxes
-        int err = allocate_sandbox();
+        err = allocate_sandbox();
         CHECK_ERR("allocate_sandbox");
 
         err = load_sandbox_code();
@@ -443,7 +460,7 @@ static ssize_t enable_dbg_gpr_mode(struct kobject *kobj, struct kobj_attribute *
     return count;
 }
 
-/// Dump all global variables into the kernel log
+/// Dump all global variables
 ///
 static ssize_t dbg_dump_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
@@ -468,6 +485,22 @@ static ssize_t dbg_dump_show(struct kobject *kobj, struct kobj_attribute *attr, 
     len += sprintf(&buf[len], "pre_run_flush: %d\n", pre_run_flush);
     len += sprintf(&buf[len], "mpx_control: %llu\n", mpx_control);
     return len;
+}
+
+/// Dump guest page tables into the kernel log
+static ssize_t dbg_guest_page_tables_show(struct kobject *kobj, struct kobj_attribute *attr,
+                                          char *buf)
+{
+    if (n_actors < 2)
+        return sprintf(buf, "No actors to print tables for\n");
+
+    int err = dbg_dump_guest_page_tables(1);
+    if (err)
+        return err;
+    err = dbg_dump_ept(1);
+    if (err)
+        return err;
+    return sprintf(buf, "done (see dmesg)\n");
 }
 
 // ============================================================================
@@ -495,7 +528,16 @@ static int __init executor_init(void)
     // Check CPU vendor
     struct cpuinfo_x86 *c = &cpu_data(0);
     if (c->x86_vendor != X86_VENDOR_INTEL && c->x86_vendor != X86_VENDOR_AMD) {
-        printk(KERN_ERR "x86_executor: This CPU vendor is not supported\n");
+        printk(KERN_ERR "ERROR: x86_executor:  This CPU vendor is not supported\n");
+        return -1;
+    }
+
+    // Check memory configuration
+    unsigned int phys_addr_width = cpuid_eax(0x80000008) & 0xFF;
+    if (phys_addr_width != PHYSICAL_WIDTH) {
+        printk(KERN_ERR "x86_executor: ERROR: The width of physical addresses is %d instead of "
+                        "expected %d\n",
+               phys_addr_width, PHYSICAL_WIDTH);
         return -1;
     }
 
@@ -514,6 +556,10 @@ static int __init executor_init(void)
     err |= init_fault_handler();
     err |= init_page_table_manager();
     err |= init_perf_counters();
+    err |= init_special_register_manager();
+#if VENDOR_ID == 1 // Intel
+    err |= init_vmx();
+#endif
     CHECK_ERR("executor_init");
 
     // Create a pseudo file system interface
@@ -578,6 +624,10 @@ static void __exit executor_exit(void)
     free_fault_handler();
     free_page_table_manager();
     free_perf_counters();
+    free_special_register_manager();
+#if VENDOR_ID == 1 // Intel
+    free_vmx();
+#endif
 
     if (kobj_interface)
         kobject_put(kobj_interface);

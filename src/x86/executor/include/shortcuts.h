@@ -152,4 +152,17 @@
 #define MULTI_ENTRY_HANDLER_LIST_ID(name, id) name##_##id,
 #define MULTI_ENTRY_HANDLER_LIST(name)        CALL_256_TIMES(MULTI_ENTRY_HANDLER_LIST_ID, name)
 
+// Address translation
+static inline uint64_t vmalloc_to_phys(void *hva)
+{
+    struct page *page = vmalloc_to_page(hva);
+    uint64_t hpa = page_to_phys(page);
+    return hpa;
+}
+
+static inline void native_page_invalidate(uint64_t va)
+{
+    asm volatile("invlpg (%0)" ::"r"(va) : "memory");
+}
+
 #endif // _SHORTCUTS_H_

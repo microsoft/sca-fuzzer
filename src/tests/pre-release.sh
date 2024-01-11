@@ -287,8 +287,10 @@ fuzz_no_verify $name 1
 name="exception-delayed-handling"
 cp template-all.yaml "${name}.yaml"
 echo "
-faulty_page_properties:
-  - present: False
+actor:
+  - name: "main"
+  - data_properties:
+    - present: False
 " >> "${name}.yaml"
 cp "${name}.yaml" "${name}-verify.yaml"
 echo "
@@ -301,8 +303,10 @@ fuzz_and_verify $name 1
 name="l1tf-present"
 cp template-all.yaml "${name}.yaml"
 echo "
-faulty_page_properties:
-  - present: False
+actor:
+  - name: "main"
+  - data_properties:
+    - present: False
 contract_execution_clause:
     - delayed-exception-handling
 " >> "${name}.yaml"
@@ -317,8 +321,10 @@ fuzz_and_verify $name 1
 name="l1tf-rw"
 cp template-all.yaml "${name}.yaml"
 echo "
-faulty_page_properties:
-  - writable: False
+actor:
+  - name: "main"
+  - data_properties:
+    - writable: False
 contract_execution_clause:
     - delayed-exception-handling
 " >> "${name}.yaml"
@@ -333,7 +339,9 @@ fuzz_and_verify $name 1
 name="l1tf-smap"
 cp template-all.yaml "${name}.yaml"
 echo "
-faulty_page_properties:
+actor:
+  - name: "main"
+  - data_properties:
     - user: false
 contract_execution_clause:
     - delayed-exception-handling
@@ -349,7 +357,9 @@ fuzz_and_verify $name 1
 name="mds-assist-accessed"
 cp template-all.yaml "${name}.yaml"
 echo "
-faulty_page_properties:
+actor:
+  - name: "main"
+  - data_properties:
     - accessed: false
 contract_execution_clause:
     - delayed-exception-handling
@@ -365,7 +375,9 @@ fuzz_and_verify $name 1
 name="mds-assist-dirty"
 cp template-all.yaml "${name}.yaml"
 echo "
-faulty_page_properties:
+actor:
+  - name: "main"
+  - data_properties:
     - dirty: false
 contract_execution_clause:
     - delayed-exception-handling

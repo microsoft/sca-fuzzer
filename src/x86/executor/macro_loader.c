@@ -5,6 +5,8 @@
 
 #include "macro_loader.h"
 #include "asm_snippets.h"
+#include "hw_features/guest_memory.h"
+#include "hw_features/vmx.h"
 #include "main.h"
 #include "sandbox_manager.h"
 #include "shortcuts.h"
@@ -43,17 +45,28 @@ void macro_measurement_start_tsc(void);
 void macro_measurement_end_tsc(void);
 
 void macro_same_context_switch(void);
-void macro_context_switch_h2u(void);
-void macro_context_switch_u2h(void);
-void macro_select_switch_h2u_target(void);
-void macro_select_switch_u2h_target(void);
+void macro_switch_k2u(void);
+void macro_switch_u2k(void);
+void macro_set_k2u_target(void);
+void macro_set_u2k_target(void);
+void macro_switch_h2g(void);
+void macro_switch_g2h(void);
+void macro_set_h2g_target(void);
+void macro_set_g2h_target(void);
 
 // =================================================================================================
 // Helper functions
 // =================================================================================================
 static uint64_t get_function_addr(int section_id, int function_id, uint64_t main_prologue_size)
 {
-    uint64_t section_base = (uint64_t)sandbox->code[section_id].section;
+    uint64_t section_base = 0;
+    if (actors[section_id].mode == MODE_HOST)
+        section_base = (uint64_t)sandbox->code[section_id].section;
+    else { // MODE_GUEST
+        guest_memory_t *guest_memory = (guest_memory_t *)GUEST_V_MEMORY_START;
+        section_base = (uint64_t)guest_memory->code.section;
+    }
+
     if (section_id == 0)
         section_base += main_prologue_size;
     return section_base + test_case->symbol_table[function_id].offset;
@@ -64,7 +77,13 @@ static uint64_t update_r14(int section_id, uint8_t *macro_dest, uint64_t cursor)
     int old_cursor = cursor;
 
     // calculate the new R14 value
-    uint64_t new_r14 = (uint64_t)sandbox->data[section_id].main_area;
+    uint64_t new_r14 = 0;
+    if (actors[section_id].mode == MODE_HOST)
+        new_r14 = (uint64_t)sandbox->data[section_id].main_area;
+    else { // MODE_GUEST
+        guest_memory_t *guest_memory = (guest_memory_t *)GUEST_V_MEMORY_START;
+        new_r14 = (uint64_t)guest_memory->data.main_area;
+    }
 
     // movabs r14, new_r14
     macro_dest[cursor] = 0x49;
@@ -81,13 +100,43 @@ static uint64_t update_r14_rsp(int section_id, uint8_t *macro_dest, uint64_t cur
     int old_cursor = cursor;
     cursor += update_r14(section_id, macro_dest, cursor);
 
+    uint64_t new_rsp = 0;
+    if (actors[section_id].mode == MODE_HOST)
+        new_rsp = (uint64_t)sandbox->data[section_id].main_area + LOCAL_RSP_OFFSET;
+    else { // MODE_GUEST
+        guest_memory_t *guest_memory = (guest_memory_t *)GUEST_V_MEMORY_START;
+        new_rsp = (uint64_t)guest_memory->data.main_area + LOCAL_RSP_OFFSET;
+    }
+
     // movabs rsp, new_rsp
-    uint64_t new_rsp = (uint64_t)sandbox->data[section_id].main_area + LOCAL_RSP_OFFSET;
     macro_dest[cursor] = 0x48;
     cursor++;
     macro_dest[cursor] = 0xbc;
     cursor++;
     *((uint64_t *)(macro_dest + cursor)) = new_rsp;
+    cursor += 8;
+    return cursor - old_cursor;
+}
+
+static uint64_t update_r15(int section_id, uint8_t *macro_dest, uint64_t cursor)
+{
+    int old_cursor = cursor;
+
+    // calculate the new R15 value
+    uint64_t new_r15 = 0;
+    if (actors[section_id].mode == MODE_HOST)
+        new_r15 = (uint64_t)sandbox->util;
+    else { // MODE_GUEST
+        guest_memory_t *guest_memory = (guest_memory_t *)GUEST_V_MEMORY_START;
+        new_r15 = (uint64_t)&guest_memory->util;
+    }
+
+    // movabs r15, new_r15
+    macro_dest[cursor] = 0x49;
+    cursor++;
+    macro_dest[cursor] = 0xbf;
+    cursor++;
+    *((uint64_t *)(macro_dest + cursor)) = new_r15;
     cursor += 8;
     return cursor - old_cursor;
 }
@@ -121,6 +170,7 @@ static uint8_t *get_macro_wrapper_ptr(uint64_t macro_id)
             PRINT_ERRS("get_macro_wrapper_ptr", "misconfigured measurement_mode\n");
             return NULL;
         }
+    case MACRO_FAULT_HANDLER:
     case MACRO_MEASUREMENT_END:
         switch (measurement_mode) {
         case PRIME_PROBE:
@@ -139,14 +189,22 @@ static uint8_t *get_macro_wrapper_ptr(uint64_t macro_id)
         }
     case MACRO_SWITCH:
         return (uint8_t *)macro_same_context_switch;
-    case MACRO_SWITCH_H2U:
-        return (uint8_t *)macro_context_switch_h2u;
-    case MACRO_SWITCH_U2H:
-        return (uint8_t *)macro_context_switch_u2h;
-    case MACRO_SELECT_SWITCH_H2U_TARGET:
-        return (uint8_t *)macro_select_switch_h2u_target;
-    case MACRO_SELECT_SWITCH_U2H_TARGET:
-        return (uint8_t *)macro_select_switch_u2h_target;
+    case MACRO_SWITCH_K2U:
+        return (uint8_t *)macro_switch_k2u;
+    case MACRO_SWITCH_U2K:
+        return (uint8_t *)macro_switch_u2k;
+    case MACRO_SET_K2U_TARGET:
+        return (uint8_t *)macro_set_k2u_target;
+    case MACRO_SET_U2K_TARGET:
+        return (uint8_t *)macro_set_u2k_target;
+    case MACRO_SWITCH_H2G:
+        return (uint8_t *)macro_switch_h2g;
+    case MACRO_SWITCH_G2H:
+        return (uint8_t *)macro_switch_g2h;
+    case MACRO_SET_H2G_TARGET:
+        return (uint8_t *)macro_set_h2g_target;
+    case MACRO_SET_G2H_TARGET:
+        return (uint8_t *)macro_set_g2h_target;
     default:
         PRINT_ERRS("get_macro_wrapper_ptr", "macro_id %llu is not valid\n", macro_id);
         return NULL;
@@ -199,6 +257,11 @@ uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint8_t *mac
     case MACRO_MEASUREMENT_START:
     case MACRO_MEASUREMENT_END:
         break;
+    case MACRO_FAULT_HANDLER: {
+        cursor += update_r14(arg1, macro_dest, cursor);
+        cursor += update_r15(arg1, macro_dest, cursor);
+        break;
+    }
     case MACRO_SWITCH: {
         cursor += update_r14_rsp(arg1, macro_dest, cursor);
 
@@ -213,7 +276,15 @@ uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint8_t *mac
         cursor += 4;
         break;
     }
-    case MACRO_SELECT_SWITCH_H2U_TARGET: {
+    case MACRO_SWITCH_K2U: {
+        cursor += update_r14_rsp(arg1, macro_dest, cursor);
+        break;
+    }
+    case MACRO_SWITCH_U2K: {
+        cursor += update_r14_rsp(arg1, macro_dest, cursor);
+        break;
+    }
+    case MACRO_SET_K2U_TARGET: {
         // movabs rcx, function_addr
         uint64_t function_addr = get_function_addr(arg1, arg2, main_prologue_size);
         macro_dest[cursor] = 0x48;
@@ -224,23 +295,65 @@ uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint8_t *mac
         cursor += 8;
         break;
     }
-    case MACRO_SWITCH_H2U: {
-        cursor += update_r14_rsp(arg1, macro_dest, cursor);
-        break;
-    }
-    case MACRO_SELECT_SWITCH_U2H_TARGET: {
-        // movabs rax, function_addr
-        uint64_t function_addr = get_function_addr(arg1, arg2, main_prologue_size);
-        macro_dest[cursor] = 0x48;
+    case MACRO_SET_H2G_TARGET: {
+        // movabs r11, &vmcs_hpa
+        macro_dest[cursor] = 0x49;
         cursor++;
-        macro_dest[cursor] = 0xb8;
+        macro_dest[cursor] = 0xbb;
+        cursor++;
+        *((uint64_t **)(macro_dest + cursor)) = &vmcs_hpas[arg1];
+        cursor += 8;
+
+        // vmptrld [r11]
+        macro_dest[cursor] = 0x41;
+        cursor++;
+        macro_dest[cursor] = 0x0f;
+        cursor++;
+        macro_dest[cursor] = 0xc7;
+        cursor++;
+        macro_dest[cursor] = 0x33;
+        cursor++;
+
+        // movabs r11, function_addr
+        uint64_t function_addr = get_function_addr(arg1, arg2, main_prologue_size);
+        macro_dest[cursor] = 0x49;
+        cursor++;
+        macro_dest[cursor] = 0xbb;
         cursor++;
         *((uint64_t *)(macro_dest + cursor)) = function_addr;
         cursor += 8;
         break;
     }
-    case MACRO_SWITCH_U2H: {
-        cursor += update_r14_rsp(arg1, macro_dest, cursor);
+    case MACRO_SET_U2K_TARGET:
+    case MACRO_SET_G2H_TARGET: {
+        // movabs r11, function_addr
+        uint64_t function_addr = get_function_addr(arg1, arg2, main_prologue_size);
+        macro_dest[cursor] = 0x49;
+        cursor++;
+        macro_dest[cursor] = 0xbb;
+        cursor++;
+        *((uint64_t *)(macro_dest + cursor)) = function_addr;
+        cursor += 8;
+        break;
+    }
+    case MACRO_SWITCH_H2G: {
+        cursor += update_r14(arg1, macro_dest, cursor);
+        cursor += update_r15(arg1, macro_dest, cursor);
+        // vmresume
+        macro_dest[cursor] = 0x0f;
+        cursor++;
+        macro_dest[cursor] = 0x01;
+        cursor++;
+        macro_dest[cursor] = 0xc3;
+        cursor++;
+        // vmlaunch can fall through to the next instruction, so we need to restore R14
+        cursor += update_r14(0, macro_dest, cursor);
+        cursor += update_r15(0, macro_dest, cursor);
+        break;
+    }
+    case MACRO_SWITCH_G2H: {
+        cursor += update_r14(arg1, macro_dest, cursor);
+        cursor += update_r15(arg1, macro_dest, cursor);
         break;
     }
     default:
@@ -256,8 +369,8 @@ uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint8_t *mac
 // =================================================================================================
 // clang-format off
 #define PUSH_ABCDF()                                                                               \
-    "mov r11, rsp\n"                                                                               \
-    "lea rsp, [r14 - " xstr(MACRO_STACK_TOP_OFFSET) "]\n"                                          \
+    "mov qword ptr [r14 - " xstr(MACRO_STACK_TOP_OFFSET) " - 8], rsp\n"                            \
+    "lea rsp, [r14 - " xstr(MACRO_STACK_TOP_OFFSET) " - 8]\n"                                      \
     "push rax\n"                                                                                   \
     "push rbx\n"                                                                                   \
     "push rcx\n"                                                                                   \
@@ -270,7 +383,7 @@ uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint8_t *mac
     "pop rcx\n"                                                                                    \
     "pop rbx\n"                                                                                    \
     "pop rax\n"                                                                                    \
-    "mov rsp, r11\n"
+    "pop rsp\n"
 // clang-format on
 
 #define HTRACE_REGISTER "r13"
@@ -344,12 +457,10 @@ void __attribute__((noipa)) macro_measurement_end_probe(void)
                        "jnz 99f\n"                                       //
                        PUSH_ABCDF()                                      //
                        "push r15\n"                                      //
-                       "push r11\n"                                      //
                        "lfence\n"                                        //
                        READ_PFC_END()                                    //
                        "lea r15, [r15 + " xstr(L1D_PRIMING_OFFSET) "]\n" //
                        PROBE("r15", "rbx", "r11", HTRACE_REGISTER)       //
-                       "pop r11\n"                                       //
                        "pop r15\n"                                       //
                        POP_ABCDF()                                       //
                        "99:\n"                                           //
@@ -377,14 +488,12 @@ void __attribute__((noipa)) macro_measurement_end_reload(void)
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                                           //
                        PUSH_ABCDF()                                 //
-                       "push r11\n"                                 //
                        "lfence\n"                                   //
                        READ_PFC_END()                               //
                        RELOAD("r14", "rbx", "r11", HTRACE_REGISTER) //
                        "mov rax, 1\n"                               //
                        "shl rax, 63\n"                              //
                        "or " HTRACE_REGISTER ", rax\n"              //
-                       "pop r11\n"                                  //
                        POP_ABCDF()                                  //
     );
     asm volatile(".quad " xstr(MACRO_END));
@@ -435,15 +544,15 @@ void __attribute__((noipa)) macro_same_context_switch(void)
     asm volatile(".quad " xstr(MACRO_END));
 }
 
-void __attribute__((noipa)) macro_select_switch_h2u_target(void)
+void __attribute__((noipa)) macro_set_k2u_target(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
-    // Nothing here: implementation in inject_macro_arguments->MACRO_SELECT_SWITCH_H2U_TARGET
+    // Nothing here: implementation in inject_macro_arguments->MACRO_SET_K2U_TARGET
     asm volatile(".quad " xstr(MACRO_END));
 }
 
 /// @brief Macro to switch host -> user actor
-void __attribute__((noipa)) macro_context_switch_h2u(void)
+void __attribute__((noipa)) macro_switch_k2u(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""
@@ -453,27 +562,66 @@ void __attribute__((noipa)) macro_context_switch_h2u(void)
     asm volatile(".quad " xstr(MACRO_END));
 }
 
-void __attribute__((noipa)) macro_select_switch_u2h_target(void)
+void __attribute__((noipa)) macro_set_u2k_target(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
-    asm_volatile_intel(""
-                       "mov rdx, rax\n"
-                       "shr rdx, 32\n"
-                       "mov rcx, 0xc0000082\n"
-                       "wrmsr\n"
-                       "mov rax, 0\n"
-                       "mov rdx, 0\n"
-                       );
+    asm_volatile_intel(""                      // r11 contains the target address
+                       PUSH_ABCDF()            //
+                       "mov rax, r11\n"        //
+                       "mov rdx, r11\n"        //
+                       "shr rdx, 32\n"         //
+                       "mov rcx, 0xc0000082\n" //
+                       "wrmsr\n"               //
+                       POP_ABCDF()             //
+    );
     asm volatile(".quad " xstr(MACRO_END));
 }
 
 /// @brief Macro to switch user -> host actor
-void __attribute__((noipa)) macro_context_switch_u2h(void)
+void __attribute__((noipa)) macro_switch_u2k(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""
                        "syscall\n"
                        "");
+    asm volatile(".quad " xstr(MACRO_END));
+}
+
+void __attribute__((noipa)) macro_switch_h2g(void)
+{
+    asm volatile(".quad " xstr(MACRO_START));
+    // Nothing here: implementation in inject_macro_arguments->MACRO_SWITCH_H2G
+    asm volatile(".quad " xstr(MACRO_END));
+}
+
+void __attribute__((noipa)) macro_switch_g2h(void)
+{
+    asm volatile(".quad " xstr(MACRO_START));
+    asm_volatile_intel("vmcall\n");
+    asm volatile(".quad " xstr(MACRO_END));
+}
+
+void __attribute__((noipa)) macro_set_h2g_target(void)
+{
+    asm volatile(".quad " xstr(MACRO_START));
+    asm_volatile_intel(""                      // r11 contains the target address
+                       PUSH_ABCDF()            //
+                       "mov rcx, 0x0000681e\n" // GUEST_RIP
+                       "vmwrite rcx, r11 \n"   //
+                       POP_ABCDF()             //
+    );
+    asm volatile(".quad " xstr(MACRO_END));
+}
+
+void __attribute__((noipa)) macro_set_g2h_target(void)
+{
+    asm volatile(".quad " xstr(MACRO_START));
+    asm_volatile_intel(""                      // r11 contains the target address
+                       PUSH_ABCDF()            //
+                       "mov rcx, 0x00006c16\n" // HOST_RIP
+                       "vmwrite rcx, r11 \n"   //
+                       POP_ABCDF()             //
+    );
     asm volatile(".quad " xstr(MACRO_END));
 }
 
