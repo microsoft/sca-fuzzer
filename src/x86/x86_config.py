@@ -14,6 +14,7 @@ try:
 except ImportError:
     pass
 
+
 def try_get_cpu_vendor():
     if cpuinfo_imported:
         if 'AuthenticAMD' in cpuinfo.get_cpu_info()['vendor_id_raw']:
@@ -25,6 +26,7 @@ def try_get_cpu_vendor():
             return 'x86-64-intel'
     else:
         return 'x86-64-intel'
+
 
 _option_values = {
     'executor': [
@@ -147,6 +149,19 @@ _option_values = {
         "SMX-SYSTEM",
         "VTX-VTX",
         "XSAVE-XSAVE",
+    ],
+    "logging_modes": [
+        "info",
+        "stat",
+        "dbg_generator",
+        "dbg_timestamp",
+        "dbg_violation",
+        "dbg_dump_htraces",
+        "dbg_dump_ctraces",
+        "dbg_dump_traces_unlimited",
+        "dbg_model",
+        "dbg_coverage",
+        "dbg_isa_loader",
     ]
 }
 
