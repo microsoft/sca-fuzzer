@@ -32,7 +32,7 @@ class Conf:
     enable_fast_path_model: bool = True
     """ enable_fast_path_boosting: if enabled, the same contract trace will be used
     for all inputs in the same taint-based input class """
-    enable_fast_path_executor: bool = True
+    enable_fast_path_executor: bool = False
     """ enable_fast_path_executor: if True, the executor will first collect hardware traces
     with (almost) no noise filtering, and will re-collect traces with noise filtering if
     a violation is detected
