@@ -49,10 +49,12 @@ For a complete list, see `src/config.py`.
 * `program_size` [int]: Number of instructions per test case.
   The actual size might be larger because of the instrumentation.
 * `avg_mem_accesses` [int]: Average number of memory accesses per test case.
-* `instruction_categories` [list(str)]: List of instruction categories to be used when generating a test case.
+* `instruction_allowlist` [list(str)]: List of instructions to use for generating programs; combined with instruction_categories; has priority over instruction_blocklist.
+  Used to select instructions from the instruction set file passed via command line (`--instruction-set`).
+* `instruction_categories` [list(str)]: List of instruction categories to be used when generating programs.
   Used to filter out instructions from the instruction set file passed via command line (`--instruction-set`).
 * `instruction_blocklist` [list(str)]: List of instructions to be excluded by the generator.
-  Used to filter out instructions from the instruction set file passed via command line (`--instruction-set`).
+  Filters out instructions from instruction_categories, but not from instruction_allowlist.
 * `generator_faults_allowlist` [list(str)]: by default, generator will produce programs that never trigger exceptions. This option modifies this behavior by permitting the generator to produce 'unsafe' instruction sequences that could potentially trigger an exception. Model and executor will also be configured to handle these exceptions gracefully
 
 # Input Generator Configuration

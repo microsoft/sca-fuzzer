@@ -115,7 +115,7 @@ _option_values = {
         # "BASE-IOSTRINGOP",  # Not supported: System instructions
         # "BASE-SYSCALL",     # Not supported: System instructions
         # "BASE-SYSRET",      # Not supported: System instructions
-        # "BASE-SYSTEM",      # Not supported: System instructions
+        "BASE-SYSTEM",
         "LONGMODE-SYSCALL",
         "LONGMODE-SYSRET",
 
@@ -144,6 +144,9 @@ _option_values = {
         "CLFLUSHOPT-CLFLUSHOPT",
         "CLFSH-MISC",
         "MPX-MPX",
+        "SMX-SYSTEM",
+        "VTX-VTX",
+        "XSAVE-XSAVE",
     ]
 }
 

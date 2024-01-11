@@ -76,6 +76,10 @@ class InstructionSet(InstructionSetAbstract):
                 # if we use an existing test case, then instruction filtering is irrelevant
                 return True
 
+            # allowlist has priority over blocklists
+            if spec.name in CONF.instruction_allowlist:
+                return True
+
             if include_categories and spec.category not in include_categories:
                 return False
 
