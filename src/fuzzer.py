@@ -480,10 +480,9 @@ class ArchitecturalFuzzer(FuzzerGeneric):
         # to invoke the analyser
         for i, input_ in enumerate(inputs):
             if ctraces[i] != htraces[i]:
-                if "dbg_violation" in CONF.logging_modes:
-                    print(f"Input #{i}")
-                    print(f"Model: {[hex(v) for v in ctraces[i]]}")
-                    print(f"CPU:   {[hex(v) for v in htraces[i]]}")
+                print(f"\nInput #{i}")
+                print(f"Model: {[hex(v) for v in ctraces[i]]}")
+                print(f"CPU:   {[hex(v) for v in htraces[i]]}")
 
                 eq_cls = EquivalenceClass()
                 eq_cls.ctrace = ctraces[i][0]
