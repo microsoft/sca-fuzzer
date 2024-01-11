@@ -274,10 +274,10 @@ EOF
     intel_only
     tmp_config=$(mktemp -p $TEST_DIR)
     echo "$CT_DEH $LOGGING_OFF" >$tmp_config
-    echo "actor:\n" >>$tmp_config
-    echo "  - name: 'main'" >>$tmp_config
-    echo "  - data_properties:" >>$tmp_config
-    echo "    - accessed: false" >>$tmp_config
+    echo "actors:" >>$tmp_config
+    echo "  - main:" >>$tmp_config
+    echo "    - data_properties:" >>$tmp_config
+    echo "      - accessed: false" >>$tmp_config
 
     if cat /proc/cpuinfo | grep "mds"; then
         cmd="$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/mds.asm -i 100"
@@ -315,10 +315,10 @@ EOF
 @test "Detection [meltdown-type]: #PF-present speculation" {
     tmp_config=$(mktemp -p $TEST_DIR)
     echo "$CT_DEH $LOGGING_OFF" >$tmp_config
-    echo "actor:\n" >>$tmp_config
-    echo "  - name: 'main'" >>$tmp_config
-    echo "  - data_properties:" >>$tmp_config
-    echo "    - present: false" >>$tmp_config
+    echo "actors:" >>$tmp_config
+    echo "  - main:" >>$tmp_config
+    echo "    - data_properties:" >>$tmp_config
+    echo "      - present: false" >>$tmp_config
     assert_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault_load.asm -i 5"
 
     printf "contract_execution_clause:\n  - nullinj-fault\n" >>$tmp_config
@@ -328,10 +328,10 @@ EOF
 @test "Detection [meltdown-type]: #PF-writable speculation" {
     tmp_config=$(mktemp -p $TEST_DIR)
     echo "$CT_DEH $LOGGING_OFF" >$tmp_config
-    echo "actor:\n" >>$tmp_config
-    echo "  - name: 'main'" >>$tmp_config
-    echo "  - data_properties:" >>$tmp_config
-    echo "    - writable: false" >>$tmp_config
+    echo "actors:" >>$tmp_config
+    echo "  - main:" >>$tmp_config
+    echo "    - data_properties:" >>$tmp_config
+    echo "      - writable: false" >>$tmp_config
     assert_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault_rmw.asm -i 5"
 
     printf "contract_execution_clause:\n  - nullinj-fault\n" >>$tmp_config
@@ -341,10 +341,10 @@ EOF
 @test "Detection [meltdown-type]: #PF-smap speculation" {
     tmp_config=$(mktemp -p $TEST_DIR)
     echo "$CT_DEH $LOGGING_OFF" >$tmp_config
-    echo "actor:\n" >>$tmp_config
-    echo "  - name: 'main'" >>$tmp_config
-    echo "  - data_properties:" >>$tmp_config
-    echo "    - user: true" >>$tmp_config
+    echo "actors:" >>$tmp_config
+    echo "  - main:" >>$tmp_config
+    echo "    - data_properties:" >>$tmp_config
+    echo "      - user: true" >>$tmp_config
     assert_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault_load.asm -i 5"
 
     printf "contract_execution_clause:\n  - nullinj-fault\n" >>$tmp_config
@@ -413,7 +413,7 @@ EOF
 
 @test "Feature: Multi-actor test case" {
     tmp_config=$(mktemp -p $TEST_DIR)
-    printf "actor:\n  - name: actor2\n" > $tmp_config
+    printf "actors:\n  - actor2:\n    - mode: "host"\n" > $tmp_config
     assert_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/actor_switch.asm -c $tmp_config -i 20"
     rm $tmp_config
 }
@@ -421,7 +421,7 @@ EOF
 @test "Architectural Test: Multi-actor test case" {
     tmp_config=$(mktemp -p $TEST_DIR)
     echo "$ARCH_BASE" >$tmp_config
-    printf "actor:\n  - name: actor2\n" >> $tmp_config
+    printf "actors:\n  - actor2:\n    - mode: "host"\n" >> $tmp_config
     assert_no_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/actor_switch.asm -c $tmp_config -i 20"
     rm $tmp_config
 }
