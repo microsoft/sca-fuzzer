@@ -425,3 +425,14 @@ EOF
     assert_no_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/actor_switch.asm -c $tmp_config -i 20"
     rm $tmp_config
 }
+
+@test "Feature: VMX test case" {
+    if cat /proc/cpuinfo | grep "vmx" >/dev/null; then
+        tmp_config=$(mktemp -p $TEST_DIR)
+        printf "actors:\n  - actor2:\n    - mode: "guest"\n" > $tmp_config
+        assert_no_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/vmx_switch.asm -c $tmp_config -i 20"
+        rm $tmp_config
+    else
+        skip
+    fi
+}
