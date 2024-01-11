@@ -10,6 +10,7 @@ from typing import List, Dict
 from collections import OrderedDict
 from .x86 import x86_config
 
+
 class ConfigException(SystemExit):
     pass
 
@@ -43,10 +44,14 @@ class Conf:
     """ generator: type of the program generator """
     instruction_set: str = "x86-64"
     """ instruction_set: ISA under test """
+    instruction_allowlist: List[str] = []
+    """ instruction_allowlist: list of instructions to use for generating programs; combined with
+    instruction_categories; has priority over instruction_blocklist """
     instruction_categories: List[str] = []
     """ instruction_categories: list of instruction categories to use for generating programs """
     instruction_blocklist: List[str] = []
-    """ instruction_blocklist: list of instruction that will NOT be used for generating programs """
+    """ instruction_blocklist: list of instruction that will NOT be used for generating programs;
+    filters out instructions from instruction_categories, but not from instruction_allowlist"""
     program_generator_seed: int = 0
     """ program_generator_seed: seed of the program generator """
     program_size: int = 24
