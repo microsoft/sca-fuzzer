@@ -254,12 +254,20 @@ class X86SandboxPass(Pass):
                     .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
                     .add_op(ImmediateOperand(mask, imm_width)) \
                     .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
+                parent.insert_before(instr, apply_mask)
+
                 add_base = Instruction("ADD", True) \
                     .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
                     .add_op(RegisterOperand("R14", 64, True, False)) \
                     .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
-                parent.insert_before(instr, apply_mask)
                 parent.insert_before(instr, add_base)
+
+                # restore the original register value
+                remove_base = Instruction("SUB", True) \
+                    .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
+                    .add_op(RegisterOperand("R14", 64, True, False)) \
+                    .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
+                parent.insert_after(instr, remove_base)
             return
 
         raise GeneratorException("Attempt to sandbox an instruction without memory operands")
