@@ -29,6 +29,7 @@ TRACERS: Dict[str, Type[model.UnicornTracer]] = {
     "ctr": model.CTRTracer,
     "arch": model.ArchTracer,
     "gpr": model.GPRTracer,
+    "tct": model.TruncatedCTTracer,
 }
 
 X86_SIMPLE_EXECUTION_CLAUSES: Dict[str, Type[x86_model.UnicornModel]] = {
