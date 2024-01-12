@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-if [ "$1" != "" ] && [ $1 != "--ignore-errors" ]; then
+if [ "$1" == "" ] || [ $1 != "--ignore-errors" ]; then
     set -e
 fi
 

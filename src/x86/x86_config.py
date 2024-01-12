@@ -9,7 +9,7 @@ from typing import List
 # Import cpuinfo if available
 cpuinfo_imported = False
 try:
-    import cpuinfo
+    import cpuinfo  # type: ignore
     cpuinfo_imported = True
 except ImportError:
     pass
