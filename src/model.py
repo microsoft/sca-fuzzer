@@ -210,6 +210,20 @@ class CTTracer(PCTracer):
         super(CTTracer, self).observe_mem_access(access, address, size, value, model)
 
 
+class TruncatedCTTracer(UnicornTracer):
+    """
+    Observe address of the memory access and of the program counter at cache line granularity.
+    """
+
+    def observe_mem_access(self, access, address, size, value, model):
+        self.add_mem_address_to_trace((address >> 6) << 6, model)
+        super(TruncatedCTTracer, self).observe_mem_access(access, address, size, value, model)
+
+    def observe_instruction(self, address: int, size: int, model):
+        self.add_pc_to_trace((address >> 6) << 6, model)
+        super(TruncatedCTTracer, self).observe_instruction(address, size, model)
+
+
 class CTNonSpecStoreTracer(PCTracer):
     """
     Observe address of memory access only if not in speculation or it is a read.
