@@ -337,3 +337,4 @@ void template_l1d_flush_reload(void) {
     epilogue();
     asm volatile(".long "xstr(TEMPLATE_RETURN));
 }
+

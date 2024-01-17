@@ -8,8 +8,6 @@ min_bb_per_function: 2
 max_bb_per_function: 2
 avg_mem_accesses: 4
 input_gen_entropy_bits: 9
-
-enable_ssbp_patch: true
 enable_faulty_page: false
 
 logging_modes:
@@ -22,4 +20,9 @@ logging_modes:
   # - dbg_coverage
 
 executor_repetitions: 1
+
+exe_objdump: aarch64-linux-gnu-objdump
+exe_cc: aarch64-linux-gnu-gcc
+exe_strip: aarch64-linux-gnu-strip
+exe_objcopy: aarch64-linux-gnu-objcopy
 

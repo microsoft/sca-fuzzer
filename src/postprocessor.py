@@ -50,7 +50,7 @@ class MinimizerViolation(Minimizer):
 
     def _get_test_case_from_instructions(self, fuzzer, instructions: List[str]) -> TestCase:
         minimized_asm = "/tmp/minimised.asm"
-        run(f"touch {minimized_asm}", shell=True, check=True)
+        run(f"{CONF.exe_touch} {minimized_asm}", shell=True, check=True)
         with open(minimized_asm, "w+") as f:
             f.seek(0)  # is it necessary??
             for line in instructions:

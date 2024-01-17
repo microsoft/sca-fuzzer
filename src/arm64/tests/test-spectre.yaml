@@ -52,3 +52,9 @@ executor_repetitions: 3
 # kernel param, which isolates core #3 from the kernel scheduler. On Raspberry Pi this can 
 # be achieved by appending "isolcpus=3" to /boot/cmdline.txt and rebooting.
 executor_taskset: 3
+
+exe_objdump: aarch64-linux-gnu-objdump
+exe_cc: aarch64-linux-gnu-gcc
+exe_strip: aarch64-linux-gnu-strip
+exe_objcopy: aarch64-linux-gnu-objcopy
+

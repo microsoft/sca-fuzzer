@@ -41,7 +41,7 @@ class X86Fuzzer(Fuzzer):
         # Check if any of the htraces contain a speculative cache eviction
         # for this create a fenced version of the test case and collect traces for it
         if CONF.enable_observation_filter:
-            run('awk \'//{print $0, "\\nlfence"}\' ' + test_case.asm_path + '> fenced.asm',
+            run(CONF.exe_awk + ' \'//{print $0, "\\nlfence"}\' ' + test_case.asm_path + '> fenced.asm',
                 shell=True)
             self.generator.assemble('fenced.asm', 'fenced.o')
             fenced_test_case = TestCase()

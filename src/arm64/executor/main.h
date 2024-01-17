@@ -93,6 +93,7 @@ extern volatile size_t n_inputs;
 // Shared functions
 int trace_test_case(void);
 int load_template(size_t tc_size);
+
 void template_l1d_prime_probe(void);
 void template_l1d_flush_reload(void);
 
