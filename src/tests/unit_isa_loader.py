@@ -12,10 +12,10 @@ from src.interfaces import OT, InstructionSpec
 
 basic = """
 [
-{"name": "TEST", "category": "CATEGORY", "control_flow": true,
+{"name": "test", "category": "CATEGORY", "control_flow": true,
   "operands": [
     {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
-    {"type_": "REG", "values": ["AX"], "src": true, "dest": false, "width": 16}
+    {"type_": "REG", "values": ["ax"], "src": true, "dest": false, "width": 16}
   ],
   "implicit_operands": [
     {"type_": "FLAGS", "values": ["w", "r", "undef", "w", "w", "", "", "", "w"],
@@ -27,13 +27,13 @@ basic = """
 
 duplicate = """
 [
-{"name": "TEST", "category": "CATEGORY", "control_flow": false,
+{"name": "test", "category": "CATEGORY", "control_flow": false,
   "operands": [
     {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16}
   ],
   "implicit_operands": []
 },
-{"name": "TEST", "category": "CATEGORY", "control_flow": false,
+{"name": "test", "category": "CATEGORY", "control_flow": false,
   "operands": [
     {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16}
   ],
@@ -55,7 +55,7 @@ class InstructionSetParserTest(unittest.TestCase):
         os.unlink(spec_file.name)
 
         spec: InstructionSpec = instruction_set.instructions[0]
-        self.assertEqual(spec.name, "TEST")
+        self.assertEqual(spec.name, "test")
         self.assertEqual(spec.category, "CATEGORY")
         self.assertEqual(spec.has_mem_operand, True)
         self.assertEqual(spec.has_write, True)
@@ -70,7 +70,7 @@ class InstructionSetParserTest(unittest.TestCase):
 
         op2 = spec.operands[1]
         self.assertEqual(op2.type, OT.REG)
-        self.assertEqual(op2.values, ["AX"])
+        self.assertEqual(op2.values, ["ax"])
         self.assertEqual(op2.src, True)
         self.assertEqual(op2.dest, False)
 

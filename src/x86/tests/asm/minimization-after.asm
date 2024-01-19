@@ -3,13 +3,13 @@
 .section .data.main
 .function_main:
 .macro.measurement_start: nop dword ptr [rax + rax * 1 + 1]
-AND RAX, 0b1111111111111 # instrumentation
-OR EBX, dword ptr [R14 + RAX]  # speculation source ?
-MOV AL, BL
-XOR AX, -2067
-TEST AL, -117 # instrumentation
-AND RAX, 0b1111111111111 # instrumentation
-MOV qword ptr [R14 + RAX], RCX  # speculation sink ?
+and rax, 0b1111111111111 # instrumentation
+or ebx, dword ptr [r14 + rax]  # speculation source ?
+mov al, bl
+xor ax, -2067
+test al, -117 # instrumentation
+and rax, 0b1111111111111 # instrumentation
+mov qword ptr [r14 + rax], rcx  # speculation sink ?
 .section .data.main
 .function_end:
 .macro.measurement_end: nop dword ptr [rax + rax * 1 + 1]

@@ -428,9 +428,9 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
 
     def generate_reg_operand(self, spec: OperandSpec, parent: Instruction) -> Operand:
         reg_type = spec.values[0]
-        if reg_type == 'GPR':
+        if reg_type == 'gpr':  # deprecated?
             choices = self.target_desc.registers[spec.width]
-        elif reg_type == "SIMD":
+        elif reg_type == "simd":  # deprecated?
             choices = self.target_desc.simd_registers[spec.width]
         else:
             choices = spec.values
@@ -540,7 +540,7 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         for func in test_case.functions:
             for bb in func:
                 for instr in bb:
-                    if instr.name == "MACRO" and instr.operands[0].value == ".RANDOM_INSTRUCTIONS":
+                    if instr.name == "macro" and instr.operands[0].value == ".random_instructions":
                         instr_to_expand.append((instr, bb))
 
         for inst, bb in instr_to_expand:
@@ -648,13 +648,13 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         assert func_main.owner == test_case.actors["main"]
 
         bb_first = func_main[0]
-        instr = Instruction("MACRO", category="MACRO") \
+        instr = Instruction("macro", category="MACRO") \
             .add_op(LabelOperand(".measurement_start")) \
             .add_op(LabelOperand(".noarg"))
         bb_first.insert_before(bb_first.get_first(), instr)
 
         bb_last = func_main.exit
-        instr = Instruction("MACRO", category="MACRO") \
+        instr = Instruction("macro", category="MACRO") \
             .add_op(LabelOperand(".measurement_end")) \
             .add_op(LabelOperand(".noarg"))
         bb_last.insert_after(bb_last.get_last(), instr)

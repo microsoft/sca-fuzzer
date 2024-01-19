@@ -3,36 +3,36 @@
 .section .data.main
 
 # reduce the entropy of rax
-AND rax, 0b111111000000
+and rax, 0b111111000000
 
 # prepare jump targets
-LEA rdx, qword ptr [rip + .l1]
-LEA rsi, qword ptr [rip + .l2]
+lea rdx, qword ptr [rip + .l1]
+lea rsi, qword ptr [rip + .l2]
 
 # delay the jump
-LEA rbx, qword ptr [rbx + rax + 1]
-LEA rbx, qword ptr [rbx + rax + 1]
-LEA rbx, qword ptr [rbx + rax + 1]
-LEA rbx, qword ptr [rbx + rax + 1]
-LEA rbx, qword ptr [rbx + rax + 1]
-LEA rbx, qword ptr [rbx + rax + 1]
-LEA rbx, qword ptr [rbx + rax + 1]
-LEA rbx, qword ptr [rbx + rax + 1]
-LEA rbx, qword ptr [rbx + rax + 1]
-LEA rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax + 1]
 
 # reduce the entropy in rbx
-AND rbx, 0b1000000
+and rbx, 0b1000000
 
 # select a target based on the random value in rbx
-CMP rbx, 0
-CMOVE rsi, rdx
+cmp rbx, 0
+cmove rsi, rdx
 
-JMP rsi   # misprediction
+jmp rsi   # misprediction
 .l1:
     # rbx = 0
-    MOV rdx, qword ptr [r14 + rax]
+    mov rdx, qword ptr [r14 + rax]
 .l2:
-MFENCE
+mfence
 
 .test_case_exit:

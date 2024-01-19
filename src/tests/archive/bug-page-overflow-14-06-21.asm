@@ -1,20 +1,20 @@
 .intel_syntax noprefix
 .test_case_enter:
-LEA R14, [R14 + 60] # instrumentation
-MFENCE # instrumentation
+lea r14, [r14 + 60] # instrumentation
+mfence # instrumentation
 
 .test_case_main:
 .test_case_main.entry:
-JMP .bb0
+jmp .bb0
 .bb0:
-CMP AX, 26587
-{store} SBB DX, DX
+cmp ax, 26587
+{store} sbb dx, dx
 
-AND RDX, 0b1111111000000 # instrumentation
-MUL qword ptr [R14 + RDX]
+and rdx, 0b1111111000000 # instrumentation
+mul qword ptr [r14 + rdx]
 
-AND RDX, 0b1111111000000 # instrumentation
-SBB word ptr [R14 + RDX], -30645
+and rdx, 0b1111111000000 # instrumentation
+sbb word ptr [r14 + rdx], -30645
 
-LEA R14, [R14 - 60] # instrumentation
-MFENCE # instrumentation
+lea r14, [r14 - 60] # instrumentation
+mfence # instrumentation

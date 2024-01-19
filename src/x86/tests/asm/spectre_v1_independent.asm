@@ -8,7 +8,7 @@ MOV rcx, r14
 
 # input: ebx - a random value, eax - fixed value
 MOV rax, 128
-LFENCE
+lfence
 
 # no delay to increase the likelihood of a false positive
 SHL rbx, 63

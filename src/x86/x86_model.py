@@ -361,12 +361,12 @@ class X86UnicornSeq(UnicornSeq):
 
         if not oneline:
             print("\n\nRegisters:")
-            print(f"RAX: {rax}")
-            print(f"RBX: {rbx}")
-            print(f"RCX: {rcx}")
-            print(f"RDX: {rdx}")
-            print(f"RSI: {rsi}")
-            print(f"RDI: {rdi}")
+            print(f"rax: {rax}")
+            print(f"rbx: {rbx}")
+            print(f"rcx: {rcx}")
+            print(f"rdx: {rdx}")
+            print(f"rsi: {rsi}")
+            print(f"rdi: {rdi}")
         else:
             if CONF.color:
                 print(f"  {BLUE}rax={COL_RESET}{rax} "
@@ -406,8 +406,8 @@ class X86UnicornSeq(UnicornSeq):
         if self.current_instruction.name == "BNDCU":
             mem_op = self.current_instruction.get_mem_operands()[0]
             mem_regs = re.split(r'\+|-|\*', mem_op.value)
-            assert len(mem_regs) == 2 and "R14" in mem_regs[0].upper(), "Invalid format of BNDCU"
-            offset_reg = self.uc_target_desc.reg_str_to_constant.get(mem_regs[1].upper().strip(),
+            assert len(mem_regs) == 2 and "r14" in mem_regs[0].lower(), "Invalid format of BNDCU"
+            offset_reg = self.uc_target_desc.reg_str_to_constant.get(mem_regs[1].lower().strip(),
                                                                      None)
             if offset_reg and self.emulator.reg_read(offset_reg) > 0x1000:  # type: ignore
                 self.pending_fault_id = 13
@@ -753,18 +753,18 @@ class X86UnicornDEH(X86FaultModelAbstract):
 
         # special case 1 - cmpxchg does not always taint RAX
         name = model.current_instruction.name
-        if "CMPXCHG" in name:
+        if "cmpxchg" in name:
             dest = model.current_instruction.operands[0]
             if isinstance(dest, MemoryOperand) or \
                X86TargetDesc.reg_normalized[dest.value] not in old_dependencies:
-                model.dependencies.remove(X86TargetDesc.reg_normalized["RAX"])
+                model.dependencies.remove(X86TargetDesc.reg_normalized["rax"])
                 flags = model.current_instruction.get_flags_operand()
                 assert flags
                 for flag in flags.get_write_flags():
                     model.dependencies.remove(flag)
 
         # special case 2 - exchange instruction swaps dependencies
-        elif "XCHG" in name:
+        elif "xchg" in name:
             assert len(model.current_instruction.operands) == 2
             op1, op2 = model.current_instruction.operands
             if isinstance(op1, RegisterOperand):
@@ -781,7 +781,7 @@ class X86UnicornDEH(X86FaultModelAbstract):
                     model.dependencies.remove(op2_val)
 
         # special case 3 - XADD overrides the src taint with the dest taint
-        elif "XADD" in name:
+        elif "xadd" in name:
             assert len(model.current_instruction.operands) == 2
             op1, op2 = model.current_instruction.operands
             if isinstance(op1, MemoryOperand) or \
@@ -789,7 +789,7 @@ class X86UnicornDEH(X86FaultModelAbstract):
                 model.dependencies.remove(X86TargetDesc.reg_normalized[op2.value])
 
         # special case 4 - zeroing and reset patterns
-        elif name in ["SUB", "LOCK SUB", "SBB", "LOCK SBB", "XOR", "LOCK XOR", "CMP"]:
+        elif name in ["sub", "lock sub", "sbb", "lock sbb", "xor", "lock xor", "cmp"]:
             assert len(model.current_instruction.operands) == 2
             op1, op2 = model.current_instruction.operands
             if op1.value == op2.value:
@@ -949,7 +949,7 @@ class X86UnicornDivZero(X86FaultModelAbstract):
         if not self.fault_triggers_speculation(errno):
             return 0
 
-        if self.current_instruction.name not in ["DIV", "IDIV"]:
+        if self.current_instruction.name not in ["div", "idiv"]:
             return super().speculate_fault(errno)
 
         # start speculation
@@ -984,7 +984,7 @@ class X86UnicornDivOverflow(X86FaultModelAbstract):
         if not self.fault_triggers_speculation(errno):
             return 0
 
-        if self.current_instruction.name not in ["DIV", "IDIV"]:
+        if self.current_instruction.name not in ["div", "idiv"]:
             return super().speculate_fault(errno)
 
         # get division arguments
@@ -1425,7 +1425,7 @@ class X86UnicornVspecOps(X86FaultModelAbstract):
                 src_regs.update(op.get_read_flags())
                 model.curr_dest_regs.extend(op.get_write_flags())
             elif isinstance(op, AgenOperand):
-                assert model.current_instruction.name == "LEA"
+                assert model.current_instruction.name == "lea"
                 assert op.src
                 for sub_op in re.split(r'\[|\]|\+|-|\*| ', op.value):
                     if sub_op and sub_op in X86TargetDesc.reg_normalized:
@@ -1455,7 +1455,7 @@ class X86UnicornVspecOps(X86FaultModelAbstract):
         #     => location of load unknown
         tainted_mem_src_regs = mem_src_regs & model.reg_taints.keys()
 
-        if tainted_mem_src_regs and not model.current_instruction.name == "LEA":
+        if tainted_mem_src_regs and not model.current_instruction.name == "lea":
             assert model.current_instruction.has_read()
             # record observation of load
             # leaks taint if tainted register is used

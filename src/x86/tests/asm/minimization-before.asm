@@ -3,27 +3,27 @@
 .section .data.main
 .function_main:
 .bb_main.entry:
-JMP .bb_main.0
+jmp .bb_main.0
 .bb_main.0:
-TEST DIL, 51
-ADC AX, -49
-XOR EAX, ECX
-AND RAX, 0b1111111111111 # instrumentation
-OR EBX, dword ptr [R14 + RAX]
-OR AL, BL
-AND RSI, 0b1111111111111 # instrumentation
-XOR byte ptr [R14 + RSI], AL
-SETL BL
-XOR AX, -2067
-LEA SI, qword ptr [RSI + RBX]
-SBB CL, CL
-AND RDX, 0b1111111111111 # instrumentation
-LOCK AND dword ptr [R14 + RDX], -37
-DEC AL
-TEST AL, -117 # instrumentation
-AND RAX, 0b1111111111111 # instrumentation
-XCHG qword ptr [R14 + RAX], RCX
-MOVSX ESI, CL
-XADD RDI, RDI
+test dil, 51
+adc ax, -49
+xor eax, ecx
+and rax, 0b1111111111111 # instrumentation
+or ebx, dword ptr [r14 + rax]
+or al, bl
+and rsi, 0b1111111111111 # instrumentation
+xor byte ptr [r14 + rsi], al
+setl bl
+xor ax, -2067
+lea si, qword ptr [rsi + rbx]
+sbb cl, cl
+and rdx, 0b1111111111111 # instrumentation
+lock and dword ptr [r14 + rdx], -37
+dec al
+test al, -117 # instrumentation
+and rax, 0b1111111111111 # instrumentation
+xchg qword ptr [r14 + rax], rcx
+movsx esi, cl
+xadd rdi, rdi
 .bb_main.exit:
 .test_case_exit:

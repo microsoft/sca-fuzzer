@@ -97,6 +97,13 @@ class NumpyRandomInputGenerator(InputGenerator):
         return new_inputs
 
     def load(self, input_paths: List[str]) -> List[Input]:
+        # mirror the state update in generate() as 'load' function is used for reproducing
+        # violations, which requires the generator state to be identical to the one during
+        # fuzzing
+        if self._state == 0:
+            self._state = random.randint(0, pow(2, 32) - 1)
+            self.LOG.inform("input_gen", f"Setting input seed to: {self._state}")
+
         inputs = []
         for input_path in input_paths:
             input_ = Input()
@@ -109,4 +116,7 @@ class NumpyRandomInputGenerator(InputGenerator):
 
             input_.load(input_path)
             inputs.append(input_)
+            self._state += 1
+
+        self._boosting_state = self._state
         return inputs

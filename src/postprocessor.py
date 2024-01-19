@@ -16,27 +16,27 @@ from .config import CONF
 from .util import Logger
 
 INSTRUCTION_REPLACEMENTS = {
-    "CMOV": "MOV",
-    "XCHG": "MOV",
-    "REP": "",
-    "LOCK": "",
-    "ADD": "MOV",
-    "SUB": "MOV",
-    "OR": "MOV",
-    "XOR": "MOV",
-    "CMP": "MOV",
-    "BSR": "MOV",
-    "BSF": "MOV",
-    "BT": "MOV",
-    "BTS": "MOV",
-    "BTR": "MOV",
-    "BTC": "MOV",
-    "BZHI": "MOV",
-    "BEXTR": "MOV",
-    "BLSI": "MOV",
-    "BLSMSK": "MOV",
-    "ADC": "ADD",
-    "SBB": "SUB",
+    "cmov": "mov",
+    "xchg": "mov",
+    "rep": "",
+    "lock": "",
+    "add": "mov",
+    "sub": "mov",
+    "or": "mov",
+    "xor": "mov",
+    "cmp": "mov",
+    "bsr": "mov",
+    "bsf": "mov",
+    "bt": "mov",
+    "bts": "mov",
+    "btr": "mov",
+    "btc": "mov",
+    "bzhi": "mov",
+    "bextr": "mov",
+    "blsi": "mov",
+    "blsmsk": "mov",
+    "adc": "add",
+    "sbb": "sub",
 }
 
 
@@ -227,7 +227,7 @@ class MinimizerViolation(Minimizer):
         with open(test_case.asm_path, "r") as f:
             instructions = f.readlines()
         for i in inst_ids:
-            instructions = instructions[:i] + ["LFENCE\n"] + instructions[i:]
+            instructions = instructions[:i] + ["lfence\n"] + instructions[i:]
         return self._get_test_case_from_instructions(instructions, "/tmp/pipe.asm")
 
     def find_spec_source(self, test_case: TestCase, inputs: List[Input]) -> TestCase:
@@ -368,7 +368,7 @@ class MinimizerViolation(Minimizer):
     @staticmethod
     def _simplify_instruction(instructions, i) -> List:
         tmp = list(instructions)  # make a copy
-        words = tmp[i].upper().split(" ")
+        words = tmp[i].lower().split(" ")
         for key in INSTRUCTION_REPLACEMENTS:
             if key in words[0]:
                 tmp[i] = " ".join([INSTRUCTION_REPLACEMENTS[key]] + words[1:])
@@ -379,10 +379,10 @@ class MinimizerViolation(Minimizer):
 
     @staticmethod
     def _push_fence(instructions, i) -> List:
-        curr_instr = instructions[i].upper()
-        if curr_instr[0] == "J" or curr_instr[0:3] == "LOOP":
+        curr_instr = instructions[i].lower()
+        if curr_instr[0] == "j" or curr_instr[0:3] == "loop":
             return []  # skip control-flow instructions - their target is already fenced
-        return instructions[:i] + ["LFENCE\n"] + instructions[i:]
+        return instructions[:i] + ["lfence\n"] + instructions[i:]
 
     # ==============================================================================================
     # Helpers

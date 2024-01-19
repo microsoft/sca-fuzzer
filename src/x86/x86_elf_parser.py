@@ -109,7 +109,7 @@ class X86ElfParser:
                         address_map[actor.id_][address] = inst
 
                         # add macros to the symbol table
-                        if inst.name == "MACRO":
+                        if inst.name == "macro":
                             test_case.symbol_table.append(
                                 self._symbol_from_macro_inst(inst, section_entries,
                                                              function_entries, test_case))
@@ -124,7 +124,7 @@ class X86ElfParser:
             self.LOG.error("ELF parser failed to find sections for all actors", print_last_tb=True)
 
         # the last instruction in .data.main is the test case exit, and it must map to a NOP
-        address_map[0][exit_addr] = Instruction("NOP", False, "BASE-NOP", True)
+        address_map[0][exit_addr] = Instruction("nop", False, "BASE-NOP", True)
 
         test_case.address_map = address_map
 
@@ -280,7 +280,7 @@ class X86ElfParser:
                actor.mode != ActorMode.GUEST and actor.privilege_level != ActorPL.KERNEL:
                 elf_parser_error("Macro set_g2h_target expects a guest actor")
 
-        assert inst.name == "MACRO"
+        assert inst.name == "macro"
         macro_name = inst.operands[0].value[1:]
         if macro_name.lower() not in self.target_desc.macro_specs:
             elf_parser_error(f"Unknown macro {macro_name} in {inst}")
