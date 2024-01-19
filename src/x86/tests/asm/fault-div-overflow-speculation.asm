@@ -3,7 +3,7 @@
 .section .data.main
 
 MOV ebx, 1
-LFENCE
+lfence
 DIV bx
 
 XOR rax, rcx

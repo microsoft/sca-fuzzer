@@ -184,36 +184,36 @@ instruction_categories: List[str] = ["BASE-BINARY", "BASE-BITBYTE", "BASE-COND_B
 instruction_blocklist: List[str] = [
     # Hard to fix:
     # - STI - enables interrupts, thus corrupting the measurements; CLI - just in case
-    "STI", "CLI",
+    "sti", "cli",
     # - CMPXCHG8B - Unicorn doesn't execute the mem. access hook
     #   bug: https://github.com/unicorn-engine/unicorn/issues/990
-    "CMPXCHG8B", "LOCK CMPXCHG8B",
+    "cmpxchg8b", "lock cmpxchg8b",
     # - Incorrect emulation
-    "CPUID", "RCPPS", "RCPSS",
+    "cpuid", "rcpps", "rcpss",
     # - Requires support of segment registers
-    "XLAT", "XLATB",
+    "xlat", "xlatb",
     # - Requires complex instrumentation
-    "ENTERW", "ENTER", "LEAVEW", "LEAVE",
+    "enterw", "enter", "leavew", "leave",
     # - requires support of all possible interrupts
-    "INT",
+    "int",
     # - system management instruction
-    "ENCLS", "VMXON", "STGI", "SKINIT", "LDMXCSR", "STMXCSR",
+    "encls", "vmxon", "stgi", "skinit", "ldmxcsr", "stmxcsr",
 
     # - not supported
-    "LFENCE", "MFENCE", "SFENCE", "CLFLUSH", "CLFLUSHOPT",
+    "lfence", "mfence", "sfence", "clflush", "clflushopt",
 
     # - under construction
     # -- trigger FPVI (we have neither a contract nor an instrumentation for it yet)
-    "DIVPS", "DIVSS", 'DIVPD', 'DIVSD',
-    "MULSS", "MULPS", 'MULPD', 'MULSD',
-    "RSQRTPS", "RSQRTSS", "SQRTPS", "SQRTSS", 'SQRTPD', 'SQRTSD',
-    'ADDPS', 'ADDSS', 'ADDPD', 'ADDSD',
-    'SUBPS', 'SUBSS', 'SUBPD', 'SUBSD',
-    'ADDSUBPD', 'ADDSUBPS', 'HADDPD', 'HADDPS', 'HSUBPD', 'HSUBPS',
+    "divps", "divss", 'divpd', 'divsd',
+    "mulss", "mulps", 'mulpd', 'mulsd',
+    "rsqrtps", "rsqrtss", "sqrtps", "sqrtss", 'sqrtpd', 'sqrtsd',
+    'addps', 'addss', 'addpd', 'addsd',
+    'subps', 'subss', 'subpd', 'subsd',
+    'addsubpd', 'addsubps', 'haddpd', 'haddps', 'hsubpd', 'hsubps',
     # -- crash
-    "CMPPS", "CMPSS", 'CMPPD', 'CMPSD',
+    "cmpps", "cmpss", 'cmppd', 'cmpsd',
     # -- requires MMX
-    "MOVQ2DQ", 'MOVDQ2Q',
+    "movq2dq", 'movdq2q',
 
 ]  # yapf: disable
 
@@ -222,15 +222,15 @@ instruction_blocklist: List[str] = [
 # same for CR* and DR*
 register_blocklist: List[str] = [
     # free - rax, rbx, rcx, rdx, rdi, rsi
-    'R8', 'R9', 'R10', 'R11', 'R12', 'R13', 'R14', 'R15', 'RSP', 'RBP',
-    'R8D', 'R9D', 'R10D', 'R11D', 'R12D', 'R13D', 'R14D', 'R15D', 'ESP', 'EBP',
-    'R8W', 'R9W', 'R10W', 'R11W', 'R12W', 'R13W', 'R14W', 'R15W', 'SP', 'BP',
-    'R8B', 'R9B', 'R10B', 'R11B', 'R12B', 'R13B', 'R14B', 'R15B', 'SPL', 'BPL',
-    'ES', 'CS', 'SS', 'DS', 'FS', 'GS',
-    'CR0', 'CR2', 'CR3', 'CR4', 'CR8',
-    'DR0', 'DR1', 'DR2', 'DR3', 'DR4', 'DR5', 'DR6', 'DR7',
+    'r8', 'r9', 'r10', 'r11', 'r12', 'r13', 'r14', 'r15', 'rsp', 'rbp',
+    'r8d', 'r9d', 'r10d', 'r11d', 'r12d', 'r13d', 'r14d', 'r15d', 'esp', 'ebp',
+    'r8w', 'r9w', 'r10w', 'r11w', 'r12w', 'r13w', 'r14w', 'r15w', 'sp', 'bp',
+    'r8b', 'r9b', 'r10b', 'r11b', 'r12b', 'r13b', 'r14b', 'r15b', 'spl', 'bpl',
+    'es', 'cs', 'ss', 'ds', 'fs', 'gs',
+    'cr0', 'cr2', 'cr3', 'cr4', 'cr8',
+    'dr0', 'dr1', 'dr2', 'dr3', 'dr4', 'dr5', 'dr6', 'dr7',
     # XMM8-15 are somehow broken in Unicorn
-    "XMM8", "XMM9", "XMM10", "XMM11", "XMM12", "XMM13", "XMM14", "XMM15",
+    "xmm8", "xmm9", "xmm10", "xmm11", "xmm12", "xmm13", "xmm14", "xmm15",
 ]  # yapf: disable
 
 

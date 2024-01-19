@@ -313,14 +313,14 @@ class RegisterOperand(Operand):
 
     def __init__(self, value: str, width: int, src: bool, dest: bool):
         self.width = width
-        super().__init__(value.upper(), OT.REG, src, dest)
+        super().__init__(value.lower(), OT.REG, src, dest)
 
 
 class MemoryOperand(Operand):
 
     def __init__(self, address: str, width: int, src: bool, dest: bool):
         self.width = width
-        super().__init__(address.upper(), OT.MEM, src, dest)
+        super().__init__(address.lower(), OT.MEM, src, dest)
 
 
 class ImmediateOperand(Operand):
@@ -340,7 +340,7 @@ class AgenOperand(Operand):
 
     def __init__(self, value: str, width: int):
         self.width = width
-        super().__init__(value.upper(), OT.AGEN, True, False)
+        super().__init__(value.lower(), OT.AGEN, True, False)
 
 
 class FlagsOperand(Operand):

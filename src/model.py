@@ -668,7 +668,7 @@ class UnicornSeq(UnicornModel):
         model.trace_instruction(emulator, address, size, model)
 
         # if the current instruction is a macro, interpret it
-        if model.current_instruction.name == "MACRO":
+        if model.current_instruction.name == "macro":
             model.macro_interpreter.interpret(model.current_instruction, address)
 
     @staticmethod

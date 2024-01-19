@@ -1,22 +1,22 @@
 .intel_syntax noprefix
 .test_case_enter:
 .section .data.main
-MOV rbx, 100
+mov rbx, 100
 .l1:
-LFENCE
-LEA rax, qword ptr [rax + rax + 8]
-LEA rax, qword ptr [rax + rax + 8]
-LEA rax, qword ptr [rax + rax + 8]
-LEA rax, qword ptr [rax + rax + 8]
-LEA rax, qword ptr [rax + rax + 8]
-LEA rax, qword ptr [rax + rax + 8]
-LEA rax, qword ptr [rax + rax + 8]
-LEA rax, qword ptr [rax + rax + 8]
-LEA rax, qword ptr [rax + rax + 8]
-DEC rbx
-JNZ .l1
+lfence
+lea rax, qword ptr [rax + rax + 8]
+lea rax, qword ptr [rax + rax + 8]
+lea rax, qword ptr [rax + rax + 8]
+lea rax, qword ptr [rax + rax + 8]
+lea rax, qword ptr [rax + rax + 8]
+lea rax, qword ptr [rax + rax + 8]
+lea rax, qword ptr [rax + rax + 8]
+lea rax, qword ptr [rax + rax + 8]
+lea rax, qword ptr [rax + rax + 8]
+dec rbx
+jnz .l1
 .l2:
 
-LFENCE
+lfence
 
 .test_case_exit:

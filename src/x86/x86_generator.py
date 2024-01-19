@@ -51,16 +51,16 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
         self.printer = X86Printer(self.target_desc)
 
     def get_return_instruction(self) -> Instruction:
-        return Instruction("RET", False, "", True)
+        return Instruction("ret", False, "", True)
 
     def get_unconditional_jump_instruction(self) -> Instruction:
-        return Instruction("JMP", False, "UNCOND_BR", True)
+        return Instruction("jmp", False, "UNCOND_BR", True)
 
     def get_elf_data(self, test_case: TestCase, obj_file: str) -> None:
         self.elf_parser.parse(test_case, obj_file)
 
 
-class X86LFENCEPass(Pass):
+class X86lfencePass(Pass):
 
     def run_on_test_case(self, test_case: TestCase) -> None:
         for func in test_case.functions:
@@ -71,7 +71,7 @@ class X86LFENCEPass(Pass):
                     insertion_points.append(instr)
 
                 for instr in insertion_points:
-                    bb.insert_after(instr, Instruction("LFENCE", True))
+                    bb.insert_after(instr, Instruction("lfence", True))
 
 
 class X86NonCanonicalAddressPass(Pass):
@@ -83,7 +83,7 @@ class X86NonCanonicalAddressPass(Pass):
                 for instr in bb:
                     if instr.is_instrumentation or instr.is_from_template:
                         continue
-                    if instr.name in ["DIV", "IDIV"]:
+                    if instr.name in ["div", "idiv"]:
                         # Instrumentation is difficult to combine
                         continue
                     if instr.has_mem_operand(True):
@@ -108,7 +108,7 @@ class X86NonCanonicalAddressPass(Pass):
                         mem_operand: Operand = mem_operands[0]
                         registers = mem_operand.value
 
-                        masks_list = ["RAX", "RBX"]
+                        masks_list = ["rax", "rbx"]
                         mask_reg = masks_list[0]
                         # Do not overwrite offset register with mask
                         for operands in src_operands:
@@ -118,7 +118,7 @@ class X86NonCanonicalAddressPass(Pass):
                                    X86TargetDesc.reg_normalized[reg]:
                                     mask_reg = masks_list[1]
 
-                        offset_list = ["RCX", "RDX"]
+                        offset_list = ["rcx", "rdx"]
                         offset_reg = offset_list[0]
                         # Do not reuse destination register
                         for op in instr.get_all_operands():
@@ -129,15 +129,15 @@ class X86NonCanonicalAddressPass(Pass):
                                 offset_reg = offset_list[1]
 
                         mask = hex((random.getrandbits(16) << 48))
-                        lea = Instruction("LEA", True) \
+                        lea = Instruction("lea", True) \
                             .add_op(RegisterOperand(offset_reg, 64, False, True)) \
                             .add_op(MemoryOperand(registers, 64, True, False))
                         bb.insert_before(instr, lea)
-                        mov = Instruction("MOV", True) \
+                        mov = Instruction("mov", True) \
                             .add_op(RegisterOperand(mask_reg, 64, True, True)) \
                             .add_op(ImmediateOperand(mask, 64))
                         bb.insert_before(instr, mov)
-                        mask = Instruction("XOR", True) \
+                        mask = Instruction("xor", True) \
                             .add_op(RegisterOperand(offset_reg, 64, True, True)) \
                             .add_op(RegisterOperand(mask_reg, 64, True, False))
                         bb.insert_before(instr, mask)
@@ -155,7 +155,7 @@ class X86NonCanonicalAddressPass(Pass):
 
 class X86SandboxPass(Pass):
     mask_3bits = "0b111"
-    bit_test_names = ["BT", "BTC", "BTR", "BTS", "LOCK BT", "LOCK BTC", "LOCK BTR", "LOCK BTS"]
+    bit_test_names = ["bt", "btc", "btr", "bts", "lock bt", "lock btc", "lock btr", "lock bts"]
 
     def __init__(self, target_desc: X86TargetDesc, faults: FaultFilter):
         super().__init__()
@@ -182,15 +182,15 @@ class X86SandboxPass(Pass):
 
                     if inst.has_mem_operand(True):
                         memory_instructions.append(inst)
-                    if inst.name in ["DIV", "REX DIV", "IDIV", "REX IDIV"]:
+                    if inst.name in ["div", "rex div", "idiv", "rex idiv"]:
                         divisions.append(inst)
                     elif inst.name in self.bit_test_names:
                         bit_tests.append(inst)
-                    elif "REP" in inst.name:
+                    elif "rep" in inst.name:
                         repeated_instructions.append(inst)
                     elif inst.category == "BASE-ROTATE" or inst.category == "BASE-SHIFT":
                         corrupted_cf.append(inst)
-                    elif inst.name == "ENCLU":
+                    elif inst.name == "enclu":
                         enclu.append(inst)
 
                 # sandbox them
@@ -218,9 +218,9 @@ class X86SandboxPass(Pass):
         implicit_mem_operands = instr.get_implicit_mem_operands()
         mask = self.sandbox_address_mask
         if "SSE" in instr.category \
-           and "MOVUP" not in instr.name \
-           and "MOVDQU" not in instr.name \
-           and "LDDQU" not in instr.name:
+           and "movup" not in instr.name \
+           and "movdqu" not in instr.name \
+           and "lddqu" not in instr.name:
             mask = mask[:-4] + "0" * 4
 
         if mem_operands and not implicit_mem_operands:
@@ -229,12 +229,12 @@ class X86SandboxPass(Pass):
             mem_operand: Operand = mem_operands[0]
             address_reg = mem_operand.value
             imm_width = mem_operand.width if mem_operand.width <= 32 else 32
-            apply_mask = Instruction("AND", True) \
+            apply_mask = Instruction("and", True) \
                 .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
                 .add_op(ImmediateOperand(mask, imm_width)) \
                 .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
             parent.insert_before(instr, apply_mask)
-            instr.get_mem_operands()[0].value = "R14 + " + address_reg
+            instr.get_mem_operands()[0].value = "r14 + " + address_reg
             return
 
         mem_operands = implicit_mem_operands
@@ -250,22 +250,22 @@ class X86SandboxPass(Pass):
                 imm_width = mem_operand.width if mem_operand.width <= 32 else 32
                 assert address_reg in self.target_desc.registers[64], \
                     f"Unexpected address register {address_reg} used in {instr}"
-                apply_mask = Instruction("AND", True) \
+                apply_mask = Instruction("and", True) \
                     .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
                     .add_op(ImmediateOperand(mask, imm_width)) \
                     .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
                 parent.insert_before(instr, apply_mask)
 
-                add_base = Instruction("ADD", True) \
+                add_base = Instruction("add", True) \
                     .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
-                    .add_op(RegisterOperand("R14", 64, True, False)) \
+                    .add_op(RegisterOperand("r14", 64, True, False)) \
                     .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
                 parent.insert_before(instr, add_base)
 
                 # restore the original register value
-                remove_base = Instruction("SUB", True) \
+                remove_base = Instruction("sub", True) \
                     .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
-                    .add_op(RegisterOperand("R14", 64, True, False)) \
+                    .add_op(RegisterOperand("r14", 64, True, False)) \
                     .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
                 parent.insert_after(instr, remove_base)
             return
@@ -327,10 +327,10 @@ class X86SandboxPass(Pass):
 
         # Prevent div by zero
         if not self.faults.div_by_zero:
-            if "IDIV" not in inst.name or self.faults.div_overflow:
+            if "idiv" not in inst.name or self.faults.div_overflow:
                 # for unsigned division and signed divisions with overflow permitted,
                 # it is sufficient to OR the divisor with 1 to prevent div by zero
-                instrumentation = Instruction("OR", True) \
+                instrumentation = Instruction("or", True) \
                     .add_op(divisor) \
                     .add_op(ImmediateOperand("1", 8)) \
                     .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
@@ -346,7 +346,7 @@ class X86SandboxPass(Pass):
                 # that the divider is at least 15
                 # (the value 15 comes from the instrumentation below, where
                 # we make the dividend at most `4 << div_size - 1`)
-                instrumentation = Instruction("OR", True) \
+                instrumentation = Instruction("or", True) \
                     .add_op(divisor) \
                     .add_op(ImmediateOperand("0b1000", 8)) \
                     .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
@@ -362,7 +362,7 @@ class X86SandboxPass(Pass):
                     reg_normalized = self.target_desc.reg_normalized[divisor.value]
                     reg_8_bit = self.target_desc.reg_denormalized[reg_normalized][8]
                     divider_8_bit.value = reg_8_bit
-                instrumentation = Instruction("AND", True) \
+                instrumentation = Instruction("and", True) \
                     .add_op(divider_8_bit) \
                     .add_op(ImmediateOperand("0b11111000", 8)) \
                     .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
@@ -376,31 +376,31 @@ class X86SandboxPass(Pass):
         # - division by D register
         # - division by a memory value with the RDX offset
         # - division where AX is both the dividend and the offset in memory
-        if divisor.value in ["RDX", "EDX", "DX", "DH", "DL"] \
-           or "RDX" in divisor.value \
-           or ("RAX" in divisor.value and size == 8):
+        if divisor.value in ["rdx", "edx", "dx", "dh", "dl"] \
+           or "rdx" in divisor.value \
+           or ("rax" in divisor.value and size == 8):
             parent.delete(inst)
             return
 
         # Special case: dividend in AX
         # instrumentation: ax = 1
         if size == 8:
-            instrumentation = Instruction("MOV", True).\
-                add_op(RegisterOperand("AX", 16, False, True)).\
+            instrumentation = Instruction("mov", True).\
+                add_op(RegisterOperand("ax", 16, False, True)).\
                 add_op(ImmediateOperand("1", 16))
             parent.insert_before(inst, instrumentation)
             return
 
         # Normal case
-        d_register = {64: "RDX", 32: "EDX", 16: "DX"}[size]
+        d_register = {64: "rdx", 32: "edx", 16: "dx"}[size]
 
         # signed div
-        if "IDIV" in inst.name:
+        if "idiv" in inst.name:
             # it's extremely hard to prevent overflows with large signed divisions
             # that's why we simplify the case by assigning zero to the upper bits of the dividend
             # instrumentation, thus making the dividend at most `4 << div_size - 1`
             # D = D & 3
-            instrumentation = Instruction("AND", True) \
+            instrumentation = Instruction("and", True) \
                 .add_op(RegisterOperand(d_register, size, True, True)) \
                 .add_op(ImmediateOperand("0b11", 8)) \
                 .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
@@ -410,14 +410,14 @@ class X86SandboxPass(Pass):
         else:
             # instrumentation:
             # D = (D & divisor) >> 1  # ensure that D is always smaller than the divisor
-            instrumentation = Instruction("AND", True) \
+            instrumentation = Instruction("and", True) \
                 .add_op(RegisterOperand(d_register, size, True, True)) \
                 .add_op(divisor) \
                 .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
             parent.insert_before(inst, instrumentation)
             divisor.dest = True
 
-            instrumentation = Instruction("SHR", True) \
+            instrumentation = Instruction("shr", True) \
                 .add_op(RegisterOperand(d_register, size, True, True)) \
                 .add_op(ImmediateOperand("1", 8)) \
                 .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "undef"]), True)
@@ -445,7 +445,7 @@ class X86SandboxPass(Pass):
         # The offset is in a register
         # Mask its upper bits to reduce the stored value to at most 7
         if address.value != offset.value:
-            apply_mask = Instruction("AND", True) \
+            apply_mask = Instruction("and", True) \
                 .add_op(offset) \
                 .add_op(ImmediateOperand(self.mask_3bits, 8)) \
                 .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
@@ -458,19 +458,19 @@ class X86SandboxPass(Pass):
         parent.delete(inst)
 
     def sandbox_repeated_instruction(self, inst: Instruction, parent: BasicBlock):
-        apply_mask = Instruction("AND", True) \
-            .add_op(RegisterOperand("RCX", 64, True, True)) \
+        apply_mask = Instruction("and", True) \
+            .add_op(RegisterOperand("rcx", 64, True, True)) \
             .add_op(ImmediateOperand("0xff", 8)) \
             .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
-        add_base = Instruction("ADD", True) \
-            .add_op(RegisterOperand("RCX", 64, True, True)) \
+        add_base = Instruction("add", True) \
+            .add_op(RegisterOperand("rcx", 64, True, True)) \
             .add_op(ImmediateOperand("1", 1)) \
             .add_op(FlagsOperand(["w", "w", "w", "w", "w", "", "", "", "w"]), True)
         parent.insert_before(inst, apply_mask)
         parent.insert_before(inst, add_base)
 
     def sandbox_corrupted_cf(self, inst: Instruction, parent: BasicBlock):
-        set_cf = Instruction("STC", True) \
+        set_cf = Instruction("stc", True) \
             .add_op(FlagsOperand(["w", "", "", "", "", "", "", "", ""]), True)
         parent.insert_after(inst, set_cf)
 
@@ -483,8 +483,8 @@ class X86SandboxPass(Pass):
             "6",  # emodpe
             "7",  # eacceptcopy
         ]
-        set_rax = Instruction("MOV", True) \
-            .add_op(RegisterOperand("EAX", 32, True, True)) \
+        set_rax = Instruction("mov", True) \
+            .add_op(RegisterOperand("eax", 32, True, True)) \
             .add_op(ImmediateOperand(random.choice(options), 1))
         parent.insert_before(inst, set_rax)
 
@@ -492,9 +492,9 @@ class X86SandboxPass(Pass):
     def requires_sandbox(inst: InstructionSpec):
         if inst.has_mem_operand:
             return True
-        if inst.name in ["DIV", "REX DIV"]:
+        if inst.name in ["div", "rex div"]:
             return True
-        if inst.name in ["BT", "BTC", "BTR", "BTS", "LOCK BT", "LOCK BTC", "LOCK BTR", "LOCK BTS"]:
+        if inst.name in ["bt", "btc", "btr", "bts", "lock bt", "lock btc", "lock btr", "lock bts"]:
             return True
         if inst.category in ["BASE-SHIFT", "BASE-ROTATE"]:
             return True
@@ -645,7 +645,7 @@ class X86PatchUndefinedResultPass(Pass):
                 for inst in bb:
                     if inst.is_instrumentation or inst.is_from_template:
                         continue
-                    if inst.name in ["BSF", "BSR"]:
+                    if inst.name in ["bsf", "bsr"]:
                         bit_scan.append(inst)
 
                 # patch them
@@ -664,7 +664,7 @@ class X86PatchUndefinedResultPass(Pass):
         if source.width in [64, 32]:
             mask = "0b1000000000000000000000000000000"
             mask_size = 32
-        apply_mask = Instruction("OR", True) \
+        apply_mask = Instruction("or", True) \
             .add_op(source) \
             .add_op(ImmediateOperand(mask, mask_size)) \
             .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
@@ -680,7 +680,7 @@ class X86PatchOpcodesPass(Pass):
     assembler.
     """
     opcodes: Dict[str, List[str]] = {
-        "UD2": [
+        "ud2": [
             # UD2 instruction
             "0x0f, 0x0b",
 
@@ -689,27 +689,27 @@ class X86PatchOpcodesPass(Pass):
             # with NOP to prevent misinterpretation by objdump
             "0x06, 0x90",  # 32-bit encoding of PUSH
             "0x07, 0x90",  # 32-bit encoding of POP
-            "0x0E, 0x90",  # alternative 32-bit encoding of PUSH
+            "0x0e, 0x90",  # alternative 32-bit encoding of PUSH
             "0x16, 0x90",  # alternative 32-bit encoding of PUSH
             "0x17, 0x90",  # alternative 32-bit encoding of POP
-            "0x1E, 0x90",  # alternative 32-bit encoding of PUSH
-            "0x1F, 0x90",  # alternative 32-bit encoding of POP
+            "0x1e, 0x90",  # alternative 32-bit encoding of PUSH
+            "0x1f, 0x90",  # alternative 32-bit encoding of POP
             "0x27, 0x90",  # DAA
-            "0x2F, 0x90",  # DAS
+            "0x2f, 0x90",  # DAS
             "0x37, 0x90",  # AAA
             "0x3f, 0x90",  # AAS
             "0x60, 0x90",  # PUSHA
             "0x61, 0x90",  # POPA
             "0x62, 0x90",  # BOUND
             "0x82, 0x90",  # 32-bit aliases for logical instructions
-            "0x9A, 0x90",  # 32-bit encoding of CALLF
-            "0xC4, 0x90",  # LES
-            "0xD4, 0x90",  # AAM
-            "0xD5, 0x90",  # AAD
-            "0xD6, 0x90",  # reserved
-            "0xEA, 0x90",  # 32-bit encoding of JMPF
+            "0x9a, 0x90",  # 32-bit encoding of CALLF
+            "0xc4, 0x90",  # LES
+            "0xd4, 0x90",  # AAM
+            "0xd5, 0x90",  # AAD
+            "0xd6, 0x90",  # reserved
+            "0xea, 0x90",  # 32-bit encoding of JMPF
         ],
-        "INT1": ["0xf1"]
+        "int1": ["0xf1"]
     }
 
     def run_on_test_case(self, test_case: TestCase) -> None:
@@ -778,14 +778,14 @@ class X86Printer(Printer):
         self.print_basic_block(func.exit, file)
 
     def print_basic_block(self, bb: BasicBlock, file):
-        file.write(f"{bb.name.upper()}:\n")
+        file.write(f"{bb.name.lower()}:\n")
         for inst in bb:
             file.write(self.instruction_to_str(inst) + "\n")
         for inst in bb.terminators:
             file.write(self.instruction_to_str(inst) + "\n")
 
     def instruction_to_str(self, inst: Instruction):
-        if inst.name == "MACRO":
+        if inst.name == "macro":
             return self.macro_to_str(inst)
 
         operands = ", ".join([self.operand_to_str(op) for op in inst.operands])

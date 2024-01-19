@@ -29,93 +29,93 @@ ASM_HEADER = """
 """
 
 ASM_THREE_LOADS = ASM_HEADER + """
-MOV RAX, qword ptr [R14]
-MOV RAX, qword ptr [R14 + 512]
-MOV RAX, qword ptr [R14 + 1050]
+mov rax, qword ptr [r14]
+mov rax, qword ptr [r14 + 512]
+mov rax, qword ptr [r14 + 1050]
 .test_case_exit:
 """
 
 ASM_BRANCH_AND_LOAD = ASM_HEADER + """
-XOR rax, rax
-JNZ .l1
+xor rax, rax
+jnz .l1
 .l0:
-MOV RAX, qword ptr [R14]
+mov rax, qword ptr [r14]
 .l1:
 .test_case_exit:
 """
 
 ASM_DOUBLE_BRANCH = ASM_HEADER + """
-XOR rax, rax
-JNZ .l1
+xor rax, rax
+jnz .l1
 .l0:
-MOV RAX, qword ptr [R14]
-JMP .l3
+mov rax, qword ptr [r14]
+jmp .l3
 .l1:
-XOR rbx, rbx
-JNZ .l3
+xor rbx, rbx
+jnz .l3
 .l2:
-MOV RBX, qword ptr [R14]
+mov rbx, qword ptr [r14]
 .l3:
 .test_case_exit:
 """
 
 ASM_STORE_AND_LOAD = ASM_HEADER + """
-MOV qword ptr [R14], 2
-MOV RAX, qword ptr [R14]
-MOV RAX, qword ptr [R14 + RAX]
+mov qword ptr [r14], 2
+mov rax, qword ptr [r14]
+mov rax, qword ptr [r14 + rax]
 .test_case_exit:
 """
 
 ASM_FENCE = ASM_HEADER + """
-XOR rax, rax
-JZ .l1
+xor rax, rax
+jz .l1
 .l0:
-MOV RAX, qword ptr [R14]
-LFENCE
-MOV RAX, qword ptr [R14 + 2]
+mov rax, qword ptr [r14]
+lfence
+mov rax, qword ptr [r14 + 2]
 .l1:
 .test_case_exit:
 """
 
 ASM_FAULTY_ACCESS = ASM_HEADER + """
-MOV RAX, qword ptr [R14 + RCX]
-MOV RAX, qword ptr [R14 + RAX]
-MOV RBX, qword ptr [R14 + RBX]
+mov rax, qword ptr [r14 + rcx]
+mov rax, qword ptr [r14 + rax]
+mov rbx, qword ptr [r14 + rbx]
 .test_case_exit:
 """
 
 ASM_BRANCH_AND_FAULT = ASM_HEADER + """
-XOR rax, rax
-JZ .l1
+xor rax, rax
+jz .l1
 .l0:
-MOV RAX, qword ptr [R14 + RCX]
-MOV RAX, qword ptr [R14 + RAX]
+mov rax, qword ptr [r14 + rcx]
+mov rax, qword ptr [r14 + rax]
 .l1:
-NOP
+nop
 .test_case_exit:
 """
 
 ASM_FAULT_AND_BRANCH = ASM_HEADER + """
-MOV RAX, qword ptr [R14 + RCX]
-XOR rbx, rbx
-JZ .l1
+mov rax, qword ptr [r14 + rcx]
+xor rbx, rbx
+jz .l1
 .l0:
-MOV RAX, qword ptr [R14 + RAX]
+mov rax, qword ptr [r14 + rax]
 .l1:
-NOP
+nop
 .test_case_exit:
 """
 
 ASM_DIV_ZERO = ASM_HEADER + """
-DIV EBX
-MOV rax, qword ptr [R14 + RAX]
+div ebx
+mov rax, qword ptr [r14 + rax]
 .test_case_exit:
 """
 
 ASM_DIV_ZERO2 = ASM_HEADER + """
-DIV RBX
-MOV rax, qword ptr [R14 + RAX]
-MOV rax, qword ptr [R14 + RAX]
+div rbx
+mov rax, qword ptr [r14 + rax]
+mov rax, qword ptr [r14 + rax]
 .test_case_exit:
 """
 
@@ -244,11 +244,11 @@ class X86ModelTest(unittest.TestCase):
                 0x17,
                 # rollback inner speculation
                 0x14,
-                0,  # MOV RBX, qword ptr [R14]
+                0,  # MOV RBX, qword ptr [r14]
                 0x17,
                 # rollback outer speculation
                 0xa,
-                0,  # MOV RAX, qword ptr [R14]
+                0,  # MOV RAX, qword ptr [r14]
                 0xd,  # JMP .l3
                 0x17,
             ]))

@@ -51,7 +51,7 @@ function set_default_config() {
 
 
 @test "x86 executor: Loading a test case" {
-    printf "NOP\n" >tmp.asm
+    printf "nop\n" >tmp.asm
     load_test_case true tmp.asm tmp.bin
 
     run bash -c 'cat tmp.bin > /sys/x86_executor/test_case'
@@ -93,7 +93,7 @@ function set_default_config() {
     tmpasm=$(mktemp /tmp/revizor-test.XXXXXX.asm)
     tmpbin=$(mktemp /tmp/revizor-test.XXXXXX.o)
     tmpinput=$(mktemp /tmp/revizor-test.XXXXXX.bin)
-    echo "NOP" >$tmpasm
+    echo "nop" >$tmpasm
     load_test_case false $tmpasm $tmpbin
     load_input false 1 $tmpinput
 
@@ -125,7 +125,7 @@ function set_default_config() {
     tmpasm=$(mktemp /tmp/revizor-test.XXXXXX.asm)
     tmpbin=$(mktemp /tmp/revizor-test.XXXXXX.o)
     tmpinput=$(mktemp /tmp/revizor-test.XXXXXX.bin)
-    echo "NOP" >$tmpasm
+    echo "nop" >$tmpasm
     load_test_case false $tmpasm $tmpbin
     load_input false 1 $tmpinput
 
@@ -133,7 +133,7 @@ function set_default_config() {
     echo "Output: $output"
     [[ "$output" == *"9223372036854775808,"* ]]
 
-    echo "MOVQ %r14, %rax; add \$512, %rax; movq (%rax), %rax" >$tmpasm
+    echo "movq %r14, %rax; add \$512, %rax; movq (%rax), %rax" >$tmpasm
     load_test_case false $tmpasm $tmpbin
     load_input false 1 $tmpinput
 
@@ -149,7 +149,7 @@ function set_default_config() {
     tmpasm=$(mktemp /tmp/revizor-test.XXXXXX.asm)
     tmpbin=$(mktemp /tmp/revizor-test.XXXXXX.o)
     tmpinput=$(mktemp /tmp/revizor-test.XXXXXX.bin)
-    echo "NOP" >$tmpasm
+    echo "nop" >$tmpasm
     load_test_case false $tmpasm $tmpbin
     load_input false 1 $tmpinput
 
@@ -157,7 +157,7 @@ function set_default_config() {
     echo "Output: $output"
     [[ "$output" == *"9223372036854775808,"* ]]
 
-    echo "MOVQ %r14, %rax; add \$512, %rax; movq (%rax), %rax" >$tmpasm
+    echo "movq %r14, %rax; add \$512, %rax; movq (%rax), %rax" >$tmpasm
     load_test_case false $tmpasm $tmpbin
     load_input false 1 $tmpinput
 
@@ -173,7 +173,7 @@ function set_default_config() {
     tmpasm=$(mktemp /tmp/revizor-test.XXXXXX.asm)
     tmpbin=$(mktemp /tmp/revizor-test.XXXXXX.o)
     tmpinput=$(mktemp /tmp/revizor-test.XXXXXX.bin)
-    echo "NOP" >$tmpasm
+    echo "nop" >$tmpasm
     load_test_case false $tmpasm $tmpbin
     load_input false 1 $tmpinput
 
@@ -181,7 +181,7 @@ function set_default_config() {
     echo "Output: $output"
     [[ "$output" == *"9223372036854775808,"* ]]
 
-    echo "MOVQ %r14, %rax; add \$512, %rax; movq (%rax), %rax" >$tmpasm
+    echo "movq %r14, %rax; add \$512, %rax; movq (%rax), %rax" >$tmpasm
     load_test_case false $tmpasm $tmpbin
     load_input false 1 $tmpinput
 
@@ -271,7 +271,7 @@ function set_default_config() {
     tmpinput=$(mktemp /tmp/revizor-test.XXXXXX.bin)
     tmpresult=$(mktemp /tmp/revizor-test.XXXXXX.txt)
 
-    echo "MOVQ %r14, %rax; add \$512, %rax; movq \$128, (%rax)" >$tmpasm
+    echo "movq %r14, %rax; add \$512, %rax; movq \$128, (%rax)" >$tmpasm
     load_test_case true $tmpasm $tmpbin
 
     printf "\x01\x00\x00\x00\x00\x00\x00\x00$(hex2bin32 $nruns)\x00\x00\x00\x00" >/sys/x86_executor/inputs

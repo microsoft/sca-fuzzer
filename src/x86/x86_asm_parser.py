@@ -18,69 +18,69 @@ from ..interfaces import OT, Instruction, InstructionSpec, LabelOperand, Operand
 class X86AsmParser(AsmParserGeneric):
     generator: X86Generator
 
-    asm_prefixes = ["LOCK", "REX", "REP", "REPE", "REPNE"]
+    asm_prefixes = ["lock", "rex", "rep", "repe", "repne"]
     asm_synonyms = {
-        "JE": "JZ",
-        "JNE": "JNZ",
-        "JNAE": "JB",
-        "JC": "JB",
-        "JAE": "JNB",
-        "JNC": "JNB",
-        "JNA": "JBE",
-        "JA": "JNBE",
-        "JNGE": "JL",
-        "JGE": "JNL",
-        "JNG": "JLE",
-        "JG": "JNLE",
-        "JPE": "JP",
-        "JPO": "JNP",
-        "CMOVE": "CMOVZ",
-        "CMOVNE": "CMOVNZ",
-        "CMOVNAE": "CMOVB",
-        "CMOVC": "CMOVB",
-        "CMOVAE": "CMOVNB",
-        "CMOVNC": "CMOVNB",
-        "CMOVNA": "CMOVBE",
-        "CMOVA": "CMOVNBE",
-        "CMOVNGE": "CMOVL",
-        "CMOVGE": "CMOVNL",
-        "CMOVNG": "CMOVLE",
-        "CMOVG": "CMOVNLE",
-        "CMOVPE": "CMOVP",
-        "CMOVPO": "CMOVNP",
-        "SETE": "SETZ",
-        "SETNE": "SETNZ",
-        "SETNAE": "SETB",
-        "SETC": "SETB",
-        "SETAE": "SETNB",
-        "SETNC": "SETNB",
-        "SETNA": "SETBE",
-        "SETA": "SETNBE",
-        "SETNGE": "SETL",
-        "SETGE": "SETNL",
-        "SETNG": "SETLE",
-        "SETG": "SETNLE",
-        "SETPE": "SETP",
-        "SETPO": "SETNP",
-        "MOVABS": "MOV",
-        "REPE": "REPZ",
-        "REPNE": "REPNZ",
-        "REPNZ": "REPNE",
-        "REPZ": "REPE",
+        "je": "jz",
+        "jne": "jnz",
+        "jnae": "jb",
+        "jc": "jb",
+        "jae": "jnb",
+        "jnc": "jnb",
+        "jna": "jbe",
+        "ja": "jnbe",
+        "jnge": "jl",
+        "jge": "jnl",
+        "jng": "jle",
+        "jg": "jnle",
+        "jpe": "jp",
+        "jpo": "jnp",
+        "cmove": "cmovz",
+        "cmovne": "cmovnz",
+        "cmovnae": "cmovb",
+        "cmovc": "cmovb",
+        "cmovae": "cmovnb",
+        "cmovnc": "cmovnb",
+        "cmovna": "cmovbe",
+        "cmova": "cmovnbe",
+        "cmovnge": "cmovl",
+        "cmovge": "cmovnl",
+        "cmovng": "cmovle",
+        "cmovg": "cmovnle",
+        "cmovpe": "cmovp",
+        "cmovpo": "cmovnp",
+        "sete": "setz",
+        "setne": "setnz",
+        "setnae": "setb",
+        "setc": "setb",
+        "setae": "setnb",
+        "setnc": "setnb",
+        "setna": "setbe",
+        "seta": "setnbe",
+        "setnge": "setl",
+        "setge": "setnl",
+        "setng": "setle",
+        "setg": "setnle",
+        "setpe": "setp",
+        "setpo": "setnp",
+        "movabs": "mov",
+        "repe": "repz",
+        "repne": "repnz",
+        "repnz": "repne",
+        "repz": "repe",
     }
     memory_sizes = {
-        "BYTE": 8,
-        "WORD": 16,
-        "DWORD": 32,
-        "QWORD": 64,
-        "XMMWORD": 128,
-        "YMMWORD": 256,
-        "ZMMWORD": 512
+        "byte": 8,
+        "word": 16,
+        "dword": 32,
+        "qword": 64,
+        "xmmword": 128,
+        "ymmword": 256,
+        "zmmword": 512
     }
 
     def parse_line(self, line: str, line_num: int,
                    instruction_map: Dict[str, List[InstructionSpec]]) -> Instruction:
-        line = line.upper()
+        line = line.lower()
 
         # get name and possible specs
         words = line.split()
@@ -103,7 +103,7 @@ class X86AsmParser(AsmParserGeneric):
             raise AsmParserException(line_num, f"Unknown instruction {line}")
 
         # instrumentation?
-        is_instrumentation = line.endswith("# INSTRUMENTATION")
+        is_instrumentation = line.endswith("# instrumentation")
 
         # remove comments
         if "#" in line:
@@ -143,8 +143,8 @@ class X86AsmParser(AsmParserGeneric):
                     continue
                 # match immediate value
                 elif re.match(r"^-?[0-9]+$", op_raw) or \
-                        re.match(r"^-?0X[0-9ABCDEF]+$", op_raw) or \
-                        re.match(r"^-?0B[01]+$", op_raw) or \
+                        re.match(r"^-?0x[0-9abcdef]+$", op_raw) or \
+                        re.match(r"^-?0b[01]+$", op_raw) or \
                         re.match(r"^-?[0-9]+\ *[+-]\ *[0-9]+$", op_raw):
                     if op_spec.type != OT.IMM:
                         match = False
@@ -187,7 +187,7 @@ class X86AsmParser(AsmParserGeneric):
             elif op_spec.type == OT.IMM:
                 op = ImmediateOperand(op_raw, op_spec.width)
             elif op_spec.type == OT.LABEL:
-                assert spec.control_flow or spec.name == "MACRO"
+                assert spec.control_flow or spec.name == "macro"
                 op = LabelOperand(op_raw)
             else:  # AGEN
                 op = AgenOperand(op_raw, op_spec.width)

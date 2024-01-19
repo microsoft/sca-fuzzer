@@ -91,8 +91,8 @@ class AsmParserGeneric(AsmParser):
                         bb.insert_after(bb.get_last(), inst)
 
         # connect basic blocks
-        bb_names = {bb.name.upper(): bb for func in test_case for bb in func}
-        bb_names[".TEST_CASE_EXIT"] = test_case.exit
+        bb_names = {bb.name.lower(): bb for func in test_case for bb in func}
+        bb_names[".test_case_exit"] = test_case.exit
         previous_bb = None
         for func in test_case:
             for bb in func:
@@ -117,7 +117,7 @@ class AsmParserGeneric(AsmParser):
 
         # special case: empty test case
         if not test_case.functions:
-            instr = Instruction("NOP", False, "BASE-NOP", False)
+            instr = Instruction("nop", False, "BASE-NOP", False)
             bb = BasicBlock(".bb_0")
             main = Function(".function_0", test_case.actors["main"])
             bb.insert_after(bb.get_last(), instr)
@@ -154,19 +154,19 @@ class AsmParserGeneric(AsmParser):
 
             # add an entry for direct opcodes
             opcode_spec = InstructionSpec()
-            opcode_spec.name = "OPCODE"
-            opcode_spec.category = "OPCODE"
-            instruction_map["OPCODE"] = [opcode_spec]
+            opcode_spec.name = "opcode"
+            opcode_spec.category = "opcode"
+            instruction_map["opcode"] = [opcode_spec]
 
             # entry for macros
             macro_spec = InstructionSpec()
-            macro_spec.name = "MACRO"
-            macro_spec.category = "MACRO"
+            macro_spec.name = "macro"
+            macro_spec.category = "macro"
             macro_spec.operands = [
                 OperandSpec([], OT.LABEL, False, False),
                 OperandSpec([], OT.LABEL, False, False)
             ]
-            instruction_map["MACRO"] = [macro_spec]
+            instruction_map["macro"] = [macro_spec]
         return instruction_map
 
     def _get_clean_lines_from_file(self, input_file: str) -> List[str]:
@@ -262,7 +262,7 @@ class AsmParserGeneric(AsmParser):
             if line[:4] == ".bcd " or line[:5] in [".byte", ".long", ".quad"] \
                or line[6:] in [".value", ".2byte", ".4byte", ".8byte"]:
                 assert current_bb
-                test_case_map[current_function][current_bb].append("OPCODE")
+                test_case_map[current_function][current_bb].append("opcode")
                 continue
 
             # macros
@@ -308,8 +308,8 @@ class AsmParserGeneric(AsmParser):
         macro_id = subwords[2]
         args = '.'.join(subwords[3:])
         if args:
-            instr = f"MACRO .{macro_id}, .{args}"
+            instr = f"macro .{macro_id}, .{args}"
         else:
-            instr = f"MACRO .{macro_id}, .noarg"
+            instr = f"macro .{macro_id}, .noarg"
 
         return instr

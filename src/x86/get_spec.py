@@ -19,6 +19,10 @@ class OperandSpec:
     magic: bool = False
 
     def to_json(self) -> str:
+        values_lower = []
+        for v in self.values:
+            values_lower.append(v.lower())
+        self.values = values_lower
         return json.dumps(self, default=vars)
 
 
@@ -39,7 +43,7 @@ class InstructionSpec:
 
     def to_json(self) -> str:
         s = "{"
-        s += f'"name": "{self.name}", "category": "{self.category}", '
+        s += f'"name": "{self.name.lower()}", "category": "{self.category}", '
         s += f'"control_flow": {str(self.control_flow).lower()},\n'
         s += '  "operands": [\n    '
         s += ',\n    '.join([o.to_json() for o in self.operands])
@@ -63,30 +67,30 @@ class X86Transformer:
     instructions: List[InstructionSpec]
     current_spec: InstructionSpec
     reg_sizes = {
-        "RAX": 64,
-        "RBX": 64,
-        "RCX": 64,
-        "RDX": 64,
-        "EAX": 32,
-        "EBX": 32,
-        "ECX": 32,
-        "EDX": 32,
-        "AX": 16,
-        "DX": 16,
-        "AL": 8,
-        "AH": 8,
-        "CL": 8,
-        "TMM0": 0,
-        "MXCSR": 32,
-        'ES': 16,
-        'SS': 16,
-        'DS': 16,
-        'FS': 16,
-        'GS': 16,
-        'CR0': 32,
-        'XCR0': 64,
+        "rax": 64,
+        "rbx": 64,
+        "rcx": 64,
+        "rdx": 64,
+        "eax": 32,
+        "ebx": 32,
+        "ecx": 32,
+        "edx": 32,
+        "ax": 16,
+        "dx": 16,
+        "al": 8,
+        "ah": 8,
+        "cl": 8,
+        "tmm0": 0,
+        "mxcsr": 32,
+        'es': 16,
+        'ss': 16,
+        'ds': 16,
+        'fs': 16,
+        'gs': 16,
+        'cr0': 32,
+        'xcr0': 64,
     }
-    not_control_flow = ["INT", "INT1", "INT3", "INTO"]
+    not_control_flow = ["int", "int1", "int3", "into"]
     """ a list of instructions that have RIP as an operand but should
     not be considered as control-flow instructions by the generator"""
 
@@ -128,7 +132,7 @@ class X86Transformer:
                     op_type = op_node.attrib['type']
                     if op_type == 'reg':
                         parsed_op = self.parse_reg_operand(op_node)
-                        if op_node.text == "RIP" and name not in self.not_control_flow:
+                        if op_node.text == "rip" and name not in self.not_control_flow:
                             self.instruction.control_flow = True
                     elif op_type == 'mem':
                         parsed_op = self.parse_mem_operand(op_node)
@@ -257,7 +261,7 @@ class X86Transformer:
         if not extensions or "CLFSH" in extensions:
             for width in [8, 16, 32, 64]:
                 inst = InstructionSpec()
-                inst.name = "CLFLUSH"
+                inst.name = "clflush"
                 inst.category = "CLFSH-MISC"
                 inst.control_flow = False
                 op = OperandSpec()
@@ -272,7 +276,7 @@ class X86Transformer:
         if not extensions or "CLFLUSHOPT" in extensions:
             for width in [8, 16, 32, 64]:
                 inst = InstructionSpec()
-                inst.name = "CLFLUSHOPT"
+                inst.name = "clflushopt"
                 inst.category = "CLFLUSHOPT-CLFLUSHOPT"
                 inst.control_flow = False
                 op = OperandSpec()
@@ -286,12 +290,12 @@ class X86Transformer:
 
         if not extensions or "BASE" in extensions:
             inst = InstructionSpec()
-            inst.name = "INT1"
+            inst.name = "int1"
             inst.category = "BASE-INTERRUPT"
             inst.control_flow = False
             op1 = OperandSpec()
             op1.type_, op1.src, op1.dest, op1.width = "REG", False, True, 64
-            op1.values = ["RIP"]
+            op1.values = ["rip"]
             op2 = OperandSpec()
             op2.type_, op2.src, op2.dest, op2.width = "FLAGS", False, False, 0
             op2.values = ["", "", "", "", "", "w", "w", "", ""]
@@ -299,14 +303,14 @@ class X86Transformer:
             self.instructions.append(inst)
 
         if not extensions or "MPX" in extensions:
-            for name in ["BNDCL", "BNDCU"]:
+            for name in ["bndcl", "bndcu"]:
                 inst = InstructionSpec()
                 inst.name = name
                 inst.category = "MPX-MPX"
                 inst.control_flow = False
                 op1 = OperandSpec()
                 op1.type_, op1.src, op1.dest, op1.width = "REG", True, False, 128
-                op1.values = ["BND0", "BND1", "BND2", "BND3"]
+                op1.values = ["bnd0", "bnd1", "bnd2", "bnd3"]
                 op2 = OperandSpec()
                 op2.type_, op2.src, op2.dest, op2.width = "MEM", True, False, 64
                 op2.values = []

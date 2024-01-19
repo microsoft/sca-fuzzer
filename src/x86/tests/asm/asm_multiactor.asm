@@ -3,8 +3,8 @@
 .section .data.main
 
 .function_0:
-NOP
-NOP
+nop
+nop
 
 .section .data.guest_1
 .function_1:

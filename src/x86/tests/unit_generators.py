@@ -123,9 +123,9 @@ class X86RandomGeneratorTest(unittest.TestCase):
                 continue
             pc = int(words[0][:-1], 16)
             inst_obj = tc.address_map[0][pc]
-            if inst_obj.name == "UNMAPPED" or '.byte' in inst_obj.name:
+            if inst_obj.name == "unmapped" or '.byte' in inst_obj.name:
                 continue
-            disasm_name = words[1].upper()
+            disasm_name = words[1].lower()
             if disasm_name in X86Generator.asm_synonyms:
                 disasm_name = X86Generator.asm_synonyms[disasm_name]
             self.assertIn(disasm_name, inst_obj.name)
@@ -161,8 +161,8 @@ class X86RandomGeneratorTest(unittest.TestCase):
         main_iter = iter(tc.functions[0])
         bb0 = next(main_iter)
         insts = list(bb0)
-        self.assertEqual(insts[0].name, "MACRO")
-        self.assertEqual(insts[1].name, "OPCODE")
+        self.assertEqual(insts[0].name, "macro")
+        self.assertEqual(insts[1].name, "opcode")
 
     def test_x86_asm_parsing_section(self):
         prev_actors = deepcopy(CONF._actors)
@@ -225,8 +225,8 @@ class X86RandomGeneratorTest(unittest.TestCase):
     def test_x86_undef_flag_patch(self):
         instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix(),
                                          CONF.instruction_categories + ["BASE-FLAGOP"])
-        undef_instr_spec = list(filter(lambda x: x.name == 'BSF', instruction_set.instructions))[0]
-        read_instr_spec = list(filter(lambda x: x.name == 'LAHF', instruction_set.instructions))[0]
+        undef_instr_spec = list(filter(lambda x: x.name == 'bsf', instruction_set.instructions))[0]
+        read_instr_spec = list(filter(lambda x: x.name == 'lahf', instruction_set.instructions))[0]
 
         generator = X86RandomGenerator(instruction_set, CONF.program_generator_seed)
         undef_instr = generator.generate_instruction(undef_instr_spec)

@@ -21,13 +21,13 @@ def update_instruction_list():
     to avoid code duplication between X86Fuzzer and X86ArchitecturalFuzzer
     """
     if 'opcode-undefined' not in CONF.generator_faults_allowlist:
-        CONF._default_instruction_blocklist.extend(["UD", "UD2"])
+        CONF._default_instruction_blocklist.extend(["ud", "ud2"])
     if 'bounds-range-exceeded' not in CONF.generator_faults_allowlist:
-        CONF._default_instruction_blocklist.extend(['BOUND', 'BNDCL', 'BNDCU'])
+        CONF._default_instruction_blocklist.extend(['bound', 'bndcl', 'bndcu'])
     if 'breakpoint' not in CONF.generator_faults_allowlist:
-        CONF._default_instruction_blocklist.extend(["INT3"])
+        CONF._default_instruction_blocklist.extend(["int3"])
     if 'debug-register' not in CONF.generator_faults_allowlist:
-        CONF._default_instruction_blocklist.extend(["INT1"])
+        CONF._default_instruction_blocklist.extend(["int1"])
 
 
 def check_instruction_list(instruction_set: InstructionSetAbstract):
@@ -35,20 +35,20 @@ def check_instruction_list(instruction_set: InstructionSetAbstract):
     cpu_flags = run("grep 'flags' /proc/cpuinfo", shell=True, capture_output=True).stdout.decode()
     all_instruction_names = set([i.name for i in instruction_set.instructions])
     if 'div-by-zero' in CONF.generator_faults_allowlist:
-        if 'DIV' not in all_instruction_names and 'IDIV' not in all_instruction_names:
+        if 'div' not in all_instruction_names and 'idiv' not in all_instruction_names:
             LOG.warning("fuzzer", "div-by-zero enabled, but DIV/IDIV instructions are missing")
     if 'div-overflow' in CONF.generator_faults_allowlist:
-        if 'DIV' not in all_instruction_names and 'IDIV' not in all_instruction_names:
+        if 'div' not in all_instruction_names and 'idiv' not in all_instruction_names:
             LOG.warning("fuzzer", "div-overflow enabled, but DIV/IDIV instructions are missing")
     if 'bounds-range-exceeded' in CONF.generator_faults_allowlist:
-        if "BNDCU" not in all_instruction_names:
+        if "bndcu" not in all_instruction_names:
             LOG.warning("fuzzer", "bounds-range-exceeded enabled, but BNDCU instruction is missing")
         assert "mpx" in cpu_flags
     if 'breakpoint' in CONF.generator_faults_allowlist:
-        if 'INT3' not in all_instruction_names:
+        if 'int3' not in all_instruction_names:
             LOG.warning("fuzzer", "breakpoint enabled, but INT3 instruction is missing")
     if 'debug-register' in CONF.generator_faults_allowlist:
-        if 'INT1' not in all_instruction_names:
+        if 'int1' not in all_instruction_names:
             LOG.warning("fuzzer", "debug-register enabled, but INT1 instruction is missing")
 
 
@@ -98,13 +98,13 @@ class X86Fuzzer(FuzzerGeneric):
                     started = False
                     for line in f:
                         fenced_asm.write(line + '\n')
-                        line = line.strip().upper()
-                        if line == '.TEST_CASE_ENTER:':
+                        line = line.strip().lower()
+                        if line == '.test_case_enter:':
                             started = True
                             continue
                         if not started:
                             continue
-                        if line and line[0] not in ["#", ".", "J"] and "LOOP" not in line:
+                        if line and line[0] not in ["#", ".", "j"] and "loop" not in line:
                             fenced_asm.write('lfence\n')
 
             fenced_test_case = self.asm_parser.parse_file('fenced.asm')
@@ -178,13 +178,13 @@ class X86ArchDiffFuzzer(FuzzerGeneric):
                 started = False
                 for line in f:
                     fenced_asm.write(line + '\n')
-                    line = line.strip().upper()
-                    if line == '.TEST_CASE_ENTER:':
+                    line = line.strip().lower()
+                    if line == '.test_case_enter:':
                         started = True
                         continue
                     if not started:
                         continue
-                    if line and line[0] not in ["#", ".", "J"] and "LOOP" not in line:
+                    if line and line[0] not in ["#", ".", "J"] and "loop" not in line:
                         fenced_asm.write('lfence\n')
 
         fenced_test_case = self.asm_parser.parse_file('fenced.asm')

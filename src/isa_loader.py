@@ -121,10 +121,10 @@ class InstructionSet(InstructionSetAbstract):
 
                     # FIXME: temporary disabled generation of higher reg. bytes for x86
                     for i, reg in enumerate(op.values):
-                        if reg[-1] == 'H':
+                        if reg[-1] == 'h':
                             op.values[i] = reg.replace(
-                                'H',
-                                'L',
+                                'h',
+                                'l',
                             )
 
             if skip_pending:

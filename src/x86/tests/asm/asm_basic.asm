@@ -6,30 +6,30 @@
 .bb_0:
 
   # line with a comment
-NOP # no operands
-DIV RBX  # one operand
-AND RAX, RAX # two operands
-AND RAX, 0b0111111000000 # immediate value - binary
-AND RAX, 42 # immediate value - decimal
-AND RAX, 0xfa # immediate value - hex
-AND RAX, -1 # immediate value - negative
-AND RDI, R14  # reserved register
+nop # no operands
+div rbx  # one operand
+and rax, rax # two operands
+and rax, 0b0111111000000 # immediate value - binary
+and rax, 42 # immediate value - decimal
+and rax, 0xfa # immediate value - hex
+and rax, -1 # immediate value - negative
+and rdi, r14  # reserved register
 neg rax  # lowercase
-MOV RAX, qword ptr [R14]  # load - simple addressing
-MOV RAX, qword ptr [R14 + RBX]  # load - two parts
-MOV RAX, qword ptr [R14 + RBX + 8]  # load - three parts
-MOV RAX, qword ptr [R14 + RBX]  # store
-LOCK ADC dword ptr [R14 + RBX], EAX  # lock prefix
-AND RAX, RAX # instrumentation
+mov rax, qword ptr [r14]  # load - simple addressing
+mov rax, qword ptr [r14 + rbx]  # load - two parts
+mov rax, qword ptr [r14 + rbx + 8]  # load - three parts
+mov rax, qword ptr [r14 + rbx]  # store
+lock adc dword ptr [r14 + rbx], eax  # lock prefix
+and rax, rax # instrumentation
 
-MOV RDI, RDI # multiple matches
+mov rdi, rdi # multiple matches
 
 
-JMP .bb_1
+jmp .bb_1
   .bb_1:
-      AND RDI, 0b0111111000000 # indentation
-     CMP qword ptr [ R14 + RDI ] , 59   # extra spaces
-    AND RDI, 0b0111111000000 # instrumentation
-    CMPXCHG byte ptr [R14 + RSI], SIL
+      and rdi, 0b0111111000000 # indentation
+     cmp qword ptr [ r14 + rdi ] , 59   # extra spaces
+    and rdi, 0b0111111000000 # instrumentation
+    cmpxchg byte ptr [r14 + rsi], sil
 
 .test_case_exit:

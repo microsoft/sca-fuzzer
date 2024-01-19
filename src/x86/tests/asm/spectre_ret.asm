@@ -4,27 +4,27 @@
 
 # speculative offset:
 # these shifts generate a random page offset, 64-bit aligned
-AND rax, 0b111111000000
-LFENCE
+and rax, 0b111111000000
+lfence
 
-MOV rcx, r14
-ADD rsp, 8  # ensure that the CALL and RET use the first cache set
+mov rcx, r14
+add rsp, 8  # ensure that the call and ret use the first cache set
 
-CALL .function_1
+call .function_1
 
 .unreachable:
-// LFENCE  # if you uncomment this line, the speculation will stop
-AND rax, 0b110000000  # reduce the number of possibilities
-MOV rax, qword ptr [rcx + rax]  # speculative access
-LFENCE
+// lfence  # if you uncomment this line, the speculation will stop
+and rax, 0b110000000  # reduce the number of possibilities
+mov rax, qword ptr [rcx + rax]  # speculative access
+lfence
 
 .function_1:
-LEA rdx, qword ptr [rip + .function_2]
-MOV qword ptr [rsp], rdx
-RET
+lea rdx, qword ptr [rip + .function_2]
+mov qword ptr [rsp], rdx
+ret
 
 .function_2:
-MOV rdx, qword ptr [rcx + 64]
-MFENCE
+mov rdx, qword ptr [rcx + 64]
+mfence
 
 .test_case_exit:

@@ -1,49 +1,49 @@
 .intel_syntax noprefix
 .test_case_enter:
-MFENCE
-ADD R14, 59
+mfence
+add r14, 59
 test_case_main:
 .test_case_main.entry:
-JMP .bb0
+jmp .bb0
 .bb0:
-LFENCE
-{store} REX OR DL, DL
-LFENCE
-AND AL, 61
-LFENCE
-{disp32} JNO .bb1
-LFENCE
-JMP .bb2
-LFENCE
+lfence
+{store} rex or dl, dl
+lfence
+and al, 61
+lfence
+{disp32} jno .bb1
+lfence
+jmp .bb2
+lfence
 .bb1:
-LFENCE
-LAHF
-LFENCE
-AND RBX, 0b111111000000
-LFENCE
-ADD RBX, R14
-LFENCE
+lfence
+lahf
+lfence
+and rbx, 0b111111000000
+lfence
+add rbx, r14
+lfence
 .bb2:
-LFENCE
-AND RDX, 0b111111000000
-LFENCE
-ADD RDX, R14
-LFENCE
-AND RCX, 0b111111000000
-LFENCE
-ADD RCX, R14
-LFENCE
-AND RCX, 0b111111000000
-LFENCE
-ADD RCX, R14
-LFENCE
-AND RCX, 0b111111000000
-LFENCE
-ADD RCX, R14
-LFENCE
-AND RAX, 0b111111000000
-LFENCE
-ADD RAX, R14
-LFENCE
-LOCK SBB byte ptr [RAX], BL
-SUB R14, 59
+lfence
+and rdx, 0b111111000000
+lfence
+add rdx, r14
+lfence
+and rcx, 0b111111000000
+lfence
+add rcx, r14
+lfence
+and rcx, 0b111111000000
+lfence
+add rcx, r14
+lfence
+and rcx, 0b111111000000
+lfence
+add rcx, r14
+lfence
+and rax, 0b111111000000
+lfence
+add rax, r14
+lfence
+lock sbb byte ptr [rax], bl
+sub r14, 59

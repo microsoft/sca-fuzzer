@@ -1,56 +1,56 @@
 .intel_syntax noprefix
 .test_case_enter:
 .section .data.main
-LFENCE
-MOV rax, r14
+lfence
+mov rax, r14
 
-MOV rbx, 0
-MOV rcx, 64
-CMOVB rbx, rcx
-MOV rcx, qword ptr [rax + rbx]
+mov rbx, 0
+mov rcx, 64
+cmovb rbx, rcx
+mov rcx, qword ptr [rax + rbx]
 
-MOV rbx, 0
-MOV rcx, 128
-CMOVBE rbx, rcx
-MOV rcx, qword ptr [rax + rbx]
+mov rbx, 0
+mov rcx, 128
+cmovbe rbx, rcx
+mov rcx, qword ptr [rax + rbx]
 
-MOV rbx, 0
-MOV rcx, 192
-CMOVL rbx, rcx
-MOV rcx, qword ptr [rax + rbx]
+mov rbx, 0
+mov rcx, 192
+cmovl rbx, rcx
+mov rcx, qword ptr [rax + rbx]
 
-MOV rbx, 0
-MOV rcx, 256
-CMOVLE rbx, rcx
-MOV rcx, qword ptr [rax + rbx]
+mov rbx, 0
+mov rcx, 256
+cmovle rbx, rcx
+mov rcx, qword ptr [rax + rbx]
 
-MOV rbx, 0
-MOV rcx, 320
-CMOVO rbx, rcx
-MOV rcx, qword ptr [rax + rbx]
+mov rbx, 0
+mov rcx, 320
+cmovo rbx, rcx
+mov rcx, qword ptr [rax + rbx]
 
-MOV rbx, 0
-MOV rcx, 384
-CMOVP rbx, rcx
-MOV rcx, qword ptr [rax + rbx]
+mov rbx, 0
+mov rcx, 384
+cmovp rbx, rcx
+mov rcx, qword ptr [rax + rbx]
 
-MOV rbx, 0
-MOV rcx, 448
-CMOVS rbx, rcx
-MOV rcx, qword ptr [rax + rbx]
+mov rbx, 0
+mov rcx, 448
+cmovs rbx, rcx
+mov rcx, qword ptr [rax + rbx]
 
-MOV rbx, 0
-MOV rcx, 512
-CMOVZ rbx, rcx
-MOV rcx, qword ptr [rax + rbx]
+mov rbx, 0
+mov rcx, 512
+cmovz rbx, rcx
+mov rcx, qword ptr [rax + rbx]
 
-// CMOVNB
-// CMOVNBE
-// CMOVNL
-// CMOVNLE
-// CMOVNO
-// CMOVNP
-// CMOVNS
-// CMOVNZ
-MFENCE
+// cmovnb
+// cmovnbe
+// cmovnl
+// cmovnle
+// cmovno
+// cmovnp
+// cmovns
+// cmovnz
+mfence
 .test_case_exit:

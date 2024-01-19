@@ -1,35 +1,35 @@
 .intel_syntax noprefix
 .test_case_enter:
 .section .data.main
-LFENCE
+lfence
 
 # reduce the entropy of rax
-AND rax, 0b111111000000
+and rax, 0b111111000000
 
 # delay the cond. jump
-MOV rcx, 0
-LEA rbx, qword ptr [rbx + rcx + 1]
-LEA rbx, qword ptr [rbx + rcx - 1]
-LEA rbx, qword ptr [rbx + rcx + 1]
-LEA rbx, qword ptr [rbx + rcx - 1]
-LEA rbx, qword ptr [rbx + rcx + 1]
-LEA rbx, qword ptr [rbx + rcx - 1]
-LEA rbx, qword ptr [rbx + rcx + 1]
-LEA rbx, qword ptr [rbx + rcx - 1]
-LEA rbx, qword ptr [rbx + rcx + 1]
-LEA rbx, qword ptr [rbx + rcx - 1]
+mov rcx, 0
+lea rbx, qword ptr [rbx + rcx + 1]
+lea rbx, qword ptr [rbx + rcx - 1]
+lea rbx, qword ptr [rbx + rcx + 1]
+lea rbx, qword ptr [rbx + rcx - 1]
+lea rbx, qword ptr [rbx + rcx + 1]
+lea rbx, qword ptr [rbx + rcx - 1]
+lea rbx, qword ptr [rbx + rcx + 1]
+lea rbx, qword ptr [rbx + rcx - 1]
+lea rbx, qword ptr [rbx + rcx + 1]
+lea rbx, qword ptr [rbx + rcx - 1]
 
 # reduce the entropy in rbx
-AND rbx, 0b1000000
+and rbx, 0b1000000
 
-CMP rbx, 0
-JE .l1  # misprediction
+cmp rbx, 0
+je .l1  # misprediction
 .l0:
     # rbx != 0
-    MOV qword ptr [r14], rax
-    MOV rbx, qword ptr [r14]
-    MOV rbx, qword ptr [r14 + rbx]
+    mov qword ptr [r14], rax
+    mov rbx, qword ptr [r14]
+    mov rbx, qword ptr [r14 + rbx]
 .l1:
-MFENCE
+mfence
 
 .test_case_exit:
