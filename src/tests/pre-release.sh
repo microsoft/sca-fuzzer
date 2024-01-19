@@ -61,6 +61,23 @@ logging_modes:
   - info
   - stat
 
+instruction_categories:
+- BASE-BINARY
+- BASE-BITBYTE
+- BASE-CMOV
+- BASE-COND_BR
+- BASE-CONVERT
+- BASE-DATAXFER
+- BASE-FLAGOP
+- BASE-LOGICAL
+- BASE-MISC
+- BASE-NOP
+- BASE-POP
+- BASE-PUSH
+- BASE-SEMAPHORE
+- BASE-SETCC
+- BASE-STRINGOP
+
 # these clauses may be re-assigned later
 contract_observation_clause: loads+stores+pc
 contract_execution_clause:
@@ -70,30 +87,30 @@ EOF
 cp template.yaml template-nsco.yaml
 echo "
 instruction_blocklist:
-- CMPSB
-- CMPSD
-- CMPSW
-- CMPSQ
-- SCASB
-- SCASD
-- SCASW
-- SCASQ
-- REPE CMPSB
-- REPE CMPSD
-- REPE CMPSW
-- REPE CMPSQ
-- REPE SCASB
-- REPE SCASD
-- REPE SCASW
-- REPE SCASQ
-- REPNE CMPSB
-- REPNE CMPSD
-- REPNE CMPSW
-- REPNE CMPSQ
-- REPNE SCASB
-- REPNE SCASD
-- REPNE SCASW
-- REPNE SCASQ
+- cmpsb
+- cmpsd
+- cmpsw
+- cmpsq
+- scasb
+- scasd
+- scasw
+- scasq
+- repe cmpsb
+- repe cmpsd
+- repe cmpsw
+- repe cmpsq
+- repe scasb
+- repe scasd
+- repe scasw
+- repe scasq
+- repne cmpsb
+- repne cmpsd
+- repne cmpsw
+- repne cmpsq
+- repne scasb
+- repne scasd
+- repne scasw
+- repne scasq
 " >> template-nsco.yaml
 
 cp template-nsco.yaml template-nv1-nsco.yaml
@@ -143,7 +160,9 @@ function reproduce() {
     printf "    reproducing ... "
     set +e
     violation_dir="$work_dir/$name"
-    config="$work_dir/${name}.yaml"
+    config="$work_dir/${name}-repro.yaml"
+    cp "$work_dir/${name}.yaml" $config
+    awk "/Input seed:/{print \"input_gen_seed:\", \$4}" $violation_dir/violation-*/report.txt >> $config
     python ${revizor} reproduce -s $instructions -c $config -n $NUM_INPUTS -t $violation_dir/violation-*/program.asm  -i $(ls $violation_dir/violation-*/input*.bin | sort -t _ -k2 -n )  &>> "$work_dir/$name-log.txt"
     exit_code=$?
     set -e
@@ -170,6 +189,7 @@ function verify() {
     set +e
     violation_dir="$work_dir/$name"
     config="$work_dir/${name}-verify.yaml"
+    awk "/Input seed:/{print \"input_gen_seed:\", \$4}" $violation_dir/violation-*/report.txt >> $config
     python ${revizor} reproduce -s $instructions -c $config -n $NUM_INPUTS -t $violation_dir/violation-*/program.asm  -i $(ls $violation_dir/violation-*/input*.bin | sort -t _ -k2 -n ) &>> "$work_dir/$name-log.txt"
     exit_code=$?
     set -e
@@ -210,239 +230,274 @@ function fuzz_no_verify() {
 printf "Starting at $(date '+%H:%M:%S on %d.%m.%Y')\n\n"
 cd $work_dir
 
-name="spectre-v1"
-cp template-nsco.yaml "${name}.yaml"
-echo "
+function spectre_v1() {
+    name="spectre-v1"
+    cp template-nsco.yaml "${name}.yaml"
+    echo "
 min_successors_per_bb: 2
 min_bb_per_function: 3
 max_bb_per_function: 3
-" >> "${name}.yaml"
-cp "${name}.yaml" "${name}-verify.yaml"
-echo "
+    " >> "${name}.yaml"
+    cp "${name}.yaml" "${name}-verify.yaml"
+    echo "
 contract_execution_clause:
     - conditional_br_misprediction
-" >> "${name}-verify.yaml"
-fuzz_and_verify $name 1
-# =====================================
+    " >> "${name}-verify.yaml"
+    fuzz_and_verify $name 1
+}
 
-name="spectre-v1-store"
-cp template-nsco.yaml "${name}.yaml"
-echo "
+function spectre_v1_store() {
+    name="spectre-v1-store"
+    cp template-nsco.yaml "${name}.yaml"
+    echo "
 min_successors_per_bb: 2
 min_bb_per_function: 3
 max_bb_per_function: 3
 contract_observation_clause: ct-nonspecstore
 contract_execution_clause:
     - conditional_br_misprediction
-" >> "${name}.yaml"
-cp "${name}.yaml" "${name}-verify.yaml"
-echo "
+    " >> "${name}.yaml"
+    cp "${name}.yaml" "${name}-verify.yaml"
+    echo "
 contract_observation_clause: loads+stores+pc
-" >> "${name}-verify.yaml"
-fuzz_and_verify $name 1
-# =====================================
+    " >> "${name}-verify.yaml"
+    fuzz_and_verify $name 1
+}
 
-name="spectre-v1-var"
-cp template-nsco.yaml "${name}.yaml"
-echo "
+function spectre_v1_var() {
+    name="spectre-v1-var"
+    cp template-nsco.yaml "${name}.yaml"
+    echo "
 min_successors_per_bb: 2
 min_bb_per_function: 3
 max_bb_per_function: 3
 contract_execution_clause:
     - conditional_br_misprediction
 analyser_permit_subsets: false
-" >> "${name}.yaml"
-fuzz_no_verify $name 1
-# =====================================
+    " >> "${name}.yaml"
+    fuzz_no_verify $name 1
+}
 
-name="spectre-v4"
-cp template-all.yaml "${name}.yaml"
-echo "
+function spectre_v4() {
+    name="spectre-v4"
+    cp template-all.yaml "${name}.yaml"
+    echo "
 x86_executor_enable_ssbp_patch: false
-" >> "${name}.yaml"
-cp "${name}.yaml" "${name}-verify.yaml"
-echo "
+    " >> "${name}.yaml"
+    cp "${name}.yaml" "${name}-verify.yaml"
+    echo "
 x86_executor_enable_ssbp_patch: true
-" >> "${name}-verify.yaml"
-fuzz_and_verify $name 1
-# =====================================
+    " >> "${name}-verify.yaml"
+    fuzz_and_verify $name 1
+}
 
-name="zero-divisor-injection"
-cp template-all.yaml "${name}.yaml"
-echo "
+function zero_divisor_injection() {
+    name="zero-divisor-injection"
+    cp template-all.yaml "${name}.yaml"
+    echo "
 x86_disable_div64: false
-" >> "${name}.yaml"
-fuzz_no_verify $name 1
-# =====================================
+    " >> "${name}.yaml"
+    fuzz_no_verify $name 1
+}
 
-name="string-copy-overflow"
-cp template.yaml "${name}.yaml"
-echo "
+function string_copy_overflow() {
+    name="string-copy-overflow"
+    cp template.yaml "${name}.yaml"
+    echo "
 min_bb_per_function: 1
 max_bb_per_function: 1
-" >> "${name}.yaml"
-fuzz_no_verify $name 1
-# =====================================
+    " >> "${name}.yaml"
+    fuzz_no_verify $name 1
+}
 
-name="exception-delayed-handling"
-cp template-all.yaml "${name}.yaml"
-echo "
-actor:
-  - name: "main"
-  - data_properties:
-    - present: False
-" >> "${name}.yaml"
-cp "${name}.yaml" "${name}-verify.yaml"
-echo "
+function exception_delayed_handling() {
+    name="exception-delayed-handling"
+    cp template-all.yaml "${name}.yaml"
+    echo "
+actors:
+    - main:
+        - data_properties:
+            - present: False
+    " >> "${name}.yaml"
+    cp "${name}.yaml" "${name}-verify.yaml"
+    echo "
 contract_execution_clause:
     - nullinj-fault
-" >> "${name}-verify.yaml"
-fuzz_and_verify $name 1
-# =====================================
+    " >> "${name}-verify.yaml"
+    fuzz_and_verify $name 1
+}
 
-name="l1tf-present"
-cp template-all.yaml "${name}.yaml"
-echo "
-actor:
-  - name: "main"
-  - data_properties:
-    - present: False
+function l1tf_present() {
+    name="l1tf-present"
+    cp template-all.yaml "${name}.yaml"
+    echo "
+actors:
+    - main:
+        - data_properties:
+            - present: False
 contract_execution_clause:
     - delayed-exception-handling
-" >> "${name}.yaml"
-cp "${name}.yaml" "${name}-verify.yaml"
-echo "
+    " >> "${name}.yaml"
+    cp "${name}.yaml" "${name}-verify.yaml"
+    echo "
 contract_execution_clause:
     - nullinj-fault
-" >> "${name}-verify.yaml"
-fuzz_and_verify $name 1
-# =====================================
+    " >> "${name}-verify.yaml"
+    fuzz_and_verify $name 1
+}
 
-name="l1tf-rw"
-cp template-all.yaml "${name}.yaml"
-echo "
-actor:
-  - name: "main"
-  - data_properties:
-    - writable: False
+function l1tf_rw() {
+    name="l1tf-rw"
+    cp template-all.yaml "${name}.yaml"
+    echo "
+actors:
+    - main:
+        - data_properties:
+            - writable: False
 contract_execution_clause:
     - delayed-exception-handling
-" >> "${name}.yaml"
-cp "${name}.yaml" "${name}-verify.yaml"
-echo "
-contract_execution_clause:
-    - nullinj-fault
-" >> "${name}-verify.yaml"
-fuzz_and_verify $name 1
-# =====================================
+    " >> "${name}.yaml"
+    cp "${name}.yaml" "${name}-verify.yaml"
+    echo "
+    contract_execution_clause:
+        - nullinj-fault
+    " >> "${name}-verify.yaml"
+    fuzz_and_verify $name 1
+}
 
-name="l1tf-smap"
-cp template-all.yaml "${name}.yaml"
-echo "
-actor:
-  - name: "main"
-  - data_properties:
-    - user: false
+function l1tf_smap() {
+    name="l1tf-smap"
+    cp template-all.yaml "${name}.yaml"
+    echo "
+actors:
+    - main:
+        - data_properties:
+            - user: false
 contract_execution_clause:
     - delayed-exception-handling
-" >> "${name}.yaml"
-cp "${name}.yaml" "${name}-verify.yaml"
-echo "
+    " >> "${name}.yaml"
+    cp "${name}.yaml" "${name}-verify.yaml"
+    echo "
 contract_execution_clause:
     - nullinj-fault
-" >> "${name}-verify.yaml"
-fuzz_and_verify $name 1
-# =====================================
+    " >> "${name}-verify.yaml"
+    fuzz_and_verify $name 1
+}
 
-name="mds-assist-accessed"
-cp template-all.yaml "${name}.yaml"
-echo "
-actor:
-  - name: "main"
-  - data_properties:
-    - accessed: false
+function mds_assist_accessed() {
+    name="mds-assist-accessed"
+    cp template-all.yaml "${name}.yaml"
+    echo "
+actors:
+    - main:
+        - data_properties:
+            - accessed: false
 contract_execution_clause:
     - delayed-exception-handling
-" >> "${name}.yaml"
-cp "${name}.yaml" "${name}-verify.yaml"
-echo "
+    " >> "${name}.yaml"
+    cp "${name}.yaml" "${name}-verify.yaml"
+    echo "
 contract_execution_clause:
     - nullinj-fault
-" >> "${name}-verify.yaml"
-fuzz_and_verify $name 1
-# =====================================
+    " >> "${name}-verify.yaml"
+    fuzz_and_verify $name 1
+}
 
-name="mds-assist-dirty"
-cp template-all.yaml "${name}.yaml"
-echo "
-actor:
-  - name: "main"
-  - data_properties:
-    - dirty: false
+function mds_assist_dirty() {
+    name="mds-assist-dirty"
+    cp template-all.yaml "${name}.yaml"
+    echo "
+actors:
+    - main:
+        - data_properties:
+            - dirty: false
 contract_execution_clause:
     - delayed-exception-handling
-" >> "${name}.yaml"
-cp "${name}.yaml" "${name}-verify.yaml"
-echo "
+    " >> "${name}.yaml"
+    cp "${name}.yaml" "${name}-verify.yaml"
+    echo "
 contract_execution_clause:
     - nullinj-fault
-" >> "${name}-verify.yaml"
-fuzz_and_verify $name 1
-# =====================================
+    " >> "${name}-verify.yaml"
+    fuzz_and_verify $name 1
+}
 
-name="l1tf-gp"
-cp template-all.yaml "${name}.yaml"
-echo "
+function l1tf_gp() {
+    name="l1tf-gp"
+    cp template-all.yaml "${name}.yaml"
+    echo "
 generator_faults_allowlist:
     - non-canonical-access
 contract_execution_clause:
     - delayed-exception-handling
-" >> "${name}.yaml"
-fuzz $name 1
-# =====================================
+    " >> "${name}.yaml"
+    fuzz $name 1
+}
 
-name="gp-forwarding"
-cp template-all.yaml "${name}.yaml"
-echo "
+function gp_forwarding() {
+    name="gp-forwarding"
+    cp template-all.yaml "${name}.yaml"
+    echo "
 generator_faults_allowlist:
     - non-canonical-access
 contract_execution_clause:
     - nullinj-fault
-" >> "${name}.yaml"
-fuzz $name 1
-# =====================================
+    " >> "${name}.yaml"
+    fuzz $name 1
+}
 
-name="div-by-zero-speculation"
-cp template-all.yaml "${name}.yaml"
-echo "
+function div_by_zero_speculation() {
+    name="div-by-zero-speculation"
+    cp template-all.yaml "${name}.yaml"
+    echo "
 generator_faults_allowlist:
     - div-by-zero
 contract_execution_clause:
     - delayed-exception-handling
-" >> "${name}.yaml"
-fuzz $name 1
-# =====================================
+    " >> "${name}.yaml"
+    fuzz $name 1
+}
 
-name="div-overflow-speculation"
-cp template-all.yaml "${name}.yaml"
-echo "
+function div_overflow_speculation() {
+    name="div-overflow-speculation"
+    cp template-all.yaml "${name}.yaml"
+    echo "
 generator_faults_allowlist:
     - div-overflow
 contract_execution_clause:
     - delayed-exception-handling
-" >> "${name}.yaml"
-fuzz $name 1
-# =====================================
+    " >> "${name}.yaml"
+    fuzz $name 1
+}
 
-name="TN-opcode-faults"
-cp template-all.yaml "${name}.yaml"
-echo "
+function tn_opcode_faults() {
+    name="TN-opcode-faults"
+    cp template-all.yaml "${name}.yaml"
+    echo "
 generator_faults_allowlist:
     - opcode-undefined
     - breakpoint
     - debug-register
 contract_execution_clause:
     - no_speculation
-" >> "${name}.yaml"
-fuzz $name 0
-# =====================================
+    " >> "${name}.yaml"
+    fuzz $name 0
+}
+
+spectre_v1
+spectre_v1_store
+spectre_v1_var
+spectre_v4
+zero_divisor_injection
+string_copy_overflow
+exception_delayed_handling
+l1tf_present
+l1tf_rw
+l1tf_smap
+mds_assist_accessed
+mds_assist_dirty
+l1tf_gp
+gp_forwarding
+div_by_zero_speculation
+div_overflow_speculation
+tn_opcode_faults
