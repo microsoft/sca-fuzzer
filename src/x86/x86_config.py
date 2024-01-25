@@ -162,6 +162,10 @@ _option_values = {
         "dbg_model",
         "dbg_coverage",
         "dbg_isa_loader",
+    ],
+    "coverage_type": [
+        "none",
+        "model_instructions",
     ]
 }
 

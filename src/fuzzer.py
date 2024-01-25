@@ -133,6 +133,7 @@ class FuzzerGeneric(Fuzzer):
                     break
 
         self.LOG.fuzzer_finish()
+        self.LOG.dbg_report_coverage(self.model)
         return STAT.violations > 0
 
     def filter(self, test_case, inputs):

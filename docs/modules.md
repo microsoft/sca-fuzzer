@@ -21,7 +21,6 @@ multiple Python files:
   size while still maintaining the violation-inducing behavior.
 * `fuzzer.py` - implements `fuzz` mode that utilizes all main components to
   perform end-to-end hardware fuzzing.
-* `coverage.py` - will collect coverage in the future; currently not in use.
 * `factory.py` - used to configure revizor accordingly to the user provided
   YAML configuration. Implements a simplified version of the Factory pattern:
   Defines a series of dictionaries that allows revizor to choose
@@ -48,7 +47,7 @@ parts of the **Model** module). The only unique parts are:
   available registers) and some helper functions.
 * `isa_spec/get_spec.py` - a script for transforming the ISA description provided
   by the CPU vendor (different for every vendor) into a unified JSON format
-* `executor/` - contains a low-level implementation of the executor. The 
+* `executor/` - contains a low-level implementation of the executor. The
   implementation will be different for each architecture. For black-box x86 CPUs,
   it is a Linux kernel module.
 

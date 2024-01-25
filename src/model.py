@@ -17,6 +17,7 @@ SPDX-License-Identifier: MIT
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import List, Tuple, Optional, Set, Dict
+from collections import defaultdict
 
 import copy
 import re
@@ -433,6 +434,7 @@ class UnicornSeq(UnicornModel):
     test_case: TestCase  # the test case being traced
     current_instruction: Instruction  # the instruction currently being executed
     current_actor: Actor  # the active actor
+    local_coverage: Optional[Dict[str, int]]  # local coverage for the current test case
 
     # test case code
     code_start: UcPointer  # the lower bound of the code area
@@ -576,6 +578,8 @@ class UnicornSeq(UnicornModel):
         contract_traces: List[CTrace] = []
         execution_traces: List[ExecutionTrace] = []
         taints = []
+        self.local_coverage = \
+            defaultdict(int) if CONF.coverage_type == "model_instructions" else None
 
         for index, input_ in enumerate(inputs):
             self.LOG.dbg_model_header(index)
@@ -626,8 +630,10 @@ class UnicornSeq(UnicornModel):
             execution_traces.append(self.tracer.get_execution_trace())
             taints.append(self.taint_tracker.get_taint())
 
-        if self.coverage:
-            self.coverage.model_hook(execution_traces)
+        # update coverage
+        if self.local_coverage is not None:
+            for inst_name in self.local_coverage.keys():
+                self.instruction_coverage[inst_name] += 1
 
         return contract_traces, taints
 
@@ -672,6 +678,11 @@ class UnicornSeq(UnicornModel):
         section_start = model.code_start + SANDBOX_CODE_SIZE * aid
         model.current_instruction = model.test_case.address_map[aid][address - section_start]
         model.trace_instruction(emulator, address, size, model)
+
+        # collect coverage
+        if model.local_coverage is not None:
+            if not model.current_instruction.is_instrumentation:
+                model.local_coverage[model.current_instruction.get_brief()] += 1
 
         # if the current instruction is a macro, interpret it
         if model.current_instruction.name == "macro":
