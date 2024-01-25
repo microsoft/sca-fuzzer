@@ -6,12 +6,12 @@ SPDX-License-Identifier: MIT
 """
 import re
 import numpy as np
-from typing import Tuple, Dict, List, Set, NamedTuple, Callable
 import copy
+from typing import Tuple, Dict, List, Set, NamedTuple, Callable
 
 import unicorn.x86_const as ucc  # type: ignore
 from unicorn import Uc, UcError, UC_MEM_WRITE, UC_ARCH_X86, UC_MODE_64, UC_PROT_READ, \
-    UC_PROT_NONE, UC_ERR_WRITE_PROT, UC_ERR_NOMEM, UC_ERR_EXCEPTION
+    UC_PROT_NONE, UC_ERR_WRITE_PROT, UC_ERR_NOMEM, UC_ERR_EXCEPTION, UC_ERR_INSN_INVALID
 
 from ..interfaces import Input, FlagsOperand, RegisterOperand, MemoryOperand, AgenOperand, \
     TestCase, Instruction, Symbol, SANDBOX_DATA_SIZE, FAULTY_AREA_SIZE, OVERFLOW_PAD_SIZE, \
@@ -233,6 +233,47 @@ class X86MacroInterpreter(MacroInterpreter):
         self.curr_guest_target = function_addr
 
 
+class X86VMEmulator:
+    """
+    Adds the ability to emulate VM guest execution to the Unicorn emulator.
+    """
+
+    vm_safe_instruction_cache: Set[int]
+    always_exit_instructions: Set[str] = {
+        "hlt", "invlpg", "invpcid", "lgdt", "lidt", "lldt", "ltr", "sgdt", "sidt", "sldt", "str",
+        "loadiwkey", "monitor", "mwait", "rdpmc", "rdrand", "rdseed", "rdtsc", "rdtscp", "rsm",
+        "tpause", "umwait", "vmread", "vmwrite", "wbinvd", "wbnoinvd", "wrmsr", "fxsave", "fxsave64"
+    }
+    always_exiting_registers = ["cr3", "cr8", "dr0", "dr1", "dr2", "dr3", "dr6", "dr7"]
+
+    instruction_emulators: Dict[str, Callable] = {
+        "mov": lambda self, inst, addr: self.emulate_move(inst, addr),
+    }
+
+    def reset(self):
+        self.vm_safe_instruction_cache = set()
+
+    def run(self, inst: Instruction, address: int):
+        if address in self.vm_safe_instruction_cache:
+            return
+
+        # always-exiting instruction
+        if inst.name in self.always_exit_instructions:
+            raise UcError(UC_ERR_INSN_INVALID)
+
+        # conditional exit
+        if inst.name in self.instruction_emulators:
+            self.instruction_emulators[inst.name](self, inst, address)
+
+        # safe instruction
+        self.vm_safe_instruction_cache.add(address)
+
+    def emulate_move(self, inst: Instruction, _: int):
+        for operand in inst.operands:
+            if operand.value in self.always_exiting_registers:
+                raise UcError(UC_ERR_INSN_INVALID)
+
+
 class X86UnicornSeq(UnicornSeq):
     """
     Base class that serves as main interface.
@@ -244,6 +285,7 @@ class X86UnicornSeq(UnicornSeq):
     def __init__(self, sandbox_base, code_start):
         super().__init__(sandbox_base, code_start)
         self.macro_interpreter = X86MacroInterpreter(self)
+        self.vm_emulator = X86VMEmulator()
 
         self.target_desc = X86TargetDesc()
         self.uc_target_desc = X86UnicornTargetDesc()
@@ -278,6 +320,8 @@ class X86UnicornSeq(UnicornSeq):
             self.rw_forbidden[aid] = bool(self.rw_fault_mask_unset & pte)
             self.rw_forbidden[aid] |= bool(self.rw_fault_mask & inverse_pte)
             self.w_forbidden[aid] = bool(self.write_fault_mask & inverse_pte)
+
+        self.vm_emulator.reset()
         return super().load_test_case(test_case)
 
     def _load_input(self, input_: Input):
@@ -428,6 +472,9 @@ class X86UnicornSeq(UnicornSeq):
             self.emulator.mem_protect(faulty_base, FAULTY_AREA_SIZE, UC_PROT_READ)
         else:
             self.emulator.mem_protect(faulty_base, FAULTY_AREA_SIZE)
+
+    def emulate_vm_execution(self, address: int) -> None:
+        self.vm_emulator.run(self.current_instruction, address)
 
 
 # ==================================================================================================

@@ -26,7 +26,7 @@ from unicorn import Uc, UcError, UC_MEM_WRITE, UC_MEM_READ, UC_SECOND_SCALE, UC_
     UC_HOOK_MEM_WRITE, UC_HOOK_CODE, UC_HOOK_MEM_UNMAPPED
 
 from .interfaces import CTrace, TestCase, Model, InputTaint, Instruction, ExecutionTrace, \
-    TracedInstruction, TracedMemAccess, Input, Tracer, Actor, \
+    TracedInstruction, TracedMemAccess, Input, Tracer, Actor, ActorMode, \
     RegisterOperand, FlagsOperand, MemoryOperand, TaintTrackerInterface, TargetDesc, \
     get_sandbox_addr, SANDBOX_DATA_SIZE, SANDBOX_CODE_SIZE
 from .config import CONF
@@ -411,6 +411,12 @@ class UnicornModel(Model, ABC):
     def rollback(self) -> int:
         return 0
 
+    @abstractmethod
+    def emulate_vm_execution(self, address: int) -> None:
+        """ Emulate the execution of an instruction in VM guest mode """
+        # implemented by ISA-specific subclasses
+        pass
+
 
 class UnicornSeq(UnicornModel):
     """
@@ -670,6 +676,10 @@ class UnicornSeq(UnicornModel):
         # if the current instruction is a macro, interpret it
         if model.current_instruction.name == "macro":
             model.macro_interpreter.interpret(model.current_instruction, address)
+
+        # emulate invalid opcode for certain instructions when executed in VM guest mode
+        if model.current_actor.mode == ActorMode.GUEST:
+            model.emulate_vm_execution(address)
 
     @staticmethod
     def trace_instruction(emulator, address, size, model) -> None:
