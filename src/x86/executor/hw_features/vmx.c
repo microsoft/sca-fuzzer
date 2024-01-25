@@ -421,10 +421,11 @@ static int set_vmcs_guest_state(void)
 
     // SDM 25.4 Guest-State Area
     // - Control registers
-    uint64_t cr0 = read_cr0();
+    uint64_t cr0 = (read_cr0() | MUST_SET_BITS_CR0_GUEST) & ~MUST_CLEAR_BITS_CR0_GUEST;
+    uint64_t cr4 = (__read_cr4() | MUST_SET_BITS_CR4_GUEST) & ~MUST_CLEAR_BITS_CR4_GUEST;
     CHECKED_VMWRITE(GUEST_CR0, cr0);
     CHECKED_VMWRITE(GUEST_CR3, (uint64_t)&guest_p_memory->guest_page_tables.pml4[0]);
-    CHECKED_VMWRITE(GUEST_CR4, __read_cr4());
+    CHECKED_VMWRITE(GUEST_CR4, cr4);
 
     // - Debug register
     CHECKED_VMWRITE(GUEST_DR7, 0x400);
@@ -590,6 +591,21 @@ static int set_vmcs_exec_control(int actor_id)
 
     // SDM 25.6.12 Virtual-Processor Identifier (VPID)
     ASSERT((SECONDARY_EXEC_ENABLE_VPID & secondary_vm_exec_control) == 0, "set_vmcs_exec_control");
+
+    // SDM 25.6.13 Controls for PAUSE-Loop Exiting
+    // not implemented
+
+    // SDM 25.6.14 VM-Functions
+    ASSERT((SECONDARY_EXEC_ENABLE_VMFUNC & secondary_vm_exec_control) == 0,
+           "set_vmcs_exec_control");
+
+    // SDM 25.6.15 VMCS Shadowing Bitmap Addresses
+    ASSERT((SECONDARY_EXEC_SHADOW_VMCS & secondary_vm_exec_control) == 0, "set_vmcs_exec_control");
+
+    // SDM 25.6.16 ENCLS-Exiting Bitmap
+    ASSERT((SECONDARY_EXEC_ENCLS_EXITING & secondary_vm_exec_control) != 0,
+           "set_vmcs_exec_control");
+    CHECKED_VMWRITE(ENCLS_EXITING_BITMAP, 0x0FFFFFFFFFFFFFFFULL);
 
     // Misc. features (25.6.14--23) are disabled
     return 0;
