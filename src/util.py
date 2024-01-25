@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import NoReturn, Dict
 from pprint import pformat
 from traceback import print_stack
-from .interfaces import EquivalenceClass, SANDBOX_CODE_SIZE
+from .interfaces import EquivalenceClass, SANDBOX_CODE_SIZE, Model
 from .config import CONF
 
 MASK_64BIT = pow(2, 64)
@@ -440,10 +440,18 @@ class Logger:
 
     # ==============================================================================================
     # Coverage
-    def dbg_report_coverage(self, round_id, msg):
-        if __debug__:
-            if self.dbg_coverage and round_id and round_id % 100 == 0:
-                print(f"\nDBG: [coverage] {msg}")
+    def dbg_report_coverage(self, model: Model):
+        if not __debug__:
+            return
+        if not self.dbg_coverage:
+            return
+
+        inst_names = sorted(model.instruction_coverage.items(), key=lambda x: x[1], reverse=True)
+        with open("coverage.txt", "w") as f:
+            for inst_name, count in inst_names:
+                f.write(f"{inst_name:<20} {count}\n")
+            if not inst_names:
+                f.write("    No coverage data available")
 
 
 # ==================================================================================================

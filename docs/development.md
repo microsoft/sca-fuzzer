@@ -96,7 +96,6 @@ multiple Python files:
   size while still maintaining the violation-inducing behavior.
 * `fuzzer.py` - implements `fuzz` mode that utilizes all main components to
   perform end-to-end hardware fuzzing.
-* `coverage.py` - will collect coverage in the future; currently not in use.
 * `factory.py` - used to configure revizor accordingly to the user provided
   YAML configuration. Implements a simplified version of the Factory pattern:
   Defines a series of dictionaries that allows revizor to choose

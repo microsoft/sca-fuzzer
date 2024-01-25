@@ -89,8 +89,8 @@ For a complete list, see `src/config.py`.
 
 * `coverage_type` [str]: Coverage type.
   Available options:
-  'none' - disable coverage tracking;
-  'dependent-pairs' - coverage of pairs of dependent instructions.
+  'none' - disable coverage tracking (default);
+  'model_instructions' - how many times the model executed each instruction.
 
 
 # x86-specific configuration

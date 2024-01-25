@@ -409,6 +409,7 @@ class Instruction:
     section_offset: int = 0
     section_id: int = 0
     size: int = 0
+    _inst_brief: str = ""
 
     # TODO: remove latest_reg_operand from this class. It belongs in the generator
     latest_reg_operand: Optional[Operand] = None  # for avoiding dependencies
@@ -561,6 +562,29 @@ class Instruction:
                 res.append(o)
 
         return res
+
+    def get_brief(self) -> str:
+        if self._inst_brief:
+            return self._inst_brief
+
+        brief = self.name
+        for o in self.operands:
+            if o.type == OT.REG:
+                brief += f" R{o.width}"
+            elif o.type == OT.MEM:
+                brief += f" M{o.width}"
+            elif o.type == OT.IMM:
+                brief += f" I{o.width}"
+            elif o.type == OT.LABEL:
+                brief += " L"
+            elif o.type == OT.AGEN:
+                brief += f" A{o.width}"
+            elif o.type == OT.FLAGS:
+                brief += " F"
+            elif o.type == OT.COND:
+                brief += " C"
+        self._inst_brief = brief
+        return brief
 
 
 class BasicBlock:
@@ -975,9 +999,11 @@ class Model(ABC):
     data_start: int = 0
     data_end: int = 0
     tracer: Tracer
+    instruction_coverage: Dict[str, int]
 
     @abstractmethod
     def __init__(self, sandbox_base: int, code_base: int):
+        self.instruction_coverage = defaultdict(int)
         super().__init__()
 
     @abstractmethod
