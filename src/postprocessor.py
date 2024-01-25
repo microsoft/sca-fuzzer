@@ -43,7 +43,6 @@ INSTRUCTION_REPLACEMENTS = {
 class MinimizerViolation(Minimizer):
 
     def __init__(self, fuzzer: Fuzzer, instruction_set_spec: InstructionSetAbstract):
-        CONF.coverage_type = 'none'
         self.instruction_set_spec = instruction_set_spec
         self.fuzzer = fuzzer
         self.fuzzer.initialize_modules()

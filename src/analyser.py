@@ -42,9 +42,6 @@ class EquivalenceAnalyser(Analyser):
         equivalence_classes: List[EquivalenceClass] = self._build_equivalence_classes(
             inputs, ctraces, htraces, stats)
 
-        if self.coverage:
-            self.coverage.analyser_hook(equivalence_classes)
-
         violations: List[EquivalenceClass] = []
         for eq_cls in equivalence_classes:
             # if all htraces in the class match, it's definitely not a violation
