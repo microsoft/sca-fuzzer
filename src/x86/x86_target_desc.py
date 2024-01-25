@@ -190,7 +190,7 @@ class X86TargetDesc(TargetDesc):
         for size, registers in self.registers.items():
             filtered_decoding[size] = []
             for register in registers:
-                if register not in CONF.register_blocklist:
+                if register not in CONF.register_blocklist or register in CONF.register_allowlist:
                     filtered_decoding[size].append(register)
         self.registers = filtered_decoding
 

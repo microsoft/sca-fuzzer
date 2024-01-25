@@ -89,22 +89,24 @@ class InstructionSet(InstructionSetAbstract):
 
             for operand in spec.operands:
                 if operand.type == OT.MEM and operand.values \
-                        and operand.values[0] in CONF.register_blocklist:
+                        and operand.values[0] in register_blocklist:
                     return False
 
             for implicit_operand in spec.implicit_operands:
                 assert implicit_operand.type != OT.LABEL  # I know no such instructions
-                if implicit_operand.type == OT.MEM and \
-                        implicit_operand.values[0] in CONF.register_blocklist:
+                if implicit_operand.type == OT.MEM \
+                        and implicit_operand.values[0] in register_blocklist:
                     return False
 
-                if implicit_operand.type == OT.REG and \
-                        implicit_operand.values[0] in CONF.register_blocklist:
+                if implicit_operand.type == OT.REG \
+                        and implicit_operand.values[0] in register_blocklist:
                     assert len(implicit_operand.values) == 1
                     return False
             return True
 
         skip_list = []
+        register_blocklist = set(CONF.register_blocklist) - set(CONF.register_allowlist)
+
         for s in self.instructions:
             # Unsupported instructions
             if not is_supported(s):
@@ -114,7 +116,7 @@ class InstructionSet(InstructionSetAbstract):
             skip_pending = False
             for op in s.operands:
                 if op.type == OT.REG:
-                    choices = sorted(list(set(op.values) - set(CONF.register_blocklist)))
+                    choices = sorted(list(set(op.values) - register_blocklist))
                     if not choices:
                         skip_pending = True
                         break
