@@ -30,6 +30,19 @@
 #define VM_ENTRY_LOAD_IA32_PKRS    (1ULL << 22)
 
 // ----------------------------------------------------------------------------------------------
+// Guest control registers
+#define MUST_SET_BITS_CR0_GUEST                                                                    \
+    (X86_CR0_PE | X86_CR0_PG | X86_CR0_NE | X86_CR0_WP | X86_CR0_AM | X86_CR0_ET)
+#define MUST_CLEAR_BITS_CR0_GUEST (X86_CR0_NW | X86_CR0_CD)
+
+#define MUST_SET_BITS_CR4_GUEST                                                                    \
+    (X86_CR4_PSE | X86_CR4_PAE | X86_CR4_MCE | X86_CR4_PGE | X86_CR4_PCE | X86_CR4_OSFXSR |        \
+     X86_CR4_OSXMMEXCPT | X86_CR4_VMXE | X86_CR4_PCIDE)
+#define MUST_CLEAR_BITS_CR4_GUEST                                                                  \
+    (X86_CR4_VME | X86_CR4_PVI | X86_CR4_TSD | X86_CR4_UMIP | X86_CR4_SMXE | X86_CR4_FSGSBASE |    \
+     X86_CR4_OSXSAVE)
+
+// ----------------------------------------------------------------------------------------------
 // VMCS control fields
 
 // Table 25-5. Definitions of Pin-Based VM-Execution Controls
@@ -54,22 +67,21 @@
 
 // Table 25-7. Definitions of Secondary Processor-Based VM-Execution Controls
 #define DEFAULT_SECONDARY_VM_EXEC_CONTROL                                                          \
-    (SECONDARY_EXEC_ENABLE_EPT | SECONDARY_EXEC_DESC | SECONDARY_EXEC_WBINVD_EXITING)
-#define OPTIONAL_SECONDARY_VM_EXEC_CONTROL                                                         \
-    (SECONDARY_EXEC_PAUSE_LOOP_EXITING | SECONDARY_EXEC_ENCLS_EXITING)
+    (SECONDARY_EXEC_ENABLE_EPT | SECONDARY_EXEC_DESC | SECONDARY_EXEC_WBINVD_EXITING |             \
+     SECONDARY_EXEC_ENCLS_EXITING | SECONDARY_EXEC_ENABLE_INVPCID |                                \
+     SECONDARY_EXEC_RDRAND_EXITING | SECONDARY_EXEC_RDSEED_EXITING)
+#define OPTIONAL_SECONDARY_VM_EXEC_CONTROL (SECONDARY_EXEC_PAUSE_LOOP_EXITING)
 #define NOT_SUPPORTED_SECONDARY_VM_EXEC_CONTROL                                                    \
     (SECONDARY_EXEC_VIRTUALIZE_APIC_ACCESSES | SECONDARY_EXEC_RDTSCP |                             \
      SECONDARY_EXEC_VIRTUALIZE_X2APIC_MODE | SECONDARY_EXEC_ENABLE_VPID |                          \
      SECONDARY_EXEC_UNRESTRICTED_GUEST | SECONDARY_EXEC_APIC_REGISTER_VIRT |                       \
-     SECONDARY_EXEC_VIRTUAL_INTR_DELIVERY | SECONDARY_EXEC_RDRAND_EXITING |                        \
-     SECONDARY_EXEC_ENABLE_INVPCID | SECONDARY_EXEC_ENABLE_VMFUNC | SECONDARY_EXEC_ENABLE_VMFUNC | \
-     SECONDARY_EXEC_RDSEED_EXITING | SECONDARY_EXEC_ENABLE_PML |                                   \
-     SECONDARY_EXEC_EPT_VIOLATION_CAUSES_VE | SECONDARY_EXEC_PT_CONCEAL_VMX |                      \
-     SECONDARY_EXEC_XSAVES | SECONDARY_EXEC_PASID_TRANSLATION |                                    \
+     SECONDARY_EXEC_VIRTUAL_INTR_DELIVERY | SECONDARY_EXEC_ENABLE_VMFUNC |                         \
+     SECONDARY_EXEC_ENABLE_PML | SECONDARY_EXEC_EPT_VIOLATION_CAUSES_VE |                          \
+     SECONDARY_EXEC_PT_CONCEAL_VMX | SECONDARY_EXEC_XSAVES | SECONDARY_EXEC_PASID_TRANSLATION |    \
      SECONDARY_EXEC_MODE_BASED_EPT_EXEC | SECONDARY_EXEC_SUBPAGE_WRITE_PERM |                      \
      SECONDARY_EXEC_PT_USE_GPA | SECONDARY_EXEC_TSC_SCALING |                                      \
      SECONDARY_EXEC_ENABLE_USR_WAIT_PAUSE | SECONDARY_EXEC_ENABLE_PCONFIG |                        \
-     SECONDARY_EXEC_ENABLE_ENCLV_EXITING)
+     SECONDARY_EXEC_ENABLE_ENCLV_EXITING | SECONDARY_EXEC_SHADOW_VMCS)
 
 // Misc.
 #define DEFAULT_EXCEPTION_BITMAP 0xFFFFFFFF // all exceptions are redirected to host
