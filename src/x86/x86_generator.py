@@ -739,6 +739,7 @@ class X86Printer(Printer):
         16: "word ptr",
         32: "dword ptr",
         64: "qword ptr",
+        80: "tbyte ptr",
         128: "xmmword ptr",
         256: "ymmword ptr",
         512: "zmmword ptr"
