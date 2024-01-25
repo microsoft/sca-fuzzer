@@ -88,8 +88,23 @@ class X86Transformer:
         'ds': 16,
         'fs': 16,
         'gs': 16,
-        'cr0': 32,
+        'cr0': 64,
+        'cr3': 64,
+        'cr4': 64,
+        'cr8': 64,
         'xcr0': 64,
+        'dr0': 64,
+        'dr1': 64,
+        'dr2': 64,
+        'dr3': 64,
+        'dr6': 64,
+        'dr7': 64,
+        'gdtr': 80,
+        'ldtr': 96,
+        'idtr': 80,
+        'tr': 16,
+        'msrs': 64,
+        'x87control': 16,
     }
     not_control_flow = ["int", "int1", "int3", "into"]
     """ a list of instructions that have RIP as an operand but should
@@ -172,7 +187,7 @@ class X86Transformer:
     def parse_reg_operand(self, op):
         spec = OperandSpec()
         spec.type_ = "REG"
-        spec.values = op.text.split(',')
+        spec.values = op.text.lower().split(',')
         spec.src = True if op.attrib.get('r', "0") == "1" else False
         spec.dest = True if op.attrib.get('w', "0") == "1" else False
         spec.width = int(op.attrib.get('width', 0))

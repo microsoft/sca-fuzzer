@@ -229,6 +229,8 @@ register_blocklist: List[str] = [
     'es', 'cs', 'ss', 'ds', 'fs', 'gs',
     'cr0', 'cr2', 'cr3', 'cr4', 'cr8',
     'dr0', 'dr1', 'dr2', 'dr3', 'dr4', 'dr5', 'dr6', 'dr7',
+    "xcr0", "gdtr", "ldtr", "idtr", "tr", "fsbase", "gsbase", "msrs", "x87control",
+
     # XMM8-15 are somehow broken in Unicorn
     "xmm8", "xmm9", "xmm10", "xmm11", "xmm12", "xmm13", "xmm14", "xmm15",
 ]  # yapf: disable

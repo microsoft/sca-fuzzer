@@ -73,6 +73,7 @@ class X86AsmParser(AsmParserGeneric):
         "word": 16,
         "dword": 32,
         "qword": 64,
+        "tbyte": 80,
         "xmmword": 128,
         "ymmword": 256,
         "zmmword": 512
@@ -135,6 +136,10 @@ class X86AsmParser(AsmParserGeneric):
                         match = False
                         break
                     access_size = op_raw.split()[0]  # match address size
+                    if access_size == "ptr":
+                        # out internal convention is that "ptr" prefix matches any size
+                        continue
+
                     parser_assert(access_size in self.memory_sizes, line_num,
                                   f"Pointer size must be declared explicitly in {line}")
                     if op_spec.width != self.memory_sizes[access_size]:
