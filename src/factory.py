@@ -7,7 +7,7 @@ SPDX-License-Identifier: MIT
 
 from typing import Tuple, Dict, Type, List, Callable
 
-from . import input_generator, analyser, coverage, postprocessor, interfaces, model
+from . import input_generator, analyser, postprocessor, interfaces, model
 from .x86 import x86_model, x86_executor, x86_fuzzer, x86_generator, x86_asm_parser, get_spec
 from .config import CONF, ConfigException
 
@@ -65,8 +65,6 @@ EXECUTORS = {
 ANALYSERS: Dict[str, Type[interfaces.Analyser]] = {
     'equivalence-classes': analyser.EquivalenceAnalyser,
 }
-
-COVERAGE: Dict[str, Type[interfaces.Coverage]] = {'none': coverage.NoCoverage}
 
 MINIMIZERS: Dict[str, Type[interfaces.Minimizer]] = {
     'violation': postprocessor.MinimizerViolation,
@@ -156,12 +154,6 @@ def get_executor() -> interfaces.Executor:
 
 def get_analyser() -> interfaces.Analyser:
     return _get_from_config(ANALYSERS, CONF.analyser, "analyser")
-
-
-def get_coverage(instruction_set: interfaces.InstructionSetAbstract, executor_: interfaces.Executor,
-                 model: interfaces.Model, analyser: interfaces.Analyser) -> interfaces.Coverage:
-    return _get_from_config(COVERAGE, CONF.coverage_type, "coverage_type", instruction_set,
-                            executor_, model, analyser)
 
 
 def get_minimizer(fuzzer: interfaces.Fuzzer,

@@ -2,7 +2,6 @@
 
 from .isa_loader import *
 from .executor import *
-from .coverage import *
 from .analyser import *
 from .input_generator import *
 from .generator import *

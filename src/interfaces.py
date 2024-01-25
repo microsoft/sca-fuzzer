@@ -956,41 +956,6 @@ class InputGenerator(ABC):
         pass
 
 
-class Coverage(ABC):
-    instruction_set: InstructionSetAbstract
-
-    def __init__(self, instruction_set: InstructionSetAbstract, executor: Executor, model: Model,
-                 analyser: Analyser):
-        self.instruction_set = instruction_set
-        executor.set_coverage(self)
-        model.set_coverage(self)
-        analyser.set_coverage(self)
-        super().__init__()
-
-    @abstractmethod
-    def get(self) -> int:
-        pass
-
-    def get_brief(self) -> str:
-        return ""
-
-    @abstractmethod
-    def load_test_case(self, test_case: TestCase):
-        pass
-
-    @abstractmethod
-    def model_hook(self, feedback):
-        pass
-
-    @abstractmethod
-    def executor_hook(self, feedback):
-        pass
-
-    @abstractmethod
-    def analyser_hook(self, feedback):
-        pass
-
-
 class Tracer(ABC):
     trace: List
 
@@ -1003,7 +968,6 @@ class Tracer(ABC):
 
 
 class Model(ABC):
-    coverage: Optional[Coverage] = None
     sandbox_base: int = 0
     code_start: int = 0
     code_end: int = 0
@@ -1031,12 +995,8 @@ class Model(ABC):
     def trace_test_case_with_taints(self, inputs, nesting) -> Tuple[List[CTrace], List[InputTaint]]:
         pass
 
-    def set_coverage(self, coverage: Coverage):
-        self.coverage = coverage
-
 
 class Executor(ABC):
-    coverage: Optional[Coverage] = None
 
     @abstractmethod
     def load_test_case(self, test_case: TestCase):
@@ -1053,16 +1013,12 @@ class Executor(ABC):
     def read_base_addresses(self) -> Tuple[int, int]:
         pass
 
-    def set_coverage(self, coverage: Coverage):
-        self.coverage = coverage
-
     @abstractmethod
     def get_last_feedback(self) -> List:
         pass
 
 
 class Analyser(ABC):
-    coverage: Optional[Coverage] = None
 
     @abstractmethod
     def filter_violations(self,
@@ -1071,9 +1027,6 @@ class Analyser(ABC):
                           htraces: List[HTrace],
                           stats=False) -> List[EquivalenceClass]:
         pass
-
-    def set_coverage(self, coverage: Coverage):
-        self.coverage = coverage
 
 
 class Fuzzer(ABC):

@@ -35,7 +35,6 @@ class StatisticsCls:
     eff_classes: int = 0
     single_entry_classes: int = 0
     violations: int = 0
-    coverage: int = 0
     analysed_test_cases: int = 0
     spec_filter: int = 0
     observ_filter: int = 0

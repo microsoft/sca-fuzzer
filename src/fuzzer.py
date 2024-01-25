@@ -12,7 +12,7 @@ import copy
 
 from . import factory
 from .interfaces import Fuzzer, CTrace, HTrace, Input, InputTaint, EquivalenceClass, TestCase, \
-    Generator, InputGenerator, Model, Executor, Analyser, Coverage, InputID, Measurement, NullHTrace
+    Generator, InputGenerator, Model, Executor, Analyser, InputID, Measurement, NullHTrace
 from .isa_loader import InstructionSet
 from .config import CONF
 from .util import Logger, STAT, TWOS_COMPLEMENT_MASK_64, bit_count, pretty_trace
@@ -29,7 +29,6 @@ class FuzzerGeneric(Fuzzer):
     executor: Executor
     model: Model
     analyser: Analyser
-    coverage: Coverage
 
     LOG: Logger  # name capitalized to make logging easily distinguishable from the main logic
 
@@ -59,8 +58,6 @@ class FuzzerGeneric(Fuzzer):
         self.executor = factory.get_executor()
         self.model = factory.get_model(self.executor.read_base_addresses())
         self.analyser = factory.get_analyser()
-        self.coverage = factory.get_coverage(self.instruction_set, self.executor, self.model,
-                                             self.analyser)
         self.asm_parser = factory.get_asm_parser(self.generator)
 
     def start_random(self,
@@ -100,7 +97,6 @@ class FuzzerGeneric(Fuzzer):
 
         for i in range(num_test_cases):
             self.LOG.fuzzer_start_round(i)
-            self.LOG.dbg_report_coverage(i, self.coverage.get_brief())
 
             # terminate the fuzzer if the timeout has expired
             if timeout:
@@ -145,7 +141,6 @@ class FuzzerGeneric(Fuzzer):
     def fuzzing_round(self, test_case: TestCase, inputs: List[Input]) -> Optional[EquivalenceClass]:
         self.model.load_test_case(test_case)
         self.executor.load_test_case(test_case)
-        self.coverage.load_test_case(test_case)
 
         # 1. Fast path: Test for contract violations with model configured for min nesting and
         #    executor collecting hardware traces only twice
@@ -463,7 +458,6 @@ class ArchitecturalFuzzer(FuzzerGeneric):
     def fuzzing_round(self, test_case: TestCase, inputs: List[Input]) -> Optional[EquivalenceClass]:
         self.model.load_test_case(test_case)
         self.executor.load_test_case(test_case)
-        self.coverage.load_test_case(test_case)
 
         # collect architectural hardware traces
         htraces: List[List[int]] = [[t] for t in self.executor.trace_test_case(inputs, 1)]
