@@ -240,9 +240,11 @@ class X86VMEmulator:
 
     vm_safe_instruction_cache: Set[int]
     always_exit_instructions: Set[str] = {
-        "hlt", "invlpg", "invpcid", "lgdt", "lidt", "lldt", "ltr", "sgdt", "sidt", "sldt", "str",
-        "loadiwkey", "monitor", "mwait", "rdpmc", "rdrand", "rdseed", "rdtsc", "rdtscp", "rsm",
-        "tpause", "umwait", "vmread", "vmwrite", "wbinvd", "wbnoinvd", "wrmsr", "fxsave", "fxsave64"
+        "cpuid", "getsec", "xsetbv", "invd", "invept", "invvpid", "vmptrld", "vmptrst", "vmclear",
+        "vmxon", "vmxoff", "vmlaunch", "vmresume", "vmcall", "vmfunc", "hlt", "invlpg", "invpcid",
+        "lgdt", "lidt", "lldt", "ltr", "sgdt", "sidt", "sldt", "str", "loadiwkey", "monitor",
+        "mwait", "rdpmc", "rdrand", "rdseed", "rdtsc", "rdtscp", "rsm", "tpause", "umwait",
+        "vmread", "vmwrite", "wbinvd", "wbnoinvd", "wrmsr", "fxsave", "fxsave64"
     }
     always_exiting_registers = ["cr3", "cr8", "dr0", "dr1", "dr2", "dr3", "dr6", "dr7"]
 
