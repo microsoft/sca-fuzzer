@@ -590,6 +590,10 @@ class UnicornSeq(UnicornModel):
             while True:
                 self.pending_fault_id = 0
 
+                # check if we're re-entering into the exit address
+                if not self.in_speculation and self.exit_reached(start_address):
+                    break
+
                 # execute the test case
                 try:
                     self.emulator.emu_start(
