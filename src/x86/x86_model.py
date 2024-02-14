@@ -244,9 +244,10 @@ class X86VMEmulator:
         "vmxon", "vmxoff", "vmlaunch", "vmresume", "vmcall", "vmfunc", "hlt", "invlpg", "invpcid",
         "lgdt", "lidt", "lldt", "ltr", "sgdt", "sidt", "sldt", "str", "loadiwkey", "monitor",
         "mwait", "rdpmc", "rdrand", "rdseed", "rdtsc", "rdtscp", "rsm", "tpause", "umwait",
-        "vmread", "vmwrite", "wbinvd", "wbnoinvd", "wrmsr", "fxsave", "fxsave64"
+        "vmread", "vmwrite", "wbinvd", "wbnoinvd", "wrmsr", "fxsave", "fxsave64", "in", "ins",
+        "insb", "insw", "insd", "out", "outs", "outsb", "outsw", "outsd", "pause", "rdmsr"
     }
-    always_exiting_registers = ["cr3", "cr8", "dr0", "dr1", "dr2", "dr3", "dr6", "dr7"]
+    always_exiting_registers = ["cr0", "cr3", "cr8", "dr0", "dr1", "dr2", "dr3", "dr6", "dr7"]
 
     instruction_emulators: Dict[str, Callable] = {
         "mov": lambda self, inst, addr: self.emulate_move(inst, addr),
@@ -258,14 +259,15 @@ class X86VMEmulator:
     def run(self, inst: Instruction, address: int):
         if address in self.vm_safe_instruction_cache:
             return
+        stripped_name = inst.name.split()[-1]
 
         # always-exiting instruction
-        if inst.name in self.always_exit_instructions:
+        if stripped_name in self.always_exit_instructions:
             raise UcError(UC_ERR_INSN_INVALID)
 
         # conditional exit
-        if inst.name in self.instruction_emulators:
-            self.instruction_emulators[inst.name](self, inst, address)
+        if stripped_name in self.instruction_emulators:
+            self.instruction_emulators[stripped_name](self, inst, address)
 
         # safe instruction
         self.vm_safe_instruction_cache.add(address)
