@@ -7,6 +7,8 @@
 #define _ASM_SNIPPETS_H_
 // clang-format off
 
+#include "hardware_desc.h"
+
 #ifndef VENDOR_ID
 #error "VENDOR_ID is not defined! Make sure to include this header late enough."
 #endif
@@ -146,7 +148,33 @@
 // L1D Prime+Probe
 // =================================================================================================
 // TODO: generate this code dynamically
-#if L1D_ASSOCIATIVITY == 8
+#if L1D_ASSOCIATIVITY == 2
+#define PRIME_ONE_SET(BASE, OFFSET, TMP)                 \
+        "mov "TMP", "OFFSET"                ; mfence \n" \
+        "add "TMP", ["BASE" + "TMP"]        ; mfence \n" \
+        "add "TMP", ["BASE" + "TMP" + 4096] ; mfence \n"
+
+#define PROBE_ONE_SET(BASE, OFFSET)                  \
+        "mov rax, "OFFSET"                       \n" \
+        "add rax, ["BASE" + rax]        ; mfence \n" \
+        "add rax, ["BASE" + rax + 4096] ; mfence \n"
+
+#elif L1D_ASSOCIATIVITY == 4
+#define PRIME_ONE_SET(BASE, OFFSET, TMP)                 \
+        "mov "TMP", "OFFSET"                ; mfence \n" \
+        "add "TMP", ["BASE" + "TMP"]        ; mfence \n" \
+        "add "TMP", ["BASE" + "TMP" + 4096] ; mfence \n" \
+        "add "TMP", ["BASE" + "TMP" + 8192] ; mfence \n" \
+        "add "TMP", ["BASE" + "TMP" + 12288]; mfence \n"
+
+#define PROBE_ONE_SET(BASE, OFFSET)                  \
+        "mov rax, "OFFSET"                       \n" \
+        "add rax, ["BASE" + rax]        ; mfence \n" \
+        "add rax, ["BASE" + rax + 4096] ; mfence \n" \
+        "add rax, ["BASE" + rax + 8192] ; mfence \n" \
+        "add rax, ["BASE" + rax + 12288]; mfence \n"
+
+#elif L1D_ASSOCIATIVITY == 8
 #define PRIME_ONE_SET(BASE, OFFSET, TMP)                 \
         "mov "TMP", "OFFSET"                ; mfence \n" \
         "add "TMP", ["BASE" + "TMP"]        ; mfence \n" \
@@ -200,6 +228,8 @@
         "add rax, ["BASE" + rax + 40960]; mfence \n" \
         "add rax, ["BASE" + rax + 45056]; mfence \n"
 
+#else
+#error "Unexpected associativity"
 #endif
 
 // clobber: none
