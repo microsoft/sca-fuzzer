@@ -80,6 +80,9 @@ class EquivalenceAnalyser(Analyser):
         # build eq. classes
         eq_class_map: Dict[CTrace, EquivalenceClass] = defaultdict(lambda: EquivalenceClass())
         for i, ctrace in enumerate(ctraces):
+            # skip the measurements with corrupted/ignored htraces
+            if not htraces[i].raw:
+                continue
             eq_cls = eq_class_map[ctrace]
             eq_cls.ctrace = ctrace
             eq_cls.measurements.append(Measurement(i, inputs[i], ctrace, htraces[i]))
