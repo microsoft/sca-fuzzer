@@ -129,7 +129,7 @@ class Conf:
 
     # ==============================================================================================
     # Executor
-    executor: str = ''
+    executor: str = x86_config.try_get_cpu_vendor()
     """ executor: executor type """
     executor_mode: str = 'P+P'
     """ executor_mode: hardware trace collection mode """
