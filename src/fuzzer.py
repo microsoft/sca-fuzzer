@@ -7,15 +7,15 @@ SPDX-License-Identifier: MIT
 import shutil
 from pathlib import Path
 from datetime import datetime
-from typing import Optional, List, Tuple, Callable
+from typing import Optional, List, Callable
 import copy
 
 from . import factory
-from .interfaces import Fuzzer, CTrace, HTrace, Input, InputTaint, EquivalenceClass, TestCase, \
-    Generator, InputGenerator, Model, Executor, Analyser, InputID, Measurement, NullHTrace
+from .interfaces import Fuzzer, CTrace, HTrace, Input, EquivalenceClass, TestCase, \
+    Generator, InputGenerator, Model, Executor, Analyser, InputID, Measurement, InputTaint
 from .isa_loader import InstructionSet
 from .config import CONF
-from .util import Logger, STAT, TWOS_COMPLEMENT_MASK_64, bit_count, pretty_trace
+from .util import Logger, STAT, pretty_htrace
 
 
 class FuzzerGeneric(Fuzzer):
@@ -46,8 +46,7 @@ class FuzzerGeneric(Fuzzer):
         self.LOG = Logger()
 
     def _adjust_config(self, _: str):
-        if CONF.executor_mode == 'TSC':
-            CONF.analyser_permit_subsets = False
+        pass
         # more adjustments could be implemented by subclasses!
 
     def initialize_modules(self):
@@ -140,138 +139,167 @@ class FuzzerGeneric(Fuzzer):
         return False  # implemented by architecture-specific subclasses
 
     def fuzzing_round(self, test_case: TestCase, inputs: List[Input]) -> Optional[EquivalenceClass]:
+        """ Run a single fuzzing round: collect contract and hardware traces for the given test
+        case and inputs, and check for contract violations.
+
+        The function implements a multi-stage approach to testing, with the first measurement being
+        fast but with a chance of false positives, and the later stages filtering out various
+        types of potential false positives. The exact number of stages depends on
+        the configuration.
+        """
+        # Common variables
+        ctraces: List[CTrace] = []
+        htraces: List[HTrace] = []
+        boosted_inputs: List[Input] = []
+        feedback: List = []
+        violations: List[EquivalenceClass] = []
+
+        # Define the starting parameters for the current configuration
+        n_reps: int = CONF.executor_repetitions
+        threshold: float = CONF.executor_outliers_threshold
+        fast_boosting: bool = CONF.enable_fast_path_model
+
+        min_nesting: int = CONF.model_min_nesting
+        max_nesting: int = CONF.model_max_nesting
+        if "seq" in CONF.contract_execution_clause or \
+           "seq-assist" in CONF.contract_execution_clause or \
+           "sandbox" in CONF.contract_execution_clause or \
+           "no_speculation" in CONF.contract_execution_clause:
+            min_nesting = 1
+            max_nesting = 1
+        nesting: int = min_nesting
+
+        # 0. Load the test case into the model and executor
         self.model.load_test_case(test_case)
         self.executor.load_test_case(test_case)
 
-        # 1. Fast path: Test for contract violations with model configured for min nesting and
-        #    executor collecting hardware traces only twice
-        ctraces: List[CTrace]
-        htraces: List[HTrace]
-        boosted_inputs: List[Input]
-        feedback: List
-        violations: List[EquivalenceClass]
-
-        # Boost the effectiveness of inputs, and compute contract traces for each input class
-        ctraces, boosted_inputs = self.trace_and_boost(inputs, CONF.model_min_nesting)
-
-        # Collect hardware traces; if fast path is enabled, disable noise filtering
-        if CONF.enable_fast_path_executor:
-            htraces = self.executor.trace_test_case(
-                boosted_inputs, repetitions=2, threshold_outliers=1)
-        else:
-            htraces = self.executor.trace_test_case(boosted_inputs)
-        feedback = self.executor.get_last_feedback()
-        if NullHTrace in htraces:
-            self.LOG.warning(
-                "", "Executor returned Null htrace; "
-                "set enable_fast_path_executor to False")
-
-        # Check for violations, but also check that the noise didn't completely corrupt htraces
-        violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces, stats=True)
+        # 1. Fast path: Collect traces with minimal nesting and repetitions
+        violations, ctraces, boosted_inputs = self._collect_traces(
+            inputs, n_reps, threshold, nesting, record_stats=True, fast_boosting=fast_boosting)
         if not violations:
-            # nothing detected -> we are done here, move to next test case
             STAT.no_fast_violation += 1
-            self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces, feedback,
-                                            CONF.model_min_nesting)
             return None
 
         # 2. Slow path: Go through potential sources of false violations in the fast path,
         #    and check them one at a time, starting with the most likely ones
         self.LOG.fuzzer_slow_path()
 
-        # 2.1 Re-collect violating contract traces with max nesting
-        #     and check if violations persist.
-        if CONF.model_min_nesting < CONF.model_max_nesting and \
-           "seq" not in CONF.contract_execution_clause and \
-           "seq-assist" not in CONF.contract_execution_clause and \
-           "sandbox" not in CONF.contract_execution_clause and \
-           "no_speculation" not in CONF.contract_execution_clause:
-            self.input_gen.reset_boosting_state()
-            ctraces, boosted_inputs = self.trace_and_boost(inputs, CONF.model_max_nesting)
-            if CONF.enable_fast_path_executor:
-                htraces = self.executor.trace_test_case(
-                    boosted_inputs, repetitions=2, threshold_outliers=1)
-            else:
-                htraces = self.executor.trace_test_case(boosted_inputs)
-            feedback = self.executor.get_last_feedback()
-            violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces, True)
+        # 2.2 FP might appear because the model did not go deep enough into nested speculation.
+        #     To remove such FPs, we re-run the model tracing with max nesting. As taints depend on
+        #     contract traces, we also have to re-boost the inputs, and re-collect hardware traces
+        #     for the new inputs
+        if nesting < max_nesting:
+            violations, ctraces, boosted_inputs = self._collect_traces(
+                inputs, n_reps, threshold, max_nesting, fast_boosting=fast_boosting)
+            nesting = max_nesting
             if not violations:
                 STAT.fp_nesting += 1
-                self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces,
-                                                feedback, CONF.model_max_nesting)
                 return None
 
-        # 2.2 Re-collect hardware traces with noise filtering enabled
-        #     and check if the violation persists
-        if CONF.enable_fast_path_executor:  # only makes sense if fast path was enabled
-            htraces = self.executor.trace_test_case(boosted_inputs)
-            feedback = self.executor.get_last_feedback()
-            violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces)
+        # 2.3 FP might appear because of imperfect tainting (e.g., due to a bug in taint tracker).
+        #     To remove such FPs, we collect contract traces for all boosted inputs, and check if
+        #     the violation is still present
+        if fast_boosting:
+            violations, ctraces, boosted_inputs = self._collect_traces(
+                inputs, n_reps, threshold, nesting, fast_boosting=False)
+            fast_boosting = False
             if not violations:
-                STAT.fp_noise += 1
-                self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces,
-                                                feedback, CONF.model_min_nesting)
-                return None
-
-        # 2.3 Check for buggy taints
-        if CONF.enable_fast_path_model:
-            ctraces = self.model.trace_test_case(boosted_inputs, CONF.model_max_nesting)
-            violations = self.analyser.filter_violations(boosted_inputs, ctraces, htraces)
-            if not violations:  # nothing detected? -> tainting was probably wrong, return
                 STAT.fp_taint_mistakes += 1
-                self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces,
-                                                feedback, CONF.model_max_nesting)
                 return None
 
-        self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces, feedback,
-                                        CONF.model_max_nesting)
-
-        # 3. Check if the violation is reproducible
-        if CONF.ignore_flaky_violations:
-            violations = self.filter_non_reproducible(violations, boosted_inputs, htraces)
-            if not violations:
-                STAT.fp_flaky += 1
-                return None
-
-        # 4. Check if the violation survives priming
-        if not CONF.enable_priming:
-            return violations[-1]
-
-        violation_stack = list(violations)  # make a copy
-        while violation_stack:
-            self.LOG.fuzzer_priming(len(violation_stack))
-            violation: EquivalenceClass = violation_stack.pop()
-            if self.priming(violation, boosted_inputs):
-                break
-        else:
-            # All violations were cleared by priming.
-            STAT.fp_priming += 1
+        # 2.4 FP might appear because of probabilistic nature of the hardware measurements.
+        #     To remove such FPs, we collect more hardware traces and check if the violation is
+        #     present
+        violations, _, __ = self._collect_traces(
+            boosted_inputs,
+            n_reps,
+            threshold,
+            nesting,
+            reuse_ctraces=ctraces,
+            ensure_convergence=True)
+        if not violations:
+            STAT.fp_noise += 1
             return None
 
-        # Violation survived priming. Report it
-        return violation
+        # 3. Check if the violation survives priming
+        if CONF.enable_priming:
+            violation_stack = list(violations)  # make a copy
+            while violation_stack:
+                self.LOG.fuzzer_priming(len(violation_stack))
+                violation: EquivalenceClass = violation_stack.pop()
+                if self.priming(violation, boosted_inputs):
+                    violations = [violation]
+                    break
+            else:
+                # All violations were cleared by priming.
+                STAT.fp_priming += 1
+                return None
 
-    def trace_and_boost(self, inputs: List[Input],
-                        nesting: int) -> Tuple[List[CTrace], List[Input]]:
-        taints: List[InputTaint]
+        # Violation survived all checks. Report it
+        feedback = self.executor.get_last_feedback()
+        self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces, feedback,
+                                        CONF.model_max_nesting)
+        return violations[0]
+
+    def _collect_traces(self,
+                        inputs: List[Input],
+                        n_reps: int,
+                        threshold: float,
+                        model_nesting: int,
+                        reuse_ctraces: List[CTrace] = [],
+                        record_stats: bool = False,
+                        fast_boosting: bool = True,
+                        ensure_convergence: bool = False):
         ctraces: List[CTrace]
-        ctraces, taints = self.model.trace_test_case_with_taints(inputs, nesting)
+        taints: List[InputTaint]
+        boosted_inputs: List[Input]
 
-        # ensure that we have many inputs in each input classes
-        boosted_inputs: List[Input] = list(inputs)  # make a copy
-        for _ in range(CONF.inputs_per_class - 1):
-            boosted_inputs += self.input_gen.extend_equivalence_classes(inputs, taints)
-
-        boosted_ctraces: List[CTrace]
-        if CONF.enable_fast_path_model:
-            # records same ctrace for all members of the same input class
-            boosted_ctraces = ctraces * CONF.inputs_per_class
+        if reuse_ctraces:
+            assert len(reuse_ctraces) == len(inputs)
+            ctraces = reuse_ctraces
+            boosted_inputs = inputs
         else:
-            # compute ctraces separately for every boosted input
-            boosted_ctraces = self.model.trace_test_case(boosted_inputs, nesting)
+            # if contract traces are not already provided, collect them and boost inputs
 
-        assert len(boosted_ctraces) == len(boosted_inputs)
-        return boosted_ctraces, boosted_inputs
+            # collect taints and contract traces for initial inputs
+            ctraces, taints = self.model.trace_test_case_with_taints(inputs, model_nesting)
+
+            # ensure that we have many inputs in each input classes
+            self.input_gen.reset_boosting_state()
+            boosted_inputs = list(inputs)  # make a copy
+            for _ in range(CONF.inputs_per_class - 1):
+                boosted_inputs += self.input_gen.extend_equivalence_classes(inputs, taints)
+
+            if fast_boosting:
+                # records same ctrace for all members of the same input class
+                ctraces = ctraces * CONF.inputs_per_class
+            else:
+                # compute ctraces separately for every boosted input
+                ctraces = self.model.trace_test_case(boosted_inputs, model_nesting)
+            assert len(ctraces) == len(boosted_inputs)
+
+        # collect hardware traces
+        htraces = self.executor.trace_test_case(
+            boosted_inputs, n_reps, threshold, ensure_convergence=ensure_convergence)
+
+        # check for violations
+        violations = self.analyser.filter_violations(
+            boosted_inputs, ctraces, htraces, stats=record_stats)
+        if not violations:
+            # if violation is detected, print debug traces (if requested)
+            feedback = self.executor.get_last_feedback()
+            self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces, feedback,
+                                            CONF.model_max_nesting)
+
+        # label all non-violating inputs as ignored by executor, so that we don't trigger
+        # a chain reaction of false positives when the measurement results are non-deterministic
+        violating_input_ids = [
+            m.input_id for i in range(len(violations)) for m in violations[i].measurements
+        ]
+        ignored_input_ids = [i for i in range(len(boosted_inputs)) if i not in violating_input_ids]
+        self.executor.ignore_inputs(ignored_input_ids)
+
+        return violations, ctraces, boosted_inputs
 
     def store_test_case(self, test_case: TestCase, inputs: List[Input],
                         violation: EquivalenceClass):
@@ -313,7 +341,7 @@ class FuzzerGeneric(Fuzzer):
             f.write("\n## Counterexample Inputs\n")
             for m in violation.measurements:
                 f.write(f"\nInput #{m.input_id}\n")
-                f.write(f"* Hardware trace: {pretty_trace(m.htrace)}\n")
+                f.write(f"* Hardware trace: {pretty_htrace(m.htrace)}\n")
                 f.write(f"* Contract trace (hash): {m.ctrace}\n")
                 ctrace_full = self.model.dbg_get_trace_detailed(m.input_, CONF.model_max_nesting)
                 f.write(f"* Contract trace (detailed): {ctrace_full}\n")
@@ -367,7 +395,7 @@ class FuzzerGeneric(Fuzzer):
                 ctraces.append(int(line))
         with open(htrace_file, 'r') as f:
             for line in f:
-                htraces.append(int(line))
+                htraces.append(HTrace(frozenset({int(line)}), hash(int(line))))
 
         assert len(ctraces) == len(htraces), \
             "The number of hardware traces does not match the number of contract traces"
@@ -386,22 +414,6 @@ class FuzzerGeneric(Fuzzer):
 
     # ==============================================================================================
     # Priming and reproducibility
-    def filter_non_reproducible(self, violations: List[EquivalenceClass], inputs: List[Input],
-                                org_htraces: List[HTrace]) -> List[EquivalenceClass]:
-        """ Filter out violations that are not reproducible """
-        htraces: List[HTrace] = self.executor.trace_test_case(
-            inputs, repetitions=CONF.executor_repetitions * 2)
-
-        reproducible_violations = []
-        for violation in violations:
-            for measurement in violation.measurements:
-                if htraces[measurement.input_id] != org_htraces[measurement.input_id]:
-                    break
-            else:
-                reproducible_violations.append(violation)
-
-        return reproducible_violations
-
     def priming(self, org_violation: EquivalenceClass, all_inputs: List[Input]) -> bool:
         """
         Try priming the inputs that caused the violations
@@ -409,8 +421,8 @@ class FuzzerGeneric(Fuzzer):
         return: True if the violation survived priming
         """
         violation = copy.copy(org_violation)
-        ordered_htraces = sorted(
-            violation.htrace_map.keys(), key=lambda x: bit_count(x), reverse=False)
+        ordered_htraces = sorted(violation.htrace_map.keys(), key=lambda x: len(x), reverse=False)
+        n_reps = CONF.executor_repetitions
 
         for current_htrace in ordered_htraces:
             current_input_id = violation.htrace_map[current_htrace][-1].input_id
@@ -419,24 +431,56 @@ class FuzzerGeneric(Fuzzer):
             input_ids_to_test: List[InputID] = [
                 m.input_id for m in violation.measurements if m.htrace != current_htrace
             ]
+            input_id_to_htrace = {m.input_id: m.htrace for m in violation.measurements}
 
-            # insert the tested inputs into their places
+            # iterate over all inputs in the violation and insert swap them with current_input_id
             for input_id in input_ids_to_test:
+                self.LOG.dbg_priming_progress(input_id, current_input_id)
+
+                # determine the list of traces that we are trying to reproduce
+                traces_to_reproduce = set(current_htrace.raw)
+                traces_to_reproduce -= set(input_id_to_htrace[input_id].raw)
+                if 0 in traces_to_reproduce:
+                    traces_to_reproduce.remove(0)
+                if len(traces_to_reproduce) == 0:
+                    continue
+
+                # insert the tested input into its new place
                 primer = list(all_inputs)
                 primer[current_input_id] = all_inputs[input_id]
 
-                # try priming
-                htraces: List[HTrace] = self.executor.trace_test_case(primer)
-                primed_htrace = htraces[current_input_id]
-                if primed_htrace == current_htrace:
+                # try the new input sequence multiple times, until (1) we observe all traces
+                # that we try to reproduce or (2) we run out of attempts
+                survived = False
+                attempts = 30  # FIXME: make this configurable
+                for _ in range(attempts):
+                    htraces: List[HTrace] = self.executor.trace_test_case(
+                        primer, n_reps, 1.0, ensure_convergence=False)
+                    target_htrace = htraces[current_input_id]
+                    self.LOG.dbg_priming_observations(traces_to_reproduce, target_htrace.raw)
+
+                    # fast exit in case of a tracing error
+                    if target_htrace.raw == {0}:
+                        return False
+
+                    # remove the reproduced traces
+                    for trace in target_htrace.raw:
+                        if trace in traces_to_reproduce:
+                            traces_to_reproduce.remove(trace)
+
+                    # if we reproduced all traces, we can stop
+                    if not traces_to_reproduce:
+                        survived = True
+                        break
+
+                if survived:
                     continue
+                else:
+                    # if not all traces were reproduced, it's a genuine violation
+                    # and we can stop
+                    return True
 
-                # if the primed measurement triggered more speculation, it's ok
-                if (primed_htrace ^ TWOS_COMPLEMENT_MASK_64) & current_htrace == 0:
-                    continue
-
-                return True
-
+        # all traces were reproduced, so it's a false positive
         return False
 
 
@@ -461,7 +505,13 @@ class ArchitecturalFuzzer(FuzzerGeneric):
         self.executor.load_test_case(test_case)
 
         # collect architectural hardware traces
-        htraces: List[List[int]] = [[t] for t in self.executor.trace_test_case(inputs, 1)]
+        htrace_objs = self.executor.trace_test_case(inputs, 1, 1.0)
+        if not htrace_objs:  # tracing error
+            return None
+        htraces: List[List[int]] = []
+        for htrace_obj in htrace_objs:
+            htrace = list(htrace_obj.raw)[0]
+            htraces.append([htrace])
         for i, trace in enumerate(self.executor.get_last_feedback()):
             htraces[i].extend(trace)
 
@@ -481,7 +531,7 @@ class ArchitecturalFuzzer(FuzzerGeneric):
 
                 eq_cls = EquivalenceClass()
                 eq_cls.ctrace = ctraces[i][0]
-                eq_cls.measurements = [Measurement(i, inputs[i], ctraces[i][0], htraces[i][0])]
+                eq_cls.measurements = [Measurement(i, inputs[i], ctraces[i][0], htrace_objs[i])]
                 eq_cls.build_htrace_map()
                 return eq_cls
             elif "dbg_dump_htraces" in CONF.logging_modes:

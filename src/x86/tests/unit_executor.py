@@ -62,7 +62,7 @@ class ExecutorTest(unittest.TestCase):
         executor.load_test_case(self.tc)
 
         inputs = [Input(), Input()]  # single zero-initialized inputs
-        traces = executor.trace_test_case(inputs, 2)
+        traces = executor.trace_test_case(inputs, 2, 1.0)
         self.assertEqual(len(traces), 2)
 
     def test_big_batch(self):
@@ -70,5 +70,5 @@ class ExecutorTest(unittest.TestCase):
         executor.load_test_case(self.tc)
 
         inputs = [Input() for _ in range(0, 300)]
-        traces = executor.trace_test_case(inputs, 2)
+        traces = executor.trace_test_case(inputs, 2, 1.0)
         self.assertEqual(len(traces), 300)

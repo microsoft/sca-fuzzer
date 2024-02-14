@@ -10,7 +10,8 @@ import tempfile
 import os
 
 from ..fuzzer import FuzzerGeneric, ArchitecturalFuzzer
-from ..interfaces import TestCase, Input, InstructionSetAbstract, EquivalenceClass, Measurement
+from ..interfaces import TestCase, Input, InstructionSetAbstract, EquivalenceClass, Measurement, \
+    HTrace
 from ..util import STAT, Logger
 from ..config import CONF
 from .x86_executor import X86IntelExecutor
@@ -73,9 +74,12 @@ class X86Fuzzer(FuzzerGeneric):
         """ This function implements a multi-stage algorithm that gradually filters out
         uninteresting test cases """
         self.executor.set_quick_and_dirty(True)
+        reps = CONF.executor_filtering_repetitions
+        thrsh = CONF.executor_outliers_threshold
+
         if CONF.enable_speculation_filter or CONF.enable_observation_filter:
             self.executor.load_test_case(test_case)
-            non_fenced_htraces = self.executor.trace_test_case(inputs, repetitions=1)
+            non_fenced_htraces = self.executor.trace_test_case(inputs, reps, thrsh)
 
         # 1. Speculation filter:
         # Execute on the test case on the HW and monitor PFCs
@@ -110,9 +114,9 @@ class X86Fuzzer(FuzzerGeneric):
                         if line and line[0] not in ["#", ".", "j"] and "loop" not in line:
                             fenced_asm.write('lfence\n')
 
-            fenced_test_case = self.asm_parser.parse_file(fenced.name))
+            fenced_test_case = self.asm_parser.parse_file(fenced.name)
             self.executor.load_test_case(fenced_test_case)
-            fenced_htraces = self.executor.trace_test_case(inputs, repetitions=1)
+            fenced_htraces = self.executor.trace_test_case(inputs, reps, thrsh)
             os.remove(fenced.name)
 
             if fenced_htraces == non_fenced_htraces:
@@ -154,9 +158,9 @@ class X86ArchDiffFuzzer(FuzzerGeneric):
         check_instruction_list(self.instruction_set)
         return super()._start(num_test_cases, num_inputs, timeout, nonstop)
 
-    def get_arch_traces(self, inputs) -> List[List[int]]:
-        htraces: List[List[int]] = [
-            [t] for t in self.executor.trace_test_case(inputs, repetitions=1)
+    def get_arch_traces(self, inputs) -> List[List[HTrace]]:
+        htraces: List[List[HTrace]] = [
+            [t] for t in self.executor.trace_test_case(inputs, 1, 0)
         ]
         for i, trace in enumerate(self.executor.get_last_feedback()):
             htraces[i].extend(trace)
@@ -165,7 +169,9 @@ class X86ArchDiffFuzzer(FuzzerGeneric):
     def _build_dummy_ecls(self,) -> EquivalenceClass:
         eq_cls = EquivalenceClass()
         eq_cls.ctrace = 0
-        eq_cls.measurements = [Measurement(0, Input(), 0, 0)]
+        eq_cls.measurements = [
+            Measurement(0, Input(), 0, HTrace(frozenset([0]), hash(frozenset([0]))))
+        ]
         eq_cls.build_htrace_map()
         return eq_cls
 
@@ -199,20 +205,20 @@ class X86ArchDiffFuzzer(FuzzerGeneric):
             if fenced_htraces[i] != htraces[i]:
                 if "dbg_violation" in CONF.logging_modes:
                     print(f"Input #{i}")
-                    print(f"Fenced:       {[hex(v) for v in fenced_htraces[i]]}")
-                    print(f"Non-fenced:   {[hex(v) for v in htraces[i]]}")
+                    print(f"Fenced:       {[v.raw for v in fenced_htraces[i]]}")
+                    print(f"Non-fenced:   {[v.raw for v in htraces[i]]}")
 
                 eq_cls = EquivalenceClass()
-                eq_cls.ctrace = fenced_htraces[i][0]
+                eq_cls.ctrace = fenced_htraces[i][0].hash_
                 eq_cls.measurements = [
-                    Measurement(i, inputs[i], fenced_htraces[i][0], htraces[i][0])
+                    Measurement(i, inputs[i], fenced_htraces[i][0].hash_, htraces[i][0])
                 ]
                 eq_cls.build_htrace_map()
                 return self._build_dummy_ecls()
 
             if "dbg_dump_htraces" in CONF.logging_modes:
                 print(f"Input #{i}")
-                print(f"Fenced:       {[hex(v) for v in fenced_htraces[i]]}")
-                print(f"Non-fenced:   {[hex(v) for v in htraces[i]]}")
+                print(f"Fenced:       {[v.raw for v in fenced_htraces[i]]}")
+                print(f"Non-fenced:   {[v.raw for v in htraces[i]]}")
 
         return None

@@ -2,7 +2,7 @@
 contract_observation_clause: ct
 contract_execution_clause:
   - cond
-analyser_permit_subsets: false
+analyser_subsets_is_violation: false
 
 # tested instructions
 instruction_categories:

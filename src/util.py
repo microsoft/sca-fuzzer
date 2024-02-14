@@ -10,12 +10,11 @@ from datetime import datetime
 from typing import NoReturn, Dict
 from pprint import pformat
 from traceback import print_stack
-from .interfaces import EquivalenceClass, SANDBOX_CODE_SIZE, Model
+from .interfaces import EquivalenceClass, SANDBOX_CODE_SIZE, Model, HTrace
 from .config import CONF
 
 MASK_64BIT = pow(2, 64)
 POW2_64 = pow(2, 64)
-TWOS_COMPLEMENT_MASK_64 = pow(2, 64) - 1
 
 RED = '\033[33;31m'
 GREEN = '\033[33;32m'
@@ -68,9 +67,9 @@ class StatisticsCls:
         s += f"  Speculation Filter: {self.spec_filter}\n"
         s += f"  Observation Filter: {self.observ_filter}\n"
         s += f"  No Fast-Path Violation: {self.no_fast_violation}\n"
-        s += f"  Noise-Based FP: {self.fp_noise}\n"
         s += f"  No Max-Nesting Violation: {self.fp_nesting}\n"
         s += f"  Tainting Mistakes: {self.fp_taint_mistakes}\n"
+        s += f"  Noise-Based FP: {self.fp_noise}\n"
         s += f"  Flaky Tests: {self.fp_flaky}\n"
         s += f"  Priming Check: {self.fp_priming}\n"
         return s
@@ -135,6 +134,7 @@ class Logger:
     dbg_model: bool = False
     dbg_coverage: bool = False
     dbg_generator: bool = False
+    dbg_priming: bool = False
 
     def __init__(self) -> None:
         self.__dict__ = self._borg_shared_state
@@ -153,7 +153,7 @@ class Logger:
 
         if not __debug__:
             if self.dbg_timestamp or self.dbg_model or self.dbg_coverage or self.dbg_dump_htraces \
-               or self.dbg_dump_ctraces or self.dbg_generator:
+               or self.dbg_dump_ctraces or self.dbg_generator or self.dbg_priming:
                 self.warning(
                     "", "Current value of `logging_modes` requires debugging mode!\n"
                     "Remove '-O' from python arguments")
@@ -297,14 +297,14 @@ class Logger:
                 ctrace = ctraces[i]
                 print("    ")
                 print(f"CTr{i:<2} {pretty_trace(ctrace, ctrace > pow(2, 64), '      ')}")
-                print(f"HTr{i:<2} {pretty_trace(htraces[i])}")
+                print(f"HTr{i:<2} {pretty_htrace(htraces[i])}")
                 print(f"Feedback{i}: {hw_feedback[i]}")
 
             return
 
         org_debug_state = self.dbg_model
         self.dbg_model = False
-        for i in range(len(htraces)):
+        for i in range(len(inputs)):
             if i > 100 and not self.dbg_dump_traces_unlimited:
                 self.warning("fuzzer", "Trace output is limited to 100 traces")
                 break
@@ -314,7 +314,7 @@ class Logger:
                 print(f"  CTr: {ctrace_colorize(ctrace_full) if CONF.color else ctrace_full} "
                       f"| Hash: {ctraces[i]}")
             if self.dbg_dump_htraces:
-                print(f"  HTr: {pretty_trace(htraces[i])}")
+                print(f"  HTr: {pretty_htrace(htraces[i])}")
             if CONF.color and hw_feedback[i][0] > hw_feedback[i][1]:
                 print(f"  Feedback: {YELLOW}{hw_feedback[i]}{COL_RESET}")
             else:
@@ -339,7 +339,7 @@ class Logger:
                 print(f" Inputs {inputs}:")
             else:
                 print(f" Inputs {inputs[:4]} (+ {len(inputs) - 4} ):")
-            print(f"  {pretty_trace(htrace)}")
+            print(f"{pretty_htrace(htrace, offset='  ')}")
         print("")
 
         if not __debug__:
@@ -355,6 +355,27 @@ class Logger:
                 model.trace_test_case([measurements[0].input_], CONF.model_max_nesting)
                 self.dbg_model = model_debug_state
                 print("\n\n")
+
+    def dbg_priming_progress(self, input_id, current_input_id):
+        if not __debug__:
+            return
+        if not self.dbg_priming:
+            return
+        print(f"\nPriming #{input_id} vs #{current_input_id}")
+
+    def dbg_priming_observations(self, traces_to_reproduce, observed_traces):
+        if not __debug__:
+            return
+        if not self.dbg_priming:
+            return
+
+        print("Trying to reproduce the following traces:")
+        for h in traces_to_reproduce:
+            print(pretty_trace(h))
+
+        print("Observed traces:")
+        for h in observed_traces.raw:
+            print(pretty_trace(h))
 
     # ==============================================================================================
     # Model
@@ -463,6 +484,20 @@ def bit_count(n):
         count += n & 1
         n >>= 1
     return count
+
+
+def pretty_htrace(htrace: HTrace, offset: str = ""):
+    s = ""
+    for t in htrace.raw:
+        s += f"{offset}{t:064b}\n"
+    s = s.replace("0", ".").replace("1", "^")
+    if CONF.color:
+        s = CYAN + s[0:8] + YELLOW + s[8:16] \
+            + CYAN + s[16:24] + YELLOW + s[24:32] \
+            + CYAN + s[32:40] + YELLOW + s[40:48] \
+            + CYAN + s[48:56] + YELLOW + s[56:64] \
+            + COL_RESET + s[64:]
+    return s
 
 
 def pretty_trace(bits: int, merged=False, offset: str = ""):

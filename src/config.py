@@ -21,8 +21,6 @@ class Conf:
     # Fuzzer
     fuzzer: str = "basic"
     """ fuzzer: type of the fuzzing algorithm """
-    ignore_flaky_violations: bool = True
-    """ ignore_flaky_violations: if True, don't report non-reproducible violations """
     enable_priming: bool = True
     """ enable_priming: whether to check violations with priming """
     enable_speculation_filter: bool = False
@@ -32,11 +30,6 @@ class Conf:
     enable_fast_path_model: bool = True
     """ enable_fast_path_boosting: if enabled, the same contract trace will be used
     for all inputs in the same taint-based input class """
-    enable_fast_path_executor: bool = False
-    """ enable_fast_path_executor: if True, the executor will first collect hardware traces
-    with (almost) no noise filtering, and will re-collect traces with noise filtering if
-    a violation is detected
-    """
 
     # ==============================================================================================
     # Program Generator
@@ -133,13 +126,16 @@ class Conf:
     """ executor: executor type """
     executor_mode: str = 'P+P'
     """ executor_mode: hardware trace collection mode """
-    executor_warmups: int = 50
+    executor_warmups: int = 5
     """ executor_warmups: number of warmup rounds executed before starting to collect
     hardware traces """
     executor_repetitions: int = 10
     """ executor_repetitions: number of repetitions while collecting hardware traces """
-    executor_max_outliers: int = 1
-    """ executor_max_outliers: """
+    executor_filtering_repetitions: int = 10
+    """ executor_filtering_repetitions: number of repetitions while filtering test cases """
+    executor_outliers_threshold: float = 0.9
+    """ executor_measurement_percentile: for each repeated measurement, the executor will select
+     the top most frequent measurement that represent the given percentile of all measurements """
     executor_taskset: int = 0
     """ executor_taskset: id of the CPU core on which the executor is running test cases """
     enable_pre_run_flush: bool = True
@@ -150,8 +146,8 @@ class Conf:
     # Analyser
     analyser: str = 'equivalence-classes'
     """ analyser: analyser type """
-    analyser_permit_subsets: bool = True
-    """ analyser_permit_subsets: if enabled, the analyser will not label hardware traces
+    analyser_subsets_is_violation: bool = False
+    """ analyser_subsets_is_violation: if enabled, the analyser will not label hardware traces
     as mismatching if they form a subset relation """
 
     # ==============================================================================================

@@ -35,5 +35,5 @@ program_size: 64
 avg_mem_accesses: 24
 inputs_per_class: 3
 executor_warmups: 2
-executor_max_outliers: 0
+executor_threshold_outliers: 0
 x86_disable_div64: false

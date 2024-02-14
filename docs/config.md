@@ -73,7 +73,8 @@ For a complete list, see `src/config.py`.
 * `executor_mode` [str]: Hardware trace collection mode.
   Available options: 'P+P' - prime and probe; 'F+R' - flush and reload; 'E+R' - evict and reload.
 * `executor_warmups` [int]: Number of warmup rounds executed before starting to collect hardware traces.
-* `executor_repetitions` [int]: Number of repetitions while collecting hardware traces.
+* `executor_min_repetitions` [int]: Min number of repetitions while collecting hardware traces.
+* `executor_max_repetitions` [int]: Max number of repetitions while collecting hardware traces.
 * `executor_taskset` [int]: CPU number on which the executor is running test cases.
 * `enable_pre_run_flush` [bool]: If enabled, the executor will do its best to flush the microarchitectural state before running test cases.
   Enabled by default.
@@ -82,7 +83,7 @@ For a complete list, see `src/config.py`.
 
 * `analyser` [str]: Analyser type.
   Only one option is currently supported - "equivalence-classes" (default).
-* `analyser_permit_subsets` [bool]: If enabled, the analyser will not label hardware traces as mismatching if they form a subset relation.
+* `analyser_subsets_is_violation` [bool]: If enabled, the analyser will not label hardware traces as mismatching if they form a subset relation.
   Enabled by default.
 
 # Coverage Configuration
