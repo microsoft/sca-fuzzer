@@ -75,7 +75,7 @@ void idt_set_custom_handlers(gate_desc *idt, struct desc_ptr *idtr, void *main_h
             continue;
         }
 
-        if (BIT_CHECK(handled_faults, idx)) {
+        if (idx < 32 && BIT_CHECK(handled_faults, idx)) {
             set_intr_gate_default(idt, idx, main_handler);
             continue;
         }
