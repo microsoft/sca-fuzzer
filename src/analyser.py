@@ -9,7 +9,7 @@ from typing import List, Dict
 
 from .interfaces import HTrace, CTrace, Input, EquivalenceClass, Analyser, Measurement
 from .config import CONF
-from .util import STAT, TWOS_COMPLEMENT_MASK_64, bit_count
+from .util import STAT
 
 
 class EquivalenceAnalyser(Analyser):
@@ -48,7 +48,7 @@ class EquivalenceAnalyser(Analyser):
             if len(eq_cls.htrace_map) < 2:
                 continue
 
-            if not CONF.analyser_permit_subsets:
+            if not CONF.analyser_subsets_is_violation:
                 violations.append(eq_cls)
                 continue
 
@@ -60,13 +60,11 @@ class EquivalenceAnalyser(Analyser):
 
     @staticmethod
     def check_if_all_subsets(htraces: List[HTrace]) -> bool:
-        max_htrace = max(htraces, key=bit_count)
-        mask = max_htrace ^ TWOS_COMPLEMENT_MASK_64
+        max_htrace = max(htraces, key=lambda x: len(x.raw))
         for htrace in htraces:
-            masked_trace = htrace & mask
-            if masked_trace != 0:
-                return False
-
+            for raw_trace in htrace.raw:
+                if raw_trace not in max_htrace.raw:
+                    return False
         return True
 
     def _build_equivalence_classes(self,
@@ -86,7 +84,7 @@ class EquivalenceAnalyser(Analyser):
             eq_cls.ctrace = ctrace
             eq_cls.measurements.append(Measurement(i, inputs[i], ctrace, htraces[i]))
 
-        # fine effective classes
+        # find effective classes
         effective_classes: List[EquivalenceClass] = []
         for eq_cls in eq_class_map.values():
             if len(eq_cls.measurements) > 1:

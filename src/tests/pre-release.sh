@@ -52,7 +52,6 @@ inputs_per_class: 2
 enable_speculation_filter: true
 enable_observation_filter: true
 enable_priming: true
-ignore_flaky_violations: true
 
 program_size: 32
 avg_mem_accesses: 16
@@ -273,7 +272,7 @@ min_bb_per_function: 3
 max_bb_per_function: 3
 contract_execution_clause:
     - conditional_br_misprediction
-analyser_permit_subsets: false
+analyser_subsets_is_violation: false
     " >> "${name}.yaml"
     fuzz_no_verify $name 1
 }

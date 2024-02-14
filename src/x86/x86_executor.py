@@ -1,11 +1,20 @@
+"""
+File: Implementation of executor for x86 architecture
+  - Interfacing with the kernel module
+  - Aggregation of the results
+
+Copyright (C) Microsoft Corporation
+SPDX-License-Identifier: MIT
+"""
+
 import subprocess
 import os.path
 import csv
 import numpy as np
 from collections import Counter
-from typing import List, Tuple
+from typing import List, Set, Optional
 
-from ..interfaces import CombinedHTrace, Input, TestCase, Executor
+from ..interfaces import HTrace, Input, TestCase, Executor
 from ..config import CONF
 from ..util import Logger
 
@@ -19,13 +28,38 @@ def write_to_sysfs_file_bytes(value: bytes, path: str) -> None:
         f.write(value)
 
 
-TRACE_NUM_ELEMENTS = 6
+MeasurementResult = np.dtype(
+    [
+        ('htrace', np.uint64),
+        ('pfc', np.uint64, 5),
+    ],
+    align=False,
+)
 
 
 class X86Executor(Executor):
+    """
+    The executor for x86 architecture. The executor interfaces with the kernel module to collect
+    measurements.
+
+    The high-level workflow is as follows:
+    1. Load a test case into the kernel module (see __write_test_case).
+    2. Load a set of inputs into the kernel module (see __write_inputs).
+    3. Run the measurements by calling the kernel module (see _get_raw_measurements). Each
+       measurement is repeated `n_reps` times.
+    4. Aggregate the measurements into sets of traces (see _aggregate_measurements). The executor
+       filters out the traces that appear less than `threshold_outliers * n_reps` times, and
+       combines the remaining measurements into sets (one set per input).
+    5. Optionally, ensure that the measurements are reproducible by collecting the results in
+       several batches, and ensuring that the set of traces for each inputs converges
+       (see _get_converged_traces). This function performs additional filtering by removing the
+       traces that appeared in less than a half of the batches.
+    """
+
     previous_num_inputs: int = 0
-    feedback: List[int]
+    feedback: List[List[int]]
     curr_test_case: TestCase
+    ignore_list: List[int]
 
     def __init__(self):
         super().__init__()
@@ -75,118 +109,11 @@ class X86Executor(Executor):
     def set_vendor_specific_features(self):
         pass
 
-    def load_test_case(self, test_case: TestCase):
-        self.__write_test_case(test_case)
-        self.curr_test_case = test_case
-
-    def trace_test_case(self,
-                        inputs: List[Input],
-                        repetitions: int = 0,
-                        threshold_outliers: int = 0) -> List[CombinedHTrace]:
-        # make sure it's not a dummy call
-        if not inputs:
-            return []
-        n_measurements = len(inputs)
-
-        if repetitions == 0:
-            repetitions = CONF.executor_repetitions
-            threshold_outliers = CONF.executor_max_outliers
-        elif threshold_outliers == 0:
-            threshold_outliers = repetitions // 10
-
-        # Transfer inputs
-        self.__write_inputs(inputs)
-
-        # Check that the transfer was successful
-        with open('/sys/x86_executor/inputs', 'r') as f:
-            if f.readline() != '1\n':
-                self.LOG.error("Failure loading inputs!", print_tb=True)
-
-        # run experiments and load the results
-        all_results: np.ndarray = np.ndarray(
-            shape=(n_measurements, repetitions, TRACE_NUM_ELEMENTS), dtype=np.uint64)
-        for rep in range(repetitions):
-            # executor prints results in reverse, so we begin from the end
-            input_id = n_measurements - 1
-            reading_finished = False
-
-            # executor prints results in batches, hence we have to call it several times,
-            # until we find the `done` keyword in the output
-            while not reading_finished:
-                output = subprocess.check_output(
-                    f"taskset -c {CONF.executor_taskset} cat /sys/x86_executor/trace", shell=True)
-                reader = csv.reader(output.decode().split("\n"))
-                for row in reader:
-                    if not row:
-                        continue
-                    if 'done' in row:
-                        reading_finished = True
-                        break
-
-                    for i in range(TRACE_NUM_ELEMENTS):
-                        all_results[input_id][rep][i] = int(row[i])
-                    input_id -= 1
-
-        # simple case - no merging required
-        if repetitions == 1:
-            self.feedback = [r[0][1:] for r in all_results]
-            return [int(r[0][0]) for r in all_results]
-
-        if CONF.executor_mode == 'TSC':
-            traces, pfc_readings = self._merge_results_tsc(all_results, n_measurements,
-                                                           threshold_outliers)
-        else:
-            traces, pfc_readings = self._merge_results_cache(all_results, n_measurements,
-                                                             threshold_outliers)
-        self.feedback = pfc_readings
-        return traces
-
-    @staticmethod
-    def _merge_results_cache(results, n_measurements,
-                             threshold_outliers) -> Tuple[List[int], List[int]]:
-        traces = [0 for _ in results]
-        pfc_readings: np.ndarray = np.zeros(shape=(n_measurements, 3), dtype=np.uint64)
-
-        # remove outliers and merge hardware traces and PFC readings
-        for input_id, input_results in enumerate(results):
-            counter: Counter = Counter()
-            for result in input_results:
-                trace = int(result[0])
-                counter[trace] += 1
-                if counter[trace] == threshold_outliers + 1:
-                    # merge the trace if we observed it sufficiently many time
-                    # (i.e., if we can conclude it's not noise)
-                    traces[input_id] |= trace
-
-                    # set the PFC reading value to the one that maximizes the first counter
-                    # (normally, the first counter is the number of issued uops)
-                    pfc_reading = result[1:]
-                    if pfc_reading[0] > pfc_readings[input_id][0]:
-                        pfc_readings[input_id][0] = pfc_reading[0]
-                        pfc_readings[input_id][1] = pfc_reading[1]
-                        pfc_readings[input_id][2] = pfc_reading[2]
-
-        return traces, pfc_readings.tolist()
-
-    @staticmethod
-    def _merge_results_tsc(results, n_measurements,
-                           threshold_outliers) -> Tuple[List[int], List[int]]:
-        traces = [0 for _ in results]
-        pfc_readings: np.ndarray = np.zeros(shape=(n_measurements, 3), dtype=np.uint64)
-        tsc_mask = 0xFFFFFFFFFFF00  # mask to ignore the last 8 bits of the TSC
-
-        for input_id, input_results in enumerate(results):
-            for pfc_id in range(0, 3):
-                pfc_readings[input_id][pfc_id] = max([res[pfc_id + 1] for res in input_results])
-
-            counter: Counter = Counter()
-            for result in input_results:
-                trace = int(result[0]) & tsc_mask
-                counter[trace] += 1
-                if counter[trace] == threshold_outliers + 1:
-                    traces[input_id] = max(traces[input_id], trace)
-
-        return traces, pfc_readings.tolist()
+    def ignore_inputs(self, ignore_list: List[int]):
+        """ Sets a list of inputs IDs that should be ignored by the executor.
+        The executor will executed the inputs with these IDs as normal (in case they are
+        necessary for priming the uarch state), but their htraces will be set to zero """
+        self.ignore_list = ignore_list
 
     def read_base_addresses(self):
         with open('/sys/x86_executor/print_sandbox_base', 'r') as f:
@@ -197,6 +124,198 @@ class X86Executor(Executor):
 
     def get_last_feedback(self) -> List:
         return self.feedback
+
+    def load_test_case(self, test_case: TestCase):
+        self.__write_test_case(test_case)
+        self.curr_test_case = test_case
+        self.ignore_list = []
+
+    def trace_test_case(self,
+                        inputs: List[Input],
+                        n_reps: int,
+                        threshold_outliers: float,
+                        ensure_convergence: bool = False) -> List[HTrace]:
+        """ see interfaces.py:Executor for documentation """
+
+        # make sure it's not a dummy call
+        if not inputs:
+            return []
+        n_inputs = len(inputs)
+        assert threshold_outliers > 0.0 and threshold_outliers <= 1.0
+
+        # Transfer inputs to the kernel module
+        self.__write_inputs(inputs)
+
+        # Check that the transfer was successful
+        with open('/sys/x86_executor/inputs', 'r') as f:
+            if f.readline() != '1\n':
+                self.LOG.error("Failure loading inputs!", print_tb=True)
+
+        if ensure_convergence:
+            # Collection of data with convergence check
+            traces = self._get_converged_traces(n_inputs, n_reps, threshold_outliers)
+        else:
+            # Collect data without convergence check
+            raw_results = self._get_raw_measurements(n_reps, n_inputs)
+            if raw_results is None:
+                return []
+            trace_sets = self._aggregate_measurements(raw_results, threshold_outliers, False)
+            traces = [HTrace(frozenset(ts), hash(frozenset(ts))) for ts in trace_sets]
+
+        return traces
+
+    def _get_converged_traces(self, n_inputs, n_reps, threshold_outliers) -> List[HTrace]:
+        """
+        Collects measurements in several batches, and ensures that the set of traces for each input
+        converges. This function performs additional filtering by removing the traces that appeared
+        in less than a half of the batches.
+        """
+        batches: List[List[Set[int]]] = [[] for _ in range(n_inputs)]
+        batch: List[Set[int]] = []
+
+        # collect the first batch
+        raw_results = self._get_raw_measurements(n_reps, n_inputs)
+        if raw_results is None:
+            return []
+        batch = self._aggregate_measurements(raw_results, threshold_outliers)
+        for input_id in range(n_inputs):
+            batches[input_id].append(batch[input_id])
+
+        # keep repeating the measurements until we stop encountering new traces
+        converged = [False for _ in range(n_inputs)]
+        for i in range(10):  # FIXME: make this a configuration option
+            # collect the next batch
+            raw_results = self._get_raw_measurements(n_reps, n_inputs)
+            if raw_results is None:
+                return []
+            batch = self._aggregate_measurements(raw_results, threshold_outliers, True)
+
+            # check if we found new traces for any of the inputs
+            for input_id in range(n_inputs):
+                batches[input_id].append(batch[input_id])
+                if batch[input_id].issubset(batch[input_id]):
+                    converged[input_id] = True
+                else:
+                    batch[input_id].update(batch[input_id])
+                    converged[input_id] = False
+
+            # stop if we found no new traces
+            if all(converged):
+                break
+
+        # label the inputs that did not converge as ignored
+        if not all(converged):
+            self.LOG.warning("executor", "Some measurements did not converge after 10 iterations.")
+            for i in range(n_inputs):
+                if not converged[i] and i not in self.ignore_list:
+                    self.ignore_list.append(i)
+                    batches[i] = [set()]
+
+        # filter out those sets that appeared in less than 50% of the batches
+        filtered_batches: List[Set[int]] = []
+        threshold = len(batches[0]) // 2 + (len(batches[0]) % 2 > 0)  # over 50%
+        for input_id in range(n_inputs):
+            counter: Counter = Counter()
+            for trace_set in batches[input_id]:
+                counter.update(trace_set)
+            filtered_batches.append({k for k, v in counter.items() if v > threshold})
+            # print(f"input {input_id}: {batches[input_id]} -> {filtered_batches[input_id]}")
+            # print({k for k, v in counter.items() if v <= threshold})
+
+        # convert the trace sets to HTrace objects
+        traces = [HTrace(frozenset(ts), hash(frozenset(ts))) for ts in filtered_batches]
+        return traces
+
+    def _get_raw_measurements(self, n_reps: int, n_inputs: int) -> Optional[np.ndarray]:
+        """
+        Collects raw measurements from the kernel module.
+
+        :param n_reps: number of repetitions for each input
+        :param n_inputs: number of inputs
+        """
+
+        # Pre-allocate an array to store the results
+        all_results: np.ndarray = np.ndarray(shape=(n_inputs, n_reps), dtype=MeasurementResult)
+
+        # Run experiments and save the results
+        cmd = f"taskset -c {CONF.executor_taskset} cat /sys/x86_executor/trace"
+        for rep in range(n_reps):
+            input_id = n_inputs - 1  # executor prints results in reverse
+
+            # executor prints results in batches, hence we have to call it several times,
+            # until we find the `done` keyword in the output
+            reading_finished = False
+            while not reading_finished:
+                output = subprocess.check_output(cmd, shell=True)
+                reader = csv.reader(output.decode().split("\n"))
+                for row in reader:
+                    if not row:
+                        continue
+                    if 'done' in row:
+                        reading_finished = True
+                        break
+
+                    if input_id not in self.ignore_list:
+                        all_results[input_id][rep]['htrace'] = int(row[0])
+                        all_results[input_id][rep]['pfc'] = [int(x) for x in row[1:]]
+                        if all_results[input_id][rep]['htrace'] == 0:
+                            self.LOG.warning(
+                                "executor", "Detected a kernel module error."
+                                "Skipping this test case")
+                            return None
+                    else:
+                        all_results[input_id][rep]['htrace'] = 0
+                        all_results[input_id][rep]['pfc'] = [0, 0, 0, 0, 0]
+                    input_id -= 1
+
+        return all_results
+
+    def _aggregate_measurements(self,
+                                all_results: np.ndarray,
+                                threshold_outliers: float,
+                                ignore_pfc: bool = False) -> List[Set[int]]:
+        """
+        Aggregates the raw measurements into sets of traces. The function receives an array of
+        of measurements, filters out the measurements that appear less than
+        `threshold_outliers * n_reps` times, combines the remaining measurements into sets
+        (one set per input), and returns the sets. The function also stores the PFC readings
+        for each input.
+
+        :param all_results: array of measurements
+        :param threshold_outliers: the threshold for the number of times a trace must appear
+        :param ignore_pfc: whether to ignore the PFC readings
+        """
+
+        # initialize the trace sets and PFC readings
+        trace_sets: List[Set[int]] = [set() for _ in all_results]
+        pfc_readings = [[0, 0, 0, 0, 0] for _ in all_results]
+        n_reps = len(all_results[0])
+
+        # mask to ignore the last 8 trace bits if in TSC mode
+        trace_mask = 0xFFFFFFFFFFF00 if CONF.executor_mode == "TSC" else 0xFFFFFFFFFFFFFFFF
+
+        count_threshold = threshold_outliers * n_reps
+        for input_id, input_measurements in enumerate(all_results):
+            counter: Counter = Counter()
+            for result in input_measurements:
+                # count the number of times each trace appears
+                trace = int(result['htrace']) & trace_mask
+                counter[trace] += 1
+
+                if counter[trace] >= count_threshold:
+                    trace_sets[input_id].add(trace)
+
+                if not ignore_pfc:
+                    # set the PFC reading value to the one that maximizes the first counter
+                    # (normally, the first counter is the number of issued uops)
+                    pfc_reading = result['pfc']
+                    if pfc_reading[0] >= pfc_readings[input_id][0]:
+                        pfc_readings[input_id] = pfc_reading
+
+        if not ignore_pfc:
+            self.feedback = pfc_readings
+
+        return trace_sets
 
     def __write_test_case(self, test_case: TestCase):
         actors = sorted(test_case.actors.values(), key=lambda a: (a.id_))

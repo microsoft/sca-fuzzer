@@ -7,7 +7,7 @@ SPDX-License-Identifier: MIT
 from __future__ import annotations
 
 import shutil
-from typing import List, Dict, Tuple, Optional, NamedTuple
+from typing import List, Dict, Tuple, Optional, NamedTuple, FrozenSet
 from collections import defaultdict
 from abc import ABC, abstractmethod
 import numpy as np
@@ -757,11 +757,15 @@ class TestCase:
 # Traces
 # ==================================================================================================
 CTrace = int
-HTrace = int
 InputID = int
-CombinedHTrace = int
 
-NullHTrace = 0
+
+class HTrace(NamedTuple):
+    raw: FrozenSet[int]
+    hash_: int
+
+    def __eq__(self, other):
+        return self.hash_ == other.hash_
 
 
 class Measurement(NamedTuple):
@@ -1029,10 +1033,22 @@ class Executor(ABC):
         pass
 
     @abstractmethod
-    def trace_test_case(self,
-                        inputs: List[Input],
-                        repetitions: int = 0,
-                        threshold_outliers: int = 0) -> List[CombinedHTrace]:
+    def trace_test_case(self, inputs: List[Input], n_reps: int,
+                        threshold_outliers: float,
+                        ensure_convergence: bool = False) -> List[HTrace]:
+        """ Call the executor kernel module to collect the hardware traces for
+         the test case (previously loaded with `load_test_case`) and the given inputs.
+
+        :param inputs: list of inputs to be used for the test case
+        :param n_reps: number of times to repeat each measurement
+        :param threshold_outliers: a traces is ignored if it appears in less than this portion
+                of the measurements (float: 0.0 < threshold_outliers <= 1.0)
+        :param ensure_convergence: if True, the executor will repeat the measurements until
+                the set of collected traces for each input becomes stable. The maximum number
+                of iterations is 10 * n_reps. If the measurements do not converge, the executor
+                will print a warning and ignore the inputs that did not converge.
+        :return: a list of HTrace objects, one for each input
+         """
         pass
 
     @abstractmethod
@@ -1041,6 +1057,13 @@ class Executor(ABC):
 
     @abstractmethod
     def get_last_feedback(self) -> List:
+        pass
+
+    @abstractmethod
+    def ignore_inputs(self, ignore_list: List[int]):
+        """ Sets a list of inputs IDs that should be ignored by the executor.
+        The executor will executed the inputs with these IDs as normal (in case they are
+        necessary for priming the uarch state), but their htraces will be set to zero """
         pass
 
 
@@ -1073,11 +1096,6 @@ class Fuzzer(ABC):
 
     @abstractmethod
     def fuzzing_round(self, test_case: TestCase, inputs: List[Input]) -> Optional[EquivalenceClass]:
-        pass
-
-    @abstractmethod
-    def trace_and_boost(self, inputs: List[Input],
-                        nesting: int) -> Tuple[List[CTrace], List[Input]]:
         pass
 
     @abstractmethod
