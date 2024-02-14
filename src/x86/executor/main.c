@@ -11,6 +11,7 @@
 #include <linux/version.h>
 #include <linux/kobject.h>
 #include <asm/virtext.h>
+#include <asm/processor.h>
 // clang-format on
 
 #include "main.h"
@@ -30,8 +31,8 @@
 #include "hw_features/host_page_tables.h"
 #include "hw_features/page_tables_common.h"
 #include "hw_features/perf_counters.h"
-#include "hw_features/vmx.h"
 #include "hw_features/special_registers.h"
+#include "hw_features/vmx.h"
 
 // Version-dependent includes
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 6)
@@ -534,6 +535,9 @@ static int __init executor_init(void)
 
     // Check memory configuration
     unsigned int phys_addr_width = cpuid_eax(0x80000008) & 0xFF;
+    if (cpu_has(c, X86_FEATURE_SME) || cpu_has(c, X86_FEATURE_SEV)) {
+        phys_addr_width -= (cpuid_ebx(0x8000001f) >> 6) & 0x3f;
+    }
     if (phys_addr_width != PHYSICAL_WIDTH) {
         printk(KERN_ERR "x86_executor: ERROR: The width of physical addresses is %d instead of "
                         "expected %d\n",
