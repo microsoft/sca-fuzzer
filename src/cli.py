@@ -142,8 +142,8 @@ def main() -> int:
     # Postprocessing interface
     parser_mini = subparsers.add_parser('minimize', add_help=True)
     parser_mini.add_argument(
-        '--infile',
-        '-i',
+        '--genfile',
+        '-g',
         type=str,
         required=True,
     )
@@ -155,7 +155,7 @@ def main() -> int:
     )
     parser_mini.add_argument("-c", "--config", type=str, required=False)
     parser_mini.add_argument(
-        "-n",
+        "-i",
         "--num-inputs",
         type=int,
         default=100,
