@@ -50,10 +50,10 @@ static int cpu_configure(void)
 
 #elif VENDOR_ID == 2 // AMD
     // ...
-#if CPU_FAMILY == 25
     // Configure uarch patches
     wrmsr64(MSR_IA32_SPEC_CTRL, ssbp_patch_control);
 
+#if CPU_FAMILY == 25
     // Disable prefetchers
     wrmsr64(0xc0000108, prefetcher_control);
 #elif CPU_FAMILY == 23

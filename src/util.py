@@ -489,7 +489,7 @@ def bit_count(n):
 def pretty_htrace(htrace: HTrace, offset: str = ""):
     s = ""
     for t in htrace.raw:
-        s += f"{offset}{t:064b}\n"
+        s += f"{t:064b}\n"
     s = s.replace("0", ".").replace("1", "^")
     if CONF.color:
         s = CYAN + s[0:8] + YELLOW + s[8:16] \
@@ -497,6 +497,7 @@ def pretty_htrace(htrace: HTrace, offset: str = ""):
             + CYAN + s[32:40] + YELLOW + s[40:48] \
             + CYAN + s[48:56] + YELLOW + s[56:64] \
             + COL_RESET + s[64:]
+    s = offset + s
     return s
 
 
