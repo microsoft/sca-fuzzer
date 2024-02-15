@@ -293,9 +293,9 @@ def main() -> int:
 
     # Test case minimization
     if args.subparser_name == "minimize":
-        fuzzer = get_fuzzer(args.instruction_set, "", args.infile, "")
+        fuzzer = get_fuzzer(args.instruction_set, "", args.genfile, "")
         minimizer = get_minimizer(fuzzer, args.instruction_set)
-        minimizer.run(args.infile, args.outfile, args.num_inputs, not args.no_minimize,
+        minimizer.run(args.genfile, args.outfile, args.num_inputs, not args.no_minimize,
                       args.simplify, args.add_fences, args.find_sources, args.find_min_inputs)
         return 0
 
