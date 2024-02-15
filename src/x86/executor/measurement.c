@@ -49,9 +49,12 @@ static int cpu_configure(void)
     wrmsr64(0x1a4, prefetcher_control);
 
 #elif VENDOR_ID == 2 // AMD
-    // ...
-    // Configure uarch patches
+    // Configure SSBP patch
     wrmsr64(MSR_IA32_SPEC_CTRL, ssbp_patch_control);
+
+    // Configure SSBP patch for old AMD CPUs
+    uint64_t virt_spec_ctrl = rdmsr64(MSR_AMD64_VIRT_SPEC_CTRL) | 0b100;
+    wrmsr64(MSR_AMD64_VIRT_SPEC_CTRL, virt_spec_ctrl);
 
 #if CPU_FAMILY == 25
     // Disable prefetchers
