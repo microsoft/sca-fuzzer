@@ -174,7 +174,7 @@ class FuzzerGeneric(Fuzzer):
         self.executor.load_test_case(test_case)
 
         # 1. Fast path: Collect traces with minimal nesting and repetitions
-        violations, ctraces, boosted_inputs = self._collect_traces(
+        violations, ctraces, boosted_inputs, _ = self._collect_traces(
             inputs, n_reps, threshold, nesting, record_stats=True, fast_boosting=fast_boosting)
         if not violations:
             STAT.no_fast_violation += 1
@@ -189,7 +189,7 @@ class FuzzerGeneric(Fuzzer):
         #     contract traces, we also have to re-boost the inputs, and re-collect hardware traces
         #     for the new inputs
         if nesting < max_nesting:
-            violations, ctraces, boosted_inputs = self._collect_traces(
+            violations, ctraces, boosted_inputs, _ = self._collect_traces(
                 inputs, n_reps, threshold, max_nesting, fast_boosting=fast_boosting)
             nesting = max_nesting
             if not violations:
@@ -200,7 +200,7 @@ class FuzzerGeneric(Fuzzer):
         #     To remove such FPs, we collect contract traces for all boosted inputs, and check if
         #     the violation is still present
         if fast_boosting:
-            violations, ctraces, boosted_inputs = self._collect_traces(
+            violations, ctraces, boosted_inputs, _ = self._collect_traces(
                 inputs, n_reps, threshold, nesting, fast_boosting=False)
             fast_boosting = False
             if not violations:
@@ -210,7 +210,7 @@ class FuzzerGeneric(Fuzzer):
         # 2.4 FP might appear because of probabilistic nature of the hardware measurements.
         #     To remove such FPs, we collect more hardware traces and check if the violation is
         #     present
-        violations, _, __ = self._collect_traces(
+        violations, _, __, htraces = self._collect_traces(
             boosted_inputs,
             n_reps,
             threshold,
@@ -299,7 +299,7 @@ class FuzzerGeneric(Fuzzer):
         ignored_input_ids = [i for i in range(len(boosted_inputs)) if i not in violating_input_ids]
         self.executor.ignore_inputs(ignored_input_ids)
 
-        return violations, ctraces, boosted_inputs
+        return violations, ctraces, boosted_inputs, htraces
 
     def store_test_case(self, test_case: TestCase, inputs: List[Input],
                         violation: EquivalenceClass):

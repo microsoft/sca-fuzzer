@@ -52,8 +52,8 @@ class EquivalenceAnalyser(Analyser):
                 violations.append(eq_cls)
                 continue
 
-            htraces = list(eq_cls.htrace_map.keys())
-            if not self.check_if_all_subsets(htraces):
+            violating_htraces = list(eq_cls.htrace_map.keys())
+            if not self.check_if_all_subsets(violating_htraces):
                 violations.append(eq_cls)
 
         return violations
