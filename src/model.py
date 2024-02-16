@@ -31,7 +31,7 @@ from .interfaces import CTrace, TestCase, Model, InputTaint, Instruction, Execut
     RegisterOperand, FlagsOperand, MemoryOperand, TaintTrackerInterface, TargetDesc, \
     get_sandbox_addr, SANDBOX_DATA_SIZE, SANDBOX_CODE_SIZE
 from .config import CONF
-from .util import Logger, NotSupportedException, stable_hash_bytes
+from .util import Logger, NotSupportedException, stable_hash_bytes, stable_hash_intlist
 
 # ==================================================================================================
 # Custom Data Types and Constants
@@ -837,8 +837,8 @@ class UnicornSpec(UnicornSeq):
 # ==================================================================================================
 # Actor-based Models
 # ==================================================================================================
-class ActorNonInterferenceModel(UnicornModel):  # inheritance only for compatibility; not used
-    """ The model that exposes all data that belongs to the actor called `observer` """
+class ActorNonInterferenceModel(UnicornSeq):
+    """ The model that exposes all data that belongs to the actors with `observer` flag set """
     test_case: TestCase
     observer_actor_ids: List[int]
 
@@ -872,11 +872,15 @@ class ActorNonInterferenceModel(UnicornModel):  # inheritance only for compatibi
         base_taint = self._create_base_taint()
 
         for input_ in inputs:
+            fragment_hashes: List[int] = []
             for actor_id in self.observer_actor_ids:
                 input_fragment = input_[actor_id]
-                contract_traces.append(stable_hash_bytes(input_fragment.tobytes()))
-                taints.append(base_taint)
+                fragment_hashes.append(stable_hash_bytes(input_fragment.tobytes()))
 
+            contract_traces.append(stable_hash_intlist(fragment_hashes))
+            taints.append(base_taint)
+
+        assert len(contract_traces) == len(inputs)
         return contract_traces, taints
 
     def _create_base_taint(self) -> InputTaint:
