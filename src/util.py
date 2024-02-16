@@ -7,7 +7,7 @@ SPDX-License-Identifier: MIT
 
 import xxhash
 from datetime import datetime
-from typing import NoReturn, Dict
+from typing import NoReturn, Dict, List
 from pprint import pformat
 from traceback import print_stack
 from .interfaces import EquivalenceClass, SANDBOX_CODE_SIZE, Model, HTrace
@@ -286,7 +286,7 @@ class Logger:
             return
         if not self.dbg_dump_htraces and not self.dbg_dump_ctraces:
             return
-        if not htraces:   # might be empty due to tracing errors
+        if not htraces:  # might be empty due to tracing errors
             return
 
         print("\n================================ Collected Traces =============================")
@@ -538,6 +538,10 @@ def ctrace_colorize(ctrace):
 
 def stable_hash_bytes(data: bytes) -> int:
     return xxhash.xxh64(data, seed=0).intdigest()
+
+
+def stable_hash_intlist(data: List[int]) -> int:
+    return xxhash.xxh64(str(data), seed=0).intdigest()
 
 
 class NotSupportedException(Exception):
