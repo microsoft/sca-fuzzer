@@ -28,14 +28,14 @@ extern measurement_mode_e measurement_mode;
 #define MEASUREMENT_MODE_DEFAULT PRIME_PROBE
 extern long uarch_reset_rounds;
 #define UARCH_RESET_ROUNDS_DEFAULT 1
-extern uint64_t ssbp_patch_control;
-#define SSBP_PATH_DEFAULT SSBP_PATCH_ON
-extern uint64_t prefetcher_control;
-#define PREFETCHER_DEFAULT PREFETCHER_OFF
+extern bool enable_ssbp_patch;
+#define SSBP_PATCH_DEFAULT true
+extern bool enable_prefetchers;
+#define PREFETCHER_DEFAULT false
 extern char pre_run_flush;
 #define PRE_RUN_FLUSH_DEFAULT 1
-extern uint64_t mpx_control; // MPX - unused on AMD
-#define MPX_DEFAULT 0
+extern bool enable_mpx; // MPX - unused on AMD
+#define MPX_DEFAULT false
 extern bool dbg_gpr_mode;
 #define DBG_GPR_MODE_DEFAULT false
 
@@ -47,5 +47,8 @@ extern int (*set_memory_nx)(unsigned long, int);
 #else
 #include <linux/set_memory.h>
 #endif
+
+// CPU features
+extern struct cpuinfo_x86 *cpuinfo;  // cached result of cpu_data for CPU 0
 
 #endif // X86_EXECUTOR
