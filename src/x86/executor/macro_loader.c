@@ -555,10 +555,15 @@ void __attribute__((noipa)) macro_set_k2u_target(void)
 void __attribute__((noipa)) macro_switch_k2u(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
+    // clang-format off
     asm_volatile_intel(""
+                       "mov qword ptr [r14 - " xstr(MACRO_STACK_TOP_OFFSET) " - 8], rsp\n"
+                       "lea rsp, [r14 - " xstr(MACRO_STACK_TOP_OFFSET) " - 8]\n"
                        "pushfq\n"
                        "pop r11\n"
+                       "pop rsp\n"
                        "sysretq\n");
+    // clang-format on
     asm volatile(".quad " xstr(MACRO_END));
 }
 
