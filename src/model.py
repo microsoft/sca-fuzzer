@@ -837,20 +837,26 @@ class UnicornSpec(UnicornSeq):
 # ==================================================================================================
 # Actor-based Models
 # ==================================================================================================
-class ExposeObserverModel(UnicornModel):  # unicorn is not actually used; it's for compatibility
+class ActorNonInterferenceModel(UnicornModel):  # inheritance only for compatibility; not used
     """ The model that exposes all data that belongs to the actor called `observer` """
-    observer_id: int = -1
     test_case: TestCase
+    observer_actor_ids: List[int]
 
     def __init__(self, sandbox_base: int, code_base: int):
         super().__init__(sandbox_base, code_base)
+        n_observers = len([desc for desc in CONF._actors.values() if desc['observer']])
+        if n_observers == len(CONF._actors):
+            raise NotSupportedException("ActorNonInterferenceModel"
+                                        "requires at least 1 non-observer actor")
+        if n_observers == 0:
+            raise NotSupportedException("ActorNonInterferenceModel"
+                                        "requires at least 1 observer actor")
 
     def load_test_case(self, test_case: TestCase) -> None:
-        if 'observer' not in test_case.actors:
-            raise NotSupportedException("ExposeActorModel requires that the test case has an "
-                                        "actor named `observer`")
-        self.observer_id = test_case.actors['observer'].id_
         self.test_case = test_case
+        self.observer_actor_ids = [
+            actor.id_ for actor in test_case.actors.values() if actor.observer
+        ]
 
     def trace_test_case(self, inputs: List[Input], nesting: int) -> List[CTrace]:
         ctraces, _ = self._execute_test_case(inputs, nesting)
@@ -866,9 +872,10 @@ class ExposeObserverModel(UnicornModel):  # unicorn is not actually used; it's f
         base_taint = self._create_base_taint()
 
         for input_ in inputs:
-            input_fragment = input_[self.observer_id]
-            contract_traces.append(stable_hash_bytes(input_fragment.tobytes()))
-            taints.append(base_taint)
+            for actor_id in self.observer_actor_ids:
+                input_fragment = input_[actor_id]
+                contract_traces.append(stable_hash_bytes(input_fragment.tobytes()))
+                taints.append(base_taint)
 
         return contract_traces, taints
 
@@ -876,14 +883,15 @@ class ExposeObserverModel(UnicornModel):  # unicorn is not actually used; it's f
         n_actors = len(self.test_case.actors)
         base_taint = InputTaint(n_actors)
 
-        # create a view of the taint array as a 64-bit array
-        # note that it *does not* copy the taint, only casts it into a different type
-        linear_view = base_taint.linear_view(self.observer_id)
-        actor_offset = self.observer_id * 0x4000 // 8
+        for actor_id in self.observer_actor_ids:
+            # create a view of the taint array as a 64-bit array
+            # note that it *does not* copy the taint, only casts it into a different type
+            linear_view = base_taint.linear_view(actor_id)
+            actor_offset = actor_id * 0x4000 // 8
 
-        # taint the whole actor
-        for i in range(actor_offset, actor_offset + linear_view.size):
-            linear_view[i - actor_offset] = True
+            # taint the whole actor
+            for i in range(actor_offset, actor_offset + linear_view.size):
+                linear_view[i - actor_offset] = True
 
         return base_taint
 
@@ -910,6 +918,9 @@ class ExposeObserverModel(UnicornModel):  # unicorn is not actually used; it's f
         pass
 
     def print_state(self, _):
+        pass
+
+    def emulate_vm_execution(self, _) -> None:
         pass
 
 

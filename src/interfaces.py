@@ -166,6 +166,7 @@ class Actor:
     data_properties: int = 0
     data_ept_properties: int = 0
     code_properties: int = 0  # unused so far
+    observer: bool = False
 
     def __init__(self, mode: ActorMode, pl: ActorPL, id_: ActorID, name: ActorName) -> None:
         self.mode = mode

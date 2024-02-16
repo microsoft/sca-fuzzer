@@ -56,6 +56,7 @@ _option_values = {
         'privilege_level',
         'data_properties',
         'data_ept_properties',
+        'observer',
         # 'code_properties',  # under construction
     ],
     "actor_mode": [
@@ -254,6 +255,7 @@ _actor_default = {
     'name': "main",
     'mode': "host",
     'privilege_level': "kernel",
+    'observer': False,
     'data_properties': {
         'present': True,
         'writable': True,
