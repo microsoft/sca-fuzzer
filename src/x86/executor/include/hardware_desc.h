@@ -20,18 +20,4 @@
 #define L1D_ASSOCIATIVITY 8
 #endif
 
-// Model-specific constants
-#if VENDOR_ID == 1 // Intel
-#define SSBP_PATCH_ON  0b111
-#define SSBP_PATCH_OFF 0b011
-#define PREFETCHER_ON  0
-#define PREFETCHER_OFF 15
-
-#elif VENDOR_ID == 2 // AMD
-#define SSBP_PATCH_ON  0b111
-#define SSBP_PATCH_OFF 0b011
-#define PREFETCHER_ON  0b000000
-#define PREFETCHER_OFF 0b101111
-#endif
-
 #endif // _HARDWARE_DESC_H_

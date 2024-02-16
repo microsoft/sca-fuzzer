@@ -8,6 +8,7 @@
 
 #include "hw_features/fault_handler.h"
 #include "hw_features/special_registers.h"
+#include "main.h"
 #include "shortcuts.h"
 #include "test_case_parser.h"
 
@@ -58,12 +59,132 @@ static int set_msrs_for_vmx(void)
     return 0;
 }
 
+/// @brief Sets the Speculative Store Bypass Disable (SSBD) state according to
+/// the value of the global variable enable_ssbp_patch
+/// @param void
+/// @return 0 on success, -1 on failure
+static int set_enable_ssbp_patch(void)
+{
+    // TODO: check on old AMD box
+    // TODO: recover state for all
+    // TODO: fix "return with modified stack"
+
+    uint64_t msr_id = 0;
+    uint64_t msr_mask = 0;
+    if (cpu_has(cpuinfo, X86_FEATURE_MSR_SPEC_CTRL)) {
+        msr_id = MSR_IA32_SPEC_CTRL;
+        msr_mask = SPEC_CTRL_SSBD;
+    } else if (cpu_has(cpuinfo, X86_FEATURE_VIRT_SSBD)) {
+        msr_id = MSR_AMD64_VIRT_SPEC_CTRL;
+        msr_mask = SPEC_CTRL_SSBD;
+    } else if (cpu_has(cpuinfo, X86_FEATURE_LS_CFG_SSBD)) {
+        msr_id = MSR_AMD64_LS_CFG;
+        switch (cpuinfo->x86) {
+        case 0x15:
+            msr_mask = 1ULL << 54;
+            break;
+        case 0x16:
+            msr_mask = 1ULL << 33;
+            break;
+        case 0x17:
+            msr_mask = 1ULL << 10;
+            break;
+        default:
+            PRINT_ERR("ERROR: Unable to patch SSBD on this CPU; unexpected CPU model\n");
+            return -1;
+        }
+    } else {
+        PRINT_ERR("ERROR: Unable to patch SSBD on this CPU; no known patch\n");
+        return -1;
+    }
+
+    uint64_t msr_value = rdmsr64(msr_id);
+    if (enable_ssbp_patch) {
+        msr_value |= msr_mask;
+    } else {
+        msr_value &= ~msr_mask;
+    }
+    wrmsr64(msr_id, msr_value);
+    if (rdmsr64(msr_id) != msr_value) {
+        PRINT_ERR("ERROR: Not able to disable prefetches on this machine\n");
+        return -1;
+    }
+
+    return 0;
+}
+
+/// @brief Sets the prefetcher state according to the value of the global variable
+/// enable_prefetchers
+/// @param void
+/// @return 0 on success, -1 on failure
+static int set_enable_prefetchers(void)
+{
+    uint64_t msr_id = 0;
+    uint64_t msr_mask = 0;
+
+    if (cpuinfo->x86_vendor == X86_VENDOR_INTEL) {
+        msr_id = MSR_MISC_FEATURE_CONTROL;
+        msr_mask = 0xf;
+    } else if (cpuinfo->x86_vendor == X86_VENDOR_AMD) {
+        switch (cpuinfo->x86) {
+        case 0x19:
+            msr_id = 0xc0000108;
+            msr_mask = 0b101111;
+            break;
+        case 0x17:
+            msr_id = MSR_AMD64_DC_CFG;
+            msr_mask = (1 << 13) | (1 << 15);
+            break;
+        default:
+            PRINT_ERR("ERROR: Unable to disable prefetches; unsupported CPU model\n");
+            return -1;
+        }
+    }
+
+    uint64_t msr_value = rdmsr64(msr_id);
+    if (enable_prefetchers) {
+        msr_value &= ~msr_mask;
+    } else {
+        msr_value |= msr_mask;
+    }
+    wrmsr64(msr_id, msr_value);
+    if (rdmsr64(msr_id) != msr_value) {
+        PRINT_ERR("ERROR: Not able to disable prefetches on this machine\n");
+        return -1;
+    }
+    return 0;
+}
+
+/// @brief Sets the MPX control state according to the value of the global variable enable_mpx
+/// @param void
+/// @return 0 on success, -1 on failure
+static int set_enable_mpx_state(void)
+{
+#if VENDOR_ID == 1 // Intel
+    if (enable_mpx) {
+        if (cpu_has(cpuinfo, X86_FEATURE_MPX)) {
+            wrmsr64(MSR_IA32_BNDCFGS, 1ULL);
+        }
+    }
+#endif // VENDOR_ID == 1
+    return 0;
+}
+
 int set_special_registers(void)
 {
     int err = 0;
 
     err = store_orig_msr_state();
     CHECK_ERR("store_orig_msr_state");
+
+    err = set_enable_ssbp_patch();
+    CHECK_ERR("set_enable_ssbp_patch");
+
+    err = set_enable_prefetchers();
+    CHECK_ERR("set_enable_prefetchers");
+
+    err = set_enable_mpx_state();
+    CHECK_ERR("set_enable_mpx_state");
 
     // set required features in CRs
     uint64_t cr0 = read_cr0();
@@ -99,6 +220,8 @@ void restore_special_registers(void)
 
     if (orig_special_registers_state->lstar != 0)
         wrmsr64(MSR_LSTAR, orig_special_registers_state->lstar);
+
+    // FIXME: restore SSBD, prefetcher, MPX control
 
     memset(orig_special_registers_state, 0, sizeof(special_registers_t));
 }

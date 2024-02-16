@@ -6,6 +6,8 @@
 // SPDX-License-Identifier: MIT
 
 #include <asm/msr-index.h>
+#include <asm/msr.h>
+#include <asm/spec-ctrl.h>
 
 #include "code_loader.h"
 #include "data_loader.h"
@@ -20,8 +22,8 @@
 #include "hw_features/guest_memory.h"
 #include "hw_features/host_page_tables.h"
 #include "hw_features/perf_counters.h"
-#include "hw_features/vmx.h"
 #include "hw_features/special_registers.h"
+#include "hw_features/vmx.h"
 
 measurement_t *measurements = NULL; // global
 
@@ -30,46 +32,6 @@ int unsafe_bubble(void);
 // =================================================================================================
 // CPU configuration
 // =================================================================================================
-
-/// @brief Configure the CPU features and extensions
-/// @param void
-/// @return 0 on success, -1 on failure
-static int cpu_configure(void)
-{
-#if VENDOR_ID == 1 // Intel
-    // FIXME: this needs to be moved into special_registers.c module
-
-    // Configure uarch patches
-    wrmsr64(MSR_IA32_SPEC_CTRL, ssbp_patch_control);
-
-    // Configure extensions
-    wrmsr64(MSR_IA32_BNDCFGS, mpx_control);
-
-    // Disable prefetchers
-    wrmsr64(0x1a4, prefetcher_control);
-
-#elif VENDOR_ID == 2 // AMD
-    // Configure SSBP patch
-    wrmsr64(MSR_IA32_SPEC_CTRL, ssbp_patch_control);
-
-    // Configure SSBP patch for old AMD CPUs
-    uint64_t virt_spec_ctrl = rdmsr64(MSR_AMD64_VIRT_SPEC_CTRL) | 0b100;
-    wrmsr64(MSR_AMD64_VIRT_SPEC_CTRL, virt_spec_ctrl);
-
-#if CPU_FAMILY == 25
-    // Disable prefetchers
-    wrmsr64(0xc0000108, prefetcher_control);
-#elif CPU_FAMILY == 23
-    // Disable prefetchers
-    uint64_t dc_config = native_read_msr(0xC0011022); // Data Cache Configuration
-    dc_config |= (1 << 13);
-    dc_config |= (1 << 15);
-    wrmsr64(0xC0011022, dc_config);
-#endif
-
-#endif
-    return 0;
-}
 
 static inline int uarch_flush(void)
 {
@@ -91,6 +53,7 @@ static int set_execution_environment(void)
 {
     int err = 0;
     err = set_special_registers();
+    CHECK_ERR("set_execution_environment:set_special_registers");
 
     // If necessary, enable VMX
     if (test_case->features.includes_vm_actors) {
@@ -105,7 +68,6 @@ static int set_execution_environment(void)
     }
     return 0;
 }
-
 
 /// @brief Restores the CPU state to the state before the test case execution. This function is
 /// written in a fail-safe manner, so that it can be called in fault handlers.
@@ -272,9 +234,6 @@ int trace_test_case(void)
     CHECK_ERR("trace_test_case:pfc_configure");
 
     kernel_fpu_begin(); // Enable FPU - just in case, we might use it within the test case
-    err |= cpu_configure();
-    if (err)
-        goto trace_test_case_cleanup;
 
     // prevent preemption
     get_cpu();
@@ -289,7 +248,6 @@ int trace_test_case(void)
     raw_local_irq_restore(flags);
     put_cpu();
 
-trace_test_case_cleanup:
     kernel_fpu_end();
     CHECK_ERR("trace_test_case:cleanup");
     return err;
@@ -317,7 +275,4 @@ int init_measurements(void)
 
 /// Destructor for the measurement module
 ///
-void free_measurements(void)
-{
-    SAFE_VFREE(measurements);
-}
+void free_measurements(void) { SAFE_VFREE(measurements); }

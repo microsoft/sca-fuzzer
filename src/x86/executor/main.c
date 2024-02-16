@@ -62,12 +62,14 @@ int (*set_memory_nx)(unsigned long, int) = 0;
 bool quick_and_dirty_mode = false;
 
 long uarch_reset_rounds = UARCH_RESET_ROUNDS_DEFAULT;
-uint64_t ssbp_patch_control = SSBP_PATH_DEFAULT;
-uint64_t prefetcher_control = PREFETCHER_DEFAULT;
-uint64_t mpx_control = MPX_DEFAULT; // unused on AMD
+bool enable_ssbp_patch = SSBP_PATCH_DEFAULT;
+bool enable_prefetchers = PREFETCHER_DEFAULT;
+bool enable_mpx = MPX_DEFAULT; // unused on AMD
 char pre_run_flush = PRE_RUN_FLUSH_DEFAULT;
 measurement_mode_e measurement_mode = MEASUREMENT_MODE_DEFAULT;
 bool dbg_gpr_mode = DBG_GPR_MODE_DEFAULT;
+
+struct cpuinfo_x86 *cpuinfo = NULL;
 
 // =================================================================================================
 // Local declarations and definitions
@@ -358,7 +360,7 @@ static ssize_t enable_ssbp_patch_store(struct kobject *kobj, struct kobj_attribu
 {
     unsigned value = 0;
     sscanf(buf, "%u", &value);
-    ssbp_patch_control = (value == 0) ? SSBP_PATCH_OFF : SSBP_PATCH_ON;
+    enable_ssbp_patch = (value == 0) ? false : true;
     return count;
 }
 
@@ -367,7 +369,7 @@ static ssize_t enable_prefetcher_store(struct kobject *kobj, struct kobj_attribu
 {
     unsigned value = 0;
     sscanf(buf, "%u", &value);
-    prefetcher_control = (value == 0) ? PREFETCHER_OFF : PREFETCHER_ON;
+    enable_prefetchers = (value == 0) ? false : true;
     return count;
 }
 
@@ -380,15 +382,17 @@ static ssize_t enable_pre_run_flush_store(struct kobject *kobj, struct kobj_attr
     return count;
 }
 
+#if VENDOR_ID == 1 // Intel
 // This function is unused on AMD
 static ssize_t enable_mpx_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf,
                                 size_t count)
 {
     unsigned value = 0;
     sscanf(buf, "%u", &value);
-    mpx_control = (value == 0) ? 0 : 1;
+    enable_mpx = (value == 0) ? false : true;
     return count;
 }
+#endif // VENDOR_ID == 1
 
 static ssize_t measurement_mode_store(struct kobject *kobj, struct kobj_attribute *attr,
                                       const char *buf, size_t count)
@@ -481,10 +485,10 @@ static ssize_t dbg_dump_show(struct kobject *kobj, struct kobj_attribute *attr, 
     len += sprintf(&buf[len], "handled_faults: %u\n", handled_faults);
     len += sprintf(&buf[len], "quick_and_dirty_mode: %d\n", quick_and_dirty_mode);
     len += sprintf(&buf[len], "uarch_reset_rounds: %ld\n", uarch_reset_rounds);
-    len += sprintf(&buf[len], "ssbp_patch_control: %llu\n", ssbp_patch_control);
-    len += sprintf(&buf[len], "prefetcher_control: %llu\n", prefetcher_control);
+    len += sprintf(&buf[len], "enable_ssbp_patch: %d\n", enable_ssbp_patch);
+    len += sprintf(&buf[len], "enable_prefetchers: %d\n", enable_prefetchers);
     len += sprintf(&buf[len], "pre_run_flush: %d\n", pre_run_flush);
-    len += sprintf(&buf[len], "mpx_control: %llu\n", mpx_control);
+    len += sprintf(&buf[len], "enable_mpx: %d\n", enable_mpx);
     return len;
 }
 
@@ -526,16 +530,18 @@ static inline void _get_required_kernel_functions(void)
 
 static int __init executor_init(void)
 {
+    // Get CPU information and store in a global variable for future references
+    cpuinfo = &cpu_data(0);
+
     // Check CPU vendor
-    struct cpuinfo_x86 *c = &cpu_data(0);
-    if (c->x86_vendor != X86_VENDOR_INTEL && c->x86_vendor != X86_VENDOR_AMD) {
+    if (cpuinfo->x86_vendor != X86_VENDOR_INTEL && cpuinfo->x86_vendor != X86_VENDOR_AMD) {
         printk(KERN_ERR "ERROR: x86_executor:  This CPU vendor is not supported\n");
         return -1;
     }
 
     // Check memory configuration
     unsigned int phys_addr_width = cpuid_eax(0x80000008) & 0xFF;
-    if (cpu_has(c, X86_FEATURE_SME) || cpu_has(c, X86_FEATURE_SEV)) {
+    if (cpu_has(cpuinfo, X86_FEATURE_SME) || cpu_has(cpuinfo, X86_FEATURE_SEV)) {
         phys_addr_width -= (cpuid_ebx(0x8000001f) >> 6) & 0x3f;
     }
     if (phys_addr_width != PHYSICAL_WIDTH) {
