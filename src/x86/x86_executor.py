@@ -260,8 +260,8 @@ class X86Executor(Executor):
                         all_results[input_id][rep]['pfc'] = [int(x) for x in row[1:]]
                         if all_results[input_id][rep]['htrace'] == 0:
                             self.LOG.warning(
-                                "executor", "Detected a kernel module error."
-                                "Skipping this test case")
+                                "executor", "Detected a kernel module error (see dmesg for details)"
+                                ". Skipping this test case")
                             return None
                     else:
                         all_results[input_id][rep]['htrace'] = 0

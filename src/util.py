@@ -286,6 +286,8 @@ class Logger:
             return
         if not self.dbg_dump_htraces and not self.dbg_dump_ctraces:
             return
+        if not htraces:   # might be empty due to tracing errors
+            return
 
         print("\n================================ Collected Traces =============================")
 
@@ -374,7 +376,7 @@ class Logger:
             print(pretty_trace(h))
 
         print("Observed traces:")
-        for h in observed_traces.raw:
+        for h in observed_traces:
             print(pretty_trace(h))
 
     # ==============================================================================================

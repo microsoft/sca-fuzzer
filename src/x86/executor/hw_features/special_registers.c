@@ -59,35 +59,25 @@ static int set_msrs_for_vmx(void)
     return 0;
 }
 
-/// @brief Sets the Speculative Store Bypass Disable (SSBD) state according to
-/// the value of the global variable enable_ssbp_patch
-/// @param void
-/// @return 0 on success, -1 on failure
-static int set_enable_ssbp_patch(void)
+static int get_ssbp_patch_msr_ctrls(uint64_t *msr_id, uint64_t *msr_mask)
 {
-    // TODO: check on old AMD box
-    // TODO: recover state for all
-    // TODO: fix "return with modified stack"
-
-    uint64_t msr_id = 0;
-    uint64_t msr_mask = 0;
     if (cpu_has(cpuinfo, X86_FEATURE_MSR_SPEC_CTRL)) {
-        msr_id = MSR_IA32_SPEC_CTRL;
-        msr_mask = SPEC_CTRL_SSBD;
+        *msr_id = MSR_IA32_SPEC_CTRL;
+        *msr_mask = SPEC_CTRL_SSBD;
     } else if (cpu_has(cpuinfo, X86_FEATURE_VIRT_SSBD)) {
-        msr_id = MSR_AMD64_VIRT_SPEC_CTRL;
-        msr_mask = SPEC_CTRL_SSBD;
+        *msr_id = MSR_AMD64_VIRT_SPEC_CTRL;
+        *msr_mask = SPEC_CTRL_SSBD;
     } else if (cpu_has(cpuinfo, X86_FEATURE_LS_CFG_SSBD)) {
-        msr_id = MSR_AMD64_LS_CFG;
+        *msr_id = MSR_AMD64_LS_CFG;
         switch (cpuinfo->x86) {
         case 0x15:
-            msr_mask = 1ULL << 54;
+            *msr_mask = 1ULL << 54;
             break;
         case 0x16:
-            msr_mask = 1ULL << 33;
+            *msr_mask = 1ULL << 33;
             break;
         case 0x17:
-            msr_mask = 1ULL << 10;
+            *msr_mask = 1ULL << 10;
             break;
         default:
             PRINT_ERR("ERROR: Unable to patch SSBD on this CPU; unexpected CPU model\n");
@@ -97,102 +87,103 @@ static int set_enable_ssbp_patch(void)
         PRINT_ERR("ERROR: Unable to patch SSBD on this CPU; no known patch\n");
         return -1;
     }
-
-    uint64_t msr_value = rdmsr64(msr_id);
-    if (enable_ssbp_patch) {
-        msr_value |= msr_mask;
-    } else {
-        msr_value &= ~msr_mask;
-    }
-    wrmsr64(msr_id, msr_value);
-    if (rdmsr64(msr_id) != msr_value) {
-        PRINT_ERR("ERROR: Not able to disable prefetches on this machine\n");
-        return -1;
-    }
-
     return 0;
 }
 
-/// @brief Sets the prefetcher state according to the value of the global variable
-/// enable_prefetchers
-/// @param void
-/// @return 0 on success, -1 on failure
-static int set_enable_prefetchers(void)
+static int get_prefetcher_msr_ctrls(uint64_t *msr_id, uint64_t *msr_mask)
 {
-    uint64_t msr_id = 0;
-    uint64_t msr_mask = 0;
-
     if (cpuinfo->x86_vendor == X86_VENDOR_INTEL) {
-        msr_id = MSR_MISC_FEATURE_CONTROL;
-        msr_mask = 0xf;
+        *msr_id = MSR_MISC_FEATURE_CONTROL;
+        *msr_mask = 0xf;
     } else if (cpuinfo->x86_vendor == X86_VENDOR_AMD) {
         switch (cpuinfo->x86) {
         case 0x19:
-            msr_id = 0xc0000108;
-            msr_mask = 0b101111;
+            *msr_id = 0xc0000108;
+            *msr_mask = 0b101111;
             break;
         case 0x17:
-            msr_id = MSR_AMD64_DC_CFG;
-            msr_mask = (1 << 13) | (1 << 15);
+            *msr_id = MSR_AMD64_DC_CFG;
+            *msr_mask = (1 << 13) | (1 << 15);
             break;
         default:
             PRINT_ERR("ERROR: Unable to disable prefetches; unsupported CPU model\n");
             return -1;
         }
     }
+    return 0;
+}
 
-    uint64_t msr_value = rdmsr64(msr_id);
-    if (enable_prefetchers) {
-        msr_value &= ~msr_mask;
-    } else {
-        msr_value |= msr_mask;
-    }
-    wrmsr64(msr_id, msr_value);
-    if (rdmsr64(msr_id) != msr_value) {
-        PRINT_ERR("ERROR: Not able to disable prefetches on this machine\n");
-        return -1;
+static int get_mpx_msr_ctrls(uint64_t *msr_id, uint64_t *msr_mask)
+{
+    if (cpuinfo->x86_vendor == X86_VENDOR_INTEL) {
+        if (cpu_has(cpuinfo, X86_FEATURE_MPX)) {
+            *msr_id = MSR_IA32_BNDCFGS;
+            *msr_mask = 1ULL;
+        } else {
+            PRINT_ERR("ERROR: Unable to set MPX control; MPX not supported on this CPU\n");
+            return -1;
+        }
     }
     return 0;
 }
 
-/// @brief Sets the MPX control state according to the value of the global variable enable_mpx
-/// @param void
-/// @return 0 on success, -1 on failure
-static int set_enable_mpx_state(void)
+static int apply_msr_mask(uint64_t msr_id, uint64_t msr_mask, bool enable)
 {
-#if VENDOR_ID == 1 // Intel
-    if (enable_mpx) {
-        if (cpu_has(cpuinfo, X86_FEATURE_MPX)) {
-            wrmsr64(MSR_IA32_BNDCFGS, 1ULL);
-        }
+    uint64_t msr_value = rdmsr64(msr_id);
+    if (enable) {
+        msr_value |= msr_mask;
+    } else {
+        msr_value &= ~msr_mask;
     }
-#endif // VENDOR_ID == 1
+    wrmsr64(msr_id, msr_value);
+    if (rdmsr64(msr_id) != msr_value) {
+        PRINT_ERR("ERROR: Not able to set MSR 0x%llx\n", msr_id);
+        return -1;
+    }
     return 0;
 }
 
 int set_special_registers(void)
 {
     int err = 0;
+    uint64_t msr_id, msr_mask;
 
     err = store_orig_msr_state();
     CHECK_ERR("store_orig_msr_state");
 
-    err = set_enable_ssbp_patch();
+    // Speculative Store Bypass (SSBP) patch
+    err = get_ssbp_patch_msr_ctrls(&msr_id, &msr_mask);
+    orig_special_registers_state->spec_ctrl = rdmsr64(msr_id);
+    CHECK_ERR("set_enable_ssbp_patch");
+    err = apply_msr_mask(msr_id, msr_mask, enable_ssbp_patch);
     CHECK_ERR("set_enable_ssbp_patch");
 
-    err = set_enable_prefetchers();
+    // Prefetcher control
+    err = get_prefetcher_msr_ctrls(&msr_id, &msr_mask);
+    orig_special_registers_state->prefetcher_ctrl = rdmsr64(msr_id);
+    CHECK_ERR("set_enable_prefetchers");
+    err = apply_msr_mask(msr_id, msr_mask, !enable_prefetchers); // the mask is
     CHECK_ERR("set_enable_prefetchers");
 
-    err = set_enable_mpx_state();
-    CHECK_ERR("set_enable_mpx_state");
+    // Intel MPX control
+#if VENDOR_ID == 1 // Intel
+    if (enable_mpx) {
+        err = get_mpx_msr_ctrls(&msr_id, &msr_mask);
+        orig_special_registers_state->mpx_ctrl = rdmsr64(msr_id);
+        CHECK_ERR("set_enable_mpx_state");
+        err = apply_msr_mask(msr_id, msr_mask, enable_mpx);
+        CHECK_ERR("set_enable_mpx_state");
+    }
+#endif // VENDOR_ID == 1
 
-    // set required features in CRs
+    // Caching in CR0; required for collecting traces
     uint64_t cr0 = read_cr0();
-    cr0 &= ~X86_CR0_CD; // enable caching; required for collecting traces
+    cr0 &= ~X86_CR0_CD; // enable caching
     write_cr0(cr0);
 
+    // Performance counters in CR0
     uint64_t cr4 = __read_cr4();
-    cr4 |= X86_CR4_PCE; // enable perf counters
+    cr4 |= X86_CR4_PCE;
     __write_cr4(cr4);
 
     if (test_case->features.includes_user_actors) {
@@ -209,6 +200,8 @@ int set_special_registers(void)
 
 void restore_special_registers(void)
 {
+    uint64_t msr_id, msr_mask;
+
     // note: the if-zero statements are necessary because the MSR initialization might have failed
     // midway through the process, in which case the MSR state was only partially initialized
 
@@ -221,7 +214,20 @@ void restore_special_registers(void)
     if (orig_special_registers_state->lstar != 0)
         wrmsr64(MSR_LSTAR, orig_special_registers_state->lstar);
 
-    // FIXME: restore SSBD, prefetcher, MPX control
+    if (orig_special_registers_state->spec_ctrl != 0) {
+        get_ssbp_patch_msr_ctrls(&msr_id, &msr_mask);
+        wrmsr64(msr_id, orig_special_registers_state->spec_ctrl);
+    }
+
+    if (orig_special_registers_state->prefetcher_ctrl != 0) {
+        get_prefetcher_msr_ctrls(&msr_id, &msr_mask);
+        wrmsr64(msr_id, orig_special_registers_state->prefetcher_ctrl);
+    }
+
+    if (orig_special_registers_state->mpx_ctrl != 0) {
+        get_mpx_msr_ctrls(&msr_id, &msr_mask);
+        wrmsr64(msr_id, orig_special_registers_state->mpx_ctrl);
+    }
 
     memset(orig_special_registers_state, 0, sizeof(special_registers_t));
 }

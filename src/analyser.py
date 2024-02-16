@@ -38,6 +38,8 @@ class EquivalenceAnalyser(Analyser):
                           ctraces: List[CTrace],
                           htraces: List[HTrace],
                           stats=False) -> List[EquivalenceClass]:
+        if not htraces:   # might be empty due to tracing errors
+            return []
 
         equivalence_classes: List[EquivalenceClass] = self._build_equivalence_classes(
             inputs, ctraces, htraces, stats)
