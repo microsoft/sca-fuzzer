@@ -13,6 +13,8 @@ ifneq ($(shell grep "Intel" /proc/cpuinfo),)
 	VENDOR_ID=1
 else ifneq ($(shell grep "AMD" /proc/cpuinfo),)
 	VENDOR_ID=2
+
+# deprecated?
 ifneq ($(shell grep -m1 "cpu family" /proc/cpuinfo | grep "23" ),)
 	CPU_FAMILY=23
 else
@@ -50,7 +52,7 @@ CFLAGS_code_loader.o := -Wno-attribute-warning  # workaround for __write_overflo
 all:
 ifeq ($(shell cat /sys/devices/virtual/dmi/id/sys_vendor), QEMU)
 ifndef VMBUILD
-	$(warning WARNING: VM environment detected; it's recommented to use `make VMBUILD=1`)
+	$(error ERROR: VM environment detected; use `make VMBUILD=1`)
 else
 	$(eval EXTRA_CFLAGS += -DVMBUILD)
 endif
