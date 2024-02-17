@@ -11,8 +11,8 @@
 #include "sandbox_manager.h"
 #include "shortcuts.h"
 
-#include "hw_features/guest_memory.h"
-#include "hw_features/page_tables_common.h"
+#include "guest_memory.h"
+#include "page_tables_common.h"
 
 #define INIT_PTE(PTE, PADDR, P, W, US, PWT, PCD, XD, A)                                            \
     {                                                                                              \

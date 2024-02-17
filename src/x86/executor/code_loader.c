@@ -27,7 +27,7 @@
 #include "shortcuts.h"
 #include "test_case_parser.h"
 
-#include "hw_features/fault_handler.h"
+#include "fault_handler.h"
 
 #define PER_SECTION_ALLOC_SIZE (MAX_EXPANDED_SECTION_SIZE + MAX_EXPANDED_MACROS_SIZE)
 #define MAX_TEMPLATE_SIZE      0x1000 // for sanity checking

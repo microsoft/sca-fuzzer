@@ -8,7 +8,7 @@
 
 #include "shortcuts.h"
 
-#include "hw_features/perf_counters.h"
+#include "perf_counters.h"
 
 struct pfc_config {
     unsigned long evt_num;

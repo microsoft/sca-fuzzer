@@ -6,7 +6,7 @@
 #ifndef _PAGE_TABLE_H_
 #define _PAGE_TABLE_H_
 
-#include "hw_features/page_tables_common.h"
+#include "page_tables_common.h"
 #include <linux/kernel.h>
 
 typedef struct {

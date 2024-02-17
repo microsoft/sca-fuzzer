@@ -12,11 +12,11 @@
 #include "actor.h"
 #include "shortcuts.h"
 
-#include "hw_features/fault_handler.h"
-#include "hw_features/guest_memory.h"
-#include "hw_features/special_registers.h"
-#include "hw_features/vmx.h"
-#include "hw_features/vmx_config.h"
+#include "fault_handler.h"
+#include "guest_memory.h"
+#include "special_registers.h"
+#include "vmx.h"
+#include "vmx_config.h"
 
 #define CHECK_VMFAIL(src)                                                                          \
     ASSERT(err_inv == 0, src);                                                                     \
