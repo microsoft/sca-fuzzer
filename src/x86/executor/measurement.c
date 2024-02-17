@@ -19,7 +19,7 @@
 #include "test_case_parser.h"
 
 #include "fault_handler.h"
-#include "guest_memory.h"
+#include "memory_guest.h"
 #include "host_page_tables.h"
 #include "perf_counters.h"
 #include "special_registers.h"
