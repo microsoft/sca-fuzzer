@@ -159,11 +159,13 @@ int set_special_registers(void)
     CHECK_ERR("set_enable_ssbp_patch");
 
     // Prefetcher control
+#ifndef VMBUILD
     err = get_prefetcher_msr_ctrls(&msr_id, &msr_mask);
     orig_special_registers_state->prefetcher_ctrl = rdmsr64(msr_id);
     CHECK_ERR("set_enable_prefetchers");
     err = apply_msr_mask(msr_id, msr_mask, !enable_prefetchers); // the mask is
     CHECK_ERR("set_enable_prefetchers");
+#endif
 
     // Intel MPX control
 #if VENDOR_ID == 1 // Intel
