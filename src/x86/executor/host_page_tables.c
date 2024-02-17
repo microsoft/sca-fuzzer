@@ -11,8 +11,8 @@
 #include "sandbox_manager.h"
 #include "shortcuts.h"
 
-#include "hw_features/host_page_tables.h"
-#include "hw_features/page_tables_common.h"
+#include "host_page_tables.h"
+#include "page_tables_common.h"
 
 static sandbox_ptes_t *orig_ptes;
 static sandbox_pteps_t *sandbox_pteps;

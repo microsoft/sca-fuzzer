@@ -13,7 +13,7 @@
 #include "shortcuts.h"
 #include "test_case_parser.h"
 
-#include "hw_features/fault_handler.h"
+#include "fault_handler.h"
 
 uint32_t handled_faults = 0;          // global
 char *fault_handler = NULL;           // global

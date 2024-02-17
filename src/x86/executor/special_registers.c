@@ -6,8 +6,8 @@
 
 #include <asm/msr-index.h>
 
-#include "hw_features/fault_handler.h"
-#include "hw_features/special_registers.h"
+#include "fault_handler.h"
+#include "special_registers.h"
 #include "main.h"
 #include "shortcuts.h"
 #include "test_case_parser.h"

@@ -10,9 +10,9 @@
 #include "shortcuts.h"
 #include "test_case_parser.h"
 
-#include "hw_features/guest_memory.h"
-#include "hw_features/host_page_tables.h"
-#include "hw_features/vmx.h"
+#include "guest_memory.h"
+#include "host_page_tables.h"
+#include "vmx.h"
 
 sandbox_t *sandbox = NULL; // global
 

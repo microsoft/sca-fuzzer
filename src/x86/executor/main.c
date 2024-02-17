@@ -26,13 +26,13 @@
 #include "shortcuts.h"
 #include "test_case_parser.h"
 
-#include "hw_features/fault_handler.h"
-#include "hw_features/guest_memory.h"
-#include "hw_features/host_page_tables.h"
-#include "hw_features/page_tables_common.h"
-#include "hw_features/perf_counters.h"
-#include "hw_features/special_registers.h"
-#include "hw_features/vmx.h"
+#include "fault_handler.h"
+#include "guest_memory.h"
+#include "host_page_tables.h"
+#include "page_tables_common.h"
+#include "perf_counters.h"
+#include "special_registers.h"
+#include "vmx.h"
 
 // Version-dependent includes
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 6)

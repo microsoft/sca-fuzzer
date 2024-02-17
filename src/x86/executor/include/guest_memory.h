@@ -6,7 +6,7 @@
 #ifndef _GUEST_PAGE_TABLES_H_
 #define _GUEST_PAGE_TABLES_H_
 
-#include "hw_features/page_tables_common.h"
+#include "page_tables_common.h"
 #include "sandbox_manager.h"
 
 // start of guest's physical memory; this is an arbitrary large aligned number

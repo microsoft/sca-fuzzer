@@ -18,12 +18,12 @@
 #include "shortcuts.h"
 #include "test_case_parser.h"
 
-#include "hw_features/fault_handler.h"
-#include "hw_features/guest_memory.h"
-#include "hw_features/host_page_tables.h"
-#include "hw_features/perf_counters.h"
-#include "hw_features/special_registers.h"
-#include "hw_features/vmx.h"
+#include "fault_handler.h"
+#include "guest_memory.h"
+#include "host_page_tables.h"
+#include "perf_counters.h"
+#include "special_registers.h"
+#include "vmx.h"
 
 measurement_t *measurements = NULL; // global
 
