@@ -141,6 +141,7 @@ int run_experiment(void)
 cleanup:
     recover_orig_state();
     CHECK_ERR("run_experiment:cleanup");
+    measurements[0].htrace[0] = 0;  // communicate the error up to x86_executor.py
     return err;
 }
 
