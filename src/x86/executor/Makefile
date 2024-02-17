@@ -3,7 +3,7 @@ KDIR=/lib/modules/$(shell uname -r)/build
 
 obj-m += $(NAME).o
 $(NAME)-objs += fault_handler.o perf_counters.o vmx.o \
-    special_registers.o host_page_tables.o guest_memory.o \
+    special_registers.o host_page_tables.o memory_guest.o \
     input_parser.o test_case_parser.o code_loader.o data_loader.o macro_loader.o \
     sandbox_manager.o measurement.o main.o
 VPATH += $(src)/hw_features

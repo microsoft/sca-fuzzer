@@ -5,7 +5,7 @@
 
 #include "macro_loader.h"
 #include "asm_snippets.h"
-#include "guest_memory.h"
+#include "memory_guest.h"
 #include "vmx.h"
 #include "main.h"
 #include "sandbox_manager.h"

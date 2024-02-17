@@ -13,7 +13,7 @@
 #include "shortcuts.h"
 
 #include "fault_handler.h"
-#include "guest_memory.h"
+#include "memory_guest.h"
 #include "special_registers.h"
 #include "vmx.h"
 #include "vmx_config.h"

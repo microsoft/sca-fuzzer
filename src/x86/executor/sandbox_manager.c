@@ -10,7 +10,7 @@
 #include "shortcuts.h"
 #include "test_case_parser.h"
 
-#include "guest_memory.h"
+#include "memory_guest.h"
 #include "host_page_tables.h"
 #include "vmx.h"
 
