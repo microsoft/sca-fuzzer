@@ -225,23 +225,21 @@ int vmx_check_cpu_compatibility(void)
 
     // Pin-based controls
     msr_value = rdmsr64(MSR_IA32_VMX_TRUE_PINBASED_CTLS);
-    ASSERT((msr_value & NOT_SUPPORTED_PIN_BASED_VM_EXEC_CONTROL) == 0,
-           "vmx_check_cpu_compatibility");
+    ASSERT((msr_value & MUST_CLEAR_PIN_BASED_VM_EXEC_CONTROL) == 0, "vmx_check_cpu_compatibility");
 
     // Primary processor-based controls
     msr_value = rdmsr64(MSR_IA32_VMX_TRUE_PROCBASED_CTLS);
-    ASSERT((msr_value & NOT_SUPPORTED_PRIMARY_VM_EXEC_CONTROL) == 0, "vmx_check_cpu_compatibility");
+    ASSERT((msr_value & MUST_CLEAR_PRIMARY_VM_EXEC_CONTROL) == 0, "vmx_check_cpu_compatibility");
 
     // Secondary
     msr_value = rdmsr64(MSR_IA32_VMX_PROCBASED_CTLS2);
-    ASSERT((msr_value & NOT_SUPPORTED_SECONDARY_VM_EXEC_CONTROL) == 0,
-           "vmx_check_cpu_compatibility");
+    ASSERT((msr_value & MUST_CLEAR_SECONDARY_VM_EXEC_CONTROL) == 0, "vmx_check_cpu_compatibility");
 
     // Exit/entry
     msr_value = rdmsr64(MSR_IA32_VMX_TRUE_EXIT_CTLS);
-    ASSERT((msr_value & NOT_SUPPORTED_EXIT_CTRL) == 0, "vmx_check_cpu_compatibility");
+    ASSERT((msr_value & MUST_CLEAR_EXIT_CTRL) == 0, "vmx_check_cpu_compatibility");
     msr_value = rdmsr64(MSR_IA32_VMX_TRUE_ENTRY_CTLS);
-    ASSERT((msr_value & NOT_SUPPORTED_ENTRY_CTRL) == 0, "vmx_check_cpu_compatibility");
+    ASSERT((msr_value & MUST_CLEAR_ENTRY_CTRL) == 0, "vmx_check_cpu_compatibility");
 
     return 0;
 }
@@ -459,10 +457,10 @@ static int set_vmcs_guest_state(void)
                     (uint64_t)&guest_v_memory->data.main_area[LOCAL_RSP_OFFSET]);
     CHECKED_VMWRITE(GUEST_SYSENTER_EIP, (uint64_t)&guest_v_memory->code.section[0]);
 
-    ASSERT((VM_ENTRY_LOAD_IA32_PERF_GLOBAL_CTRL & NOT_SUPPORTED_ENTRY_CTRL) != 0,
+    ASSERT((VM_ENTRY_LOAD_IA32_PERF_GLOBAL_CTRL & MUST_CLEAR_ENTRY_CTRL) != 0,
            "set_vmcs_guest_state");
-    ASSERT((VM_ENTRY_LOAD_IA32_PAT & NOT_SUPPORTED_ENTRY_CTRL) != 0, "set_vmcs_guest_state");
-    ASSERT((VM_ENTRY_LOAD_IA32_EFER & NOT_SUPPORTED_ENTRY_CTRL) != 0, "set_vmcs_guest_state");
+    ASSERT((VM_ENTRY_LOAD_IA32_PAT & MUST_CLEAR_ENTRY_CTRL) != 0, "set_vmcs_guest_state");
+    ASSERT((VM_ENTRY_LOAD_IA32_EFER & MUST_CLEAR_ENTRY_CTRL) != 0, "set_vmcs_guest_state");
 
     // SDM 25.4.2 Guest Non-Register State
     CHECKED_VMWRITE(GUEST_ACTIVITY_STATE, 0);
@@ -523,9 +521,8 @@ static int set_vmcs_host_state(void)
     CHECKED_VMWRITE(HOST_IA32_SYSENTER_EIP, rdmsr64(MSR_IA32_SYSENTER_EIP));
     CHECKED_VMWRITE(HOST_IA32_EFER, rdmsr64(MSR_EFER));
 
-    ASSERT((VM_EXIT_LOAD_IA32_PERF_GLOBAL_CTRL & NOT_SUPPORTED_EXIT_CTRL) != 0,
-           "set_vmcs_host_state");
-    ASSERT((VM_EXIT_LOAD_IA32_PAT & NOT_SUPPORTED_EXIT_CTRL) != 0, "set_vmcs_host_state");
+    ASSERT((VM_EXIT_LOAD_IA32_PERF_GLOBAL_CTRL & MUST_CLEAR_EXIT_CTRL) != 0, "set_vmcs_host_state");
+    ASSERT((VM_EXIT_LOAD_IA32_PAT & MUST_CLEAR_EXIT_CTRL) != 0, "set_vmcs_host_state");
     return 0;
 }
 
@@ -535,7 +532,7 @@ static int set_vmcs_exec_control(int actor_id)
     uint8_t err_inv, err_val = 0;
 
     // SDM 25.6.1 Pin-Based VM-Execution Controls
-    uint32_t pin_based_vm_exec_control = DEFAULT_PIN_BASED_VM_EXEC_CONTROL |
+    uint32_t pin_based_vm_exec_control = MUST_SET_PIN_BASED_VM_EXEC_CONTROL |
                                          (rdmsr64(MSR_IA32_VMX_TRUE_PINBASED_CTLS) & 0xFFFFFFFFULL);
     if (check_vmx_controls(pin_based_vm_exec_control, MSR_IA32_VMX_TRUE_PINBASED_CTLS))
         return -1;
@@ -543,15 +540,15 @@ static int set_vmcs_exec_control(int actor_id)
 
     // SDM 25.6.2 Processor-Based VM-Execution Controls
     // - primary
-    uint32_t primary_vm_exec_control = DEFAULT_PRIMARY_VM_EXEC_CONTROL |
+    uint32_t primary_vm_exec_control = MUST_SET_PRIMARY_VM_EXEC_CONTROL |
                                        (rdmsr64(MSR_IA32_VMX_TRUE_PROCBASED_CTLS) & 0xFFFFFFFFULL);
     if (check_vmx_controls(primary_vm_exec_control, MSR_IA32_VMX_TRUE_PROCBASED_CTLS))
         return -1;
     CHECKED_VMWRITE(CPU_BASED_VM_EXEC_CONTROL, primary_vm_exec_control);
 
     // - secondary
-    uint32_t secondary_vm_exec_control =
-        DEFAULT_SECONDARY_VM_EXEC_CONTROL | (rdmsr64(MSR_IA32_VMX_PROCBASED_CTLS2) & 0xFFFFFFFFULL);
+    uint32_t secondary_vm_exec_control = MUST_SET_SECONDARY_VM_EXEC_CONTROL |
+                                         (rdmsr64(MSR_IA32_VMX_PROCBASED_CTLS2) & 0xFFFFFFFFULL);
     if (check_vmx_controls(secondary_vm_exec_control, MSR_IA32_VMX_PROCBASED_CTLS2))
         return -1;
     CHECKED_VMWRITE(SECONDARY_VM_EXEC_CONTROL, secondary_vm_exec_control);
@@ -615,7 +612,8 @@ static int set_vmcs_exit_control(void)
 {
     uint8_t err_inv, err_val = 0;
 
-    uint64_t exit_ctls = DEFAULT_EXIT_CTRL | (rdmsr64(MSR_IA32_VMX_TRUE_EXIT_CTLS) & 0xFFFFFFFFULL);
+    uint64_t exit_ctls =
+        MUST_SET_EXIT_CTRL | (rdmsr64(MSR_IA32_VMX_TRUE_EXIT_CTLS) & 0xFFFFFFFFULL);
     if (check_vmx_controls(exit_ctls, MSR_IA32_VMX_TRUE_EXIT_CTLS))
         return -1;
     CHECKED_VMWRITE(VM_EXIT_CONTROLS, exit_ctls);
@@ -631,7 +629,7 @@ static int set_vmcs_entry_control(void)
     uint8_t err_inv, err_val = 0;
 
     uint64_t entry_ctls =
-        DEFAULT_ENTRY_CTRL | (rdmsr64(MSR_IA32_VMX_TRUE_ENTRY_CTLS) & 0xFFFFFFFFULL);
+        MUST_SET_ENTRY_CTRL | (rdmsr64(MSR_IA32_VMX_TRUE_ENTRY_CTLS) & 0xFFFFFFFFULL);
     if (check_vmx_controls(entry_ctls, MSR_IA32_VMX_TRUE_ENTRY_CTLS))
         return -1;
     CHECKED_VMWRITE(VM_ENTRY_CONTROLS, entry_ctls);
@@ -656,20 +654,20 @@ static int make_vmcs_launched(int actor_id)
 
     // launch VM
     asm volatile(""
-            "lea (1f), %%rax\n"
-            "mov $0x00006c16, %%rcx\n"
-            "vmwrite %%rax, %%rcx\n"
-            "mov %%rsp, %%rax\n"
-            "mov $0x00006c14, %%rcx\n"
-            "vmwrite %%rax, %%rcx\n"
-            "vmlaunch; setc %[inval]; setz %[val]\n"
-            "1:\n"
-            : [val] "=rm"(err_val), [inval] "=rm"(err_inv)
-            :
-            : "cc", "memory", "rax", "rcx");
+                 "lea (1f), %%rax\n"
+                 "mov $0x00006c16, %%rcx\n"
+                 "vmwrite %%rax, %%rcx\n"
+                 "mov %%rsp, %%rax\n"
+                 "mov $0x00006c14, %%rcx\n"
+                 "vmwrite %%rax, %%rcx\n"
+                 "vmlaunch; setc %[inval]; setz %[val]\n"
+                 "1:\n"
+                 : [val] "=rm"(err_val), [inval] "=rm"(err_inv)
+                 :
+                 : "cc", "memory", "rax", "rcx");
 
     // PRINT_ERR("make_vmcs_launched: exited with VMfailInvalid=%d, VMfailValid=%d\n", err_inv,
-                // err_val);
+    // err_val);
     // print_vmx_exit_info();
 
     // finalize VMCS fields
