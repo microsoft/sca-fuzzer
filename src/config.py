@@ -133,9 +133,10 @@ class Conf:
     """ executor_repetitions: number of repetitions while collecting hardware traces """
     executor_filtering_repetitions: int = 10
     """ executor_filtering_repetitions: number of repetitions while filtering test cases """
-    executor_outliers_threshold: float = 0.9
-    """ executor_measurement_percentile: for each repeated measurement, the executor will select
-     the top most frequent measurement that represent the given percentile of all measurements """
+    executor_outliers_threshold: float = 0.1
+    """ executor_measurement_percentile: executor will ignore the outliers that appear in less then
+     this percentage of the repetitions. I.e., a measurement passes the filter if it is
+     observed at least (executor_outliers_threshold * executor_repetitions) times """
     executor_taskset: int = 0
     """ executor_taskset: id of the CPU core on which the executor is running test cases """
     enable_pre_run_flush: bool = True
