@@ -94,10 +94,12 @@ int run_experiment(void)
 {
     int err = 0;
 
-    if (set_sandbox_page_tables())
+    err = set_sandbox_page_tables();
+    if (err)
         goto cleanup;
 
-    if (set_execution_environment())
+    err = set_execution_environment();
+    if (err)
         goto cleanup;
 
     // Zero-initialize the region of memory used by Prime+Probe
@@ -139,9 +141,10 @@ int run_experiment(void)
     }
 
 cleanup:
+    if (err)
+        measurements[0].htrace[0] = 0;  // communicate the error up to x86_executor.py
     recover_orig_state();
     CHECK_ERR("run_experiment:cleanup");
-    measurements[0].htrace[0] = 0;  // communicate the error up to x86_executor.py
     return err;
 }
 
