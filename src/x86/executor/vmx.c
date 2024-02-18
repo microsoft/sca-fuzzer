@@ -600,9 +600,11 @@ static int set_vmcs_exec_control(int actor_id)
     ASSERT((SECONDARY_EXEC_SHADOW_VMCS & secondary_vm_exec_control) == 0, "set_vmcs_exec_control");
 
     // SDM 25.6.16 ENCLS-Exiting Bitmap
+#ifndef VMBUILD // FIXME: this is supposed to be a CPU compatibility check
     ASSERT((SECONDARY_EXEC_ENCLS_EXITING & secondary_vm_exec_control) != 0,
            "set_vmcs_exec_control");
     CHECKED_VMWRITE(ENCLS_EXITING_BITMAP, 0x0FFFFFFFFFFFFFFFULL);
+#endif
 
     // Misc. features (25.6.14--23) are disabled
     return 0;
