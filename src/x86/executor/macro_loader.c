@@ -5,12 +5,12 @@
 
 #include "macro_loader.h"
 #include "asm_snippets.h"
-#include "memory_guest.h"
-#include "vmx.h"
 #include "main.h"
+#include "memory_guest.h"
 #include "sandbox_manager.h"
 #include "shortcuts.h"
 #include "test_case_parser.h"
+#include "vmx.h"
 
 // Max sizes for sanity checks
 #define MAX_MACRO_START_OFFSET 0x100
