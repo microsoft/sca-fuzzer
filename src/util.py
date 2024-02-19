@@ -10,6 +10,7 @@ from datetime import datetime
 from typing import NoReturn, Dict, List
 from pprint import pformat
 from traceback import print_stack
+from collections import Counter
 from .interfaces import EquivalenceClass, SANDBOX_CODE_SIZE, Model, HTrace
 from .config import CONF
 
@@ -131,6 +132,7 @@ class Logger:
     dbg_dump_htraces: bool = False
     dbg_dump_ctraces: bool = False
     dbg_dump_traces_unlimited: bool = False
+    dbg_executor_raw: bool = False
     dbg_model: bool = False
     dbg_coverage: bool = False
     dbg_generator: bool = False
@@ -153,7 +155,8 @@ class Logger:
 
         if not __debug__:
             if self.dbg_timestamp or self.dbg_model or self.dbg_coverage or self.dbg_dump_htraces \
-               or self.dbg_dump_ctraces or self.dbg_generator or self.dbg_priming:
+               or self.dbg_dump_ctraces or self.dbg_generator or self.dbg_priming \
+               or self.dbg_executor_raw_traces:
                 self.warning(
                     "", "Current value of `logging_modes` requires debugging mode!\n"
                     "Remove '-O' from python arguments")
@@ -378,6 +381,36 @@ class Logger:
         print("Observed traces:")
         for h in observed_traces:
             print(pretty_trace(h))
+
+    def dbg_executor_raw_traces(self, all_results):
+        if not __debug__:
+            return
+        if not self.dbg_executor_raw:
+            return
+
+        counters = {}
+        for input_id in range(len(all_results)):
+            if input_id not in counters:
+                counters[input_id] = Counter()
+            for m_id in range(len(all_results[0])):
+                counters[input_id][all_results[input_id][m_id]['htrace']] += 1
+        print("Collected raw traces:")
+        for input_id in range(len(all_results)):
+            for m_id in range(len(all_results[0])):
+                t = all_results[input_id][m_id]['htrace']
+                c = counters[input_id][t]
+            for t, c in counters[input_id].items():
+                print(f"{input_id:03}, {pretty_trace(t)}, {t}, {c}")
+
+    def dbg_executor_batch_filtering(self, n_inputs, batches, filtered_batches):
+        if not __debug__:
+            return
+        if not self.dbg_executor_raw:
+            return
+
+        print("Batch filtering:")
+        for input_id in range(n_inputs):
+            print(f"input {input_id}: {batches[input_id]} -> {filtered_batches[input_id]}")
 
     # ==============================================================================================
     # Model
