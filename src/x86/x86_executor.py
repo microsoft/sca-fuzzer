@@ -60,6 +60,8 @@ class X86Executor(Executor):
     feedback: List[List[int]]
     curr_test_case: TestCase
     ignore_list: List[int]
+    __ignore_list_internal: List[int]
+    enable_sticky_ignore_list: bool = False
 
     def __init__(self):
         super().__init__()
@@ -103,6 +105,8 @@ class X86Executor(Executor):
         write_to_sysfs_file("1" if CONF.fuzzer == "architectural" else "0",
                             "/sys/x86_executor/enable_dbg_gpr_mode")
 
+        self.__ignore_list_internal = []
+
     def set_quick_and_dirty(self, state: bool):
         write_to_sysfs_file("1" if state else "0", "/sys/x86_executor/enable_quick_and_dirty_mode")
 
@@ -114,6 +118,7 @@ class X86Executor(Executor):
         The executor will executed the inputs with these IDs as normal (in case they are
         necessary for priming the uarch state), but their htraces will be set to zero """
         self.ignore_list = ignore_list
+        self.__ignore_list_internal = ignore_list
 
     def read_base_addresses(self):
         with open('/sys/x86_executor/print_sandbox_base', 'r') as f:
@@ -128,7 +133,10 @@ class X86Executor(Executor):
     def load_test_case(self, test_case: TestCase):
         self.__write_test_case(test_case)
         self.curr_test_case = test_case
-        self.ignore_list = []
+        if not self.enable_sticky_ignore_list:
+            self.ignore_list = []
+        else:
+            self.ignore_list = self.__ignore_list_internal
 
     def trace_test_case(self,
                         inputs: List[Input],
@@ -142,6 +150,12 @@ class X86Executor(Executor):
             return []
         n_inputs = len(inputs)
         assert threshold_outliers > 0.0 and threshold_outliers <= 1.0
+
+        # check that there are non-ignored inputs
+        if n_inputs - len(self.ignore_list) == 0:
+            self.LOG.warning("executor", "All inputs are ignored. Skipping measurements")
+            self.feedback = [[0, 0, 0, 0, 0] for _ in range(n_inputs)]
+            return [HTrace(frozenset({0}), hash(frozenset({0}))) for _ in range(n_inputs)]
 
         # Transfer inputs to the kernel module
         self.__write_inputs(inputs)

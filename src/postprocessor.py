@@ -127,7 +127,7 @@ class MinimizerViolation(Minimizer):
                "lfence" in line or \
                line[0] == '.' or \
                'macro' in line or \
-               'fixed' in line:
+               'noremove' in line:
                 continue
 
             # Remove instrumentation only if the instrumented instruction is also removed
@@ -269,66 +269,94 @@ class MinimizerViolation(Minimizer):
         return self._get_test_case_from_instructions(instructions, "/tmp/pipe.asm")
 
     def find_min_inputs(self, test_case: TestCase, inputs: List[Input]):
-        # find a minimal set of inputs that trigger the violation
-        tmp_inputs = list(inputs)  # copy
-        for i in range(len(inputs) - 1, -1, -1):
-            if self._check_for_violation(test_case, tmp_inputs[:i] + tmp_inputs[i + 1:]):
-                print(".", end="", flush=True)
-                tmp_inputs = tmp_inputs[:i] + tmp_inputs[i + 1:]
-            else:
-                print("-", end="", flush=True)
+        # FIXME: the code below is a broken performance optimization; disabled for now
+        # # find a minimal set of inputs that trigger the violation
+        # tmp_inputs = list(inputs)  # copy
+        # for i in range(len(inputs) - 1, -1, -1):
+        #     if self._check_for_violation(test_case, tmp_inputs[:i] + tmp_inputs[i + 1:]):
+        #         print(".", end="", flush=True)
+        #         tmp_inputs = tmp_inputs[:i] + tmp_inputs[i + 1:]
+        #     else:
+        #         print("-", end="", flush=True)
+        # inputs = tmp_inputs
 
-        inputs = tmp_inputs
+        inputs, _ = self.fuzzer.boost_inputs(inputs, CONF.model_max_nesting)
+        CONF.inputs_per_class = 1  # disable boosting from now on
 
-        print("\nModifying inputs:\n  Progress: \n", end="", flush=True)
+        # print("\nModifying inputs:\n  Progress: \n", end="", flush=True)
         violation = self.fuzzer.fuzzing_round(test_case, inputs)
         assert violation
         violating_input_ids = [i.input_id for i in violation.measurements]
-        assert len(violating_input_ids) == 2, "Cannot (yet) handle more than 2 violating inputs"
+        if len(violating_input_ids) > 2:
+            violating_input_ids = violating_input_ids[:2]
 
+        # make sure that we consider only these two inputs
+        ignored = [i for i in range(len(inputs)) if i not in violating_input_ids]
+        self.fuzzer.executor.ignore_inputs(ignored)
+        self.fuzzer.executor.enable_sticky_ignore_list = True
+
+        # make a copy of the inputs
         input_a = inputs[violating_input_ids[0]]
         input_b = inputs[violating_input_ids[1]]
         input_a_org = deepcopy(input_a)
         input_b_org = deepcopy(input_b)
 
         leaked = []
-        i = -1
-        while i < (len(input_a) - 1):
-            i += 1
+        n_actors = len(CONF._actors)
+        assert len(input_a) == n_actors
+        assert len(input_b) == n_actors
 
-            # try zeroing a 64-byte block
-            if i % 64 == 0:
-                print("")
-                for j in range(64):
-                    input_a[i + j] = 0
-                    input_b[i + j] = 0
-                if self._check_for_violation(test_case, inputs):
-                    print("." * 64, end="", flush=True)
-                    i += 63
-                    continue
-                for j in range(64):
-                    input_a[i + j] = input_a_org[i + j]
-                    input_b[i + j] = input_a_org[i + j]
+        for actor_id in range(n_actors):
+            region_offset = 0
+            for region_name in ['main', 'faulty', 'gpr', 'simd']:
+                i = -1
+                region_size = len(input_a[actor_id][region_name])
+                while i < (region_size - 1):
+                    i += 1
 
-            # try zeroing out the byte
-            input_a[i] = 0
-            input_b[i] = 0
-            if self._check_for_violation(test_case, inputs):
-                print(".", end="", flush=True)
-                continue
+                    # progress indicator
+                    absolute_address = actor_id * 0x4000 + region_offset + i * 8
+                    if i % 64 == 0:
+                        print(f"\n0x{absolute_address:08x} ", end="", flush=True)
+                    elif i % 8 == 0:
+                        print(" ", end="", flush=True)
 
-            # otherwise, try copying the byte between the two inputs
-            input_a[i] = input_a_org[i]
-            input_b[i] = input_a_org[i]
-            if self._check_for_violation(test_case, inputs):
-                print("+", end="", flush=True)
-                continue
+                    # try zeroing a 512-byte block
+                    if i % 64 == 0 and region_size - i >= 64:
+                        for j in range(64):
+                            input_a[actor_id][region_name][i + j] = 0
+                            input_b[actor_id][region_name][i + j] = 0
+                        if self._check_for_violation(test_case, inputs):
+                            print(("." * 8 + " ") * 8, end="", flush=True)
+                            i += 63
+                            continue
+                        for j in range(64):
+                            input_a[actor_id][region_name][i + j] = \
+                                input_a_org[actor_id][region_name][i + j]
+                            input_b[actor_id][region_name][i + j] = \
+                                input_a_org[actor_id][region_name][i + j]
 
-            # if failing, restore the original value
-            print("-", end="", flush=True)
-            leaked.append(i)
-            input_a[i] = input_a_org[i]
-            input_b[i] = input_b_org[i]
+                    # try zeroing out a single byte
+                    input_a[actor_id][region_name][i] = 0
+                    input_b[actor_id][region_name][i] = 0
+                    if self._check_for_violation(test_case, inputs):
+                        print(".", end="", flush=True)
+                        continue
+
+                    # try copying the byte between the two inputs
+                    input_a[actor_id][region_name][i] = input_a_org[actor_id][region_name][i]
+                    input_b[actor_id][region_name][i] = input_a_org[actor_id][region_name][i]
+                    if self._check_for_violation(test_case, inputs):
+                        print("+", end="", flush=True)
+                        continue
+
+                    # if failing, restore the original value
+                    print("-", end="", flush=True)
+                    leaked.append(absolute_address)
+                    input_a[actor_id][region_name][i] = input_a_org[actor_id][region_name][i]
+                    input_b[actor_id][region_name][i] = input_b_org[actor_id][region_name][i]
+
+                region_offset += region_size * 8
 
         print("\nLeaked bytes:")
         print(leaked)
@@ -340,7 +368,7 @@ class MinimizerViolation(Minimizer):
     # ==============================================================================================
     # Hook functions
     def _check_for_violation(self, test_case: TestCase, inputs: List[Input]) -> bool:
-        return bool(self.fuzzer.fuzzing_round(test_case, inputs))
+        return self.fuzzer.fuzzing_round(test_case, inputs) is not None
 
     def _check_for_speculation(self, test_case: TestCase, inputs: List[Input]) -> bool:
         global CONF

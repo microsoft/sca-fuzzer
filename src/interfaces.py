@@ -714,6 +714,9 @@ class Function:
     def extend(self, bb_list: List[BasicBlock]):
         self._all_bb.extend(bb_list)
 
+    def get_first_bb(self):
+        return self._all_bb[0]
+
 
 class TestCase:
     asm_path: str = ''
@@ -1028,13 +1031,18 @@ class Model(ABC):
 
 
 class Executor(ABC):
+    enable_sticky_ignore_list: bool = False
+    """ enable_sticky_ignore_list: If True, the executor will NOT reset the ignore list after
+    each round of fuzzing """
 
     @abstractmethod
     def load_test_case(self, test_case: TestCase):
         pass
 
     @abstractmethod
-    def trace_test_case(self, inputs: List[Input], n_reps: int,
+    def trace_test_case(self,
+                        inputs: List[Input],
+                        n_reps: int,
                         threshold_outliers: float,
                         ensure_convergence: bool = False) -> List[HTrace]:
         """ Call the executor kernel module to collect the hardware traces for
@@ -1101,6 +1109,17 @@ class Fuzzer(ABC):
 
     @abstractmethod
     def priming(self, org_violation: EquivalenceClass, all_inputs: List[Input]) -> bool:
+        pass
+
+    @abstractmethod
+    def boost_inputs(self, inputs: List[Input], nesting) -> Tuple[List[Input], List[CTrace]]:
+        """
+        Create contract-equivalent inputs for the given list of inputs
+
+        :param inputs: list of inputs to be boosted
+        :param nesting: Model's nesting level
+        :return: a list of boosted inputs and their corresponding contract traces
+        """
         pass
 
 

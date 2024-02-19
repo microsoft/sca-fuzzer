@@ -7,7 +7,7 @@ SPDX-License-Identifier: MIT
 import shutil
 from pathlib import Path
 from datetime import datetime
-from typing import Optional, List, Callable
+from typing import Optional, List, Callable, Tuple
 import copy
 
 from . import factory
@@ -16,6 +16,8 @@ from .interfaces import Fuzzer, CTrace, HTrace, Input, EquivalenceClass, TestCas
 from .isa_loader import InstructionSet
 from .config import CONF
 from .util import Logger, STAT, pretty_htrace
+
+NullTrace = frozenset({0})
 
 
 class FuzzerGeneric(Fuzzer):
@@ -174,7 +176,7 @@ class FuzzerGeneric(Fuzzer):
         self.executor.load_test_case(test_case)
 
         # 1. Fast path: Collect traces with minimal nesting and repetitions
-        violations, ctraces, boosted_inputs, _ = self._collect_traces(
+        violations, ctraces, boosted_inputs, org_htraces = self._collect_traces(
             inputs, n_reps, threshold, nesting, record_stats=True, fast_boosting=fast_boosting)
         if not violations:
             STAT.no_fast_violation += 1
@@ -189,9 +191,9 @@ class FuzzerGeneric(Fuzzer):
         #     contract traces, we also have to re-boost the inputs, and re-collect hardware traces
         #     for the new inputs
         if nesting < max_nesting:
+            nesting = max_nesting
             violations, ctraces, boosted_inputs, _ = self._collect_traces(
                 inputs, n_reps, threshold, max_nesting, fast_boosting=fast_boosting)
-            nesting = max_nesting
             if not violations:
                 STAT.fp_nesting += 1
                 return None
@@ -236,6 +238,9 @@ class FuzzerGeneric(Fuzzer):
                 return None
 
         # Violation survived all checks. Report it
+        for i, htrace in enumerate(htraces):
+            if htrace.raw == NullTrace and org_htraces[i].raw != NullTrace:
+                htraces[i] = org_htraces[i]
         feedback = self.executor.get_last_feedback()
         self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces, feedback,
                                         CONF.model_max_nesting)
@@ -251,7 +256,6 @@ class FuzzerGeneric(Fuzzer):
                         fast_boosting: bool = True,
                         ensure_convergence: bool = False):
         ctraces: List[CTrace]
-        taints: List[InputTaint]
         boosted_inputs: List[Input]
 
         if reuse_ctraces:
@@ -260,15 +264,7 @@ class FuzzerGeneric(Fuzzer):
             boosted_inputs = inputs
         else:
             # if contract traces are not already provided, collect them and boost inputs
-
-            # collect taints and contract traces for initial inputs
-            ctraces, taints = self.model.trace_test_case_with_taints(inputs, model_nesting)
-
-            # ensure that we have many inputs in each input classes
-            self.input_gen.reset_boosting_state()
-            boosted_inputs = list(inputs)  # make a copy
-            for _ in range(CONF.inputs_per_class - 1):
-                boosted_inputs += self.input_gen.extend_equivalence_classes(inputs, taints)
+            boosted_inputs, ctraces = self.boost_inputs(inputs, model_nesting)
 
             if fast_boosting:
                 # records same ctrace for all members of the same input class
@@ -300,6 +296,20 @@ class FuzzerGeneric(Fuzzer):
         self.executor.ignore_inputs(ignored_input_ids)
 
         return violations, ctraces, boosted_inputs, htraces
+
+    def boost_inputs(self, inputs: List[Input], nesting) -> Tuple[List[Input], List[CTrace]]:
+        ctraces: List[CTrace]
+        taints: List[InputTaint]
+
+        # collect taints and contract traces for initial inputs
+        ctraces, taints = self.model.trace_test_case_with_taints(inputs, nesting)
+
+        # ensure that we have many inputs in each input classes
+        self.input_gen.reset_boosting_state()
+        boosted_inputs = list(inputs)  # make a copy
+        for _ in range(CONF.inputs_per_class - 1):
+            boosted_inputs += self.input_gen.extend_equivalence_classes(inputs, taints)
+        return boosted_inputs, ctraces
 
     def store_test_case(self, test_case: TestCase, inputs: List[Input],
                         violation: EquivalenceClass):
