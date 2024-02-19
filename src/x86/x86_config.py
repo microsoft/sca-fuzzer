@@ -163,6 +163,7 @@ _option_values = {
         "dbg_model",
         "dbg_coverage",
         "dbg_isa_loader",
+        "dbg_priming",
     ],
     "coverage_type": [
         "none",
