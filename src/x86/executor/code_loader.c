@@ -203,8 +203,11 @@ static uint64_t expand_section(uint64_t section_id, uint8_t *dest)
             // if we found a macro -> expand it
             ASSERT(macro->owner == section_id, "expand_section");
             ASSERT(macro->id != 0, "expand_section");
-            macros_dest_cursor +=
+            uint64_t macro_size = \
                 expand_macro(macro, &dest[dest_cursor], &macros_dest[macros_dest_cursor]);
+            ASSERT(macro_size >= 0, "expand_section");
+
+            macros_dest_cursor += macro_size;
             dest_cursor += 4;
             src_cursor += 4; // skip the remaining bytes of the current macro placeholder
             macro++;         // move to next macro
@@ -248,7 +251,7 @@ static uint64_t expand_macro(tc_symbol_entry_t *macro, uint8_t *jmp_location, ui
     int err = get_macro_bounds(macro->id, &macro_start, &macro_size);
     CHECK_ERR("get_macro_bounds");
 
-    uint64_t macro_arg_size = inject_macro_arguments(macro->id, macro->args,
+    uint64_t macro_arg_size = inject_macro_arguments(macro->id, macro->args, macro->owner,
                                                      &macro_dest[dest_cursor], main_prologue_size);
     ASSERT(macro_arg_size >= 0, "expand_macro");
     dest_cursor += macro_arg_size;

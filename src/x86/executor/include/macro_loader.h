@@ -22,13 +22,17 @@ typedef enum {
     MACRO_SWITCH_H2G = 10,
     MACRO_SET_G2H_TARGET = 11,
     MACRO_SWITCH_G2H = 12,
+    MACRO_LANDING_K2U = 13,
+    MACRO_LANDING_U2K = 14,
+    MACRO_LANDING_H2G = 15,
+    MACRO_LANDING_G2H = 16,
 } macro_name_e;
 
 #define JMP_32BIT_RELATIVE 0xE9
 
 int get_macro_bounds(uint64_t macro_id, uint8_t **start, uint64_t *size);
-uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint8_t *macro_dest,
-                                size_t main_prologue_size);
+uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint64_t owner,
+                                uint8_t *macro_dest, size_t main_prologue_size);
 
 int init_macros_loader(void);
 void free_macros_loader(void);

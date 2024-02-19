@@ -8,7 +8,7 @@ SPDX-License-Identifier: MIT
 import re
 import abc
 
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, NoReturn
 from collections import OrderedDict
 
 from .interfaces import AsmParser, OT, Instruction, InstructionSpec, TestCase, OperandSpec, \
@@ -27,13 +27,17 @@ class AsmParserException(Exception):
         super().__init__(msg)
 
 
+def parser_error(line_number: int, explanation: str) -> NoReturn:
+    logger = Logger()
+    logger.error(
+        f"[AsmParser]  Error while parsing assembly (line {line_number + 1})\n"
+        f"       Issue: {explanation}",
+        print_last_tb=True)
+
+
 def parser_assert(condition: bool, line_number: int, explanation: str):
     if not condition:
-        logger = Logger()
-        logger.error(
-            f"[AsmParser]  Error while parsing assembly (line {line_number + 1})\n"
-            f"       Issue: {explanation}",
-            print_last_tb=True)
+        parser_error(line_number, explanation)
 
 
 class AsmParserGeneric(AsmParser):
@@ -125,6 +129,7 @@ class AsmParserGeneric(AsmParser):
             bb.successors.append(main.exit)
             test_case.functions.append(main)
 
+        self._check_asm_correctness(test_case, asm_file)
         bin_file = asm_file[:-4]
         obj_file = bin_file + ".o"
         self.generator.assemble(asm_file, obj_file, bin_file)
@@ -313,3 +318,41 @@ class AsmParserGeneric(AsmParser):
             instr = f"macro .{macro_id}, .noarg"
 
         return instr
+
+    def _check_asm_correctness(self, test_case: TestCase, asm_file: str) -> None:
+        """ Check that the parsed assembly file is valid """
+
+        # check that all actor switch macros have landing sites
+        switch_labels = [".set_k2u_target", ".set_u2k_target", ".set_h2g_target", ".set_g2h_target"]
+        switches = []
+        for func in test_case:
+            for bb in func:
+                for inst in bb:
+                    if inst.name == "macro" and inst.operands[0].value in switch_labels:
+                        switches.append(inst)
+
+        for switch in switches:
+            target = switch.operands[1].value.split(".")[2]
+            target_function = None
+            for func in test_case:
+                stripped_name = func.name[1:]
+                if stripped_name == target:
+                    target_function = func
+                    break
+            parser_assert(target_function is not None, -1,
+                          f"Macro {switch} targets a non-existing function")
+
+            first_inst = target_function.get_first_bb().get_first()  # type: ignore
+            if first_inst is None or not first_inst.operands or \
+               "landing" not in first_inst.operands[0].value:
+                parser_error(-1, f"{switch} does not target a landing site macro")
+            target_name = first_inst.operands[0].value
+
+            if switch.operands[0].value == ".set_k2u_target" and target_name != ".landing_k2u":
+                parser_error(-1, f"{switch} does not target landing_k2u")
+            elif switch.operands[0].value == ".set_u2k_target" and target_name != ".landing_u2k":
+                parser_error(-1, f"{switch} does not target landing_u2k")
+            elif switch.operands[0].value == ".set_h2g_target" and target_name != ".landing_h2g":
+                parser_error(-1, f"{switch} does not target landing_h2g")
+            elif switch.operands[0].value == ".set_g2h_target" and target_name != ".landing_g2h":
+                parser_error(-1, f"{switch} does not target landing_g2h")

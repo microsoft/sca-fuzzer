@@ -80,6 +80,10 @@ class X86MacroInterpreter(MacroInterpreter):
             "switch_g2h": self.macro_switch_g2h,
             "set_h2g_target": self.macro_set_h2g_target,
             "set_g2h_target": self.macro_set_g2h_target,
+            "landing_k2u": self.macro_landing_k2u,
+            "landing_u2k": self.macro_landing_u2k,
+            "landing_h2g": self.macro_landing_h2g,
+            "landing_g2h": self.macro_landing_g2h,
         }
 
         actor_id = self.model.current_actor.id_
@@ -231,6 +235,22 @@ class X86MacroInterpreter(MacroInterpreter):
         function_symbol = self._find_function_by_id(function_id)
         function_addr = section_addr + function_symbol.offset
         self.curr_guest_target = function_addr
+
+    def macro_landing_k2u(self, _: int, __: int, ___: int, ____: int):
+        """ Landing for the k2u switch """
+        pass
+
+    def macro_landing_u2k(self, _: int, __: int, ___: int, ____: int):
+        """ Landing for the u2k switch """
+        pass
+
+    def macro_landing_h2g(self, _: int, __: int, ___: int, ____: int):
+        """ Landing for the h2g switch """
+        pass
+
+    def macro_landing_g2h(self, _: int, __: int, ___: int, ____: int):
+        """ Landing for the g2h switch """
+        pass
 
 
 class X86VMEmulator:
