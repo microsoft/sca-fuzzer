@@ -164,6 +164,7 @@ _option_values = {
         "dbg_coverage",
         "dbg_isa_loader",
         "dbg_priming",
+        "dbg_executor_raw",
     ],
     "coverage_type": [
         "none",

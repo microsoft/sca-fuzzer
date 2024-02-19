@@ -233,8 +233,7 @@ class X86Executor(Executor):
             for trace_set in batches[input_id]:
                 counter.update(trace_set)
             filtered_batches.append({k for k, v in counter.items() if v > threshold})
-            # print(f"input {input_id}: {batches[input_id]} -> {filtered_batches[input_id]}")
-            # print({k for k, v in counter.items() if v <= threshold})
+        self.LOG.dbg_executor_batch_filtering(n_inputs, batches, filtered_batches)
 
         # convert the trace sets to HTrace objects
         traces = [HTrace(frozenset(ts), hash(frozenset(ts))) for ts in filtered_batches]
@@ -282,6 +281,7 @@ class X86Executor(Executor):
                         all_results[input_id][rep]['pfc'] = [0, 0, 0, 0, 0]
                     input_id -= 1
 
+        self.LOG.dbg_executor_raw_traces(all_results)
         return all_results
 
     def _aggregate_measurements(self,
