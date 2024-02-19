@@ -316,7 +316,7 @@ class Logger:
                 print(f"  CTr: {ctrace_colorize(ctrace_full) if CONF.color else ctrace_full} "
                       f"| Hash: {ctraces[i]}")
             if self.dbg_dump_htraces:
-                print(f"  HTr: {pretty_htrace(htraces[i])}")
+                print(f"  HTr:\n{pretty_htrace(htraces[i], offset='    ')}", end="")
             if CONF.color and hw_feedback[i][0] > hw_feedback[i][1]:
                 print(f"  Feedback: {YELLOW}{hw_feedback[i]}{COL_RESET}")
             else:
@@ -489,18 +489,18 @@ def bit_count(n):
 
 
 def pretty_htrace(htrace: HTrace, offset: str = ""):
-    s = ""
-    for t in htrace.raw:
-        s += f"{t:064b}\n"
-    s = s.replace("0", ".").replace("1", "^")
-    if CONF.color:
-        s = CYAN + s[0:8] + YELLOW + s[8:16] \
-            + CYAN + s[16:24] + YELLOW + s[24:32] \
-            + CYAN + s[32:40] + YELLOW + s[40:48] \
-            + CYAN + s[48:56] + YELLOW + s[56:64] \
-            + COL_RESET + s[64:]
-    s = offset + s
-    return s
+    final_str = ""
+    for t in sorted(htrace.raw):
+        s = f"{t:064b}"
+        s = s.replace("0", ".").replace("1", "^")
+        if CONF.color:
+            s = CYAN + s[0:8] + YELLOW + s[8:16] \
+                + CYAN + s[16:24] + YELLOW + s[24:32] \
+                + CYAN + s[32:40] + YELLOW + s[40:48] \
+                + CYAN + s[48:56] + YELLOW + s[56:64] \
+                + COL_RESET + s[64:]
+        final_str += offset + s + "\n"
+    return final_str
 
 
 def pretty_trace(bits: int, merged=False, offset: str = ""):
