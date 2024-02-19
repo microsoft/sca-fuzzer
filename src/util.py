@@ -284,13 +284,19 @@ class Logger:
             print(f"Duration: {(now - self.start_time).total_seconds():.1f}")
             print(datetime.today().strftime('Finished at %H:%M:%S'))
 
-    def trc_fuzzer_dump_traces(self, model, inputs, htraces, ctraces, hw_feedback, nesting):
+    def trc_fuzzer_dump_traces(self, model, inputs, htraces, reference_htraces, ctraces,
+                               hw_feedback, nesting):
         if not __debug__:
             return
         if not self.dbg_dump_htraces and not self.dbg_dump_ctraces:
             return
         if not htraces:  # might be empty due to tracing errors
             return
+
+        NullTrace = frozenset({0})
+        for i, htrace in enumerate(htraces):
+            if htrace.raw == NullTrace and reference_htraces[i].raw != NullTrace:
+                htraces[i] = reference_htraces[i]
 
         print("\n================================ Collected Traces =============================")
 

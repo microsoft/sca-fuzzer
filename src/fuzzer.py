@@ -47,6 +47,8 @@ class FuzzerGeneric(Fuzzer):
         self.work_dir = work_dir
         self.LOG = Logger()
 
+        self.reference_htraces = []
+
     def _adjust_config(self, _: str):
         pass
         # more adjustments could be implemented by subclasses!
@@ -176,8 +178,9 @@ class FuzzerGeneric(Fuzzer):
         self.executor.load_test_case(test_case)
 
         # 1. Fast path: Collect traces with minimal nesting and repetitions
-        violations, ctraces, boosted_inputs, org_htraces = self._collect_traces(
+        violations, ctraces, boosted_inputs, htraces = self._collect_traces(
             inputs, n_reps, threshold, nesting, record_stats=True, fast_boosting=fast_boosting)
+        self.reference_htraces = htraces
         if not violations:
             STAT.no_fast_violation += 1
             return None
@@ -235,22 +238,16 @@ class FuzzerGeneric(Fuzzer):
             else:
                 # All violations were cleared by priming.
                 STAT.fp_priming += 1
-
-                for i, htrace in enumerate(htraces):
-                    if htrace.raw == NullTrace and org_htraces[i].raw != NullTrace:
-                        htraces[i] = org_htraces[i]
                 feedback = self.executor.get_last_feedback()
-                self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces,
-                                                feedback, CONF.model_max_nesting)
+                self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces,
+                                                self.reference_htraces, ctraces, feedback,
+                                                CONF.model_max_nesting)
                 return None
 
         # Violation survived all checks. Report it
-        for i, htrace in enumerate(htraces):
-            if htrace.raw == NullTrace and org_htraces[i].raw != NullTrace:
-                htraces[i] = org_htraces[i]
         feedback = self.executor.get_last_feedback()
-        self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces, feedback,
-                                        CONF.model_max_nesting)
+        self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, self.reference_htraces,
+                                        ctraces, feedback, CONF.model_max_nesting)
         return violations[0]
 
     def _collect_traces(self,
@@ -291,7 +288,8 @@ class FuzzerGeneric(Fuzzer):
         if not violations:
             # if violation is detected, print debug traces (if requested)
             feedback = self.executor.get_last_feedback()
-            self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces, feedback,
+            self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces,
+                                            self.reference_htraces, ctraces, feedback,
                                             CONF.model_max_nesting)
 
         # label all non-violating inputs as ignored by executor, so that we don't trigger

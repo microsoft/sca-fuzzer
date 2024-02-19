@@ -50,7 +50,7 @@ class EquivalenceAnalyser(Analyser):
             if len(eq_cls.htrace_map) < 2:
                 continue
 
-            if not CONF.analyser_subsets_is_violation:
+            if CONF.analyser_subsets_is_violation:
                 violations.append(eq_cls)
                 continue
 
