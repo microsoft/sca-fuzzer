@@ -465,7 +465,7 @@ class FuzzerGeneric(Fuzzer):
                 attempts = 30  # FIXME: make this configurable
                 for _ in range(attempts):
                     htraces: List[HTrace] = self.executor.trace_test_case(
-                        primer, n_reps, 1.0, ensure_convergence=False)
+                        primer, n_reps, 0.0, ensure_convergence=False)
                     target_htrace = htraces[current_input_id]
                     self.LOG.dbg_priming_observations(traces_to_reproduce, target_htrace.raw)
 

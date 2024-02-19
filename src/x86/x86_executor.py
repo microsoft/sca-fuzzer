@@ -149,7 +149,7 @@ class X86Executor(Executor):
         if not inputs:
             return []
         n_inputs = len(inputs)
-        assert threshold_outliers > 0.0 and threshold_outliers <= 1.0
+        assert threshold_outliers >= 0.0 and threshold_outliers < 1.0
 
         # check that there are non-ignored inputs
         if n_inputs - len(self.ignore_list) == 0:
