@@ -235,6 +235,13 @@ class FuzzerGeneric(Fuzzer):
             else:
                 # All violations were cleared by priming.
                 STAT.fp_priming += 1
+
+                for i, htrace in enumerate(htraces):
+                    if htrace.raw == NullTrace and org_htraces[i].raw != NullTrace:
+                        htraces[i] = org_htraces[i]
+                feedback = self.executor.get_last_feedback()
+                self.LOG.trc_fuzzer_dump_traces(self.model, boosted_inputs, htraces, ctraces,
+                                                feedback, CONF.model_max_nesting)
                 return None
 
         # Violation survived all checks. Report it
@@ -470,7 +477,9 @@ class FuzzerGeneric(Fuzzer):
                     self.LOG.dbg_priming_observations(traces_to_reproduce, target_htrace.raw)
 
                     # fast exit in case of a tracing error
-                    if target_htrace.raw == {0}:
+                    if not target_htrace.raw or target_htrace.raw == NullTrace:
+                        self.LOG.warning("fuzzer", "Tracing error during priming. "
+                                         "Skipping this test case")
                         return False
 
                     # remove the reproduced traces
