@@ -53,6 +53,10 @@ void macro_switch_h2g(void);
 void macro_switch_g2h(void);
 void macro_set_h2g_target(void);
 void macro_set_g2h_target(void);
+void macro_landing_k2u(void);
+void macro_landing_u2k(void);
+void macro_landing_h2g(void);
+void macro_landing_g2h(void);
 
 // =================================================================================================
 // Helper functions
@@ -205,6 +209,14 @@ static uint8_t *get_macro_wrapper_ptr(uint64_t macro_id)
         return (uint8_t *)macro_set_h2g_target;
     case MACRO_SET_G2H_TARGET:
         return (uint8_t *)macro_set_g2h_target;
+    case MACRO_LANDING_K2U:
+        return (uint8_t *)macro_landing_k2u;
+    case MACRO_LANDING_U2K:
+        return (uint8_t *)macro_landing_u2k;
+    case MACRO_LANDING_H2G:
+        return (uint8_t *)macro_landing_h2g;
+    case MACRO_LANDING_G2H:
+        return (uint8_t *)macro_landing_g2h;
     default:
         PRINT_ERRS("get_macro_wrapper_ptr", "macro_id %llu is not valid\n", macro_id);
         return NULL;
@@ -244,8 +256,8 @@ int get_macro_bounds(uint64_t macro_id, uint8_t **start, uint64_t *size)
 /// @param args Compressed representation of the arguments, as received from the test case
 /// symbol table
 /// @return Size of the generated code, in bytes
-uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint8_t *macro_dest,
-                                size_t main_prologue_size)
+uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint64_t owner,
+                                uint8_t *macro_dest, size_t main_prologue_size)
 {
     size_t cursor = 0;
     uint16_t arg1 = args & 0xFFFF;
@@ -276,14 +288,10 @@ uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint8_t *mac
         cursor += 4;
         break;
     }
-    case MACRO_SWITCH_K2U: {
-        cursor += update_r14_rsp(arg1, macro_dest, cursor);
+    case MACRO_SWITCH_K2U:
         break;
-    }
-    case MACRO_SWITCH_U2K: {
-        cursor += update_r14_rsp(arg1, macro_dest, cursor);
+    case MACRO_SWITCH_U2K:
         break;
-    }
     case MACRO_SET_K2U_TARGET: {
         // movabs rcx, function_addr
         uint64_t function_addr = get_function_addr(arg1, arg2, main_prologue_size);
@@ -336,24 +344,23 @@ uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint8_t *mac
         cursor += 8;
         break;
     }
-    case MACRO_SWITCH_H2G: {
-        cursor += update_r14(arg1, macro_dest, cursor);
-        cursor += update_r15(arg1, macro_dest, cursor);
-        // vmresume
-        macro_dest[cursor] = 0x0f;
-        cursor++;
-        macro_dest[cursor] = 0x01;
-        cursor++;
-        macro_dest[cursor] = 0xc3;
-        cursor++;
-        // vmlaunch can fall through to the next instruction, so we need to restore R14
-        cursor += update_r14(0, macro_dest, cursor);
-        cursor += update_r15(0, macro_dest, cursor);
+    case MACRO_SWITCH_H2G:
+        break;
+    case MACRO_SWITCH_G2H:
+        break;
+    case MACRO_LANDING_K2U: {
+        cursor += update_r14_rsp(owner, macro_dest, cursor);
         break;
     }
-    case MACRO_SWITCH_G2H: {
-        cursor += update_r14(arg1, macro_dest, cursor);
-        cursor += update_r15(arg1, macro_dest, cursor);
+    case MACRO_LANDING_U2K: {
+        cursor += update_r14(owner, macro_dest, cursor);
+        // rsp is automatically restored by syscall instruction
+        break;
+    }
+    case MACRO_LANDING_H2G:
+    case MACRO_LANDING_G2H: {
+        cursor += update_r14(owner, macro_dest, cursor);
+        cursor += update_r15(owner, macro_dest, cursor);
         break;
     }
     default:
@@ -586,16 +593,14 @@ void __attribute__((noipa)) macro_set_u2k_target(void)
 void __attribute__((noipa)) macro_switch_u2k(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
-    asm_volatile_intel(""
-                       "syscall\n"
-                       "");
+    asm_volatile_intel("syscall\n");
     asm volatile(".quad " xstr(MACRO_END));
 }
 
 void __attribute__((noipa)) macro_switch_h2g(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
-    // Nothing here: implementation in inject_macro_arguments->MACRO_SWITCH_H2G
+    asm_volatile_intel("vmresume\n");
     asm volatile(".quad " xstr(MACRO_END));
 }
 
@@ -627,6 +632,30 @@ void __attribute__((noipa)) macro_set_g2h_target(void)
                        "vmwrite rcx, r11 \n"   //
                        POP_ABCDF()             //
     );
+    asm volatile(".quad " xstr(MACRO_END));
+}
+
+void __attribute__((noipa)) macro_landing_k2u(void)
+{
+    asm volatile(".quad " xstr(MACRO_START));
+    asm volatile(".quad " xstr(MACRO_END));
+}
+
+void __attribute__((noipa)) macro_landing_u2k(void)
+{
+    asm volatile(".quad " xstr(MACRO_START));
+    asm volatile(".quad " xstr(MACRO_END));
+}
+
+void __attribute__((noipa)) macro_landing_h2g(void)
+{
+    asm volatile(".quad " xstr(MACRO_START));
+    asm volatile(".quad " xstr(MACRO_END));
+}
+
+void __attribute__((noipa)) macro_landing_g2h(void)
+{
+    asm volatile(".quad " xstr(MACRO_START));
     asm volatile(".quad " xstr(MACRO_END));
 }
 

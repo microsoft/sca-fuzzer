@@ -181,6 +181,10 @@ class X86TargetDesc(TargetDesc):
         "switch_h2g": MacroSpec(10, "switch_h2g", ("actor_id", "", "", "")),
         "set_g2h_target": MacroSpec(11, "set_g2h_target", ("actor_id", "function_id", "", "")),
         "switch_g2h": MacroSpec(12, "switch_g2h", ("actor_id", "", "", "")),
+        "landing_k2u": MacroSpec(13, "landing_k2u", ("", "", "", "")),
+        "landing_u2k": MacroSpec(14, "landing_u2k", ("", "", "", "")),
+        "landing_h2g": MacroSpec(15, "landing_h2g", ("", "", "", "")),
+        "landing_g2h": MacroSpec(16, "landing_g2h", ("", "", "", "")),
     }
 
     def __init__(self):
