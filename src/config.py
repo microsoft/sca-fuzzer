@@ -148,7 +148,7 @@ class Conf:
     analyser: str = 'equivalence-classes'
     """ analyser: analyser type """
     analyser_subsets_is_violation: bool = False
-    """ analyser_subsets_is_violation: if enabled, the analyser will not label hardware traces
+    """ analyser_subsets_is_violation: if False, the analyser will not label hardware traces
     as mismatching if they form a subset relation """
 
     # ==============================================================================================
