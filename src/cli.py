@@ -245,6 +245,39 @@ def main() -> int:
     parser_get_isa.add_argument("--extensions", nargs="*", default=[])
 
     # ==============================================================================================
+    # Tuning the configuration to the target environment
+    parser_tune = subparsers.add_parser('tune', add_help=True)
+    parser_tune.add_argument("-c", "--config", type=str, required=False)
+    parser_tune.add_argument("-s", "--instruction-set", type=str, required=True)
+    parser_tune.add_argument(
+        "-n",
+        "--num-test-cases",
+        type=int,
+        default=1,
+        help="Number of test cases.",
+    )
+    parser_tune.add_argument(
+        "-i",
+        "--num-inputs",
+        type=int,
+        default=100,
+        help="Number of inputs per test case.",
+    )
+    parser_tune.add_argument(
+        "-r",
+        "--num-samples",
+        type=int,
+        default=100,
+        help="Number of samples to use for tuning.",
+    )
+    parser_tune.add_argument(
+        '-t',
+        '--template',
+        type=str,
+        required=True,
+        help="The template to use for generating test cases")
+
+    # ==============================================================================================
     # Invocations
     args = parser.parse_args()
 
@@ -297,6 +330,12 @@ def main() -> int:
         minimizer = get_minimizer(fuzzer, args.instruction_set)
         minimizer.run(args.genfile, args.outfile, args.num_inputs, not args.no_minimize,
                       args.simplify, args.add_fences, args.find_sources, args.find_min_inputs)
+        return 0
+
+    # Configuration tuning
+    if args.subparser_name == "tune":
+        fuzzer = get_fuzzer(args.instruction_set, "", args.template, "")
+        fuzzer.tune(args.num_test_cases, args.num_inputs, args.num_samples)
         return 0
 
     if args.subparser_name == "download_spec":
