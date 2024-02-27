@@ -8,7 +8,10 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, List, Callable, Tuple
+from scipy import stats
 import copy
+import numpy as np
+import pandas as pd
 
 from . import factory
 from .interfaces import Fuzzer, CTrace, HTrace, Input, EquivalenceClass, TestCase, \
@@ -157,7 +160,7 @@ class FuzzerGeneric(Fuzzer):
         violations: List[EquivalenceClass] = []
 
         # Define the starting parameters for the current configuration
-        n_reps: int = CONF.executor_repetitions
+        n_reps: int = CONF.executor_sample_size
         fast_boosting: bool = CONF.enable_fast_path_model
 
         min_nesting: int = CONF.model_min_nesting
@@ -421,6 +424,140 @@ class FuzzerGeneric(Fuzzer):
 
         logger.fuzzer_finish()
 
+    def tune(self, num_test_cases: int, num_inputs: int, n_samples: int) -> None:
+        assert num_inputs >= 2
+        assert self.existing_test_case
+        assert "seq" in CONF.contract_execution_clause, "Tuning requires sequential contract"
+        assert CONF.contract_observation_clause == "l1d", "Tuning supports only L1D observation"
+        if CONF.program_generator_seed == 0:
+            CONF.program_generator_seed = 1
+
+        start_time = datetime.today()
+        self.LOG.fuzzer_start(num_test_cases, start_time)
+
+        configuration_found = False
+        for sample_size in range(10, 50, 5):
+            # re-initialize modules to reset the seeds
+            self.initialize_modules()
+
+            # prepare for collecting measurements
+            n_boosted_inputs = num_inputs * CONF.inputs_per_class
+            n_results = num_test_cases * n_boosted_inputs * sample_size * n_samples
+            sample_element = np.dtype(
+                [
+                    ('tc_id', np.uint64),
+                    ('s_id', np.uint64),
+                    ('input_id', np.uint64),
+                    ('ctrace', np.uint64),
+                    ('htrace', np.uint64),
+                ],
+                align=False,
+            )
+            all_results = np.zeros(n_results, dtype=sample_element)
+
+            # collect raw data
+            counter = 0
+            for tc_id in range(num_test_cases):
+                self.LOG.fuzzer_start_round(tc_id)
+
+                # Generate a test case and inputs
+                test_case: TestCase = self.generator.create_test_case_from_template(
+                    self.existing_test_case)
+                self.input_gen.n_actors = len(test_case.actors)
+                inputs: List[Input] = self.input_gen.generate(num_inputs)
+
+                self.model.load_test_case(test_case)
+                self.executor.load_test_case(test_case)
+
+                # Collect ctraces and boost inputs
+                boosted_inputs, _ = self.boost_inputs(inputs, 1)
+                ctraces = self.model.trace_test_case(boosted_inputs, 1)
+                assert len(ctraces) == len(boosted_inputs)
+
+                # check that we don't have ctrace matches between non-boosted inputs
+                for i in range(num_inputs):
+                    for j in range(i + 1, num_inputs):
+                        assert ctraces[i] != ctraces[j]
+
+                for s_id in range(n_samples):
+                    # Collect hardware traces
+                    htraces = self.executor.trace_test_case(boosted_inputs, sample_size)
+                    assert len(htraces[0].raw) == sample_size
+
+                    # Store the results
+                    for input_id in range(len(boosted_inputs)):
+                        for htrace in htraces[input_id].raw:
+                            all_results[counter] = (tc_id, s_id, input_id, ctraces[input_id],
+                                                    htrace)
+                            counter += 1
+
+            # group results in a DataFrame
+            df = pd.DataFrame(all_results)
+            df = df.astype({
+                'tc_id': 'int64',
+                's_id': 'int64',
+                'input_id': 'int64',
+                'ctrace': 'uint64',
+                'htrace': 'uint64'
+            })
+
+            # calculate p-values
+            n_p_values = num_test_cases * num_inputs * n_samples
+            p_values = pd.DataFrame(
+                np.zeros((n_p_values, 2), dtype=np.float64), columns=['p_same', 'p_diff'])
+
+            df = df.groupby(['tc_id', 's_id'])
+            counter = 0
+            for tc_id in range(num_test_cases):
+                for s_id in range(n_samples):
+                    for input_id in range(num_inputs):
+                        group = df.get_group((tc_id, s_id))
+
+                        same_cls_id = input_id + num_inputs
+                        diff_cls_id = (input_id + 1) % num_inputs
+
+                        sample = group[group['input_id'] == input_id]
+                        same_cls = group[group['input_id'] == same_cls_id]
+                        diff_cls = group[group['input_id'] == diff_cls_id]
+
+                        p_values.at[counter, 'p_same'] = stats.mannwhitneyu(
+                            sample['htrace'], same_cls['htrace'], method='exact').pvalue
+                        p_values.at[counter, 'p_diff'] = stats.mannwhitneyu(
+                            sample['htrace'], diff_cls['htrace'], method='exact').pvalue
+
+                        counter += 1
+
+            # print results
+            p_1perc = p_values.quantile(0.01)
+            p_99perc = p_values.quantile(0.99)
+
+            if p_1perc['p_same'] > p_99perc['p_diff']:
+                configuration_found = True
+                delta = p_1perc['p_same'] - p_99perc['p_diff']
+                threshold = p_1perc['p_same'] - delta / 2
+                print("  Recommended configuration:")
+                print(f"    executor_sample_size: {sample_size}")
+                print("    analyser: mwu")
+                print(f"    analyser_p_value_threshold: {threshold:.9f}")
+
+            # print(f"Sample size: {sample_size}")
+            # p_min = p_values.min()
+            # p_max = p_values.max()
+            # p_med = p_values.median()
+            # print(f"  Min: {p_min['p_same']:.9f} / {p_min['p_diff']:.9f}")
+            # print(f"  1%:  {p_1perc['p_same']:.9f} / {p_1perc['p_diff']:.9f}")
+            # print(f"  Med: {p_med['p_same']:.9f} / {p_med['p_diff']:.9f}")
+            # print(f"  99%: {p_99perc['p_same']:.9f} / {p_99perc['p_diff']:.9f}")
+            # print(f"  Max: {p_max['p_same']:.9f} / {p_max['p_diff']:.9f}")
+
+        if not configuration_found:
+            print("No stable configuration found. Possible reasons:")
+            print("  - Too little data (increase the number of test cases and/or inputs)")
+            print("  - The generated programs contained violations (inspect YAML config file)")
+            print("  - The environment is too noisy")
+
+        self.LOG.fuzzer_finish()
+
     # ==============================================================================================
     # Priming and reproducibility
     def priming(self, org_violation: EquivalenceClass, all_inputs: List[Input]) -> bool:
@@ -432,7 +569,7 @@ class FuzzerGeneric(Fuzzer):
         violation = copy.copy(org_violation)
         measurements_to_test = [hg[0] for hg in violation.htrace_groups]
 
-        n_reps = CONF.executor_repetitions
+        n_reps = CONF.executor_sample_size
         null_htrace = HTrace([0])
 
         for current_measurement in measurements_to_test:

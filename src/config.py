@@ -129,8 +129,8 @@ class Conf:
     executor_warmups: int = 5
     """ executor_warmups: number of warmup rounds executed before starting to collect
     hardware traces """
-    executor_repetitions: int = 10
-    """ executor_repetitions: number of repetitions while collecting hardware traces """
+    executor_sample_size: int = 10
+    """ executor_sample_size: number of repetitions while collecting hardware traces """
     executor_filtering_repetitions: int = 10
     """ executor_filtering_repetitions: number of repetitions while filtering test cases """
     executor_violation_retries: int = 5
@@ -153,8 +153,8 @@ class Conf:
     """ analyser_outliers_threshold: [only for analyser='sets' or analyser='bitmaps']
     analyser will ignore the htraces that appear in less then this percentage of the repetitions.
     I.e., a htrace passes the filter if it is observed at least
-        (analyser_outliers_threshold * executor_repetitions) times """
-    analyser_p_value_threshold: float = 0.1
+        (analyser_outliers_threshold * executor_sample_size) times """
+    analyser_p_value_threshold: float = 0.01
     """ analyser_p_value_threshold: [only for analyser='mwu']
     p-value threshold for the Mann-Whitney U test; if two htrace sequences have a p-value
     above this threshold, they are considered equivalent """

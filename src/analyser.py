@@ -10,10 +10,14 @@ from scipy import stats  # type: ignore
 
 from .interfaces import HTrace, CTrace, Input, EquivalenceClass, Analyser, Measurement
 from .config import CONF
-from .util import STAT
+from .util import STAT, Logger
 
 
 class EquivalenceAnalyserCommon(Analyser):
+
+    def __init__(self) -> None:
+        self.LOG = Logger()
+        super().__init__()
 
     def filter_violations(self,
                           inputs: List[Input],
@@ -116,7 +120,7 @@ class MergedBitmapAnalyser(EquivalenceAnalyserCommon):
 
     def htraces_are_equivalent(self, htrace1: HTrace, htrace2: HTrace) -> bool:
         bitmaps = [0, 0]
-        threshold = CONF.analyser_outliers_threshold * CONF.executor_repetitions
+        threshold = CONF.analyser_outliers_threshold * CONF.executor_sample_size
         for i, htrace in enumerate([htrace1, htrace2]):
             # check if cached
             if htrace.hash_ in self.bitmap_cache:
@@ -151,7 +155,7 @@ class SetAnalyser(EquivalenceAnalyserCommon):
 
     def htraces_are_equivalent(self, htrace1: HTrace, htrace2: HTrace) -> bool:
         """ Squash the htrace lists into sets and compare the results """
-        threshold = CONF.analyser_outliers_threshold * CONF.executor_repetitions
+        threshold = CONF.analyser_outliers_threshold * CONF.executor_sample_size
         filtered1 = [x for x in htrace1.raw if x >= threshold]
         filtered2 = [x for x in htrace2.raw if x >= threshold]
 
@@ -166,6 +170,14 @@ class SetAnalyser(EquivalenceAnalyserCommon):
 
 class MWUAnalyser(EquivalenceAnalyserCommon):
     """ A variant of the analyser that uses the Mann-Withney U test to compare htraces """
+
+    def __init__(self) -> None:
+        if CONF.analyser_p_value_threshold == 0.01:
+            self.LOG.warning(
+                "analyser", "Using the default p-value threshold of 0.01 for the MWU test\n"
+                "may lead to false positives. Consider running `rvzr tune`\n"
+                "to find a threshold that fits your testing target")
+        super().__init__()
 
     def htraces_are_equivalent(self, htrace1: HTrace, htrace2: HTrace) -> bool:
         """ Use the Mann-Withney U test to compare htraces """
