@@ -7,7 +7,7 @@ SPDX-License-Identifier: MIT
 from __future__ import annotations
 
 import shutil
-from typing import List, Dict, Tuple, Optional, NamedTuple, FrozenSet
+from typing import List, Dict, Tuple, Optional, NamedTuple
 from collections import defaultdict
 from abc import ABC, abstractmethod
 import numpy as np
@@ -764,12 +764,19 @@ CTrace = int
 InputID = int
 
 
-class HTrace(NamedTuple):
-    raw: FrozenSet[int]
+class HTrace:
+    raw: List[int]
     hash_: int
+
+    def __init__(self, trace_list: List[int]) -> None:
+        self.raw = trace_list
+        self.hash_ = hash(tuple(trace_list))
 
     def __eq__(self, other):
         return self.hash_ == other.hash_
+
+    def __len__(self):
+        return len(self.raw)
 
 
 class Measurement(NamedTuple):
@@ -779,14 +786,13 @@ class Measurement(NamedTuple):
     htrace: HTrace
 
 
-HTraceGroup = List[Measurement]
-HTraceMap = Dict[HTrace, HTraceGroup]
-
-
 class EquivalenceClass:
     ctrace: CTrace
     measurements: List[Measurement]
-    htrace_map: HTraceMap
+    htrace_groups: List[List[Measurement]]
+    """ htrace_groups: a list of htrace groups; each group is a list of measurements that produced
+    the same htrace (or a equivalent htraces under the current analyser). """
+
     MOD2P64 = pow(2, 64)
 
     def __init__(self) -> None:
@@ -798,20 +804,13 @@ class EquivalenceClass:
              f"{self.ctrace % self.MOD2P64:064b} [ns]\n" \
              f"{(self.ctrace >> 64) % self.MOD2P64:064b} [s]\n"
         s += "Htraces:\n"
-        for h in self.htrace_map.keys():
-            s += f"{h:064b}\n"
+        for hg in self.htrace_groups:
+            s += f"{hg[0]:064b}\n"
         s = s.replace("0", "_").replace("1", "^")
         return s
 
     def __len__(self):
         return len(self.measurements)
-
-    def build_htrace_map(self) -> None:
-        """ group inputs by htraces """
-        groups = defaultdict(list)
-        for measurement in self.measurements:
-            groups[measurement.htrace].append(measurement)
-        self.htrace_map = groups
 
 
 # Execution Tracing
@@ -1040,22 +1039,12 @@ class Executor(ABC):
         pass
 
     @abstractmethod
-    def trace_test_case(self,
-                        inputs: List[Input],
-                        n_reps: int,
-                        threshold_outliers: float,
-                        ensure_convergence: bool = False) -> List[HTrace]:
+    def trace_test_case(self, inputs: List[Input], n_reps: int) -> List[HTrace]:
         """ Call the executor kernel module to collect the hardware traces for
          the test case (previously loaded with `load_test_case`) and the given inputs.
 
         :param inputs: list of inputs to be used for the test case
         :param n_reps: number of times to repeat each measurement
-        :param threshold_outliers: a traces is ignored if it appears in less than this portion
-                of the measurements (float: 0.0 < threshold_outliers <= 1.0)
-        :param ensure_convergence: if True, the executor will repeat the measurements until
-                the set of collected traces for each input becomes stable. The maximum number
-                of iterations is 10 * n_reps. If the measurements do not converge, the executor
-                will print a warning and ignore the inputs that did not converge.
         :return: a list of HTrace objects, one for each input
          """
         pass
@@ -1069,10 +1058,16 @@ class Executor(ABC):
         pass
 
     @abstractmethod
-    def ignore_inputs(self, ignore_list: List[int]):
+    def set_ignore_list(self, ignore_list: List[int]):
         """ Sets a list of inputs IDs that should be ignored by the executor.
         The executor will executed the inputs with these IDs as normal (in case they are
         necessary for priming the uarch state), but their htraces will be set to zero """
+        pass
+
+    @abstractmethod
+    def extend_ignore_list(self, ignore_list: List[int]):
+        """ Updates the ignore list with a new list of inputs IDs that should be ignored
+        by the executor."""
         pass
 
 
@@ -1084,6 +1079,24 @@ class Analyser(ABC):
                           ctraces: List[CTrace],
                           htraces: List[HTrace],
                           stats=False) -> List[EquivalenceClass]:
+        pass
+
+    @abstractmethod
+    def build_htrace_groups(self, eq_cls) -> None:
+        """ Group measurements that have equivalent htraces, and set the htrace_groups attribute
+         for the given equivalence class
+        :param eq_cls: Equivalence class to be processed
+        """
+        pass
+
+    @abstractmethod
+    def htraces_are_equivalent(self, htrace1: HTrace, htrace2: HTrace) -> bool:
+        """ Compare two hardware traces according to the current analyser's rules.
+
+        :param htrace1: first hardware trace
+        :param htrace2: second hardware trace
+        :return: True if the traces are equivalent, False otherwise
+        """
         pass
 
 

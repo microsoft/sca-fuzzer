@@ -68,9 +68,9 @@ class StatisticsCls:
         s += f"  Speculation Filter: {self.spec_filter}\n"
         s += f"  Observation Filter: {self.observ_filter}\n"
         s += f"  No Fast-Path Violation: {self.no_fast_violation}\n"
+        s += f"  Noise-Based FP: {self.fp_noise}\n"
         s += f"  No Max-Nesting Violation: {self.fp_nesting}\n"
         s += f"  Tainting Mistakes: {self.fp_taint_mistakes}\n"
-        s += f"  Noise-Based FP: {self.fp_noise}\n"
         s += f"  Flaky Tests: {self.fp_flaky}\n"
         s += f"  Priming Check: {self.fp_priming}\n"
         return s
@@ -156,7 +156,7 @@ class Logger:
         if not __debug__:
             if self.dbg_timestamp or self.dbg_model or self.dbg_coverage or self.dbg_dump_htraces \
                or self.dbg_dump_ctraces or self.dbg_generator or self.dbg_priming \
-               or self.dbg_executor_raw_traces:
+               or self.dbg_executor_raw:
                 self.warning(
                     "", "Current value of `logging_modes` requires debugging mode!\n"
                     "Remove '-O' from python arguments")
@@ -344,8 +344,9 @@ class Logger:
                 print(f"  {violation.ctrace % MASK_64BIT:064b} [ns]\n"
                       f"  {(violation.ctrace >> 64) % MASK_64BIT:064b} [s]\n")
         print("Hardware traces:")
-        for htrace, measurements in violation.htrace_map.items():
+        for measurements in violation.htrace_groups:
             inputs = [m.input_id for m in measurements]
+            htrace = measurements[0].htrace
             if len(inputs) < 4:
                 print(f" Inputs {inputs}:")
             else:
@@ -359,7 +360,7 @@ class Logger:
         if self.dbg_violation:
             # print details
             print("================================ Violation Traces =============================")
-            for htrace, measurements in violation.htrace_map.items():
+            for measurements in violation.htrace_groups:
                 print(f"                      ##### Input {measurements[0].input_id} #####")
                 model_debug_state = self.dbg_model
                 self.dbg_model = True
@@ -373,20 +374,6 @@ class Logger:
         if not self.dbg_priming:
             return
         print(f"\nPriming #{input_id} vs #{current_input_id}")
-
-    def dbg_priming_observations(self, traces_to_reproduce, observed_traces):
-        if not __debug__:
-            return
-        if not self.dbg_priming:
-            return
-
-        print("Trying to reproduce the following traces:")
-        for h in traces_to_reproduce:
-            print(pretty_trace(h))
-
-        print("Observed traces:")
-        for h in observed_traces:
-            print(pretty_trace(h))
 
     def dbg_executor_raw_traces(self, all_results):
         if not __debug__:
@@ -407,16 +394,6 @@ class Logger:
                 c = counters[input_id][t]
             for t, c in counters[input_id].items():
                 print(f"{input_id:03}, {pretty_trace(t)}, {t}, {c}")
-
-    def dbg_executor_batch_filtering(self, n_inputs, batches, filtered_batches):
-        if not __debug__:
-            return
-        if not self.dbg_executor_raw:
-            return
-
-        print("Batch filtering:")
-        for input_id in range(n_inputs):
-            print(f"input {input_id}: {batches[input_id]} -> {filtered_batches[input_id]}")
 
     # ==============================================================================================
     # Model
@@ -529,7 +506,8 @@ def bit_count(n):
 
 def pretty_htrace(htrace: HTrace, offset: str = ""):
     final_str = ""
-    for t in sorted(htrace.raw):
+    trace_set = set(htrace.raw)
+    for t in sorted(trace_set):
         s = f"{t:064b}"
         s = s.replace("0", ".").replace("1", "^")
         if CONF.color:

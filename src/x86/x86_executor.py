@@ -11,8 +11,7 @@ import subprocess
 import os.path
 import csv
 import numpy as np
-from collections import Counter
-from typing import List, Set, Optional
+from typing import List, Optional, Tuple
 
 from ..interfaces import HTrace, Input, TestCase, Executor
 from ..config import CONF
@@ -47,20 +46,13 @@ class X86Executor(Executor):
     2. Load a set of inputs into the kernel module (see __write_inputs).
     3. Run the measurements by calling the kernel module (see _get_raw_measurements). Each
        measurement is repeated `n_reps` times.
-    4. Aggregate the measurements into sets of traces (see _aggregate_measurements). The executor
-       filters out the traces that appear less than `threshold_outliers * n_reps` times, and
-       combines the remaining measurements into sets (one set per input).
-    5. Optionally, ensure that the measurements are reproducible by collecting the results in
-       several batches, and ensuring that the set of traces for each inputs converges
-       (see _get_converged_traces). This function performs additional filtering by removing the
-       traces that appeared in less than a half of the batches.
+    4. Aggregate the measurements into sets of traces (see _aggregate_measurements).
     """
 
     previous_num_inputs: int = 0
     feedback: List[List[int]]
     curr_test_case: TestCase
     ignore_list: List[int]
-    __ignore_list_internal: List[int]
     enable_sticky_ignore_list: bool = False
 
     def __init__(self):
@@ -105,20 +97,20 @@ class X86Executor(Executor):
         write_to_sysfs_file("1" if CONF.fuzzer == "architectural" else "0",
                             "/sys/x86_executor/enable_dbg_gpr_mode")
 
-        self.__ignore_list_internal = []
-
     def set_quick_and_dirty(self, state: bool):
         write_to_sysfs_file("1" if state else "0", "/sys/x86_executor/enable_quick_and_dirty_mode")
 
     def set_vendor_specific_features(self):
         pass
 
-    def ignore_inputs(self, ignore_list: List[int]):
+    def set_ignore_list(self, ignore_list: List[int]):
         """ Sets a list of inputs IDs that should be ignored by the executor.
         The executor will executed the inputs with these IDs as normal (in case they are
         necessary for priming the uarch state), but their htraces will be set to zero """
         self.ignore_list = ignore_list
-        self.__ignore_list_internal = ignore_list
+
+    def extend_ignore_list(self, ignore_list: List[int]):
+        self.ignore_list.extend(ignore_list)
 
     def read_base_addresses(self):
         with open('/sys/x86_executor/print_sandbox_base', 'r') as f:
@@ -135,27 +127,20 @@ class X86Executor(Executor):
         self.curr_test_case = test_case
         if not self.enable_sticky_ignore_list:
             self.ignore_list = []
-        else:
-            self.ignore_list = self.__ignore_list_internal
 
-    def trace_test_case(self,
-                        inputs: List[Input],
-                        n_reps: int,
-                        threshold_outliers: float,
-                        ensure_convergence: bool = False) -> List[HTrace]:
+    def trace_test_case(self, inputs: List[Input], n_reps: int) -> List[HTrace]:
         """ see interfaces.py:Executor for documentation """
 
         # make sure it's not a dummy call
         if not inputs:
             return []
         n_inputs = len(inputs)
-        assert threshold_outliers >= 0.0 and threshold_outliers < 1.0
 
-        # check that there are non-ignored inputs
+        # skip if all inputs are ignored
         if n_inputs - len(self.ignore_list) == 0:
             self.LOG.warning("executor", "All inputs are ignored. Skipping measurements")
             self.feedback = [[0, 0, 0, 0, 0] for _ in range(n_inputs)]
-            return [HTrace(frozenset({0}), hash(frozenset({0}))) for _ in range(n_inputs)]
+            return [HTrace([0]) for _ in range(n_inputs)]
 
         # Transfer inputs to the kernel module
         self.__write_inputs(inputs)
@@ -165,78 +150,13 @@ class X86Executor(Executor):
             if f.readline() != '1\n':
                 self.LOG.error("Failure loading inputs!", print_tb=True)
 
-        if ensure_convergence:
-            # Collection of data with convergence check
-            traces = self._get_converged_traces(n_inputs, n_reps, threshold_outliers)
-        else:
-            # Collect data without convergence check
-            raw_results = self._get_raw_measurements(n_reps, n_inputs)
-            if raw_results is None:
-                return []
-            trace_sets = self._aggregate_measurements(raw_results, threshold_outliers, False)
-            traces = [HTrace(frozenset(ts), hash(frozenset(ts))) for ts in trace_sets]
-
-        return traces
-
-    def _get_converged_traces(self, n_inputs, n_reps, threshold_outliers) -> List[HTrace]:
-        """
-        Collects measurements in several batches, and ensures that the set of traces for each input
-        converges. This function performs additional filtering by removing the traces that appeared
-        in less than a half of the batches.
-        """
-        batches: List[List[Set[int]]] = [[] for _ in range(n_inputs)]
-        batch: List[Set[int]] = []
-
-        # collect the first batch
+        # Collect traces
         raw_results = self._get_raw_measurements(n_reps, n_inputs)
         if raw_results is None:
             return []
-        batch = self._aggregate_measurements(raw_results, threshold_outliers)
-        for input_id in range(n_inputs):
-            batches[input_id].append(batch[input_id])
-
-        # keep repeating the measurements until we stop encountering new traces
-        converged = [False for _ in range(n_inputs)]
-        for i in range(10):  # FIXME: make this a configuration option
-            # collect the next batch
-            raw_results = self._get_raw_measurements(n_reps, n_inputs)
-            if raw_results is None:
-                return []
-            batch = self._aggregate_measurements(raw_results, threshold_outliers, True)
-
-            # check if we found new traces for any of the inputs
-            for input_id in range(n_inputs):
-                batches[input_id].append(batch[input_id])
-                if batch[input_id].issubset(batch[input_id]):
-                    converged[input_id] = True
-                else:
-                    batch[input_id].update(batch[input_id])
-                    converged[input_id] = False
-
-            # stop if we found no new traces
-            if all(converged):
-                break
-
-        # label the inputs that did not converge as ignored
-        if not all(converged):
-            self.LOG.warning("executor", "Some measurements did not converge after 10 iterations.")
-            for i in range(n_inputs):
-                if not converged[i] and i not in self.ignore_list:
-                    self.ignore_list.append(i)
-                    batches[i] = [set()]
-
-        # filter out those sets that appeared in less than 50% of the batches
-        filtered_batches: List[Set[int]] = []
-        threshold = len(batches[0]) // 2 + (len(batches[0]) % 2 > 0)  # over 50%
-        for input_id in range(n_inputs):
-            counter: Counter = Counter()
-            for trace_set in batches[input_id]:
-                counter.update(trace_set)
-            filtered_batches.append({k for k, v in counter.items() if v > threshold})
-        self.LOG.dbg_executor_batch_filtering(n_inputs, batches, filtered_batches)
-
-        # convert the trace sets to HTrace objects
-        traces = [HTrace(frozenset(ts), hash(frozenset(ts))) for ts in filtered_batches]
+        trace_lists, pfc_lists = self._aggregate_measurements(raw_results)
+        traces = [HTrace(trace_list) for trace_list in trace_lists]
+        self.feedback = pfc_lists
         return traces
 
     def _get_raw_measurements(self, n_reps: int, n_inputs: int) -> Optional[np.ndarray]:
@@ -284,52 +204,29 @@ class X86Executor(Executor):
         self.LOG.dbg_executor_raw_traces(all_results)
         return all_results
 
-    def _aggregate_measurements(self,
-                                all_results: np.ndarray,
-                                threshold_outliers: float,
-                                ignore_pfc: bool = False) -> List[Set[int]]:
+    def _aggregate_measurements(
+            self, raw_results: np.ndarray) -> Tuple[List[List[int]], List[List[int]]]:
         """
-        Aggregates the raw measurements into sets of traces. The function receives an array of
-        of measurements, filters out the measurements that appear less than
-        `threshold_outliers * n_reps` times, combines the remaining measurements into sets
-        (one set per input), and returns the sets. The function also stores the PFC readings
-        for each input.
+        Aggregates the raw measurements into lists of traces
 
-        :param all_results: array of measurements
-        :param threshold_outliers: the threshold for the number of times a trace must appear
-        :param ignore_pfc: whether to ignore the PFC readings
+        :param raw_results: raw measurements collected by _get_raw_measurements
+        :return: a list of traces and a list of pfc readings
         """
+        trace_lists = []
+        pfc_lists = []
 
-        # initialize the trace sets and PFC readings
-        trace_sets: List[Set[int]] = [set() for _ in all_results]
-        pfc_readings = [[0, 0, 0, 0, 0] for _ in all_results]
-        n_reps = len(all_results[0])
+        for input_id in range(len(raw_results)):
+            trace_list = []
+            max_pfc1 = 0
+            for rep in range(len(raw_results[input_id])):
+                trace_list.append(int(raw_results[input_id][rep]['htrace']))
+                if max_pfc1 < raw_results[input_id][rep]['pfc'][1]:
+                    max_pfc1 = raw_results[input_id][rep]['pfc'][1]
 
-        # mask to ignore the last 8 trace bits if in TSC mode
-        trace_mask = 0xFFFFFFFFFFF00 if CONF.executor_mode == "TSC" else 0xFFFFFFFFFFFFFFFF
+            trace_lists.append(trace_list)
+            pfc_lists.append(raw_results[input_id][rep]['pfc'])
 
-        count_threshold = threshold_outliers * n_reps
-        for input_id, input_measurements in enumerate(all_results):
-            counter: Counter = Counter()
-            for result in input_measurements:
-                # count the number of times each trace appears
-                trace = int(result['htrace']) & trace_mask
-                counter[trace] += 1
-
-                if counter[trace] >= count_threshold:
-                    trace_sets[input_id].add(trace)
-
-                if not ignore_pfc:
-                    # set the PFC reading value to the one that maximizes the first counter
-                    # (normally, the first counter is the number of issued uops)
-                    pfc_reading = result['pfc']
-                    if pfc_reading[0] >= pfc_readings[input_id][0]:
-                        pfc_readings[input_id] = pfc_reading
-
-        if not ignore_pfc:
-            self.feedback = pfc_readings
-
-        return trace_sets
+        return trace_lists, pfc_lists
 
     def __write_test_case(self, test_case: TestCase):
         actors = sorted(test_case.actors.values(), key=lambda a: (a.id_))

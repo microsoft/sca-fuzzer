@@ -36,7 +36,7 @@ class NumpyRandomInputGenerator(InputGenerator):
         rng = np.random.default_rng(seed=state)
         for i in range(len(input_)):
             # generate random data
-            data = rng.integers(self.max_input_value, size=size, dtype=np.uint64)
+            data = rng.integers(self.max_input_value, size=size, dtype=np.uint64)  # type: ignore
 
             # zero out lower bits of every 8-byte word
             data = data << CONF.memory_access_zeroed_bits  # type: ignore

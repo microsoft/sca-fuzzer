@@ -55,7 +55,7 @@ class Conf:
     """ program_size: size of generated programs """
     avg_mem_accesses: int = 12
     """ avg_mem_accesses: average number of memory accesses in generated programs """
-    min_bb_per_function: int = 2
+    min_bb_per_function: int = 1
     """ min_bb_per_function: minimal number of basic blocks per function in generated programs """
     max_bb_per_function: int = 2
     """ max_bb_per_function: maximum number of basic blocks per function in generated programs """
@@ -133,23 +133,31 @@ class Conf:
     """ executor_repetitions: number of repetitions while collecting hardware traces """
     executor_filtering_repetitions: int = 10
     """ executor_filtering_repetitions: number of repetitions while filtering test cases """
-    executor_outliers_threshold: float = 0.1
-    """ executor_measurement_percentile: executor will ignore the outliers that appear in less then
-     this percentage of the repetitions. I.e., a measurement passes the filter if it is
-     observed at least (executor_outliers_threshold * executor_repetitions) times """
+    executor_violation_retries: int = 5
+    """ executor_violation_retries: number of retries for test cases that produce violations """
     executor_taskset: int = 0
     """ executor_taskset: id of the CPU core on which the executor is running test cases """
     enable_pre_run_flush: bool = True
-    """ enable_pre_run_flush: ff enabled, the executor will do its best to flush
+    """ enable_pre_run_flush: if enabled, the executor will do its best to flush
     the microarchitectural state before running test cases """
 
     # ==============================================================================================
     # Analyser
-    analyser: str = 'equivalence-classes'
-    """ analyser: analyser type """
+    analyser: str = 'mwu'
+    """ analyser: type of the analyser """
     analyser_subsets_is_violation: bool = False
-    """ analyser_subsets_is_violation: if False, the analyser will not label hardware traces
-    as mismatching if they form a subset relation """
+    """ analyser_subsets_is_violation: [only for analyser='sets' or analyser='bitmaps']
+    if False, the analyser will not label hardware traces as mismatching if they form
+    a subset relation """
+    analyser_outliers_threshold: float = 0.1
+    """ analyser_outliers_threshold: [only for analyser='sets' or analyser='bitmaps']
+    analyser will ignore the htraces that appear in less then this percentage of the repetitions.
+    I.e., a htrace passes the filter if it is observed at least
+        (analyser_outliers_threshold * executor_repetitions) times """
+    analyser_p_value_threshold: float = 0.1
+    """ analyser_p_value_threshold: [only for analyser='mwu']
+    p-value threshold for the Mann-Whitney U test; if two htrace sequences have a p-value
+    above this threshold, they are considered equivalent """
 
     # ==============================================================================================
     # Coverage

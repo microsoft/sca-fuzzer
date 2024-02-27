@@ -292,7 +292,7 @@ class MinimizerViolation(Minimizer):
 
         # make sure that we consider only these two inputs
         ignored = [i for i in range(len(inputs)) if i not in violating_input_ids]
-        self.fuzzer.executor.ignore_inputs(ignored)
+        self.fuzzer.executor.set_ignore_list(ignored)
         self.fuzzer.executor.enable_sticky_ignore_list = True
 
         # make a copy of the inputs
