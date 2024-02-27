@@ -75,11 +75,10 @@ class X86Fuzzer(FuzzerGeneric):
         uninteresting test cases """
         self.executor.set_quick_and_dirty(True)
         reps = CONF.executor_filtering_repetitions
-        thrsh = CONF.executor_outliers_threshold
 
         if CONF.enable_speculation_filter or CONF.enable_observation_filter:
             self.executor.load_test_case(test_case)
-            non_fenced_htraces = self.executor.trace_test_case(inputs, reps, thrsh)
+            non_fenced_htraces = self.executor.trace_test_case(inputs, reps)
 
         # 1. Speculation filter:
         # Execute on the test case on the HW and monitor PFCs
@@ -116,10 +115,19 @@ class X86Fuzzer(FuzzerGeneric):
 
             fenced_test_case = self.asm_parser.parse_file(fenced.name)
             self.executor.load_test_case(fenced_test_case)
-            fenced_htraces = self.executor.trace_test_case(inputs, reps, thrsh)
+            fenced_htraces = self.executor.trace_test_case(inputs, reps)
             os.remove(fenced.name)
 
-            if fenced_htraces == non_fenced_htraces:
+            traces_match = True
+            for i, _ in enumerate(inputs):
+                set1 = set(fenced_htraces[i].raw)
+                set2 = set(non_fenced_htraces[i].raw)
+                if set1 != set2:
+                    traces_match = False
+                    break
+
+            # if fenced_htraces == non_fenced_htraces:
+            if traces_match:
                 self.executor.set_quick_and_dirty(False)
                 STAT.observ_filter += 1
                 return True
@@ -159,20 +167,16 @@ class X86ArchDiffFuzzer(FuzzerGeneric):
         return super()._start(num_test_cases, num_inputs, timeout, nonstop)
 
     def get_arch_traces(self, inputs) -> List[List[HTrace]]:
-        htraces: List[List[HTrace]] = [
-            [t] for t in self.executor.trace_test_case(inputs, 1, 0)
-        ]
+        htraces: List[List[HTrace]] = [[t] for t in self.executor.trace_test_case(inputs, 1)]
         for i, trace in enumerate(self.executor.get_last_feedback()):
             htraces[i].extend(trace)
         return htraces
 
-    def _build_dummy_ecls(self,) -> EquivalenceClass:
+    def _build_dummy_ecls(self) -> EquivalenceClass:
         eq_cls = EquivalenceClass()
         eq_cls.ctrace = 0
-        eq_cls.measurements = [
-            Measurement(0, Input(), 0, HTrace(frozenset([0]), hash(frozenset([0]))))
-        ]
-        eq_cls.build_htrace_map()
+        eq_cls.measurements = [Measurement(0, Input(), 0, HTrace([0]))]
+        self.analyser.build_htrace_groups(eq_cls)
         return eq_cls
 
     def fuzzing_round(self, test_case: TestCase, inputs: List[Input]) -> Optional[EquivalenceClass]:
@@ -208,12 +212,6 @@ class X86ArchDiffFuzzer(FuzzerGeneric):
                     print(f"Fenced:       {[v.raw for v in fenced_htraces[i]]}")
                     print(f"Non-fenced:   {[v.raw for v in htraces[i]]}")
 
-                eq_cls = EquivalenceClass()
-                eq_cls.ctrace = fenced_htraces[i][0].hash_
-                eq_cls.measurements = [
-                    Measurement(i, inputs[i], fenced_htraces[i][0].hash_, htraces[i][0])
-                ]
-                eq_cls.build_htrace_map()
                 return self._build_dummy_ecls()
 
             if "dbg_dump_htraces" in CONF.logging_modes:

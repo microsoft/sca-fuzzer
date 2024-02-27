@@ -63,7 +63,9 @@ EXECUTORS = {
 }
 
 ANALYSERS: Dict[str, Type[interfaces.Analyser]] = {
-    'equivalence-classes': analyser.EquivalenceAnalyser,
+    'bitmaps': analyser.MergedBitmapAnalyser,
+    'sets': analyser.SetAnalyser,
+    'mwu': analyser.MWUAnalyser,
 }
 
 MINIMIZERS: Dict[str, Type[interfaces.Minimizer]] = {

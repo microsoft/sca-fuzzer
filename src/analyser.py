@@ -4,41 +4,36 @@ File: various ways to compare ctraces with htraces
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
-from collections import defaultdict
+from collections import defaultdict, Counter
 from typing import List, Dict
+from scipy import stats  # type: ignore
 
 from .interfaces import HTrace, CTrace, Input, EquivalenceClass, Analyser, Measurement
 from .config import CONF
 from .util import STAT
 
 
-class EquivalenceAnalyser(Analyser):
-    """
-    TODO: the description is outdated
-    The main analysis function.
-
-    Checks if all inputs that agree on their contract traces (ctraces) also agree
-    on the hardware traces (htraces). To this end, we use relational theory
-    [see https://en.wikipedia.org/wiki/Equivalence_class]
-
-    From the theory perspective, the fuzzing results establish a relation between the ctraces
-    and the htraces. E.g., if an input produced a ctrace C and an htrace H, then C is
-    related to H. Because of the retries, though, we may have several htraces per input.
-    Therefore, the actual relation is C->set(H).
-
-    Based on this relations, we establish equivalence classes for all ctraces.
-    This function checks if all equivalence classes have only one entry.
-
-    :return A list of input IDs where ctraces disagree with htraces and a list of inputs that
-        require retries
-    """
+class EquivalenceAnalyserCommon(Analyser):
 
     def filter_violations(self,
                           inputs: List[Input],
                           ctraces: List[CTrace],
                           htraces: List[HTrace],
                           stats=False) -> List[EquivalenceClass]:
-        if not htraces:   # might be empty due to tracing errors
+        """
+        Group the measurements by their ctrace (i.e., build equivalence classes of measurements
+        w.r.t. their ctrace) and check if all htraces in the same equivalence class are equal.
+
+        Note that the htraces are not necessarily compared directly (i.e., we don't always
+        check if htrace1 == htrace2). This isn't always possible because the measurements
+        are noisy, and we need to allow for some differences. Instead, each of the subclasses
+        of this class implements a different way to compare the htraces. For example, the
+        ProbabilisticAnalyser compares the distributions of traces.
+
+        :return A list of contract violations, i.e., the equivalence classes that
+                contain contract-equivalent measurements with non-equivalent htraces
+        """
+        if not htraces:  # might be empty due to tracing errors
             return []
 
         equivalence_classes: List[EquivalenceClass] = self._build_equivalence_classes(
@@ -47,27 +42,12 @@ class EquivalenceAnalyser(Analyser):
         violations: List[EquivalenceClass] = []
         for eq_cls in equivalence_classes:
             # if all htraces in the class match, it's definitely not a violation
-            if len(eq_cls.htrace_map) < 2:
+            if len(eq_cls.htrace_groups) < 2:
                 continue
 
-            if CONF.analyser_subsets_is_violation:
-                violations.append(eq_cls)
-                continue
-
-            violating_htraces = list(eq_cls.htrace_map.keys())
-            if not self.check_if_all_subsets(violating_htraces):
-                violations.append(eq_cls)
+            violations.append(eq_cls)
 
         return violations
-
-    @staticmethod
-    def check_if_all_subsets(htraces: List[HTrace]) -> bool:
-        max_htrace = max(htraces, key=lambda x: len(x.raw))
-        for htrace in htraces:
-            for raw_trace in htrace.raw:
-                if raw_trace not in max_htrace.raw:
-                    return False
-        return True
 
     def _build_equivalence_classes(self,
                                    inputs: List[Input],
@@ -103,6 +83,95 @@ class EquivalenceAnalyser(Analyser):
 
         # build maps of htraces
         for eq_cls in effective_classes:
-            eq_cls.build_htrace_map()
+            self.build_htrace_groups(eq_cls)
 
         return effective_classes
+
+    def build_htrace_groups(self, eq_cls: EquivalenceClass) -> None:
+        """ see interfaces.py:Analyser for the docstring """
+        groups: List[List[Measurement]] = []
+        for m in eq_cls.measurements:
+            for group in groups:
+                if self.htraces_are_equivalent(m.htrace, group[0].htrace):
+                    group.append(m)
+                    break
+            else:
+                groups.append([m])
+
+        eq_cls.htrace_groups = groups
+
+
+class MergedBitmapAnalyser(EquivalenceAnalyserCommon):
+    """ A variant of the analyser that compares the htraces as merged bitmaps. I.e., it merges
+    the htrace lists into bitmaps and compares the results.
+
+    It also applies filtering of outliers according to CONF.analyser_outliers_threshold
+    """
+
+    bitmap_cache: Dict[int, int]
+    MASK = pow(2, 64) - 1
+
+    def __init__(self):
+        self.bitmap_cache = {}
+
+    def htraces_are_equivalent(self, htrace1: HTrace, htrace2: HTrace) -> bool:
+        bitmaps = [0, 0]
+        threshold = CONF.analyser_outliers_threshold * CONF.executor_repetitions
+        for i, htrace in enumerate([htrace1, htrace2]):
+            # check if cached
+            if htrace.hash_ in self.bitmap_cache:
+                bitmaps[i] = self.bitmap_cache[htrace.hash_]
+                continue
+
+            # remove outliers
+            counter = Counter(htrace.raw)
+            filtered = [x for x in htrace.raw if counter[x] >= threshold]
+
+            # merge into bitmap
+            for t in filtered:
+                bitmaps[i] |= t
+
+            # cache
+            self.bitmap_cache[htrace.hash_] = bitmaps[i]
+
+        if CONF.analyser_subsets_is_violation:
+            return bitmaps[0] == bitmaps[1]
+
+        # check if the bitmaps are disjoint
+        inverse = [~bitmaps[0] & self.MASK, ~bitmaps[1] & self.MASK]
+        return (bitmaps[0] & inverse[1]) == 0 or (bitmaps[1] & inverse[0]) == 0
+
+
+class SetAnalyser(EquivalenceAnalyserCommon):
+    """ A variant of the analyser that compares the htraces as sets. I.e., it squashes
+    the htrace lists into sets and compares the results.
+
+    It also applies filtering of outliers according to CONF.analyser_outliers_threshold
+    """
+
+    def htraces_are_equivalent(self, htrace1: HTrace, htrace2: HTrace) -> bool:
+        """ Squash the htrace lists into sets and compare the results """
+        threshold = CONF.analyser_outliers_threshold * CONF.executor_repetitions
+        filtered1 = [x for x in htrace1.raw if x >= threshold]
+        filtered2 = [x for x in htrace2.raw if x >= threshold]
+
+        trace_set1 = set(filtered1)
+        trace_set2 = set(filtered2)
+
+        if CONF.analyser_subsets_is_violation:
+            return trace_set1 == trace_set2
+
+        return trace_set1.issubset(trace_set2) or trace_set2.issubset(trace_set1)
+
+
+class MWUAnalyser(EquivalenceAnalyserCommon):
+    """ A variant of the analyser that uses the Mann-Withney U test to compare htraces """
+
+    def htraces_are_equivalent(self, htrace1: HTrace, htrace2: HTrace) -> bool:
+        """ Use the Mann-Withney U test to compare htraces """
+        _, p_value = stats.mannwhitneyu(htrace1.raw, htrace2.raw)
+
+        # print(set(htrace1.raw), set(htrace2.raw), p_value)
+        # if p_value > CONF.analyser_p_value_threshold:
+        #     print(f"p_value={p_value:.6f}")
+        return p_value > CONF.analyser_p_value_threshold
