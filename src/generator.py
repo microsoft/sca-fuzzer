@@ -373,7 +373,10 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
             min_successors = 1
 
         # Create basic blocks
-        node_count = random.randint(CONF.min_bb_per_function, CONF.max_bb_per_function)
+        if CONF.min_bb_per_function == CONF.max_bb_per_function:
+            node_count = CONF.min_bb_per_function
+        else:
+            node_count = random.randint(CONF.min_bb_per_function, CONF.max_bb_per_function)
         func_name = label.removeprefix(".function_")
         nodes = [BasicBlock(f".bb_{func_name}.{i}") for i in range(node_count)]
 
