@@ -596,7 +596,7 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         bb_list = func[:]
         for _ in range(0, CONF.program_size):
             bb = random.choice(bb_list)
-            spec = self._pick_random_instruction_spec()
+            spec = self._pick_random_instruction_spec(CONF.avg_mem_accesses / CONF.program_size)
             inst = self.generate_instruction(spec)
             bb.insert_after(bb.get_last(), inst)
 
@@ -604,8 +604,6 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
             -> InstructionSpec:
         # ensure the requested avg. number of mem. accesses
         search_for_memory_access = False
-        if not memory_access_probability:
-            memory_access_probability = CONF.avg_mem_accesses / CONF.program_size
 
         if CONF.generate_memory_accesses_in_pairs:
             memory_access_probability = 1 if self.had_recent_memory_access else \
