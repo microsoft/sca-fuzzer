@@ -110,7 +110,8 @@ class X86Fuzzer(FuzzerGeneric):
                             continue
                         if not started:
                             continue
-                        if line and line[0] not in ["#", ".", "j"] and "loop" not in line:
+                        if line and line[0] not in ["#", ".", "j"] and "loop" not in line \
+                           and "macro" not in line:
                             fenced_asm.write('lfence\n')
 
             fenced_test_case = self.asm_parser.parse_file(fenced.name)
