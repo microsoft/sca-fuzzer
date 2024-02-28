@@ -107,7 +107,7 @@ class X86Executor(Executor):
         """ Sets a list of inputs IDs that should be ignored by the executor.
         The executor will executed the inputs with these IDs as normal (in case they are
         necessary for priming the uarch state), but their htraces will be set to zero """
-        self.ignore_list = ignore_list
+        self.ignore_list = list(ignore_list)
 
     def extend_ignore_list(self, ignore_list: List[int]):
         self.ignore_list.extend(ignore_list)
