@@ -593,9 +593,18 @@ class X86PatchUndefinedFlagsPass(Pass):
 
                 # make sure that we do not have undefined flags when we enter the BB
                 if flags_to_set:
+                    # find a place to insert the patches
+                    inst = bb.get_first()
+                    while inst:
+                        if inst.name != "macro":
+                            break
+                        inst = inst.next
+                    if not inst:
+                        self.LOG.error("X86PatchUndefinedFlagsPass: No place to insert a patch")
+
                     patches = self.find_flags_patch(list(flags_to_set), flags_to_set)
                     for patch in patches:
-                        bb.insert_before(bb.get_first(), patch)
+                        bb.insert_before(inst, patch)
                         patch.is_instrumentation = True
 
     def find_flags_patch(self, undef_flags, flags_to_set) -> List[Instruction]:

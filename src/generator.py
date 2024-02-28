@@ -30,6 +30,10 @@ class GeneratorException(Exception):
 # ==================================================================================================
 class Pass(abc.ABC):
 
+    def __init__(self) -> None:
+        self.LOG = Logger()
+        super().__init__()
+
     @abc.abstractmethod
     def run_on_test_case(self, test_case: TestCase) -> None:
         pass
