@@ -104,7 +104,7 @@ class X86AsmParser(AsmParserGeneric):
             raise AsmParserException(line_num, f"Unknown instruction {line}")
 
         # instrumentation?
-        is_instrumentation = line.endswith("# instrumentation")
+        is_instrumentation = "instrumentation" in line
 
         # remove comments
         if "#" in line:
