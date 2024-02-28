@@ -51,7 +51,7 @@ class MinimizerViolation(Minimizer):
 
     def run(self, test_case_asm: str, outfile: str, num_inputs: int, enable_minimize: bool,
             enable_simplify: bool, enable_add_fences: bool, enable_find_sources: bool,
-            enable_minimize_inputs: bool):
+            enable_minimize_inputs: bool, enable_multipass: bool):
         assert CONF.instruction_set == "x86-64", "Postprocessor supports only x86-64 so far"
 
         # Parse the test case and inputs
@@ -60,7 +60,6 @@ class MinimizerViolation(Minimizer):
         inputs: List[Input] = self.fuzzer.input_gen.generate(num_inputs)
 
         # Load, boost inputs, and trace
-
         print("Trying to reproduce...")
         violations = self.fuzzer.fuzzing_round(test_case, inputs)
         if not violations:
@@ -78,6 +77,18 @@ class MinimizerViolation(Minimizer):
         if enable_simplify:
             print("\nSimplifying instructions:\n  Progress: ", end='', flush=True)
             test_case = self.simplify(test_case, inputs)
+
+        if enable_minimize and enable_multipass:
+            for attempt in range(5):
+                print(
+                    f"\nMinimizing the test case (attempt #{attempt}:\n  Progress: ",
+                    end='',
+                    flush=True)
+                old_instruction_count = len([i for i in open(test_case.asm_path, "r")])
+                test_case = self.minimize_test_case(test_case, inputs)
+                new_instruction_count = len([i for i in open(test_case.asm_path, "r")])
+                if new_instruction_count == old_instruction_count:
+                    break
 
         if enable_add_fences:
             print("\nTrying to add fences:\n  Progress: ", end='')
@@ -292,8 +303,6 @@ class MinimizerViolation(Minimizer):
 
         # make sure that we consider only these two inputs
         ignored = [i for i in range(len(inputs)) if i not in violating_input_ids]
-        self.fuzzer.executor.set_ignore_list(ignored)
-        self.fuzzer.executor.enable_sticky_ignore_list = True
 
         # make a copy of the inputs
         input_a = inputs[violating_input_ids[0]]
@@ -313,6 +322,9 @@ class MinimizerViolation(Minimizer):
                 region_size = len(input_a[actor_id][region_name])
                 while i < (region_size - 1):
                     i += 1
+
+                    self.fuzzer.executor.set_ignore_list(ignored)
+                    self.fuzzer.executor.enable_sticky_ignore_list = True
 
                     # progress indicator
                     absolute_address = actor_id * 0x4000 + region_offset + i * 8
