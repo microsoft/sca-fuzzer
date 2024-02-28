@@ -194,6 +194,12 @@ def main() -> int:
         help="Find a sequence of inputs with minimal differences that still trigger\n "
         "the violation.")
     parser_mini.add_argument("-s", "--instruction-set", type=str, required=True)
+    parser_mini.add_argument(
+        "--enable-multipass",
+        action='store_true',
+        default=False,
+        help="Enable the minimizer to run the minimization algorithm multiple times\n "
+        "to find the smallest test case that triggers the violation.")
 
     # ==============================================================================================
     # Standalone interface to test case generation
@@ -329,7 +335,8 @@ def main() -> int:
         fuzzer = get_fuzzer(args.instruction_set, "", args.genfile, "")
         minimizer = get_minimizer(fuzzer, args.instruction_set)
         minimizer.run(args.genfile, args.outfile, args.num_inputs, not args.no_minimize,
-                      args.simplify, args.add_fences, args.find_sources, args.find_min_inputs)
+                      args.simplify, args.add_fences, args.find_sources, args.find_min_inputs,
+                      args.enable_multipass)
         return 0
 
     # Configuration tuning
