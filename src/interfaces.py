@@ -251,7 +251,11 @@ class Input(np.ndarray):
     def load(self, path: str) -> None:
         with open(path, 'rb') as f:
             contents = np.fromfile(f, dtype=np.uint64)
-            self.linear_view(0)[:] = contents
+            n_actors = self.shape[0]
+            for actor_id in range(n_actors):
+                actor_start = actor_id * self.itemsize // 8
+                actor_end = actor_start + self.itemsize // 8
+                self.linear_view(actor_id)[:] = contents[actor_start:actor_end]
 
 
 class InputTaint(Input):
@@ -795,11 +799,15 @@ class EquivalenceClass:
     htrace_groups: List[List[Measurement]]
     """ htrace_groups: a list of htrace groups; each group is a list of measurements that produced
     the same htrace (or a equivalent htraces under the current analyser). """
+    input_sequence: List[Input]
+    """ input_sequence: the complete sequence of inputs that triggered the violation """
 
     MOD2P64 = pow(2, 64)
 
-    def __init__(self) -> None:
+    def __init__(self, ctrace: CTrace, inputs: List[Input]) -> None:
         self.measurements = []
+        self.ctrace = ctrace
+        self.input_sequence = inputs
 
     def __str__(self):
         s = f"Size: {len(self.measurements)}\n"
