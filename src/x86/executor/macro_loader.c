@@ -532,6 +532,8 @@ void __attribute__((noipa)) macro_measurement_end_tsc(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                               //
+                       "cmp " HTRACE_REGISTER ", 0\n"   // skip if already called
+                       "jg 97f\n"                      //
                        PUSH_ABCDF()                     //
                        READ_PFC_END()                   //
                        "lfence; rdtsc; lfence\n"        //
@@ -539,6 +541,7 @@ void __attribute__((noipa)) macro_measurement_end_tsc(void)
                        "or rdx, rax\n"                  //
                        "add " HTRACE_REGISTER ", rdx\n" //
                        POP_ABCDF()                      //
+                       "97:\n"                          //
     );
     asm volatile(".quad " xstr(MACRO_END));
 }
