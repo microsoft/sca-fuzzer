@@ -12,12 +12,14 @@
     .macro.switch_h2g.actor2:
 
 .function_fin:
+    .macro.landing_g2h:
     .macro.measurement_end:
     nop
 
 # ----------------------------- actor 2 ------------------------------------------------------------
 .section .data.actor2
 .function_a2:
+    .macro.landing_h2g:
     .macro.switch_g2h.main:
 
 # ----------------------------- exit    ------------------------------------------------------------
