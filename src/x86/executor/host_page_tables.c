@@ -137,6 +137,21 @@ int store_orig_host_permissions(void)
     return 0;
 }
 
+/// @brief A shortcut to restore the original PTEs for a single page.
+/// @param ptep
+/// @param old_pte
+/// @param vaddr
+void restore_pte(pte_t_ *ptep, pte_t_ old_pte, uint64_t vaddr)
+{
+    uint64_t curr_pte_val = *(uint64_t *)ptep;
+    uint64_t old_pte_val = *(uint64_t *)&old_pte;
+
+    if (curr_pte_val != old_pte_val) {
+        *ptep = old_pte;
+        native_page_invalidate(vaddr);
+    }
+}
+
 /// @brief Restore the original PTEs for all sandbox pages.
 /// @param void
 /// @return
@@ -148,8 +163,8 @@ int restore_orig_host_permissions(void)
 
     // restore the original PTEs for the util pages
     for (int i = 0; i < N_UTIL_PAGES; i++) {
-        *sandbox_pteps->util_pteps[i] = orig_ptes->util_ptes[i];
-        native_page_invalidate((uint64_t)sandbox->util + i * 4096);
+        restore_pte(sandbox_pteps->util_pteps[i], orig_ptes->util_ptes[i],
+                    (uint64_t)sandbox->util + i * 4096);
     }
 
     // restore the original PTEs for the code and data pages of the sandbox
@@ -157,14 +172,14 @@ int restore_orig_host_permissions(void)
         // restore the original PTEs for the data pages of the actor
         for (int i = 0; i < N_DATA_PAGES_PER_ACTOR; i++) {
             int page_id = actor_id * N_DATA_PAGES_PER_ACTOR + i;
-            *sandbox_pteps->data_pteps[page_id] = orig_ptes->data_ptes[page_id];
-            native_page_invalidate((uint64_t)&sandbox->data[actor_id] + i * 4096);
+            restore_pte(sandbox_pteps->data_pteps[page_id], orig_ptes->data_ptes[page_id],
+                        (uint64_t)&sandbox->data[actor_id] + i * 4096);
         }
         // restore the original PTEs for the code pages of the actor
         for (int i = 0; i < N_CODE_PAGES_PER_ACTOR; i++) {
             int page_id = actor_id * N_CODE_PAGES_PER_ACTOR + i;
-            *sandbox_pteps->code_pteps[page_id] = orig_ptes->code_ptes[page_id];
-            native_page_invalidate((uint64_t)&sandbox->code[actor_id] + i * 4096);
+            restore_pte(sandbox_pteps->code_pteps[page_id], orig_ptes->code_ptes[page_id],
+                        (uint64_t)&sandbox->code[actor_id] + i * 4096);
         }
     }
     return 0;
@@ -220,12 +235,13 @@ void set_faulty_page_host_permissions(void)
         uint64_t mask_set = pte_mask & MODIFIABLE_PTE_BITS;
         uint64_t mask_clear = pte_mask | ~MODIFIABLE_PTE_BITS;
 
-        if ((mask_set != 0) || (mask_clear != NO_CLEAR_MASK)) {
-            int page_id = actor_id * N_DATA_PAGES_PER_ACTOR + FAULTY_PAGE_ID;
-            pte_t_ *ptep = sandbox_pteps->data_pteps[page_id];
-            faulty_ptes[actor_id] = *ptep;
-            uint64_t pte = *(uint64_t *)ptep;
+        int page_id = actor_id * N_DATA_PAGES_PER_ACTOR + FAULTY_PAGE_ID;
+        pte_t_ *ptep = sandbox_pteps->data_pteps[page_id];
+        faulty_ptes[actor_id] = *ptep;
+        uint64_t org_value = *(uint64_t *)ptep;
+        uint64_t pte = (org_value | mask_set) & mask_clear;
 
+        if (pte != org_value) {
             *(uint64_t *)ptep = (pte | mask_set) & mask_clear;
             native_page_invalidate((uint64_t)&sandbox->data[actor_id] + FAULTY_PAGE_ID * 4096);
         }

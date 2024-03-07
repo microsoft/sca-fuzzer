@@ -297,12 +297,13 @@ void set_faulty_page_guest_permissions(void)
         uint64_t mask_set = pte_mask & MODIFIABLE_PTE_BITS;
         uint64_t mask_clear = pte_mask | ~MODIFIABLE_PTE_BITS;
 
-        if ((mask_set != 0) || (mask_clear != NO_CLEAR_MASK)) {
-            pte_t_ *ptep = &_allocated_page_tables[actor_id].pt[index];
-            uint64_t pte = *(uint64_t *)ptep;
+        pte_t_ *ptep = &_allocated_page_tables[actor_id].pt[index];
+        faulty_ptes[actor_id] = *ptep;
 
-            faulty_ptes[actor_id] = *ptep;
-            *(uint64_t *)ptep = (pte | mask_set) & mask_clear;
+        uint64_t org_pte = *(uint64_t *)ptep;
+        uint64_t pte = (org_pte | mask_set) & mask_clear;
+        if (pte != org_pte) {
+            *(uint64_t *)ptep = pte;
             // native_page_invalidate(vaddr);
         }
     }
@@ -340,10 +341,13 @@ void set_faulty_page_ept_permissions(void)
         uint64_t mask_set = pte_mask & MODIFIABLE_EPTE_BITS;
         uint64_t mask_clear = pte_mask | ~MODIFIABLE_EPTE_BITS;
 
-        if ((mask_set != 0) || (mask_clear != NO_CLEAR_MASK_EPT)) {
-            epte_t_ *ptep = &_allocated_extended_page_tables[actor_id].l1[index];
-            faulty_eptes[actor_id] = *ptep;
-            *(uint64_t *)ptep = (*(uint64_t *)ptep | mask_set) & mask_clear;
+        epte_t_ *ptep = &_allocated_extended_page_tables[actor_id].l1[index];
+        faulty_eptes[actor_id] = *ptep;
+
+        uint64_t org_pte = *(uint64_t *)ptep;
+        uint64_t pte = (org_pte | mask_set) & mask_clear;
+        if (pte != org_pte) {
+            *(uint64_t *)ptep = pte;
             // native_page_invalidate(vaddr);
         }
     }
