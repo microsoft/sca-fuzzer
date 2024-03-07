@@ -18,7 +18,8 @@
 
 #define MODIFIABLE_PTE_BITS                                                                        \
     (_PAGE_PRESENT | _PAGE_RW | _PAGE_PWT | _PAGE_PCD | _PAGE_ACCESSED | _PAGE_DIRTY |             \
-     _PAGE_PKEY_BIT0 | _PAGE_PKEY_BIT1 | _PAGE_PKEY_BIT2 | _PAGE_PKEY_BIT3 | _PAGE_NX)
+     _PAGE_PKEY_BIT0 | _PAGE_PKEY_BIT1 | _PAGE_PKEY_BIT2 | _PAGE_PKEY_BIT3 | _PAGE_NX |            \
+     (1ULL << 51))
 #define NO_CLEAR_MASK (0xffffffffffffffff & ~MODIFIABLE_PTE_BITS)
 
 #define _E_PAGE_PRESENT  (1 << 0)
@@ -29,7 +30,8 @@
 #define _E_PAGE_USER     (1 << 10)
 
 #define MODIFIABLE_EPTE_BITS                                                                       \
-    (_E_PAGE_PRESENT | _E_PAGE_RW | _E_PAGE_X | _E_PAGE_ACCESSED | _E_PAGE_DIRTY | _E_PAGE_USER)
+    (_E_PAGE_PRESENT | _E_PAGE_RW | _E_PAGE_X | _E_PAGE_ACCESSED | _E_PAGE_DIRTY | _E_PAGE_USER |  \
+     (1ULL << 51))
 #define NO_CLEAR_MASK_EPT (0xffffffffffffffff & ~MODIFIABLE_EPTE_BITS)
 
 // =================================================================================================
