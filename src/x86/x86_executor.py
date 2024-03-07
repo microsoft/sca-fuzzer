@@ -201,9 +201,14 @@ class X86Executor(Executor):
                         break
 
                     if input_id not in self.ignore_list:
-                        all_results[input_id][rep]['htrace'] = int(row[0])
+                        raw_trace = int(row[0])
+                        if CONF.executor_mode == 'TSC':
+                            all_results[input_id][rep]['htrace'] = raw_trace & 0x0FFFFFFFFFFFFFF0
+                        else:
+                            all_results[input_id][rep]['htrace'] = raw_trace
+
                         all_results[input_id][rep]['pfc'] = [int(x) for x in row[1:]]
-                        if all_results[input_id][rep]['htrace'] == 0:
+                        if raw_trace == 0:
                             self.LOG.warning(
                                 "executor", "Detected a kernel module error (see dmesg for details)"
                                 ". Skipping this test case")
