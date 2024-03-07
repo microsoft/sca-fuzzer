@@ -219,7 +219,7 @@ class MinimizerViolation(Minimizer):
 
             # Run and check if the vuln. is still there
             check_passed = False
-            for i in range(10):
+            for _ in range(CONF.minimizer_retries):
                 if check_func(tmp_test_case, inputs):
                     check_passed = True
                     break

@@ -168,6 +168,8 @@ class Conf:
     # Minimizer
     minimizer: str = 'violation'
     """ minimizer: type of the test case minimizer """
+    minimizer_retries: int = 1
+    """ minimizer_retries: number of attempts to reproduce the violation when minimizing """
 
     # ==============================================================================================
     # Output
