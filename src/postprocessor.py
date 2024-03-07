@@ -169,6 +169,9 @@ class MinimizerViolation(Minimizer):
             shutil.copy(test_case.asm_path, outfile)
 
         if enable_minimize_inputs:
+            print("\n Analyzing inputs:\n  Progress: ", end='')
+            self.find_min_inputs(test_case, inputs, violation)
+
         if enable_violation_comments:
             print("\n Adding comments with violation details:\n", end='')
             test_case = self.add_violation_comments(test_case, inputs, violation)
@@ -381,30 +384,16 @@ class MinimizerViolation(Minimizer):
             instructions[i] = instructions[i][:-1] + "  # speculation sink ?\n"
         return self._get_test_case_from_instructions(instructions, "/tmp/pipe.asm")
 
-    def find_min_inputs(self, test_case: TestCase, inputs: List[Input]):
-        # FIXME: the code below is a broken performance optimization; disabled for now
-        # # find a minimal set of inputs that trigger the violation
-        # tmp_inputs = list(inputs)  # copy
-        # for i in range(len(inputs) - 1, -1, -1):
-        #     if self._check_for_violation(test_case, tmp_inputs[:i] + tmp_inputs[i + 1:]):
-        #         print(".", end="", flush=True)
-        #         tmp_inputs = tmp_inputs[:i] + tmp_inputs[i + 1:]
-        #     else:
-        #         print("-", end="", flush=True)
-        # inputs = tmp_inputs
+    def find_min_inputs(self, test_case: TestCase, inputs: List[Input], violation) -> None:
+        inputs = violation.input_sequence
+        # inputs, _ = self.fuzzer.boost_inputs(inputs, CONF.model_max_nesting)
 
-        inputs, _ = self.fuzzer.boost_inputs(inputs, CONF.model_max_nesting)
+        org_conf = (CONF.inputs_per_class, )
         CONF.inputs_per_class = 1  # disable boosting from now on
 
-        # print("\nModifying inputs:\n  Progress: \n", end="", flush=True)
-        violation = self.fuzzer.fuzzing_round(test_case, inputs)
-        assert violation
         violating_input_ids = [i.input_id for i in violation.measurements]
         if len(violating_input_ids) > 2:
             violating_input_ids = violating_input_ids[:2]
-
-        # make sure that we consider only these two inputs
-        ignored = [i for i in range(len(inputs)) if i not in violating_input_ids]
 
         # make a copy of the inputs
         input_a = inputs[violating_input_ids[0]]
@@ -417,6 +406,11 @@ class MinimizerViolation(Minimizer):
         assert len(input_a) == n_actors
         assert len(input_b) == n_actors
 
+        # print header
+        print(f'\n{"Address":<11}', end="", flush=True)
+        for i in range(0, 64, 8):
+            print(f"+0x{i * 8:<6x}", end="", flush=True)
+
         for actor_id in range(n_actors):
             region_offset = 0
             for region_name in ['main', 'faulty', 'gpr', 'simd']:
@@ -424,9 +418,6 @@ class MinimizerViolation(Minimizer):
                 region_size = len(input_a[actor_id][region_name])
                 while i < (region_size - 1):
                     i += 1
-
-                    self.fuzzer.executor.set_ignore_list(ignored)
-                    self.fuzzer.executor.enable_sticky_ignore_list = True
 
                     # progress indicator
                     absolute_address = actor_id * 0x4000 + region_offset + i * 8
@@ -491,7 +482,7 @@ class MinimizerViolation(Minimizer):
                         continue
 
                     # if failing, restore the original value
-                    print("-", end="", flush=True)
+                    print("^", end="", flush=True)
                     leaked.append(absolute_address)
                     input_a[actor_id][region_name][i] = input_a_org[actor_id][region_name][i]
                     input_b[actor_id][region_name][i] = input_b_org[actor_id][region_name][i]
@@ -499,12 +490,13 @@ class MinimizerViolation(Minimizer):
                 region_offset += region_size * 8
 
         print("\nLeaked bytes:")
-        print(leaked)
+        print([hex(x) for x in leaked])
 
         print("Saving inputs")
         for i in range(len(inputs)):
             inputs[i].save(f"input{i}.bin")
 
+        CONF.inputs_per_class = org_conf[0]
 
     def add_violation_comments(self, test_case: TestCase, inputs: List[Input],
                                violation) -> TestCase:
