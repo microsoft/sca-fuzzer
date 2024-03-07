@@ -182,6 +182,9 @@ x86_executor_enable_prefetcher: bool = False
 x86_executor_enable_ssbp_patch: bool = True
 """ x86_executor_enable_ssbp_patch: enable a patch against Speculative Store Bypass"""
 x86_disable_div64: bool = True
+""" x86_disable_div64: do not generate 64-bit division instructions """
+x86_generator_align_locks: bool = False
+""" x86_generator_align_locks: align all generated locks to 8 bytes """
 
 # Overwrite executor
 executor: str = try_get_cpu_vendor()
