@@ -8,10 +8,11 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, List, Callable, Tuple
-from scipy import stats
+from scipy import stats  # type: ignore
 import copy
 import numpy as np
 import pandas as pd
+import time
 
 from . import factory
 from .interfaces import Fuzzer, CTrace, HTrace, Input, EquivalenceClass, TestCase, \
@@ -193,17 +194,7 @@ class FuzzerGeneric(Fuzzer):
         #    and check them one at a time, starting with the most likely ones
         self.LOG.fuzzer_slow_path()
 
-        # 2.1 FP might appear because we experienced noise. Retry the fast path N times,
-        #     proceed only if the violation is persistent
-        for _ in range(CONF.executor_violation_retries):
-            violations, _, __, htraces = self._collect_traces(
-                boosted_inputs, n_reps, nesting, reuse_ctraces=ctraces)
-            if not violations:
-                STAT.fp_noise += 1
-                return None
-        self.reference_htraces = htraces
-
-        # 2.2 FP might appear because the model did not go deep enough into nested speculation.
+        # 2.1 FP might appear because the model did not go deep enough into nested speculation.
         #     To remove such FPs, we re-run the model tracing with max nesting. As taints depend on
         #     contract traces, we also have to re-boost the inputs, and re-collect hardware traces
         #     for the new inputs
@@ -214,6 +205,18 @@ class FuzzerGeneric(Fuzzer):
             if not violations:
                 STAT.fp_nesting += 1
                 return None
+
+        # 2.2 FP might appear because we experienced noise. Retry the fast path N times,
+        #     proceed only if the violation is persistent. Sleep for a short period of time
+        #     between retries to tolerate noise bursts
+        for retry_id in range(CONF.executor_violation_retries):
+            time.sleep(retry_id * 0.3)
+            violations, _, __, htraces = self._collect_traces(
+                boosted_inputs, n_reps, nesting, reuse_ctraces=ctraces)
+            if not violations:
+                STAT.fp_noise += 1
+                return None
+        self.reference_htraces = htraces
 
         # 2.3 FP might appear because of imperfect tainting (e.g., due to a bug in taint tracker).
         #     To remove such FPs, we collect contract traces for all boosted inputs, and check if
@@ -353,7 +356,7 @@ class FuzzerGeneric(Fuzzer):
             f.write("\n## Counterexample Inputs\n")
             for m in violation.measurements:
                 f.write(f"\nInput #{m.input_id}\n")
-                f.write(f"* Hardware trace: {pretty_htrace(m.htrace)}\n")
+                f.write(f"* Hardware trace:\n {pretty_htrace(m.htrace)}\n")
                 f.write(f"* Contract trace (hash): {m.ctrace}\n")
                 ctrace_full = self.model.dbg_get_trace_detailed(m.input_, CONF.model_max_nesting)
                 f.write(f"* Contract trace (detailed): {ctrace_full}\n")
