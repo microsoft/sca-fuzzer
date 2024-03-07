@@ -435,20 +435,46 @@ class MinimizerViolation(Minimizer):
                     elif i % 8 == 0:
                         print(" ", end="", flush=True)
 
-                    # try zeroing a 512-byte block
-                    if i % 64 == 0 and region_size - i >= 64:
-                        for j in range(64):
+                    # Try zeroing out blocks of decreasing size:
+                    # 1. find a suitable starting block size, fulfilling the following conditions:
+                    #    * the block size is less then 512 bytes (64 * 8)
+                    block_size = 64 - (i % 64)
+                    #    * the block does not overlap with the next region
+                    if block_size > region_size - i:
+                        block_size = region_size - i
+                    #    * the block size is a power of 2
+                    block_size = 2 ** int(log2(block_size))
+                    #    * i mod block_size == 0
+                    while block_size > 1 and i % block_size != 0:
+                        block_size //= 2
+                    # 2. binary search for the largest zeroed-out block that
+                    #    still triggers the violation
+                    success = False
+                    while block_size > 1:
+                        for j in range(block_size):
                             input_a[actor_id][region_name][i + j] = 0
                             input_b[actor_id][region_name][i + j] = 0
                         if self._check_for_violation(test_case, inputs):
-                            print(("." * 8 + " ") * 8, end="", flush=True)
-                            i += 63
-                            continue
-                        for j in range(64):
+                            n_64byte_blocks = block_size // 8
+                            n_remainder_bytes = block_size % 8
+                            if n_remainder_bytes > 0:
+                                print("." * n_remainder_bytes, end="", flush=True)
+                                if n_64byte_blocks > 0:
+                                    print(" ", end="", flush=True)
+                            if n_64byte_blocks > 0:
+                                print(("." * 8 + " ") * (n_64byte_blocks - 1), end="", flush=True)
+                                print("." * 8, end="", flush=True)
+                            i += block_size - 1
+                            success = True
+                            break
+                        for j in range(block_size):
                             input_a[actor_id][region_name][i + j] = \
                                 input_a_org[actor_id][region_name][i + j]
                             input_b[actor_id][region_name][i + j] = \
-                                input_a_org[actor_id][region_name][i + j]
+                                input_b_org[actor_id][region_name][i + j]
+                        block_size //= 2
+                    if success:
+                        continue
 
                     # try zeroing out a single byte
                     input_a[actor_id][region_name][i] = 0
