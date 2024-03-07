@@ -118,6 +118,11 @@ class MinimizerViolation(Minimizer):
         print(f"Violating inputs: {violating_input_ids}")
         n_inputs = len(inputs) * CONF.inputs_per_class
         self.ignore_list = [i for i in range(n_inputs) if i not in violating_input_ids]
+
+        # Update p-value
+        if CONF.analyser == "mwu":
+            self.adjust_p_value(violation)
+
         if enable_minimize:
             print("\nMinimizing the test case:\n  Progress: ", end='', flush=True)
             test_case = self.minimize_test_case(test_case, inputs)
@@ -171,6 +176,19 @@ class MinimizerViolation(Minimizer):
 
         print("\nStoring the results")
         shutil.copy(test_case.asm_path, outfile)
+
+    def adjust_p_value(self, violation):
+        htraces = [m.htrace.raw for m in violation.measurements]
+        max_p_value: float = 0
+        for htrace1, htrace2 in zip(htraces, htraces[1:]):
+            _, p_value = stats.mannwhitneyu(htrace1, htrace2)
+            max_p_value = p_value if p_value > max_p_value else max_p_value
+        new_p_value: float = max_p_value * 10
+        if new_p_value < CONF.analyser_p_value_threshold:
+            if new_p_value < CONF.analyser_p_value_threshold / 10:
+                new_p_value = CONF.analyser_p_value_threshold / 10
+            print("Reducing p from ", CONF.analyser_p_value_threshold, " to ", new_p_value)
+            CONF.analyser_p_value_threshold = new_p_value
 
     # ==============================================================================================
     # Abstract implementation of a test case processor
