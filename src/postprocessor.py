@@ -113,6 +113,18 @@ class MinimizerViolation(Minimizer):
             return
         print("Reproduced successfully.")
 
+        # Try to reproduce the same with fewer inputs
+        org_len = len(inputs)
+        while len(inputs) > 5:
+            new_inputs = inputs[:len(inputs) // 2]
+            new_violation = self.fuzzer.fuzzing_round(test_case, new_inputs)
+            if not new_violation:
+                break
+            inputs = new_inputs
+            violation = new_violation
+        if len(inputs) < org_len:
+            print("Reduced the number of inputs to ", len(inputs))
+
         # Set the non-violating inputs as the ignore list
         violating_input_ids = [m.input_id for m in violation.measurements]
         print(f"Violating inputs: {violating_input_ids}")
