@@ -170,9 +170,9 @@ class X86ArchDiffFuzzer(FuzzerGeneric):
         return htraces
 
     def _build_dummy_ecls(self) -> EquivalenceClass:
-        eq_cls = EquivalenceClass()
-        eq_cls.ctrace = 0
-        eq_cls.measurements = [Measurement(0, Input(), 0, HTrace([0]))]
+        inputs = [Input()]
+        eq_cls = EquivalenceClass(0, inputs)
+        eq_cls.measurements = [Measurement(0, inputs[0], 0, HTrace([0]))]
         self.analyser.build_htrace_groups(eq_cls)
         return eq_cls
 

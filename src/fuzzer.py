@@ -654,8 +654,7 @@ class ArchitecturalFuzzer(FuzzerGeneric):
                 print(f"Model: {[hex(v) for v in ctraces[i]]}")
                 print(f"CPU:   {[hex(v) for v in htraces[i]]}")
 
-                eq_cls = EquivalenceClass()
-                eq_cls.ctrace = ctraces[i][0]
+                eq_cls = EquivalenceClass(ctraces[i][0], inputs)
                 eq_cls.measurements = [Measurement(i, inputs[i], ctraces[i][0], htrace_objs[i])]
                 self.analyser.build_htrace_groups(eq_cls)
                 return eq_cls

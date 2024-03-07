@@ -63,26 +63,32 @@ class EquivalenceAnalyserCommon(Analyser):
         the equivalence class by the htrace
         """
 
-        # build eq. classes
-        eq_class_map: Dict[CTrace, EquivalenceClass] = defaultdict(lambda: EquivalenceClass())
+        # map ctraces to their IDs
+        equivalent_inputs_ids = defaultdict(list)
         for i, ctrace in enumerate(ctraces):
-            # skip the measurements with corrupted/ignored htraces
-            if not htraces[i].raw:
-                continue
-            eq_cls = eq_class_map[ctrace]
-            eq_cls.ctrace = ctrace
-            eq_cls.measurements.append(Measurement(i, inputs[i], ctrace, htraces[i]))
+            equivalent_inputs_ids[ctrace].append(i)
+
+        # build all equivalence. classes
+        all_classes: List[EquivalenceClass] = []
+        for ctrace, ids in equivalent_inputs_ids.items():
+            eq_cls = EquivalenceClass(ctrace, inputs)
+            for i in ids:
+                # skip the measurements with corrupted/ignored htraces
+                if not htraces[i].raw:
+                    continue
+                eq_cls.measurements.append(Measurement(i, inputs[i], ctrace, htraces[i]))
+            all_classes.append(eq_cls)
 
         # find effective classes
         effective_classes: List[EquivalenceClass] = []
-        for eq_cls in eq_class_map.values():
+        for eq_cls in all_classes:
             if len(eq_cls.measurements) > 1:
                 effective_classes.append(eq_cls)
         effective_classes.sort(key=lambda x: x.ctrace)
 
         if stats:
             STAT.eff_classes += len(effective_classes)
-            STAT.single_entry_classes += len(eq_class_map) - len(effective_classes)
+            STAT.single_entry_classes += len(all_classes) - len(effective_classes)
             STAT.analysed_test_cases += 1
 
         # build maps of htraces
@@ -95,6 +101,10 @@ class EquivalenceAnalyserCommon(Analyser):
         """ see interfaces.py:Analyser for the docstring """
         groups: List[List[Measurement]] = []
         for m in eq_cls.measurements:
+            if not groups:
+                groups.append([m])
+                continue
+
             for group in groups:
                 if self.htraces_are_equivalent(m.htrace, group[0].htrace):
                     group.append(m)
@@ -172,18 +182,18 @@ class MWUAnalyser(EquivalenceAnalyserCommon):
     """ A variant of the analyser that uses the Mann-Withney U test to compare htraces """
 
     def __init__(self) -> None:
+        super().__init__()
         if CONF.analyser_p_value_threshold == 0.01:
             self.LOG.warning(
                 "analyser", "Using the default p-value threshold of 0.01 for the MWU test\n"
                 "may lead to false positives. Consider running `rvzr tune`\n"
                 "to find a threshold that fits your testing target")
-        super().__init__()
 
     def htraces_are_equivalent(self, htrace1: HTrace, htrace2: HTrace) -> bool:
         """ Use the Mann-Withney U test to compare htraces """
         _, p_value = stats.mannwhitneyu(htrace1.raw, htrace2.raw)
 
         # print(set(htrace1.raw), set(htrace2.raw), p_value)
-        # if p_value > CONF.analyser_p_value_threshold:
-        #     print(f"p_value={p_value:.6f}")
+        # if p_value <= CONF.analyser_p_value_threshold:
+        # print(f"p_value={p_value:.6f}")
         return p_value > CONF.analyser_p_value_threshold
