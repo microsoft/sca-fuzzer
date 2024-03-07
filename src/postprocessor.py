@@ -97,7 +97,7 @@ class MinimizerViolation(Minimizer):
 
     def run(self, test_case_asm: str, outfile: str, num_inputs: int, enable_minimize: bool,
             enable_simplify: bool, enable_add_fences: bool, enable_find_sources: bool,
-            enable_minimize_inputs: bool, enable_multipass: bool):
+            enable_minimize_inputs: bool, enable_multipass: bool, enable_violation_comments: bool):
         assert CONF.instruction_set == "x86-64", "Postprocessor supports only x86-64 so far"
 
         # Parse the test case and inputs
@@ -164,8 +164,10 @@ class MinimizerViolation(Minimizer):
             shutil.copy(test_case.asm_path, outfile)
 
         if enable_minimize_inputs:
-            print("\n Searching for a minimal sequence of inputs:\n  Progress: ", end='')
-            self.find_min_inputs(test_case, inputs)
+        if enable_violation_comments:
+            print("\n Adding comments with violation details:\n", end='')
+            test_case = self.add_violation_comments(test_case, inputs, violation)
+            shutil.copy(test_case.asm_path, outfile)
 
         print("\nStoring the results")
         shutil.copy(test_case.asm_path, outfile)
@@ -452,6 +454,82 @@ class MinimizerViolation(Minimizer):
         print("Saving inputs")
         for i in range(len(inputs)):
             inputs[i].save(f"input{i}.bin")
+
+
+    def add_violation_comments(self, test_case: TestCase, inputs: List[Input],
+                               violation) -> TestCase:
+        inputs, _ = self.fuzzer.boost_inputs(inputs, CONF.model_max_nesting)
+        v_inputs = [m.input_ for m in violation.measurements[:2]]
+        v_input_ids = [m.input_id for m in violation.measurements[:2]]
+
+        # create a model that will collect PC and memory traces
+        sandbox_base, code_base = 0x2000000, 0x1000000
+        model = X86UnicornDEH(sandbox_base, code_base)
+        model.tracer = CTTracer()
+
+        # collect traces
+        ctraces = []
+        model.load_test_case(test_case)
+        for v_input in v_inputs:
+            model.tracer.enable_tracing = True  # trace everything
+            ctrace_str = model.dbg_get_trace_detailed(v_input, 30, True)
+            ctraces.append([int(x) for x in ctrace_str])
+
+        # select loads and stores form the traces
+        ctrace_maps = []
+        for ctrace in ctraces:
+            ctrace_map = {}
+            for v1, v2, v3 in zip(ctrace, ctrace[1:], ctrace[2:]):
+                if v1 >= code_base and v1 < sandbox_base and v2 >= sandbox_base:
+                    pc = v1 - code_base
+                    ld_addr = v2 - sandbox_base
+                    st_addr = v3 - sandbox_base if v3 >= sandbox_base else 0
+                    ctrace_map[pc] = (ld_addr, st_addr)
+            ctrace_maps.append(ctrace_map)
+
+        # get the contents of the asm file
+        lines = []
+        with open(test_case.asm_path, "r") as f:
+            lines = [(i, line) for i, line in enumerate(f)]
+
+        # to simplify the next step, get a dictionary mapping assembly lines to PCs
+        line_num_to_pc = {}
+        for actor_id in test_case.address_map:
+            for inst in test_case.address_map[actor_id].values():
+                pc = inst.section_id * SANDBOX_CODE_SIZE + inst.section_offset
+                line_num = inst.line_num
+                if line_num != 0:
+                    line_num_to_pc[line_num] = pc
+
+        # add a comment with the load/store addresses to the assembly
+        with open(test_case.asm_path, 'w') as f:
+            for i, line in lines:
+                f.write(line)
+                if i not in line_num_to_pc:
+                    continue
+                pc = line_num_to_pc[i]
+                if pc not in ctrace_maps[0] or pc not in ctrace_maps[1]:
+                    continue
+
+                ld, st, cl, of = [0, 0], [0, 0], [0, 0], [0, 0]
+                iid = v_input_ids
+                for i in range(2):
+                    ld[i], st[i] = ctrace_maps[i][pc]
+                    cl[i] = (ld[i] % 0x1000) // 64
+                    of[i] = (ld[i] % 0x1000) % 64
+
+                if st[0] != 0 or st[1] != 0:
+                    f.write(
+                        f"# mem access: [{iid[0]}] {hex(ld[0])}-{hex(st[0])} CL {cl[0]}:{of[0]} | "
+                        f"[{iid[1]}] {hex(ld[1])}-{hex(st[1])} CL {cl[1]}:{of[1]}\n")
+                else:
+                    f.write(f"# mem access: [{iid[0]}] {hex(ld[0])} CL {cl[0]}:{of[0]} | "
+                            f"[{iid[1]}] {hex(ld[1])} CL {cl[1]}:{of[1]}\n")
+
+                if st[0] == 0xff8 or st[1] == 0xff8:
+                    f.write("# exception?\n")
+
+        return test_case
 
     # ==============================================================================================
     # Hook functions

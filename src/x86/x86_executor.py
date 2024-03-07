@@ -53,7 +53,6 @@ class X86Executor(Executor):
     feedback: List[List[int]]
     curr_test_case: TestCase
     ignore_list: List[int]
-    enable_sticky_ignore_list: bool = False
 
     def __init__(self):
         super().__init__()
@@ -125,8 +124,7 @@ class X86Executor(Executor):
     def load_test_case(self, test_case: TestCase):
         self.__write_test_case(test_case)
         self.curr_test_case = test_case
-        if not self.enable_sticky_ignore_list:
-            self.ignore_list = []
+        self.ignore_list = []
 
     def trace_test_case(self, inputs: List[Input], n_reps: int) -> List[HTrace]:
         """ see interfaces.py:Executor for documentation """
@@ -137,7 +135,7 @@ class X86Executor(Executor):
         n_inputs = len(inputs)
 
         # skip if all inputs are ignored
-        if n_inputs - len(self.ignore_list) == 0:
+        if n_inputs == len(self.ignore_list):
             self.LOG.warning("executor", "All inputs are ignored. Skipping measurements")
             self.feedback = [[0, 0, 0, 0, 0] for _ in range(n_inputs)]
             return [HTrace([0]) for _ in range(n_inputs)]
@@ -204,8 +202,8 @@ class X86Executor(Executor):
         self.LOG.dbg_executor_raw_traces(all_results)
         return all_results
 
-    def _aggregate_measurements(
-            self, raw_results: np.ndarray) -> Tuple[List[List[int]], List[List[int]]]:
+    def _aggregate_measurements(self,
+                                raw_results: np.ndarray) -> Tuple[List[List[int]], List[List[int]]]:
         """
         Aggregates the raw measurements into lists of traces
 
