@@ -76,6 +76,7 @@ _option_values = {
         'accessed',
         'dirty',
         'non_executable',
+        'reserved_bit',
         'randomized',
     ],
     "actor_data_ept_properties": [
@@ -85,6 +86,7 @@ _option_values = {
         "accessed",
         "dirty",
         "user",
+        'reserved_bit',
         'randomized',
     ],
     'instruction_categories': [
@@ -267,6 +269,7 @@ _actor_default = {
         'accessed': True,
         'dirty': True,
         'non_executable': True,
+        'reserved_bit': False,
         'randomized': False,
     },
     'data_ept_properties': {
@@ -276,6 +279,7 @@ _actor_default = {
         'accessed': True,
         'dirty': True,
         'user': False,
+        'reserved_bit': False,
         'randomized': False,
     }
     # 'code_properties': {
