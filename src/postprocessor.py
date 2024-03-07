@@ -122,6 +122,9 @@ class MinimizerViolation(Minimizer):
             print("\nSimplifying instructions:\n  Progress: ", end='', flush=True)
             test_case = self.simplify(test_case, inputs)
 
+            print("\nSimplifying constants:\n  Progress: ", end='', flush=True)
+            test_case = self.simplify_constants(test_case, inputs)
+
         if enable_minimize and enable_multipass:
             for attempt in range(5):
                 print(
@@ -243,6 +246,20 @@ class MinimizerViolation(Minimizer):
             instructions = f.readlines()
         for i in inst_ids:
             instructions = self._simplify_instruction(instructions, i)
+        return self._get_test_case_from_instructions(instructions, "/tmp/pipe.asm")
+
+    def simplify_constants(self, test_case: TestCase, inputs: List[Input]) -> TestCase:
+        inst_ids = self._probe_test_case(
+            test_case,
+            inputs,
+            modify_func=self._simplify_constant,
+            check_func=self._check_for_violation,
+            removed_ids=True)
+
+        with open(test_case.asm_path, "r") as f:
+            instructions = f.readlines()
+        for i in inst_ids:
+            instructions = self._simplify_constant(instructions, i)
         return self._get_test_case_from_instructions(instructions, "/tmp/pipe.asm")
 
     def minimize_labels(self, test_case: TestCase, _) -> TestCase:
@@ -460,6 +477,22 @@ class MinimizerViolation(Minimizer):
         tmp[i] = " ".join([replacement_func(clean_line)] + words[1:]) + "\n"
 
         return tmp
+
+    @staticmethod
+    def _simplify_constant(instructions, i) -> List:
+        tmp = list(instructions)  # make a copy
+        clean_line = tmp[i].strip().lower()
+        words = clean_line.split(",")
+        for word_id, word in enumerate(words):
+            word = word.strip()
+            if word == "0":  # already replaced
+                break
+            if re.match(r"^-?[0-9]+$", word) or re.match(r"^-?0x[0-9a-f]+$", word) \
+               or re.match(r"^-?0b[01]+$", word):
+                tmp[i] = ", ".join(words[:word_id] + ["0"] + words[word_id + 1:]) + "\n"
+                return tmp
+
+        return []
 
     @staticmethod
     def _push_fence(instructions, i) -> List:
