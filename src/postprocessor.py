@@ -187,7 +187,6 @@ class MinimizerViolation(Minimizer):
         cursor = len(instructions)
 
         # Try removing instructions, one at a time
-        previous_removed = False
         passing_ids = []
         while True:
             cursor -= 1
@@ -197,16 +196,18 @@ class MinimizerViolation(Minimizer):
             if line == ".test_case_enter:":
                 break
 
+            # don't waste time on comments and empty lines
+            if not line or line[0] == "#":
+                continue
+
             # Preserve instructions used for sandboxing, fences, and labels
-            if not line or \
-               "lfence" in line or \
-               line[0] == '.' or \
-               'macro' in line or \
+            if "lfence" in line or \
+               '.' == line[0] or \
                'noremove' in line:
                 continue
 
             # Remove instrumentation only if the instrumented instruction is also removed
-            if skip_instrumentation and "instrumentation" in line and not previous_removed:
+            if skip_instrumentation and "instrumentation" in line:
                 continue
 
             # Create a modified test case
@@ -225,13 +226,11 @@ class MinimizerViolation(Minimizer):
                     break
 
             if check_passed:
-                previous_removed = True
                 print(".", end="", flush=True)
                 instructions = tmp_instructions
                 if removed_ids:
                     passing_ids.append(cursor)
             else:
-                previous_removed = False
                 print("-", end="", flush=True)
                 if not removed_ids:
                     passing_ids.append(cursor)
@@ -248,7 +247,14 @@ class MinimizerViolation(Minimizer):
         with open(test_case.asm_path, "r") as f:
             for i, line in enumerate(f):
                 if i not in inst_ids:
+                    # This instruction is essential for the violation; keep it
                     instructions.append(line)
+                else:
+                    # This instruction could be removed. In addition, if it has instrumentation
+                    # which cannot be removed, clear the instrumentation tag
+                    if "instrumentation" in instructions[-1].lower():
+                        instructions[-1] = instructions[-1].replace("instrumentation", "")
+
         return self._get_test_case_from_instructions(instructions, "/tmp/pipe.asm")
 
     def simplify(self, test_case: TestCase, inputs: List[Input]) -> TestCase:
