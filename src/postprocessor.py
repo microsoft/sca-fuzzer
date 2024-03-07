@@ -118,6 +118,8 @@ class MinimizerViolation(Minimizer):
             print("\nMinimize labels:\n  Progress: ", end='', flush=True)
             test_case = self.minimize_labels(test_case, inputs)
 
+            shutil.copy(test_case.asm_path, outfile)
+
         if enable_simplify:
             print("\nSimplifying instructions:\n  Progress: ", end='', flush=True)
             test_case = self.simplify(test_case, inputs)
@@ -125,10 +127,12 @@ class MinimizerViolation(Minimizer):
             print("\nSimplifying constants:\n  Progress: ", end='', flush=True)
             test_case = self.simplify_constants(test_case, inputs)
 
+            shutil.copy(test_case.asm_path, outfile)
+
         if enable_minimize and enable_multipass:
-            for attempt in range(5):
+            for attempt in range(10):
                 print(
-                    f"\nMinimizing the test case (attempt #{attempt}:\n  Progress: ",
+                    f"\nMinimizing the test case (attempt #{attempt}):\n  Progress: ",
                     end='',
                     flush=True)
                 old_instruction_count = len([i for i in open(test_case.asm_path, "r")])
@@ -137,9 +141,12 @@ class MinimizerViolation(Minimizer):
                 if new_instruction_count == old_instruction_count:
                     break
 
+            shutil.copy(test_case.asm_path, outfile)
+
         if enable_add_fences:
             print("\nTrying to add fences:\n  Progress: ", end='')
             test_case = self.add_fences(test_case, inputs)
+            shutil.copy(test_case.asm_path, outfile)
 
         if enable_find_sources:
             print("\nIdentifying speculation sources:\n  Progress: ", end='')
@@ -147,6 +154,7 @@ class MinimizerViolation(Minimizer):
 
             print("\nIdentifying speculation sink:\n  Progress: ", end='')
             test_case = self.find_spec_sink(test_case, inputs)
+            shutil.copy(test_case.asm_path, outfile)
 
         if enable_minimize_inputs:
             print("\n Searching for a minimal sequence of inputs:\n  Progress: ", end='')
