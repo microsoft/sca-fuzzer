@@ -77,6 +77,20 @@ class X86Executor(Executor):
         if smt_on:
             self.LOG.warning("executor", "SMT is on! You may experience false positives.")
 
+        # if setting of a reserved bit is requested, check if it's possible
+        reserved_requested = \
+            any(CONF._actors[a]['data_properties']['reserved_bit'] for a in CONF._actors) or \
+            any(CONF._actors[a]['data_ept_properties']['reserved_bit'] for a in CONF._actors)
+        if reserved_requested:
+            physical_bits = int(
+                subprocess.run(
+                    "lscpu | grep 'Address sizes' | awk '{print $3}'",
+                    shell=True,
+                    check=True,
+                    capture_output=True).stdout.decode().strip())
+            if physical_bits > 51:
+                self.LOG.error("executor", "Cannot set reserved bits on this CPU")
+
         # is kernel module ready?
         if not os.path.isfile("/sys/x86_executor/trace"):
             self.LOG.error("x86 executor: kernel module not installed\n\n"
