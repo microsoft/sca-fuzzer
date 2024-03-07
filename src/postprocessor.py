@@ -85,11 +85,13 @@ INSTRUCTION_REPLACEMENTS = {
 
 
 class MinimizerViolation(Minimizer):
+    ignore_list: List[int]
 
     def __init__(self, fuzzer: Fuzzer, instruction_set_spec: InstructionSetAbstract):
         self.instruction_set_spec = instruction_set_spec
         self.fuzzer = fuzzer
         self.fuzzer.initialize_modules()
+        self.ignore_list = []
         self.LOG = Logger()
         self.LOG.info = False
 
@@ -105,12 +107,17 @@ class MinimizerViolation(Minimizer):
 
         # Load, boost inputs, and trace
         print("Trying to reproduce...")
-        violations = self.fuzzer.fuzzing_round(test_case, inputs)
-        if not violations:
+        violation = self.fuzzer.fuzzing_round(test_case, inputs)
+        if not violation:
             print("Could not reproduce the violation. Exiting...")
             return
-        print(f"Found {len(violations)} violations")
+        print("Reproduced successfully.")
 
+        # Set the non-violating inputs as the ignore list
+        violating_input_ids = [m.input_id for m in violation.measurements]
+        print(f"Violating inputs: {violating_input_ids}")
+        n_inputs = len(inputs) * CONF.inputs_per_class
+        self.ignore_list = [i for i in range(n_inputs) if i not in violating_input_ids]
         if enable_minimize:
             print("\nMinimizing the test case:\n  Progress: ", end='', flush=True)
             test_case = self.minimize_test_case(test_case, inputs)
@@ -449,6 +456,7 @@ class MinimizerViolation(Minimizer):
     # ==============================================================================================
     # Hook functions
     def _check_for_violation(self, test_case: TestCase, inputs: List[Input]) -> bool:
+        self.fuzzer.executor.set_ignore_list(self.ignore_list)
         return self.fuzzer.fuzzing_round(test_case, inputs) is not None
 
     def _check_for_speculation(self, test_case: TestCase, inputs: List[Input]) -> bool:
