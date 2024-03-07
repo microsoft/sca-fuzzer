@@ -222,6 +222,8 @@ class X86SandboxPass(Pass):
            and "movdqu" not in instr.name \
            and "lddqu" not in instr.name:
             mask = mask[:-4] + "0" * 4
+        if CONF.x86_generator_align_locks and "lock" in instr.name:  # type: ignore
+            mask = mask[:-3] + "0" * 3
 
         if mem_operands and not implicit_mem_operands:
             assert len(mem_operands) == 1, \
