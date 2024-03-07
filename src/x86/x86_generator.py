@@ -799,7 +799,12 @@ class X86Printer(Printer):
             return self.macro_to_str(inst)
 
         operands = ", ".join([self.operand_to_str(op) for op in inst.operands])
-        comment = "# instrumentation" if inst.is_instrumentation else ""
+        if inst.is_instrumentation:
+            comment = "# instrumentation"
+        elif inst.is_noremove:
+            comment = "# noremove"
+        else:
+            comment = ""
         return f"{inst.name} {operands} {comment}"
 
     def operand_to_str(self, op: Operand) -> str:

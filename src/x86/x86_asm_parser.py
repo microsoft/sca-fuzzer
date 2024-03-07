@@ -10,7 +10,7 @@ import os
 from typing import List, Dict
 
 from .x86_generator import X86Generator
-from ..asm_parser import AsmParserGeneric, AsmParserException, parser_assert
+from ..asm_parser import AsmParserGeneric, parser_assert
 from ..interfaces import OT, Instruction, InstructionSpec, LabelOperand, Operand, RegisterOperand, \
     MemoryOperand, ImmediateOperand, AgenOperand
 
@@ -100,11 +100,11 @@ class X86AsmParser(AsmParserGeneric):
             specs = instruction_map.get(key, [])
             name += word
             break
-        if not specs:
-            raise AsmParserException(line_num, f"Unknown instruction {line}")
+        parser_assert(specs != [], line_num, f"Unknown instruction {line}")
 
         # instrumentation?
         is_instrumentation = "instrumentation" in line
+        is_noremove = "noremove" in line
 
         # remove comments
         if "#" in line:
@@ -179,6 +179,7 @@ class X86AsmParser(AsmParserGeneric):
 
         # generate a corresponding Instruction
         inst = Instruction.from_spec(spec, is_instrumentation)
+        inst.is_noremove = is_noremove
         op: Operand
         for op_id, op_raw in enumerate(operands_raw):
             op_spec = spec.operands[op_id]
