@@ -31,7 +31,7 @@ from .interfaces import CTrace, TestCase, Model, InputTaint, Instruction, Execut
     RegisterOperand, FlagsOperand, MemoryOperand, TaintTrackerInterface, TargetDesc, \
     get_sandbox_addr, SANDBOX_DATA_SIZE, SANDBOX_CODE_SIZE
 from .config import CONF
-from .util import Logger, NotSupportedException, stable_hash_bytes, stable_hash_intlist
+from .util import Logger, NotSupportedException
 
 # ==================================================================================================
 # Custom Data Types and Constants
@@ -85,7 +85,7 @@ class UnicornTracer(Tracer):
     trace: List[int]
     execution_trace: ExecutionTrace
     instruction_id: int
-    enable_tracing: bool = True
+    enable_tracing: bool = False
 
     def __init__(self):
         super().__init__()
@@ -157,6 +157,18 @@ class UnicornTracer(Tracer):
             self.instruction_id = len(self.execution_trace) - 1
 
 
+class NoneTracer(UnicornTracer):
+
+    def observe_mem_access(self, _, __, ___, ____, _____):
+        pass
+
+    def observe_instruction(self, _, __, ___):
+        pass
+
+    def get_contract_trace(self, _) -> CTrace:
+        return 0
+
+
 class L1DTracer(UnicornTracer):
 
     def init_trace(self, _, __):
@@ -225,6 +237,25 @@ class TruncatedCTTracer(UnicornTracer):
         super(TruncatedCTTracer, self).observe_instruction(address, size, model)
 
 
+class TruncatedCTWithOverflowsTracer(UnicornTracer):
+    """
+    Observe address of the memory access and of the program counter at cache line granularity +
+    observe cache line overflows.
+    """
+
+    def observe_mem_access(self, access, address, size, value, model) -> None:
+        self.add_mem_address_to_trace((address >> 6) << 6, model)
+        if (address + size) % 64 != (address % 64):  # add overflows to the trace
+            self.add_mem_address_to_trace(((address + size) >> 6) << 6, model)
+        return super().observe_mem_access(access, address, size, value, model)
+
+    def observe_instruction(self, address: int, size: int, model) -> None:
+        self.add_pc_to_trace((address >> 6) << 6, model)
+        if (address + size) // 64 != (address // 64):  # add overflows to the trace
+            self.add_pc_to_trace(((address + size) >> 6) << 6, model)
+        return super().observe_instruction(address, size, model)
+
+
 class CTNonSpecStoreTracer(PCTracer):
     """
     Observe address of memory access only if not in speculation or it is a read.
@@ -243,7 +274,7 @@ class CTRTracer(CTTracer):
     """
 
     def init_trace(self, emulator: Uc, uc_target_desc: UnicornTargetDesc):
-        self.trace = [emulator.reg_read(reg) for reg in uc_target_desc.registers]
+        self.trace = [emulator.reg_read(reg) for reg in uc_target_desc.registers]  # type: ignore
         self.execution_trace = []
 
 
@@ -273,7 +304,7 @@ class GPRTracer(UnicornTracer):
 
     def get_contract_trace(self, _) -> CTrace:
         registers = self.uc_target_desc.registers[:-1]  # exclude the last register (stack pointer)
-        self.trace = [int(self.emulator.reg_read(reg)) for reg in registers]
+        self.trace = [int(self.emulator.reg_read(reg)) for reg in registers]  # type: ignore
         self.trace = self.trace[:-1]  # exclude flags
         return self.trace[0]
 
@@ -356,9 +387,11 @@ class UnicornModel(Model, ABC):
         self.execution_tracing_enabled = False
         return ctraces, taints
 
-    def dbg_get_trace_detailed(self, input, nesting) -> List[str]:
-        _, __ = self._execute_test_case([input], nesting)
+    def dbg_get_trace_detailed(self, input_, nesting, raw: bool = False) -> List[str]:
+        _, __ = self._execute_test_case([input_], nesting)
         trace = self.tracer.get_contract_trace_full()
+        if raw:
+            return [str(x) for x in trace]
         normalized_trace = []
         for val in trace:
             if self.code_start <= val and val < self.code_end:
@@ -606,6 +639,9 @@ class UnicornSeq(UnicornModel):
 
                 # handle faults
                 if self.pending_fault_id:
+                    if not self.previous_context:
+                        self.LOG.error("Fault triggered without a previous context")
+
                     # workaround for a Unicorn bug: after catching an exception
                     # we need to restore some pre-exception context. otherwise,
                     # the emulator becomes corrupted
@@ -832,100 +868,6 @@ class UnicornSpec(UnicornSeq):
     def reset_model(self):
         super().reset_model()
         self.latest_rollback_address = 0
-
-
-# ==================================================================================================
-# Actor-based Models
-# ==================================================================================================
-class ActorNonInterferenceModel(UnicornSeq):
-    """ The model that exposes all data that belongs to the actors with `observer` flag set """
-    test_case: TestCase
-    observer_actor_ids: List[int]
-
-    def __init__(self, sandbox_base: int, code_base: int):
-        super().__init__(sandbox_base, code_base)
-        n_observers = len([desc for desc in CONF._actors.values() if desc['observer']])
-        if n_observers == len(CONF._actors):
-            raise NotSupportedException("ActorNonInterferenceModel"
-                                        "requires at least 1 non-observer actor")
-        if n_observers == 0:
-            raise NotSupportedException("ActorNonInterferenceModel"
-                                        "requires at least 1 observer actor")
-
-    def load_test_case(self, test_case: TestCase) -> None:
-        self.test_case = test_case
-        self.observer_actor_ids = [
-            actor.id_ for actor in test_case.actors.values() if actor.observer
-        ]
-
-    def trace_test_case(self, inputs: List[Input], nesting: int) -> List[CTrace]:
-        ctraces, _ = self._execute_test_case(inputs, nesting)
-        return ctraces
-
-    def trace_test_case_with_taints(self, inputs, nesting) -> Tuple[List[CTrace], List[InputTaint]]:
-        return self._execute_test_case(inputs, nesting)
-
-    def _execute_test_case(self, inputs: List[Input], _) -> Tuple[List[CTrace], List[InputTaint]]:
-        taints = []
-        contract_traces = []
-
-        base_taint = self._create_base_taint()
-
-        for input_ in inputs:
-            fragment_hashes: List[int] = []
-            for actor_id in self.observer_actor_ids:
-                input_fragment = input_[actor_id]
-                fragment_hashes.append(stable_hash_bytes(input_fragment.tobytes()))
-
-            contract_traces.append(stable_hash_intlist(fragment_hashes))
-            taints.append(base_taint)
-
-        assert len(contract_traces) == len(inputs)
-        return contract_traces, taints
-
-    def _create_base_taint(self) -> InputTaint:
-        n_actors = len(self.test_case.actors)
-        base_taint = InputTaint(n_actors)
-
-        for actor_id in self.observer_actor_ids:
-            # create a view of the taint array as a 64-bit array
-            # note that it *does not* copy the taint, only casts it into a different type
-            linear_view = base_taint.linear_view(actor_id)
-            actor_offset = actor_id * 0x4000 // 8
-
-            # taint the whole actor
-            for i in range(actor_offset, actor_offset + linear_view.size):
-                linear_view[i - actor_offset] = True
-
-        return base_taint
-
-    # The following methods are not implemented or not used by this model
-    def dbg_get_trace_detailed(self, _, __) -> List[str]:
-        return []
-
-    def _load_input(self, _):
-        pass
-
-    @staticmethod
-    def instruction_hook(_, __, ___, ____) -> None:
-        pass
-
-    @staticmethod
-    def trace_instruction(_, __, ___, ____) -> None:
-        pass
-
-    @staticmethod
-    def trace_mem_access(_, __, ___, ____, _____, ______) -> None:
-        pass
-
-    def reset_model(self):
-        pass
-
-    def print_state(self, _):
-        pass
-
-    def emulate_vm_execution(self, _) -> None:
-        pass
 
 
 # ==================================================================================================
