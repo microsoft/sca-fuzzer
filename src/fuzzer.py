@@ -509,12 +509,12 @@ class FuzzerGeneric(Fuzzer):
             p_values = pd.DataFrame(
                 np.zeros((n_p_values, 2), dtype=np.float64), columns=['p_same', 'p_diff'])
 
-            df = df.groupby(['tc_id', 's_id'])
+            df_groups = df.groupby(['tc_id', 's_id'])
             counter = 0
             for tc_id in range(num_test_cases):
                 for s_id in range(n_samples):
                     for input_id in range(num_inputs):
-                        group = df.get_group((tc_id, s_id))
+                        group = df_groups.get_group((tc_id, s_id))
 
                         same_cls_id = input_id + num_inputs
                         diff_cls_id = (input_id + 1) % num_inputs
@@ -531,6 +531,9 @@ class FuzzerGeneric(Fuzzer):
                         counter += 1
 
             # print results
+            p_min = p_values.min()
+            p_max = p_values.max()
+            p_med = p_values.median()
             p_1perc = p_values.quantile(0.01)
             p_99perc = p_values.quantile(0.99)
 
@@ -538,20 +541,25 @@ class FuzzerGeneric(Fuzzer):
                 configuration_found = True
                 delta = p_1perc['p_same'] - p_99perc['p_diff']
                 threshold = p_1perc['p_same'] - delta / 2
+                print(f"Stable configuration found for sample size: {sample_size}. Details:")
+                print(f"  Min: {p_min['p_same']:.9f} / {p_min['p_diff']:.9f}")
+                print(f"  1%:  {p_1perc['p_same']:.9f} / {p_1perc['p_diff']:.9f}")
+                print(f"  Med: {p_med['p_same']:.9f} / {p_med['p_diff']:.9f}")
+                print(f"  99%: {p_99perc['p_same']:.9f} / {p_99perc['p_diff']:.9f}")
+                print(f"  Max: {p_max['p_same']:.9f} / {p_max['p_diff']:.9f}")
+
                 print("  Recommended configuration:")
                 print(f"    executor_sample_size: {sample_size}")
                 print("    analyser: mwu")
                 print(f"    analyser_p_value_threshold: {threshold:.9f}")
+                break
 
-            # print(f"Sample size: {sample_size}")
-            # p_min = p_values.min()
-            # p_max = p_values.max()
-            # p_med = p_values.median()
-            # print(f"  Min: {p_min['p_same']:.9f} / {p_min['p_diff']:.9f}")
-            # print(f"  1%:  {p_1perc['p_same']:.9f} / {p_1perc['p_diff']:.9f}")
-            # print(f"  Med: {p_med['p_same']:.9f} / {p_med['p_diff']:.9f}")
-            # print(f"  99%: {p_99perc['p_same']:.9f} / {p_99perc['p_diff']:.9f}")
-            # print(f"  Max: {p_max['p_same']:.9f} / {p_max['p_diff']:.9f}")
+            print(f"No configuration found for sample size: {sample_size}. Details:")
+            print(f"  Min: {p_min['p_same']:.9f} / {p_min['p_diff']:.9f}")
+            print(f"  1%:  {p_1perc['p_same']:.9f} / {p_1perc['p_diff']:.9f}")
+            print(f"  Med: {p_med['p_same']:.9f} / {p_med['p_diff']:.9f}")
+            print(f"  99%: {p_99perc['p_same']:.9f} / {p_99perc['p_diff']:.9f}")
+            print(f"  Max: {p_max['p_same']:.9f} / {p_max['p_diff']:.9f}")
 
         if not configuration_found:
             print("No stable configuration found. Possible reasons:")

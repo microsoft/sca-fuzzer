@@ -7,36 +7,80 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 import shutil
+import re
+from math import log2
 
 from copy import deepcopy
 from subprocess import run
 from typing import List
+from scipy import stats  # type: ignore
 from .interfaces import Input, TestCase, Minimizer, Fuzzer, InstructionSetAbstract
+from .model import CTTracer
+from .x86.x86_model import X86UnicornDEH, SANDBOX_CODE_SIZE
 from .config import CONF
 from .util import Logger
 
 INSTRUCTION_REPLACEMENTS = {
-    "cmov": "mov",
-    "xchg": "mov",
-    "rep": "",
-    "lock": "",
-    "add": "mov",
-    "sub": "mov",
-    "or": "mov",
-    "xor": "mov",
-    "cmp": "mov",
-    "bsr": "mov",
-    "bsf": "mov",
-    "bt": "mov",
-    "bts": "mov",
-    "btr": "mov",
-    "btc": "mov",
-    "bzhi": "mov",
-    "bextr": "mov",
-    "blsi": "mov",
-    "blsmsk": "mov",
-    "adc": "add",
-    "sbb": "sub",
+    "cmova": lambda _: "mov",
+    "cmovae": lambda _: "mov",
+    "cmovb": lambda _: "mov",
+    "cmovbe": lambda _: "mov",
+    "cmovc": lambda _: "mov",
+    "cmove": lambda _: "mov",
+    "cmovg": lambda _: "mov",
+    "cmovge": lambda _: "mov",
+    "cmovl": lambda _: "mov",
+    "cmovle": lambda _: "mov",
+    "cmovna": lambda _: "mov",
+    "cmovnae": lambda _: "mov",
+    "cmovnb": lambda _: "mov",
+    "cmovnbe": lambda _: "mov",
+    "cmovnc": lambda _: "mov",
+    "cmovne": lambda _: "mov",
+    "cmovng": lambda _: "mov",
+    "cmovnge": lambda _: "mov",
+    "cmovnl": lambda _: "mov",
+    "cmovnle": lambda _: "mov",
+    "cmovno": lambda _: "mov",
+    "cmovnp": lambda _: "mov",
+    "cmovns": lambda _: "mov",
+    "cmovnz": lambda _: "mov",
+    "cmovo": lambda _: "mov",
+    "cmovp": lambda _: "mov",
+    "cmovs": lambda _: "mov",
+    "cmovz": lambda _: "mov",
+
+    "xchg": lambda _: "mov",
+    "cmpxchg": lambda _: "xchg",
+
+    "rep": lambda _: "",
+    "lock": lambda _: "",
+    "add": lambda _: "mov",
+
+    "sub": lambda _: "add",
+    "or": lambda _: "add",
+    "xor": lambda _: "add",
+    "and": lambda _: "add",
+    "cmp": lambda _: "add",
+    "bsr": lambda _: "add",
+    "bsf": lambda _: "add",
+    "bt": lambda _: "add",
+    "bts": lambda _: "add",
+    "btr": lambda _: "add",
+    "btc": lambda _: "add",
+    "bzhi": lambda _: "add",
+    "bextr": lambda _: "add",
+    "blsi": lambda _: "add",
+    "blsmsk": lambda _: "add",
+    "xadd": lambda _: "add",
+    "adc": lambda _: "add",
+
+    "sbb": lambda _: "sub",
+    "mul": lambda _: "inc",
+    "div": lambda _: "inc",
+    "idiv": lambda _: "div",
+    "setb": lambda _: "inc",
+    "imul": lambda line: "add" if len(line.split(",")) == 2 else "imul",
 }
 
 
@@ -407,13 +451,14 @@ class MinimizerViolation(Minimizer):
     @staticmethod
     def _simplify_instruction(instructions, i) -> List:
         tmp = list(instructions)  # make a copy
-        words = tmp[i].lower().split(" ")
-        for key in INSTRUCTION_REPLACEMENTS:
-            if key in words[0]:
-                tmp[i] = " ".join([INSTRUCTION_REPLACEMENTS[key]] + words[1:])
-                break
-        else:
-            return []  # no replacement found
+        clean_line = tmp[i].strip().lower()
+        words = clean_line.split(" ")
+        key = words[0]
+        replacement_func = INSTRUCTION_REPLACEMENTS.get(key, None)
+        if not replacement_func:
+            return []
+        tmp[i] = " ".join([replacement_func(clean_line)] + words[1:]) + "\n"
+
         return tmp
 
     @staticmethod
