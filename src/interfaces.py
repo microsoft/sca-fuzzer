@@ -1040,10 +1040,6 @@ class Model(ABC):
 
 
 class Executor(ABC):
-    enable_sticky_ignore_list: bool = False
-    """ enable_sticky_ignore_list: If True, the executor will NOT reset the ignore list after
-    each round of fuzzing """
-
     @abstractmethod
     def load_test_case(self, test_case: TestCase):
         pass
@@ -1154,7 +1150,7 @@ class Minimizer(ABC):
     @abstractmethod
     def run(self, test_case_asm: str, outfile: str, num_inputs: int, enable_minimize: bool,
             enable_simplify: bool, enable_add_fences: bool, enable_find_sources: bool,
-            enable_minimize_inputs: bool, enable_multipass: bool):
+            enable_minimize_inputs: bool, enable_multipass: bool, enable_violation_comments: bool):
         pass
 
 
