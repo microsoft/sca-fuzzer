@@ -407,8 +407,10 @@ class Instruction:
     previous: Optional[Instruction] = None
     is_instrumentation: bool
     is_from_template: bool = False
+    is_noremove: bool = False
     section_offset: int = 0
     section_id: int = 0
+    line_num: int = 0
     size: int = 0
     _inst_brief: str = ""
 
