@@ -15,10 +15,11 @@ from unicorn import Uc, UcError, UC_MEM_WRITE, UC_ARCH_X86, UC_MODE_64, UC_PROT_
 
 from ..interfaces import Input, FlagsOperand, RegisterOperand, MemoryOperand, AgenOperand, \
     TestCase, Instruction, Symbol, SANDBOX_DATA_SIZE, FAULTY_AREA_SIZE, OVERFLOW_PAD_SIZE, \
-    UNDERFLOW_PAD_SIZE, SANDBOX_CODE_SIZE, get_sandbox_addr, ActorPL
+    UNDERFLOW_PAD_SIZE, SANDBOX_CODE_SIZE, get_sandbox_addr, ActorPL, InputTaint, CTrace
 from ..model import UnicornModel, UnicornTracer, UnicornSpec, UnicornSeq, BaseTaintTracker, \
     MacroInterpreter
-from ..util import UnreachableCode, NotSupportedException, BLUE, COL_RESET, Logger
+from ..util import UnreachableCode, NotSupportedException, BLUE, COL_RESET, Logger, \
+    stable_hash_intlist, stable_hash_bytes
 from ..config import CONF
 from .x86_target_desc import X86UnicornTargetDesc, X86TargetDesc
 
@@ -324,7 +325,8 @@ class X86UnicornSeq(UnicornSeq):
 
         self.rw_fault_mask = (1 << X86TargetDesc.pte_bits["present"][0]) + \
             (1 << X86TargetDesc.pte_bits["accessed"][0])
-        self.rw_fault_mask_unset = (1 << X86TargetDesc.pte_bits["user"][0])
+        self.rw_fault_mask_unset = (1 << X86TargetDesc.pte_bits["user"][0]) + \
+            (1 << X86TargetDesc.pte_bits["reserved_bit"][0])
         self.write_fault_mask = (1 << X86TargetDesc.pte_bits["writable"][0]) + \
             (1 << X86TargetDesc.pte_bits["dirty"][0])
 
@@ -576,9 +578,9 @@ class X86UnicornCond(X86UnicornSpec):
             return
 
         # decode the instruction
-        code = emulator.mem_read(address, size)
-        flags = emulator.reg_read(ucc.UC_X86_REG_EFLAGS)
-        rcx = emulator.reg_read(ucc.UC_X86_REG_RCX)
+        code: bytearray = emulator.mem_read(address, size)
+        flags: int = emulator.reg_read(ucc.UC_X86_REG_EFLAGS)  # type: ignore
+        rcx: int = emulator.reg_read(ucc.UC_X86_REG_RCX)  # type: ignore
         target, will_jump, is_loop = X86UnicornCond.decode(code, flags, rcx)
 
         # not a a cond. jump? ignore
@@ -878,6 +880,7 @@ class X86UnicornDEH(X86FaultModelAbstract):
 
     @staticmethod
     def trace_mem_access(emulator, access, address, size, value, model) -> None:
+        assert isinstance(model, X86UnicornDEH)
         if not model.curr_is_dependent:
             X86FaultModelAbstract.trace_mem_access(emulator, access, address, size, value, model)
 
@@ -1064,7 +1067,7 @@ class X86UnicornDivOverflow(X86FaultModelAbstract):
         divider = self.current_instruction.operands[0]
         if isinstance(divider, RegisterOperand):
             uc_id = X86UnicornTargetDesc.reg_str_to_constant[divider.value]
-            value = self.emulator.reg_read(uc_id)
+            value: int = self.emulator.reg_read(uc_id)  # type: ignore
         elif isinstance(divider, MemoryOperand):
             value = self.div_value
         else:
@@ -1084,15 +1087,15 @@ class X86UnicornDivOverflow(X86FaultModelAbstract):
         # execute division with trimming
         width = divider.width
         if width == 64:
-            a = self.emulator.reg_read(ucc.UC_X86_REG_RAX)
-            d = self.emulator.reg_read(ucc.UC_X86_REG_RDX)
+            a: int = int(self.emulator.reg_read(ucc.UC_X86_REG_RAX))  # type: ignore
+            d: int = int(self.emulator.reg_read(ucc.UC_X86_REG_RDX))  # type: ignore
             trimmed_result = (((d << 64) + a) // value) % 0xffffffffffffffff
             self.emulator.reg_write(ucc.UC_X86_REG_RAX, trimmed_result)
             self.emulator.reg_write(ucc.UC_X86_REG_RDX, ((d << 64) + a) % value)
             return self.next_instruction_addr
         if width == 32:
-            a = self.emulator.reg_read(ucc.UC_X86_REG_EAX)
-            d = self.emulator.reg_read(ucc.UC_X86_REG_EDX)
+            a: int = self.emulator.reg_read(ucc.UC_X86_REG_EAX)  # type: ignore
+            d: int = self.emulator.reg_read(ucc.UC_X86_REG_EDX)  # type: ignore
             trimmed_result = (((d << 32) + a) // value)  # 0xffffffff%
             # print(hex(a), hex(d), trimmed_result, 6070540370 % 0xffffffff)
             trimmed_remainder = (((d << 32) + a) % value)  # % 0xffffffff
@@ -1102,14 +1105,14 @@ class X86UnicornDivOverflow(X86FaultModelAbstract):
             self.emulator.reg_write(ucc.UC_X86_REG_RDX, 0)
             return self.next_instruction_addr
         if width == 16:
-            a = self.emulator.reg_read(ucc.UC_X86_REG_AX)
-            d = self.emulator.reg_read(ucc.UC_X86_REG_DX)
+            a: int = self.emulator.reg_read(ucc.UC_X86_REG_AX)  # type: ignore
+            d: int = self.emulator.reg_read(ucc.UC_X86_REG_DX)  # type: ignore
             trimmed_result = (((d << 16) + a) // value)  # % 0xffff
             self.emulator.reg_write(ucc.UC_X86_REG_RAX, trimmed_result)
             self.emulator.reg_write(ucc.UC_X86_REG_RDX, ((d << 16) + a) % value)
             return self.next_instruction_addr
         if width == 8:
-            a = self.emulator.reg_read(ucc.UC_X86_REG_AX)
+            a: int = self.emulator.reg_read(ucc.UC_X86_REG_AX)  # type: ignore
             trimmed_result = (a // value) % 0xff
             trimmed_remainder = (a % value) % 0xff
             # self.emulator.reg_write(ucc.UC_X86_REG_AX, 0)
@@ -1120,6 +1123,7 @@ class X86UnicornDivOverflow(X86FaultModelAbstract):
 
     @staticmethod
     def trace_mem_access(emulator: Uc, access, address: int, size, value, model):
+        assert isinstance(model, X86UnicornDivOverflow)
         model.div_value = int.from_bytes(emulator.mem_read(address, size), "little")
         X86FaultModelAbstract.trace_mem_access(emulator, access, address, size, value, model)
 
@@ -1920,6 +1924,64 @@ class X86UnicornVspecAllMemoryAssists(X86UnicornVspecAll):
             return self.exit_addr
         else:
             return self.curr_instruction_addr
+
+
+# ==================================================================================================
+# Actor-based Models
+# ==================================================================================================
+class ActorNonInterferenceModel(X86UnicornSeq):
+    """ The model that exposes all data that belongs to the actors with `observer` flag set
+    + sequential traces for the non-observer actors"""
+    test_case: TestCase
+    observer_actor_ids: List[int]
+
+    def __init__(self, sandbox_base: int, code_base: int):
+        super().__init__(sandbox_base, code_base)
+        n_observers = len([desc for desc in CONF._actors.values() if desc['observer']])
+        if n_observers == len(CONF._actors):
+            raise NotSupportedException("ActorNonInterferenceModel"
+                                        "requires at least 1 non-observer actor")
+        if n_observers == 0:
+            raise NotSupportedException("ActorNonInterferenceModel"
+                                        "requires at least 1 observer actor")
+
+    def load_test_case(self, test_case: TestCase) -> None:
+        self.test_case = test_case
+        self.observer_actor_ids = [
+            actor.id_ for actor in test_case.actors.values() if actor.observer
+        ]
+        super().load_test_case(test_case)
+
+    def trace_test_case(self, inputs: List[Input], nesting: int) -> List[CTrace]:
+        ctraces = super().trace_test_case(inputs, nesting)
+        self._add_observer_traces(inputs, ctraces)
+        return ctraces
+
+    def trace_test_case_with_taints(self, inputs, nesting) -> Tuple[List[CTrace], List[InputTaint]]:
+        ctraces, taints = super().trace_test_case_with_taints(inputs, nesting)
+        self._add_observer_traces(inputs, ctraces)
+        self._taint_observers(taints)
+        return ctraces, taints
+
+    def _add_observer_traces(self, inputs: List[Input], ctraces: List[CTrace]):
+        for input_id, input_ in enumerate(inputs):
+            fragment_hashes: List[int] = [ctraces[input_id]]
+            for actor_id in self.observer_actor_ids:
+                input_fragment = input_[actor_id]
+                fragment_hashes.append(stable_hash_bytes(input_fragment.tobytes()))
+            ctraces[input_id] = stable_hash_intlist(fragment_hashes)
+
+    def _taint_observers(self, taints: List[InputTaint]):
+        for taint in taints:
+            for actor_id in self.observer_actor_ids:
+                # create a view of the taint array as a 64-bit array
+                # note that it *does not* copy the taint, only casts it into a different type
+                linear_view = taint.linear_view(actor_id)
+                actor_offset = actor_id * 0x4000 // 8
+
+                # taint the whole actor
+                for i in range(actor_offset, actor_offset + linear_view.size):
+                    linear_view[i - actor_offset] = True
 
 
 # ==================================================================================================

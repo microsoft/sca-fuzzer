@@ -20,6 +20,7 @@ INPUT_GENERATORS: Dict[str, Type[interfaces.InputGenerator]] = {
 }
 
 TRACERS: Dict[str, Type[model.UnicornTracer]] = {
+    "none": model.NoneTracer,
     "l1d": model.L1DTracer,
     "pc": model.PCTracer,
     "memory": model.MemoryTracer,
@@ -30,6 +31,7 @@ TRACERS: Dict[str, Type[model.UnicornTracer]] = {
     "arch": model.ArchTracer,
     "gpr": model.GPRTracer,
     "tct": model.TruncatedCTTracer,
+    "tcto": model.TruncatedCTWithOverflowsTracer,
 }
 
 X86_SIMPLE_EXECUTION_CLAUSES: Dict[str, Type[x86_model.UnicornModel]] = {
@@ -54,7 +56,7 @@ X86_SIMPLE_EXECUTION_CLAUSES: Dict[str, Type[x86_model.UnicornModel]] = {
     "vspec-all-div": x86_model.x86UnicornVspecAllDIV,
     "vspec-all-memory-faults": x86_model.X86UnicornVspecAllMemoryFaults,
     "vspec-all-memory-assists": x86_model.X86UnicornVspecAllMemoryAssists,
-    "noninterference": model.ActorNonInterferenceModel,
+    "noninterference": x86_model.ActorNonInterferenceModel,
 }
 
 EXECUTORS = {
