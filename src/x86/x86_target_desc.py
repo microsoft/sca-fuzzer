@@ -149,14 +149,14 @@ class X86TargetDesc(TargetDesc):
         # "pkey_bit1": (60, False),  # Protection Keys, bit 2/4
         # "pkey_bit2": (61, False),  # Protection Keys, bit 3/4
         # "pkey_bit3": (62, False),  # Protection Keys, bit 4/4
-        "non_executable": (63, False),  # No execute: only valid after cpuid check
+        "non_executable": (63, True),  # No execute: only valid after cpuid check
     }
 
     epte_bits = {
         # NAME: (position, default value)
         "present": (0, True),  # is present
         "writable": (1, True),  # writeable
-        "executable": (2, True),  # executable
+        "executable": (2, False),  # executable
         "accessed": (8, True),  # was accessed
         "dirty": (9, True),  # was written to
         "user": (10, False),  # userspace addressable
