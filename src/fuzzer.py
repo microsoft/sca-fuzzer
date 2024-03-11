@@ -349,9 +349,28 @@ class FuzzerGeneric(Fuzzer):
             f.write(f"* Program seed: {test_case.seed}\n")
             f.write(f"* Input seed: {inputs[0].seed}\n")
             f.write("* Faulty page properties:\n")
+            target_desc = self.generator.target_desc
             for actor_id in test_case.actors:
+                f.write(f"  - Actor {actor_id}:\n")
+
                 actor = test_case.actors[actor_id]
-                f.write(f"  * Actor {actor_id}: {actor.data_properties}\n")
+                pte_fields = []
+                for field in target_desc.pte_bits:
+                    offset, default = target_desc.pte_bits[field]
+                    value = bool(actor.data_properties & (1 << offset))
+                    if value != default:
+                        pte_fields.append(f"{field}={value}")
+                f.write(f"    * PTE: {'; '.join(pte_fields)}\n")
+
+                if actor.mode != "guest":
+                    continue
+                epte_fields = []
+                for field in target_desc.epte_bits:
+                    offset, default = target_desc.epte_bits[field]
+                    value = bool(actor.data_ept_properties & (1 << offset))
+                    if value != default:
+                        epte_fields.append(f"{field}={value}")
+                f.write(f"    * EPTE: {'; '.join(epte_fields)}\n")
 
             f.write("\n## Counterexample Inputs\n")
             for m in violation.measurements:
