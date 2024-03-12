@@ -44,3 +44,6 @@ exclude = [
 
 [project.scripts]
 rvzr = "revizor.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["revizor"]

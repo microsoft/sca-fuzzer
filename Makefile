@@ -6,10 +6,7 @@ install:
 	pip install dist/revizor_fuzzer-1.2.3-py3-none-any.whl
 
 uninstall:
-	pip uninstall revizor
-
-test_install:
-	python3 -c "import revizor; print(revizor.__version__)"
+	pip uninstall revizor-fuzzer
 
 test:
 	./src/tests/runtests.sh
