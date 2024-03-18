@@ -39,6 +39,7 @@ CRITICAL_ERROR = UC_ERR_NOMEM  # the model never handles this error, hence it wi
 class X86MacroInterpreter(MacroInterpreter):
     pseudo_lstar: int
     curr_guest_target: int = 0
+    curr_user_target: int = 0
     curr_host_target: int = 0
 
     def __init__(self, model: UnicornSeq):
@@ -127,31 +128,31 @@ class X86MacroInterpreter(MacroInterpreter):
 
     def macro_set_k2u_target(self, section_id: int, function_id: int, _: int, __: int):
         """
-        Decode arguments and store destination into RCX
+        Decode arguments and store destination into curr_user_target
         """
         section_addr = self.model.code_start + SANDBOX_CODE_SIZE * section_id
         function_symbol = self._find_function_by_id(function_id)
         function_addr = section_addr + function_symbol.offset
-        self.model.emulator.reg_write(ucc.UC_X86_REG_RCX, function_addr)
+        self.curr_user_target = function_addr
 
     def macro_switch_k2u(self, section_id: int, _: int, __: int, ___: int):
-        """ Read the destination from RCX and jump to it; also update data area base and SP """
+        """ Read the destination from curr_user_target and jump to it;
+        also update data area base and SP """
         model = self.model
 
         # PC update
-        target = model.emulator.reg_read(ucc.UC_X86_REG_RCX)
-        model.emulator.reg_write(model.uc_target_desc.pc_register, target)
+        model.emulator.reg_write(model.uc_target_desc.pc_register, self.curr_user_target)
+
+        # side effects
+        # flags = model.emulator.reg_read(ucc.UC_X86_REG_EFLAGS)
+        # rsp = model.emulator.reg_read(ucc.UC_X86_REG_RSP)
+        # model.emulator.mem_write(rsp - 8, flags.to_bytes(8, byteorder='little'))  # type: ignore
 
         # data area base and SP update
         new_base = model.sandbox_base + SANDBOX_DATA_SIZE * section_id
         new_sp = get_sandbox_addr(new_base, "sp")
         model.emulator.reg_write(model.uc_target_desc.actor_base_register, new_base)
-        model.emulator.reg_write(model.uc_target_desc.sp_register, new_sp)
-
-        # side effects
-        flags = model.emulator.reg_read(ucc.UC_X86_REG_EFLAGS)
-        rsp = model.emulator.reg_read(ucc.UC_X86_REG_RSP)
-        model.emulator.mem_write(rsp - 8, flags.to_bytes(8, byteorder='little'))  # type: ignore
+        model.emulator.reg_write(ucc.UC_X86_REG_RSP, new_sp)
 
         # actor update
         actor_name = self.sid_to_actor_name[section_id]
@@ -184,7 +185,7 @@ class X86MacroInterpreter(MacroInterpreter):
         new_base = model.sandbox_base + SANDBOX_DATA_SIZE * section_id
         new_sp = get_sandbox_addr(new_base, "sp")
         model.emulator.reg_write(model.uc_target_desc.actor_base_register, new_base)
-        model.emulator.reg_write(model.uc_target_desc.sp_register, new_sp)
+        model.emulator.reg_write(ucc.UC_X86_REG_RSP, new_sp)
 
         # actor update
         actor_name = self.sid_to_actor_name[section_id]
@@ -200,7 +201,7 @@ class X86MacroInterpreter(MacroInterpreter):
         new_base = model.sandbox_base + SANDBOX_DATA_SIZE * section_id
         new_sp = get_sandbox_addr(new_base, "sp")
         model.emulator.reg_write(model.uc_target_desc.actor_base_register, new_base)
-        model.emulator.reg_write(model.uc_target_desc.sp_register, new_sp)
+        model.emulator.reg_write(ucc.UC_X86_REG_RSP, new_sp)
 
         # reset flags
         model.emulator.reg_write(ucc.UC_X86_REG_EFLAGS, 0b10)
@@ -219,7 +220,7 @@ class X86MacroInterpreter(MacroInterpreter):
         new_base = model.sandbox_base + SANDBOX_DATA_SIZE * section_id
         new_sp = get_sandbox_addr(new_base, "sp")
         model.emulator.reg_write(model.uc_target_desc.actor_base_register, new_base)
-        model.emulator.reg_write(model.uc_target_desc.sp_register, new_sp)
+        model.emulator.reg_write(ucc.UC_X86_REG_RSP, new_sp)
 
         # actor update
         actor_name = self.sid_to_actor_name[section_id]
@@ -239,11 +240,11 @@ class X86MacroInterpreter(MacroInterpreter):
 
     def macro_landing_k2u(self, _: int, __: int, ___: int, ____: int):
         """ Landing for the k2u switch """
-        pass
+        self.model.emulator.reg_write(ucc.UC_X86_REG_RCX, 0)
 
     def macro_landing_u2k(self, _: int, __: int, ___: int, ____: int):
         """ Landing for the u2k switch """
-        pass
+        self.model.emulator.reg_write(ucc.UC_X86_REG_RCX, 0)
 
     def macro_landing_h2g(self, _: int, __: int, ___: int, ____: int):
         """ Landing for the h2g switch """

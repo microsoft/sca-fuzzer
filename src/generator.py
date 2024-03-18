@@ -66,7 +66,7 @@ class ConfigurableGenerator(Generator, abc.ABC):
         self.LOG.dbg_gen_instructions(instruction_set.instructions)
         self.control_flow_instructions = \
             [i for i in self.instruction_set.instructions if i.control_flow]
-        assert self.control_flow_instructions or CONF.max_bb_per_function <= 1, \
+        assert self.control_flow_instructions or CONF.max_successors_per_bb <= 1, \
                "The instruction set is insufficient to generate a test case"
 
         self.non_control_flow_instructions = \
