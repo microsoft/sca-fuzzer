@@ -515,7 +515,7 @@ def pretty_htrace(htrace: HTrace, offset: str = ""):
             final_str += f"{offset}{t} [{c}]\n"
         return final_str
 
-    for t, c in sorted(trace_distribution):
+    for t, c in trace_distribution:
         s = f"{t:064b}"
         s = s.replace("0", ".").replace("1", "^")
         if CONF.color:

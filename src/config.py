@@ -87,8 +87,6 @@ class Conf:
 
     avoid_data_dependencies: bool = False
     """ [DEPRECATED] avoid_data_dependencies: """
-    generate_memory_accesses_in_pairs: bool = False
-    """ [DEPRECATED] generate_memory_accesses_in_pairs: """
     feedback_driven_generator: bool = False
     """ [DEPRECATED] feedback_driven_generator: """
 
@@ -361,6 +359,10 @@ class Conf:
                                 raise ConfigException(
                                     f"ERROR: Unsupported actor data_ept_properties value {p_key}")
                             entry[k][p_key] = p_value
+                    continue
+                if k == "instruction_blocklist":
+                    if v:
+                        entry[k].update(v)
                     continue
 
                 entry[k] = v
