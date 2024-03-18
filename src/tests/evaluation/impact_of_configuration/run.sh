@@ -19,7 +19,6 @@ result="$exp_dir/aggregated.txt"
 touch $result
 
 # Defaults
-MEM_IN_PAIRS="false"
 AVOID_DATA_DEP="false"
 INPUT_ENTROPY=4
 INPUTS_PER_CLS=2
@@ -56,7 +55,6 @@ max_bb_per_function: $BB_PER_FUNCTION
 program_size: $TC_SIZE
 avg_mem_accesses: $NUM_MEM
 avoid_data_dependencies: $AVOID_DATA_DEP
-generate_memory_accesses_in_pairs: $MEM_IN_PAIRS
 inputs_per_class: $INPUTS_PER_CLS" >> $conf
 
         for i in $(seq 1 $REPS); do
@@ -73,12 +71,6 @@ inputs_per_class: $INPUTS_PER_CLS" >> $conf
 echo "================================================================"
 echo "Baseline"
 measure_detection_times
-
-echo "================================================================"
-echo "Memory in pairs"
-MEM_IN_PAIRS="true"
-measure_detection_times
-MEM_IN_PAIRS="false"
 
 echo "================================================================"
 echo "Avoid data dependencies"

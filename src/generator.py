@@ -223,6 +223,7 @@ class ConfigurableGenerator(Generator, abc.ABC):
         pass
 
     def create_actors(self, test_case: TestCase) -> None:
+
         def pte_properties_to_mask(properties: dict, type_: int) -> int:
             bits = self.target_desc.pte_bits if type_ == 0 else self.target_desc.epte_bits
 
@@ -355,7 +356,6 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
     Implements an ISA-independent logic of random test case generation.
     Subclasses are responsible for the ISA-specific parts.
     """
-    had_recent_memory_access: bool = False
 
     def __init__(self, instruction_set: InstructionSet, seed: int):
         super().__init__(instruction_set, seed)
@@ -546,24 +546,33 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         return CondOperand(cond)
 
     def expand_template(self, test_case: TestCase):
-        instr_to_expand: List[Tuple[Instruction, BasicBlock]] = []
+        instr_to_expand: List[Tuple[Instruction, BasicBlock, str]] = []
         for func in test_case.functions:
             for bb in func:
                 for instr in bb:
                     if instr.name == "macro" and instr.operands[0].value == ".random_instructions":
-                        instr_to_expand.append((instr, bb))
+                        instr_to_expand.append((instr, bb, func.owner.name))
 
-        for inst, bb in instr_to_expand:
+        for inst, bb, a_name in instr_to_expand:
             operands = inst.operands[1].value.split(".")
             assert len(operands) >= 3 and len(operands) <= 5
             n_instr = int(operands[1])
             n_mem = int(operands[2])
             predecessor = inst.previous
 
+            # determine the instruction set for this actor
+            blocklist = CONF._actors[a_name]["instruction_blocklist"]
+            non_memory_access_instructions = \
+                [i for i in self.non_memory_access_instructions if i.name not in blocklist]
+            store_instructions = [i for i in self.store_instructions if i.name not in blocklist]
+            load_instruction = [i for i in self.load_instruction if i.name not in blocklist]
+
             # replace the macro with random instructions
             bb.delete(inst)
             for _ in range(n_instr):
-                spec = self._pick_random_instruction_spec(n_mem / n_instr)
+                spec = self._pick_random_instruction_spec(non_memory_access_instructions,
+                                                          store_instructions, load_instruction,
+                                                          n_mem / n_instr)
                 inst = self.generate_instruction(spec)
                 if predecessor:
                     bb.insert_after(predecessor, inst)
@@ -611,36 +620,32 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         bb_list = func[:]
         for _ in range(0, CONF.program_size):
             bb = random.choice(bb_list)
-            spec = self._pick_random_instruction_spec(CONF.avg_mem_accesses / CONF.program_size)
+            spec = self._pick_random_instruction_spec(self.non_memory_access_instructions,
+                                                      self.store_instructions,
+                                                      self.load_instruction,
+                                                      CONF.avg_mem_accesses / CONF.program_size)
             inst = self.generate_instruction(spec)
             bb.insert_after(bb.get_last(), inst)
 
-    def _pick_random_instruction_spec(self, memory_access_probability: float = 0.0) \
-            -> InstructionSpec:
+    def _pick_random_instruction_spec(self,
+                                      non_memory_access_instructions: List,
+                                      store_instructions: List,
+                                      load_instructions: List,
+                                      memory_access_probability: float = 0.0) -> InstructionSpec:
         # ensure the requested avg. number of mem. accesses
-        search_for_memory_access = False
+        search_for_memory_access = random.random() < memory_access_probability
+        if not search_for_memory_access:
+            return random.choice(non_memory_access_instructions)
 
-        if CONF.generate_memory_accesses_in_pairs:
-            memory_access_probability = 1 if self.had_recent_memory_access else \
-                (CONF.avg_mem_accesses / 2) / (CONF.program_size - CONF.avg_mem_accesses / 2)
-
-        if random.random() < memory_access_probability:
-            search_for_memory_access = True
-            self.had_recent_memory_access = not self.had_recent_memory_access
-
-        if self.store_instructions:
+        if store_instructions:
             search_for_store = random.random() < 0.5  # 50% probability of stores
         else:
             search_for_store = False
 
-        # select a random instruction spec for generation
-        if not search_for_memory_access:
-            return random.choice(self.non_memory_access_instructions)
-
         if search_for_store:
-            return random.choice(self.store_instructions)
+            return random.choice(store_instructions)
 
-        return random.choice(self.load_instruction)
+        return random.choice(load_instructions)
 
     @abc.abstractmethod
     def get_return_instruction(self) -> Instruction:

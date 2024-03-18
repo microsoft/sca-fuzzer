@@ -57,7 +57,7 @@ _option_values = {
         'data_properties',
         'data_ept_properties',
         'observer',
-        # 'code_properties',  # under construction
+        'instruction_blocklist',
     ],
     "actor_mode": [
         'host',
@@ -284,15 +284,6 @@ _actor_default = {
         'user': False,
         'reserved_bit': False,
         'randomized': False,
-    }
-    # 'code_properties': {
-    #     'present': True,
-    #     'writable': False,
-    #     'user': False,
-    #     'write-through': False,
-    #     'cache-disable': False,
-    #     'accessed': True,
-    #     'dirty': False,
-    #     'non_executable': True
-    # }
+    },
+    'instruction_blocklist': set()
 }
