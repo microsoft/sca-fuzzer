@@ -145,6 +145,12 @@ static uint64_t update_r15(int section_id, uint8_t *macro_dest, uint64_t cursor)
     return cursor - old_cursor;
 }
 
+#define SET_MACRO_BYTE(x)                                                                          \
+    {                                                                                              \
+        macro_dest[cursor] = x;                                                                    \
+        cursor++;                                                                                  \
+    }
+
 // =================================================================================================
 // Macro management
 // =================================================================================================
@@ -265,6 +271,8 @@ uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint64_t own
     // uint16_t arg3 = (args >> 32) & 0xFFFF;
     // uint16_t arg4 = (args >> 48) & 0xFFFF;
 
+    uint32_t macro_stack_offset = 0;
+
     switch (macro_type) {
     case MACRO_MEASUREMENT_START:
     case MACRO_MEASUREMENT_END:
@@ -293,53 +301,99 @@ uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint64_t own
     case MACRO_SWITCH_U2K:
         break;
     case MACRO_SET_K2U_TARGET: {
-        // movabs rcx, function_addr
+        // movabs r11, function_addr
         uint64_t function_addr = get_function_addr(arg1, arg2, main_prologue_size);
-        macro_dest[cursor] = 0x48;
-        cursor++;
-        macro_dest[cursor] = 0xb9;
-        cursor++;
+        SET_MACRO_BYTE(0x49);
+        SET_MACRO_BYTE(0xbb);
         *((uint64_t *)(macro_dest + cursor)) = function_addr;
         cursor += 8;
         break;
     }
     case MACRO_SET_H2G_TARGET: {
         // movabs r11, &vmcs_hpa
-        macro_dest[cursor] = 0x49;
-        cursor++;
-        macro_dest[cursor] = 0xbb;
-        cursor++;
+        SET_MACRO_BYTE(0x49);
+        SET_MACRO_BYTE(0xbb);
         *((uint64_t **)(macro_dest + cursor)) = &vmcs_hpas[arg1];
         cursor += 8;
 
         // vmptrld [r11]
-        macro_dest[cursor] = 0x41;
-        cursor++;
-        macro_dest[cursor] = 0x0f;
-        cursor++;
-        macro_dest[cursor] = 0xc7;
-        cursor++;
-        macro_dest[cursor] = 0x33;
-        cursor++;
+        SET_MACRO_BYTE(0x41);
+        SET_MACRO_BYTE(0x0f);
+        SET_MACRO_BYTE(0xc7);
+        SET_MACRO_BYTE(0x33);
 
         // movabs r11, function_addr
         uint64_t function_addr = get_function_addr(arg1, arg2, main_prologue_size);
-        macro_dest[cursor] = 0x49;
-        cursor++;
-        macro_dest[cursor] = 0xbb;
-        cursor++;
+        SET_MACRO_BYTE(0x49);
+        SET_MACRO_BYTE(0xbb);
         *((uint64_t *)(macro_dest + cursor)) = function_addr;
         cursor += 8;
         break;
     }
-    case MACRO_SET_U2K_TARGET:
+    case MACRO_SET_U2K_TARGET: {
+        uint64_t function_addr = get_function_addr(arg1, arg2, main_prologue_size);
+
+        // 49 89 a6 38 f0 ff ff    mov    QWORD PTR [r14 - MACRO_STACK_TOP_OFFSET - 8],rsp
+        SET_MACRO_BYTE(0x49);
+        SET_MACRO_BYTE(0x89);
+        SET_MACRO_BYTE(0xa6);
+        macro_stack_offset = -MACRO_STACK_TOP_OFFSET - 8;
+        *((uint32_t *)(macro_dest + cursor)) = macro_stack_offset;
+        cursor += 4;
+        // 49 8d a6 38 f0 ff ff    lea    rsp,[r14 - MACRO_STACK_TOP_OFFSET - 8]
+        SET_MACRO_BYTE(0x49);
+        SET_MACRO_BYTE(0x8d);
+        SET_MACRO_BYTE(0xa6);
+        *((uint32_t *)(macro_dest + cursor)) = macro_stack_offset;
+        cursor += 4;
+        // 50                      push   rax
+        SET_MACRO_BYTE(0x50);
+        // 51                      push   rcx
+        SET_MACRO_BYTE(0x51);
+        // 52                      push   rdx
+        SET_MACRO_BYTE(0x52);
+        // 9c                      pushf
+        SET_MACRO_BYTE(0x9c);
+        // 48 b8                   movabs rax, function_addr
+        SET_MACRO_BYTE(0x48);
+        SET_MACRO_BYTE(0xb8);
+        *((uint64_t *)(macro_dest + cursor)) = function_addr;
+        cursor += 8;
+        // 48 89 c2                mov    rdx,rax
+        SET_MACRO_BYTE(0x48);
+        SET_MACRO_BYTE(0x89);
+        SET_MACRO_BYTE(0xc2);
+        // 48 c1 ea 20             shr    rdx,0x20
+        SET_MACRO_BYTE(0x48);
+        SET_MACRO_BYTE(0xc1);
+        SET_MACRO_BYTE(0xea);
+        SET_MACRO_BYTE(0x20);
+        // 48 b9 82 00 00 c0 00    movabs rcx,0xc0000082
+        SET_MACRO_BYTE(0x48);
+        SET_MACRO_BYTE(0xb9);
+        *((uint64_t *)(macro_dest + cursor)) = 0xc0000082;
+        cursor += 8;
+        // 0f 30                   wrmsr
+        SET_MACRO_BYTE(0x0f);
+        SET_MACRO_BYTE(0x30);
+        // 9d                      popf
+        SET_MACRO_BYTE(0x9d);
+        // 5a                      pop    rdx
+        SET_MACRO_BYTE(0x5a);
+        // 59                      pop    rcx
+        SET_MACRO_BYTE(0x59);
+        // 58                      pop    rax
+        SET_MACRO_BYTE(0x58);
+        // 5c                      pop    rsp
+        SET_MACRO_BYTE(0x5c);
+
+        break;
+    }
     case MACRO_SET_G2H_TARGET: {
         // movabs r11, function_addr
         uint64_t function_addr = get_function_addr(arg1, arg2, main_prologue_size);
-        macro_dest[cursor] = 0x49;
-        cursor++;
-        macro_dest[cursor] = 0xbb;
-        cursor++;
+        SET_MACRO_BYTE(0x49);
+        SET_MACRO_BYTE(0xbb);
         *((uint64_t *)(macro_dest + cursor)) = function_addr;
         cursor += 8;
         break;
@@ -350,11 +404,22 @@ uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint64_t own
         break;
     case MACRO_LANDING_K2U: {
         cursor += update_r14_rsp(owner, macro_dest, cursor);
+        // movabs rcx, 0  # rcx was corrupted during context switch; set to zero
+        SET_MACRO_BYTE(0x48);
+        SET_MACRO_BYTE(0xb9);
+        *((uint64_t *)(macro_dest + cursor)) = 0;
+        cursor += 8;
         break;
     }
     case MACRO_LANDING_U2K: {
         cursor += update_r14(owner, macro_dest, cursor);
         // rsp is automatically restored by syscall instruction
+
+        // movabs rcx, 0  # rcx was corrupted during context switch; set to zero
+        SET_MACRO_BYTE(0x48);
+        SET_MACRO_BYTE(0xb9);
+        *((uint64_t *)(macro_dest + cursor)) = 0;
+        cursor += 8;
         break;
     }
     case MACRO_LANDING_H2G:
@@ -533,7 +598,7 @@ void __attribute__((noipa)) macro_measurement_end_tsc(void)
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                               //
                        "cmp " HTRACE_REGISTER ", 0\n"   // skip if already called
-                       "jg 97f\n"                      //
+                       "jg 97f\n"                       //
                        PUSH_ABCDF()                     //
                        READ_PFC_END()                   //
                        "lfence; rdtsc; lfence\n"        //
@@ -570,6 +635,7 @@ void __attribute__((noipa)) macro_switch_k2u(void)
     asm volatile(".quad " xstr(MACRO_START));
     // clang-format off
     asm_volatile_intel(""
+                       "mov rcx, r11\n"
                        "mov qword ptr [r14 - " xstr(MACRO_STACK_TOP_OFFSET) " - 8], rsp\n"
                        "lea rsp, [r14 - " xstr(MACRO_STACK_TOP_OFFSET) " - 8]\n"
                        "pushfq\n"
@@ -583,15 +649,6 @@ void __attribute__((noipa)) macro_switch_k2u(void)
 void __attribute__((noipa)) macro_set_u2k_target(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
-    asm_volatile_intel(""                      // r11 contains the target address
-                       PUSH_ABCDF()            //
-                       "mov rax, r11\n"        //
-                       "mov rdx, r11\n"        //
-                       "shr rdx, 32\n"         //
-                       "mov rcx, 0xc0000082\n" //
-                       "wrmsr\n"               //
-                       POP_ABCDF()             //
-    );
     asm volatile(".quad " xstr(MACRO_END));
 }
 
