@@ -14,6 +14,11 @@ from ..asm_parser import AsmParserGeneric, parser_assert
 from ..interfaces import OT, Instruction, InstructionSpec, LabelOperand, Operand, RegisterOperand, \
     MemoryOperand, ImmediateOperand, AgenOperand
 
+PATTERN_CONST_INT = re.compile("^-?[0-9]+$")
+PATTERN_CONST_HEX = re.compile("^-?0x[0-9abcdef]+$")
+PATTERN_CONST_BIN = re.compile("^-?0b[01]+$")
+PATTERN_CONST_SUM = re.compile("^-?[0-9]+\ *[+-]\ *[0-9]+$")
+
 
 class X86AsmParser(AsmParserGeneric):
     generator: X86Generator
@@ -108,7 +113,7 @@ class X86AsmParser(AsmParserGeneric):
 
         # remove comments
         if "#" in line:
-            line = re.search(r"(.*)#.*", line).group(1).strip()  # type: ignore
+            line = line.split("#")[0].strip()
 
         # extract operands
         operands_raw = line.removeprefix(name).split(",")
@@ -147,10 +152,10 @@ class X86AsmParser(AsmParserGeneric):
                         break
                     continue
                 # match immediate value
-                elif re.match(r"^-?[0-9]+$", op_raw) or \
-                        re.match(r"^-?0x[0-9abcdef]+$", op_raw) or \
-                        re.match(r"^-?0b[01]+$", op_raw) or \
-                        re.match(r"^-?[0-9]+\ *[+-]\ *[0-9]+$", op_raw):
+                elif PATTERN_CONST_BIN.match(op_raw) or \
+                        PATTERN_CONST_HEX.match(op_raw) or \
+                        PATTERN_CONST_INT.match(op_raw) or \
+                        PATTERN_CONST_SUM.match(op_raw):
                     if op_spec.type != OT.IMM:
                         match = False
                         break
