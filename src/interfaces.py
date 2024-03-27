@@ -1125,8 +1125,10 @@ class Fuzzer(ABC):
         pass
 
     @abstractmethod
-    def fuzzing_round(self, test_case: TestCase, inputs: List[Input],
-                      ignore_list: List[int]) -> Optional[EquivalenceClass]:
+    def fuzzing_round(self,
+                      test_case: TestCase,
+                      inputs: List[Input],
+                      ignore_list: List[int] = []) -> Optional[EquivalenceClass]:
         pass
 
     @abstractmethod
