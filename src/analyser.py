@@ -190,11 +190,9 @@ class MWUAnalyser(EquivalenceAnalyserCommon):
 
     def __init__(self) -> None:
         super().__init__()
-        if CONF.analyser_stat_threshold == 0.01:
-            self.LOG.warning(
-                "analyser", "Using the default p-value threshold of 0.01 for the MWU test\n"
-                "may lead to false positives. Consider running `rvzr tune`\n"
-                "to find a threshold that fits your testing target")
+        self.LOG.warning(
+            "analyser",
+            "MWUAnalyser is an experimental analyser and may not work well for all cases. ")
 
         a = [1] * CONF.executor_sample_sizes[0]
         b = [2] * CONF.executor_sample_sizes[0]
@@ -216,12 +214,6 @@ class ChiSquaredAnalyser(EquivalenceAnalyserCommon):
 
     def __init__(self) -> None:
         super().__init__()
-        if CONF.analyser_stat_threshold == 0.01:
-            self.LOG.warning(
-                "analyser", "Using the default p-value threshold of 0.01 for the chi-sq. test\n"
-                "may lead to false positives. Consider running `rvzr tune`\n"
-                "to find a threshold that fits your testing target")
-
         a = [1] * CONF.executor_sample_sizes[0]
         b = [2] * CONF.executor_sample_sizes[0]
         stat = self.homogeneity_test(a, b)

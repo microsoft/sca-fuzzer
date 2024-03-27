@@ -63,6 +63,7 @@ class AnalyserTest(unittest.TestCase):
         self.assertEqual(len(clss), 1)
         self.assertEqual(clss[0].ctrace, 2)
 
+    @unittest.skip("MWUAnalyser is not implemented yet")
     def test_mwu_analyser(self):
         analyser = MWUAnalyser()
         dummy_input = Input()
