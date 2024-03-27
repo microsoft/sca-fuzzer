@@ -3,7 +3,7 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 import unittest
-from src.analyser import MergedBitmapAnalyser, SetAnalyser, MWUAnalyser
+from src.analyser import MergedBitmapAnalyser, SetAnalyser, MWUAnalyser, ChiSquaredAnalyser
 from src.interfaces import Input, HTrace
 
 
@@ -85,7 +85,19 @@ class AnalyserTest(unittest.TestCase):
         self.assertEqual(len(clss), 1)
         self.assertEqual(clss[0].ctrace, 1)
 
-        # filtering of ineffective inputs
-        clss = analyser._build_equivalence_classes([dummy_input] * 4, [1, 2, 2, 2], htraces)
+    def test_chi2_analyser(self):
+        analyser = ChiSquaredAnalyser()
+        dummy_input = Input()
+        h1 = [1, 1, 1, 1, 1]
+        h2 = [1, 1, 2, 2, 2]
+        htraces = [HTrace(h1), HTrace(h2)]
+
+        # basic collection of eq classes
+        clss = analyser._build_equivalence_classes([dummy_input] * 2, [1, 1], htraces)
         self.assertEqual(len(clss), 1)
-        self.assertEqual(clss[0].ctrace, 2)
+        self.assertEqual(clss[0].ctrace, 1)
+        self.assertEqual(clss[0].measurements[0].htrace.raw, h1)
+
+        # detection of violations
+        clss = analyser.filter_violations([dummy_input] * 2, [1, 1], htraces)
+        self.assertEqual(len(clss), 1)

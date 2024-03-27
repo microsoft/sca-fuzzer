@@ -68,6 +68,7 @@ ANALYSERS: Dict[str, Type[interfaces.Analyser]] = {
     'bitmaps': analyser.MergedBitmapAnalyser,
     'sets': analyser.SetAnalyser,
     'mwu': analyser.MWUAnalyser,
+    'chi2': analyser.ChiSquaredAnalyser,
 }
 
 MINIMIZERS: Dict[str, Type[interfaces.Minimizer]] = {

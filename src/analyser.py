@@ -130,7 +130,9 @@ class MergedBitmapAnalyser(EquivalenceAnalyserCommon):
 
     def htraces_are_equivalent(self, htrace1: HTrace, htrace2: HTrace) -> bool:
         bitmaps = [0, 0]
-        threshold = CONF.analyser_outliers_threshold * CONF.executor_sample_size
+        sample_size = len(htrace1.raw)
+        assert sample_size == len(htrace2.raw), "htraces have different sizes"
+        threshold = CONF.analyser_outliers_threshold * sample_size
         for i, htrace in enumerate([htrace1, htrace2]):
             # check if cached
             if htrace.hash_ in self.bitmap_cache:
@@ -165,7 +167,9 @@ class SetAnalyser(EquivalenceAnalyserCommon):
 
     def htraces_are_equivalent(self, htrace1: HTrace, htrace2: HTrace) -> bool:
         """ Squash the htrace lists into sets and compare the results """
-        threshold = CONF.analyser_outliers_threshold * CONF.executor_sample_size
+        sample_size = len(htrace1.raw)
+        assert sample_size == len(htrace2.raw), "htraces have different sizes"
+        threshold = CONF.analyser_outliers_threshold * sample_size
         filtered1 = [x for x in htrace1.raw if x >= threshold]
         filtered2 = [x for x in htrace2.raw if x >= threshold]
 
@@ -179,21 +183,64 @@ class SetAnalyser(EquivalenceAnalyserCommon):
 
 
 class MWUAnalyser(EquivalenceAnalyserCommon):
-    """ A variant of the analyser that uses the Mann-Withney U test to compare htraces """
+    """ A variant of the analyser that uses the Mann-Withney U test to compare htraces.
+
+    WARNING: this is an experimental analyser and it may not work well for all cases."""
+    last_p_value: float = 0.0
 
     def __init__(self) -> None:
         super().__init__()
-        if CONF.analyser_p_value_threshold == 0.01:
+        if CONF.analyser_stat_threshold == 0.01:
             self.LOG.warning(
                 "analyser", "Using the default p-value threshold of 0.01 for the MWU test\n"
                 "may lead to false positives. Consider running `rvzr tune`\n"
                 "to find a threshold that fits your testing target")
+
+        a = [1] * CONF.executor_sample_sizes[0]
+        b = [2] * CONF.executor_sample_sizes[0]
+        _, p_value = stats.mannwhitneyu(a, b)
+        if CONF.analyser_stat_threshold < p_value:
+            self.LOG.error("analyser_stat_threshold is too low for the given sample size")
 
     def htraces_are_equivalent(self, htrace1: HTrace, htrace2: HTrace) -> bool:
         """ Use the Mann-Withney U test to compare htraces """
         _, p_value = stats.mannwhitneyu(htrace1.raw, htrace2.raw)
 
         # print(set(htrace1.raw), set(htrace2.raw), p_value)
-        # if p_value <= CONF.analyser_p_value_threshold:
+        # if p_value <= CONF.analyser_stat_threshold:
         # print(f"p_value={p_value:.6f}")
-        return p_value > CONF.analyser_p_value_threshold
+        return p_value > CONF.analyser_stat_threshold
+
+
+class ChiSquaredAnalyser(EquivalenceAnalyserCommon):
+
+    def __init__(self) -> None:
+        super().__init__()
+        if CONF.analyser_stat_threshold == 0.01:
+            self.LOG.warning(
+                "analyser", "Using the default p-value threshold of 0.01 for the chi-sq. test\n"
+                "may lead to false positives. Consider running `rvzr tune`\n"
+                "to find a threshold that fits your testing target")
+
+        a = [1] * CONF.executor_sample_sizes[0]
+        b = [2] * CONF.executor_sample_sizes[0]
+        stat = self.homogeneity_test(a, b)
+        if CONF.analyser_stat_threshold > stat:
+            self.LOG.error("analyser_stat_threshold is too low for the given sample size")
+
+    def homogeneity_test(self, x: List[int], y: List[int]) -> bool:
+        """ Use the chi-squared test to compare htraces """
+        assert len(x) == len(y)
+        counter1 = Counter(x)
+        counter2 = Counter(y)
+        keys = set(counter1.keys()) | set(counter2.keys())
+        observed = [counter1[k] for k in keys] + [counter2[k] for k in keys]
+        expected = [(counter1[k] + counter2[k]) / 2 for k in keys] * 2
+        ddof = len(keys) - 1
+        stat, _ = stats.chisquare(observed, expected, ddof=ddof)
+        stat /= len(x) + len(y)
+        return stat
+
+    def htraces_are_equivalent(self, htrace1: HTrace, htrace2: HTrace) -> bool:
+        stat = self.homogeneity_test(htrace1.raw, htrace2.raw)
+        return stat < CONF.analyser_stat_threshold

@@ -141,7 +141,7 @@ class Conf:
 
     # ==============================================================================================
     # Analyser
-    analyser: str = 'mwu'
+    analyser: str = 'chi2'
     """ analyser: type of the analyser """
     analyser_subsets_is_violation: bool = False
     """ analyser_subsets_is_violation: [only for analyser='sets' or analyser='bitmaps']
@@ -151,11 +151,14 @@ class Conf:
     """ analyser_outliers_threshold: [only for analyser='sets' or analyser='bitmaps']
     analyser will ignore the htraces that appear in less then this percentage of the repetitions.
     I.e., a htrace passes the filter if it is observed at least
-        (analyser_outliers_threshold * executor_sample_size) times """
-    analyser_p_value_threshold: float = 0.01
-    """ analyser_p_value_threshold: [only for analyser='mwu']
-    p-value threshold for the Mann-Whitney U test; if two htrace sequences have a p-value
-    above this threshold, they are considered equivalent """
+        (analyser_outliers_threshold * len(htrace)) times """
+    analyser_stat_threshold: float = 0.01
+    """ analyser_stat_threshold: [only for analyser='chi2' and analyser='mwu']
+    Threshold for the statistical tests. If a pair of hardware traces has the (normalized)
+    statistics below the threshold, then the traces are considered equivalent.
+
+    For the chi2 test, the threshold is the statistics / (len(htrace1) + len(htrace2))
+    For the mwu test, the threshold is the p-value """
 
     # ==============================================================================================
     # Coverage
