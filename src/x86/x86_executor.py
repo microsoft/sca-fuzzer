@@ -15,7 +15,7 @@ from typing import List, Optional, Tuple
 
 from ..interfaces import HTrace, Input, TestCase, Executor
 from ..config import CONF
-from ..util import Logger
+from ..util import Logger, STAT
 
 
 def write_to_sysfs_file(value, path: str) -> None:
@@ -178,6 +178,7 @@ class X86Executor(Executor):
         :param n_reps: number of repetitions for each input
         :param n_inputs: number of inputs
         """
+        STAT.executor_reruns += n_reps * n_inputs
 
         # Pre-allocate an array to store the results
         all_results: np.ndarray = np.ndarray(shape=(n_inputs, n_reps), dtype=MeasurementResult)
