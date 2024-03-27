@@ -166,10 +166,7 @@ class FuzzerGeneric(Fuzzer):
 
         min_nesting: int = CONF.model_min_nesting
         max_nesting: int = CONF.model_max_nesting
-        if "seq" in CONF.contract_execution_clause or \
-           "seq-assist" in CONF.contract_execution_clause or \
-           "sandbox" in CONF.contract_execution_clause or \
-           "no_speculation" in CONF.contract_execution_clause:
+        if not self.model.is_speculative_contract:
             min_nesting = 1
             max_nesting = 1
         nesting: int = min_nesting

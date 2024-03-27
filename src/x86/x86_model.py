@@ -508,7 +508,7 @@ class X86UnicornSeq(UnicornSeq):
 # Implementation of Execution Clauses
 # ==================================================================================================
 class X86UnicornSpec(UnicornSpec, X86UnicornSeq):
-    pass
+    is_speculative_contract: bool = True
 
 
 class X86UnicornCond(X86UnicornSpec):
