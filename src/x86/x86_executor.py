@@ -155,7 +155,10 @@ class X86Executor(Executor):
             return [HTrace([0]) for _ in range(n_inputs)]
 
         # Transfer inputs to the kernel module
-        self.__write_inputs(inputs)
+        if n_reps % 5 == 0 and len(inputs) < 1000:
+            self.__write_inputs(inputs * 5)
+        else:
+            self.__write_inputs(inputs)
 
         # Check that the transfer was successful
         with open('/sys/x86_executor/inputs', 'r') as f:
@@ -185,7 +188,9 @@ class X86Executor(Executor):
 
         # Run experiments and save the results
         cmd = f"taskset -c {CONF.executor_taskset} cat /sys/x86_executor/trace"
-        for rep in range(n_reps):
+
+        rep = 0
+        while rep < n_reps:
             input_id = n_inputs - 1  # executor prints results in reverse
 
             # executor prints results in batches, hence we have to call it several times,
@@ -201,15 +206,19 @@ class X86Executor(Executor):
                         reading_finished = True
                         break
 
+                    if input_id < 0:  # we reached the end of the batch; start over
+                        input_id = n_inputs - 1
+                        rep += 1
+
                     if input_id not in self.ignore_list:
                         raw_trace = int(row[0])
-                        if CONF.executor_mode == 'TSC':
+                        if CONF.executor_mode == 'TSC' and CONF.fuzzer != 'architectural':
                             all_results[input_id][rep]['htrace'] = raw_trace & 0x0FFFFFFFFFFFFFF0
                         else:
                             all_results[input_id][rep]['htrace'] = raw_trace
 
                         all_results[input_id][rep]['pfc'] = [int(x) for x in row[1:]]
-                        if raw_trace == 0:
+                        if raw_trace == 0 and CONF.fuzzer != 'architectural':
                             self.LOG.warning(
                                 "executor", "Detected a kernel module error (see dmesg for details)"
                                 ". Skipping this test case")
@@ -218,6 +227,9 @@ class X86Executor(Executor):
                         all_results[input_id][rep]['htrace'] = 0
                         all_results[input_id][rep]['pfc'] = [0, 0, 0, 0, 0]
                     input_id -= 1
+
+            assert input_id == -1, f"input_id: {input_id}, rep: {rep}"
+            rep += 1
 
         self.LOG.dbg_executor_raw_traces(all_results)
         return all_results
