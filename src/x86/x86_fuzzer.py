@@ -123,7 +123,7 @@ class X86Fuzzer(FuzzerGeneric):
             for i, _ in enumerate(inputs):
                 set1 = set(fenced_htraces[i].raw)
                 set2 = set(non_fenced_htraces[i].raw)
-                if set1 != set2:
+                if set1 != set2 and not set2.issubset(set1):
                     traces_match = False
                     break
 
