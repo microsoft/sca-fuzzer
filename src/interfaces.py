@@ -1041,6 +1041,7 @@ class Model(ABC):
 
 
 class Executor(ABC):
+
     @abstractmethod
     def load_test_case(self, test_case: TestCase):
         pass
@@ -1124,7 +1125,8 @@ class Fuzzer(ABC):
         pass
 
     @abstractmethod
-    def fuzzing_round(self, test_case: TestCase, inputs: List[Input]) -> Optional[EquivalenceClass]:
+    def fuzzing_round(self, test_case: TestCase, inputs: List[Input],
+                      ignore_list: List[int]) -> Optional[EquivalenceClass]:
         pass
 
     @abstractmethod
