@@ -49,14 +49,11 @@ INSTRUCTION_REPLACEMENTS = {
     "cmovp": lambda _: "mov",
     "cmovs": lambda _: "mov",
     "cmovz": lambda _: "mov",
-
     "xchg": lambda _: "mov",
     "cmpxchg": lambda _: "xchg",
-
     "rep": lambda _: "",
     "lock": lambda _: "",
     "add": lambda _: "mov",
-
     "sub": lambda _: "add",
     "or": lambda _: "add",
     "xor": lambda _: "add",
@@ -73,14 +70,31 @@ INSTRUCTION_REPLACEMENTS = {
     "blsi": lambda _: "add",
     "blsmsk": lambda _: "add",
     "xadd": lambda _: "add",
+    "test": lambda _: "add",
     "adc": lambda _: "add",
-
     "sbb": lambda _: "sub",
     "mul": lambda _: "inc",
     "div": lambda _: "inc",
-    "idiv": lambda _: "div",
     "setb": lambda _: "inc",
+    "not": lambda _: "inc",
+    "idiv": lambda _: "div",
     "imul": lambda line: "add" if len(line.split(",")) == 2 else "imul",
+}
+
+MASK_REPLACEMENTS = {
+    "0b1111111111111": "0b1111111111110",
+    "0b1111111111110": "0b1111111111100",
+    "0b1111111111100": "0b1111111111000",
+    "0b1111111111000": "0b1111111110000",
+    "0b1111111110000": "0b1111111100000",
+    "0b1111111100000": "0b1111111000000",
+    "0b1111111000000": "0b1111110000000",
+    "0b1111110000000": "0b1111100000000",
+    "0b1111100000000": "0b1111000000000",
+    "0b1111000000000": "0b1110000000000",
+    "0b1110000000000": "0b1100000000000",
+    "0b1100000000000": "0b1000000000000",
+    "0b1000000000000": "0b0000000000000",
 }
 
 
@@ -131,58 +145,57 @@ class MinimizerViolation(Minimizer):
         n_inputs = len(inputs) * CONF.inputs_per_class
         self.ignore_list = [i for i in range(n_inputs) if i not in violating_input_ids]
 
-        # Update p-value
-        if CONF.analyser == "mwu":
-            self.adjust_p_value(violation)
+        if enable_minimize_inputs:
+            print("\n Analyzing inputs:\n  Progress: ", end='')
+            inputs = self.find_min_inputs(test_case, inputs, violation)
+            CONF.inputs_per_class = 1  # disable boosting from now on
+
+        # Remove/simplify instructions in multiple passes
+        attempts = 1 if not enable_multipass else 10
+        for attempt in range(attempts):
+            if not enable_minimize and not enable_simplify:
+                break
+            print(f"\nMinimization attempt {attempt + 1}/{attempts}")
+            old_instruction_count = len([i for i in open(test_case.asm_path, "r")])
+
+            if enable_minimize:
+                print("\n  Minimizing the test case: ", end='', flush=True)
+                test_case = self.minimize_test_case(test_case, inputs)
+                shutil.copy(test_case.asm_path, outfile)
+
+            if enable_simplify:
+                print("\n  Simplifying instructions: ", end='', flush=True)
+                test_case = self.simplify(test_case, inputs)
+
+                print("\n  Simplifying constants: ", end='', flush=True)
+                test_case = self.simplify_constants(test_case, inputs)
+                shutil.copy(test_case.asm_path, outfile)
+
+                # print("\n  Simplifying masks: ", end='', flush=True)
+                # test_case = self.simplify_masks(test_case, inputs)
+                # shutil.copy(test_case.asm_path, outfile)
+
+            new_instruction_count = len([i for i in open(test_case.asm_path, "r")])
+            if new_instruction_count == old_instruction_count:
+                break
 
         if enable_minimize:
-            print("\nMinimizing the test case:\n  Progress: ", end='', flush=True)
-            test_case = self.minimize_test_case(test_case, inputs)
-
-            print("\nMinimize labels:\n  Progress: ", end='', flush=True)
+            print("\nMinimize labels: ", end='', flush=True)
             test_case = self.minimize_labels(test_case, inputs)
-
-            shutil.copy(test_case.asm_path, outfile)
-
-        if enable_simplify:
-            print("\nSimplifying instructions:\n  Progress: ", end='', flush=True)
-            test_case = self.simplify(test_case, inputs)
-
-            print("\nSimplifying constants:\n  Progress: ", end='', flush=True)
-            test_case = self.simplify_constants(test_case, inputs)
-
-            shutil.copy(test_case.asm_path, outfile)
-
-        if enable_minimize and enable_multipass:
-            for attempt in range(10):
-                print(
-                    f"\nMinimizing the test case (attempt #{attempt}):\n  Progress: ",
-                    end='',
-                    flush=True)
-                old_instruction_count = len([i for i in open(test_case.asm_path, "r")])
-                test_case = self.minimize_test_case(test_case, inputs)
-                new_instruction_count = len([i for i in open(test_case.asm_path, "r")])
-                if new_instruction_count == old_instruction_count:
-                    break
-
             shutil.copy(test_case.asm_path, outfile)
 
         if enable_add_fences:
-            print("\nTrying to add fences:\n  Progress: ", end='')
+            print("\nTrying to add fences: ", end='')
             test_case = self.add_fences(test_case, inputs)
             shutil.copy(test_case.asm_path, outfile)
 
         if enable_find_sources:
-            print("\nIdentifying speculation sources:\n  Progress: ", end='')
+            print("\nIdentifying speculation sources: ", end='')
             test_case = self.find_spec_source(test_case, inputs)
 
-            print("\nIdentifying speculation sink:\n  Progress: ", end='')
+            print("\nIdentifying speculation sink: ", end='')
             test_case = self.find_spec_sink(test_case, inputs)
             shutil.copy(test_case.asm_path, outfile)
-
-        if enable_minimize_inputs:
-            print("\n Analyzing inputs:\n  Progress: ", end='')
-            self.find_min_inputs(test_case, inputs, violation)
 
         if enable_violation_comments:
             print("\n Adding comments with violation details:\n", end='')
@@ -191,19 +204,6 @@ class MinimizerViolation(Minimizer):
 
         print("\nStoring the results")
         shutil.copy(test_case.asm_path, outfile)
-
-    def adjust_p_value(self, violation):
-        htraces = [m.htrace.raw for m in violation.measurements]
-        max_p_value: float = 0
-        for htrace1, htrace2 in zip(htraces, htraces[1:]):
-            _, p_value = stats.mannwhitneyu(htrace1, htrace2)
-            max_p_value = p_value if p_value > max_p_value else max_p_value
-        new_p_value: float = max_p_value * 10
-        if new_p_value < CONF.analyser_p_value_threshold:
-            if new_p_value < CONF.analyser_p_value_threshold / 10:
-                new_p_value = CONF.analyser_p_value_threshold / 10
-            print("Reducing p from ", CONF.analyser_p_value_threshold, " to ", new_p_value)
-            CONF.analyser_p_value_threshold = new_p_value
 
     # ==============================================================================================
     # Abstract implementation of a test case processor
@@ -318,6 +318,21 @@ class MinimizerViolation(Minimizer):
             instructions = self._simplify_constant(instructions, i)
         return self._get_test_case_from_instructions(instructions, "/tmp/pipe.asm")
 
+    def simplify_masks(self, test_case: TestCase, inputs: List[Input]) -> TestCase:
+        inst_ids = self._probe_test_case(
+            test_case,
+            inputs,
+            modify_func=self._simplify_mask,
+            check_func=self._check_for_violation,
+            removed_ids=True,
+            skip_instrumentation=False)
+
+        with open(test_case.asm_path, "r") as f:
+            instructions = f.readlines()
+        for i in inst_ids:
+            instructions = self._simplify_mask(instructions, i)
+        return self._get_test_case_from_instructions(instructions, "/tmp/pipe.asm")
+
     def minimize_labels(self, test_case: TestCase, _) -> TestCase:
         with open(test_case.asm_path, "r") as f:
             instructions = f.readlines()
@@ -396,12 +411,13 @@ class MinimizerViolation(Minimizer):
             instructions[i] = instructions[i][:-1] + "  # speculation sink ?\n"
         return self._get_test_case_from_instructions(instructions, "/tmp/pipe.asm")
 
-    def find_min_inputs(self, test_case: TestCase, inputs: List[Input], violation) -> None:
+    def find_min_inputs(self, test_case: TestCase, inputs: List[Input], violation) -> List[Input]:
         inputs = violation.input_sequence
         # inputs, _ = self.fuzzer.boost_inputs(inputs, CONF.model_max_nesting)
 
-        org_conf = (CONF.inputs_per_class, )
+        org_conf = (CONF.inputs_per_class, CONF.minimizer_retries)
         CONF.inputs_per_class = 1  # disable boosting from now on
+        CONF.minimizer_retries = 5
 
         violating_input_ids = [i.input_id for i in violation.measurements]
         if len(violating_input_ids) > 2:
@@ -438,6 +454,11 @@ class MinimizerViolation(Minimizer):
                     elif i % 8 == 0:
                         print(" ", end="", flush=True)
 
+                    # skip if the bytes are equal
+                    if input_a[actor_id][region_name][i] == input_b[actor_id][region_name][i]:
+                        print("=", end="", flush=True)
+                        continue
+
                     # Try zeroing out blocks of decreasing size:
                     # 1. find a suitable starting block size, fulfilling the following conditions:
                     #    * the block size is less then 512 bytes (64 * 8)
@@ -446,7 +467,7 @@ class MinimizerViolation(Minimizer):
                     if block_size > region_size - i:
                         block_size = region_size - i
                     #    * the block size is a power of 2
-                    block_size = 2 ** int(log2(block_size))
+                    block_size = 2**int(log2(block_size))
                     #    * i mod block_size == 0
                     while block_size > 1 and i % block_size != 0:
                         block_size //= 2
@@ -506,9 +527,11 @@ class MinimizerViolation(Minimizer):
 
         print("Saving inputs")
         for i in range(len(inputs)):
-            inputs[i].save(f"input{i}.bin")
+            inputs[i].save(f"input_{i}.bin")
 
         CONF.inputs_per_class = org_conf[0]
+        CONF.minimizer_retries = org_conf[1]
+        return inputs
 
     def add_violation_comments(self, test_case: TestCase, inputs: List[Input],
                                violation) -> TestCase:
@@ -588,8 +611,7 @@ class MinimizerViolation(Minimizer):
     # ==============================================================================================
     # Hook functions
     def _check_for_violation(self, test_case: TestCase, inputs: List[Input]) -> bool:
-        self.fuzzer.executor.set_ignore_list(self.ignore_list)
-        return self.fuzzer.fuzzing_round(test_case, inputs) is not None
+        return self.fuzzer.fuzzing_round(test_case, inputs, self.ignore_list) is not None
 
     def _check_for_speculation(self, test_case: TestCase, inputs: List[Input]) -> bool:
         global CONF
@@ -638,6 +660,25 @@ class MinimizerViolation(Minimizer):
             if re.match(r"^-?[0-9]+$", word) or re.match(r"^-?0x[0-9a-f]+$", word) \
                or re.match(r"^-?0b[01]+$", word):
                 tmp[i] = ", ".join(words[:word_id] + ["0"] + words[word_id + 1:]) + "\n"
+                return tmp
+
+        return []
+
+    @staticmethod
+    def _simplify_mask(instructions, i) -> List:
+        tmp = list(instructions)  # make a copy
+
+        comment_split = tmp[i].split("#")
+        clean_line = comment_split[0].strip().lower()
+        comment = "#".join(comment_split[1:]) if len(comment_split) > 1 else ""
+
+        words = clean_line.split(",")
+        for word_id, word in enumerate(words):
+            word = word.strip()
+            replacement = MASK_REPLACEMENTS.get(word, None)
+            if replacement:
+                tmp[i] = ", ".join(words[:word_id] + [replacement] + words[word_id + 1:]) \
+                    + "#" + comment + "\n"
                 return tmp
 
         return []
