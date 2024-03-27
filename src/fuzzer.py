@@ -221,7 +221,7 @@ class FuzzerGeneric(Fuzzer):
         # 2.3 FP might appear because of interference between inputs. To remove such FPs, we
         #     use the priming test where we swap inputs that caused the violation with each other
         if CONF.enable_priming:
-            violations = self.priming(violations, boosted_inputs)
+            violations = self._priming(violations, boosted_inputs)
             if not violations:
                 STAT.fp_early_priming += 1
                 feedback = self.executor.get_last_feedback()
@@ -247,7 +247,7 @@ class FuzzerGeneric(Fuzzer):
             # 2.4.2 Priming might have failed because the sample size was too small, causing
             #     non-deterministic results. Retry the priming test with the largest sample size
             if CONF.enable_priming:
-                violations = self.priming(violations, boosted_inputs)
+                violations = self._priming(violations, boosted_inputs)
                 if not violations:
                     STAT.fp_priming += 1
                     feedback = self.executor.get_last_feedback()
@@ -284,7 +284,7 @@ class FuzzerGeneric(Fuzzer):
             boosted_inputs = inputs
         else:
             # if contract traces are not already provided, collect them and boost inputs
-            boosted_inputs, ctraces = self.boost_inputs(inputs, model_nesting)
+            boosted_inputs, ctraces = self._boost_inputs(inputs, model_nesting)
 
             if fast_boosting:
                 # records same ctrace for all members of the same input class
@@ -320,7 +320,7 @@ class FuzzerGeneric(Fuzzer):
 
         return violations, ctraces, boosted_inputs, htraces
 
-    def boost_inputs(self, inputs: List[Input], nesting) -> Tuple[List[Input], List[CTrace]]:
+    def _boost_inputs(self, inputs: List[Input], nesting) -> Tuple[List[Input], List[CTrace]]:
         ctraces: List[CTrace]
         taints: List[InputTaint]
 
@@ -471,17 +471,17 @@ class FuzzerGeneric(Fuzzer):
 
     # ==============================================================================================
     # Priming and reproducibility
-    def priming(self, violations: List[EquivalenceClass],
-                inputs: List[Input]) -> List[EquivalenceClass]:
+    def _priming(self, violations: List[EquivalenceClass],
+                 inputs: List[Input]) -> List[EquivalenceClass]:
         violation_stack = list(violations)  # make a copy
         while violation_stack:
             self.LOG.fuzzer_priming(len(violation_stack))
             violation: EquivalenceClass = violation_stack.pop()
-            if self.prime_one(violation, inputs):
+            if self._prime_one(violation, inputs):
                 return [violation]
         return []
 
-    def prime_one(self, org_violation: EquivalenceClass, all_inputs: List[Input]) -> bool:
+    def _prime_one(self, org_violation: EquivalenceClass, all_inputs: List[Input]) -> bool:
         """
         Try priming the inputs that caused the violations
 
@@ -548,7 +548,10 @@ class ArchitecturalFuzzer(FuzzerGeneric):
         self.LOG.warning("fuzzer", "Running in architectural mode. "
                          "Contract violations can't be detected!")
 
-    def fuzzing_round(self, test_case: TestCase, inputs: List[Input]) -> Optional[EquivalenceClass]:
+    def fuzzing_round(self,
+                      test_case: TestCase,
+                      inputs: List[Input],
+                      _: List[int] = []) -> Optional[EquivalenceClass]:
         self.model.load_test_case(test_case)
         self.executor.load_test_case(test_case)
 

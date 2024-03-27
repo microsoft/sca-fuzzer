@@ -13,7 +13,6 @@ from math import log2
 from copy import deepcopy
 from subprocess import run
 from typing import List
-from scipy import stats  # type: ignore
 from .interfaces import Input, TestCase, Minimizer, Fuzzer, InstructionSetAbstract
 from .model import CTTracer
 from .x86.x86_model import X86UnicornDEH, SANDBOX_CODE_SIZE
@@ -199,7 +198,7 @@ class MinimizerViolation(Minimizer):
 
         if enable_violation_comments:
             print("\n Adding comments with violation details:\n", end='')
-            test_case = self.add_violation_comments(test_case, inputs, violation)
+            test_case = self.add_violation_comments(test_case, violation)
             shutil.copy(test_case.asm_path, outfile)
 
         print("\nStoring the results")
@@ -413,7 +412,6 @@ class MinimizerViolation(Minimizer):
 
     def find_min_inputs(self, test_case: TestCase, inputs: List[Input], violation) -> List[Input]:
         inputs = violation.input_sequence
-        # inputs, _ = self.fuzzer.boost_inputs(inputs, CONF.model_max_nesting)
 
         org_conf = (CONF.inputs_per_class, CONF.minimizer_retries)
         CONF.inputs_per_class = 1  # disable boosting from now on
@@ -533,9 +531,7 @@ class MinimizerViolation(Minimizer):
         CONF.minimizer_retries = org_conf[1]
         return inputs
 
-    def add_violation_comments(self, test_case: TestCase, inputs: List[Input],
-                               violation) -> TestCase:
-        inputs, _ = self.fuzzer.boost_inputs(inputs, CONF.model_max_nesting)
+    def add_violation_comments(self, test_case: TestCase, violation) -> TestCase:
         v_inputs = [m.input_ for m in violation.measurements[:2]]
         v_input_ids = [m.input_id for m in violation.measurements[:2]]
 
