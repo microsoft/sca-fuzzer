@@ -144,7 +144,10 @@ class FuzzerGeneric(Fuzzer):
     def filter(self, test_case, inputs):
         return False  # implemented by architecture-specific subclasses
 
-    def fuzzing_round(self, test_case: TestCase, inputs: List[Input]) -> Optional[EquivalenceClass]:
+    def fuzzing_round(self,
+                      test_case: TestCase,
+                      inputs: List[Input],
+                      ignore_list: List[int] = []) -> Optional[EquivalenceClass]:
         """ Run a single fuzzing round: collect contract and hardware traces for the given test
         case and inputs, and check for contract violations.
 
@@ -174,6 +177,8 @@ class FuzzerGeneric(Fuzzer):
         # 0. Load the test case into the model and executor
         self.model.load_test_case(test_case)
         self.executor.load_test_case(test_case)
+        if ignore_list:
+            self.executor.set_ignore_list(ignore_list)
 
         # 1. Fast path: Collect traces with minimal nesting and repetitions
         violations, ctraces, boosted_inputs, _ = self._collect_traces(
