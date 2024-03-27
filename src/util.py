@@ -280,7 +280,7 @@ class Logger:
     def fuzzer_sample_size_increase(self, sample_size):
         if self.info:
             print(
-                self.msg + "> Increase sample size to " + sample_size,
+                f"{self.msg} > Increase sample size to {sample_size}",
                 end=self.line_ending,
                 flush=True)
 
