@@ -176,7 +176,10 @@ class X86ArchDiffFuzzer(FuzzerGeneric):
         self.analyser.build_htrace_groups(eq_cls)
         return eq_cls
 
-    def fuzzing_round(self, test_case: TestCase, inputs: List[Input]) -> Optional[EquivalenceClass]:
+    def fuzzing_round(self,
+                      test_case: TestCase,
+                      inputs: List[Input],
+                      _: List[int] = []) -> Optional[EquivalenceClass]:
         self.executor.set_quick_and_dirty(True)
 
         # collect non-fenced traces

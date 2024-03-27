@@ -1131,21 +1131,6 @@ class Fuzzer(ABC):
                       ignore_list: List[int] = []) -> Optional[EquivalenceClass]:
         pass
 
-    @abstractmethod
-    def priming(self, org_violation: EquivalenceClass, all_inputs: List[Input]) -> bool:
-        pass
-
-    @abstractmethod
-    def boost_inputs(self, inputs: List[Input], nesting) -> Tuple[List[Input], List[CTrace]]:
-        """
-        Create contract-equivalent inputs for the given list of inputs
-
-        :param inputs: list of inputs to be boosted
-        :param nesting: Model's nesting level
-        :return: a list of boosted inputs and their corresponding contract traces
-        """
-        pass
-
 
 class Minimizer(ABC):
 
