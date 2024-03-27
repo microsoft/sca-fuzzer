@@ -17,7 +17,7 @@ from ..interfaces import OT, Instruction, InstructionSpec, LabelOperand, Operand
 PATTERN_CONST_INT = re.compile("^-?[0-9]+$")
 PATTERN_CONST_HEX = re.compile("^-?0x[0-9abcdef]+$")
 PATTERN_CONST_BIN = re.compile("^-?0b[01]+$")
-PATTERN_CONST_SUM = re.compile("^-?[0-9]+\ *[+-]\ *[0-9]+$")
+PATTERN_CONST_SUM = re.compile("^-?[0-9]+ *[+-] *[0-9]+$")
 
 
 class X86AsmParser(AsmParserGeneric):
