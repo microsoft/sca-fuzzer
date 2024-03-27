@@ -127,7 +127,7 @@ class Conf:
     executor_warmups: int = 5
     """ executor_warmups: number of warmup rounds executed before starting to collect
     hardware traces """
-    executor_sample_sizes: List[int] = [10, 80, 320]
+    executor_sample_sizes: List[int] = [10]
     """ executor_sample_sizes: a list of sample sizes to be used during the measurements;
     the executor will first collect the hardware traces with the first sample size in the list,
     and if a violation is detected, it will try to reproduce it with all the following
@@ -155,10 +155,13 @@ class Conf:
     analyser will ignore the htraces that appear in less then this percentage of the repetitions.
     I.e., a htrace passes the filter if it is observed at least
         (analyser_outliers_threshold * len(htrace)) times """
-    analyser_stat_threshold: float = 0.01
+    analyser_stat_threshold: float = 0.5
     """ analyser_stat_threshold: [only for analyser='chi2' and analyser='mwu']
     Threshold for the statistical tests. If a pair of hardware traces has the (normalized)
     statistics below the threshold, then the traces are considered equivalent.
+
+    Note: The threshold default value (0.5) is conservative and avoids false positives
+    at cost of false negatives. For more precise results, set the threshold to a lower value.
 
     For the chi2 test, the threshold is the statistics / (len(htrace1) + len(htrace2))
     For the mwu test, the threshold is the p-value """
