@@ -5,6 +5,7 @@ SPDX-License-Identifier: MIT
 import unittest
 from src.analyser import MergedBitmapAnalyser, SetAnalyser, MWUAnalyser, ChiSquaredAnalyser
 from src.interfaces import Input, HTrace
+from src.config import CONF
 
 
 class AnalyserTest(unittest.TestCase):
@@ -89,8 +90,10 @@ class AnalyserTest(unittest.TestCase):
     def test_chi2_analyser(self):
         analyser = ChiSquaredAnalyser()
         dummy_input = Input()
-        h1 = [1, 1, 1, 1, 1]
-        h2 = [1, 1, 2, 2, 2]
+        h1 = [1] * CONF.executor_sample_sizes[0]
+        h2 = [2] * CONF.executor_sample_sizes[0]
+        h2[0] = 1
+        h2[1] = 1
         htraces = [HTrace(h1), HTrace(h2)]
 
         # basic collection of eq classes
