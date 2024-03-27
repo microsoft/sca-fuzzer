@@ -127,8 +127,11 @@ class Conf:
     executor_warmups: int = 5
     """ executor_warmups: number of warmup rounds executed before starting to collect
     hardware traces """
-    executor_sample_size: int = 10
-    """ executor_sample_size: number of repetitions while collecting hardware traces """
+    executor_sample_sizes: List[int] = [10, 80, 320]
+    """ executor_sample_sizes: a list of sample sizes to be used during the measurements;
+    the executor will first collect the hardware traces with the first sample size in the list,
+    and if a violation is detected, it will try to reproduce it with all the following
+    sample sizes """
     executor_filtering_repetitions: int = 10
     """ executor_filtering_repetitions: number of repetitions while filtering test cases """
     executor_violation_retries: int = 5

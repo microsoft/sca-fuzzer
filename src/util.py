@@ -36,13 +36,15 @@ class StatisticsCls:
     single_entry_classes: int = 0
     violations: int = 0
     analysed_test_cases: int = 0
+    executor_reruns: int = 0
+
     spec_filter: int = 0
     observ_filter: int = 0
-    no_fast_violation: int = 0
-    fp_noise: int = 0
+    fast_path: int = 0
     fp_nesting: int = 0
     fp_taint_mistakes: int = 0
-    fp_flaky: int = 0
+    fp_early_priming: int = 0
+    fp_large_sample: int = 0
     fp_priming: int = 0
 
     # Implementation of Borg pattern
@@ -67,11 +69,11 @@ class StatisticsCls:
         s += "Discarded Test Cases:\n"
         s += f"  Speculation Filter: {self.spec_filter}\n"
         s += f"  Observation Filter: {self.observ_filter}\n"
-        s += f"  No Fast-Path Violation: {self.no_fast_violation}\n"
-        s += f"  Noise-Based FP: {self.fp_noise}\n"
-        s += f"  No Max-Nesting Violation: {self.fp_nesting}\n"
-        s += f"  Tainting Mistakes: {self.fp_taint_mistakes}\n"
-        s += f"  Flaky Tests: {self.fp_flaky}\n"
+        s += f"  Fast Path: {self.fast_path}\n"
+        s += f"  Max Nesting Check: {self.fp_nesting}\n"
+        s += f"  Tainting Check: {self.fp_taint_mistakes}\n"
+        s += f"  Early Priming Check: {self.fp_early_priming}\n"
+        s += f"  Large Sample Check: {self.fp_large_sample}\n"
         s += f"  Priming Check: {self.fp_priming}\n"
         return s
 
@@ -85,16 +87,18 @@ class StatisticsCls:
             else:
                 all_cls = 0
                 eff_cls = 0
+            executor_reruns = self.executor_reruns // self.num_inputs
             s = f"Cls:{eff_cls}/{all_cls},"
             s += f"In:{self.num_inputs // self.test_cases},"
+            s += f"R:{executor_reruns},"
             s += f"SF:{self.spec_filter},"
             s += f"OF:{self.observ_filter},"
-            s += f"FV:{self.no_fast_violation}," \
-                 f"NE:{self.fp_nesting}," \
-                 f"NO:{self.fp_noise}," \
-                 f"TM:{self.fp_taint_mistakes}," \
-                 f"FL:{self.fp_flaky}," \
-                 f"PR:{self.fp_priming}," \
+            s += f"Fst:{self.fast_path}," \
+                 f"CN:{self.fp_nesting}," \
+                 f"CT:{self.fp_taint_mistakes}," \
+                 f"P1:{self.fp_early_priming}," \
+                 f"CS:{self.fp_large_sample}," \
+                 f"P2:{self.fp_priming}," \
                  f"V:{self.violations}"
             return s
 
@@ -273,6 +277,13 @@ class Logger:
     def fuzzer_timeout(self):
         self.inform("fuzzer", "\nTimeout expired")
 
+    def fuzzer_sample_size_increase(self, sample_size):
+        if self.info:
+            print(
+                self.msg + "> Increase sample size to " + sample_size,
+                end=self.line_ending,
+                flush=True)
+
     def fuzzer_finish(self):
         if self.info:
             now = datetime.today()
@@ -373,7 +384,17 @@ class Logger:
             return
         if not self.dbg_priming:
             return
-        print(f"\nPriming #{input_id} vs #{current_input_id}")
+        print(f"\nPriming #{input_id} in place of #{current_input_id}")
+
+    def dbg_priming_fail(self, input_id, current_input_id, htrace_to_reproduce, new_htrace):
+        if not __debug__:
+            return
+        if not self.dbg_priming:
+            return
+
+        print(f"\nPriming failed for input {input_id} in place of {current_input_id}")
+        print(f"{'HTrace':64} Original|New")
+        print(f"{pretty_htrace_pair(htrace_to_reproduce, new_htrace)}")
 
     def dbg_executor_raw_traces(self, all_results):
         if not __debug__:
@@ -525,6 +546,32 @@ def pretty_htrace(htrace: HTrace, offset: str = ""):
                 + CYAN + s[48:56] + YELLOW + s[56:64] \
                 + COL_RESET + s[64:]
         final_str += offset + s + f" [{c}]\n"
+    return final_str
+
+
+def pretty_htrace_pair(htrace1: HTrace, htrace2: HTrace, offset: str = ""):
+    final_str = ""
+    c1 = Counter(htrace1.raw)
+    c2 = Counter(htrace2.raw)
+    keys = set(c1.keys()) | set(c2.keys())
+    traces = sorted(keys, key=lambda x: (c1[x] << 10000) + c2[x], reverse=True)
+
+    if CONF.executor_mode == "TSC":
+        for t in traces:
+            t = t & 0xFFFFFFFFFFFFFF
+            final_str += f"{offset}{t} [{c1[t]:<6} | {c2[t]:<6}]\n"
+        return final_str
+
+    for t in traces:
+        s = f"{t:064b}"
+        s = s.replace("0", ".").replace("1", "^")
+        if CONF.color:
+            s = CYAN + s[0:8] + YELLOW + s[8:16] \
+                + CYAN + s[16:24] + YELLOW + s[24:32] \
+                + CYAN + s[32:40] + YELLOW + s[40:48] \
+                + CYAN + s[48:56] + YELLOW + s[56:64] \
+                + COL_RESET + s[64:]
+        final_str += offset + s + f" [{c1[t]:<6} | {c2[t]:<6}]\n"
     return final_str
 
 
