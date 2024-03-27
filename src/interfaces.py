@@ -1017,6 +1017,7 @@ class Model(ABC):
     data_end: int = 0
     tracer: Tracer
     instruction_coverage: Dict[str, int]
+    is_speculative_contract: bool = False
 
     @abstractmethod
     def __init__(self, sandbox_base: int, code_base: int):
