@@ -98,6 +98,7 @@ logging_modes:
 function setup() {
     PROJECT_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../../../" >/dev/null 2>&1 && pwd)"
     ASM_DIR="$PROJECT_ROOT/src/x86/tests/asm"
+    cli="$PROJECT_ROOT/revizor.py"
     cli_opt="python3 -OO $PROJECT_ROOT/revizor.py"
 
     ISA="$PROJECT_ROOT/src/x86/base.json"
@@ -431,8 +432,26 @@ EOF
         tmp_config=$(mktemp -p $TEST_DIR)
         printf "actors:\n  - actor2:\n    - mode: "guest"\n" > $tmp_config
         assert_no_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/vmx_switch.asm -c $tmp_config -i 20"
-        rm $tmp_config
     else
         skip
     fi
+}
+
+@test "Feature: Macro fault handler" {
+    tmp_config=$(mktemp -p $TEST_DIR)
+    echo "$CT_SEQ" >$tmp_config
+    echo "actors:" >>$tmp_config
+    echo "  - main:" >>$tmp_config
+    echo "    - data_properties:" >>$tmp_config
+    echo "      - present: false" >>$tmp_config
+    echo "executor_mode: F+R" >>$tmp_config
+    echo "logging_modes:" >>$tmp_config
+    echo "  - dbg_dump_htraces" >>$tmp_config
+
+    local cmd="$cli fuzz -s $ISA -t $ASM_DIR/macro_fault_handler.asm -c $tmp_config -i 1"
+    run bash -c "$cmd"
+    echo "Command: $cmd"
+    echo "Exit code: $status"
+    echo "Output: '$output'"
+    [[ "$status" -eq 0 && "$output" = *"^.......^...^..................................................^"* ]]
 }

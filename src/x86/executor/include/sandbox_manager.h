@@ -28,6 +28,7 @@
 #define L1D_PRIMING_OFFSET 0
 #define STORED_RSP_OFFSET  (L1D_PRIMING_AREA_SIZE)
 #define MEASUREMENT_OFFSET (STORED_RSP_OFFSET + 8)
+#define NESTED_FAULT_OFFSET (MEASUREMENT_OFFSET + sizeof(measurement_t))
 
 // offset of util_t w.r.t. the base of main_area of the main actor
 #define UTIL_REL_TO_MAIN (L1D_PRIMING_AREA_SIZE + 4096 + UNDERFLOW_PAD_SIZE + MACRO_STACK_SIZE)

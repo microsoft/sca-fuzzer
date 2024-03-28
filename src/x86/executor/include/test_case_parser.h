@@ -41,6 +41,7 @@ typedef struct {
 typedef struct {
     bool includes_vm_actors;
     bool includes_user_actors;
+    bool has_explicit_fault_handler;
 } tc_features_t;
 
 typedef struct {

@@ -5,6 +5,7 @@
 
 #include "macro_loader.h"
 #include "asm_snippets.h"
+#include "fault_handler.h"
 #include "main.h"
 #include "memory_guest.h"
 #include "sandbox_manager.h"
@@ -44,19 +45,13 @@ void macro_measurement_end_reload(void);
 void macro_measurement_start_tsc(void);
 void macro_measurement_end_tsc(void);
 
-void macro_same_context_switch(void);
 void macro_switch_k2u(void);
 void macro_switch_u2k(void);
-void macro_set_k2u_target(void);
-void macro_set_u2k_target(void);
 void macro_switch_h2g(void);
 void macro_switch_g2h(void);
 void macro_set_h2g_target(void);
 void macro_set_g2h_target(void);
-void macro_landing_k2u(void);
-void macro_landing_u2k(void);
-void macro_landing_h2g(void);
-void macro_landing_g2h(void);
+void macro_empty(void);
 
 // =================================================================================================
 // Helper functions
@@ -180,7 +175,7 @@ static uint8_t *get_macro_wrapper_ptr(uint64_t macro_id)
             PRINT_ERRS("get_macro_wrapper_ptr", "misconfigured measurement_mode\n");
             return NULL;
         }
-    case MACRO_FAULT_HANDLER:
+    case MACRO_FAULT_HANDLER_WITH_MEASUREMENT:
     case MACRO_MEASUREMENT_END:
         switch (measurement_mode) {
         case PRIME_PROBE:
@@ -197,16 +192,10 @@ static uint8_t *get_macro_wrapper_ptr(uint64_t macro_id)
             PRINT_ERRS("get_macro_wrapper_ptr", "misconfigured measurement_mode\n");
             return NULL;
         }
-    case MACRO_SWITCH:
-        return (uint8_t *)macro_same_context_switch;
     case MACRO_SWITCH_K2U:
         return (uint8_t *)macro_switch_k2u;
     case MACRO_SWITCH_U2K:
         return (uint8_t *)macro_switch_u2k;
-    case MACRO_SET_K2U_TARGET:
-        return (uint8_t *)macro_set_k2u_target;
-    case MACRO_SET_U2K_TARGET:
-        return (uint8_t *)macro_set_u2k_target;
     case MACRO_SWITCH_H2G:
         return (uint8_t *)macro_switch_h2g;
     case MACRO_SWITCH_G2H:
@@ -215,26 +204,27 @@ static uint8_t *get_macro_wrapper_ptr(uint64_t macro_id)
         return (uint8_t *)macro_set_h2g_target;
     case MACRO_SET_G2H_TARGET:
         return (uint8_t *)macro_set_g2h_target;
+    case MACRO_FAULT_HANDLER:
+    case MACRO_SWITCH:
+    case MACRO_SET_K2U_TARGET:
+    case MACRO_SET_U2K_TARGET:
     case MACRO_LANDING_K2U:
-        return (uint8_t *)macro_landing_k2u;
     case MACRO_LANDING_U2K:
-        return (uint8_t *)macro_landing_u2k;
     case MACRO_LANDING_H2G:
-        return (uint8_t *)macro_landing_h2g;
     case MACRO_LANDING_G2H:
-        return (uint8_t *)macro_landing_g2h;
+        return (uint8_t *)macro_empty;
     default:
         PRINT_ERRS("get_macro_wrapper_ptr", "macro_id %llu is not valid\n", macro_id);
         return NULL;
     }
 }
 
-/// @brief Get pointers to the start and the end of the macro
+/// @brief Get pointers to the start and the end of the static part of the macro
 /// @param[in] macro_id ID of the macro in the macro table
 /// @param[out] start Pointer to the start of the macro
 /// @param[out] size Size of the macro, in bytes
 /// @return -1 on error, 0 otherwise
-int get_macro_bounds(uint64_t macro_id, uint8_t **start, uint64_t *size)
+int get_static_macro_bounds(uint64_t macro_id, uint8_t **start, uint64_t *size)
 {
     uint8_t *macro_wrapper_start = get_macro_wrapper_ptr(macro_id);
     ASSERT(macro_wrapper_start != NULL, "get_macro_ptr");
@@ -257,13 +247,13 @@ int get_macro_bounds(uint64_t macro_id, uint8_t **start, uint64_t *size)
     return 0;
 }
 
-/// @brief Dynamically generate code that passes arguments to a macro; the macros receive the
-/// arguments in the R11 register
-/// @param args Compressed representation of the arguments, as received from the test case
+/// @brief Dynamically generate the configurable part of the macro;
+///        This code may pass data to the static part via R11 register
+/// @param args Compressed representation of the macro arguments, as received from the test case
 /// symbol table
 /// @return Size of the generated code, in bytes
-uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint64_t owner,
-                                uint8_t *macro_dest, size_t main_prologue_size)
+uint64_t inject_macro_configurable_part(uint64_t macro_type, uint64_t args, uint64_t owner,
+                                        uint8_t *macro_dest, size_t main_prologue_size)
 {
     size_t cursor = 0;
     uint16_t arg1 = args & 0xFFFF;
@@ -277,9 +267,52 @@ uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint64_t own
     case MACRO_MEASUREMENT_START:
     case MACRO_MEASUREMENT_END:
         break;
-    case MACRO_FAULT_HANDLER: {
+    case MACRO_FAULT_HANDLER_WITH_MEASUREMENT: {
         cursor += update_r14(arg1, macro_dest, cursor);
         cursor += update_r15(arg1, macro_dest, cursor);
+        break;
+    }
+    case MACRO_FAULT_HANDLER: {
+        ASSERT(NESTED_FAULT_OFFSET < (1 << 16), "inject_macro_configurable_part");
+        ASSERT(owner == 0, "inject_macro_configurable_part");
+
+        fault_handler = (char *)((uint64_t)macro_dest + cursor);
+        cursor += update_r14_rsp(0, macro_dest, cursor);
+        cursor += update_r15(0, macro_dest, cursor);
+
+        // Crash on nested fault:
+        // cmp byte ptr [r15 + NESTED_FAULT_OFFSET], 0
+        SET_MACRO_BYTE(0x49);
+        SET_MACRO_BYTE(0x83);
+        SET_MACRO_BYTE(0xbf);
+        SET_MACRO_BYTE(NESTED_FAULT_OFFSET & 0xFF);
+        SET_MACRO_BYTE(NESTED_FAULT_OFFSET >> 8);
+        SET_MACRO_BYTE(0x00);
+        SET_MACRO_BYTE(0x00);
+        SET_MACRO_BYTE(0x00);
+        // je [RIP + 9]
+        SET_MACRO_BYTE(0x74);
+        SET_MACRO_BYTE(0x09);
+        // dec byte ptr [r15 + NESTED_FAULT_OFFSET]
+        SET_MACRO_BYTE(0x49);
+        SET_MACRO_BYTE(0xff);
+        SET_MACRO_BYTE(0x8f);
+        SET_MACRO_BYTE(NESTED_FAULT_OFFSET & 0xFF);
+        SET_MACRO_BYTE(NESTED_FAULT_OFFSET >> 8);
+        SET_MACRO_BYTE(0x00);
+        SET_MACRO_BYTE(0x00);
+        // int 0x20
+        SET_MACRO_BYTE(0xcd);
+        SET_MACRO_BYTE(0x20);
+        // inc byte ptr [r15 + NESTED_FAULT_OFFSET]
+        SET_MACRO_BYTE(0x49);
+        SET_MACRO_BYTE(0xff);
+        SET_MACRO_BYTE(0x87);
+        SET_MACRO_BYTE(NESTED_FAULT_OFFSET & 0xFF);
+        SET_MACRO_BYTE(NESTED_FAULT_OFFSET >> 8);
+        SET_MACRO_BYTE(0x00);
+        SET_MACRO_BYTE(0x00);
+
         break;
     }
     case MACRO_SWITCH: {
@@ -429,7 +462,7 @@ uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint64_t own
         break;
     }
     default:
-        PRINT_ERRS("inject_macro_arguments", "macro_type %llu is not valid\n", macro_type);
+        PRINT_ERRS("inject_macro_configurable_part", "macro_type %llu is not valid\n", macro_type);
         return -1;
     }
 
@@ -615,20 +648,6 @@ void __attribute__((noipa)) macro_measurement_end_tsc(void)
 // Macros: Context switches
 // =================================================================================================
 
-void __attribute__((noipa)) macro_same_context_switch(void)
-{
-    asm volatile(".quad " xstr(MACRO_START));
-    // Nothing here; everything is implemented in inject_macro_arguments->MACRO_SWITCH
-    asm volatile(".quad " xstr(MACRO_END));
-}
-
-void __attribute__((noipa)) macro_set_k2u_target(void)
-{
-    asm volatile(".quad " xstr(MACRO_START));
-    // Nothing here: implementation in inject_macro_arguments->MACRO_SET_K2U_TARGET
-    asm volatile(".quad " xstr(MACRO_END));
-}
-
 /// @brief Macro to switch host -> user actor
 void __attribute__((noipa)) macro_switch_k2u(void)
 {
@@ -643,12 +662,6 @@ void __attribute__((noipa)) macro_switch_k2u(void)
                        "pop rsp\n"
                        "sysretq\n");
     // clang-format on
-    asm volatile(".quad " xstr(MACRO_END));
-}
-
-void __attribute__((noipa)) macro_set_u2k_target(void)
-{
-    asm volatile(".quad " xstr(MACRO_START));
     asm volatile(".quad " xstr(MACRO_END));
 }
 
@@ -698,25 +711,7 @@ void __attribute__((noipa)) macro_set_g2h_target(void)
     asm volatile(".quad " xstr(MACRO_END));
 }
 
-void __attribute__((noipa)) macro_landing_k2u(void)
-{
-    asm volatile(".quad " xstr(MACRO_START));
-    asm volatile(".quad " xstr(MACRO_END));
-}
-
-void __attribute__((noipa)) macro_landing_u2k(void)
-{
-    asm volatile(".quad " xstr(MACRO_START));
-    asm volatile(".quad " xstr(MACRO_END));
-}
-
-void __attribute__((noipa)) macro_landing_h2g(void)
-{
-    asm volatile(".quad " xstr(MACRO_START));
-    asm volatile(".quad " xstr(MACRO_END));
-}
-
-void __attribute__((noipa)) macro_landing_g2h(void)
+void __attribute__((noipa)) macro_empty(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     asm volatile(".quad " xstr(MACRO_END));

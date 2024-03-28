@@ -26,12 +26,13 @@ typedef enum {
     MACRO_LANDING_U2K = 14,
     MACRO_LANDING_H2G = 15,
     MACRO_LANDING_G2H = 16,
+    MACRO_FAULT_HANDLER_WITH_MEASUREMENT = 17,
 } macro_name_e;
 
 #define JMP_32BIT_RELATIVE 0xE9
 
-int get_macro_bounds(uint64_t macro_id, uint8_t **start, uint64_t *size);
-uint64_t inject_macro_arguments(uint64_t macro_type, uint64_t args, uint64_t owner,
+int get_static_macro_bounds(uint64_t macro_id, uint8_t **start, uint64_t *size);
+uint64_t inject_macro_configurable_part(uint64_t macro_type, uint64_t args, uint64_t owner,
                                 uint8_t *macro_dest, size_t main_prologue_size);
 
 int init_macros_loader(void);
