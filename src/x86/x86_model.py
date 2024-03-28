@@ -86,6 +86,7 @@ class X86MacroInterpreter(MacroInterpreter):
             "landing_u2k": self.macro_landing_u2k,
             "landing_h2g": self.macro_landing_h2g,
             "landing_g2h": self.macro_landing_g2h,
+            "fault_handler": lambda *_: None,
         }
 
         actor_id = self.model.current_actor.id_

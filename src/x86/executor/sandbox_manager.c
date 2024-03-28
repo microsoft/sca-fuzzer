@@ -88,6 +88,10 @@ int allocate_sandbox(void)
         loaded_test_case_entry = code;
     }
 
+    // Make sure that everything is property initialized
+    memset(util_n_data, 0, sizeof(util_t) + n_actors * sizeof(actor_data_t));
+    memset(code, 0x90, n_actors * sizeof(actor_code_t));
+
     err = cache_host_pteps();
     CHECK_ERR("cache_host_pteps");
 

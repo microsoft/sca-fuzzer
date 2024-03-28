@@ -249,7 +249,7 @@ class AsmParserGeneric(AsmParser):
             # section start
             if line.startswith(".section"):
                 words = line.split()
-                assert len(words) == 2
+                assert len(words) == 2, f"Invalid section label: {line}"
                 if words[1] == "exit":
                     continue  # exit section does not represent any actor
                 subwords = words[1].split(".")
@@ -372,10 +372,20 @@ class AsmParserGeneric(AsmParser):
             target_name = first_inst.operands[0].value
 
             if switch.operands[0].value == ".set_k2u_target" and target_name != ".landing_k2u":
-                parser_error(-1, f"{switch} does not target landing_k2u")
+                parser_error(switch.line_num, f"{switch} does not target landing_k2u")
             elif switch.operands[0].value == ".set_u2k_target" and target_name != ".landing_u2k":
-                parser_error(-1, f"{switch} does not target landing_u2k")
+                parser_error(switch.line_num, f"{switch} does not target landing_u2k")
             elif switch.operands[0].value == ".set_h2g_target" and target_name != ".landing_h2g":
-                parser_error(-1, f"{switch} does not target landing_h2g")
+                parser_error(switch.line_num, f"{switch} does not target landing_h2g")
             elif switch.operands[0].value == ".set_g2h_target" and target_name != ".landing_g2h":
-                parser_error(-1, f"{switch} does not target landing_g2h")
+                parser_error(switch.line_num, f"{switch} does not target landing_g2h")
+
+        # check that there is at most one fault handler
+        n_fault_handlers = 0
+        for func in test_case:
+            for bb in func:
+                for inst in bb:
+                    if inst.name == "macro" and inst.operands[0].value == ".fault_handler":
+                        n_fault_handlers += 1
+                    if n_fault_handlers > 1:
+                        parser_error(inst.line_num, "Found more than one fault handler")

@@ -174,6 +174,7 @@ class X86TargetDesc(TargetDesc):
         "function": MacroSpec(0, "function", ("", "", "", "")),
         "measurement_start": MacroSpec(1, "measurement_start", ("", "", "", "")),
         "measurement_end": MacroSpec(2, "measurement_end", ("", "", "", "")),
+        "fault_handler": MacroSpec(3, "fault_handler", ("", "", "", "")),
         "switch": MacroSpec(4, "switch", ("actor_id", "function_id", "", "")),
         "set_k2u_target": MacroSpec(5, "set_k2u_target", ("actor_id", "function_id", "", "")),
         "switch_k2u": MacroSpec(6, "switch_k2u", ("actor_id", "", "", "")),

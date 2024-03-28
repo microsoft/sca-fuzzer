@@ -473,6 +473,7 @@ class UnicornSeq(UnicornModel):
     code_start: UcPointer  # the lower bound of the code area
     code_end: UcPointer  # the upper bound of the code area
     exit_addr: UcPointer  # the address of the test case exit instruction
+    fault_handler_addr: UcPointer  # the address of the fault handler
 
     # test case data
     main_area: UcPointer  # the base address of the main area
@@ -497,6 +498,7 @@ class UnicornSeq(UnicornModel):
         "GP": [6, 7],
         "assist": [12, 13],
     }
+    had_arch_fault: bool = False
 
     def __init__(self, sandbox_base, code_start):
         super().__init__(sandbox_base, code_start)
@@ -512,7 +514,6 @@ class UnicornSeq(UnicornModel):
         self.initial_taints = []
 
         # fault handling
-        self.pending_fault_id = 0
         self.handled_faults = set()
         for fault in CONF._handled_faults:
             if fault in self.fault_mapping:
@@ -531,6 +532,7 @@ class UnicornSeq(UnicornModel):
         else:
             self.taint_tracker = DummyTaintTracker([])
         self.pending_fault_id = 0
+        self.had_arch_fault = False
         self.current_actor = self.test_case.actors["main"]
 
     def load_test_case(self, test_case: TestCase) -> None:
@@ -586,6 +588,17 @@ class UnicornSeq(UnicornModel):
         except UcError as e:
             self.LOG.error("[UnicornModel:load_test_case] %s" % e)
 
+        # set the fault handler address
+        fh_id = self.target_desc.macro_specs["fault_handler"].type_
+        for symbol in test_case.symbol_table:
+            if symbol.type_ == fh_id:
+                assert symbol.aid == 0, "Fault handler must be in the main actor"
+                self.fault_handler_addr = symbol.offset + self.code_start
+                break
+        else:
+            self.fault_handler_addr = self.exit_addr
+
+        # load the test case into the macro interpreter
         self.macro_interpreter.load_test_case(test_case)
 
     def _execute_test_case(self, inputs: List[Input], nesting: int):
@@ -696,10 +709,16 @@ class UnicornSeq(UnicornModel):
         if self.in_speculation:
             return 0
 
+        # error on nested non-speculative faults
+        if self.had_arch_fault:
+            self.print_state()
+            self.LOG.error(f"Nested fault {errno} {self.err_to_str(errno)}", print_last_tb=True)
+        self.had_arch_fault = True
+
         # an expected fault - terminate execution
         if errno in self.handled_faults:
             self.current_actor = self.test_case.actors['main']  # faults are handled by main actor
-            return self.exit_addr
+            return self.fault_handler_addr
 
         # unexpected fault - throw an error
         self.print_state()

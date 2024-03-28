@@ -107,6 +107,12 @@ static int __batch_tc_parsing_start(const char *buf)
         highest_n_actors = new_n_actors;
     }
 
+    // Reset the allocated memory
+    memset(_allocated_actor_table, 0, highest_n_actors * sizeof(actor_metadata_t));
+    memset(_allocated_symbol_table, 0, highest_n_symbols * sizeof(tc_symbol_entry_t));
+    memset(_allocated_metadata, 0, highest_n_actors * sizeof(tc_section_metadata_entry_t));
+    memset(_allocated_data, 0, highest_n_actors * sizeof(tc_section_t));
+
     test_case->actor_table = _allocated_actor_table;
     test_case->symbol_table = _allocated_symbol_table;
     test_case->metadata = _allocated_metadata;
@@ -180,7 +186,6 @@ static int __batch_tc_parsing_end(void)
     }
 
     // Set test case features
-    // (so far only VM mode; more to come in the future)
     for (int i = 0; i < n_actors; i++) {
         if (actors[i].mode == MODE_GUEST) {
             test_case->features.includes_vm_actors = true;
@@ -191,6 +196,16 @@ static int __batch_tc_parsing_end(void)
             break;
         }
     }
+
+    bool fault_handler_found = false;
+    for (tc_symbol_entry_t *e = test_case->symbol_table; e < test_case->symbol_table + n_symbols;
+         e++) {
+        if (e->id == MACRO_FAULT_HANDLER) {
+            fault_handler_found = true;
+            break;
+        }
+    }
+    test_case->features.has_explicit_fault_handler = fault_handler_found;
     return 0;
 }
 

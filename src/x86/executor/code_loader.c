@@ -47,7 +47,7 @@ static int load_section_main(void);
 static int load_section(int segment_id);
 static tc_symbol_entry_t *get_section_macros_start(uint64_t section_id);
 static uint64_t expand_macro(tc_symbol_entry_t *macro, uint8_t *jmp_location, uint8_t *macro_dest);
-static uint64_t expand_section(uint64_t section_id, uint8_t *dest);
+static int64_t expand_section(uint64_t section_id, uint8_t *dest);
 
 static inline void prologue(void);
 static inline void epilogue(void);
@@ -96,9 +96,6 @@ static int load_section_main(void)
     else
         template = (uint8_t *)main_segment_template;
 
-    // reset the fault handler
-    fault_handler = NULL;
-
     // skip until the beginning of the template
     for (;; main_template_cursor++) {
         ASSERT(main_template_cursor < MAX_TEMPLATE_SIZE, "load_section_main; TEMPLATE_START");
@@ -119,17 +116,24 @@ static int load_section_main(void)
 
     // copy the test case into the template and expand macros
     ASSERT(test_case->metadata[0].owner == 0, "load_section_main");
-    dest_cursor += expand_section(0, &main_actor_code[dest_cursor]);
+    int64_t bytes_written = expand_section(0, &main_actor_code[dest_cursor]);
+    ASSERT(bytes_written >= 0, "load_section_main");
+    dest_cursor += bytes_written;
 
-    // write the handler
+    // set fault handler if the test case does not declare an explicit one
     for (;; main_template_cursor++, dest_cursor++) {
         ASSERT(main_template_cursor < MAX_TEMPLATE_SIZE, "load_section_main; EXCEPTION_LANDING");
         if (*(uint64_t *)&template[main_template_cursor] == TEMPLATE_DEFAULT_EXCEPTION_LANDING) {
+            if (test_case->features.has_explicit_fault_handler) {
+                dest_cursor += 5; // leave 5 NOP bytes for compatibility
+                break;
+            }
+
             fault_handler = (char *)&main_actor_code[dest_cursor];
 
             // expand the macro that would collect htrace after the exception
-            tc_symbol_entry_t measurement_end =
-                (tc_symbol_entry_t){.id = MACRO_FAULT_HANDLER, .offset = 0, .owner = 0, .args = 0};
+            tc_symbol_entry_t measurement_end = (tc_symbol_entry_t){
+                .id = MACRO_FAULT_HANDLER_WITH_MEASUREMENT, .offset = 0, .owner = 0, .args = 0};
             uint8_t *macro_dest = &main_actor_code[MAX_EXPANDED_SECTION_SIZE + main_macros_cursor];
 
             main_macros_cursor += expand_macro(&measurement_end, fault_handler, macro_dest);
@@ -174,7 +178,7 @@ static tc_symbol_entry_t *get_section_macros_start(uint64_t section_id)
 /// @param section_id ID of the section to expand
 /// @param dest Destination address
 /// @return Number of bytes written to the destination buffer
-static uint64_t expand_section(uint64_t section_id, uint8_t *dest)
+static int64_t expand_section(uint64_t section_id, uint8_t *dest)
 {
     uint64_t src_cursor = 0;
     uint64_t dest_cursor = 0;
@@ -194,16 +198,16 @@ static uint64_t expand_section(uint64_t section_id, uint8_t *dest)
     }
 
     // otherwise, expand the macros
-    tc_symbol_entry_t dummy_macro = {.offset = 0};
+    tc_symbol_entry_t dummy_macro = {.owner = -1, .id = 0, .offset = 0, .args = 0};
     for (src_cursor = 0; src_cursor < section_size; src_cursor++, dest_cursor++) {
         // PRINT_ERR("dest_cursor: 0x%lx, src_cursor: %lu, %lx\n", dest_cursor, src_cursor,
         //   section[src_cursor]);
         if (src_cursor == macro->offset) {
-            // PRINT_ERR("macro id: %lu, offset: %lu\n", macro->id, macro->offset);
+            // PRINT_ERR("macro id: %lu, offset: %lx\n", macro->id, macro->offset);
             // if we found a macro -> expand it
             ASSERT(macro->owner == section_id, "expand_section");
             ASSERT(macro->id != 0, "expand_section");
-            uint64_t macro_size = \
+            uint64_t macro_size =
                 expand_macro(macro, &dest[dest_cursor], &macros_dest[macros_dest_cursor]);
             ASSERT(macro_size >= 0, "expand_section");
 
@@ -245,16 +249,17 @@ static uint64_t expand_macro(tc_symbol_entry_t *macro, uint8_t *jmp_location, ui
     jmp_location[0] = JMP_32BIT_RELATIVE; // opcode of the jump
     *((uint32_t *)&jmp_location[1]) = target;
 
-    // copy the macro into the destination
+    // copy the dynamic part of the macro into the destination
+    uint64_t macro_prologue_size = inject_macro_configurable_part(
+        macro->id, macro->args, macro->owner, &macro_dest[dest_cursor], main_prologue_size);
+    ASSERT(macro_prologue_size >= 0, "expand_macro");
+    dest_cursor += macro_prologue_size;
+
+    // copy the static part of the macro
     uint8_t *macro_start;
     uint64_t macro_size;
-    int err = get_macro_bounds(macro->id, &macro_start, &macro_size);
-    CHECK_ERR("get_macro_bounds");
-
-    uint64_t macro_arg_size = inject_macro_arguments(macro->id, macro->args, macro->owner,
-                                                     &macro_dest[dest_cursor], main_prologue_size);
-    ASSERT(macro_arg_size >= 0, "expand_macro");
-    dest_cursor += macro_arg_size;
+    int err = get_static_macro_bounds(macro->id, &macro_start, &macro_size);
+    CHECK_ERR("get_static_macro_bounds");
     memcpy(&macro_dest[dest_cursor], macro_start, macro_size);
     dest_cursor += macro_size;
 
