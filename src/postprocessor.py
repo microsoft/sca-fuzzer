@@ -118,15 +118,19 @@ class MinimizerViolation(Minimizer):
         self.fuzzer.input_gen.n_actors = len(test_case.actors)
         inputs: List[Input] = self.fuzzer.input_gen.generate(num_inputs)
 
+        # Adjust the sample size to reduce non-reproducibility
+        CONF.executor_sample_sizes = [CONF.executor_sample_sizes[-1]]
+
         # Load, boost inputs, and trace
-        print("Trying to reproduce...")
+        print("Trying to reproduce...", end='')
         violation = self.fuzzer.fuzzing_round(test_case, inputs)
         if not violation:
-            print("Could not reproduce the violation. Exiting...")
+            print(" could not reproduce the violation; exiting...")
             return
-        print("Reproduced successfully.")
+        print(" reproduced successfully.")
 
         # Try to reproduce the same with fewer inputs
+        print("Reducing the number of inputs...", end='')
         org_len = len(inputs)
         while len(inputs) > 5:
             new_inputs = inputs[:len(inputs) // 2]
@@ -136,14 +140,17 @@ class MinimizerViolation(Minimizer):
             inputs = new_inputs
             violation = new_violation
         if len(inputs) < org_len:
-            print("Reduced the number of inputs to ", len(inputs))
+            print("to ", len(inputs))
+        else:
+            print("not reduced")
 
         # Set the non-violating inputs as the ignore list
         violating_input_ids = [m.input_id for m in violation.measurements]
-        print(f"Violating inputs: {violating_input_ids}")
+        print(f"Violating input IDs: {violating_input_ids}")
         n_inputs = len(inputs) * CONF.inputs_per_class
         self.ignore_list = [i for i in range(n_inputs) if i not in violating_input_ids]
 
+        # Minimize inputs
         if enable_minimize_inputs:
             print("\n Analyzing inputs:\n  Progress: ", end='')
             inputs = self.find_min_inputs(test_case, inputs, violation)
@@ -251,12 +258,7 @@ class MinimizerViolation(Minimizer):
             tmp_test_case = self._get_test_case_from_instructions(tmp_instructions)
 
             # Run and check if the vuln. is still there
-            check_passed = False
-            for _ in range(CONF.minimizer_retries):
-                if check_func(tmp_test_case, inputs):
-                    check_passed = True
-                    break
-
+            check_passed = check_func(tmp_test_case, inputs)
             if check_passed:
                 print(".", end="", flush=True)
                 instructions = tmp_instructions
@@ -607,7 +609,10 @@ class MinimizerViolation(Minimizer):
     # ==============================================================================================
     # Hook functions
     def _check_for_violation(self, test_case: TestCase, inputs: List[Input]) -> bool:
-        return self.fuzzer.fuzzing_round(test_case, inputs, self.ignore_list) is not None
+        for _ in range(CONF.minimizer_retries):
+            if self.fuzzer.fuzzing_round(test_case, inputs, self.ignore_list) is not None:
+                return True
+        return False
 
     def _check_for_speculation(self, test_case: TestCase, inputs: List[Input]) -> bool:
         global CONF
