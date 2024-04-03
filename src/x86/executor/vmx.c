@@ -422,7 +422,7 @@ static int set_vmcs_guest_state(void)
     uint64_t cr0 = (read_cr0() | MUST_SET_BITS_CR0_GUEST) & ~MUST_CLEAR_BITS_CR0_GUEST;
     uint64_t cr4 = (__read_cr4() | MUST_SET_BITS_CR4_GUEST) & ~MUST_CLEAR_BITS_CR4_GUEST;
     CHECKED_VMWRITE(GUEST_CR0, cr0);
-    CHECKED_VMWRITE(GUEST_CR3, (uint64_t)&guest_p_memory->guest_page_tables.pml4[0]);
+    CHECKED_VMWRITE(GUEST_CR3, (uint64_t)&guest_p_memory->guest_page_tables.l4[0]);
     CHECKED_VMWRITE(GUEST_CR4, cr4);
 
     // - Debug register
@@ -445,7 +445,7 @@ static int set_vmcs_guest_state(void)
     VMWRITE_GUEST_SEGMENT(TR, 0, 0, 0xFFFF, 0x8b);
 
     // - GDTR and IDTR (left empty for the time being; attempt to use will cause VM exit)
-    CHECKED_VMWRITE(GUEST_GDTR_BASE, (uint64_t)&guest_v_memory->gdt[0]);
+    CHECKED_VMWRITE(GUEST_GDTR_BASE, (uint64_t)&guest_v_memory->gdt);
     CHECKED_VMWRITE(GUEST_GDTR_LIMIT, 0xFFFF);
     CHECKED_VMWRITE(GUEST_IDTR_BASE, 0);
     CHECKED_VMWRITE(GUEST_IDTR_LIMIT, 0xFFFF);

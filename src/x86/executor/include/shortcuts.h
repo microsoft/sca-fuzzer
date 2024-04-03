@@ -156,6 +156,8 @@
 static inline uint64_t vmalloc_to_phys(void *hva)
 {
     struct page *page = vmalloc_to_page(hva);
+    if (!page)
+        return 0;
     uint64_t hpa = page_to_phys(page);
     return hpa;
 }
