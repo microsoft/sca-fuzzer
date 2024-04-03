@@ -314,6 +314,7 @@ EOF
 }
 
 @test "Detection [meltdown-type]: #PF-present speculation" {
+    intel_only
     tmp_config=$(mktemp -p $TEST_DIR)
     echo "$CT_DEH $LOGGING_OFF" >$tmp_config
     echo "actors:" >>$tmp_config
@@ -327,6 +328,7 @@ EOF
 }
 
 @test "Detection [meltdown-type]: #PF-writable speculation" {
+    intel_only
     tmp_config=$(mktemp -p $TEST_DIR)
     echo "$CT_DEH $LOGGING_OFF" >$tmp_config
     echo "actors:" >>$tmp_config
@@ -340,6 +342,7 @@ EOF
 }
 
 @test "Detection [meltdown-type]: #PF-smap speculation" {
+    intel_only
     tmp_config=$(mktemp -p $TEST_DIR)
     echo "$CT_DEH $LOGGING_OFF" >$tmp_config
     echo "actors:" >>$tmp_config
