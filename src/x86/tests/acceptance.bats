@@ -435,6 +435,13 @@ EOF
         tmp_config=$(mktemp -p $TEST_DIR)
         printf "actors:\n  - actor2:\n    - mode: "guest"\n" > $tmp_config
         assert_no_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/vmx_switch.asm -c $tmp_config -i 20"
+
+        echo "Testing page table allocation..."
+        run cat /sys/x86_executor/dbg_guest_page_tables
+        if [ $status -ne 0 ]; then
+            echo "Page table allocation test failed: $output"
+        fi
+        [[ $status -eq 0 ]]
     else
         skip
     fi
