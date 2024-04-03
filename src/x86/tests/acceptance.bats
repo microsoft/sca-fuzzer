@@ -434,6 +434,8 @@ EOF
     if cat /proc/cpuinfo | grep "vmx" >/dev/null; then
         tmp_config=$(mktemp -p $TEST_DIR)
         printf "actors:\n  - actor2:\n    - mode: "guest"\n" > $tmp_config
+        echo "1" > /sys/x86_executor/enable_hpa_gpa_collisions
+
         assert_no_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/vmx_switch.asm -c $tmp_config -i 20"
 
         echo "Testing page table allocation..."
