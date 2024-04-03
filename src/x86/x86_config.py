@@ -6,26 +6,16 @@ SPDX-License-Identifier: MIT
 """
 from typing import List
 
-# Import cpuinfo if available
-cpuinfo_imported = False
-try:
-    import cpuinfo  # type: ignore
-    cpuinfo_imported = True
-except ImportError:
-    pass
-
 
 def try_get_cpu_vendor():
-    if cpuinfo_imported:
-        if 'AuthenticAMD' in cpuinfo.get_cpu_info()['vendor_id_raw']:
-            return 'x86-64-amd'
-        if 'GenuineIntel' in cpuinfo.get_cpu_info()['vendor_id_raw']:
-            return 'x86-64-intel'
+    with open('/proc/cpuinfo', 'r') as f:
+        for line in f:
+            if 'AuthenticAMD' in line:
+                return 'x86-64-amd'
+            if 'GenuineIntel' in line:
+                return 'x86-64-intel'
         else:
-            print('WARNING: Unknown CPU vendor, assuming Intel')
             return 'x86-64-intel'
-    else:
-        return 'x86-64-intel'
 
 
 _option_values = {

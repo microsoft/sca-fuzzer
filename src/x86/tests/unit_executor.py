@@ -8,7 +8,7 @@ import tempfile
 import subprocess
 from pathlib import Path
 
-from src.x86.x86_executor import X86IntelExecutor
+import src.factory as factory
 from src.x86.x86_generator import X86RandomGenerator
 from src.x86.x86_asm_parser import X86AsmParser
 from src.isa_loader import InstructionSet
@@ -44,11 +44,11 @@ class ExecutorTest(unittest.TestCase):
 
     def test_init(self):
         # check if the executor kernel module is properly loaded and can be initialized
-        executor = X86IntelExecutor()
+        executor = factory.get_executor()
         self.assertTrue(executor)
 
     def test_load(self):
-        executor = X86IntelExecutor()
+        executor = factory.get_executor()
         executor.load_test_case(self.tc)
         out = subprocess.check_output(
             "cat /sys/x86_executor/test_case_bin > tmp.o ;"
@@ -58,7 +58,7 @@ class ExecutorTest(unittest.TestCase):
         self.assertNotIn("(bad)", out)
 
     def test_trace(self):
-        executor = X86IntelExecutor()
+        executor = factory.get_executor()
         executor.load_test_case(self.tc)
 
         inputs = [Input(), Input()]  # single zero-initialized inputs
@@ -66,7 +66,7 @@ class ExecutorTest(unittest.TestCase):
         self.assertEqual(len(traces), 2)
 
     def test_big_batch(self):
-        executor = X86IntelExecutor()
+        executor = factory.get_executor()
         executor.load_test_case(self.tc)
 
         inputs = [Input() for _ in range(0, 300)]
