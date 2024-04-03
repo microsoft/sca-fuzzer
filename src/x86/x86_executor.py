@@ -109,6 +109,8 @@ class X86Executor(Executor):
         write_to_sysfs_file(CONF.executor_mode, "/sys/x86_executor/measurement_mode")
         write_to_sysfs_file("1" if CONF.fuzzer == "architectural" else "0",
                             "/sys/x86_executor/enable_dbg_gpr_mode")
+        write_to_sysfs_file("1" if CONF.x86_enable_hpa_gpa_collisions else "0",
+                            "/sys/x86_executor/enable_hpa_gpa_collisions")
 
     def set_quick_and_dirty(self, state: bool):
         write_to_sysfs_file("1" if state else "0", "/sys/x86_executor/enable_quick_and_dirty_mode")

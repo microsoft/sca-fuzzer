@@ -27,8 +27,8 @@
 #include "test_case_parser.h"
 
 #include "fault_handler.h"
-#include "memory_guest.h"
 #include "host_page_tables.h"
+#include "memory_guest.h"
 #include "page_tables_common.h"
 #include "perf_counters.h"
 #include "special_registers.h"
@@ -66,6 +66,7 @@ bool enable_ssbp_patch = SSBP_PATCH_DEFAULT;
 bool enable_prefetchers = PREFETCHER_DEFAULT;
 bool enable_mpx = MPX_DEFAULT; // unused on AMD
 char pre_run_flush = PRE_RUN_FLUSH_DEFAULT;
+bool enable_hpa_gpa_collisions = HPA_GPA_COLLISIONS_DEFAULT;
 measurement_mode_e measurement_mode = MEASUREMENT_MODE_DEFAULT;
 bool dbg_gpr_mode = DBG_GPR_MODE_DEFAULT;
 
@@ -153,6 +154,12 @@ static ssize_t enable_pre_run_flush_store(struct kobject *kobj, struct kobj_attr
 static struct kobj_attribute enable_pre_run_flush_attribute =
     __ATTR(enable_pre_run_flush, 0666, NULL, enable_pre_run_flush_store);
 
+// Control virtual memory mapping
+static ssize_t enable_hpa_gpa_collisions_store(struct kobject *kobj, struct kobj_attribute *attr,
+                                               const char *buf, size_t count);
+static struct kobj_attribute enable_hpa_gpa_collisions_attribute =
+    __ATTR(enable_hpa_gpa_collisions, 0666, NULL, enable_hpa_gpa_collisions_store);
+
 /// Vendor-specific features
 #if VENDOR_ID == 1 // Intel
 // MPX control
@@ -208,6 +215,7 @@ static struct attribute *sysfs_attributes[] = {
     &enable_dbg_gpr_mode_attribute.attr,
     &dbg_dump_attribute.attr,
     &dbg_guest_page_tables_attribute.attr,
+    &enable_hpa_gpa_collisions_attribute.attr,
 #if VENDOR_ID == 1 // Intel
     &enable_mpx_attribute.attr,
 #endif
@@ -379,6 +387,15 @@ static ssize_t enable_pre_run_flush_store(struct kobject *kobj, struct kobj_attr
     unsigned value = 0;
     sscanf(buf, "%u", &value);
     pre_run_flush = (value == 0) ? 0 : 1;
+    return count;
+}
+
+static ssize_t enable_hpa_gpa_collisions_store(struct kobject *kobj, struct kobj_attribute *attr,
+                                               const char *buf, size_t count)
+{
+    unsigned value = 0;
+    sscanf(buf, "%u", &value);
+    enable_hpa_gpa_collisions = (value == 0) ? false : true;
     return count;
 }
 

@@ -8,6 +8,7 @@
 #include <asm/msr.h>
 
 #include "actor.h"
+#include "main.h"
 #include "sandbox_manager.h"
 #include "shortcuts.h"
 
@@ -69,6 +70,16 @@ void *phys_to_vmalloc(uint64_t hpa, int actor_id)
     return 0;
 }
 
+static inline bool gpa_is_valid(hgpa_t *translations, uint64_t gpa)
+{
+    for (int i = 0; i < sizeof(guest_memory_translations_t) / sizeof(hgpa_t); i++) {
+        if (translations[i].gpa == gpa) {
+            return true;
+        }
+    }
+    return false;
+}
+
 static inline int set_last_pt_level(pte_t_ *pt, hgpa_t *translation, uint64_t paddr, uint64_t vaddr)
 {
     size_t pt_index = PT_INDEX(vaddr);
@@ -121,6 +132,8 @@ static inline int set_ept_entry(actor_ept_t *actor_ept_base, hgpa_t *translation
 int set_guest_page_tables(void)
 {
     int err = 0;
+    uint64_t vaddr = 0;
+    uint64_t paddr = 0;
 
     static int old_n_actors = 0;
     if (n_actors > old_n_actors) {
@@ -147,58 +160,64 @@ int set_guest_page_tables(void)
         // For convenience, we set GPA of the page tables to the same value as their GVA
         // Also, since the actor's sandbox is fairly small, the first three levels are identical
         // for all addresses within the actor memory
-        actor_page_table_t *page_table_hva = &_allocated_page_tables[actor_id];
+        actor_page_table_t *page_table = &_allocated_page_tables[actor_id];
         actor_page_table_t *page_table_gpa = &guest_p_memory->guest_page_tables;
         translations->guest_page_tables[3].gpa = (uint64_t)&page_table_gpa->l4;
 
         size_t l4_index = PML4_INDEX(GUEST_V_MEMORY_START);
         uint64_t l3_gpa = (uint64_t)&page_table_gpa->l3;
-        INIT_PTE_DEFAULT(page_table_hva->l4[l4_index], l3_gpa);
+        INIT_PTE_DEFAULT(page_table->l4[l4_index], l3_gpa);
         translations->guest_page_tables[2].gpa = l3_gpa;
 
         size_t l3_index = PDPT_INDEX(GUEST_V_MEMORY_START);
         uint64_t l2_gpa = (uint64_t)&page_table_gpa->l2;
-        INIT_PTE_DEFAULT(page_table_hva->l3[l3_index], l2_gpa);
+        INIT_PTE_DEFAULT(page_table->l3[l3_index], l2_gpa);
         translations->guest_page_tables[1].gpa = l2_gpa;
 
         size_t l2_index = PDT_INDEX(GUEST_V_MEMORY_START);
         uint64_t l1_gpa = (uint64_t)&page_table_gpa->l1;
-        INIT_PTE_DEFAULT(page_table_hva->l2[l2_index], l1_gpa);
+        INIT_PTE_DEFAULT(page_table->l2[l2_index], l1_gpa);
         translations->guest_page_tables[0].gpa = l1_gpa;
 
         // set the last level of the page table for each area of the actor sandbox
         for (int i = 0; i < sizeof(util_t); i += 4096) {
-            uint64_t vaddr = ((uint64_t)&guest_v_memory->util) + i;
-            uint64_t paddr = ((uint64_t)&guest_p_memory->util) + i;
-            err =
-                set_last_pt_level(page_table_hva->l1, &translations->util[i / 4096], paddr, vaddr);
+            vaddr = ((uint64_t)&guest_v_memory->util) + i;
+            paddr = ((uint64_t)&guest_p_memory->util) + i;
+            err = set_last_pt_level(page_table->l1, &translations->util[i / 4096], paddr, vaddr);
             CHECK_ERR("set_guest_page_tables");
         }
         for (int i = 0; i < sizeof(actor_data_t); i += 4096) {
             uint64_t vaddr = ((uint64_t)&guest_v_memory->data) + i;
-            uint64_t paddr = ((uint64_t)&guest_p_memory->data) + i;
-            err =
-                set_last_pt_level(page_table_hva->l1, &translations->data[i / 4096], paddr, vaddr);
+            if (enable_hpa_gpa_collisions) {
+                uint64_t aliased_vaddr = ((uint64_t)&sandbox->data[0]) + i;
+                paddr = vmalloc_to_phys((void *)aliased_vaddr);
+            } else {
+                paddr = ((uint64_t)&guest_p_memory->data) + i;
+            }
+            err = set_last_pt_level(page_table->l1, &translations->data[i / 4096], paddr, vaddr);
             CHECK_ERR("set_guest_page_tables");
         }
         for (int i = 0; i < sizeof(actor_code_t); i += 4096) {
-            uint64_t vaddr = ((uint64_t)&guest_v_memory->code) + i;
-            uint64_t paddr = ((uint64_t)&guest_p_memory->code) + i;
-            err =
-                set_last_pt_level(page_table_hva->l1, &translations->code[i / 4096], paddr, vaddr);
+            vaddr = ((uint64_t)&guest_v_memory->code) + i;
+            if (enable_hpa_gpa_collisions) {
+                uint64_t aliased_vaddr = ((uint64_t)&sandbox->code[0]) + i;
+                paddr = vmalloc_to_phys((void *)aliased_vaddr);
+            } else {
+                paddr = ((uint64_t)&guest_p_memory->code) + i;
+            }
+            err = set_last_pt_level(page_table->l1, &translations->code[i / 4096], paddr, vaddr);
             CHECK_ERR("set_guest_page_tables");
         }
         { // GDT (indentation is for readability)
-            uint64_t vaddr = (uint64_t)&guest_v_memory->gdt;
-            uint64_t paddr = (uint64_t)&guest_p_memory->gdt;
-            err = set_last_pt_level(page_table_hva->l1, &translations->gdt[0], paddr, vaddr);
+            vaddr = (uint64_t)&guest_v_memory->gdt;
+            paddr = (uint64_t)&guest_p_memory->gdt;
+            err = set_last_pt_level(page_table->l1, &translations->gdt[0], paddr, vaddr);
             CHECK_ERR("set_guest_page_tables");
         }
         { // VMLAUNCH page (indentation is for readability)
-            uint64_t vaddr = (uint64_t)&guest_v_memory->vmlaunch_page[0];
-            uint64_t paddr = (uint64_t)&guest_p_memory->vmlaunch_page[0];
-            err = set_last_pt_level(page_table_hva->l1, &translations->vmlaunch_page[0], paddr,
-                                    vaddr);
+            vaddr = (uint64_t)&guest_v_memory->vmlaunch_page[0];
+            paddr = (uint64_t)&guest_p_memory->vmlaunch_page[0];
+            err = set_last_pt_level(page_table->l1, &translations->vmlaunch_page[0], paddr, vaddr);
             CHECK_ERR("set_guest_page_tables");
         }
     }
@@ -525,10 +544,18 @@ int dbg_dump_ept(int actor_id)
                     epte_t_ l1e = l1[curr_l1_id];
                     if (!l1e.read_access)
                         continue;
-                    uint64_t hpa = ((uint64_t)l1e.paddr << 12);
-                    void *hva = phys_to_vmalloc(hpa, actor_id);
                     uint64_t gpa = (curr_l4_id << PML4_SHIFT) | (curr_l3_id << PDPT_SHIFT) |
                                    (curr_l2_id << PDT_SHIFT) | (curr_l1_id << PT_SHIFT);
+
+                    // if HPA-GPA collisions are enabled, we will have multiple translations per
+                    // physical address; hence, filter out the unused GPAs
+                    if (enable_hpa_gpa_collisions &&
+                        !gpa_is_valid((hgpa_t *)&_guest_memory_translations[actor_id], gpa)) {
+                        continue;
+                    }
+
+                    uint64_t hpa = ((uint64_t)l1e.paddr << 12);
+                    void *hva = phys_to_vmalloc(hpa, actor_id);
                     char r = l1e.read_access ? 'R' : '-';
                     char w = l1e.write_access ? 'W' : '-';
                     char x = l1e.execute_access ? 'X' : '-';

@@ -171,6 +171,9 @@ x86_executor_enable_prefetcher: bool = False
 """ x86_executor_enable_prefetcher: enable all prefetchers"""
 x86_executor_enable_ssbp_patch: bool = True
 """ x86_executor_enable_ssbp_patch: enable a patch against Speculative Store Bypass"""
+x86_enable_hpa_gpa_collisions: bool = False
+""" x86_enable_hpa_gpa_collisions: enable collisions between HPA and GPA;
+useful for testing Foreshadow-like leaks"""
 x86_disable_div64: bool = True
 """ x86_disable_div64: do not generate 64-bit division instructions """
 x86_generator_align_locks: bool = False
