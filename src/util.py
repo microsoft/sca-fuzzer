@@ -355,15 +355,25 @@ class Logger:
                 print(f"  {violation.ctrace % MASK_64BIT:064b} [ns]\n"
                       f"  {(violation.ctrace >> 64) % MASK_64BIT:064b} [s]\n")
         print("Hardware traces:")
-        for measurements in violation.htrace_groups:
-            inputs = [m.input_id for m in measurements]
-            htrace = measurements[0].htrace
-            if len(inputs) < 4:
-                print(f" Inputs {inputs}:")
-            else:
-                print(f" Inputs {inputs[:4]} (+ {len(inputs) - 4} ):")
-            print(f"{pretty_htrace(htrace, offset='  ')}")
-        print("")
+        if len(violation.htrace_groups) == 2:
+            inputs1 = [m.input_id for m in violation.htrace_groups[0]]
+            inputs2 = [m.input_id for m in violation.htrace_groups[1]]
+            htrace1 = violation.htrace_groups[0][0].htrace
+            htrace2 = violation.htrace_groups[1][0].htrace
+            print(len(htrace1.raw))
+            print(f"  Input group 1: {inputs1}")
+            print(f"  Input group 2: {inputs2}")
+            print(f"{pretty_htrace_pair(htrace1, htrace2, offset='  ')}")
+        else:
+            for measurements in violation.htrace_groups:
+                inputs = [m.input_id for m in measurements]
+                htrace = measurements[0].htrace
+                if len(inputs) < 4:
+                    print(f" Inputs {inputs}:")
+                else:
+                    print(f" Inputs {inputs[:4]} (+ {len(inputs) - 4} ):")
+                print(f"{pretty_htrace(htrace, offset='  ')}")
+            print("")
 
         if not __debug__:
             return
