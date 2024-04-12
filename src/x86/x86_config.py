@@ -48,6 +48,7 @@ _option_values = {
         'data_ept_properties',
         'observer',
         'instruction_blocklist',
+        'fault_blocklist',
     ],
     "actor_mode": [
         'host',
@@ -278,5 +279,6 @@ _actor_default = {
         'reserved_bit': False,
         'randomized': False,
     },
-    'instruction_blocklist': set()
+    'instruction_blocklist': set(),
+    'fault_blocklist': set(),
 }
