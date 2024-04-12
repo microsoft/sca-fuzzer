@@ -106,9 +106,9 @@ void idt_set_custom_handlers(gate_desc *idt, struct desc_ptr *idtr, void *main_h
 int set_bubble_idt(void)
 {
     ASSERT(pre_bubble_rsp != 0, "set_bubble_idt");
+    sandbox->util->nested_fault = 0;
     native_sidt(&orig_idtr); // preserve original IDT
     idt_set_custom_handlers(bubble_idt, &bubble_idtr, bubble_handler, bubble_handlers);
-    sandbox->util->nested_fault = 0;
     return 0;
 }
 
@@ -135,32 +135,39 @@ int unset_test_case_idt(void)
 // =================================================================================================
 // Handlers
 // =================================================================================================
+
+/// @brief Universal NMI handler. Used by both Bubble and Test Case IDTs.
+///        Prints a warning message and terminates the measurement.
+///        Returns to the caller of unsafe_bubble_wrapper.
+/// @param void
 __attribute__((unused)) void nmi_handler_wrapper(void)
 {
     asm volatile(".global nmi_handler\n"
                  "nmi_handler:\n"
-                 :
-                 :
-                 : "memory");
 
-    asm volatile(""
-                 // note: NMIs are disabled in this handler,
+                 // just in case, disable interrupts
+                 "cli\n"
+
+                 // note: NMIs are automatically disabled in this handler,
                  // hence we don't need to check for nested interrupts
 
-                 // rsp = sandbox->util->stored_rsp
-                 "mov %[util_base], %%r15\n"
-                 "lea " xstr(STORED_RSP_OFFSET) "(%%r15), %%rax\n"
-                                                "mov (%%rax), %%rsp\n"
-                                                // restore flags
-                                                "popfq\n"
-                 : [util_base] "=m"(sandbox->util)
-                 :
-                 : "rax", "rbx", "rcx", "r10", "r11", "r12", "r13", "r14", "r15");
+                 // get a safe stack
+                 "mov %[rsp_save], %%rsp\n"
+
+                 // move the stack pointer down by a page in case the compiler have preallocated
+                 // some stack space for the following function calls
+                 "sub $0x1000, %%rsp\n"
+                 "mov %%rsp, %%rbp\n"
+
+                 : [rsp_save] "=m"(pre_bubble_rsp)::"memory");
+
     printk(KERN_WARNING "WARN: unhandled NMI\n");
     recover_orig_state();
 
+    // restore the caller's register values and return to the caller of unsafe_bubble_wrapper
     asm volatile(""
-                 "mov %[rsp_save], %%rsp\n"
+                 "add $0x1000, %%rsp\n"
+                 "popfq\n"
                  "pop %%rbp\n"
                  "pop %%r15\n"
                  "pop %%r14\n"
@@ -177,7 +184,8 @@ __attribute__((unused)) void nmi_handler_wrapper(void)
                  "pop %%rbx\n"
                  "mov $0, %%rax\n"
                  "ret\n"
-                 "int3\n" // Silences objtool warnings about no int3 after ret
+                 // Silences objtool warnings about no int3 after ret
+                 "int3\n"
                  : [rsp_save] "=m"(pre_bubble_rsp)
                  :);
 }
@@ -341,6 +349,7 @@ __attribute__((unused)) void bubble_handler_wrapper(void)
 
     asm volatile(""
                  "mov %[rsp_save], %%rsp\n"
+                 "popfq\n"
                  "pop %%rbp\n"
                  "pop %%r15\n"
                  "pop %%r14\n"

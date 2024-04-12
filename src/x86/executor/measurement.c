@@ -19,8 +19,8 @@
 #include "test_case_parser.h"
 
 #include "fault_handler.h"
-#include "memory_guest.h"
 #include "host_page_tables.h"
+#include "memory_guest.h"
 #include "perf_counters.h"
 #include "special_registers.h"
 #include "vmx.h"
@@ -142,7 +142,7 @@ int run_experiment(void)
 
 cleanup:
     if (err)
-        measurements[0].htrace[0] = 0;  // communicate the error up to x86_executor.py
+        measurements[0].htrace[0] = 0; // communicate the error up to x86_executor.py
     recover_orig_state();
     CHECK_ERR("run_experiment:cleanup");
     return err;
@@ -170,6 +170,8 @@ __attribute__((unused)) void unsafe_bubble_wrapper(void)
                  "push %%r14\n"
                  "push %%r15\n"
                  "push %%rbp\n"
+                 "cli\n" // should be already disabled, but just in case
+                 "pushfq\n"
 
                  "mov %%rsp, %[rsp_save]\n"
 
@@ -187,6 +189,7 @@ __attribute__((unused)) void unsafe_bubble_wrapper(void)
 
     asm volatile(""
                  "mov %[rsp_save], %%rsp\n"
+                 "popfq\n"
                  "pop %%rbp\n"
                  "pop %%r15\n"
                  "pop %%r14\n"
