@@ -320,6 +320,8 @@ class Conf:
 
     def update_handled_faults_with_generator_faults(self, new: List[str]):
         for gen_fault in new:
+            if not gen_fault:
+                continue
             if gen_fault not in self._generator_fault_to_fault_name:
                 raise ConfigException(f"ERROR: Unknown generator fault {gen_fault}")
             fault = self._generator_fault_to_fault_name[gen_fault]
@@ -369,7 +371,7 @@ class Conf:
                                     f"ERROR: Unsupported actor data_ept_properties value {p_key}")
                             entry[k][p_key] = p_value
                     continue
-                if k == "instruction_blocklist":
+                if k == "instruction_blocklist" or k == "fault_blocklist":
                     if v:
                         entry[k].update(v)
                     continue

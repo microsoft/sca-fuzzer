@@ -198,7 +198,7 @@ class X86SandboxPass(Pass):
                     self.sandbox_memory_access(inst, bb)
 
                 for inst in divisions:  # must be after memory accesses
-                    self.sandbox_division(inst, bb)
+                    self.sandbox_division(inst, bb, func.owner.name)
 
                 for inst in bit_tests:
                     self.sandbox_bit_test(inst, bb)
@@ -274,7 +274,7 @@ class X86SandboxPass(Pass):
 
         raise GeneratorException("Attempt to sandbox an instruction without memory operands")
 
-    def sandbox_division(self, inst: Instruction, parent: BasicBlock):
+    def sandbox_division(self, inst: Instruction, parent: BasicBlock, owner_name: str):
         """
         In the experiments where division errors are not permitted, we prevent them
         through code instrumentation.
@@ -318,6 +318,11 @@ class X86SandboxPass(Pass):
             * entropy of D is reduced by (division_size - 2) bits (i.e., the resulting
               entropy of D is 2 bits, with the sign bit cleared)
         """
+        # Determine what type of fault is allowed
+        actor_blocklist = CONF._actors[owner_name]["fault_blocklist"]
+        enable_div_by_zero = self.faults.div_by_zero & ("div-by-zero" not in actor_blocklist)
+        enable_div_overflow = self.faults.div_overflow & ("div-overflow" not in actor_blocklist)
+
         # Copy div source operand as we may need to modify it
         divisor = deepcopy(inst.operands[0])
         size = divisor.width
@@ -328,8 +333,8 @@ class X86SandboxPass(Pass):
             return
 
         # Prevent div by zero
-        if not self.faults.div_by_zero:
-            if "idiv" not in inst.name or self.faults.div_overflow:
+        if not enable_div_by_zero:
+            if "idiv" not in inst.name or enable_div_overflow:
                 # for unsigned division and signed divisions with overflow permitted,
                 # it is sufficient to OR the divisor with 1 to prevent div by zero
                 instrumentation = Instruction("or", True) \
@@ -370,7 +375,7 @@ class X86SandboxPass(Pass):
                     .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
                 parent.insert_before(inst, instrumentation)
 
-        if self.faults.div_overflow:
+        if enable_div_overflow:
             return
         # Prevent div overflows:
 

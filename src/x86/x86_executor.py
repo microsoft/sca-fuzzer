@@ -89,7 +89,7 @@ class X86Executor(Executor):
                     check=True,
                     capture_output=True).stdout.decode().strip())
             if physical_bits > 51:
-                self.LOG.error("executor", "Cannot set reserved bits on this CPU")
+                self.LOG.error("executor: Cannot set reserved bits on this CPU")
 
         # is kernel module ready?
         if not os.path.isfile("/sys/x86_executor/trace"):
