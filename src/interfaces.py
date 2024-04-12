@@ -382,6 +382,9 @@ class FlagsOperand(Operand):
     def get_write_flags(self) -> List[str]:
         return self._get_flag_list(['w', 'r/w', 'r/cw'])
 
+    def get_overwrite_flags(self) -> List[str]:
+        return self._get_flag_list(['w'])
+
     def get_undef_flags(self) -> List[str]:
         return self._get_flag_list(['undef'])
 
