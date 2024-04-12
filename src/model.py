@@ -930,6 +930,7 @@ class BaseTaintTracker(TaintTrackerInterface):
     def __init__(self, initial_observations, sandbox_base=0):
         self.sandbox_base = sandbox_base
         self.reset(initial_observations)
+        assert CONF.instruction_set == "x86-64", "Taint tracking is only supported for x86_64"
 
     def reset(self, initial_observations):
         self.initial_observations = initial_observations
@@ -970,6 +971,19 @@ class BaseTaintTracker(TaintTrackerInterface):
                 for sub_op in re.split(r'\+|-|\*| ', op.value):
                     if sub_op and sub_op in self.target_desc.reg_normalized:
                         self.mem_address_regs.append(self.target_desc.reg_normalized[sub_op])
+
+        # FIXME: this is an x86-specific implementation and it should be moved to the x86 model
+        if "mov" in instruction.name and instruction.category == "BASE-DATAXFER":
+            dest_regs = instruction.get_dest_operands()
+            assert len(dest_regs) == 1, "MOV instruction with multiple destinations"
+            if isinstance(dest_regs[0], RegisterOperand) and dest_regs[0].width == 64:
+                value = self.target_desc.reg_normalized[dest_regs[0].value]
+                self.reg_dependencies[value] = set()
+
+        flag_op = instruction.get_flags_operand()
+        if flag_op:
+            for flag in flag_op.get_overwrite_flags():
+                self.flag_dependencies[flag] = set()
 
     def _finalize_instruction(self):
         """Propagate dependencies from source operands to destinations """
