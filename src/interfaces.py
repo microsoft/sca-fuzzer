@@ -37,6 +37,7 @@ class OperandSpec:
     values: List[str]
     type: OT
     width: int
+    signed: bool = True
     src: bool
     dest: bool
 

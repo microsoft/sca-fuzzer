@@ -56,6 +56,7 @@ class InstructionSet(InstructionSetAbstract):
             op_values = sorted(op_values)
         spec = OperandSpec(op_values, op_type, op["src"], op["dest"])
         spec.width = op["width"]
+        spec.signed = op.get("signed", True)
 
         if op_type == OT.MEM:
             parent.has_mem_operand = True

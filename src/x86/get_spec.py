@@ -13,6 +13,7 @@ class OperandSpec:
     values: List[str]
     type_: str
     width: int
+    signed: bool = True
     comment: str
     src: bool = False
     dest: bool = False
@@ -217,6 +218,8 @@ class X86Transformer:
         spec.src = True
         spec.dest = False
         spec.width = int(op.attrib.get('width'))
+        if op.attrib.get('s', '1') == '0':
+            spec.signed = False
         return spec
 
     @staticmethod
@@ -304,7 +307,7 @@ class Downloader:
     def run(self):
         subprocess.run(
             "wget "
-            "https://github.com/microsoft/sca-fuzzer/releases/download/v1.2/x86_instructions.xml",
+            "https://github.com/microsoft/sca-fuzzer/releases/download/v1.2.4/x86_instructions.xml",
             shell=True,
             check=True)
 

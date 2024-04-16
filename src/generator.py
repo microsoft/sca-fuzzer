@@ -498,21 +498,32 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         return MemoryOperand(address_reg, spec.width, spec.src, spec.dest)
 
     def generate_imm_operand(self, spec: OperandSpec, _: Instruction) -> Operand:
+        # generate bitmask
+        if spec.values and spec.values[0] == "bitmask":
+            # FIXME: this implementation always returns the same bitmask
+            # make it random
+            value = str(pow(2, spec.width) - 2)
+            return ImmediateOperand(value, spec.width)
+
+        # generate from a predefined range
         if spec.values:
-            if spec.values[0] == "bitmask":
-                # FIXME: this implementation always returns the same bitmask
-                # make it random
-                value = str(pow(2, spec.width) - 2)
-            else:
-                assert "[" in spec.values[0], spec.values
-                range_ = spec.values[0][1:-1].split("-")
-                if range_[0] == "":
-                    range_ = range_[1:]
-                    range_[0] = "-" + range_[0]
-                assert len(range_) == 2
-                value = str(random.randint(int(range_[0]), int(range_[1])))
+            assert "[" in spec.values[0], spec.values
+            range_ = spec.values[0][1:-1].split("-")
+            if range_[0] == "":
+                range_ = range_[1:]
+                range_[0] = "-" + range_[0]
+            assert len(range_) == 2
+            value = str(random.randint(int(range_[0]), int(range_[1])))
+            ImmediateOperand(value, spec.width)
+
+        # generate from width
+        if spec.signed:
+            range_min = pow(2, spec.width - 1) * -1
+            range_max = pow(2, spec.width - 1) - 1
         else:
-            value = str(random.randint(pow(2, spec.width - 1) * -1, pow(2, spec.width - 1) - 1))
+            range_min = 0
+            range_max = pow(2, spec.width) - 1
+        value = str(random.randint(range_min, range_max))
         return ImmediateOperand(value, spec.width)
 
     def generate_label_operand(self, spec: OperandSpec, parent: Instruction) -> Operand:
