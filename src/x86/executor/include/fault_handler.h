@@ -21,7 +21,7 @@ struct idt_data {
 
 #define HANDLED_FAULTS_DEFAULT                                                                     \
     ((1 << X86_TRAP_DE) + (1 << X86_TRAP_DB) + (1 << X86_TRAP_BP) + (1 << X86_TRAP_BR) +           \
-     (1 << X86_TRAP_UD) + (1 << X86_TRAP_GP) + (1 << X86_TRAP_PF))
+     (1 << X86_TRAP_UD) + (1 << X86_TRAP_GP) + (1 << X86_TRAP_PF) + (1 << X86_TRAP_AC))
 
 extern char *fault_handler;
 extern uint32_t handled_faults;
