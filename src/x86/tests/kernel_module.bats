@@ -70,7 +70,7 @@ function set_default_config() {
 }
 
 @test "x86_executor: Tracing" {
-    run cat /sys/x86_executor/trace
+    run taskset -c 0 cat /sys/x86_executor/trace
     [ "$status" -eq 0 ]
 }
 
@@ -99,22 +99,22 @@ function set_default_config() {
 
     run bash -c 'echo "1" > /sys/x86_executor/enable_ssbp_patch'
     [ "$status" -eq 0 ]
-    run cat /sys/x86_executor/trace
+    run taskset -c 0 cat /sys/x86_executor/trace
     [ "$status" -eq 0 ]
 
     run bash -c 'echo "0" > /sys/x86_executor/enable_ssbp_patch'
     [ "$status" -eq 0 ]
-    run cat /sys/x86_executor/trace
+    run taskset -c 0 cat /sys/x86_executor/trace
     [ "$status" -eq 0 ]
 
     run bash -c 'echo "1" > /sys/x86_executor/enable_prefetcher'
     [ "$status" -eq 0 ]
-    run cat /sys/x86_executor/trace
+    run taskset -c 0 cat /sys/x86_executor/trace
     [ "$status" -eq 0 ]
 
     run bash -c 'echo "0" > /sys/x86_executor/enable_prefetcher'
     [ "$status" -eq 0 ]
-    run cat /sys/x86_executor/trace
+    run taskset -c 0 cat /sys/x86_executor/trace
     [ "$status" -eq 0 ]
 }
 
@@ -129,7 +129,7 @@ function set_default_config() {
     load_test_case false $tmpasm $tmpbin
     load_input false 1 $tmpinput
 
-    run cat /sys/x86_executor/trace
+    run taskset -c 0 cat /sys/x86_executor/trace
     echo "Output: $output"
     [[ "$output" == *"9223372036854775808,"* ]]
 
@@ -137,7 +137,7 @@ function set_default_config() {
     load_test_case false $tmpasm $tmpbin
     load_input false 1 $tmpinput
 
-    run cat /sys/x86_executor/trace
+    run taskset -c 0 cat /sys/x86_executor/trace
     echo "Output: $output"
     [[ "$output" == *"9259400833873739776,"* ]]
 }
@@ -153,7 +153,7 @@ function set_default_config() {
     load_test_case false $tmpasm $tmpbin
     load_input false 1 $tmpinput
 
-    run cat /sys/x86_executor/trace
+    run taskset -c 0 cat /sys/x86_executor/trace
     echo "Output: $output"
     [[ "$output" == *"9223372036854775808,"* ]]
 
@@ -161,7 +161,7 @@ function set_default_config() {
     load_test_case false $tmpasm $tmpbin
     load_input false 1 $tmpinput
 
-    run cat /sys/x86_executor/trace
+    run taskset -c 0 cat /sys/x86_executor/trace
     echo "Output: $output"
     [[ "$output" == *"9259400833873739776,"* ]]
 }
@@ -177,7 +177,7 @@ function set_default_config() {
     load_test_case false $tmpasm $tmpbin
     load_input false 1 $tmpinput
 
-    run cat /sys/x86_executor/trace
+    run taskset -c 0 cat /sys/x86_executor/trace
     echo "Output: $output"
     [[ "$output" == *"9223372036854775808,"* ]]
 
@@ -185,7 +185,7 @@ function set_default_config() {
     load_test_case false $tmpasm $tmpbin
     load_input false 1 $tmpinput
 
-    run cat /sys/x86_executor/trace
+    run taskset -c 0 cat /sys/x86_executor/trace
     echo "Output: $output"
     [[ "$output" == *"9259400833873739776,"* ]]
 }
@@ -201,7 +201,7 @@ function set_default_config() {
     load_test_case false $tmpasm $tmpbin
     load_input false 1 $tmpinput
 
-    run cat /sys/x86_executor/trace
+    run taskset -c 0 cat /sys/x86_executor/trace
     echo "Output: $output"
     [[ "$output" == *"1,2,3,4,5,6"* ]]
 }
@@ -238,7 +238,7 @@ function set_default_config() {
 
         # START=$(date +%s.%N)
         while true; do
-            run cat /sys/x86_executor/trace
+            run taskset -c 0 cat /sys/x86_executor/trace
             [ "$status" -eq 0 ]
             echo "$output" >>$tmpresult
             if [[ "$output" == *"done"* ]]; then
@@ -289,7 +289,7 @@ function set_default_config() {
     echo "" >$tmpresult
 
     while true; do
-        run cat /sys/x86_executor/trace
+        run taskset -c 0 cat /sys/x86_executor/trace
         [ "$status" -eq 0 ]
         echo "$output" >>$tmpresult
         if [[ "$output" == *"done"* ]]; then

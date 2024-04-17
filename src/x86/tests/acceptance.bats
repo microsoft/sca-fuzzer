@@ -1,6 +1,7 @@
 #!/usr/bin/env bats
 
 PRESERVE_TMP=${PRESERVE_TMP:-0}
+CPU_MODEL=$(cat /proc/cpuinfo | grep "model" | head -n 1 | cut -d: -f2 | tr -d ' ')
 
 # ------------------------------------------------------------------------------
 # Templates
@@ -315,6 +316,9 @@ EOF
 
 @test "Detection [meltdown-type]: #PF-present speculation" {
     intel_only
+    if [ $CPU_MODEL -ge 170 ]; then
+        skip
+    fi
     tmp_config=$(mktemp -p $TEST_DIR)
     echo "$CT_DEH $LOGGING_OFF" >$tmp_config
     echo "actors:" >>$tmp_config
@@ -329,6 +333,9 @@ EOF
 
 @test "Detection [meltdown-type]: #PF-writable speculation" {
     intel_only
+    if [ $CPU_MODEL -ge 170 ]; then
+        skip
+    fi
     tmp_config=$(mktemp -p $TEST_DIR)
     echo "$CT_DEH $LOGGING_OFF" >$tmp_config
     echo "actors:" >>$tmp_config

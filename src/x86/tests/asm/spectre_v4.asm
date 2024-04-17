@@ -3,15 +3,15 @@
 .section .data.main
 
 # the leaked value - rcx
-# construct a page offset from the random value
-and rcx, 0b111111000000
-add rcx, 64
+# construct a page offset in the range [0x200; 0x900]
+and rcx, 0b11100000000
+add rcx, 0x200
 
-# save some value into the test address
+# save the offset into the offset 0
 mov qword ptr [r14], rcx
 mfence
 
-# delay the store
+# create a delay on rbx
 mov rax, 0
 lea rbx, qword ptr [rbx + rax + 1]
 lea rbx, qword ptr [rbx + rax - 1]
@@ -40,12 +40,14 @@ lea rbx, qword ptr [rbx + rax - 1]
 lea rbx, qword ptr [rbx + rax + 1]
 lea rbx, qword ptr [rbx + rax - 1]
 
+
 # store and load, potentially matching
 and rbx, 0b111000000
-mov qword ptr [r14 + rbx], 4096 - 64
-mov rdx, qword ptr [r14]  # misprediction happens here
+mov qword ptr [r14 + rbx], 0x100  # store offset 0x100
+mov rdx, qword ptr [r14]  # load the offset; misprediction happens here
 
-# dependent load
+# dependent load with the offset
+and rdx, 0b111111000000
 mov rdx, qword ptr [r14 + rdx]
 mfence
 
