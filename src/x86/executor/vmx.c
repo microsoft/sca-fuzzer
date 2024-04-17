@@ -33,6 +33,10 @@ static uint64_t vmxon_page_hpa = 0;
 
 static vmcs_t *vmcss = NULL;
 
+static uint64_t supported_vmcs_pin_ctrl = 0;
+static uint64_t supported_vmcs_primary_ctrl = 0;
+static uint64_t supported_vmcs_secondary_ctrl = 0;
+
 static int set_vmcs_guest_state(void);
 static int set_vmcs_host_state(void);
 static int set_vmcs_exec_control(int);
@@ -224,16 +228,19 @@ int vmx_check_cpu_compatibility(void)
     ASSERT((msr_value & VMX_BASIC_TRUE_CTLS) != 0, "vmx_check_cpu_compatibility");
 
     // Pin-based controls
-    msr_value = rdmsr64(MSR_IA32_VMX_TRUE_PINBASED_CTLS);
-    ASSERT((msr_value & MUST_CLEAR_PIN_BASED_VM_EXEC_CONTROL) == 0, "vmx_check_cpu_compatibility");
+    supported_vmcs_pin_ctrl = rdmsr64(MSR_IA32_VMX_TRUE_PINBASED_CTLS);
+    ASSERT((supported_vmcs_pin_ctrl & MUST_CLEAR_PIN_BASED_VM_EXEC_CONTROL) == 0,
+           "vmx_check_cpu_compatibility");
 
     // Primary processor-based controls
-    msr_value = rdmsr64(MSR_IA32_VMX_TRUE_PROCBASED_CTLS);
-    ASSERT((msr_value & MUST_CLEAR_PRIMARY_VM_EXEC_CONTROL) == 0, "vmx_check_cpu_compatibility");
+    supported_vmcs_primary_ctrl = rdmsr64(MSR_IA32_VMX_TRUE_PROCBASED_CTLS);
+    ASSERT((supported_vmcs_primary_ctrl & MUST_CLEAR_PRIMARY_VM_EXEC_CONTROL) == 0,
+           "vmx_check_cpu_compatibility");
 
     // Secondary
-    msr_value = rdmsr64(MSR_IA32_VMX_PROCBASED_CTLS2);
-    ASSERT((msr_value & MUST_CLEAR_SECONDARY_VM_EXEC_CONTROL) == 0, "vmx_check_cpu_compatibility");
+    supported_vmcs_secondary_ctrl = rdmsr64(MSR_IA32_VMX_PROCBASED_CTLS2);
+    ASSERT((supported_vmcs_secondary_ctrl & MUST_CLEAR_SECONDARY_VM_EXEC_CONTROL) == 0,
+           "vmx_check_cpu_compatibility");
 
     // Exit/entry
     msr_value = rdmsr64(MSR_IA32_VMX_TRUE_EXIT_CTLS);
@@ -600,11 +607,11 @@ static int set_vmcs_exec_control(int actor_id)
     ASSERT((SECONDARY_EXEC_SHADOW_VMCS & secondary_vm_exec_control) == 0, "set_vmcs_exec_control");
 
     // SDM 25.6.16 ENCLS-Exiting Bitmap
-#ifndef VMBUILD // FIXME: this is supposed to be a CPU compatibility check
-    ASSERT((SECONDARY_EXEC_ENCLS_EXITING & secondary_vm_exec_control) != 0,
-           "set_vmcs_exec_control");
-    CHECKED_VMWRITE(ENCLS_EXITING_BITMAP, 0x0FFFFFFFFFFFFFFFULL);
-#endif
+    if (supported_vmcs_secondary_ctrl & SECONDARY_EXEC_ENCLS_EXITING) {
+        ASSERT((SECONDARY_EXEC_ENCLS_EXITING & secondary_vm_exec_control) != 0,
+            "set_vmcs_exec_control");
+        CHECKED_VMWRITE(ENCLS_EXITING_BITMAP, 0x0FFFFFFFFFFFFFFFULL);
+    }
 
     // Misc. features (25.6.14--23) are disabled
     return 0;

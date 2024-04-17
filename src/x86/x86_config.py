@@ -177,7 +177,7 @@ x86_enable_hpa_gpa_collisions: bool = False
 useful for testing Foreshadow-like leaks"""
 x86_disable_div64: bool = True
 """ x86_disable_div64: do not generate 64-bit division instructions """
-x86_generator_align_locks: bool = False
+x86_generator_align_locks: bool = True
 """ x86_generator_align_locks: align all generated locks to 8 bytes """
 
 # Overwrite executor

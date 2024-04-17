@@ -7,9 +7,9 @@
 #include <asm/msr-index.h>
 
 #include "fault_handler.h"
-#include "special_registers.h"
 #include "main.h"
 #include "shortcuts.h"
+#include "special_registers.h"
 #include "test_case_parser.h"
 
 special_registers_t *orig_special_registers_state = NULL; // global
@@ -94,7 +94,18 @@ static int get_prefetcher_msr_ctrls(uint64_t *msr_id, uint64_t *msr_mask)
 {
     if (cpuinfo->x86_vendor == X86_VENDOR_INTEL) {
         *msr_id = MSR_MISC_FEATURE_CONTROL;
-        *msr_mask = 0xf;
+        switch (cpuinfo->x86_model) {
+        case 0x97:
+        case 0x9a:
+        case 0xba:
+        case 0xb7:
+        case 0xbf:
+            *msr_mask = 0b101111;
+            break;
+        default:
+            *msr_mask = 0b1111;
+            break;
+        }
     } else if (cpuinfo->x86_vendor == X86_VENDOR_AMD) {
         switch (cpuinfo->x86) {
         case 0x19:
@@ -162,9 +173,9 @@ int set_special_registers(void)
 #ifndef VMBUILD
     err = get_prefetcher_msr_ctrls(&msr_id, &msr_mask);
     orig_special_registers_state->prefetcher_ctrl = rdmsr64(msr_id);
-    CHECK_ERR("set_enable_prefetchers");
+    CHECK_ERR("set_disable_prefetchers");
     err = apply_msr_mask(msr_id, msr_mask, !enable_prefetchers); // the mask is
-    CHECK_ERR("set_enable_prefetchers");
+    CHECK_ERR("set_disable_prefetchers");
 #endif
 
     // Intel MPX control

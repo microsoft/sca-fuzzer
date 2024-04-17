@@ -6,6 +6,7 @@
 #include <linux/kernel.h>
 #include <linux/types.h>
 
+#include "main.h"
 #include "shortcuts.h"
 
 #include "perf_counters.h"
@@ -19,43 +20,124 @@ struct pfc_config {
     unsigned int inv;
 };
 
+typedef enum {
+    L1_HITS = 0,
+    UOPS_ISSUED_ANY = 1,
+    UOPS_RETIRED_ANY = 2,
+    MISPREDICTION_RECOVERY_CYCLES = 3,
+    HW_INTERRUPTS_RECEIVED = 4,
+    SMI_INTERRUPTS_RECEIVED = 5,
+    DECODE_REDIRECTS = 6
+} pfc_name_e;
+
+static int get_pfc_config_by_name(pfc_name_e pfc_name, struct pfc_config *config)
+{
+    uint64_t model = cpuinfo->x86_model;
+
+    // most commonly, the fields cmask, any, edge, and inv are set to 0
+    config->cmask = 0;
+    config->any = 0;
+    config->edge = 0;
+    config->inv = 0;
+
+    // Intel PMU
+    if (cpuinfo->x86_vendor == X86_VENDOR_INTEL) {
+        switch (pfc_name) {
+        case L1_HITS:
+            //   MEM_LOAD_RETIRED.L1_HIT: Counts retired load instructions with at least one uop
+            //   that hit in the L1 data cache. This event includes all SW prefetches and lock
+            //   instructions regardless of the data source.
+            config->evt_num = 0xd1;
+            config->umask = 0x01;
+            break;
+        case UOPS_ISSUED_ANY:
+            //   UOPS_ISSUED.ANY: Counts the number of uops that the Resource Allocation Table (RAT)
+            //   issues to the Reservation Station (RS).
+            if (model == 0xBA || model == 0xB7 || model == 0xBF || model == 0x97 || model == 0x9A) {
+                config->evt_num = 0xAE;
+                config->umask = 0x01;
+            } else {
+                config->evt_num = 0x0E;
+                config->umask = 0x01;
+            }
+            break;
+        case UOPS_RETIRED_ANY:
+            //   UOPS_RETIRED.RETIRE_SLOTS: Counts the retirement slots used.
+            config->evt_num = 0xC2;
+            config->umask = 0x02;
+            break;
+        case MISPREDICTION_RECOVERY_CYCLES:
+            //   INT_MISC.CLEAR_RESTEER_CYCLES: Cycles the issue-stage is waiting for front-end to
+            //   fetch from resteered path following branch misprediction or machine clear events.
+            if (model == 0xBA || model == 0xB7 || model == 0xBF || model == 0x97 || model == 0x9A) {
+                config->evt_num = 0xAD;
+                config->umask = 0x80;
+            } else {
+                config->evt_num = 0x0D;
+                config->umask = 0x01;
+            }
+            break;
+        case HW_INTERRUPTS_RECEIVED:
+            //   HW_INTERRUPTS.RECEIVED: Counts the number of hardware interruptions received by the
+            //   processor.
+            config->evt_num = 0xCB;
+            config->umask = 0x01;
+            break;
+        default:
+            return -1;
+        }
+        return 0;
+    }
+
+    // AMD PMU
+    if (cpuinfo->x86_vendor == X86_VENDOR_AMD) {
+        switch (pfc_name) {
+        case L1_HITS:
+            // Local L2->L1 cache fills
+            if (model >= 0x19) {
+                config->evt_num = 0x44;
+                config->umask = 0xff;
+            } else {
+                config->evt_num = 0x43;
+                config->umask = 0xff;
+            }
+            break;
+        case UOPS_ISSUED_ANY:
+            // Dispatched ops
+            config->evt_num = 0xAB;
+            config->umask = 0x88;
+            break;
+        case UOPS_RETIRED_ANY:
+            // Retired ops
+            config->evt_num = 0xC1;
+            config->umask = 0x00;
+            break;
+        case MISPREDICTION_RECOVERY_CYCLES:
+            // Decode redirects
+            config->evt_num = 0x91;
+            config->umask = 0x00;
+            break;
+        case SMI_INTERRUPTS_RECEIVED:
+            // SMI monitoring
+            config->evt_num = 0x2c;
+            config->umask = 0x00;
+            break;
+        default:
+            return -1;
+        }
+        return 0;
+    }
+
+    // unsupported vendor
+    return -1;
+}
+
 /// @brief  Clears the programmable performance counters and writes the
 ///         configurations to the corresponding MSRs.
 /// @param  void
 /// @return 0 on success, -1 on failure
-static int pfc_write(unsigned int id, char *pfc_code_org, unsigned int usr, unsigned int os)
+static int pfc_write(unsigned int id, struct pfc_config *config, unsigned int usr, unsigned int os)
 {
-    // Parse the PFC code name
-    struct pfc_config config = {0};
-
-    char pfc_code[50];
-    strcpy(pfc_code, pfc_code_org);
-    char *pfc_code_p = pfc_code;
-
-    int err = 0;
-    char *evt_num = strsep(&pfc_code_p, ".");
-    err |= kstrtoul(evt_num, 16, &(config.evt_num));
-
-    char *umask = strsep(&pfc_code_p, ".");
-    err |= kstrtoul(umask, 16, &(config.umask));
-
-    char *ce;
-    while ((ce = strsep(&pfc_code_p, ".")) != NULL) {
-        if (!strcmp(ce, "Any")) {
-            config.any = 1;
-        } else if (!strcmp(ce, "EDG")) {
-            config.edge = 1;
-        } else if (!strcmp(ce, "INV")) {
-            config.inv = 1;
-        } else if (!strncmp(ce, "CMSK=", 5)) {
-            err |= kstrtoul(ce + 5, 0, &(config.cmask));
-        }
-    }
-
-    if (err)
-        return err;
-
-    // Configure the counter
     uint64_t perf_configuration;
 #if VENDOR_ID == 1
     uint64_t global_ctrl = native_read_msr(0x38F);
@@ -71,24 +153,24 @@ static int pfc_write(unsigned int id, char *pfc_code_org, unsigned int usr, unsi
     // clear
     wrmsr64(0x0C1 + id, 0ULL);
 
-    perf_configuration |= ((config.cmask & 0xFF) << 24);
-    perf_configuration |= (config.inv << 23);
+    perf_configuration |= ((config->cmask & 0xFF) << 24);
+    perf_configuration |= (config->inv << 23);
     perf_configuration |= (1ULL << 22);
-    perf_configuration |= (config.any << 21);
-    perf_configuration |= (config.edge << 18);
+    perf_configuration |= (config->any << 21);
+    perf_configuration |= (config->edge << 18);
     perf_configuration |= (os << 17);
     perf_configuration |= (usr << 16);
-    perf_configuration |= ((config.umask & 0xFF) << 8);
-    perf_configuration |= (config.evt_num & 0xFF);
+    perf_configuration |= ((config->umask & 0xFF) << 8);
+    perf_configuration |= (config->evt_num & 0xFF);
     wrmsr64(0x186 + id, perf_configuration);
 #elif VENDOR_ID == 2
-    perf_configuration |= ((config.evt_num) & 0xF00) << 24;
-    perf_configuration |= (config.evt_num) & 0xFF;
-    perf_configuration |= ((config.umask) & 0xFF) << 8;
-    perf_configuration |= ((config.cmask) & 0x7F) << 24;
-    perf_configuration |= (config.inv << 23);
+    perf_configuration |= ((config->evt_num) & 0xF00) << 24;
+    perf_configuration |= (config->evt_num) & 0xFF;
+    perf_configuration |= ((config->umask) & 0xFF) << 8;
+    perf_configuration |= ((config->cmask) & 0x7F) << 24;
+    perf_configuration |= (config->inv << 23);
     perf_configuration |= (1ULL << 22);
-    perf_configuration |= (config.edge << 18);
+    perf_configuration |= (config->edge << 18);
     perf_configuration |= (os << 17);
     perf_configuration |= (usr << 16);
     wrmsr64(0xC0010200 + 2 * id, perf_configuration);
@@ -99,47 +181,49 @@ static int pfc_write(unsigned int id, char *pfc_code_org, unsigned int usr, unsi
 int pfc_configure(void)
 {
     int err = 0;
+    struct pfc_config config = {0};
 
-#if VENDOR_ID == 1 // Intel
     // Configure PMU
     // #0:  Htrace collection
-    //   MEM_LOAD_RETIRED.L1_HIT: Counts retired load instructions with at least one uop that hit
-    //   in the L1 data cache. This event includes all SW prefetches and lock instructions
-    //   regardless of the data source.
-    err |= pfc_write(0, "D1.01", 1, 1);
+    err |= get_pfc_config_by_name(L1_HITS, &config);
+    CHECK_ERR("pfc_configure");
+    err |= pfc_write(0, &config, 1, 1);
+    CHECK_ERR("pfc_configure");
 
     // #1: Fuzzing feedback
-    //   UOPS_ISSUED.ANY: Counts the number of uops that the Resource Allocation Table (RAT)
-    //   issues to the Reservation Station (RS).
-    err |= pfc_write(1, "0E.01", 1, 1); // 0E.01 - uops issued - fuzzing feedback
+    err |= get_pfc_config_by_name(UOPS_ISSUED_ANY, &config);
+    CHECK_ERR("pfc_configure");
+    err |= pfc_write(1, &config, 1, 1);
+    CHECK_ERR("pfc_configure");
 
     // #2: Fuzzing feeback
-    //   UOPS_RETIRED.RETIRE_SLOTS: Counts the retirement slots used.
-    err |= pfc_write(2, "C2.02", 1, 1); // C2.02 - uops retirement slots - fuzzing feedback
+    err |= get_pfc_config_by_name(UOPS_RETIRED_ANY, &config);
+    CHECK_ERR("pfc_configure");
+    err |= pfc_write(2, &config, 1, 1);
+    CHECK_ERR("pfc_configure");
 
     // #3: Fuzzing feedback
-    //   INT_MISC.CLEAR_RESTEER_CYCLES: Cycles the issue-stage is waiting for front-end to fetch
-    //   from resteered path following branch misprediction or machine clear events.
-    err |= pfc_write(3, "0D.01", 1, 1); // misprediction recovery cycles - fuzzing feedback
+    err |= get_pfc_config_by_name(MISPREDICTION_RECOVERY_CYCLES, &config);
+    CHECK_ERR("pfc_configure");
+    err |= pfc_write(3, &config, 1, 1);
+    CHECK_ERR("pfc_configure");
 
     // #4: Interrupt detection
-    //    HW_INTERRUPTS.RECEIVED: Counts the number of hardware interruptions received
-    //    by the processor.
-    err |= pfc_write(4, "CB.01", 1, 1); // detection of interrupts
-#elif VENDOR_ID == 2                    // AMD
-    // Configure PMU
-#if CPU_FAMILY == 25
-    err |= pfc_write(0, "044.ff", 1, 1); // Local L2->L1 cache fills - htrace collection
-#elif CPU_FAMILY == 23
-    err |= pfc_write(0, "043.ff", 1, 1);
-#endif
-    err |= pfc_write(5, "02c.00", 1, 1); // SMI monitoring
+    if (cpuinfo->x86_vendor == X86_VENDOR_INTEL) {
+        err |= get_pfc_config_by_name(HW_INTERRUPTS_RECEIVED, &config);
+        CHECK_ERR("pfc_configure");
+        err |= pfc_write(4, &config, 1, 1);
+        CHECK_ERR("pfc_configure");
+    }
 
-    err |= pfc_write(1, "0AB.88", 1, 1); // dispatched ops - fuzzing feedback
-    err |= pfc_write(2, "0C1.00", 1, 1); // retired ops - fuzzing feedback
-    err |= pfc_write(3, "091.00", 1, 1); // decode redirects - fuzzing feedback
-    // err |= pfc_write(1, "05A.ff", 1, 1); // decode redirects - fuzzing feedback
-#endif // VENDOR_ID
+    // #5: SMI monitoring
+    if (cpuinfo->x86_vendor == X86_VENDOR_AMD) {
+        err |= get_pfc_config_by_name(SMI_INTERRUPTS_RECEIVED, &config);
+        CHECK_ERR("pfc_configure");
+        err |= pfc_write(5, &config, 1, 1);
+        CHECK_ERR("pfc_configure");
+    }
+
     return err;
 }
 
