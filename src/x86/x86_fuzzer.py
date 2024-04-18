@@ -6,6 +6,8 @@ SPDX-License-Identifier: MIT
 """
 from subprocess import run
 from typing import List
+import tempfile
+import os
 
 from ..fuzzer import Fuzzer, ArchitecturalFuzzer
 from ..interfaces import TestCase, Input, InstructionSetAbstract
@@ -103,13 +105,17 @@ class X86Fuzzer(Fuzzer):
         # Check if any of the htraces contain a speculative cache eviction
         # for this create a fenced version of the test case and collect traces for it
         if CONF.enable_observation_filter:
-            run('awk \'//{print $0, "\\nlfence"}\' ' + test_case.asm_path + '> fenced.asm',
+            fenced = tempfile.NamedTemporaryFile(delete=False)
+            fenced_obj = tempfile.NamedTemporaryFile(delete=False)
+            run('awk \'//{print $0, "\\nlfence"}\' ' + test_case.asm_path + '>' + fenced.name,
                 shell=True)
-            self.generator.assemble('fenced.asm', 'fenced.o')
+            self.generator.assemble(fenced.name, fenced_obj.name)
             fenced_test_case = TestCase(0)
-            fenced_test_case.bin_path = 'fenced.o'
+            fenced_test_case.bin_path = fenced_obj.name
             self.executor.load_test_case(fenced_test_case)
             fenced_htraces = self.executor.trace_test_case(inputs, repetitions=1)
+            os.remove(fenced.name)
+            os.remove(fenced_obj.name)
 
             if fenced_htraces == non_fenced_htraces:
                 return True
