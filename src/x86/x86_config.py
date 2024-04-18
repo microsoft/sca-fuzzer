@@ -195,7 +195,7 @@ instruction_blocklist: List[str] = [
     #   bug: https://github.com/unicorn-engine/unicorn/issues/990
     "cmpxchg8b", "lock cmpxchg8b",
     # - Incorrect emulation
-    "cpuid", "rcpps", "rcpss",
+    "cpuid", "rcpps", "rcpss", "maskmovdqu",
     # - Requires support of segment registers
     "xlat", "xlatb",
     # - Requires complex instrumentation
