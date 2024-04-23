@@ -32,6 +32,7 @@ typedef enum {
 
 static int get_pfc_config_by_name(pfc_name_e pfc_name, struct pfc_config *config)
 {
+    uint64_t family = cpuinfo->x86;
     uint64_t model = cpuinfo->x86_model;
 
     // most commonly, the fields cmask, any, edge, and inv are set to 0
@@ -93,11 +94,14 @@ static int get_pfc_config_by_name(pfc_name_e pfc_name, struct pfc_config *config
     if (cpuinfo->x86_vendor == X86_VENDOR_AMD) {
         switch (pfc_name) {
         case L1_HITS:
-            // Local L2->L1 cache fills
-            if (model >= 0x19) {
+            switch (family) {
+            case 0x1a:
+            case 0x19:
+                // Any Data Cache Fills by Data Source
                 config->evt_num = 0x44;
                 config->umask = 0xff;
-            } else {
+                break;
+            default:
                 config->evt_num = 0x43;
                 config->umask = 0xff;
             }
@@ -164,6 +168,7 @@ static int pfc_write(unsigned int id, struct pfc_config *config, unsigned int us
     perf_configuration |= (config->evt_num & 0xFF);
     wrmsr64(0x186 + id, perf_configuration);
 #elif VENDOR_ID == 2
+    perf_configuration = 0;
     perf_configuration |= ((config->evt_num) & 0xF00) << 24;
     perf_configuration |= (config->evt_num) & 0xFF;
     perf_configuration |= ((config->umask) & 0xFF) << 8;
@@ -173,7 +178,7 @@ static int pfc_write(unsigned int id, struct pfc_config *config, unsigned int us
     perf_configuration |= (config->edge << 18);
     perf_configuration |= (os << 17);
     perf_configuration |= (usr << 16);
-    wrmsr64(0xC0010200 + 2 * id, perf_configuration);
+    wrmsr64(MSR_F15H_PERF_CTL + 2 * id, perf_configuration);
 #endif
     return 0;
 }

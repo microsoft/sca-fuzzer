@@ -112,13 +112,10 @@ static int get_prefetcher_msr_ctrls(uint64_t *msr_id, uint64_t *msr_mask)
             *msr_id = 0xc0000108;
             *msr_mask = 0b101111;
             break;
-        case 0x17:
+        default:
             *msr_id = MSR_AMD64_DC_CFG;
             *msr_mask = (1 << 13) | (1 << 15);
             break;
-        default:
-            PRINT_ERR("ERROR: Unable to disable prefetches; unsupported CPU model\n");
-            return -1;
         }
     }
     return 0;
