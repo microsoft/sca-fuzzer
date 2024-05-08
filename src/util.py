@@ -360,7 +360,6 @@ class Logger:
             inputs2 = [m.input_id for m in violation.htrace_groups[1]]
             htrace1 = violation.htrace_groups[0][0].htrace
             htrace2 = violation.htrace_groups[1][0].htrace
-            print(len(htrace1.raw))
             print(f"  Input group 1: {inputs1}")
             print(f"  Input group 2: {inputs2}")
             print(f"{pretty_htrace_pair(htrace1, htrace2, offset='  ')}")
