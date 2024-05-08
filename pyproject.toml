@@ -21,7 +21,8 @@ dependencies = [
     "types-pyyaml",
     "numpy",
     "pyelftools",
-    "xxhash"
+    "xxhash",
+    "scipy",
 ]
 maintainers = [{name = "Oleksii Oleksenko", email = ""}]
 
