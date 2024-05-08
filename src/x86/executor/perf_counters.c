@@ -109,7 +109,7 @@ static int get_pfc_config_by_name(pfc_name_e pfc_name, struct pfc_config *config
         case UOPS_ISSUED_ANY:
             // Dispatched ops
             config->evt_num = 0xAB;
-            config->umask = 0x88;
+            config->umask = 0xff;
             break;
         case UOPS_RETIRED_ANY:
             // Retired ops
