@@ -339,7 +339,7 @@ class X86Transformer:
                 self.instructions.append(inst)
 
 
-SUPPORTED_EXTENSIONS = [
+SAFE_EXTENSIONS = [
     "BASE",
     "SSE",
     "SSE2",
@@ -350,6 +350,32 @@ SUPPORTED_EXTENSIONS = [
     "CLFSH",
     "MPX",
     "SSE",
+    "RDTSCP",
+]
+
+ALL_EXTENSIONS = SAFE_EXTENSIONS + [
+    "VTX",
+    "SVM",
+    "SMX",
+    "WBNOINVD",
+    "XSAVE",
+    "XSAVEOPT",
+    "XSAVES",
+    "SGX",
+    "ENQCMD",
+    "INVPCID",
+    "KEYLOCKER",
+    "MONITOR",
+    "PAUSE",
+    "RDRAND",
+    "RDSEED",
+    "RDWRFSGS",
+    "LONGMODE",
+    "HRESET",
+    "SYSRET",
+    "SMAP",
+    "AMD_INVLPGB",
+    "SNP",
 ]
 
 
@@ -357,7 +383,10 @@ class Downloader:
 
     def __init__(self, extensions: List[str], out_file: str) -> None:
         if "ALL_SUPPORTED" in extensions:
-            extensions.extend(SUPPORTED_EXTENSIONS)
+            extensions.extend(SAFE_EXTENSIONS)
+            extensions = list(set(extensions))
+        elif "ALL_AND_UNSAFE" in extensions:
+            extensions.extend(ALL_EXTENSIONS)
             extensions = list(set(extensions))
         self.extensions = extensions
         self.out_file = out_file
