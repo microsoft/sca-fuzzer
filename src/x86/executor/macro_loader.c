@@ -411,12 +411,52 @@ uint64_t inject_macro_configurable_part(uint64_t macro_type, uint64_t args, uint
         SET_MACRO_BYTE(0x30);
         // 9d                      popf
         SET_MACRO_BYTE(0x9d);
+        // mov qword ptr [rsp - 0x08], 0
+        SET_MACRO_BYTE(0x48);
+        SET_MACRO_BYTE(0xc7);
+        SET_MACRO_BYTE(0x44);
+        SET_MACRO_BYTE(0x24);
+        SET_MACRO_BYTE(0xf8);
+        SET_MACRO_BYTE(0x00);
+        SET_MACRO_BYTE(0x00);
+        SET_MACRO_BYTE(0x00);
+        SET_MACRO_BYTE(0x00);
         // 5a                      pop    rdx
         SET_MACRO_BYTE(0x5a);
+        // mov qword ptr [rsp - 0x08], 0
+        SET_MACRO_BYTE(0x48);
+        SET_MACRO_BYTE(0xc7);
+        SET_MACRO_BYTE(0x44);
+        SET_MACRO_BYTE(0x24);
+        SET_MACRO_BYTE(0xf8);
+        SET_MACRO_BYTE(0x00);
+        SET_MACRO_BYTE(0x00);
+        SET_MACRO_BYTE(0x00);
+        SET_MACRO_BYTE(0x00);
         // 59                      pop    rcx
         SET_MACRO_BYTE(0x59);
+        // mov qword ptr [rsp - 0x08], 0
+        SET_MACRO_BYTE(0x48);
+        SET_MACRO_BYTE(0xc7);
+        SET_MACRO_BYTE(0x44);
+        SET_MACRO_BYTE(0x24);
+        SET_MACRO_BYTE(0xf8);
+        SET_MACRO_BYTE(0x00);
+        SET_MACRO_BYTE(0x00);
+        SET_MACRO_BYTE(0x00);
+        SET_MACRO_BYTE(0x00);
         // 58                      pop    rax
         SET_MACRO_BYTE(0x58);
+        // mov qword ptr [rsp - 0x08], 0
+        SET_MACRO_BYTE(0x48);
+        SET_MACRO_BYTE(0xc7);
+        SET_MACRO_BYTE(0x44);
+        SET_MACRO_BYTE(0x24);
+        SET_MACRO_BYTE(0xf8);
+        SET_MACRO_BYTE(0x00);
+        SET_MACRO_BYTE(0x00);
+        SET_MACRO_BYTE(0x00);
+        SET_MACRO_BYTE(0x00);
         // 5c                      pop    rsp
         SET_MACRO_BYTE(0x5c);
 
@@ -488,6 +528,11 @@ uint64_t inject_macro_configurable_part(uint64_t macro_type, uint64_t args, uint
     "pop rcx\n"                                                                                    \
     "pop rbx\n"                                                                                    \
     "pop rax\n"                                                                                    \
+    "mov qword ptr [rsp - 0x08], 0 \n"                                                             \
+    "mov qword ptr [rsp - 0x10], 0 \n"                                                             \
+    "mov qword ptr [rsp - 0x18], 0 \n"                                                             \
+    "mov qword ptr [rsp - 0x20], 0 \n"                                                             \
+    "mov qword ptr [rsp - 0x28], 0 \n"                                                             \
     "pop rsp\n"
 // clang-format on
 
@@ -567,6 +612,7 @@ void __attribute__((noipa)) macro_measurement_end_probe(void)
                        "lea r15, [r15 + " xstr(L1D_PRIMING_OFFSET) "]\n" //
                        PROBE("r15", "rbx", "r11", HTRACE_REGISTER)       //
                        "pop r15\n"                                       //
+                       "mov qword ptr [rsp - 8], 0 \n"                   //
                        POP_ABCDF()                                       //
                        "99:\n"                                           //
     );
