@@ -182,7 +182,19 @@ Below is a example launch command, which will start a 24-hour fuzzing session, w
 rvzr fuzz -s base.json -c demo/big-fuzz.yaml -i 100 -n 100000000 --timeout 86400 -w `pwd` --nonstop
 ```
 
-When you find a violation, you will have to do some manual investigation to understand the source of it; [this guide](fuzzing-guide.md) is an example of how to do such an investigation.
+If there is a violation, you can try to reproduce it with the following command:
+
+```shell
+rvzr reproduce -s base.json -c violation-<timestamp>/reproduce.yaml -t violation-<timestamp>/program.asm -i violation-<timestamp>/input_*.bin
+```
+
+If the violation is reproducible, it is useful to minimize it, so that it is easier to understand the root cause (note that minimization uses a different config file):
+
+```shell
+rvzr minimize -s base.json -c violation-<timestamp>/minimize.yaml -g violation-<timestamp>/program.asm -o violation-<timestamp>/minimized.asm -i 100 --simplify --enable-multipass --find-sources
+```
+
+The result of minimization will be stored in `violation-<timestamp>/minimized.asm`. The further analysis is manual; you can find an example in [this guide](fuzzing-guide.md).
 
 ## Need Help with Revizor?
 

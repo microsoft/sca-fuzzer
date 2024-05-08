@@ -128,7 +128,7 @@ class FuzzerGeneric(Fuzzer):
 
             if violation:
                 self.LOG.fuzzer_report_violations(violation, self.model)
-                self.store_test_case(test_case, inputs, violation)
+                self.store_test_case(test_case, violation)
                 STAT.violations += 1
                 if not nonstop:
                     break
@@ -334,8 +334,7 @@ class FuzzerGeneric(Fuzzer):
             boosted_inputs += self.input_gen.extend_equivalence_classes(inputs, taints)
         return boosted_inputs, ctraces
 
-    def store_test_case(self, test_case: TestCase, inputs: List[Input],
-                        violation: EquivalenceClass):
+    def store_test_case(self, test_case: TestCase, violation: EquivalenceClass):
         if not self.work_dir:
             return
         timestamp = datetime.today().strftime('%y%m%d-%H%M%S')
@@ -345,11 +344,22 @@ class FuzzerGeneric(Fuzzer):
 
         # store violation and the config file
         test_case.save(f"{violation_dir}/program.asm")
-        for i, input_ in enumerate(inputs):
-            input_.save(f"{violation_dir}/input_{i}.bin")
-        shutil.copy2(CONF.config_path, f"{violation_dir}/config.yaml")
+        for i, input_ in enumerate(violation.input_sequence):
+            input_.save(f"{violation_dir}/input_{i:04}.bin")
+        shutil.copy2(CONF.config_path, f"{violation_dir}/org-config.yaml")
 
-        # we're about to store in a file - disable colors
+        # create patched configs for reproducing and minimizing the violation
+        shutil.copy2(f"{violation_dir}/org-config.yaml", f"{violation_dir}/reproduce.yaml")
+        with open(f"{violation_dir}/reproduce.yaml", "a") as f:
+            f.write("\n# Overwrite some of the configuration options to reproduce the violation\n")
+            f.write(f"input_gen_seed: {violation.input_sequence[0].seed}\n")
+            f.write("inputs_per_class: 1\n")
+        shutil.copy2(f"{violation_dir}/org-config.yaml", f"{violation_dir}/minimize.yaml")
+        with open(f"{violation_dir}/minimize.yaml", "a") as f:
+            f.write("\n# Overwrite some of the configuration options to reproduce the violation\n")
+            f.write(f"input_gen_seed: {violation.input_sequence[0].seed}\n")
+
+        # we're about to store stats into a file - disable colors
         color_on = CONF.color
         CONF.color = False
 
@@ -365,7 +375,7 @@ class FuzzerGeneric(Fuzzer):
 
             f.write("\n## Generation Properties\n")
             f.write(f"* Program seed: {test_case.seed}\n")
-            f.write(f"* Input seed: {inputs[0].seed}\n")
+            f.write(f"* Input seed: {violation.input_sequence[0].seed}\n")
             f.write("* Faulty page properties:\n")
             target_desc = self.generator.target_desc
             for actor_id in test_case.actors:
