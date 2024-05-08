@@ -3,19 +3,28 @@ instruction_set: x86-64
 # Model
 contract_observation_clause: ct
 contract_execution_clause:
-  - cond
+  - seq
+
+# Actors
+actors:
+  - main:
+    - data_properties:
+      - present: true
 
 # Executor
 executor_mode: P+P
 x86_executor_enable_ssbp_patch: true
 
 # Program generator
-program_size: 32
-avg_mem_accesses: 8
-max_bb_per_function: 1
+program_size: 64
+avg_mem_accesses: 16
+max_bb_per_function: 1  # straight-line code only
 min_bb_per_function: 1
+min_successors_per_bb: 1
+max_successors_per_bb: 1
 
 instruction_categories:
+  - BASE-BINARY
   - BASE-BITBYTE
   - BASE-CMOV
   - BASE-COND_BR
@@ -25,28 +34,45 @@ instruction_categories:
   - BASE-LOGICAL
   - BASE-MISC
   - BASE-NOP
+  - BASE-WIDENOP
   - BASE-POP
   - BASE-PUSH
   - BASE-SEMAPHORE
   - BASE-SETCC
+  # - BASE-STRINGOP  # commented out as it triggers a known information leak
+  - LONGMODE-CONVERT
+  - LONGMODE-DATAXFER
+  - LONGMODE-SEMAPHORE
+  # - LONGMODE-STRINGOP  # commented out as it triggers a known information leak
+  - SSE-DATAXFER
+  - SSE-LOGICAL_FP
+  - SSE-MISC
+  - SSE-SSE
 
 # Input generator
 input_gen_entropy_bits: 24
-inputs_per_class: 5
+inputs_per_class: 2
 
 # Fuzzer
 enable_speculation_filter: true
 enable_observation_filter: true
-enable_priming: true
+enable_fast_path_model: true
+coverage_type: model_instructions
 
 # Output
+color: true
 logging_modes:
   - info
   - stat
+  - dbg_generator
   # - dbg_timestamp
   # - dbg_violation
   # - dbg_dump_htraces
   # - dbg_dump_ctraces
   # - dbg_dump_traces_unlimited
   # - dbg_model
-  # - dbg_coverage
+  - dbg_coverage
+  # - dbg_isa_loader
+  # - dbg_priming
+  # - dbg_executor_raw
+
