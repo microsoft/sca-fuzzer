@@ -119,9 +119,8 @@ class X86Fuzzer(FuzzerGeneric):
 
             traces_match = True
             for i, _ in enumerate(inputs):
-                set1 = set(fenced_htraces[i].raw)
-                set2 = set(non_fenced_htraces[i].raw)
-                if set1 != set2 and not set2.issubset(set1):
+                if not self.analyser.htraces_are_equivalent(fenced_htraces[i],
+                                                            non_fenced_htraces[i]):
                     traces_match = False
                     break
 
