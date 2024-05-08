@@ -12,7 +12,6 @@
 
 #include "memory_guest.h"
 #include "host_page_tables.h"
-#include "vmx.h"
 
 sandbox_t *sandbox = NULL; // global
 

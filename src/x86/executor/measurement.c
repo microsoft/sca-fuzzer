@@ -24,6 +24,7 @@
 #include "perf_counters.h"
 #include "special_registers.h"
 #include "vmx.h"
+#include "svm.h"
 
 measurement_t *measurements = NULL; // global
 
@@ -55,16 +56,27 @@ static int set_execution_environment(void)
     err = set_special_registers();
     CHECK_ERR("set_execution_environment:set_special_registers");
 
-    // If necessary, enable VMX
+    // If necessary, enable VM operation
     if (test_case->features.includes_vm_actors) {
-        err = start_vmx_operation();
-        CHECK_ERR("set_execution_environment:start_vmx_operation");
+        if (cpuinfo->x86_vendor == X86_VENDOR_INTEL) {
+            err = start_vmx_operation();
+            CHECK_ERR("set_execution_environment:start_vmx_operation");
 
-        err = store_orig_vmcs_state();
-        CHECK_ERR("set_execution_environment:store_orig_vmcs_state");
+            err = store_orig_vmcs_state();
+            CHECK_ERR("set_execution_environment:store_orig_vmcs_state");
 
-        err = set_vmcs_state();
-        CHECK_ERR("set_execution_environment:set_vmcs_state");
+            err = set_vmcs_state();
+            CHECK_ERR("set_execution_environment:set_vmcs_state");
+        } else if (cpuinfo->x86_vendor == X86_VENDOR_AMD) {
+            err = start_svm_operation();
+            CHECK_ERR("set_execution_environment:start_svm_operation");
+
+            err = store_orig_vmcb_state();
+            CHECK_ERR("set_execution_environment:store_orig_vmcb_state");
+
+            err = set_vmcb_state();
+            CHECK_ERR("set_execution_environment:set_vmcb_state");
+        }
     }
     return 0;
 }
@@ -76,10 +88,17 @@ void recover_orig_state(void)
 {
     // restore VMX state
     if (test_case->features.includes_vm_actors) {
-        // if (vmx_is_on)
-        //     print_vmx_exit_info(); // uncomment to debug VMX exits
-        restore_orig_vmcs_state();
-        stop_vmx_operation();
+        if (cpuinfo->x86_vendor == X86_VENDOR_INTEL) {
+            // if (vmx_is_on)
+            //     print_vmx_exit_info(); // uncomment to debug VMX exits
+            restore_orig_vmcs_state();
+            stop_vmx_operation();
+        } else if (cpuinfo->x86_vendor == X86_VENDOR_AMD) {
+            // if (svm_is_on)
+            //     print_svm_exit_info(); // uncomment to debug SVM exits
+            restore_orig_vmcb_state();
+            stop_svm_operation();
+        }
     }
 
     restore_special_registers();
