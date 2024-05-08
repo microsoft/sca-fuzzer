@@ -664,7 +664,7 @@ class UnicornSeq(UnicornModel):
                     # the type annotation below is ignored because some
                     # of the packaged versions of Unicorn do not have
                     # complete type annotations
-                    self.pending_fault_id = int(e.errno)
+                    self.pending_fault_id = int(e.errno)  # type: ignore
 
                 # handle faults
                 if self.pending_fault_id:

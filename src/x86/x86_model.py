@@ -263,12 +263,13 @@ class X86VMEmulator:
 
     safe_address_cache: Set[int]
     always_exit_instructions: Set[str] = {
-        "cpuid", "getsec", "xgetbv", "xsetbv", "xrstors", "xsaves", "invd", "invept", "invvpid", "vmptrld", "vmptrst", "vmclear",
-        "vmxon", "vmxoff", "vmlaunch", "vmresume", "vmcall", "vmfunc", "hlt", "invlpg", "invpcid",
-        "lgdt", "lidt", "lldt", "ltr", "sgdt", "sidt", "sldt", "str", "loadiwkey", "monitor",
-        "mwait", "rdpmc", "rdrand", "rdseed", "rdtsc", "rdtscp", "rsm", "tpause", "umwait",
-        "vmread", "vmwrite", "wbinvd", "wbnoinvd", "wrmsr", "fxsave", "fxsave64", "in", "ins",
-        "insb", "insw", "insd", "out", "outs", "outsb", "outsw", "outsd", "pause", "rdmsr", "swapgs"
+        "cpuid", "getsec", "xgetbv", "xsetbv", "xrstors", "xsaves", "invd", "invept", "invvpid",
+        "vmptrld", "vmptrst", "vmclear", "vmxon", "vmxoff", "vmlaunch", "vmresume", "vmcall",
+        "vmfunc", "hlt", "invlpg", "invpcid", "lgdt", "lidt", "lldt", "ltr", "sgdt", "sidt", "sldt",
+        "str", "loadiwkey", "monitor", "mwait", "rdpmc", "rdrand", "rdseed", "rdtsc", "rdtscp",
+        "rsm", "tpause", "umwait", "vmread", "vmwrite", "wbinvd", "wbnoinvd", "wrmsr", "fxsave",
+        "fxsave64", "in", "ins", "insb", "insw", "insd", "out", "outs", "outsb", "outsw", "outsd",
+        "pause", "rdmsr", "swapgs"
     }
     always_exiting_registers = ["cr0", "cr3", "cr8", "dr0", "dr1", "dr2", "dr3", "dr6", "dr7"]
 
