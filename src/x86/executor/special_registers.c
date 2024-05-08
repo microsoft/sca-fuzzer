@@ -35,6 +35,9 @@ static int set_msrs_for_user_actors(void)
     return 0;
 }
 
+/// @brief Configure MSRs to enable VMX operation
+/// @param void
+/// @return 0 on success, -1 on failure
 static int set_msrs_for_vmx(void)
 {
     uint64_t cr4 = __read_cr4();
@@ -58,6 +61,11 @@ static int set_msrs_for_vmx(void)
 
     return 0;
 }
+
+/// @brief Configure MSRs to enable SVM operation
+/// @param void
+/// @return 0 on success, -1 on failure
+static int set_msrs_for_svm(void) { return 0; }
 
 static int get_ssbp_patch_msr_ctrls(uint64_t *msr_id, uint64_t *msr_mask)
 {
@@ -186,14 +194,14 @@ int set_special_registers(void)
     }
 #endif // VENDOR_ID == 1
 
-    // Caching in CR0; required for collecting traces
+    // CR0
     uint64_t cr0 = read_cr0();
-    cr0 &= ~X86_CR0_CD; // enable caching
+    cr0 &= ~X86_CR0_CD; // enable caching; required for collecting traces
     write_cr0(cr0);
 
-    // Performance counters in CR0
+    // CR4
     uint64_t cr4 = __read_cr4();
-    cr4 |= X86_CR4_PCE;
+    cr4 |= X86_CR4_PCE; // enable performance counters
     __write_cr4(cr4);
 
     if (test_case->features.includes_user_actors) {
@@ -202,7 +210,11 @@ int set_special_registers(void)
     }
 
     if (test_case->features.includes_vm_actors) {
-        set_msrs_for_vmx();
+        if (cpuinfo->x86_vendor == X86_VENDOR_INTEL) {
+            err = set_msrs_for_vmx();
+        } else if (cpuinfo->x86_vendor == X86_VENDOR_AMD) {
+            err = set_msrs_for_svm();
+        }
     }
 
     return 0;

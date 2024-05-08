@@ -1,4 +1,4 @@
-/// File: Configuration and use of performance counters
+/// File: Configuration and use of Intel VMX
 ///
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
