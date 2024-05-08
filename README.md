@@ -30,19 +30,9 @@ Testing from inside a VM is not (yet) supported.
 
 ### 2. Install Revizor Python Package
 
-If you use `pip`, you can install Revizor with:
+The preferred installation method is using `pip` within a virtual environment.
+The environment must be running Python 3.9 or later.
 
-```bash
-pip install revizor-fuzzer
-```
-
-Alternatively, install Revizor from sources:
-```bash
-# run from the project root directory
-make install
-```
-
-If the installation fails with `'revizor-fuzzer' requires a different Python:`, you'll have to install Python 3.9 and run Revizor from a virtual environment:
 ```bash
 sudo apt install python3.9 python3.9-venv
 /usr/bin/python3.9 -m pip install virtualenv
@@ -150,9 +140,10 @@ To this end, we can modify the config file from the previous example to include 
 # config.yaml
 instruction_categories:
   - BASE-BINARY  # arithmetic instructions
-  - BASE-COND_BR
+  - BASE-COND_BR  # conditional branches
 max_bb_per_function: 5  # up to 5 branches per test case
 min_bb_per_function: 1
+max_successors_per_bb: 2  # enable basic blocks with conditional branches
 
 contract_observation_clause: loads+stores+pc  # aka CT
 contract_execution_clause:
@@ -180,15 +171,15 @@ As your CPU-under-test almost definitely implements branch prediction, Revizor s
 ```
 
 You can find the violating test case as well as the violation report in the directory named `./violation-*/`.
-It will contain an assembly file `program.asm` that surfaced a violation, a sequence of inputs `input-*.bin` to this program, and some details about the violation in `report.txt`.
+It will contain an assembly file `program.asm` that surfaced a violation, a sequence of inputs `input_*.bin` to this program, and some details about the violation in `report.txt`.
 
 ### Full-Scale Fuzzing Campaign
 
-To start a full-scale test, write your own configuration file (see description [here](config.md) and an example config [here](https://github.com/microsoft/sca-fuzzer/tree/main/src/tests/big-fuzz.yaml)), and launch the fuzzer.
+To start a full-scale test, write your own configuration file (see description [here](config.md) and an example config [here](https://github.com/microsoft/sca-fuzzer/tree/main/demo/big-fuzz.yaml)), and launch the fuzzer.
 
-Below is a example launch command, which will start a 24-hour fuzzing session, with 100 input classes per test case, and which uses [big-fuzz.yaml](https://github.com/microsoft/sca-fuzzer/tree/main/src/tests/big-fuzz.yaml) configuration:
+Below is a example launch command, which will start a 24-hour fuzzing session, with 100 input classes per test case, and which uses [big-fuzz.yaml](https://github.com/microsoft/sca-fuzzer/tree/main/demo/big-fuzz.yaml) configuration:
 ```shell
-rvzr fuzz -s base.json -c src/tests/big-fuzz.yaml -i 100 -n 100000000 --timeout 86400 -w `pwd` --nonstop
+rvzr fuzz -s base.json -c demo/big-fuzz.yaml -i 100 -n 100000000 --timeout 86400 -w `pwd` --nonstop
 ```
 
 When you find a violation, you will have to do some manual investigation to understand the source of it; [this guide](fuzzing-guide.md) is an example of how to do such an investigation.
