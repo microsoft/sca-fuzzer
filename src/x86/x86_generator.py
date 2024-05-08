@@ -14,7 +14,7 @@ from typing import List, Dict, Set, Optional
 from ..isa_loader import InstructionSet
 from ..interfaces import TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
     ImmediateOperand, AgenOperand, OT, Instruction, BasicBlock, InstructionSpec, \
-    MAIN_AREA_SIZE, FAULTY_AREA_SIZE, Function
+    MAIN_AREA_SIZE, FAULTY_AREA_SIZE, SANDBOX_DATA_SIZE, Function, ActorPL
 from ..generator import ConfigurableGenerator, RandomGenerator, Pass, Printer, GeneratorException
 from ..config import CONF
 from .x86_target_desc import X86TargetDesc
@@ -27,6 +27,7 @@ class FaultFilter:
         self.div_by_zero: bool = 'div-by-zero' in CONF.generator_faults_allowlist
         self.div_overflow: bool = 'div-overflow' in CONF.generator_faults_allowlist
         self.non_canonical_access: bool = 'non-canonical-access' in CONF.generator_faults_allowlist
+        self.u2k_access: bool = 'user-to-kernel-access' in CONF.generator_faults_allowlist
 
 
 class X86Generator(ConfigurableGenerator, abc.ABC):
@@ -47,6 +48,8 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
         ]
         if self.faults.non_canonical_access:
             self.passes.append(X86NonCanonicalAddressPass())
+        if self.faults.u2k_access:
+            self.passes.append(X86U2KAccessPass())
         self.passes.append(X86PatchOpcodesPass())
         self.printer = X86Printer(self.target_desc)
 
@@ -151,6 +154,44 @@ class X86NonCanonicalAddressPass(Pass):
                     # Make sure #GP only once. Otherwise Unicorn keeps raising an exception
                     # when rolling back to the end of the code
                     return
+
+
+class X86U2KAccessPass(Pass):
+    """ A pass that selects a random memory access instruction in a user actor and replaces it
+    with an access to the kernel actor's data (actor 0). """
+
+    def run_on_test_case(self, test_case: TestCase) -> None:
+        for func in test_case.functions:
+            if func.owner.privilege_level != ActorPL.USER:
+                continue
+
+            to_instrument: List[Instruction] = []
+            for bb in func:
+                for instr in bb:
+                    if instr.is_instrumentation or instr.is_from_template:
+                        continue
+                    if instr.name in ["div", "idiv"]:
+                        # Instrumentation is difficult to combine
+                        continue
+                    if instr.has_mem_operand(False):
+                        to_instrument.append(instr)
+
+                for instr in to_instrument:
+                    self.instrument(instr, bb, func.owner.id_)
+
+    def instrument(self, instr: Instruction, parent: BasicBlock, owner_id) -> None:
+        probability = 1 / CONF.avg_mem_accesses
+        if random.random() > probability:
+            return
+
+        mem_operands: List[MemoryOperand] = instr.get_mem_operands()
+        if len(mem_operands) == 1:
+            mem_operand = mem_operands[0]
+        else:
+            mem_operand = random.choice(mem_operands)
+
+        kernel_offset = owner_id * SANDBOX_DATA_SIZE
+        mem_operand.value += " - " + str(kernel_offset)
 
 
 class X86SandboxPass(Pass):

@@ -320,6 +320,7 @@ class X86UnicornTargetDesc(UnicornTargetDesc):
         "RIP": -1,
         "RSP": -1,
         "CR0": -1,
+        "CR2": -1,
         "CR3": -1,
         "CR4": -1,
         "CR8": -1,
@@ -338,6 +339,8 @@ class X86UnicornTargetDesc(UnicornTargetDesc):
         "GSBASE": -1,
         "MSRS": -1,
         "X87CONTROL": -1,
+        "TSC": -1,
+        "TSCAUX": -1,
     }
 
     registers: List[int] = [

@@ -39,6 +39,7 @@ _option_values = {
         'breakpoint',
         'debug-register',
         'non-canonical-access',
+        'user-to-kernel-access',
     ],
     'actor': [
         'name',
@@ -250,6 +251,7 @@ _generator_fault_to_fault_name = {
     'breakpoint': "BP",
     'debug-register': "DB",
     'non-canonical-access': "GP",
+    'user-to-kernel-access': "PF",
 }
 
 _actor_default = {
