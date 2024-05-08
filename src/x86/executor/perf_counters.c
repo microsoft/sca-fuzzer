@@ -108,8 +108,18 @@ static int get_pfc_config_by_name(pfc_name_e pfc_name, struct pfc_config *config
             break;
         case UOPS_ISSUED_ANY:
             // Dispatched ops
-            config->evt_num = 0xAB;
-            config->umask = 0xff;
+            switch (family) {
+                case 0x17:
+                    // there's no reliable counter of dispatched ops on this family (at least that
+                    // I know of), so we use a dummy counter that always returns zero; this way,
+                    // we effectively disable the speculation filter
+                    config->evt_num = 0x00;
+                    config->umask = 0x00;
+                    break;
+                default:
+                    config->evt_num = 0xAB;
+                    config->umask = 0xff;
+            }
             break;
         case UOPS_RETIRED_ANY:
             // Retired ops
