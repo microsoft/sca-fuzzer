@@ -27,7 +27,7 @@ from unicorn import Uc, UcError, UC_MEM_WRITE, UC_MEM_READ, UC_SECOND_SCALE, UC_
     UC_HOOK_MEM_WRITE, UC_HOOK_CODE, UC_HOOK_MEM_UNMAPPED
 
 from .interfaces import CTrace, TestCase, Model, InputTaint, Instruction, ExecutionTrace, \
-    TracedInstruction, TracedMemAccess, Input, Tracer, Actor, ActorMode, \
+    TracedInstruction, TracedMemAccess, Input, Tracer, Actor, ActorMode, ActorPL, \
     RegisterOperand, FlagsOperand, MemoryOperand, TaintTrackerInterface, TargetDesc, \
     get_sandbox_addr, SANDBOX_DATA_SIZE, SANDBOX_CODE_SIZE
 from .config import CONF
@@ -451,6 +451,12 @@ class UnicornModel(Model, ABC):
         # implemented by ISA-specific subclasses
         pass
 
+    @abstractmethod
+    def emulate_userspace_execution(self, address: int) -> None:
+        """ Emulate the execution of an instruction in userspace mode """
+        # implemented by ISA-specific subclasses
+        pass
+
 
 class UnicornSeq(UnicornModel):
     """
@@ -636,9 +642,19 @@ class UnicornSeq(UnicornModel):
             while True:
                 self.pending_fault_id = 0
 
+                # make sure that the actor is synchronized with the current address
+                aid = (start_address - self.code_start) // SANDBOX_CODE_SIZE
+                self.current_actor = self.test_case.get_actor_by_id(aid)
+
                 # check if we're re-entering into the exit address
                 if not self.in_speculation and self.exit_reached(start_address):
                     break
+
+                # check if we've rolled back to the fault handler; if so, rollback again as
+                # it indicates that rollback was supposed to terminate speculation
+                if self.in_speculation and start_address == self.fault_handler_addr:
+                    start_address = self.rollback()
+                    continue
 
                 # execute the test case
                 try:
@@ -648,7 +664,7 @@ class UnicornSeq(UnicornModel):
                     # the type annotation below is ignored because some
                     # of the packaged versions of Unicorn do not have
                     # complete type annotations
-                    self.pending_fault_id = e.errno  # type: ignore
+                    self.pending_fault_id = int(e.errno)
 
                 # handle faults
                 if self.pending_fault_id:
@@ -717,7 +733,6 @@ class UnicornSeq(UnicornModel):
 
         # an expected fault - terminate execution
         if errno in self.handled_faults:
-            self.current_actor = self.test_case.actors['main']  # faults are handled by main actor
             return self.fault_handler_addr
 
         # unexpected fault - throw an error
@@ -750,6 +765,8 @@ class UnicornSeq(UnicornModel):
         # emulate invalid opcode for certain instructions when executed in VM guest mode
         if model.current_actor.mode == ActorMode.GUEST:
             model.emulate_vm_execution(address)
+        elif model.current_actor.privilege_level == ActorPL.USER:
+            model.emulate_userspace_execution(address)
 
     @staticmethod
     def trace_instruction(emulator, address, size, model) -> None:
@@ -765,6 +782,13 @@ class UnicornSeq(UnicornModel):
         model.tracer.observe_mem_access(access, address, size, value, model)
         # speculate_mem_access is empty for seq, nonempty in subclasses
         model.speculate_mem_access(emulator, access, address, size, value, model)
+
+        # emulate page faults
+        if model.current_actor.privilege_level == ActorPL.USER:
+            target_actor = (address - model.sandbox_base) // SANDBOX_DATA_SIZE
+            if target_actor != model.current_actor.id_:
+                model.pending_fault_id = 12
+                model.emulator.emu_stop()
 
     @staticmethod
     def err_to_str(errno: int) -> str:

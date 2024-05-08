@@ -759,7 +759,8 @@ class X86Printer(Printer):
         80: "tbyte ptr",
         128: "xmmword ptr",
         256: "ymmword ptr",
-        512: "zmmword ptr"
+        512: "zmmword ptr",
+        4608: "ptr",
     }
     prologue_template = [
         ".intel_syntax noprefix\n",

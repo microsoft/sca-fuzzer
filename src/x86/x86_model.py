@@ -261,14 +261,14 @@ class X86VMEmulator:
     Adds the ability to emulate VM guest execution to the Unicorn emulator.
     """
 
-    vm_safe_instruction_cache: Set[int]
+    safe_address_cache: Set[int]
     always_exit_instructions: Set[str] = {
-        "cpuid", "getsec", "xsetbv", "invd", "invept", "invvpid", "vmptrld", "vmptrst", "vmclear",
+        "cpuid", "getsec", "xgetbv", "xsetbv", "xrstors", "xsaves", "invd", "invept", "invvpid", "vmptrld", "vmptrst", "vmclear",
         "vmxon", "vmxoff", "vmlaunch", "vmresume", "vmcall", "vmfunc", "hlt", "invlpg", "invpcid",
         "lgdt", "lidt", "lldt", "ltr", "sgdt", "sidt", "sldt", "str", "loadiwkey", "monitor",
         "mwait", "rdpmc", "rdrand", "rdseed", "rdtsc", "rdtscp", "rsm", "tpause", "umwait",
         "vmread", "vmwrite", "wbinvd", "wbnoinvd", "wrmsr", "fxsave", "fxsave64", "in", "ins",
-        "insb", "insw", "insd", "out", "outs", "outsb", "outsw", "outsd", "pause", "rdmsr"
+        "insb", "insw", "insd", "out", "outs", "outsb", "outsw", "outsd", "pause", "rdmsr", "swapgs"
     }
     always_exiting_registers = ["cr0", "cr3", "cr8", "dr0", "dr1", "dr2", "dr3", "dr6", "dr7"]
 
@@ -276,29 +276,69 @@ class X86VMEmulator:
         "mov": lambda self, inst, addr: self.emulate_move(inst, addr),
     }
 
+    def __init__(self, model: UnicornSeq) -> None:
+        self.model = model
+        self.safe_address_cache = set()
+
     def reset(self):
-        self.vm_safe_instruction_cache = set()
+        self.safe_address_cache.clear()
 
     def run(self, inst: Instruction, address: int):
-        if address in self.vm_safe_instruction_cache:
+        if address in self.safe_address_cache:
             return
         stripped_name = inst.name.split()[-1]
 
         # always-exiting instruction
         if stripped_name in self.always_exit_instructions:
-            raise UcError(UC_ERR_INSN_INVALID)
+            # make sure that the memory accesses get exposed
+            if self.model.current_instruction.has_mem_operand():
+                ops = self.model.current_instruction.get_mem_operands()
+                for op in ops:
+                    words = op.value.split("+")
+                    for word in words:
+                        reg = self.model.uc_target_desc.reg_str_to_constant.get(word.lower(), 0)
+                        if reg:
+                            value = int(self.model.emulator.reg_read(reg))  # type: ignore
+                            self.model.trace_mem_access(self.model.emulator, UC_MEM_WRITE, value, 8,
+                                                        0, self.model)
+            self.model.pending_fault_id = UC_ERR_INSN_INVALID
+            self.model.emulator.emu_stop()
+            return
 
         # conditional exit
         if stripped_name in self.instruction_emulators:
-            self.instruction_emulators[stripped_name](self, inst, address)
+            if not self.instruction_emulators[stripped_name](self, inst, address):
+                return
 
         # safe instruction
-        self.vm_safe_instruction_cache.add(address)
+        self.safe_address_cache.add(address)
 
-    def emulate_move(self, inst: Instruction, _: int):
+    def emulate_move(self, inst: Instruction, _: int) -> bool:
         for operand in inst.operands:
             if operand.value in self.always_exiting_registers:
-                raise UcError(UC_ERR_INSN_INVALID)
+                self.model.pending_fault_id = UC_ERR_INSN_INVALID
+                self.model.emulator.emu_stop()
+                return False
+        return True
+
+
+class X86UserspaceEmulator(X86VMEmulator):
+    """
+    Adds the ability to emulate user-space execution to the Unicorn emulator.
+    """
+    always_exit_instructions: Set[str] = {
+        "cpuid", "rdmsr", "wrmsr", "rdtsc", "rdtscp", "clac", "stac", "clgi", "stgi", "clts", "htl",
+        "invd", "invlpg", "invlpga", "invlpgb", "invpcid", "lgdt", "lldt", "lidt", "ltr", "sgdt",
+        "sidt", "sldt", "str", "psmash", "pvalidate", "rmpadjust", "rmpquery", "rmpupdate",
+        "skinit", "sysretq", "sysexitq", "tlbsync", "vmmcall", "vmload", "vmsave", "vmrun",
+        "wbinvd", "wbnoinvd", "smsw", "lmsw", "rdfsbase", "rdgsbase", "wrfsbase", "wrgsbase",
+        "swapgs", "vmclear", "vmlaunch", "vmptrld", "vmptrst", "vmread", "vmresume", "vmwrite",
+        "vmxoff", "invvpid", "getsec", "loadiwkey", "pconfig", "encls", "enclv", "hlt", "xgetbv",
+        "xsetbv", "tlbsync"
+    }
+    always_exiting_registers = [
+        "cr0", "cr2", "cr3", "cr8", "dr0", "dr1", "dr2", "dr3", "dr6", "dr7"
+    ]
 
 
 class X86UnicornSeq(UnicornSeq):
@@ -312,7 +352,8 @@ class X86UnicornSeq(UnicornSeq):
     def __init__(self, sandbox_base, code_start):
         super().__init__(sandbox_base, code_start)
         self.macro_interpreter = X86MacroInterpreter(self)
-        self.vm_emulator = X86VMEmulator()
+        self.vm_emulator = X86VMEmulator(self)
+        self.user_emulator = X86UserspaceEmulator(self)
 
         self.target_desc = X86TargetDesc()
         self.uc_target_desc = X86UnicornTargetDesc()
@@ -350,6 +391,7 @@ class X86UnicornSeq(UnicornSeq):
             self.w_forbidden[aid] = bool(self.write_fault_mask & inverse_pte)
 
         self.vm_emulator.reset()
+        self.user_emulator.reset()
         return super().load_test_case(test_case)
 
     def _load_input(self, input_: Input):
@@ -503,6 +545,9 @@ class X86UnicornSeq(UnicornSeq):
 
     def emulate_vm_execution(self, address: int) -> None:
         self.vm_emulator.run(self.current_instruction, address)
+
+    def emulate_userspace_execution(self, address: int) -> None:
+        self.user_emulator.run(self.current_instruction, address)
 
 
 # ==================================================================================================
@@ -712,7 +757,7 @@ class X86FaultModelAbstract(X86UnicornSpec):
         X86UnicornSpec.trace_instruction(emulator, address, size, model)
 
     def get_rollback_address(self) -> int:
-        return self.exit_addr
+        return self.fault_handler_addr
 
 
 class X86SequentialAssist(X86FaultModelAbstract):
@@ -979,7 +1024,7 @@ class X86Meltdown(X86FaultModelAbstract):
             return 0
 
         # store a checkpoint
-        self.checkpoint(self.emulator, self.exit_addr)
+        self.checkpoint(self.emulator, self.fault_handler_addr)
 
         # remove protection
         self.set_faulty_area_rw(self.current_actor.id_, True, True)
@@ -1005,7 +1050,7 @@ class X86FaultSkip(X86FaultModelAbstract):
             return 0
 
         # store a checkpoint
-        self.checkpoint(self.emulator, self.exit_addr)
+        self.checkpoint(self.emulator, self.fault_handler_addr)
 
         # speculatively skip the faulting instruction
         if self.exit_reached(self.next_instruction_addr):
@@ -1029,7 +1074,7 @@ class X86UnicornDivZero(X86FaultModelAbstract):
             return super().speculate_fault(errno)
 
         # start speculation
-        self.checkpoint(self.emulator, self.exit_addr)
+        self.checkpoint(self.emulator, self.fault_handler_addr)
 
         # inject zero into both destination operands of division
         size = self.current_instruction.operands[0].width
@@ -1080,7 +1125,7 @@ class X86UnicornDivOverflow(X86FaultModelAbstract):
             return super().speculate_fault(errno)
 
         # start speculation
-        self.checkpoint(self.emulator, self.exit_addr)
+        self.checkpoint(self.emulator, self.fault_handler_addr)
 
         # set carry flag
         # flags = self.emulator.reg_read(ucc.UC_X86_REG_EFLAGS)
@@ -1146,7 +1191,7 @@ class X86NonCanonicalAddress(X86FaultModelAbstract):
         if not self.fault_triggers_speculation(errno):
             return 0
 
-        self.checkpoint(self.emulator, self.exit_addr)
+        self.checkpoint(self.emulator, self.fault_handler_addr)
         self.faulty_instruction_addr = self.curr_instruction_addr
         return self.curr_instruction_addr
 
@@ -1640,7 +1685,7 @@ class X86UnicornVspecOps(X86FaultModelAbstract):
 
     def get_rollback_address(self) -> int:
         # faults end program execution
-        return self.exit_addr
+        return self.fault_handler_addr
 
 
 class x86UnicornVspecOpsDIV(X86UnicornVspecOps):
@@ -1710,7 +1755,7 @@ class x86UnicornVspecOpsMemoryAssists(x86UnicornVspecOpsMemoryFaults):
 
     def get_rollback_address(self) -> int:
         if self.in_speculation:
-            return self.exit_addr
+            return self.fault_handler_addr
         else:
             return self.curr_instruction_addr
 
@@ -1727,7 +1772,7 @@ class x86UnicornVspecOpsGP(X86UnicornVspecOps, X86NonCanonicalAddress):
         if not self.fault_triggers_speculation(errno):
             return 0
 
-        self.checkpoint(self.emulator, self.exit_addr)
+        self.checkpoint(self.emulator, self.fault_handler_addr)
         self.faulty_instruction_addr = self.curr_instruction_addr
         return self.curr_instruction_addr
 
@@ -1813,7 +1858,7 @@ class x86UnicornVspecOpsGP(X86UnicornVspecOps, X86NonCanonicalAddress):
         return address
 
     def get_rollback_address(self) -> int:
-        return self.exit_addr
+        return self.fault_handler_addr
 
     def reset_model(self):
         self.faulty_instruction_addr = -1
@@ -1923,7 +1968,7 @@ class X86UnicornVspecAllMemoryAssists(X86UnicornVspecAll):
 
     def get_rollback_address(self) -> int:
         if self.in_speculation:
-            return self.exit_addr
+            return self.fault_handler_addr
         else:
             return self.curr_instruction_addr
 
