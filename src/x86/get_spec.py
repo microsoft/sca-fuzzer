@@ -348,6 +348,7 @@ SAFE_EXTENSIONS = [
     "MPX",
     "SSE",
     "RDTSCP",
+    "LONGMODE",
 ]
 
 ALL_EXTENSIONS = SAFE_EXTENSIONS + [
@@ -367,7 +368,6 @@ ALL_EXTENSIONS = SAFE_EXTENSIONS + [
     "RDRAND",
     "RDSEED",
     "RDWRFSGS",
-    "LONGMODE",
     "HRESET",
     "SYSRET",
     "SMAP",

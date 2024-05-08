@@ -113,6 +113,9 @@ _option_values = {
         # "BASE-SYSCALL",     # Not supported: System instructions
         # "BASE-SYSRET",      # Not supported: System instructions
         "BASE-SYSTEM",
+        "LONGMODE-CONVERT",
+        "LONGMODE-DATAXFER",
+        "LONGMODE-SEMAPHORE",
         "LONGMODE-SYSCALL",
         "LONGMODE-SYSRET",
 
@@ -194,7 +197,7 @@ instruction_blocklist: List[str] = [
     "sti", "cli",
     # - CMPXCHG8B - Unicorn doesn't execute the mem. access hook
     #   bug: https://github.com/unicorn-engine/unicorn/issues/990
-    "cmpxchg8b", "lock cmpxchg8b",
+    "cmpxchg8b", "lock cmpxchg8b", "cmpxchg16b", "lock cmpxchg16b",
     # - Incorrect emulation
     "cpuid", "rcpps", "rcpss", "maskmovdqu",
     # - Requires support of segment registers
