@@ -85,6 +85,8 @@ class X86Fuzzer(FuzzerGeneric):
         if CONF.enable_speculation_filter:
             pfc_feedback = self.executor.get_last_feedback()
             for i, pfc_values in enumerate(pfc_feedback):
+                if pfc_values[0] == 0:  # zero indicates an error; filtering is not possible
+                    break
                 if pfc_values[0] > pfc_values[1] or pfc_values[2] > 0:
                     break
             else:
