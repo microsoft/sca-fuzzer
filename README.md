@@ -179,9 +179,9 @@ It will contain an assembly file `program.asm` that surfaced a violation, a sequ
 
 ### Full-Scale Fuzzing Campaign
 
-To start a full-scale test, write your own configuration file (see description [here](config.md) and an example config [here](https://github.com/microsoft/sca-fuzzer/tree/main/demo/big-fuzz.yaml)), and launch the fuzzer.
+To start a full-scale test, write your own configuration file (see description [here](docs/config.md) and an example config [here](demo/big-fuzz.yaml)), and launch the fuzzer.
 
-Below is a example launch command, which will start a 24-hour fuzzing session, with 100 input classes per test case, and which uses [big-fuzz.yaml](https://github.com/microsoft/sca-fuzzer/tree/main/demo/big-fuzz.yaml) configuration:
+Below is a example launch command, which will start a 24-hour fuzzing session, with 100 input classes per test case, and which uses [big-fuzz.yaml](demo/big-fuzz.yaml) configuration:
 ```shell
 rvzr fuzz -s base.json -c demo/big-fuzz.yaml -i 100 -n 100000000 --timeout 86400 -w `pwd` --nonstop
 ```
