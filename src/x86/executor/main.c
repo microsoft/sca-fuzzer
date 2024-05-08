@@ -32,6 +32,7 @@
 #include "page_tables_common.h"
 #include "perf_counters.h"
 #include "special_registers.h"
+#include "svm.h"
 #include "vmx.h"
 
 // Version-dependent includes
@@ -289,8 +290,12 @@ static ssize_t test_case_store(struct kobject *kobj, struct kobj_attribute *attr
 #endif
         }
         if (test_case->features.includes_vm_actors) {
-            err = vmx_check_cpu_compatibility();
-            CHECK_ERR("vmx_check_cpu_compatibility");
+            if (cpuinfo->x86_vendor == X86_VENDOR_INTEL) {
+                err = vmx_check_cpu_compatibility();
+            } else if (cpuinfo->x86_vendor == X86_VENDOR_AMD) {
+                err = svm_check_cpu_compatibility();
+            }
+            CHECK_ERR("vm_check_cpu_compatibility");
         }
 
         // prepare sandboxes
@@ -584,9 +589,12 @@ static int __init executor_init(void)
     err |= init_page_table_manager();
     err |= init_perf_counters();
     err |= init_special_register_manager();
-#if VENDOR_ID == 1 // Intel
-    err |= init_vmx();
-#endif
+
+    if (cpuinfo->x86_vendor == X86_VENDOR_INTEL) {
+        err |= init_vmx();
+    } else if (cpuinfo->x86_vendor == X86_VENDOR_AMD) {
+        err |= init_svm();
+    }
     CHECK_ERR("executor_init");
 
     // Create a pseudo file system interface
@@ -652,9 +660,12 @@ static void __exit executor_exit(void)
     free_page_table_manager();
     free_perf_counters();
     free_special_register_manager();
-#if VENDOR_ID == 1 // Intel
-    free_vmx();
-#endif
+
+    if (cpuinfo->x86_vendor == X86_VENDOR_INTEL) {
+        free_vmx();
+    } else if (cpuinfo->x86_vendor == X86_VENDOR_AMD) {
+        free_svm();
+    }
 
     if (kobj_interface)
         kobject_put(kobj_interface);
