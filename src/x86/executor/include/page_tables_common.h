@@ -58,7 +58,9 @@ typedef struct {
     uint64_t reserved_zero : 1;
     uint64_t ignored_11_8 : 4;
     uint64_t paddr : (PHYSICAL_WIDTH - 12);
+#if PHYSICAL_WIDTH < 52
     uint64_t reserved_51_M : (52 - PHYSICAL_WIDTH);
+#endif
     uint64_t ignored_62_52 : 11;
     uint64_t execute_disable : 1;
 } __attribute__((packed)) pml4e_t;
@@ -76,7 +78,9 @@ typedef struct {
     uint64_t reserved_zero : 1;
     uint64_t ignored_11_8 : 4;
     uint64_t paddr : (PHYSICAL_WIDTH - 12);
+#if PHYSICAL_WIDTH < 52
     uint64_t reserved_51_M : (52 - PHYSICAL_WIDTH);
+#endif
     uint64_t ignored_62_52 : 11;
     uint64_t execute_disable : 1;
 } __attribute__((packed)) pdpte_t;
@@ -93,7 +97,9 @@ typedef struct {
     uint64_t reserved_zero : 1;
     uint64_t ignored_11_8 : 4;
     uint64_t paddr : (PHYSICAL_WIDTH - 12);
+#if PHYSICAL_WIDTH < 52
     uint64_t reserved_51_M : (52 - PHYSICAL_WIDTH);
+#endif
     uint64_t ignored_62_52 : 11;
     uint64_t execute_disable : 1;
 } __attribute__((packed)) pdte_t;
@@ -111,7 +117,9 @@ typedef struct {
     uint64_t global_page : 1;
     uint64_t ignored_11_9 : 3;
     uint64_t paddr : (PHYSICAL_WIDTH - 12);
+#if PHYSICAL_WIDTH < 52
     uint64_t reserved_51_M : (52 - PHYSICAL_WIDTH);
+#endif
     uint64_t ignored_58_52 : 7;
     uint64_t protection_key : 4;
     uint64_t execute_disable : 1;
@@ -129,7 +137,9 @@ typedef struct {
     uint64_t superv_sdw_stack : 1;
     uint64_t reserved_11_08 : 4;
     uint64_t paddr : (PHYSICAL_WIDTH - 12);
+#if PHYSICAL_WIDTH < 52
     uint64_t reserved_51_M : (52 - PHYSICAL_WIDTH);
+#endif
     uint64_t reserved_63_52 : 12;
 } __attribute__((packed)) eptp_t;
 
@@ -144,7 +154,9 @@ typedef struct {
     uint64_t user_ex_access : 1;
     uint64_t ignored_11 : 1;
     uint64_t paddr : (PHYSICAL_WIDTH - 12);
+#if PHYSICAL_WIDTH < 52
     uint64_t reserved_51_M : (52 - PHYSICAL_WIDTH);
+#endif
     uint64_t ignored_63_52 : 12;
 } __attribute__((packed)) epml4e_t;
 
@@ -160,7 +172,9 @@ typedef struct {
     uint64_t user_ex_access : 1;
     uint64_t ignored_11 : 1;
     uint64_t paddr : (PHYSICAL_WIDTH - 12);
+#if PHYSICAL_WIDTH < 52
     uint64_t reserved_51_M : (52 - PHYSICAL_WIDTH);
+#endif
     uint64_t ignored_63_52 : 12;
 } __attribute__((packed)) epdpte_t;
 
@@ -175,7 +189,9 @@ typedef struct {
     uint64_t user_ex_access : 1;
     uint64_t ignored_11 : 1;
     uint64_t paddr : (PHYSICAL_WIDTH - 12);
+#if PHYSICAL_WIDTH < 52
     uint64_t reserved_51_M : (52 - PHYSICAL_WIDTH);
+#endif
     uint64_t ignored_63_52 : 12;
 } __attribute__((packed)) epdte_t;
 
@@ -191,7 +207,9 @@ typedef struct {
     uint64_t user_ex_access : 1;
     uint64_t ignored_11 : 1;
     uint64_t paddr : (PHYSICAL_WIDTH - 12);
+#if PHYSICAL_WIDTH < 52
     uint64_t reserved_51_M : (52 - PHYSICAL_WIDTH);
+#endif
     uint64_t ignored_56_52 : 5;
     uint64_t verif_guest_pag : 1;
     uint64_t pag_write_access : 1;
