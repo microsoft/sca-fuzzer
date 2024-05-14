@@ -14,7 +14,7 @@ from typing import List, Dict, Set, Optional
 from ..isa_loader import InstructionSet
 from ..interfaces import TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
     ImmediateOperand, AgenOperand, OT, Instruction, BasicBlock, InstructionSpec, \
-    MAIN_AREA_SIZE, FAULTY_AREA_SIZE, SANDBOX_DATA_SIZE, Function, ActorPL
+    MAIN_AREA_SIZE, FAULTY_AREA_SIZE, SANDBOX_DATA_SIZE, Function, ActorPL, PAGE_SIZE
 from ..generator import ConfigurableGenerator, RandomGenerator, Pass, Printer, GeneratorException
 from ..config import CONF
 from .x86_target_desc import X86TargetDesc
@@ -49,7 +49,7 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
         if self.faults.non_canonical_access:
             self.passes.append(X86NonCanonicalAddressPass())
         if self.faults.u2k_access:
-            self.passes.append(X86U2KAccessPass())
+            self.passes.append(X86U2KAccessPass())  # must be after X86SandboxPass
         self.passes.append(X86PatchOpcodesPass())
         self.printer = X86Printer(self.target_desc)
 
@@ -184,14 +184,28 @@ class X86U2KAccessPass(Pass):
         if random.random() > probability:
             return
 
+        # select operand to patch
         mem_operands: List[MemoryOperand] = instr.get_mem_operands()
         if len(mem_operands) == 1:
             mem_operand = mem_operands[0]
         else:
             mem_operand = random.choice(mem_operands)
 
-        kernel_offset = owner_id * SANDBOX_DATA_SIZE
+        # subtract kernel offset
+        kernel_offset = owner_id * SANDBOX_DATA_SIZE - MAIN_AREA_SIZE  # select kernel FAULTY_AREA
         mem_operand.value += " - " + str(kernel_offset)
+
+        # patch instrumentation added by X86SandboxPass so that it targets only one page
+        previous_instr = instr.previous
+        while previous_instr and previous_instr.is_instrumentation:
+            for op in previous_instr.operands:
+                if not isinstance(op, ImmediateOperand):
+                    continue
+                mask_value = int(op.value, base=0)
+                if mask_value > PAGE_SIZE:
+                    mask_value %= PAGE_SIZE
+                op.value = bin(mask_value)
+            previous_instr = previous_instr.previous
 
 
 class X86SandboxPass(Pass):

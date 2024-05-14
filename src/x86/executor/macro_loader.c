@@ -6,6 +6,7 @@
 #include "macro_loader.h"
 #include "asm_snippets.h"
 #include "fault_handler.h"
+#include "host_page_tables.h"
 #include "main.h"
 #include "memory_guest.h"
 #include "sandbox_manager.h"
@@ -212,6 +213,7 @@ static uint8_t *get_macro_wrapper_ptr(uint64_t macro_id)
     case MACRO_LANDING_U2K:
     case MACRO_LANDING_H2G:
     case MACRO_LANDING_G2H:
+    case MACRO_SET_DATA_PERMISSIONS:
         return (uint8_t *)macro_empty;
     default:
         PRINT_ERRS("get_macro_wrapper_ptr", "macro_id %llu is not valid\n", macro_id);
@@ -258,7 +260,7 @@ uint64_t inject_macro_configurable_part(uint64_t macro_type, uint64_t args, uint
     size_t cursor = 0;
     uint16_t arg1 = args & 0xFFFF;
     uint16_t arg2 = (args >> 16) & 0xFFFF;
-    // uint16_t arg3 = (args >> 32) & 0xFFFF;
+    uint16_t arg3 = (args >> 32) & 0xFFFF;
     // uint16_t arg4 = (args >> 48) & 0xFFFF;
 
     uint32_t macro_stack_offset = 0;
@@ -499,6 +501,75 @@ uint64_t inject_macro_configurable_part(uint64_t macro_type, uint64_t args, uint
     case MACRO_LANDING_G2H: {
         cursor += update_r14(owner, macro_dest, cursor);
         cursor += update_r15(owner, macro_dest, cursor);
+        break;
+    }
+    case MACRO_SET_DATA_PERMISSIONS: {
+        // get safe bits to set/clear
+        uint16_t mask_set = arg2;
+        uint16_t mask_clear = arg3;
+
+        // get the target PTE
+        int page_id = arg1 * N_DATA_PAGES_PER_ACTOR + FAULTY_PAGE_ID;
+        pte_t_ *ptep = sandbox_pteps->data_pteps[page_id];
+        ASSERT(ptep != NULL, "inject_macro_configurable_part");
+
+        // Switch stack
+        // mov    QWORD PTR [r14 - MACRO_STACK_TOP_OFFSET - 8],rsp
+        SET_MACRO_BYTE(0x49);
+        SET_MACRO_BYTE(0x89);
+        SET_MACRO_BYTE(0xa6);
+        macro_stack_offset = -MACRO_STACK_TOP_OFFSET - 8;
+        *((uint32_t *)(macro_dest + cursor)) = macro_stack_offset;
+        cursor += 4;
+        // lea    rsp,[r14 - MACRO_STACK_TOP_OFFSET - 8]
+        SET_MACRO_BYTE(0x49);
+        SET_MACRO_BYTE(0x8d);
+        SET_MACRO_BYTE(0xa6);
+        *((uint32_t *)(macro_dest + cursor)) = macro_stack_offset;
+        cursor += 4;
+
+        // push rax
+        SET_MACRO_BYTE(0x50);
+
+        // Get pointer to PTE
+        // mov rax, ptep
+        SET_MACRO_BYTE(0x48);
+        SET_MACRO_BYTE(0xb8);
+        *((uint64_t *)(macro_dest + cursor)) = (uint64_t)ptep;
+        cursor += 8;
+
+        // Apply the set and clear masks to the lowest 16 bits of the PTE
+        // note that we leave the remaining bits unchanged because arg2 and arg3 are 16-bit values
+        //   or qword ptr [r11], mask_set
+        SET_MACRO_BYTE(0x66);
+        SET_MACRO_BYTE(0x81);
+        SET_MACRO_BYTE(0x08);
+        *((uint16_t *)(macro_dest + cursor)) = mask_set;
+        cursor += 2;
+
+        //   and qword ptr [r11], mask_clear
+        SET_MACRO_BYTE(0x66);
+        SET_MACRO_BYTE(0x81);
+        SET_MACRO_BYTE(0x20);
+        *((uint16_t *)(macro_dest + cursor)) = mask_clear;
+        cursor += 2;
+
+        // Restore stack
+        // pop    rax
+        SET_MACRO_BYTE(0x58);
+        // mov qword ptr [rsp - 0x08], 0
+        SET_MACRO_BYTE(0x48);
+        SET_MACRO_BYTE(0xc7);
+        SET_MACRO_BYTE(0x44);
+        SET_MACRO_BYTE(0x24);
+        SET_MACRO_BYTE(0xf8);
+        SET_MACRO_BYTE(0x00);
+        SET_MACRO_BYTE(0x00);
+        SET_MACRO_BYTE(0x00);
+        SET_MACRO_BYTE(0x00);
+        // pop    rsp
+        SET_MACRO_BYTE(0x5c);
+
         break;
     }
     default:

@@ -12,7 +12,7 @@ from typing import List, Dict, Tuple, NoReturn
 from collections import OrderedDict
 
 from .interfaces import AsmParser, OT, Instruction, InstructionSpec, TestCase, OperandSpec, \
-    LabelOperand, Function, BasicBlock, Generator
+    LabelOperand, Function, BasicBlock, Generator, ActorPL, ActorMode
 from .util import Logger
 from .config import CONF
 
@@ -389,3 +389,14 @@ class AsmParserGeneric(AsmParser):
                         n_fault_handlers += 1
                     if n_fault_handlers > 1:
                         parser_error(inst.line_num, "Found more than one fault handler")
+
+        # check that PT modification happens only in kernel host mode
+        for func in test_case:
+            for bb in func:
+                owner = func.owner
+                for inst in bb:
+                    if inst.name == "macro" and inst.operands[0].value == ".set_data_permissions":
+                        parser_assert(
+                            owner.privilege_level == ActorPL.KERNEL
+                            and owner.mode == ActorMode.HOST, inst.line_num,
+                            "PT modification is allowed only in kernel host mode")

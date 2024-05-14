@@ -87,6 +87,7 @@ class X86MacroInterpreter(MacroInterpreter):
             "landing_h2g": self.macro_landing_h2g,
             "landing_g2h": self.macro_landing_g2h,
             "fault_handler": lambda *_: None,
+            "set_data_permissions": self.macro_set_data_permissions,
         }
 
         actor_id = self.model.current_actor.id_
@@ -253,6 +254,10 @@ class X86MacroInterpreter(MacroInterpreter):
 
     def macro_landing_g2h(self, _: int, __: int, ___: int, ____: int):
         """ Landing for the g2h switch """
+        pass
+
+    def macro_set_data_permissions(self, actor_id: int, must_set: int, must_clear: int, _: int):
+        """ Manual setting of data permissions for the actor """
         pass
 
 
