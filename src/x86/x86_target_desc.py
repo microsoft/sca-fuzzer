@@ -177,26 +177,46 @@ class X86TargetDesc(TargetDesc):
     macro_specs = {
         # macros with negative IDs are used for generation
         # and are not supposed to reach the final binary
-        "random_instructions": MacroSpec(-1, "random_instructions", ("int", "int", "", "")),
+        "random_instructions":
+            MacroSpec(-1, "random_instructions", ("int", "int", "", "")),
 
         # macros with positive IDs are used for execution and can be interpreted by executor/model
-        "function": MacroSpec(0, "function", ("", "", "", "")),
-        "measurement_start": MacroSpec(1, "measurement_start", ("", "", "", "")),
-        "measurement_end": MacroSpec(2, "measurement_end", ("", "", "", "")),
-        "fault_handler": MacroSpec(3, "fault_handler", ("", "", "", "")),
-        "switch": MacroSpec(4, "switch", ("actor_id", "function_id", "", "")),
-        "set_k2u_target": MacroSpec(5, "set_k2u_target", ("actor_id", "function_id", "", "")),
-        "switch_k2u": MacroSpec(6, "switch_k2u", ("actor_id", "", "", "")),
-        "set_u2k_target": MacroSpec(7, "set_u2k_target", ("actor_id", "function_id", "", "")),
-        "switch_u2k": MacroSpec(8, "switch_u2k", ("actor_id", "", "", "")),
-        "set_h2g_target": MacroSpec(9, "set_h2g_target", ("actor_id", "function_id", "", "")),
-        "switch_h2g": MacroSpec(10, "switch_h2g", ("actor_id", "", "", "")),
-        "set_g2h_target": MacroSpec(11, "set_g2h_target", ("actor_id", "function_id", "", "")),
-        "switch_g2h": MacroSpec(12, "switch_g2h", ("actor_id", "", "", "")),
-        "landing_k2u": MacroSpec(13, "landing_k2u", ("", "", "", "")),
-        "landing_u2k": MacroSpec(14, "landing_u2k", ("", "", "", "")),
-        "landing_h2g": MacroSpec(15, "landing_h2g", ("", "", "", "")),
-        "landing_g2h": MacroSpec(16, "landing_g2h", ("", "", "", "")),
+        "function":
+            MacroSpec(0, "function", ("", "", "", "")),
+        "measurement_start":
+            MacroSpec(1, "measurement_start", ("", "", "", "")),
+        "measurement_end":
+            MacroSpec(2, "measurement_end", ("", "", "", "")),
+        "fault_handler":
+            MacroSpec(3, "fault_handler", ("", "", "", "")),
+        "switch":
+            MacroSpec(4, "switch", ("actor_id", "function_id", "", "")),
+        "set_k2u_target":
+            MacroSpec(5, "set_k2u_target", ("actor_id", "function_id", "", "")),
+        "switch_k2u":
+            MacroSpec(6, "switch_k2u", ("actor_id", "", "", "")),
+        "set_u2k_target":
+            MacroSpec(7, "set_u2k_target", ("actor_id", "function_id", "", "")),
+        "switch_u2k":
+            MacroSpec(8, "switch_u2k", ("actor_id", "", "", "")),
+        "set_h2g_target":
+            MacroSpec(9, "set_h2g_target", ("actor_id", "function_id", "", "")),
+        "switch_h2g":
+            MacroSpec(10, "switch_h2g", ("actor_id", "", "", "")),
+        "set_g2h_target":
+            MacroSpec(11, "set_g2h_target", ("actor_id", "function_id", "", "")),
+        "switch_g2h":
+            MacroSpec(12, "switch_g2h", ("actor_id", "", "", "")),
+        "landing_k2u":
+            MacroSpec(13, "landing_k2u", ("", "", "", "")),
+        "landing_u2k":
+            MacroSpec(14, "landing_u2k", ("", "", "", "")),
+        "landing_h2g":
+            MacroSpec(15, "landing_h2g", ("", "", "", "")),
+        "landing_g2h":
+            MacroSpec(16, "landing_g2h", ("", "", "", "")),
+        "set_data_permissions":
+            MacroSpec(18, "set_data_permissions", ("actor_id", "int", "int", ""))
     }
 
     def __init__(self):

@@ -299,7 +299,11 @@ class X86ElfParser:
             elif macro_spec.args[i] == "function_id":
                 symbol_args += (get_function_id("." + arg) << i * 16)
             elif macro_spec.args[i] == "int":
-                symbol_args += int(arg)
+                if arg.startswith("0x"):
+                    val = int(arg, 16) & 0xFFFF
+                else:
+                    val = int(arg) & 0xFFFF
+                symbol_args += (val << i * 16)
             else:
                 raise ValueError(f"Invalid macro argument {macro_spec.args[i]}")
 

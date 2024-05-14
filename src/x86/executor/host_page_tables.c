@@ -14,8 +14,9 @@
 #include "host_page_tables.h"
 #include "page_tables_common.h"
 
+sandbox_pteps_t *sandbox_pteps;
+
 static sandbox_ptes_t *orig_ptes;
-static sandbox_pteps_t *sandbox_pteps;
 static pte_t_ *faulty_ptes = NULL;
 
 pte_t *get_pte(uint64_t address)

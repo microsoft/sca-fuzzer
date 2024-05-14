@@ -21,6 +21,8 @@ typedef struct {
     pte_t_ **util_pteps;
 } sandbox_pteps_t;
 
+extern sandbox_pteps_t *sandbox_pteps;
+
 pte_t *get_pte(uint64_t address);
 
 int cache_host_pteps(void);
