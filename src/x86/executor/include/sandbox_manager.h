@@ -42,6 +42,7 @@
 #define LOCAL_RSP_OFFSET       (FAULTY_AREA_OFFSET - 8)
 
 // area page IDs
+#define MAIN_PAGE_ID (MACRO_STACK_SIZE + UNDERFLOW_PAD_SIZE) / PAGE_SIZE
 #define FAULTY_PAGE_ID (MACRO_STACK_SIZE + UNDERFLOW_PAD_SIZE + MAIN_AREA_SIZE) / PAGE_SIZE
 
 /// @brief Utility data structure used by various primitives in the test case.
