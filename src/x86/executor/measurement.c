@@ -125,16 +125,16 @@ int run_experiment(void)
     if (!quick_and_dirty_mode)
         memset(&sandbox->util->l1d_priming_area[0], 0, L1D_PRIMING_AREA_SIZE * sizeof(char));
 
+    // Try to reset the uarch state
+    // (we do it here because from this point on the execution is expected to be deterministic
+    // and depend solely on the test case and the input to it)
+    if (pre_run_flush == 1 && !quick_and_dirty_mode)
+        uarch_flush();
+
     long rounds = (long)n_inputs;
     for (long i = -uarch_reset_rounds; i < rounds; i++) {
         // ignore "warm-up" runs (i<0)uarch_reset_rounds
         long i_ = (i < 0) ? 0 : i;
-
-        // Try to reset the uarch state
-        // (we do it here because from this point on the execution is expected to be deterministic
-        // and depend solely on the test case and the input to it)
-        if (pre_run_flush == 1 && !quick_and_dirty_mode)
-            uarch_flush();
 
         // Prepare sandbox
         load_sandbox_data(i_);
