@@ -188,11 +188,20 @@ def main() -> int:
         "file comments.",
     )
     parser_mini.add_argument(
+        "--find-min-input-sequence",
+        action='store_true',
+        default=False,
+        help="Find a minimal input sequence that still trigger the violation.")
+    parser_mini.add_argument(
         "--find-min-inputs",
         action='store_true',
         default=False,
-        help="Find a sequence of inputs with minimal differences that still trigger\n "
-        "the violation.")
+        help="Minimize the differences between the inputs that trigger the violation.")
+    parser_mini.add_argument(
+        "--min-input-destination",
+        type=str,
+        default=None,
+        help="Destination directory for storing minimized inputs.")
     parser_mini.add_argument("-s", "--instruction-set", type=str, required=True)
     parser_mini.add_argument(
         "--enable-multipass",
@@ -340,8 +349,10 @@ def main() -> int:
         fuzzer = get_fuzzer(args.instruction_set, "", args.genfile, "")
         minimizer = get_minimizer(fuzzer, args.instruction_set)
         minimizer.run(args.genfile, args.outfile, args.num_inputs, not args.no_minimize,
-                      args.simplify, args.add_fences, args.find_sources, args.find_min_inputs,
-                      args.enable_multipass, args.enable_violation_comments)
+                      args.simplify, args.add_fences, args.find_sources,
+                      args.find_min_input_sequence, args.find_min_inputs,
+                      args.min_input_destination, args.enable_multipass,
+                      args.enable_violation_comments)
         return 0
 
     # Configuration tuning
