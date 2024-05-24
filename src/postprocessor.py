@@ -7,13 +7,14 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 import shutil
+import os
 import re
 from math import log2
 
 from copy import deepcopy
 from subprocess import run
-from typing import List
-from .interfaces import Input, TestCase, Minimizer, Fuzzer, InstructionSetAbstract
+from typing import List, Optional
+from .interfaces import Input, TestCase, Minimizer, Fuzzer, InstructionSetAbstract, EquivalenceClass
 from .model import CTTracer
 from .x86.x86_model import X86UnicornDEH, SANDBOX_CODE_SIZE
 from .config import CONF
@@ -110,8 +111,22 @@ class MinimizerViolation(Minimizer):
 
     def run(self, test_case_asm: str, outfile: str, num_inputs: int, enable_minimize: bool,
             enable_simplify: bool, enable_add_fences: bool, enable_find_sources: bool,
-            enable_minimize_inputs: bool, enable_multipass: bool, enable_violation_comments: bool):
+            find_min_input_sequence: bool, enable_minimize_inputs: bool, min_input_destination: str,
+            enable_multipass: bool, enable_violation_comments: bool):
         assert CONF.instruction_set == "x86-64", "Postprocessor supports only x86-64 so far"
+        if (enable_minimize_inputs or find_min_input_sequence) and not min_input_destination:
+            self.LOG.error("ERROR: Flags --find-min-input-sequence and --minimize-inputs require \n"
+                           "flag --min-input-destination to be set.")
+            return
+
+        # Create required directories
+        if min_input_destination and not os.path.exists(min_input_destination):
+            try:
+                os.makedirs(min_input_destination)
+            except OSError:
+                print(f"Creation of the directory {min_input_destination} failed")
+                return
+            min_input_destination = os.path.abspath(min_input_destination)
 
         # Parse the test case and inputs
         test_case: TestCase = self.fuzzer.asm_parser.parse_file(test_case_asm)
@@ -123,38 +138,37 @@ class MinimizerViolation(Minimizer):
 
         # Load, boost inputs, and trace
         print("Trying to reproduce...", end='')
-        violation = self.fuzzer.fuzzing_round(test_case, inputs)
-        if not violation:
+        for _ in range(CONF.minimizer_retries):
+            violation = self.fuzzer.fuzzing_round(test_case, inputs)
+            if violation:
+                break
+        else:
             print(" could not reproduce the violation; exiting...")
             return
         print(" reproduced successfully.")
 
-        # Try to reproduce the same with fewer inputs
-        print("Reducing the number of inputs...", end='')
-        org_len = len(inputs)
-        while len(inputs) > 5:
-            new_inputs = inputs[:len(inputs) // 2]
-            new_violation = self.fuzzer.fuzzing_round(test_case, new_inputs)
-            if not new_violation:
-                break
-            inputs = new_inputs
-            violation = new_violation
-        if len(inputs) < org_len:
-            print("to ", len(inputs))
-        else:
-            print("not reduced")
+        # Try to reproduce with fewer inputs
+        if find_min_input_sequence:
+            new_violation = self.find_min_input_sequence(test_case, inputs, enable_multipass)
+            if new_violation:
+                violation = new_violation
 
         # Set the non-violating inputs as the ignore list
         violating_input_ids = [m.input_id for m in violation.measurements]
         print(f"Violating input IDs: {violating_input_ids}")
-        n_inputs = len(inputs) * CONF.inputs_per_class
+        n_inputs = len(violation.input_sequence)
         self.ignore_list = [i for i in range(n_inputs) if i not in violating_input_ids]
 
         # Minimize inputs
         if enable_minimize_inputs:
             print("\n Analyzing inputs:\n  Progress: ", end='')
-            inputs = self.find_min_inputs(test_case, inputs, violation)
+            inputs = self.find_min_inputs(test_case, violation)
             CONF.inputs_per_class = 1  # disable boosting from now on
+
+        if find_min_input_sequence or enable_minimize_inputs:
+            print("Saving new inputs in ", min_input_destination)
+            for i in range(len(inputs)):
+                inputs[i].save(f"{min_input_destination}/min_input_{i:04}.bin")
 
         # Remove/simplify instructions in multiple passes
         attempts = 1 if not enable_multipass else 10
@@ -412,7 +426,51 @@ class MinimizerViolation(Minimizer):
             instructions[i] = instructions[i][:-1] + "  # speculation sink ?\n"
         return self._get_test_case_from_instructions(instructions, "/tmp/pipe.asm")
 
-    def find_min_inputs(self, test_case: TestCase, inputs: List[Input], violation) -> List[Input]:
+    def find_min_input_sequence(self, test_case: TestCase, inputs: List[Input],
+                                enable_multipass: bool) -> Optional[EquivalenceClass]:
+        print("Reducing the number of inputs by halving...", end='')
+        org_len = len(inputs)
+        while len(inputs) > 5:
+            new_inputs = inputs[:len(inputs) // 2]
+            new_violation = self.fuzzer.fuzzing_round(test_case, new_inputs)
+            if not new_violation:
+                break
+            inputs = new_inputs
+            violation = new_violation
+        if len(inputs) < org_len:
+            print("to ", len(inputs))
+        else:
+            print("not reduced")
+            new_violation = self.fuzzer.fuzzing_round(test_case, inputs)
+            if not new_violation:
+                return None
+
+        inputs = violation.input_sequence
+        org_ipc = CONF.inputs_per_class
+        CONF.inputs_per_class = 1  # disable boosting from now on
+
+        n_iterations = 10 if enable_multipass else 1
+        for iteration in range(n_iterations):
+            print(f"Reducing the input sequence iteratively [attempt #{iteration}]:")
+            org_len = len(inputs)
+            for input_id in range(org_len, 0, -1):
+                new_inputs = inputs[0:input_id] + inputs[input_id + 1:]
+                new_violation = self.fuzzer.fuzzing_round(test_case, inputs)
+                if not new_violation:
+                    print("-", end="", flush=True)
+                    continue
+                print(".", end="", flush=True)
+                inputs = new_inputs
+                violation = new_violation
+            if len(inputs) < org_len:
+                print("\nreduced to ", len(inputs))
+            else:
+                print("\nnot reduced")
+                break
+        CONF.inputs_per_class = org_ipc
+        return violation
+
+    def find_min_inputs(self, test_case: TestCase, violation) -> List[Input]:
         inputs = violation.input_sequence
 
         org_conf = (CONF.inputs_per_class, CONF.minimizer_retries)
@@ -524,10 +582,6 @@ class MinimizerViolation(Minimizer):
 
         print("\nLeaked bytes:")
         print([hex(x) for x in leaked])
-
-        print("Saving inputs")
-        for i in range(len(inputs)):
-            inputs[i].save(f"input_{i}.bin")
 
         CONF.inputs_per_class = org_conf[0]
         CONF.minimizer_retries = org_conf[1]
