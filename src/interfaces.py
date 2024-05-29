@@ -858,6 +858,13 @@ class InstructionSetAbstract(ABC):
         pass
 
 
+class CPUDesc(NamedTuple):
+    vendor: str
+    model: str
+    family: str
+    stepping: str
+
+
 class TargetDesc(ABC):
     register_sizes: Dict[str, int]
     registers: Dict[int, List[str]]
@@ -868,6 +875,7 @@ class TargetDesc(ABC):
     macro_specs: Dict[str, MacroSpec]
     pte_bits: Dict[str, Tuple[int, bool]]
     epte_bits: Dict[str, Tuple[int, bool]]
+    cpu_desc: CPUDesc
 
     @staticmethod
     @abstractmethod
