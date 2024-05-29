@@ -225,8 +225,16 @@ class ConfigurableGenerator(Generator, abc.ABC):
     def create_actors(self, test_case: TestCase) -> None:
 
         def pte_properties_to_mask(properties: dict, type_: int) -> int:
+            """
+            Converts a dictionary of PTE properties to a bitmask, later used to set the attributes
+            of faulty pages in the executor.
+            If properties['randomized'] is set to True, each bit has a chance of retaining its
+            default value. Otherwise, the mask is created with the exact values from the dictionary.
+            """
+
             bits = self.target_desc.pte_bits if type_ == 0 else self.target_desc.epte_bits
 
+            # calculate the probability of a bit being set to its default value
             probability_of_default = 0.0
             if properties['randomized']:
                 count_non_default = 0
@@ -235,13 +243,20 @@ class ConfigurableGenerator(Generator, abc.ABC):
                         count_non_default += 1
                 probability_of_default = count_non_default / len(properties)
 
+            # create the mask
             mask = 0
             for bit_name in bits:
                 bit_offset, default_value = bits[bit_name]
-                if random.random() < probability_of_default:
-                    p_value = default_value
+
+                # transform non_executable to executable
+                if bit_name == "non_executable":
+                    p_value = not properties["executable"]
                 else:
                     p_value = properties[bit_name]
+
+                if random.random() < probability_of_default:
+                    p_value = default_value
+
                 bit_value = 1 if p_value else 0
                 mask |= bit_value << bit_offset
             return mask

@@ -148,29 +148,25 @@ class X86TargetDesc(TargetDesc):
 
     pte_bits = {
         # NAME: (position, default value)
-        "present": (0, True),  # is present
-        "writable": (1, True),  # writeable
-        "user": (2, False),  # userspace addressable
-        "write-through": (3, False),  # page write through
-        "cache-disable": (4, False),  # page cache disabled
-        "accessed": (5, True),  # was accessed
-        "dirty": (6, True),  # was written to
+        "present": (0, True),
+        "writable": (1, True),
+        "user": (2, False),
+        "write-through": (3, False),
+        "cache-disable": (4, False),
+        "accessed": (5, True),
+        "dirty": (6, True),
         "reserved_bit": (51, False),
-        # "pkey_bit0": (59, False),  # Protection Keys, bit 1/4
-        # "pkey_bit1": (60, False),  # Protection Keys, bit 2/4
-        # "pkey_bit2": (61, False),  # Protection Keys, bit 3/4
-        # "pkey_bit3": (62, False),  # Protection Keys, bit 4/4
-        "non_executable": (63, True),  # No execute: only valid after cpuid check
+        "non_executable": (63, True),
     }
 
-    epte_bits = {
+    epte_bits_intel = {
         # NAME: (position, default value)
-        "present": (0, True),  # is present
-        "writable": (1, True),  # writeable
-        "executable": (2, False),  # executable
-        "accessed": (8, True),  # was accessed
-        "dirty": (9, True),  # was written to
-        "user": (10, False),  # userspace addressable
+        "present": (0, True),
+        "writable": (1, True),
+        "executable": (2, False),
+        "accessed": (8, True),
+        "dirty": (9, True),
+        "user": (10, False),
         "reserved_bit": (51, False),
     }
 
