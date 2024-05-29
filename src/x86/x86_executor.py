@@ -16,6 +16,7 @@ from typing import List, Optional, Tuple
 from ..interfaces import HTrace, Input, TestCase, Executor
 from ..config import CONF
 from ..util import Logger, STAT
+from .x86_target_desc import X86TargetDesc
 
 
 def write_to_sysfs_file(value, path: str) -> None:
@@ -57,6 +58,7 @@ class X86Executor(Executor):
     def __init__(self):
         super().__init__()
         self.LOG = Logger()
+        self.target_desc = X86TargetDesc()
         self.feedback = []
 
         # check the execution environment: is SMT disabled?
@@ -336,14 +338,11 @@ class X86Executor(Executor):
 class X86IntelExecutor(X86Executor):
 
     def __init__(self):
-        self.LOG = Logger()
-        vendor = subprocess.run(
-            "grep 'vendor_id' /proc/cpuinfo", shell=True, capture_output=True).stdout.decode()
-        if "Intel" not in vendor:
+        super().__init__()
+        if self.target_desc.cpu_desc.vendor != "Intel":
             self.LOG.error(
                 "Attempting to run Intel executor on a non-Intel CPUs!\n"
                 "Change the `executor` configuration option to the appropriate vendor value.")
-        super().__init__()
 
     def set_vendor_specific_features(self):
         write_to_sysfs_file("1" if "BR" in CONF._handled_faults else "0",
@@ -353,14 +352,11 @@ class X86IntelExecutor(X86Executor):
 class X86AMDExecutor(X86Executor):
 
     def __init__(self):
-        self.LOG = Logger()
-        vendor = subprocess.run(
-            "grep 'vendor_id' /proc/cpuinfo", shell=True, capture_output=True).stdout.decode()
-        if "AMD" not in vendor:
+        super().__init__()
+        if self.target_desc.cpu_desc.vendor != "AMD":
             self.LOG.error(
                 "Attempting to run AMD executor on a non-AMD CPUs!\n"
                 "Change the `executor` configuration option to the appropriate vendor value.")
-        super().__init__()
 
     def set_vendor_specific_features(self):
         pass
