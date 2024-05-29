@@ -296,7 +296,7 @@ int start_vmx_operation(void)
 
 /// @brief Disable VMX operation and do VMXOFF
 /// Should never fail as this function can be used in exception handlers;
-/// instead, it prints warnings upon errors.
+/// instead, it will print warning upon error.
 /// @return void
 void stop_vmx_operation(void)
 {
@@ -426,8 +426,8 @@ static int set_vmcs_guest_state(void)
 
     // SDM 25.4 Guest-State Area
     // - Control registers
-    uint64_t cr0 = (read_cr0() | MUST_SET_BITS_CR0_GUEST) & ~MUST_CLEAR_BITS_CR0_GUEST;
-    uint64_t cr4 = (__read_cr4() | MUST_SET_BITS_CR4_GUEST) & ~MUST_CLEAR_BITS_CR4_GUEST;
+    uint64_t cr0 = (read_cr0() | MUST_SET_BITS_CR0_VMX_GUEST) & ~MUST_CLEAR_BITS_CR0_VMX_GUEST;
+    uint64_t cr4 = (__read_cr4() | MUST_SET_BITS_CR4_VMX_GUEST) & ~MUST_CLEAR_BITS_CR4_VMX_GUEST;
     CHECKED_VMWRITE(GUEST_CR0, cr0);
     CHECKED_VMWRITE(GUEST_CR3, (uint64_t)&guest_p_memory->guest_page_tables.l4[0]);
     CHECKED_VMWRITE(GUEST_CR4, cr4);

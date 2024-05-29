@@ -28,9 +28,14 @@
 #define _E_PAGE_DIRTY    (1 << 9)
 #define _E_PAGE_USER     (1 << 10)
 
+
+#if VENDOR_ID == 1 // Intel
 #define MODIFIABLE_EPTE_BITS                                                                       \
     (_E_PAGE_PRESENT | _E_PAGE_RW | _E_PAGE_X | _E_PAGE_ACCESSED | _E_PAGE_DIRTY | _E_PAGE_USER |  \
      (1ULL << 51))
+#else
+#define MODIFIABLE_EPTE_BITS MODIFIABLE_PTE_BITS
+#endif
 
 // =================================================================================================
 // Normal page tables
@@ -143,6 +148,7 @@ typedef struct {
     uint64_t reserved_63_52 : 12;
 } __attribute__((packed)) eptp_t;
 
+#if VENDOR_ID == 1 // Intel
 // Table 28-1. Format of an EPT PML4E
 typedef struct {
     uint64_t read_access : 1;
@@ -159,7 +165,11 @@ typedef struct {
 #endif
     uint64_t ignored_63_52 : 12;
 } __attribute__((packed)) epml4e_t;
+#else
+typedef pml4e_t epml4e_t;
+#endif
 
+#if VENDOR_ID == 1 // Intel
 // Table 28-3. Format of an EPT Page-Directory-Pointer-Table Entry (EPT PDPTE)
 typedef struct {
     uint64_t read_access : 1;
@@ -177,7 +187,12 @@ typedef struct {
 #endif
     uint64_t ignored_63_52 : 12;
 } __attribute__((packed)) epdpte_t;
+#else
+typedef pdpte_t epdpte_t;
+#endif
 
+
+#if VENDOR_ID == 1 // Intel
 typedef struct {
     uint64_t read_access : 1;
     uint64_t write_access : 1;
@@ -194,7 +209,11 @@ typedef struct {
 #endif
     uint64_t ignored_63_52 : 12;
 } __attribute__((packed)) epdte_t;
+#else
+typedef pdte_t epdte_t;
+#endif
 
+#if VENDOR_ID == 1 // Intel
 typedef struct {
     uint64_t read_access : 1;
     uint64_t write_access : 1;
@@ -219,5 +238,8 @@ typedef struct {
     uint64_t ignored_62 : 1;
     uint64_t suppress_ve : 1;
 } __attribute__((packed)) epte_t_;
+#else
+typedef pte_t_ epte_t_;
+#endif
 
 #endif // _PAGE_TABLES_COMMON_H_

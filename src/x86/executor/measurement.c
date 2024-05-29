@@ -271,6 +271,9 @@ int trace_test_case(void)
     }
 
     // Post-measurement cleanup
+#if VENDOR_ID == VENDOR_AMD_
+    asm volatile("stgi\n"); // enable interrupts in case they were disabled
+#endif
     raw_local_irq_restore(flags);
     put_cpu();
 
