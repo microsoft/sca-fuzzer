@@ -84,10 +84,8 @@ void idt_set_custom_handlers(gate_desc *idt, struct desc_ptr *idtr, void *main_h
         // if we ever get a machine check exception, the CPU is definitely in a bad state
         // so we should let OS handle it
         case X86_TRAP_DF:
-        case X86_TRAP_MC:
-        case 9:
-        case 15:
-        case 22 ... 31: {
+        case X86_TRAP_MC: {
+            // case 22 ... 31: {
             gate_desc *org_handler = &((gate_desc *)orig_idtr.address)[idx];
             write_idt_entry(idt, idx, org_handler);
             break;
@@ -246,6 +244,9 @@ __attribute__((unused)) void fallback_handler_wrapper(void)
         "mov %[recover_orig_state], %%rax\n"
         "call *%%rax\n"
         "sti\n"
+#if VENDOR_ID == VENDOR_AMD_
+        "stgi\n"
+#endif
         "ud2\n"
 
         ".fallback_handler_end:\n"
@@ -321,6 +322,9 @@ __attribute__((unused)) void bubble_handler_wrapper(void)
                  "mov %[recover_orig_state], %%rax\n"
                  "call *%%rax\n"
                  "sti\n"
+#if VENDOR_ID == VENDOR_AMD_
+                 "stgi\n"
+#endif
                  "ud2\n"
 
                  ".bubble_handler_end:\n"

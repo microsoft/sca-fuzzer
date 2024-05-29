@@ -26,6 +26,8 @@
         PTE.execute_disable = XD;                                                                  \
         PTE.accessed = A;                                                                          \
     }
+
+#if VENDOR_ID == VENDOR_INTEL_
 #define INIT_EPTE(PTE, PADDR, P, W, X, A)                                                          \
     {                                                                                              \
         PTE.read_access = P;                                                                       \
@@ -34,9 +36,40 @@
         PTE.paddr = PADDR >> 12;                                                                   \
         PTE.accessed = A;                                                                          \
     }
+#else // AMD
+#define INIT_EPTE(PTE, PADDR, P, W, X, A)                                                          \
+    {                                                                                              \
+        PTE.present = P;                                                                           \
+        PTE.write_access = W;                                                                      \
+        PTE.user_supervisor = 1;                                                                   \
+        PTE.page_write_through = 0;                                                                \
+        PTE.page_cache_disable = 0;                                                                \
+        PTE.paddr = PADDR >> 12;                                                                   \
+        PTE.execute_disable = X ^ 1;                                                               \
+        PTE.accessed = A;                                                                          \
+    }
+#endif
 
 #define INIT_PTE_DEFAULT(PTE, PADDR)  INIT_PTE(PTE, PADDR, 1, 1, 0, 0, 0, 0, 1)
 #define INIT_EPTE_DEFAULT(PTE, PADDR) INIT_EPTE(PTE, PADDR, 1, 1, 1, 1)
+
+#if VENDOR_ID == VENDOR_INTEL_
+#define EPTE_IS_PRESENT(EPT) EPT.read_access
+#else
+#define EPTE_IS_PRESENT(EPT) EPT.present
+#endif
+
+#if VENDOR_ID == VENDOR_INTEL_
+#define EPTE_IS_EXECUTABLE(EPT) EPT.execute_access
+#else
+#define EPTE_IS_EXECUTABLE(EPT) (EPT.execute_disable ^ 1)
+#endif
+
+#if VENDOR_ID == VENDOR_INTEL_
+#define EPTE_IS_USER_ACCESSIBLE(EPT) EPT.user_ex_access
+#else
+#define EPTE_IS_USER_ACCESSIBLE(EPT) EPT.user_supervisor
+#endif
 
 eptp_t *ept_ptr = NULL; // global
 
@@ -115,8 +148,13 @@ static inline int set_ept_entry(actor_ept_t *actor_ept_base, hgpa_t *translation
 
     // set additional properties for the last level
     actor_ept_base->l1[PT_INDEX(gpa)].dirty = 1;
+
+#if VENDOR_ID == VENDOR_INTEL_
     actor_ept_base->l1[PT_INDEX(gpa)].ept_mem_type = 6;
     actor_ept_base->l1[PT_INDEX(gpa)].ignore_pat = 1;
+#else
+    actor_ept_base->l1[PT_INDEX(gpa)].page_attribute_table = 1;
+#endif
 
     return 0;
 }
@@ -515,7 +553,7 @@ int dbg_dump_ept(int actor_id)
     epml4e_t *l4 = actor_ept_base->l4;
     for (uint64_t curr_l4_id = 0; curr_l4_id < ENTRIES_PER_PAGE; curr_l4_id += 1) {
         epml4e_t l4e = l4[curr_l4_id];
-        if (!l4e.read_access)
+        if (!EPTE_IS_PRESENT(l4e))
             continue;
         uint64_t l3_hpa = ((uint64_t)l4e.paddr << 12);
         epdpte_t *l3 = actor_ept_base->l3;
@@ -524,7 +562,7 @@ int dbg_dump_ept(int actor_id)
         // L3 traversal
         for (uint64_t curr_l3_id = 0; curr_l3_id < ENTRIES_PER_PAGE; curr_l3_id += 1) {
             epdpte_t l3e = l3[curr_l3_id];
-            if (!l3e.read_access)
+            if (!EPTE_IS_PRESENT(l3e))
                 continue;
             uint64_t l2_hpa = ((uint64_t)l3e.paddr << 12);
             epdte_t *l2 = actor_ept_base->l2;
@@ -533,7 +571,7 @@ int dbg_dump_ept(int actor_id)
             // L2 traversal
             for (uint64_t curr_l2_id = 0; curr_l2_id < ENTRIES_PER_PAGE; curr_l2_id += 1) {
                 epdte_t l2e = l2[curr_l2_id];
-                if (!l2e.read_access)
+                if (!EPTE_IS_PRESENT(l2e))
                     continue;
                 uint64_t l1_hpa = ((uint64_t)l2e.paddr << 12);
                 epte_t_ *l1 = actor_ept_base->l1;
@@ -542,7 +580,7 @@ int dbg_dump_ept(int actor_id)
                 // L1 traversal
                 for (uint64_t curr_l1_id = 0; curr_l1_id < ENTRIES_PER_PAGE; curr_l1_id += 1) {
                     epte_t_ l1e = l1[curr_l1_id];
-                    if (!l1e.read_access)
+                    if (!EPTE_IS_PRESENT(l1e))
                         continue;
                     uint64_t gpa = (curr_l4_id << PML4_SHIFT) | (curr_l3_id << PDPT_SHIFT) |
                                    (curr_l2_id << PDT_SHIFT) | (curr_l1_id << PT_SHIFT);
@@ -556,12 +594,12 @@ int dbg_dump_ept(int actor_id)
 
                     uint64_t hpa = ((uint64_t)l1e.paddr << 12);
                     void *hva = phys_to_vmalloc(hpa, actor_id);
-                    char r = l1e.read_access ? 'R' : '-';
+                    char r = EPTE_IS_PRESENT(l1e) ? 'R' : '-';
                     char w = l1e.write_access ? 'W' : '-';
-                    char x = l1e.execute_access ? 'X' : '-';
+                    char x = EPTE_IS_EXECUTABLE(l1e) ? 'X' : '-';
                     char a = l1e.accessed ? 'A' : '-';
                     char d = l1e.dirty ? 'D' : '-';
-                    char us = l1e.user_ex_access ? 'U' : '-';
+                    char us = EPTE_IS_USER_ACCESSIBLE(l1e) ? 'U' : '-';
                     printk(KERN_INFO
                            "GP: 0x%-16llx -> HP: 0x%-16llx (HV: 0x%-16llx); %c%c%c%c%c%c\n",
                            gpa, hpa, (uint64_t)hva, r, w, x, a, d, us);

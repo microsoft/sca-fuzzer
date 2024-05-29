@@ -79,7 +79,7 @@
         void *ptr = kmalloc(x, GFP_KERNEL);                                                        \
         if (!ptr) {                                                                                \
             PRINT_ERR(" Error allocating memory\n");                                               \
-            return -EIO;                                                                           \
+            return -ENOMEM;                                                                           \
         }                                                                                          \
         ptr;                                                                                       \
     })
@@ -88,7 +88,7 @@
         void *ptr = kzalloc(x, GFP_KERNEL);                                                        \
         if (!ptr) {                                                                                \
             PRINT_ERR(" Error zero-allocating memory\n");                                          \
-            return -EIO;                                                                           \
+            return -ENOMEM;                                                                           \
         }                                                                                          \
         ptr;                                                                                       \
     })
@@ -103,13 +103,29 @@
         void *ptr = vmalloc(x);                                                                    \
         if (!ptr) {                                                                                \
             PRINT_ERR(" Error allocating memory\n");                                               \
-            return -EIO;                                                                           \
+            return -ENOMEM;                                                                           \
         }                                                                                          \
         ptr;                                                                                       \
     })
 #define SAFE_VFREE(x)                                                                              \
     if (x) {                                                                                       \
         vfree(x);                                                                                  \
+        x = NULL;                                                                                  \
+    }
+
+#define CHECKED_ALLOC_PAGES(size)                                                                  \
+    ({                                                                                             \
+        struct page *ptr = alloc_pages(GFP_KERNEL, get_order(size));                               \
+        if (!ptr) {                                                                                \
+            PRINT_ERR(" Error allocating pages\n");                                                \
+            return -ENOMEM;                                                                           \
+        }                                                                                          \
+        ptr;                                                                                       \
+    })
+
+#define SAFE_PAGES_FREE(x, size)                                                                   \
+    if (x) {                                                                                       \
+        __free_pages(x, get_order(size));                                                          \
         x = NULL;                                                                                  \
     }
 

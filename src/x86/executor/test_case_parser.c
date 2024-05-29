@@ -15,6 +15,7 @@
 ///     |   - mode (actor_mode_t)             |
 ///     |   - pl (actor_pl_t)                 |
 ///     |   - data_permissions (uint64_t)     |
+///     |   - data_ept_permissions (uint64_t) |
 ///     |   - uint64_t (code_permissions)     |
 ///     | x n_actors                          |
 ///     |-------------------------------------|
