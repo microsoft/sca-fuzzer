@@ -15,7 +15,7 @@ from unicorn import Uc, UcError, UC_MEM_WRITE, UC_ARCH_X86, UC_MODE_64, UC_PROT_
 
 from ..interfaces import Input, FlagsOperand, RegisterOperand, MemoryOperand, AgenOperand, \
     TestCase, Instruction, Symbol, SANDBOX_DATA_SIZE, FAULTY_AREA_SIZE, OVERFLOW_PAD_SIZE, \
-    UNDERFLOW_PAD_SIZE, SANDBOX_CODE_SIZE, get_sandbox_addr, ActorPL, InputTaint, CTrace
+    UNDERFLOW_PAD_SIZE, SANDBOX_CODE_SIZE, get_sandbox_addr, ActorPL, InputTaint, CTrace, ActorMode
 from ..model import UnicornModel, UnicornTracer, UnicornSpec, UnicornSeq, BaseTaintTracker, \
     MacroInterpreter
 from ..util import UnreachableCode, NotSupportedException, BLUE, COL_RESET, Logger, \
@@ -44,6 +44,8 @@ class X86MacroInterpreter(MacroInterpreter):
 
     def __init__(self, model: UnicornSeq):
         self.model = model
+        self.is_intel = True if model.target_desc.cpu_desc.vendor == "Intel" else False
+        self.is_amd = True if model.target_desc.cpu_desc.vendor == "AMD" else False
 
     def load_test_case(self, test_case: TestCase):
         self.test_case = test_case
@@ -212,6 +214,10 @@ class X86MacroInterpreter(MacroInterpreter):
         actor_name = self.sid_to_actor_name[section_id]
         model.current_actor = self.test_case.actors[actor_name]
 
+        # AMD VMRUN clobbers RAX; we model it as a zero write to RAX
+        if self.is_amd:
+            model.emulator.reg_write(ucc.UC_X86_REG_RAX, 0)
+
     def macro_switch_g2h(self, section_id: int, _: int, __: int, ___: int):
         model = self.model
 
@@ -227,6 +233,10 @@ class X86MacroInterpreter(MacroInterpreter):
         # actor update
         actor_name = self.sid_to_actor_name[section_id]
         model.current_actor = self.test_case.actors[actor_name]
+
+        # AMD VMEXIT clobbers RAX; we model it as a zero write to RAX
+        if self.is_amd:
+            model.emulator.reg_write(ucc.UC_X86_REG_RAX, 0)
 
     def macro_set_h2g_target(self, section_id: int, function_id: int, _: int, __: int):
         section_addr = self.model.code_start + SANDBOX_CODE_SIZE * section_id
@@ -352,17 +362,19 @@ class X86UnicornSeq(UnicornSeq):
     Base class that serves as main interface.
     Loads inputs and executes the test case on x86
     """
+    fault_masks: Dict[str, int]
     rw_forbidden: Dict[int, bool]
     w_forbidden: Dict[int, bool]
 
     def __init__(self, sandbox_base, code_start):
         super().__init__(sandbox_base, code_start)
+        self.target_desc = X86TargetDesc()
+        self.uc_target_desc = X86UnicornTargetDesc()
+
         self.macro_interpreter = X86MacroInterpreter(self)
         self.vm_emulator = X86VMEmulator(self)
         self.user_emulator = X86UserspaceEmulator(self)
 
-        self.target_desc = X86TargetDesc()
-        self.uc_target_desc = X86UnicornTargetDesc()
         self.taint_tracker = X86TaintTracker([], sandbox_base)
         self.original_tain_tracker = self.taint_tracker
 
@@ -372,12 +384,7 @@ class X86UnicornSeq(UnicornSeq):
         self.underflow_pad_values = bytes(UNDERFLOW_PAD_SIZE)
         self.overflow_pad_values = bytes(OVERFLOW_PAD_SIZE)
 
-        self.rw_fault_mask = (1 << X86TargetDesc.pte_bits["present"][0]) + \
-            (1 << X86TargetDesc.pte_bits["accessed"][0])
-        self.rw_fault_mask_unset = (1 << X86TargetDesc.pte_bits["user"][0]) + \
-            (1 << X86TargetDesc.pte_bits["reserved_bit"][0])
-        self.write_fault_mask = (1 << X86TargetDesc.pte_bits["writable"][0]) + \
-            (1 << X86TargetDesc.pte_bits["dirty"][0])
+        self._create_fault_masks()
 
         if CONF.contract_observation_clause == 'ctr' or CONF.contract_observation_clause == 'arch':
             self.initial_taints = [
@@ -385,16 +392,52 @@ class X86UnicornSeq(UnicornSeq):
                 "DF", "OF", "AC"
             ]
 
+    def _create_fault_masks(self):
+        self.fault_masks = {
+            "pt_rw_must_set": 0,
+            "pt_rw_must_clear": 0,
+            "pt_w_must_set": 0,
+            "ept_rw_must_set": 0,
+            "ept_rw_must_clear": 0,
+            "ept_w_must_set": 0,
+        }
+
+        bit_desc = {
+            "pt_rw_must_set": ["present", "accessed"],
+            "pt_rw_must_clear": ["user", "reserved_bit"],
+            "pt_w_must_set": ["writable", "dirty"],
+            "ept_rw_must_set": ["present", "accessed"],
+            "ept_rw_must_clear": ["user", "reserved_bit"],
+            "ept_w_must_set": ["writable", "dirty"],
+        }
+
+        for key in self.fault_masks:
+            if key.startswith("pt"):
+                for bit in bit_desc[key]:
+                    self.fault_masks[key] |= 1 << self.target_desc.pte_bits[bit][0]
+            else:
+                for bit in bit_desc[key]:
+                    self.fault_masks[key] |= 1 << self.target_desc.epte_bits[bit][0]
+
     def load_test_case(self, test_case: TestCase) -> None:
         self.rw_forbidden = {}
         self.w_forbidden = {}
         for actor in test_case.actors.values():
             aid = actor.id_
+
             pte: int = actor.data_properties
             inverse_pte = 0xffffffffffffffff ^ pte
-            self.rw_forbidden[aid] = bool(self.rw_fault_mask_unset & pte)
-            self.rw_forbidden[aid] |= bool(self.rw_fault_mask & inverse_pte)
-            self.w_forbidden[aid] = bool(self.write_fault_mask & inverse_pte)
+            self.rw_forbidden[aid] = bool(self.fault_masks["pt_rw_must_set"] & inverse_pte) | \
+                bool(self.fault_masks["pt_rw_must_clear"] & pte)
+            self.w_forbidden[aid] = bool(self.fault_masks["pt_w_must_set"] & inverse_pte)
+
+            if actor.mode == ActorMode.GUEST:
+                epte: int = actor.data_ept_properties
+                inverse_epte = 0xffffffffffffffff ^ epte
+                self.rw_forbidden[aid] |= \
+                    bool(self.fault_masks["ept_rw_must_set"] & inverse_epte) | \
+                    bool(self.fault_masks["ept_rw_must_clear"] & epte)
+                self.w_forbidden[aid] |= bool(self.fault_masks["ept_w_must_set"] & inverse_epte)
 
         self.vm_emulator.reset()
         self.user_emulator.reset()

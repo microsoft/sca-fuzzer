@@ -5,9 +5,11 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 from typing import List
+import re
 import unicorn.x86_const as ucc  # type: ignore
 
-from ..interfaces import Instruction, TargetDesc, MacroSpec
+
+from ..interfaces import Instruction, TargetDesc, MacroSpec, CPUDesc
 from ..model import UnicornTargetDesc
 from ..config import CONF
 
@@ -168,6 +170,17 @@ class X86TargetDesc(TargetDesc):
         "reserved_bit": (51, False),
     }
 
+    npte_bits_amd = {
+        # NAME: (position, default value)
+        "present": (0, True),
+        "writable": (1, True),
+        "user": (2, True),
+        "accessed": (5, True),
+        "dirty": (6, True),
+        "reserved_bit": (51, False),
+        "non_executable": (63, True),
+    }
+
     # FIXME: macro IDs should not be hardcoded but rather received from the executor
     # or at least we need a test that will check that the IDs match
     macro_specs = {
@@ -225,6 +238,33 @@ class X86TargetDesc(TargetDesc):
                 if register not in CONF.register_blocklist or register in CONF.register_allowlist:
                     filtered_decoding[size].append(register)
         self.registers = filtered_decoding
+
+        # identify the CPU model we are running on
+        with open("/proc/cpuinfo", "r") as f:
+            cpuinfo = f.read()
+            if 'Intel' in cpuinfo:
+                vendor = 'Intel'
+            elif 'AMD' in cpuinfo:
+                vendor = 'AMD'
+            else:
+                vendor = 'Unknown'
+
+            family_match = re.search(r"cpu family\s+:\s+(.*)", cpuinfo)
+            assert family_match, "Failed to find family in /proc/cpuinfo"
+            family = family_match.group(1)
+
+            model_match = re.search(r"model\s+:\s+(.*)", cpuinfo)
+            assert model_match, "Failed to find model name in /proc/cpuinfo"
+            model = model_match.group(1)
+
+            stepping_match = re.search(r"stepping\s+:\s+(.*)", cpuinfo)
+            assert stepping_match, "Failed to find stepping in /proc/cpuinfo"
+            stepping = stepping_match.group(1)
+
+        self.cpu_desc = CPUDesc(vendor, model, family, stepping)
+
+        # select EPT/NPT bits based on the CPU vendor
+        self.epte_bits = self.epte_bits_intel if vendor == 'Intel' else self.npte_bits_amd
 
     @staticmethod
     def is_unconditional_branch(inst: Instruction) -> bool:
