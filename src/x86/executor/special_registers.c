@@ -14,13 +14,7 @@
 
 special_registers_t *orig_special_registers_state = NULL; // global
 
-static int store_orig_msr_state(void)
-{
-    orig_special_registers_state->cr0 = read_cr0();
-    orig_special_registers_state->cr4 = __read_cr4();
-    orig_special_registers_state->lstar = rdmsr64(MSR_LSTAR);
-    return 0;
-}
+static int store_orig_msr_state(void);
 
 static int set_msrs_for_user_actors(void)
 {
@@ -65,7 +59,21 @@ static int set_msrs_for_vmx(void)
 /// @brief Configure MSRs to enable SVM operation
 /// @param void
 /// @return 0 on success, -1 on failure
-static int set_msrs_for_svm(void) { return 0; }
+static int set_msrs_for_svm(void)
+{
+    // Ensure SVM is not disabled in BIOS
+    uint64_t vm_cr = rdmsr64(MSR_VM_CR);
+    ASSERT((vm_cr & (1 << 4)) == 0, "set_msrs_for_svm");
+
+    // Enable SVM operation
+    uint64_t efer = rdmsr64(MSR_EFER);
+    if (!(efer & EFER_SVME)) {
+        efer |= EFER_SVME;
+        wrmsr64(MSR_EFER, efer);
+    }
+
+    return 0;
+}
 
 static int get_ssbp_patch_msr_ctrls(uint64_t *msr_id, uint64_t *msr_mask)
 {
@@ -215,8 +223,22 @@ int set_special_registers(void)
         } else if (cpuinfo->x86_vendor == X86_VENDOR_AMD) {
             err = set_msrs_for_svm();
         }
+        CHECK_ERR("set_msrs_for_vm_actors");
     }
 
+    return 0;
+}
+
+static int store_orig_msr_state(void)
+{
+    orig_special_registers_state->cr0 = read_cr0();
+    orig_special_registers_state->cr4 = __read_cr4();
+    orig_special_registers_state->lstar = rdmsr64(MSR_LSTAR);
+    orig_special_registers_state->efer = rdmsr64(MSR_EFER);
+    orig_special_registers_state->gs_base = rdmsr64(MSR_GS_BASE);
+#if VENDOR_ID == VENDOR_AMD_ // AMD
+    orig_special_registers_state->syscfg = rdmsr64(MSR_SYSCFG);
+#endif
     return 0;
 }
 
@@ -232,6 +254,9 @@ void restore_special_registers(void)
 
     if (orig_special_registers_state->cr4 != 0)
         __write_cr4(orig_special_registers_state->cr4);
+
+    if (orig_special_registers_state->efer != 0)
+        wrmsr64(MSR_EFER, orig_special_registers_state->efer);
 
     if (orig_special_registers_state->lstar != 0)
         wrmsr64(MSR_LSTAR, orig_special_registers_state->lstar);
@@ -250,6 +275,14 @@ void restore_special_registers(void)
         get_mpx_msr_ctrls(&msr_id, &msr_mask);
         wrmsr64(msr_id, orig_special_registers_state->mpx_ctrl);
     }
+
+    if (orig_special_registers_state->gs_base != 0)
+        wrmsr64(MSR_GS_BASE, orig_special_registers_state->gs_base);
+
+#if VENDOR_ID == VENDOR_AMD_ // AMD
+    if (orig_special_registers_state->syscfg != 0)
+        wrmsr64(MSR_SYSCFG, orig_special_registers_state->syscfg);
+#endif
 
     memset(orig_special_registers_state, 0, sizeof(special_registers_t));
 }

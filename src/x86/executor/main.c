@@ -562,10 +562,7 @@ static int __init executor_init(void)
     }
 
     // Check memory configuration
-    unsigned int phys_addr_width = cpuid_eax(0x80000008) & 0xFF;
-    if (cpu_has(cpuinfo, X86_FEATURE_SME) || cpu_has(cpuinfo, X86_FEATURE_SEV)) {
-        phys_addr_width -= (cpuid_ebx(0x8000001f) >> 6) & 0x3f;
-    }
+    unsigned int phys_addr_width = cpuinfo->x86_phys_bits;
     if (phys_addr_width != PHYSICAL_WIDTH) {
         printk(KERN_ERR "x86_executor: ERROR: The width of physical addresses is %d instead of "
                         "expected %d\n",

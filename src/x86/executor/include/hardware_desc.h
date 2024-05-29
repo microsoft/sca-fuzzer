@@ -11,6 +11,9 @@
 #define VENDOR_ID 0
 #endif
 
+#define VENDOR_INTEL_ 1
+#define VENDOR_AMD_ 2
+
 // Cache configuration
 #ifndef L1D_ASSOCIATIVITY
 #error "Undefined L1D_ASSOCIATIVITY"

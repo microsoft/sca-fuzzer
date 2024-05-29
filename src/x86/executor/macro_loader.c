@@ -11,6 +11,7 @@
 #include "memory_guest.h"
 #include "sandbox_manager.h"
 #include "shortcuts.h"
+#include "svm.h"
 #include "test_case_parser.h"
 #include "vmx.h"
 
@@ -345,24 +346,65 @@ uint64_t inject_macro_configurable_part(uint64_t macro_type, uint64_t args, uint
         break;
     }
     case MACRO_SET_H2G_TARGET: {
-        // movabs r11, &vmcs_hpa
-        SET_MACRO_BYTE(0x49);
-        SET_MACRO_BYTE(0xbb);
-        *((uint64_t **)(macro_dest + cursor)) = &vmcs_hpas[arg1];
-        cursor += 8;
+        if (cpuinfo->x86_vendor == X86_VENDOR_INTEL) {
+            // movabs r11, &vmcs_hpa
+            SET_MACRO_BYTE(0x49);
+            SET_MACRO_BYTE(0xbb);
+            *((uint64_t **)(macro_dest + cursor)) = &vmcs_hpas[arg1];
+            cursor += 8;
 
-        // vmptrld [r11]
-        SET_MACRO_BYTE(0x41);
-        SET_MACRO_BYTE(0x0f);
-        SET_MACRO_BYTE(0xc7);
-        SET_MACRO_BYTE(0x33);
+            // vmptrld [r11]
+            SET_MACRO_BYTE(0x41);
+            SET_MACRO_BYTE(0x0f);
+            SET_MACRO_BYTE(0xc7);
+            SET_MACRO_BYTE(0x33);
 
-        // movabs r11, function_addr
-        uint64_t function_addr = get_function_addr(arg1, arg2, main_prologue_size);
-        SET_MACRO_BYTE(0x49);
-        SET_MACRO_BYTE(0xbb);
-        *((uint64_t *)(macro_dest + cursor)) = function_addr;
-        cursor += 8;
+            // movabs r11, function_addr
+            uint64_t function_addr = get_function_addr(arg1, arg2, main_prologue_size);
+            SET_MACRO_BYTE(0x49);
+            SET_MACRO_BYTE(0xbb);
+            *((uint64_t *)(macro_dest + cursor)) = function_addr;
+            cursor += 8;
+        } else {
+            // movabs r11, &vmcb_hva
+            SET_MACRO_BYTE(0x49);
+            SET_MACRO_BYTE(0xbb);
+            *((uint64_t **)(macro_dest + cursor)) = &vmcb_hvas[arg1];
+            cursor += 8;
+
+            // mov r11, [r11]
+            SET_MACRO_BYTE(0x4d);
+            SET_MACRO_BYTE(0x8b);
+            SET_MACRO_BYTE(0x1b);
+
+            // add r11, VMCB_RIP_OFFSET
+            SET_MACRO_BYTE(0x49);
+            SET_MACRO_BYTE(0x81);
+            SET_MACRO_BYTE(0xc3);
+            *((uint32_t *)(macro_dest + cursor)) = VMCB_RIP_OFFSET;
+            cursor += 4;
+
+            // mov qword ptr [r11], function_addr
+            uint64_t function_addr = get_function_addr(arg1, arg2, main_prologue_size);
+            SET_MACRO_BYTE(0x49);
+            SET_MACRO_BYTE(0xc7);
+            SET_MACRO_BYTE(0x03);
+            *((uint32_t *)(macro_dest + cursor)) = function_addr & 0xFFFFFFFF;
+            cursor += 4;
+
+            // add r11, 4
+            SET_MACRO_BYTE(0x49);
+            SET_MACRO_BYTE(0x83);
+            SET_MACRO_BYTE(0xc3);
+            SET_MACRO_BYTE(0x04);
+
+            SET_MACRO_BYTE(0x49);
+            SET_MACRO_BYTE(0xc7);
+            SET_MACRO_BYTE(0x03);
+            *((uint32_t *)(macro_dest + cursor)) = (function_addr >> 32) & 0xFFFFFFFF;
+            cursor += 4;
+
+        }
         break;
     }
     case MACRO_SET_U2K_TARGET: {
@@ -465,15 +507,28 @@ uint64_t inject_macro_configurable_part(uint64_t macro_type, uint64_t args, uint
         break;
     }
     case MACRO_SET_G2H_TARGET: {
-        // movabs r11, function_addr
-        uint64_t function_addr = get_function_addr(arg1, arg2, main_prologue_size);
-        SET_MACRO_BYTE(0x49);
-        SET_MACRO_BYTE(0xbb);
-        *((uint64_t *)(macro_dest + cursor)) = function_addr;
-        cursor += 8;
+        if (cpuinfo->x86_vendor == X86_VENDOR_INTEL) {
+            // movabs r11, function_addr
+            uint64_t function_addr = get_function_addr(arg1, arg2, main_prologue_size);
+            SET_MACRO_BYTE(0x49);
+            SET_MACRO_BYTE(0xbb);
+            *((uint64_t *)(macro_dest + cursor)) = function_addr;
+            cursor += 8;
+        } else {
+            // Nothing for AMD
+        }
         break;
     }
     case MACRO_SWITCH_H2G:
+        if (cpuinfo->x86_vendor == X86_VENDOR_INTEL) {
+            // Nothing for Intel
+        } else { // AMD
+            // movabs rax, &vmcb_hpa
+            SET_MACRO_BYTE(0x48);
+            SET_MACRO_BYTE(0xb8);
+            *((uint64_t *)(macro_dest + cursor)) = (uint64_t)&vmcb_hpas[arg1];
+            cursor += 8;
+        }
         break;
     case MACRO_SWITCH_G2H:
         break;
@@ -501,6 +556,18 @@ uint64_t inject_macro_configurable_part(uint64_t macro_type, uint64_t args, uint
     case MACRO_LANDING_G2H: {
         cursor += update_r14(owner, macro_dest, cursor);
         cursor += update_r15(owner, macro_dest, cursor);
+
+        if (cpuinfo->x86_vendor == X86_VENDOR_AMD) {
+            // mov rax, 0
+            SET_MACRO_BYTE(0x48);
+            SET_MACRO_BYTE(0xc7);
+            SET_MACRO_BYTE(0xc0);
+            SET_MACRO_BYTE(0x00);
+            SET_MACRO_BYTE(0x00);
+            SET_MACRO_BYTE(0x00);
+            SET_MACRO_BYTE(0x00);
+        }
+
         break;
     }
     case MACRO_SET_DATA_PERMISSIONS: {
@@ -793,38 +860,62 @@ void __attribute__((noipa)) macro_switch_u2k(void)
 void __attribute__((noipa)) macro_switch_h2g(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
+#if VENDOR_ID == 1
     asm_volatile_intel("vmresume\n");
+#else
+    asm_volatile_intel("" // rax contains the current VMCB pointer
+                       "clgi\n"
+                       "mov rax, qword ptr [rax]\n" //
+                       "vmsave rax\n" //
+                       "vmrun rax\n"  //
+                       "vmload rax\n"
+                       "mov rax, 0\n" //
+                       "stgi\n"       //
+                       "");
+#endif
     asm volatile(".quad " xstr(MACRO_END));
 }
 
 void __attribute__((noipa)) macro_switch_g2h(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
+#if VENDOR_ID == 1
     asm_volatile_intel("vmcall\n");
+#else
+    asm_volatile_intel("vmmcall\n");
+#endif
     asm volatile(".quad " xstr(MACRO_END));
 }
 
 void __attribute__((noipa)) macro_set_h2g_target(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
+#if VENDOR_ID == 1
     asm_volatile_intel(""                      // r11 contains the target address
                        PUSH_ABCDF()            //
                        "mov rcx, 0x0000681e\n" // GUEST_RIP
                        "vmwrite rcx, r11 \n"   //
                        POP_ABCDF()             //
     );
+#else
+    // Nothing on AMD
+#endif
     asm volatile(".quad " xstr(MACRO_END));
 }
 
 void __attribute__((noipa)) macro_set_g2h_target(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
+#if VENDOR_ID == 1
     asm_volatile_intel(""                      // r11 contains the target address
                        PUSH_ABCDF()            //
                        "mov rcx, 0x00006c16\n" // HOST_RIP
                        "vmwrite rcx, r11 \n"   //
                        POP_ABCDF()             //
     );
+#else
+    // Nothing on AMD
+#endif
     asm volatile(".quad " xstr(MACRO_END));
 }
 
