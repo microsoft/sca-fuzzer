@@ -61,11 +61,16 @@ static int set_msrs_for_vmx(void)
 /// @return 0 on success, -1 on failure
 static int set_msrs_for_svm(void)
 {
+    // Ensure SVM is not disabled in BIOS
+    uint64_t vm_cr = rdmsr64(MSR_VM_CR);
+    ASSERT((vm_cr & (1 << 4)) == 0, "set_msrs_for_svm");
+
     // Enable SVM operation
     uint64_t efer = rdmsr64(MSR_EFER);
-    efer |= EFER_SVME;
-    // efer &= ~EFER_SVME;
-    wrmsr64(MSR_EFER, efer);
+    if (!(efer & EFER_SVME)) {
+        efer |= EFER_SVME;
+        wrmsr64(MSR_EFER, efer);
+    }
 
     return 0;
 }
@@ -218,6 +223,7 @@ int set_special_registers(void)
         } else if (cpuinfo->x86_vendor == X86_VENDOR_AMD) {
             err = set_msrs_for_svm();
         }
+        CHECK_ERR("set_msrs_for_vm_actors");
     }
 
     return 0;
