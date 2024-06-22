@@ -12,6 +12,7 @@
 #include <../arch/x86/include/asm/fpu/api.h>
 #include <../arch/x86/include/asm/pgtable.h>
 #include <../arch/x86/include/asm/tlbflush.h>
+#include <../arch/x86/include/asm/desc.h>
 // clang-format on
 #include "main.h"
 

@@ -39,6 +39,7 @@ pip install revizor-fuzzer
 Alternatively, install Revizor from sources:
 ```bash
 # run from the project root directory
+pip install build
 make install
 ```
 
@@ -56,7 +57,7 @@ pip install revizor-fuzzer
 Then build and install the kernel module:
 
 ```bash
-# building a kernel module require kernel headers
+# building a kernel module require kernel headers (skip for WSL; see below)
 sudo apt-get install linux-headers-$(uname -r)
 
 # get the source code
@@ -69,6 +70,52 @@ make clean
 make
 make install
 ```
+
+### 3. a) WSL 2 support:
+Must compile Revizor from source.
+
+Must compile kernel from source. WSL2 kernel does support PFC MSR passthrough, but not in the kernel shipped with every WSL2 install. Compiling from source enables these settings.
+
+Install and launch wsl:
+wsl --install
+wsl --update
+wsl
+
+Kernel:
+Download kernel: https://github.com/microsoft/WSL2-Linux-Kernel;
+Prereqs: sudo apt install build-essential flex bison dwarves libssl-dev libelf-dev bc;
+Build, compile, and load kernel: 
+  ```bash
+  cd ./WSL2-Linux-Kernel
+  make -j $(expr $(nproc) - 1) KCONFIG_CONFIG=Microsoft/config-wsl # Very long compute time
+  ```
+  Built kernel for x86 located at: WSL2-Linux-Kernel/arch/x86/boot/bzImage
+  - Do not use x86_64!
+
+  In Windows:
+  Copy out the kernel binary (bzImage) from the WSL2 network drive to a native Windows (i.e. NTFS) partition
+  Navigate to C:\Users\$USER
+  Create file .wslconfig (i.e. C:\Users\$USER\.wslconfig), fill it with this:
+  ```conf
+  [wsl2]
+  kernel=C:\\Users\\$USER\\$PATH_TO_IMAGE_DIR\\bzImage
+  ```
+  - File will not pre-exist. You must create it.
+  - Must use 2 backslashes. Must point to image in Windows partition.
+  Run in Powershell/Command Prompt: `wsl --shutdown`
+    - Ensure no other instances of WSL are running on your system.
+  Wait [8 seconds](https://learn.microsoft.com/en-us/windows/wsl/wsl-config#the-8-second-rule-for-configuration-changes)
+  Start WSL. Check kernel with `uname -r`. If it loads correctly, you should have successfully installed your custom kernel!
+
+Install kernel headers & kernel modules support:
+```bash
+cd ./WSL2-Linux-Kernel;
+make headers_install; # Default INSTALL_HDR_PATH=/usr
+sudo make modules_install; # Installed to /lib/modules
+```
+
+Should now be able to build the executor as normal, and should also be able to download ISA spec as normal.
+Remember to launch revizor with `python3 ./revizor.py` instead of `rvzr`!
 
 ### 4. Download ISA spec
 
