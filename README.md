@@ -72,16 +72,24 @@ make install
 ### 3. a) WSL 2 support:
 Must compile Revizor from source.
 
-Must compile kernel from source. WSL2 kernel does support PFC MSR passthrough, but not in the kernel shipped with every WSL2 install. Compiling from source enables these settings.
+Must compile WSL2 kernel from source. 
+- WSL2 kernel source does support PFC MSR passthrough, but not in the kernel shipped with every WSL2 install. Compiling from source enables these settings.
+- WSL1 is not supported (No PFC passthrough) 
 
-Install and launch wsl:
+Install and launch WSL2:
+```
 wsl --install
 wsl --update
 wsl
+```
 
-Kernel:
-Download kernel: https://github.com/microsoft/WSL2-Linux-Kernel;
-Prereqs: sudo apt install build-essential flex bison dwarves libssl-dev libelf-dev bc;
+Download kernel: https://github.com/microsoft/WSL2-Linux-Kernel
+
+Prerequiste: 
+```bash
+sudo apt install build-essential flex bison dwarves libssl-dev libelf-dev bc
+```
+
 Build, compile, and load kernel: 
   ```bash
   cd ./WSL2-Linux-Kernel
@@ -91,19 +99,19 @@ Build, compile, and load kernel:
   - Do not use x86_64!
 
   In Windows:
-  Copy out the kernel binary (bzImage) from the WSL2 network drive to a native Windows (i.e. NTFS) partition
-  Navigate to C:\Users\$USER
-  Create file .wslconfig (i.e. C:\Users\$USER\.wslconfig), fill it with this:
-  ```conf
-  [wsl2]
-  kernel=C:\\Users\\$USER\\$PATH_TO_IMAGE_DIR\\bzImage
-  ```
-  - File will not pre-exist. You must create it.
-  - Must use 2 backslashes. Must point to image in Windows partition.
-  Run in Powershell/Command Prompt: `wsl --shutdown`
+  - Copy out the kernel binary (bzImage) from the WSL2 network drive to a native Windows (i.e. NTFS) partition
+  - Navigate to `C:\Users\$USER`
+  - Create file .wslconfig (i.e. `C:\Users\$USER\.wslconfig`), fill it with this:
+    ```conf
+    [wsl2]
+    kernel=C:\\Users\\$USER\\$PATH_TO_IMAGE_DIR\\bzImage
+    ```
+    - File will not pre-exist. You must create it.
+    - Must use 2 backslashes. Must point to image in Windows partition.
+  - Run in Powershell/Command Prompt: `wsl --shutdown`
     - Ensure no other instances of WSL are running on your system.
-  Wait [8 seconds](https://learn.microsoft.com/en-us/windows/wsl/wsl-config#the-8-second-rule-for-configuration-changes)
-  Start WSL. Check kernel with `uname -r`. If it loads correctly, you should have successfully installed your custom kernel!
+  - Wait [8 seconds](https://learn.microsoft.com/en-us/windows/wsl/wsl-config#the-8-second-rule-for-configuration-changes).
+  - Start WSL. Check kernel with `uname -r`. If it loads correctly, you should have successfully installed your custom kernel!
 
 Install kernel headers & kernel modules support:
 ```bash
