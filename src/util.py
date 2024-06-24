@@ -422,7 +422,7 @@ class Logger:
             for m_id in range(len(all_results[0])):
                 t = all_results[input_id][m_id]['htrace']
                 c = counters[input_id][t]
-            for t, c in counters[input_id].items():
+            for t, c in sorted(counters[input_id].items()):
                 print(f"{input_id:03}, {pretty_trace(t)}, {t}, {c}")
 
     # ==============================================================================================
