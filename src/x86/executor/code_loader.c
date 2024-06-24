@@ -248,6 +248,10 @@ static uint64_t expand_macro(tc_symbol_entry_t *macro, uint8_t *jmp_location, ui
     uint32_t target = (uint32_t)(&macro_dest[dest_cursor] - jmp_location - 5);
     jmp_location[0] = JMP_32BIT_RELATIVE; // opcode of the jump
     *((uint32_t *)&jmp_location[1]) = target;
+    // lfence
+    *((uint8_t *)&jmp_location[5]) = 0x0f;
+    *((uint8_t *)&jmp_location[6]) = 0xae;
+    *((uint8_t *)&jmp_location[7]) = 0xe8;
 
     // copy the dynamic part of the macro into the destination
     uint64_t macro_prologue_size = inject_macro_configurable_part(
@@ -264,10 +268,15 @@ static uint64_t expand_macro(tc_symbol_entry_t *macro, uint8_t *jmp_location, ui
     dest_cursor += macro_size;
 
     // insert a relative jump backwards
-    target = (int32_t)(&jmp_location[5] - &macro_dest[dest_cursor] - 5);
+    target = (int32_t)(&jmp_location[8] - &macro_dest[dest_cursor] - 5);
     macro_dest[dest_cursor] = JMP_32BIT_RELATIVE; // opcode of the jump
     *((uint32_t *)&macro_dest[dest_cursor + 1]) = target;
     dest_cursor += 5;
+    // lfence
+    *((uint32_t *)&macro_dest[dest_cursor+0]) = 0x0f;
+    *((uint32_t *)&macro_dest[dest_cursor+1]) = 0xae;
+    *((uint32_t *)&macro_dest[dest_cursor+2]) = 0xe8;
+    dest_cursor += 3;
 
     return dest_cursor;
 }
