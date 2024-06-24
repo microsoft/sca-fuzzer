@@ -437,8 +437,8 @@ EOF
     rm $tmp_config
 }
 
-@test "Feature: VMX test case" {
-    if cat /proc/cpuinfo | grep "vmx" >/dev/null; then
+@test "Feature: VM test case" {
+    if cat /proc/cpuinfo | grep -e "vmx" -e "svm" >/dev/null; then
         tmp_config=$(mktemp -p $TEST_DIR)
         printf "actors:\n  - actor2:\n    - mode: "guest"\n" > $tmp_config
         echo "1" > /sys/x86_executor/enable_hpa_gpa_collisions
