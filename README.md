@@ -66,6 +66,10 @@ make install
 
 ```bash
 rvzr download_spec -a x86-64 --extensions ALL_SUPPORTED --outfile base.json
+
+# alternatively, use the following command to include system instructions
+# but mind that adding these instructions with incorrect configuration will likely crash the system!
+# rvzr download_spec -a x86-64 --extensions ALL_AND_UNSAFE --outfile base.json
 ```
 
 ### 5. (Optional) System Configuration
