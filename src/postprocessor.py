@@ -177,13 +177,22 @@ class MinimizerViolation(Minimizer):
                 break
             print(f"\nMinimization attempt {attempt + 1}/{attempts}")
             old_instruction_count = len([i for i in open(test_case.asm_path, "r")])
+            made_progress = False
 
             if enable_minimize:
                 print("\n  Minimizing the test case: ", end='', flush=True)
                 test_case = self.minimize_test_case(test_case, inputs)
                 shutil.copy(test_case.asm_path, outfile)
+                new_instruction_count = len([i for i in open(test_case.asm_path, "r")])
+                if new_instruction_count < old_instruction_count:
+                    made_progress = True
 
             if enable_simplify:
+                old_tc = deepcopy(test_case)
+
+                print("\n  Replacing with NOPs: ", end='', flush=True)
+                test_case = self.simplify_nop(test_case, inputs)
+
                 print("\n  Simplifying instructions: ", end='', flush=True)
                 test_case = self.simplify(test_case, inputs)
 
@@ -195,8 +204,10 @@ class MinimizerViolation(Minimizer):
                 # test_case = self.simplify_masks(test_case, inputs)
                 # shutil.copy(test_case.asm_path, outfile)
 
-            new_instruction_count = len([i for i in open(test_case.asm_path, "r")])
-            if new_instruction_count == old_instruction_count:
+                if test_case != old_tc:
+                    made_progress = True
+
+            if not made_progress:
                 break
 
         if enable_minimize:
@@ -346,6 +357,21 @@ class MinimizerViolation(Minimizer):
             instructions = f.readlines()
         for i in inst_ids:
             instructions = self._simplify_mask(instructions, i)
+        return self._get_test_case_from_instructions(instructions, "/tmp/pipe.asm")
+
+    def simplify_nop(self, test_case: TestCase, inputs: List[Input]) -> TestCase:
+        inst_ids = self._probe_test_case(
+            test_case,
+            inputs,
+            modify_func=self._replace_nop,
+            check_func=self._check_for_violation,
+            removed_ids=True,
+            skip_instrumentation=True)
+
+        with open(test_case.asm_path, "r") as f:
+            instructions = f.readlines()
+        for i in inst_ids:
+            instructions = self._replace_nop(instructions, i)
         return self._get_test_case_from_instructions(instructions, "/tmp/pipe.asm")
 
     def minimize_labels(self, test_case: TestCase, _) -> TestCase:
@@ -691,7 +717,7 @@ class MinimizerViolation(Minimizer):
         return instructions[:i] + instructions[i + 1:]
 
     @staticmethod
-    def _simplify_instruction(instructions, i) -> List:
+    def _simplify_instruction(instructions: List[str], i) -> List:
         tmp = list(instructions)  # make a copy
         clean_line = tmp[i].strip().lower()
         words = clean_line.split(" ")
@@ -733,10 +759,46 @@ class MinimizerViolation(Minimizer):
             replacement = MASK_REPLACEMENTS.get(word, None)
             if replacement:
                 tmp[i] = ", ".join(words[:word_id] + [replacement] + words[word_id + 1:]) \
-                    + "#" + comment + "\n"
+                    + " #" + comment
                 return tmp
 
         return []
+
+    @staticmethod
+    def _replace_nop(instructions, i) -> List:
+        replacements = {
+            1: "nop",
+            2: "nop dword ptr [rax]",
+            3: "nop dword ptr [rax]",
+            4: "nop dword ptr [rax + 1]",
+            5: "nop dword ptr [rax + rax*2 + 1]",
+            6: "nop dword ptr [rax + rax*2 + 1]",
+            7: "nop dword ptr [rax + 0xff]",
+        }
+
+        tmp = list(instructions)  # make a copy
+
+        line = tmp[i].strip().lower()
+        if "nop" in line:
+            return []
+
+        # determine the instruction size
+        with open("tmp.asm", "w") as f:
+            f.write(".intel_syntax noprefix\n")
+            f.write(line)
+            f.write("\n")
+        run("as tmp.asm -o tmp.o", shell=True, check=True)
+        run("objcopy -O binary --only-section=.text tmp.o tmp.o", shell=True, check=True)
+        size = os.path.getsize("tmp.o")
+        os.remove("tmp.asm")
+        os.remove("tmp.o")
+
+        if size > 7:
+            return []
+
+        tmp[i] = replacements[size] + "\n"
+
+        return tmp
 
     @staticmethod
     def _push_fence(instructions, i) -> List:
