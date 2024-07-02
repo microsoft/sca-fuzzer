@@ -44,3 +44,13 @@ jobs:
         MYPYPATH=src/ mypy src/*.py src/x86/*.py --exclude src/tests/unit_isa_loader.py \
           --exclude src/x86/tests/unit_model.py --exclude src/x86/tests/unit_executor.py \
           --exclude src/x86/tests/unit_generators.py
+    - name: Common unit tests
+      run: |
+        python -m unittest discover tests -p "unit_*.py" -v
+    - name: x86 unit tests
+      run: |
+        # Note: we intentionally do not use the 'discover' option because
+        # it causes cross-contamination of config options between unit tests
+        python3 -m unittest tests.x86_tests.unit_generators -v
+        python3 -m unittest tests.x86_tests.unit_isa_loader -v
+        python3 -m unittest tests.x86_tests.unit_model -v
