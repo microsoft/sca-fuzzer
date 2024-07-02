@@ -97,14 +97,14 @@ logging_modes:
 # Helper functions
 # ------------------------------------------------------------------------------
 function setup() {
-    PROJECT_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../../../" >/dev/null 2>&1 && pwd)"
-    ASM_DIR="$PROJECT_ROOT/src/x86/tests/asm"
+    PROJECT_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../../" >/dev/null 2>&1 && pwd)"
+    ASM_DIR="$PROJECT_ROOT/tests/x86_tests/asm"
     cli="$PROJECT_ROOT/revizor.py"
     cli_opt="python3 -OO $PROJECT_ROOT/revizor.py"
 
-    ISA="$PROJECT_ROOT/src/x86/base.json"
+    ISA="$PROJECT_ROOT/base.json"
     if [ ! -f "$ISA" ]; then
-        echo "Could not find 'base.json' in $ISA."
+        echo "Could not find 'base.json' in $ISA"
         echo "Follow the instructions in README.md to download it, and copy into this directory."
         false
     fi
