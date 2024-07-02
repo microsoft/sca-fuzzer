@@ -45,5 +45,8 @@ exclude = [
   "src/x86/tests/",
 ]
 
+[tool.hatch.build.targets.wheel]
+packages = ["src/"]
+
 [project.scripts]
 rvzr = "revizor.cli:main"
