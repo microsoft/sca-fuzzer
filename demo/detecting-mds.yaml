@@ -12,9 +12,9 @@ instruction_categories:
 
 # environment
 actor:
-  - name: "main"
-  - data_properties:
-    - accessed: False
+  - main:
+    - data_properties:
+      - accessed: False
 
 # fuzzing configuration
 enable_speculation_filter: true
