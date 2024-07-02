@@ -26,11 +26,11 @@ instruction_blocklist:
   - DIV
   - IDIV
 
-actor:
-  - name: "main"
-  - data_properties:
-    - present: False
-    - writable: False
+actors:
+  - main:
+    - data_properties:
+      - present: false
+      - writable: false
 
 # misc. fuzzing configuration
 enable_speculation_filter: true
