@@ -30,7 +30,6 @@ class InstructionSet(InstructionSetAbstract):
         self.instruction_unfiltered = deepcopy(self.instructions)
         self.reduce(include_categories)
         self.dedup()
-        super().__init__(filename, include_categories)
 
     def init_from_file(self, filename: str):
         with open(filename, "r") as f:
