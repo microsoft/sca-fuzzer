@@ -42,7 +42,7 @@ class NumpyRandomInputGenerator(InputGenerator):
             data = data << CONF.memory_access_zeroed_bits  # type: ignore
 
             # copy lower 32-bits to upper 32-bits, for every 8-byte word
-            data = (data << 32) + data
+            data = (data << np.uint64(32)) + data
 
             # cast to InputFragment
             input_[i] = data.view(InputFragment)
