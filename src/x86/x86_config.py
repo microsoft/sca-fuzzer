@@ -191,17 +191,29 @@ executor: str = try_get_cpu_vendor()
 instruction_categories: List[str] = ["BASE-BINARY", "BASE-BITBYTE", "BASE-COND_BR"]
 """ instruction_categories: a default list of tested instruction categories """
 
+buggy_instructions: List[str] = [
+    "sti",  # enables interrupts
+    "cli",  # disables interrupts; blocked just in case
+    "xlat",  # requires support of segment registers
+    "xlatb",  # requires support of segment registers
+    "cmpxchg8b",  # known bug: doesn't execute the mem. access hook
+    "lock cmpxchg8b",  # https://github.com/unicorn-engine/unicorn/issues/990
+    "cmpxchg16b",  # known bug: doesn't execute the mem. access hook
+    "lock cmpxchg16b",  # https://github.com/unicorn-engine/unicorn/issues/990
+    "cpuid",  # causes false positives: the model and the CPU will likely have different values
+    "cmpps",  # causes crash
+    "cmpss",  # causes crash
+    'cmppd',  # causes crash
+    'cmpsd',  # causes crash
+    "movq2dq",  # requires MMX
+    'movdq2q',  # requires MMX
+    "rcpps",  # incorrect emulation
+    "rcpss",  # incorrect emulation
+    "maskmovdqu",  # incorrect emulation
+]
+
 instruction_blocklist: List[str] = [
     # Hard to fix:
-    # - STI - enables interrupts, thus corrupting the measurements; CLI - just in case
-    "sti", "cli",
-    # - CMPXCHG8B - Unicorn doesn't execute the mem. access hook
-    #   bug: https://github.com/unicorn-engine/unicorn/issues/990
-    "cmpxchg8b", "lock cmpxchg8b", "cmpxchg16b", "lock cmpxchg16b",
-    # - Incorrect emulation
-    "cpuid", "rcpps", "rcpss", "maskmovdqu",
-    # - Requires support of segment registers
-    "xlat", "xlatb",
     # - Requires complex instrumentation
     "enterw", "enter", "leavew", "leave",
     # - requires support of all possible interrupts
@@ -220,12 +232,8 @@ instruction_blocklist: List[str] = [
     'addps', 'addss', 'addpd', 'addsd',
     'subps', 'subss', 'subpd', 'subsd',
     'addsubpd', 'addsubps', 'haddpd', 'haddps', 'hsubpd', 'hsubps',
-    # -- crash
-    "cmpps", "cmpss", 'cmppd', 'cmpsd',
-    # -- requires MMX
-    "movq2dq", 'movdq2q',
-
 ]  # yapf: disable
+instruction_blocklist.extend(buggy_instructions)
 
 # x86 executor internally uses R8...R15, RSP, RBP and, thus, they are excluded
 # segment registers are also excluded as we don't support their handling so far
