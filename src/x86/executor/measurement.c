@@ -26,6 +26,8 @@
 #include "vmx.h"
 #include "svm.h"
 
+#include <../arch/x86/include/asm/desc.h>
+
 measurement_t *measurements = NULL; // global
 
 int unsafe_bubble(void);
