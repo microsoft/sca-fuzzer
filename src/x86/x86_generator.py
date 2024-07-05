@@ -42,8 +42,8 @@ class X86Generator(ConfigurableGenerator, abc.ABC):
 
         # configure instrumentation passes
         self.passes = [
-            X86SandboxPass(self.target_desc, self.faults),
             X86PatchUndefinedFlagsPass(self.instruction_set, self),
+            X86SandboxPass(self.target_desc, self.faults),
             X86PatchUndefinedResultPass(),
         ]
         if self.faults.non_canonical_access:
