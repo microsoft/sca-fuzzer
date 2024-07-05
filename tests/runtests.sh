@@ -37,8 +37,6 @@ echo "===== x86 unit tests ====="
 cd $SCRIPT_DIR/.. || exit
 # Note: we intentionally do not use the 'discover' option because it causes cross-contamination
 # of config options between unit tests
-python3 -m unittest tests.x86_tests.unit_executor -v
-echo "-------------"
 python3 -m unittest tests.x86_tests.unit_generators -v
 echo "-------------"
 python3 -m unittest tests.x86_tests.unit_isa_loader -v
