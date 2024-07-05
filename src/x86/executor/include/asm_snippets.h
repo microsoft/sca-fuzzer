@@ -370,5 +370,34 @@
 #define RELOAD(BASE, OFFSET, TMP, DEST) RELOAD_AMD(BASE, OFFSET, TMP, DEST)
 #endif
 
+// =================================================================================================
+// Macro stack management
+// =================================================================================================
+/// @brief A sequence of instructions that switches the stack pointer to the macro stack
+///        and pushes the flags and registers RAX, RBX, RCX, RDX
+#define MACRO_PROLOGUE()                                                                           \
+    "mov qword ptr [r14 - " xstr(MACRO_STACK_TOP_OFFSET) " - 8], rsp\n"                            \
+    "lea rsp, [r14 - " xstr(MACRO_STACK_TOP_OFFSET) " - 8]\n"                                      \
+    "push rax\n"                                                                                   \
+    "push rbx\n"                                                                                   \
+    "push rcx\n"                                                                                   \
+    "push rdx\n"                                                                                   \
+    "pushf\n"
+
+/// @brief A sequence of instructions that pops the flags and registers RDX, RCX, RBX, RAX, RSP
+///        and overwrites the popped memory addresses with zeros
+#define MACRO_EPILOGUE()                                                                           \
+    "popf\n"                                                                                       \
+    "pop rdx\n"                                                                                    \
+    "pop rcx\n"                                                                                    \
+    "pop rbx\n"                                                                                    \
+    "pop rax\n"                                                                                    \
+    "mov qword ptr [rsp - 0x08], 0 \n"                                                             \
+    "mov qword ptr [rsp - 0x10], 0 \n"                                                             \
+    "mov qword ptr [rsp - 0x18], 0 \n"                                                             \
+    "mov qword ptr [rsp - 0x20], 0 \n"                                                             \
+    "mov qword ptr [rsp - 0x28], 0 \n"                                                             \
+    "pop rsp\n"
+
 // clang-format on
 #endif // _ASM_SNIPPETS_H_

@@ -1,0 +1,39 @@
+input_gen_seed: 1234567
+program_generator_seed: 1234567
+fuzzer: architectural
+enable_priming: false
+memory_access_zeroed_bits: 0
+inputs_per_class: 1
+logging_modes:
+ - info
+#  - dbg_violation
+
+instruction_categories:
+- BASE-BINARY
+- BASE-BITBYTE
+- BASE-CMOV
+- BASE-COND_BR
+- BASE-CONVERT
+- BASE-DATAXFER
+- BASE-FLAGOP
+- BASE-LOGICAL
+- BASE-MISC
+- BASE-NOP
+- BASE-POP
+- BASE-PUSH
+- BASE-SEMAPHORE
+- BASE-SETCC
+- BASE-STRINGOP
+- BASE-WIDENOP
+- SSE-SSE
+- SSE-DATAXFER
+- SSE-MISC
+- SSE2-DATAXFER
+- SSE2-MISC
+- CLFLUSHOPT-CLFLUSHOPT
+- CLFSH-MISC
+
+program_size: 300
+avg_mem_accesses: 150
+max_bb_per_function: 3
+min_bb_per_function: 3

@@ -246,28 +246,20 @@ static uint64_t expand_macro(tc_symbol_entry_t *macro, uint8_t *jmp_location, ui
 
     // replace the nop with a relative 32-bit jump to the expanded macro
     uint32_t target = (uint32_t)(&macro_dest[dest_cursor] - jmp_location - 5);
-    jmp_location[0] = JMP_32BIT_RELATIVE; // opcode of the jump
+    jmp_location[0] = 0xe9; // opcode of the jump
     *((uint32_t *)&jmp_location[1]) = target;
 
-    // copy the dynamic part of the macro into the destination
-    uint64_t macro_prologue_size = inject_macro_configurable_part(
-        macro->id, macro->args, macro->owner, &macro_dest[dest_cursor], main_prologue_size);
-    ASSERT(macro_prologue_size >= 0, "expand_macro");
-    dest_cursor += macro_prologue_size;
-
-    // copy the static part of the macro
-    uint8_t *macro_start;
-    uint64_t macro_size;
-    int err = get_static_macro_bounds(macro->id, &macro_start, &macro_size);
-    CHECK_ERR("get_static_macro_bounds");
-    memcpy(&macro_dest[dest_cursor], macro_start, macro_size);
+    // copy the macro into the destination
+    int64_t macro_size = inject_macro(macro->id, macro->args, macro->owner,
+                                       &macro_dest[dest_cursor], main_prologue_size);
+    ASSERT(macro_size >= 0, "expand_macro");
     dest_cursor += macro_size;
 
     // insert a relative jump backwards
     target = (int32_t)(&jmp_location[5] - &macro_dest[dest_cursor] - 5);
-    macro_dest[dest_cursor] = JMP_32BIT_RELATIVE; // opcode of the jump
-    *((uint32_t *)&macro_dest[dest_cursor + 1]) = target;
-    dest_cursor += 5;
+    macro_dest[dest_cursor++] = 0xe9; // opcode of the jump
+    *((uint32_t *)&macro_dest[dest_cursor]) = target;
+    dest_cursor += 4;
 
     return dest_cursor;
 }
