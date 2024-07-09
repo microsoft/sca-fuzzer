@@ -76,6 +76,9 @@ class NumpyRandomInputGenerator(InputGenerator):
         Produce a new sequence of random inputs, but copy the tainted values from
         the base sequence
         """
+        if not inputs:
+            return []
+
         if len(inputs) != len(taints):
             raise Exception("Error: Cannot extend inputs. "
                             "The number of taints does not match the number of inputs.")
