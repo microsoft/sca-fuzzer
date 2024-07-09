@@ -6,6 +6,7 @@
 #ifndef _MACRO_H_
 #define _MACRO_H_
 
+#include "test_case_parser.h"
 #include <linux/types.h>
 
 typedef enum {
@@ -30,10 +31,10 @@ typedef enum {
     MACRO_SET_DATA_PERMISSIONS = 18,
 } macro_name_e;
 
-#define HTRACE_REGISTER "r13"
+#define HTRACE_REGISTER        "r13"
 
-int64_t inject_macro(uint64_t macro_type, uint64_t args, uint64_t owner, uint8_t *macro_dest,
-                     size_t main_prologue_size);
+int expand_macro(tc_symbol_entry_t *macro, uint8_t *dest, uint8_t *macro_dest, size_t *macro_size);
+void set_main_prologue_size(size_t size);
 
 int init_macros_loader(void);
 void free_macros_loader(void);

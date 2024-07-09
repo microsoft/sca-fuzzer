@@ -68,9 +68,11 @@ typedef struct {
 } macro_args_t;
 
 typedef struct {
-    size_t (*start)(macro_args_t args, uint8_t *dest, size_t mps);
+    size_t (*start)(macro_args_t args, uint8_t *dest);
     void (*body)(void);
 } macro_descr_t;
+
+static size_t main_prologue_size = 0;
 
 // =================================================================================================
 // Convenience shortcuts for writing constants to memory
@@ -131,10 +133,8 @@ static inline bool is_macro_end(uint8_t *ptr)
 /// @brief Get the address of a function within a section
 /// @param section_id ID of the section
 /// @param function_id ID of the function
-/// @param main_prologue_size Size of the main function prologue,
-///        calculated by code_loader.c:load_section_main
 /// @return Virtual address of the function
-static uint64_t get_function_addr(int section_id, int function_id, uint64_t main_prologue_size)
+static uint64_t get_function_addr(int section_id, int function_id)
 {
     uint64_t section_base = 0;
 
@@ -145,8 +145,11 @@ static uint64_t get_function_addr(int section_id, int function_id, uint64_t main
         section_base = (uint64_t)guest_memory->code.section;
     }
 
+    // The code section of the main actor begins after a hardcoded prologue,
+    // which we need to take into account when calculating the function address
     if (section_id == 0)
         section_base += main_prologue_size;
+
     return section_base + test_case->symbol_table[function_id].offset;
 }
 
@@ -391,7 +394,7 @@ void __attribute__((noipa)) body_macro_tsc_end(void)
 }
 
 // FAULT_HANDLER -------------------------------------------------------------------------------
-static inline size_t start_macro_fault_handler(macro_args_t args, uint8_t *dest, size_t mps)
+static inline size_t start_macro_fault_handler(macro_args_t args, uint8_t *dest)
 {
     size_t cursor = 0;
 
@@ -424,8 +427,7 @@ static inline size_t start_macro_fault_handler(macro_args_t args, uint8_t *dest,
 }
 
 // FAULT_HANDLER_WITH_MEASUREMENT ------------------------------------------------------------------
-static inline size_t start_macro_fault_handler_with_measurement(macro_args_t args, uint8_t *dest,
-                                                                size_t mps)
+static inline size_t start_macro_fault_handler_with_measurement(macro_args_t args, uint8_t *dest)
 {
     size_t cursor = 0;
     cursor += update_r14(args.arg1, dest, cursor);
@@ -434,14 +436,14 @@ static inline size_t start_macro_fault_handler_with_measurement(macro_args_t arg
 }
 
 // MACRO_SWITCH ------------------------------------------------------------------------------------
-static inline size_t start_macro_fault_switch(macro_args_t args, uint8_t *dest, size_t mps)
+static inline size_t start_macro_fault_switch(macro_args_t args, uint8_t *dest)
 {
     size_t cursor = 0;
     // Update RSP and R14 to the addresses within the new actor's memory
     cursor += update_r14_rsp(args.arg1, dest, cursor);
 
     // Determine the target address for the switch
-    uint64_t switch_target = get_function_addr(args.arg1, args.arg2, mps);
+    uint64_t switch_target = get_function_addr(args.arg1, args.arg2);
     uint32_t relative_offset = switch_target - (uint64_t)dest - cursor - 5;
 
     // Jump to the target address (in a different actor) via a relative offset
@@ -452,12 +454,12 @@ static inline size_t start_macro_fault_switch(macro_args_t args, uint8_t *dest, 
 }
 
 // MACRO_SET_K2U_TARGET ----------------------------------------------------------------------------
-static inline size_t start_macro_set_k2u_target(macro_args_t args, uint8_t *dest, size_t mps)
+static inline size_t start_macro_set_k2u_target(macro_args_t args, uint8_t *dest)
 {
     size_t cursor = 0;
 
     // ASM: movabs r11, function_addr
-    uint64_t function_addr = get_function_addr(args.arg1, args.arg2, mps);
+    uint64_t function_addr = get_function_addr(args.arg1, args.arg2);
     APPEND_BYTES_TO_DEST(0x49, 0xbb);
     APPEND_U64_TO_DEST(function_addr);
 
@@ -465,10 +467,7 @@ static inline size_t start_macro_set_k2u_target(macro_args_t args, uint8_t *dest
 }
 
 // MACRO_SWITCH_K2U --------------------------------------------------------------------------------
-static inline size_t start_macro_switch_k2u(macro_args_t args, uint8_t *dest, size_t mps)
-{
-    return 0;
-}
+static inline size_t start_macro_switch_k2u(macro_args_t args, uint8_t *dest) { return 0; }
 
 void __attribute__((noipa)) body_macro_switch_k2u(void)
 {
@@ -487,10 +486,10 @@ void __attribute__((noipa)) body_macro_switch_k2u(void)
 }
 
 // MACRO_SET_U2K_TARGET ----------------------------------------------------------------------------
-static inline size_t start_macro_set_u2k_target(macro_args_t args, uint8_t *dest, size_t mps)
+static inline size_t start_macro_set_u2k_target(macro_args_t args, uint8_t *dest)
 {
     size_t cursor = 0;
-    uint64_t function_addr = get_function_addr(args.arg1, args.arg2, mps);
+    uint64_t function_addr = get_function_addr(args.arg1, args.arg2);
     uint32_t macro_stack_offset = -MACRO_STACK_TOP_OFFSET - 8;
 
     // ASM: mov [r14 - MACRO_STACK_TOP_OFFSET - 8],rsp
@@ -550,12 +549,12 @@ void __attribute__((noipa)) body_macro_switch_u2k(void)
 }
 
 // MACRO_SET_H2G_TARGET ----------------------------------------------------------------------------
-static inline size_t start_macro_set_h2g_target(macro_args_t args, uint8_t *dest, size_t mps)
+static inline size_t start_macro_set_h2g_target(macro_args_t args, uint8_t *dest)
 {
     size_t cursor = 0;
 
     if (cpuinfo->x86_vendor == X86_VENDOR_INTEL) {
-        uint64_t function_addr = get_function_addr(args.arg1, args.arg2, mps);
+        uint64_t function_addr = get_function_addr(args.arg1, args.arg2);
         uint64_t vmcs_hpa_addr = (uint64_t)&vmcs_hpas[args.arg1];
 
         // ASM: movabs r11, &vmcs_hpa
@@ -568,7 +567,7 @@ static inline size_t start_macro_set_h2g_target(macro_args_t args, uint8_t *dest
         APPEND_U64_TO_DEST(function_addr);
 
     } else if (cpuinfo->x86_vendor == X86_VENDOR_AMD) {
-        uint64_t function_addr = get_function_addr(args.arg1, args.arg2, mps);
+        uint64_t function_addr = get_function_addr(args.arg1, args.arg2);
         uint64_t vmcb_hva_addr = (uint64_t)&vmcb_hvas[args.arg1];
 
         // ASM: movabs r11, &vmcb_hva
@@ -609,7 +608,7 @@ void __attribute__((noipa)) body_macro_set_h2g_target(void)
 }
 
 // MACRO_SWITCH_H2G --------------------------------------------------------------------------------
-static inline size_t start_macro_switch_h2g(macro_args_t args, uint8_t *dest, size_t mps)
+static inline size_t start_macro_switch_h2g(macro_args_t args, uint8_t *dest)
 {
     size_t cursor = 0;
     if (cpuinfo->x86_vendor == X86_VENDOR_INTEL) {
@@ -642,12 +641,12 @@ void __attribute__((noipa)) body_macro_switch_h2g(void)
 }
 
 // MACRO_SET_G2H_TARGET ----------------------------------------------------------------------------
-static inline size_t start_macro_set_g2h_target(macro_args_t args, uint8_t *dest, size_t mps)
+static inline size_t start_macro_set_g2h_target(macro_args_t args, uint8_t *dest)
 {
     size_t cursor = 0;
     if (cpuinfo->x86_vendor == X86_VENDOR_INTEL) {
         // ASM: movabs r11, function_addr
-        uint64_t function_addr = get_function_addr(args.arg1, args.arg2, mps);
+        uint64_t function_addr = get_function_addr(args.arg1, args.arg2);
         APPEND_BYTES_TO_DEST(0x49, 0xbb);
         APPEND_U64_TO_DEST(function_addr);
     } else {
@@ -685,7 +684,7 @@ void __attribute__((noipa)) body_macro_switch_g2h(void)
 }
 
 // MACRO_LANDING_K2U -------------------------------------------------------------------------------
-static inline size_t start_macro_landing_k2u(macro_args_t args, uint8_t *dest, size_t mps)
+static inline size_t start_macro_landing_k2u(macro_args_t args, uint8_t *dest)
 {
     size_t cursor = 0;
     cursor += update_r14_rsp(args.owner, dest, cursor);
@@ -696,7 +695,7 @@ static inline size_t start_macro_landing_k2u(macro_args_t args, uint8_t *dest, s
 }
 
 // MACRO_LANDING_U2K -------------------------------------------------------------------------------
-static inline size_t start_macro_landing_u2k(macro_args_t args, uint8_t *dest, size_t mps)
+static inline size_t start_macro_landing_u2k(macro_args_t args, uint8_t *dest)
 {
     size_t cursor = 0;
     cursor += update_r14(args.owner, dest, cursor);
@@ -710,7 +709,7 @@ static inline size_t start_macro_landing_u2k(macro_args_t args, uint8_t *dest, s
 }
 
 // MACRO_LANDING_H2G -------------------------------------------------------------------------------
-static inline size_t start_macro_landing_h2g(macro_args_t args, uint8_t *dest, size_t mps)
+static inline size_t start_macro_landing_h2g(macro_args_t args, uint8_t *dest)
 {
     size_t cursor = 0;
     cursor += update_r14(args.owner, dest, cursor);
@@ -724,7 +723,7 @@ static inline size_t start_macro_landing_h2g(macro_args_t args, uint8_t *dest, s
 }
 
 // MACRO_LANDING_G2H -------------------------------------------------------------------------------
-static inline size_t start_macro_landing_g2h(macro_args_t args, uint8_t *dest, size_t mps)
+static inline size_t start_macro_landing_g2h(macro_args_t args, uint8_t *dest)
 {
     size_t cursor = 0;
     cursor += update_r14(args.owner, dest, cursor);
@@ -739,7 +738,7 @@ static inline size_t start_macro_landing_g2h(macro_args_t args, uint8_t *dest, s
 }
 
 // MACRO_SET_DATA_PERMISSIONS ----------------------------------------------------------------------
-static inline size_t start_macro_set_data_permissions(macro_args_t args, uint8_t *dest, size_t mps)
+static inline size_t start_macro_set_data_permissions(macro_args_t args, uint8_t *dest)
 {
     size_t cursor = 0;
     // get safe bits to set/clear
@@ -967,10 +966,9 @@ static macro_descr_t *get_macro_subtype_from_id(uint64_t macro_id)
 ///            symbol table
 /// @param[in] owner ID of the actor owning the macro
 /// @param[out] dest Pointer to the destination buffer
-/// @param[in] mps Size of the main function prologue, calculated by code_loader.c:load_section_main
 /// @return Size of the added code, in bytes
 uint64_t inject_macro_configurable_part(macro_descr_t *descr, uint64_t args, uint64_t owner,
-                                        uint8_t *dest, size_t mps)
+                                        uint8_t *dest)
 {
     // Extract the macro arguments
     macro_args_t args_struct = {
@@ -982,16 +980,15 @@ uint64_t inject_macro_configurable_part(macro_descr_t *descr, uint64_t args, uin
     };
 
     // Generate the macro start code
-    size_t cursor = descr->start(args_struct, dest, mps);
+    size_t cursor = descr->start(args_struct, dest);
     return cursor;
 }
 
 /// @brief Inject the static part of the macro into destination
 /// @param[in] descr Pointer to the macro descriptor
 /// @param[out] dest Pointer to the destination buffer
-/// @param[in] mps Size of the main function prologue, calculated by code_loader.c:load_section_main
 /// @return Size of the added code, in bytes
-uint64_t inject_macro_static_part(macro_descr_t *descr, uint8_t *dest, size_t mps)
+uint64_t inject_macro_static_part(macro_descr_t *descr, uint8_t *dest)
 {
     // Get pointers to the start and the end of the static part of the macro
     uint8_t *macro_wrapper_start = (uint8_t *)descr->body;
@@ -1016,33 +1013,63 @@ uint64_t inject_macro_static_part(macro_descr_t *descr, uint8_t *dest, size_t mp
     return size;
 }
 
-/// @brief Inject a macro into the destination buffer
-/// @param[in] type ID of the macro
-/// @param[in] args Compressed representation of the macro arguments, as received from the test case
-/// @param[in] owner ID of the actor owning the macro
-/// @param[out] dest Pointer to the destination buffer
-/// @param[in] mps Size of the main function prologue, calculated by code_loader.c:load_section_main
-/// @return Size of the added code, in bytes
-int64_t inject_macro(uint64_t type_id, uint64_t args, uint64_t owner, uint8_t *dest, size_t mps)
+/// @brief Expand a macro into the destination buffer (macro_dest) and replace the nop at
+///        jmp_location with a relative jump to the expanded macro
+/// @param macro Macro to expand
+/// @param[in] dest Destination address for placing the JMP instruction
+/// @param[in] macro_dest Destination buffer for the expanded macro
+/// @param[out] macro_size Size of the expanded macro
+/// @return 0 on success, -1 on failure
+int expand_macro(tc_symbol_entry_t *macro, uint8_t *code_dest, uint8_t *macro_dest,
+                 size_t *macro_size)
 {
-    size_t size = 0;
+    uint64_t code_cursor = 0;
+    uint64_t macro_cursor = 0;
+    const int jmp_opcode_size = 5;
+
+    // Get the macro type
+    symbol_id_t type_id = macro->id;
+    ASSERT(type_id != 0, "expand_macro");
 
     // Get the macro descriptor
     macro_descr_t *descr = get_macro_subtype_from_id(type_id);
-    ASSERT(descr != NULL, "inject_macro");
+    ASSERT(descr != NULL, "expand_macro");
 
-    // Inject the configurable part of the macro
+    // Code area: Replace the NOP with a relative 32-bit jump to the expanded macro
+    uint32_t target = (uint32_t)(&macro_dest[macro_cursor] - code_dest - jmp_opcode_size);
+    code_dest[code_cursor++] = 0xe9; // start of the jump opcode
+    *((uint32_t *)&code_dest[code_cursor]) = target;
+    code_dest += 4;
+
+    // Macro area: Inject the configurable part of the macro
     if (descr->start != NULL) {
-        size += inject_macro_configurable_part(descr, args, owner, dest, mps);
+        macro_cursor += inject_macro_configurable_part(descr, macro->args, macro->owner,
+                                                       &macro_dest[macro_cursor]);
     }
+    ASSERT(macro_cursor >= 0, "expand_macro");
 
-    // Inject the static part of the macro
+    // Macro area: Inject the static part of the macro
     if (descr->body != NULL) {
-        size += inject_macro_static_part(descr, dest + size, mps);
+        macro_cursor += inject_macro_static_part(descr, &macro_dest[macro_cursor]);
     }
+    ASSERT(macro_cursor >= 0, "expand_macro");
 
-    return size;
+    // Macro area: Insert a relative jump backwards
+    target = (int32_t)(&code_dest[code_cursor] - &macro_dest[macro_cursor] - jmp_opcode_size);
+    macro_dest[macro_cursor++] = 0xe9; // start of the jump opcode
+    *((uint32_t *)&macro_dest[macro_cursor]) = target;
+    macro_cursor += 4;
+
+    *macro_size = macro_cursor;
+    return 0;
 }
+
+/// @brief Setter for the module variable main_prologue_size
+///        This interface is necessary because the main section does not set from offset zero,
+///        and instead starts from a hardcoded prologue. To take this offset into account,
+///        Code Loader passes the size of the prologue to the Macros Loader.
+/// @param size
+void set_main_prologue_size(size_t size) { main_prologue_size = size; }
 
 // =================================================================================================
 int init_macros_loader(void) { return 0; }
