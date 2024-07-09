@@ -8,15 +8,25 @@ and rax, 0b111111000000
 
 # delay the cond. jump
 lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax - 1]
 lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax - 1]
 lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax - 1]
 lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax - 1]
 lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax - 1]
 lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax - 1]
 lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax - 1]
 lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax - 1]
 lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax - 1]
 lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax - 1]
 
 # reduce the entropy in rbx
 and rbx, 0b1000000
