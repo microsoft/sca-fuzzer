@@ -11,15 +11,25 @@ lea rsi, qword ptr [rip + .l2]
 
 # delay the jump
 lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax - 1]
 lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax - 1]
 lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax - 1]
 lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax - 1]
 lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax - 1]
 lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax - 1]
 lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax - 1]
 lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax - 1]
 lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax - 1]
 lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax - 1]
 
 # reduce the entropy in rbx
 and rbx, 0b1000000
