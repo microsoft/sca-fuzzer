@@ -137,7 +137,7 @@ static int load_section_main(void)
             // if the test case has an explicit fault handler, we just skip the macro
             // and leave the 8 NOP bytes for compatibility
             if (test_case->features.has_explicit_fault_handler) {
-                dest_cursor += 5; // leave 5 NOP bytes for compatibility
+                dest_cursor += MACRO_PLACEHOLDER_SIZE;
                 break;
             }
 
@@ -238,10 +238,10 @@ static int64_t expand_section(uint64_t section_id, uint8_t *dest, uint8_t *macro
         CHECK_ERR("expand_section");
 
         // move the cursors
-        dest_cursor += 4;
-        src_cursor += 4; // skip the remaining bytes of the current macro placeholder
-        macro++;         // move to next macro
+        src_cursor += MACRO_PLACEHOLDER_SIZE - 1;  // -1 because it will be incremented in the loop
+        dest_cursor += MACRO_PLACEHOLDER_SIZE - 1; // -1 because it will be incremented in the loop
         macros_cursor += macro_size;
+        macro++;
 
         // if we're done with macros in this section, set the macro pointer to NULL
         if (macro->owner != section_id)

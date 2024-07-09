@@ -1041,6 +1041,11 @@ int expand_macro(tc_symbol_entry_t *macro, uint8_t *code_dest, uint8_t *macro_de
     *((uint32_t *)&code_dest[code_cursor]) = target;
     code_dest += 4;
 
+    // Code area: Add a fence after the jump to prevent straight-line speculation
+    code_dest[code_cursor++] = 0x0f;
+    code_dest[code_cursor++] = 0xae;
+    code_dest[code_cursor++] = 0xe8;
+
     // Macro area: Inject the configurable part of the macro
     if (descr->start != NULL) {
         macro_cursor += inject_macro_configurable_part(descr, macro->args, macro->owner,
@@ -1059,6 +1064,11 @@ int expand_macro(tc_symbol_entry_t *macro, uint8_t *code_dest, uint8_t *macro_de
     macro_dest[macro_cursor++] = 0xe9; // start of the jump opcode
     *((uint32_t *)&macro_dest[macro_cursor]) = target;
     macro_cursor += 4;
+
+    // Macro area: Add a fence after this jump as well, also to prevent straight-line speculation
+    macro_dest[macro_cursor++] = 0x0f;
+    macro_dest[macro_cursor++] = 0xae;
+    macro_dest[macro_cursor++] = 0xe8;
 
     *macro_size = macro_cursor;
     return 0;

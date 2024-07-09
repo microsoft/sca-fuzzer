@@ -261,7 +261,7 @@ class X86AsmParser(AsmParserGeneric):
                     patched.write(line + "\n")
                     prev_line = line
 
-        macro_placeholder = " nop dword ptr [rax + rax * 1 + 1]"
+        macro_placeholder = " nop qword ptr [rax + 0xff]"
 
         # add jump placeholders after macros
         with open(patched_asm_file, "r") as f:

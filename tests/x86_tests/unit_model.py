@@ -120,6 +120,9 @@ mov rax, qword ptr [r14 + rax]
 
 PF_MASK = 0xfffffffffffffffe
 
+# base addresses for calculating expected contract traces
+IP0 = 0x8
+
 
 class X86ModelTest(unittest.TestCase):
 
@@ -185,7 +188,7 @@ class X86ModelTest(unittest.TestCase):
         model = x86_model.X86UnicornSeq(0x1000000, 0x8000)
         model.tracer = core_model.CTTracer()
         ctraces = self.get_traces(model, ASM_BRANCH_AND_LOAD, [Input()])
-        expected_trace = hash(tuple([0x5, 0x8, 0xa, 0, 0xd]))
+        expected_trace = hash(tuple([IP0, IP0 + 3, IP0 + 5, 0, IP0 + 8]))
         # print([hex(x - model.code_start) for x in model.tracer.get_contract_trace_full()])
         self.assertEqual(ctraces, [expected_trace])
 
@@ -199,8 +202,8 @@ class X86ModelTest(unittest.TestCase):
         # print([hex(x - model.code_start) for x in model.tracer.get_contract_trace_full()])
         expected_trace = hash(
             tuple([
-                2, 2, 2, 2, 2, 2, 2, model.stack_base - model.sandbox_base, 0x5, 0x8, 0xa, 0,
-                0xd
+                2, 2, 2, 2, 2, 2, 2, model.stack_base - model.sandbox_base, IP0, IP0 + 3, IP0 + 5,
+                0, IP0 + 8
             ]))
         self.assertEqual(ctraces, [expected_trace])
 
@@ -215,8 +218,8 @@ class X86ModelTest(unittest.TestCase):
         # print([hex(x - model.code_start) for x in model.tracer.get_contract_trace_full()])
         expected_trace = hash(
             tuple([
-                2, 2, 2, 2, 2, 2, 2, model.stack_base - model.sandbox_base, 0x5, 0x8, 0xa, 1,
-                0, 0xd
+                2, 2, 2, 2, 2, 2, 2, model.stack_base - model.sandbox_base, IP0, IP0 + 3, IP0 + 5,
+                1, 0, IP0 + 8
             ]))
         self.assertEqual(ctraces, [expected_trace])
 
@@ -225,7 +228,7 @@ class X86ModelTest(unittest.TestCase):
         model.tracer = core_model.CTTracer()
         ctraces = self.get_traces(model, ASM_BRANCH_AND_LOAD, [Input()])
         # print([hex(x - model.code_start) for x in model.tracer.get_contract_trace_full()])
-        expected_trace = hash(tuple([0x5, 0x8, 0xd, 0xa, 0, 0xd]))
+        expected_trace = hash(tuple([IP0, IP0 + 3, IP0 + 8, IP0 + 5, 0, IP0 + 8]))
         self.assertEqual(ctraces, [expected_trace])
 
     def test_ct_cond_double(self):
@@ -235,20 +238,20 @@ class X86ModelTest(unittest.TestCase):
         # print([hex(x - model.code_start) for x in model.tracer.get_contract_trace_full()])
         expected_trace = hash(
             tuple([
-                0x5,  # XOR rax, rax
-                0x8,  # JNZ .l1
-                0xf,  # XOR rbx, rbx
-                0x12,  # JNZ .l3
-                0x17,
+                IP0,  # XOR rax, rax
+                IP0 + 3,  # JNZ .l1
+                IP0 + 10,  # XOR rbx, rbx
+                IP0 + 13,  # JNZ .l3
+                IP0 + 18,
                 # rollback inner speculation
-                0x14,
+                IP0 + 15,
                 0,  # MOV RBX, qword ptr [r14]
-                0x17,
+                IP0 + 18,
                 # rollback outer speculation
-                0xa,
+                IP0 + 5,
                 0,  # MOV RAX, qword ptr [r14]
-                0xd,  # JMP .l3
-                0x17,
+                IP0 + 8,  # JMP .l3
+                IP0 + 18,
             ]))
         self.assertEqual(ctraces, [expected_trace])
 
@@ -277,7 +280,7 @@ class X86ModelTest(unittest.TestCase):
         input_[0]['main'][0] = 1
         input_[0]['gpr'][2] = 4096
         ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_], pte_mask=PF_MASK)
-        expected_trace = hash(tuple([0x5, 4096, 4088]))
+        expected_trace = hash(tuple([IP0, 4096, 4088]))
         self.assertEqual(ctraces, [expected_trace])
 
     def test_ct_nullinj(self):
@@ -293,13 +296,13 @@ class X86ModelTest(unittest.TestCase):
         ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_], pte_mask=PF_MASK)
         # print([hex(x - model.code_start) for x in model.tracer.get_contract_trace_full()])
         expected_trace = hash(tuple([
-            0x5, 4096, 4088,  # fault
-            0x5, 4096,  # speculative injection
-            0x9,  # speculatively start executing the next instr
-            0x9, 0,  # re-execute the instruction after setting the permissions
-            0xd, 2, 0x11,  # speculatively execute the last instruction and rollback
-            0x5, 4096, 0x9, 3, 0xd, 2,  # after rollback
-            0x11,
+            IP0, 4096, 4088,  # fault
+            IP0, 4096,  # speculative injection
+            IP0 + 4,  # speculatively start executing the next instr
+            IP0 + 4, 0,  # re-execute the instruction after setting the permissions
+            IP0 + 8, 2, IP0 + 12,  # speculatively execute the last instruction and rollback
+            IP0, 4096, IP0 + 4, 3, IP0 + 8, 2,  # after rollback
+            IP0 + 12,
             # terminate after rollback
         ]))   # yapf: disable
         # on newer versions of Unicorn, the instruction may
@@ -323,11 +326,11 @@ class X86ModelTest(unittest.TestCase):
         # print([hex(x - model.code_start) for x in model.tracer.get_contract_trace_full()])
         # model.LOG.dbg_model = not model.LOG.dbg_model
         expected_trace = hash(tuple([
-            0x5, 4096, 4088,  # fault
-            0x5, 4096,  # speculative injection
-            0x9,  # speculatively start executing the next instr
-            0x9, 0,  # re-execute the instruction after setting the permissions
-            0xd, 2, 0x11,  # speculatively execute the last instruction and rollback
+            IP0, 4096, 4088,  # fault
+            IP0, 4096,  # speculative injection
+            IP0 + 4,  # speculatively start executing the next instr
+            IP0 + 4, 0,  # re-execute the instruction after setting the permissions
+            IP0 + 8, 2, IP0 + 12,  # speculatively execute the last instruction and rollback
             # terminate after rollback
         ]))   # yapf: disable
         # on newer versions of Unicorn, the instruction may
@@ -349,9 +352,9 @@ class X86ModelTest(unittest.TestCase):
         ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_], pte_mask=PF_MASK)
         # print([hex(x - model.code_start) for x in model.tracer.get_contract_trace_full()])
         expected_trace = hash(tuple([
-            0x5, 4096, 4088,  # faulty load
-            0x9,  # next load is dependent - do not execute the mem access
-            0xd, 2, 0x11,  # speculatively execute the last instruction and rollback
+            IP0, 4096, 4088,  # faulty load
+            IP0 + 4,  # next load is dependent - do not execute the mem access
+            IP0 + 8, 2, IP0 + 12,  # speculatively execute the last instruction and rollback
             # terminate after rollback
         ]))   # yapf: disable
         self.assertEqual(ctraces[0], expected_trace)
@@ -367,11 +370,11 @@ class X86ModelTest(unittest.TestCase):
         input_[0]['faulty'][0] = 3
         ctraces = self.get_traces(model, ASM_FAULTY_ACCESS, [input_], pte_mask=PF_MASK)
         expected_trace = hash(tuple([
-            0x5, 4096, 4088,  # faulty load
-            0x5, 4096,  # speculative injection
-            0x9, 3,  # next load is dependent - do not execute the mem access
-            0xd, 2,  # speculatively execute the last instruction and rollback
-            0x11,
+            IP0, 4096, 4088,  # faulty load
+            IP0, 4096,  # speculative injection
+            IP0 + 4, 3,  # next load is dependent - do not execute the mem access
+            IP0 + 8, 2,  # speculatively execute the last instruction and rollback
+            IP0 + 12,
             # terminate after rollback
         ]))   # yapf: disable
         self.assertEqual(ctraces[0], expected_trace)
@@ -469,17 +472,17 @@ class X86ModelTest(unittest.TestCase):
         ctraces = self.get_traces(model, ASM_DIV_ZERO2, [input_])
         # print([hex(x - model.code_start) for x in model.tracer.get_contract_trace_full()])
         hash_of_operands = hash((
-            (0x5, 35, 0),  # rax
-            (0x5, 37, 0),  # rbx
-            (0x5, 40, 0),  # rdx
-            (0x8, 112, 0x1000000)  # r14
+            (IP0, 35, 0),  # rax
+            (IP0, 37, 0),  # rbx
+            (IP0, 40, 0),  # rdx
+            (IP0 + 3, 112, 0x1000000)  # r14
         ))
         hash_of_input = hash(((0, 0, hash(input_)),))
         expected_trace_full = tuple([
-            0x5, 0xff8,  # fault
-            0x8, hash_of_operands,  # first mem access exposes the hash of the div operands
-            0xc, hash_of_input,  # next mem access exposes the hash of the whole input
-            0x10,  # terminate after rollback
+            IP0, 0xff8,  # fault
+            IP0 + 3, hash_of_operands,  # first mem access exposes the hash of the div operands
+            IP0 + 7, hash_of_input,  # next mem access exposes the hash of the whole input
+            IP0 + 11,  # terminate after rollback
         ])  # yapf: disable
         self.assertEqual(ctraces[0], hash(expected_trace_full))
 
@@ -496,8 +499,8 @@ class X86ModelTest(unittest.TestCase):
         # print([hex(x - model.code_start) for x in model.tracer.get_contract_trace_full()])
         hash_of_input = hash(((0, 0, hash(input_)),))
         expected_trace_full = tuple([
-            0x5, 0xff8,  # fault
-            0x7, hash_of_input, 0xb,  # mem access exposes the input hash
+            IP0, 0xff8,  # fault
+            IP0 + 2, hash_of_input, IP0 + 6,  # mem access exposes the input hash
             # terminate after rollback
         ])  # yapf: disable
         self.assertEqual(ctraces[0], hash(expected_trace_full))
