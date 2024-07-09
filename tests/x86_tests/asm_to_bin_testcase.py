@@ -51,20 +51,20 @@ def main(asm_file: str, obj_file: str):
         write_st_entry(f, (0, 0, 0, 0))
         # - symbol 2: MACRO_MEASUREMENT_START
         write_st_entry(f, (0, 0, 1, 0))
-        main_size += 5
+        main_size += 8
         # - symbol 3: MACRO_MEASUREMENT_END
         write_st_entry(f, (0, main_size, 2, 0))
-        main_size += 5
+        main_size += 8
 
         # write the section metadata
         write_metadata_entry(f, (0, main_size, 0))
 
         # write the code
-        f.write(b'\x0f\x1f\x44\x00\x01')  # nop - MACRO_MEASUREMENT_START
+        f.write(b'\x0f\x1f\x84\x00\xff\x00\x00\x00')  # nop - MACRO_MEASUREMENT_START
         with open(tmpbin, 'rb') as bin_file:
             code = bin_file.read()
             f.write(code)
-        f.write(b'\x0f\x1f\x44\x00\x01')  # nop - MACRO_MEASUREMENT_END
+        f.write(b'\x0f\x1f\x84\x00\xff\x00\x00\x00')  # nop - MACRO_MEASUREMENT_END
 
 
 if __name__ == '__main__':

@@ -879,11 +879,11 @@ class X86Printer(Printer):
         return op.value
 
     def macro_to_str(self, inst: Instruction):
+        macro_placeholder = "nop qword ptr [rax + 0xff]"
         if inst.operands[1].value.lower() == ".noarg":
-            return f".macro{inst.operands[0].value}: nop dword ptr [rax + rax*1 + 0x1]"
+            return f".macro{inst.operands[0].value}: {macro_placeholder}"
         else:
-            return f".macro{inst.operands[0].value}{inst.operands[1].value}:" \
-                " nop dword ptr [rax + rax*1 + 0x1]"
+            return f".macro{inst.operands[0].value}{inst.operands[1].value}: {macro_placeholder}"
 
 
 class X86RandomGenerator(X86Generator, RandomGenerator):

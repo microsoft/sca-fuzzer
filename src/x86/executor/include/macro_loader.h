@@ -32,6 +32,7 @@ typedef enum {
 } macro_name_e;
 
 #define HTRACE_REGISTER        "r13"
+#define MACRO_PLACEHOLDER_SIZE 8
 
 int expand_macro(tc_symbol_entry_t *macro, uint8_t *dest, uint8_t *macro_dest, size_t *macro_size);
 void set_main_prologue_size(size_t size);
