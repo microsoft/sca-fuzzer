@@ -9,380 +9,563 @@ SPDX-License-Identifier: MIT
 import shutil
 import os
 import re
+import abc
+import tempfile
 from math import log2
 
 from copy import deepcopy
 from subprocess import run
-from typing import List, Optional
+from typing import List, NamedTuple, Dict
 from .interfaces import Input, TestCase, Minimizer, Fuzzer, InstructionSetAbstract, EquivalenceClass
 from .model import CTTracer
 from .x86.x86_model import X86UnicornDEH, SANDBOX_CODE_SIZE
 from .config import CONF
 from .util import Logger
 
-INSTRUCTION_REPLACEMENTS = {
-    "cmova": lambda _: "mov",
-    "cmovae": lambda _: "mov",
-    "cmovb": lambda _: "mov",
-    "cmovbe": lambda _: "mov",
-    "cmovc": lambda _: "mov",
-    "cmove": lambda _: "mov",
-    "cmovg": lambda _: "mov",
-    "cmovge": lambda _: "mov",
-    "cmovl": lambda _: "mov",
-    "cmovle": lambda _: "mov",
-    "cmovna": lambda _: "mov",
-    "cmovnae": lambda _: "mov",
-    "cmovnb": lambda _: "mov",
-    "cmovnbe": lambda _: "mov",
-    "cmovnc": lambda _: "mov",
-    "cmovne": lambda _: "mov",
-    "cmovng": lambda _: "mov",
-    "cmovnge": lambda _: "mov",
-    "cmovnl": lambda _: "mov",
-    "cmovnle": lambda _: "mov",
-    "cmovno": lambda _: "mov",
-    "cmovnp": lambda _: "mov",
-    "cmovns": lambda _: "mov",
-    "cmovnz": lambda _: "mov",
-    "cmovo": lambda _: "mov",
-    "cmovp": lambda _: "mov",
-    "cmovs": lambda _: "mov",
-    "cmovz": lambda _: "mov",
-    "xchg": lambda _: "mov",
-    "cmpxchg": lambda _: "xchg",
-    "rep": lambda _: "",
-    "lock": lambda _: "",
-    "add": lambda _: "mov",
-    "sub": lambda _: "add",
-    "or": lambda _: "add",
-    "xor": lambda _: "add",
-    "and": lambda _: "add",
-    "cmp": lambda _: "add",
-    "bsr": lambda _: "add",
-    "bsf": lambda _: "add",
-    "bt": lambda _: "add",
-    "bts": lambda _: "add",
-    "btr": lambda _: "add",
-    "btc": lambda _: "add",
-    "bzhi": lambda _: "add",
-    "bextr": lambda _: "add",
-    "blsi": lambda _: "add",
-    "blsmsk": lambda _: "add",
-    "xadd": lambda _: "add",
-    "test": lambda _: "add",
-    "adc": lambda _: "add",
-    "sbb": lambda _: "sub",
-    "mul": lambda _: "inc",
-    "div": lambda _: "inc",
-    "setb": lambda _: "inc",
-    "not": lambda _: "inc",
-    "idiv": lambda _: "div",
-    "imul": lambda line: "add" if len(line.split(",")) == 2 else "imul",
-}
-
-MASK_REPLACEMENTS = {
-    "0b1111111111111": "0b1111111111110",
-    "0b1111111111110": "0b1111111111100",
-    "0b1111111111100": "0b1111111111000",
-    "0b1111111111000": "0b1111111110000",
-    "0b1111111110000": "0b1111111100000",
-    "0b1111111100000": "0b1111111000000",
-    "0b1111111000000": "0b1111110000000",
-    "0b1111110000000": "0b1111100000000",
-    "0b1111100000000": "0b1111000000000",
-    "0b1111000000000": "0b1110000000000",
-    "0b1110000000000": "0b1100000000000",
-    "0b1100000000000": "0b1000000000000",
-    "0b1000000000000": "0b0000000000000",
-}
+TMP_DIR = "/tmp/rvzr_minimize"
 
 
-class MinimizerViolation(Minimizer):
+# ==================================================================================================
+# Helper functions and classes
+# ==================================================================================================
+def get_test_case_from_instructions(fuzzer: Fuzzer,
+                                    instructions: List[str],
+                                    path: str = "") -> TestCase:
+    """
+    Create a test case object from a list of instructions.
+    The test case is stored in a file at the given path.
+    :param instructions: List of instructions
+    :param path: Path to store the test case; if empty, a temporary file is created
+    :return: Test case object
+    """
+    # create a temporary file if no path is given
+    if not path:
+        fp = tempfile.NamedTemporaryFile(dir=TMP_DIR, delete=False)
+        path = fp.name
+        fp.close()
+    # print(path)
+
+    # write the instructions to the file
+    with open(path, "w+") as f:
+        for line in instructions:
+            f.write(line)
+    tc = fuzzer.asm_parser.parse_file(path)
+    return tc
+
+
+def check_for_violation(fuzzer, test_case: TestCase, inputs: List[Input],
+                        ignore_list: List[int]) -> bool:
+    """
+    Check if the test case triggers the violation.
+    :param test_case: The test case to check
+    :param inputs: List of inputs to use for verification
+    :param ignore_list: List of input IDs to ignore
+    :return: True if the violation is triggered, False otherwise
+    """
+    for _ in range(CONF.minimizer_retries):
+        if fuzzer.fuzzing_round(test_case, inputs, ignore_list) is not None:
+            return True
+    return False
+
+
+class ProgressPrinter():
+    """
+    A simple class to print progress in the terminal.
+    Used to ensure that all minimization classes
+    provide a uniform output.
+    """
+    line_width: int = 64
+    curr_width: int = 0
+    offset: int = 2
+    pass_id: int = 0
+    progress_bar_on: bool = False
+
+    def pass_start(self, label: str, offset: int = 2):
+        self.pass_id += 1
+        self.offset = offset
+        self.curr_width = 0
+        self.progress_bar_on = False
+        print(f"[PASS {self.pass_id}] {label}", flush=True)
+
+    def pass_finish(self):
+        print("")  # finish the line
+
+    def pass_msg(self, msg: str):
+        print(" " * self.offset + "> " + msg)
+        self.progress_bar_on = False
+
+    def next(self, success: bool):
+        if not self.progress_bar_on:
+            print("")
+            self.progress_bar_on = True
+
+        self.curr_width += 1
+        if self.curr_width > self.line_width:
+            print("\n", end="", flush=True)
+            self.curr_width = self.offset
+
+        if success:
+            print(".", end="", flush=True)
+        else:
+            print("-", end="", flush=True)
+
+    def global_msg(self, msg: str):
+        print(f"[INFO] {msg}")
+
+
+class PassDesc(NamedTuple):
+    """ A named tuple to store the minimization pass description """
+    cls_: type
+    is_instruction_pass: bool
+    is_input_pass: bool
+    is_analysis_pass: bool
+
+
+# ==================================================================================================
+# Minimization Passes
+# ==================================================================================================
+class BaseInstructionMinimizationPass(abc.ABC):
+    """
+    Base class for a minimization pass that operates on instructions.
+    """
+    name: str = ""
     ignore_list: List[int]
 
-    def __init__(self, fuzzer: Fuzzer, instruction_set_spec: InstructionSetAbstract):
-        self.instruction_set_spec = instruction_set_spec
+    def __init__(self, fuzzer: Fuzzer, instruction_set_spec: InstructionSetAbstract,
+                 progress: ProgressPrinter):
         self.fuzzer = fuzzer
-        self.fuzzer.initialize_modules()
+        self.instruction_set_spec = instruction_set_spec
+        self.progress = progress
         self.ignore_list = []
-        self.LOG = Logger()
-        self.LOG.info = False
 
-    def run(self, test_case_asm: str, outfile: str, num_inputs: int, enable_minimize: bool,
-            enable_simplify: bool, enable_add_fences: bool, enable_find_sources: bool,
-            find_min_input_sequence: bool, enable_minimize_inputs: bool, min_input_destination: str,
-            enable_multipass: bool, enable_violation_comments: bool):
-        assert CONF.instruction_set == "x86-64", "Postprocessor supports only x86-64 so far"
-        if (enable_minimize_inputs or find_min_input_sequence) and not min_input_destination:
-            self.LOG.error("ERROR: Flags --find-min-input-sequence and --minimize-inputs require \n"
-                           "flag --min-input-destination to be set.")
-            return
+    # ------------------------------------------------
+    # Abstract interface
+    @abc.abstractmethod
+    def run(self, test_case: TestCase, inputs: List[Input]) -> TestCase:
+        """ Main function that runs the minimization pass """
+        pass
 
-        # Create required directories
-        if min_input_destination and not os.path.exists(min_input_destination):
-            try:
-                os.makedirs(min_input_destination)
-            except OSError:
-                print(f"Creation of the directory {min_input_destination} failed")
-                return
-            min_input_destination = os.path.abspath(min_input_destination)
+    @abc.abstractmethod
+    def modify_instruction(self, instructions: List[str], cursor: int) -> List[str]:
+        """
+        Modify the instruction at the given cursor according to
+        the algorithm defined by subclass
+        """
+        pass
 
-        # Parse the test case and inputs
-        test_case: TestCase = self.fuzzer.asm_parser.parse_file(test_case_asm)
-        self.fuzzer.input_gen.n_actors = len(test_case.actors)
-        inputs: List[Input] = self.fuzzer.input_gen.generate(num_inputs)
+    @abc.abstractmethod
+    def verify_modification(self, test_case: TestCase, inputs: List[Input]) -> bool:
+        """
+        Verify if the modification made to the test case is valid according to
+        the algorithm defined by subclass
+        """
+        pass
 
-        # Adjust the sample size to reduce non-reproducibility
-        CONF.executor_sample_sizes = [CONF.executor_sample_sizes[-1]]
+    def set_ignore_list(self, ignore_list: List[int]):
+        self.ignore_list = ignore_list
 
-        # Load, boost inputs, and trace
-        print("Trying to reproduce...", end='')
-        for _ in range(CONF.minimizer_retries):
-            violation = self.fuzzer.fuzzing_round(test_case, inputs)
-            if violation:
-                break
-        else:
-            print(" could not reproduce the violation; exiting...")
-            return
-        print(" reproduced successfully.")
+    def minimization_loop(self,
+                          test_case: TestCase,
+                          inputs: List[Input],
+                          skip_instrumentation_lines: bool = True) -> List[int]:
+        """
+        Standard minimization loop that iteratively applies the modification
+        algorithm (modify_instruction) to each line of the test case and checks if the resulting
+        test case still passes the verification function (verify_modification).
 
-        # Try to reproduce with fewer inputs
-        if find_min_input_sequence:
-            new_violation = self.find_min_input_sequence(test_case, inputs, enable_multipass)
-            if new_violation:
-                violation = new_violation
+        :param test_case: The test case object to minimize
+        :param inputs: List of inputs to use for verification
+        :param skip_instrumentation_lines: If True, skip lines with the `instrumentation` comment
+        :return List of instruction IDs that passed the verification
+        """
 
-        # Set the non-violating inputs as the ignore list
-        violating_input_ids = [m.input_id for m in violation.measurements]
-        print(f"Violating input IDs: {violating_input_ids}")
-        n_inputs = len(violation.input_sequence)
-        self.ignore_list = [i for i in range(n_inputs) if i not in violating_input_ids]
+        def line_is_skipped(line: str) -> bool:
+            # We skip lines that meet the following criteria:
+            is_skipped = (line == "")  # empty line
+            is_skipped |= (line[0] == "#")  # comment
+            is_skipped |= ("lfence" in line)  # fences
+            is_skipped |= ('.' == line[0])  # labels
+            is_skipped |= ('noremove' in line)  # explicitly marked as non-removable
+            is_skipped |= (skip_instrumentation_lines and 'instrumentation' in line)
+            return is_skipped
 
-        # Minimize inputs
-        if enable_minimize_inputs:
-            print("\n Analyzing inputs:\n  Progress: ", end='')
-            inputs = self.find_min_inputs(test_case, violation)
-            CONF.inputs_per_class = 1  # disable boosting from now on
-
-        if find_min_input_sequence or enable_minimize_inputs:
-            print("Saving new inputs in ", min_input_destination)
-            for i in range(len(inputs)):
-                inputs[i].save(f"{min_input_destination}/min_input_{i:04}.bin")
-
-        # Remove/simplify instructions in multiple passes
-        attempts = 1 if not enable_multipass else 10
-        for attempt in range(attempts):
-            if not enable_minimize and not enable_simplify:
-                break
-            print(f"\nMinimization attempt {attempt + 1}/{attempts}")
-            old_instruction_count = len([i for i in open(test_case.asm_path, "r")])
-            made_progress = False
-
-            if enable_minimize:
-                print("\n  Minimizing the test case: ", end='', flush=True)
-                test_case = self.minimize_test_case(test_case, inputs)
-                shutil.copy(test_case.asm_path, outfile)
-                new_instruction_count = len([i for i in open(test_case.asm_path, "r")])
-                if new_instruction_count < old_instruction_count:
-                    made_progress = True
-
-            if enable_simplify:
-                old_tc = deepcopy(test_case)
-
-                print("\n  Replacing with NOPs: ", end='', flush=True)
-                test_case = self.simplify_nop(test_case, inputs)
-
-                print("\n  Simplifying instructions: ", end='', flush=True)
-                test_case = self.simplify(test_case, inputs)
-
-                print("\n  Simplifying constants: ", end='', flush=True)
-                test_case = self.simplify_constants(test_case, inputs)
-                shutil.copy(test_case.asm_path, outfile)
-
-                # print("\n  Simplifying masks: ", end='', flush=True)
-                # test_case = self.simplify_masks(test_case, inputs)
-                # shutil.copy(test_case.asm_path, outfile)
-
-                if test_case != old_tc:
-                    made_progress = True
-
-            if not made_progress:
-                break
-
-        if enable_minimize:
-            print("\nMinimize labels: ", end='', flush=True)
-            test_case = self.minimize_labels(test_case, inputs)
-            shutil.copy(test_case.asm_path, outfile)
-
-        if enable_add_fences:
-            print("\nTrying to add fences: ", end='')
-            test_case = self.add_fences(test_case, inputs)
-            shutil.copy(test_case.asm_path, outfile)
-
-        if enable_find_sources:
-            print("\nIdentifying speculation sources: ", end='')
-            test_case = self.find_spec_source(test_case, inputs)
-
-            print("\nIdentifying speculation sink: ", end='')
-            test_case = self.find_spec_sink(test_case, inputs)
-            shutil.copy(test_case.asm_path, outfile)
-
-        if enable_violation_comments:
-            print("\n Adding comments with violation details:\n", end='')
-            test_case = self.add_violation_comments(test_case, violation)
-            shutil.copy(test_case.asm_path, outfile)
-
-        print("\nStoring the results")
-        shutil.copy(test_case.asm_path, outfile)
-
-    # ==============================================================================================
-    # Abstract implementation of a test case processor
-    def _probe_test_case(self,
-                         test_case: TestCase,
-                         inputs: List[Input],
-                         modify_func,
-                         check_func,
-                         removed_ids: bool = True,
-                         skip_instrumentation: bool = True) -> List[int]:
+        # get all lines of the test case
         with open(test_case.asm_path, "r") as f:
             instructions = f.readlines()
 
+        # Iterate over all instructions, backwards, and collect a list of instructions that
+        # can be modified while still passing the verification
         cursor = len(instructions)
-
-        # Try removing instructions, one at a time
-        passing_ids = []
+        modifiable_ids = []
         while True:
             cursor -= 1
             line = instructions[cursor].strip().lower()
-
-            # Did we reach the header?
-            if line == ".test_case_enter:":
+            # Check if we are done
+            if cursor == 0 or line == ".test_case_enter:":
                 break
 
-            # don't waste time on comments and empty lines
-            if not line or line[0] == "#":
-                continue
-
-            # Preserve instructions used for sandboxing, fences, and labels
-            if "lfence" in line or \
-               '.' == line[0] or \
-               'noremove' in line:
-                continue
-
-            # Remove instrumentation only if the instrumented instruction is also removed
-            if skip_instrumentation and "instrumentation" in line:
+            # Leave certain lines untouched
+            if line_is_skipped(line):
                 continue
 
             # Create a modified test case
-            tmp_instructions = modify_func(instructions, cursor)
-            if not tmp_instructions:
-                print("-", end="", flush=True)
+            modified_instructions = self.modify_instruction(instructions, cursor)
+            if not modified_instructions:  # skip line if the modification failed
+                self.progress.next(False)
                 continue
 
-            tmp_test_case = self._get_test_case_from_instructions(tmp_instructions)
+            # Create a test case object from the modified instructions
+            tmp_test_case = get_test_case_from_instructions(self.fuzzer, modified_instructions)
 
-            # Run and check if the vuln. is still there
-            check_passed = check_func(tmp_test_case, inputs)
+            # Verify modification and update the list of modifiable instructions
+            check_passed = self.verify_modification(tmp_test_case, inputs)
             if check_passed:
-                print(".", end="", flush=True)
-                instructions = tmp_instructions
-                if removed_ids:
-                    passing_ids.append(cursor)
+                self.progress.next(True)
+                instructions = modified_instructions
+                modifiable_ids.append(cursor)
             else:
-                print("-", end="", flush=True)
-                if not removed_ids:
-                    passing_ids.append(cursor)
+                self.progress.next(False)
 
-        return passing_ids
+        return modifiable_ids
 
-    # ==============================================================================================
-    # Concrete implementations of test case processors
-    def minimize_test_case(self, test_case: TestCase, inputs: List[Input]) -> TestCase:
-        inst_ids = self._probe_test_case(
-            test_case, inputs, self._skip_instruction, self._check_for_violation, removed_ids=True)
+
+class BaseInputMinimizationPass(abc.ABC):
+    """
+    Base class for a minimization pass that operates on inputs.
+    """
+    ignore_list: List[int]
+
+    def __init__(self, fuzzer: Fuzzer, instruction_set_spec: InstructionSetAbstract,
+                 progress: ProgressPrinter):
+        self.fuzzer = fuzzer
+        self.instruction_set_spec = instruction_set_spec
+        self.progress = progress
+        self.ignore_list = []
+
+    @abc.abstractmethod
+    def run(self, test_case: TestCase, org_inputs: List[Input],
+            org_violation: EquivalenceClass) -> List[Input]:
+        """ Main function that runs the minimization pass
+        :param test_case: The test case object to work on
+        :param org_inputs: List of inputs to minimize
+        :param org_violation: The original violation
+        :return: List of minimized inputs
+        """
+        pass
+
+    def set_ignore_list(self, ignore_list: List[int]):
+        self.ignore_list = ignore_list
+
+
+# ==================================================================================================
+# Concrete implementations of minimization passes
+# ==================================================================================================
+class InstructionRemovalPass(BaseInstructionMinimizationPass):
+    """
+    A minimization pass that iteratively removes instructions from the test case
+    (one at a time, starting from the end) and checks if the violation is still triggered.
+    """
+    name = "Instruction Removal Pass"
+
+    def run(self, test_case: TestCase, inputs: List[Input]) -> TestCase:
+        modifiable_ids = self.minimization_loop(test_case, inputs)
+        self.progress.pass_finish()
+
+        instructions: List[str] = []
+        with open(test_case.asm_path, "r") as f:
+            for i, line in enumerate(f):
+                if i in modifiable_ids:
+                    # This instruction could be removed.
+                    # Additionally, clear the instrumentation tag from the previous line
+                    if "instrumentation" in instructions[-1].lower():
+                        instructions[-1] = instructions[-1].replace("instrumentation", "")
+                else:
+                    # This instruction is essential for the violation; keep it
+                    instructions.append(line)
+
+        return get_test_case_from_instructions(self.fuzzer, instructions)
+
+    def modify_instruction(self, instructions: List[str], i: int) -> List[str]:
+        return instructions[:i] + instructions[i + 1:]
+
+    def verify_modification(self, test_case: TestCase, inputs: List[Input]) -> bool:
+        return check_for_violation(self.fuzzer, test_case, inputs, self.ignore_list)
+
+
+class InstructionSimplificationPass(BaseInstructionMinimizationPass):
+    """
+    A minimization pass that iteratively replaces instructions with simpler ones
+    (e.g., `cmov` with `mov`, `add` with `mov`, etc.) and checks
+    if the violation is still triggered.
+    """
+    name = "Instruction Simplification Pass"
+
+    instruction_replacements = {
+        "cmova": lambda _: "mov",
+        "cmovae": lambda _: "mov",
+        "cmovb": lambda _: "mov",
+        "cmovbe": lambda _: "mov",
+        "cmovc": lambda _: "mov",
+        "cmove": lambda _: "mov",
+        "cmovg": lambda _: "mov",
+        "cmovge": lambda _: "mov",
+        "cmovl": lambda _: "mov",
+        "cmovle": lambda _: "mov",
+        "cmovna": lambda _: "mov",
+        "cmovnae": lambda _: "mov",
+        "cmovnb": lambda _: "mov",
+        "cmovnbe": lambda _: "mov",
+        "cmovnc": lambda _: "mov",
+        "cmovne": lambda _: "mov",
+        "cmovng": lambda _: "mov",
+        "cmovnge": lambda _: "mov",
+        "cmovnl": lambda _: "mov",
+        "cmovnle": lambda _: "mov",
+        "cmovno": lambda _: "mov",
+        "cmovnp": lambda _: "mov",
+        "cmovns": lambda _: "mov",
+        "cmovnz": lambda _: "mov",
+        "cmovo": lambda _: "mov",
+        "cmovp": lambda _: "mov",
+        "cmovs": lambda _: "mov",
+        "cmovz": lambda _: "mov",
+        "xchg": lambda _: "mov",
+        "cmpxchg": lambda _: "xchg",
+        "rep": lambda _: "",
+        "lock": lambda _: "",
+        "add": lambda _: "mov",
+        "sub": lambda _: "add",
+        "or": lambda _: "add",
+        "xor": lambda _: "add",
+        "and": lambda _: "add",
+        "cmp": lambda _: "add",
+        "bsr": lambda _: "add",
+        "bsf": lambda _: "add",
+        "bt": lambda _: "add",
+        "bts": lambda _: "add",
+        "btr": lambda _: "add",
+        "btc": lambda _: "add",
+        "bzhi": lambda _: "add",
+        "bextr": lambda _: "add",
+        "blsi": lambda _: "add",
+        "blsmsk": lambda _: "add",
+        "xadd": lambda _: "add",
+        "test": lambda _: "add",
+        "adc": lambda _: "add",
+        "sbb": lambda _: "sub",
+        "mul": lambda _: "inc",
+        "div": lambda _: "inc",
+        "setb": lambda _: "inc",
+        "not": lambda _: "inc",
+        "idiv": lambda _: "div",
+        "imul": lambda line: "add" if len(line.split(",")) == 2 else "imul",
+    }
+
+    def run(self, test_case: TestCase, inputs: List[Input]) -> TestCase:
+        inst_ids = self.minimization_loop(test_case, inputs)
+        self.progress.pass_finish()
+
+        with open(test_case.asm_path, "r") as f:
+            instructions = f.readlines()
+        for i in inst_ids:
+            instructions = self.modify_instruction(instructions, i)
+        return get_test_case_from_instructions(self.fuzzer, instructions)
+
+    def modify_instruction(self, instructions: List[str], i: int) -> List[str]:
+        tmp = list(instructions)  # make a copy
+        clean_line = tmp[i].strip().lower()
+        words = clean_line.split(" ")
+        key = words[0]
+        replacement_func = self.instruction_replacements.get(key, None)
+        if not replacement_func:
+            return []
+        tmp[i] = " ".join([replacement_func(clean_line)] + words[1:]) + "\n"
+
+        return tmp
+
+    def verify_modification(self, test_case: TestCase, inputs: List[Input]) -> bool:
+        return check_for_violation(self.fuzzer, test_case, inputs, self.ignore_list)
+
+
+class ConstantSimplificationPass(BaseInstructionMinimizationPass):
+    """
+    A minimization pass that iteratively replaces constants in the test case with zeros
+    and checks if the violation is still triggered.
+    """
+    name = "Constant Simplification Pass"
+
+    def run(self, test_case: TestCase, inputs: List[Input]) -> TestCase:
+        inst_ids = self.minimization_loop(test_case, inputs)
+        self.progress.pass_finish()
+
+        with open(test_case.asm_path, "r") as f:
+            instructions = f.readlines()
+        for i in inst_ids:
+            instructions = self.modify_instruction(instructions, i)
+        return get_test_case_from_instructions(self.fuzzer, instructions)
+
+    def modify_instruction(self, instructions: List[str], i: int) -> List[str]:
+        tmp = list(instructions)  # make a copy
+        clean_line = tmp[i].strip().lower()
+        words = clean_line.split(",")
+        for word_id, word in enumerate(words):
+            word = word.strip()
+            if word == "0":  # already replaced
+                break
+            if re.match(r"^-?[0-9]+$", word) or re.match(r"^-?0x[0-9a-f]+$", word) \
+               or re.match(r"^-?0b[01]+$", word):
+                tmp[i] = ", ".join(words[:word_id] + ["0"] + words[word_id + 1:]) + "\n"
+                return tmp
+        return []
+
+    def verify_modification(self, test_case: TestCase, inputs: List[Input]) -> bool:
+        return check_for_violation(self.fuzzer, test_case, inputs, self.ignore_list)
+
+
+class MaskSimplificationPass(BaseInstructionMinimizationPass):
+    """
+    A minimization pass that iteratively replaces masks of the instrumentation
+    instructions with smaller masks and checks if the violation is still triggered.
+    E.g., `and rax, 0b1111111111111` -> `and rax, 0b1111111111110`
+    """
+    name = "Mask Simplification Pass"
+
+    mask_replacements = {
+        "0b1111111111111": "0b1111111111110",
+        "0b1111111111110": "0b1111111111100",
+        "0b1111111111100": "0b1111111111000",
+        "0b1111111111000": "0b1111111110000",
+        "0b1111111110000": "0b1111111100000",
+        "0b1111111100000": "0b1111111000000",
+        "0b1111111000000": "0b1111110000000",
+        "0b1111110000000": "0b1111100000000",
+        "0b1111100000000": "0b1111000000000",
+        "0b1111000000000": "0b1110000000000",
+        "0b1110000000000": "0b1100000000000",
+        "0b1100000000000": "0b1000000000000",
+        "0b1000000000000": "0b0000000000000",
+    }
+
+    def run(self, test_case: TestCase, inputs: List[Input]) -> TestCase:
+        inst_ids = self.minimization_loop(test_case, inputs, skip_instrumentation_lines=False)
+        self.progress.pass_finish()
+
+        with open(test_case.asm_path, "r") as f:
+            instructions = f.readlines()
+        for i in inst_ids:
+            instructions = self.modify_instruction(instructions, i)
+        return get_test_case_from_instructions(self.fuzzer, instructions)
+
+    def modify_instruction(self, instructions: List[str], i: int) -> List[str]:
+        tmp = list(instructions)  # make a copy
+
+        comment_split = tmp[i].split("#")
+        clean_line = comment_split[0].strip().lower()
+        comment = "#".join(comment_split[1:]) if len(comment_split) > 1 else ""
+
+        words = clean_line.split(",")
+        for word_id, word in enumerate(words):
+            word = word.strip()
+            replacement = self.mask_replacements.get(word, None)
+            if replacement:
+                tmp[i] = ", ".join(words[:word_id] + [replacement] + words[word_id + 1:]) \
+                    + " #" + comment
+                return tmp
+
+        return []
+
+    def verify_modification(self, test_case: TestCase, inputs: List[Input]) -> bool:
+        return check_for_violation(self.fuzzer, test_case, inputs, self.ignore_list)
+
+
+class NopReplacementPass(BaseInstructionMinimizationPass):
+    """
+    A minimization pass that iteratively replaces instructions with NOPs
+    of the same size and checks if the violation is still triggered.
+    """
+    name = "NOP Replacement Pass"
+
+    replacements = {
+        1: "nop  # 1 B",
+        2: ".byte 0x66, 0x90  # 2 B",
+        3: "nop dword ptr [rax]  # 3 B",
+        4: "nop qword ptr [rax]  # 4 B",
+        5: "nop qword ptr [rax + 1]  # 5 B",
+        6: "nop qword ptr [rax + rax + 1]  # 6 B",
+        7: "nop dword ptr [rax + 0xff]  # 7 B",
+        8: "nop qword ptr [rax + 0xff]  # 8 B",
+        9: "nop qword ptr [rax + rax + 0xff]  # 9 B",
+    }
+
+    def run(self, test_case: TestCase, inputs: List[Input]) -> TestCase:
+        inst_ids = self.minimization_loop(test_case, inputs, skip_instrumentation_lines=True)
+        self.progress.pass_finish()
 
         instructions = []
         with open(test_case.asm_path, "r") as f:
             for i, line in enumerate(f):
-                if i not in inst_ids:
-                    # This instruction is essential for the violation; keep it
-                    instructions.append(line)
-                else:
-                    # This instruction could be removed. In addition, if it has instrumentation
-                    # which cannot be removed, clear the instrumentation tag
-                    if "instrumentation" in instructions[-1].lower():
-                        instructions[-1] = instructions[-1].replace("instrumentation", "")
+                instructions.append(line)
+                if i in inst_ids:
+                    # This instruction could be replaced with a NOP
+                    instructions = self.modify_instruction(instructions, i)
+                    # And the instrumentation tag from the previous line can be cleared
+                    if "instrumentation" in instructions[-2].lower():
+                        instructions[-2] = instructions[-2].replace("instrumentation", "")
 
-        return self._get_test_case_from_instructions(instructions, "/tmp/pipe.asm")
+        return get_test_case_from_instructions(self.fuzzer, instructions)
 
-    def simplify(self, test_case: TestCase, inputs: List[Input]) -> TestCase:
-        inst_ids = self._probe_test_case(
-            test_case,
-            inputs,
-            modify_func=self._simplify_instruction,
-            check_func=self._check_for_violation,
-            removed_ids=True)
+    def modify_instruction(self, instructions: List[str], i: int) -> List[str]:
+        tmp = list(instructions)  # make a copy
 
-        with open(test_case.asm_path, "r") as f:
-            instructions = f.readlines()
-        for i in inst_ids:
-            instructions = self._simplify_instruction(instructions, i)
-        return self._get_test_case_from_instructions(instructions, "/tmp/pipe.asm")
+        line = tmp[i].strip().lower()
+        if "nop" in line:
+            return []
 
-    def simplify_constants(self, test_case: TestCase, inputs: List[Input]) -> TestCase:
-        inst_ids = self._probe_test_case(
-            test_case,
-            inputs,
-            modify_func=self._simplify_constant,
-            check_func=self._check_for_violation,
-            removed_ids=True)
+        # skip jumps as replacing them with nops will confuse our assembly parser
+        if line.startswith("j") or line.startswith("loop"):
+            return []
 
-        with open(test_case.asm_path, "r") as f:
-            instructions = f.readlines()
-        for i in inst_ids:
-            instructions = self._simplify_constant(instructions, i)
-        return self._get_test_case_from_instructions(instructions, "/tmp/pipe.asm")
+        # determine the instruction size
+        with open("tmp.asm", "w") as f:
+            f.write(".intel_syntax noprefix\n")
+            f.write(line)
+            f.write("\n")
+        run("as tmp.asm -o tmp.o", shell=True, check=True)
+        run("objcopy -O binary --only-section=.text tmp.o tmp.o", shell=True, check=True)
+        size = os.path.getsize("tmp.o")
+        os.remove("tmp.asm")
+        os.remove("tmp.o")
 
-    def simplify_masks(self, test_case: TestCase, inputs: List[Input]) -> TestCase:
-        inst_ids = self._probe_test_case(
-            test_case,
-            inputs,
-            modify_func=self._simplify_mask,
-            check_func=self._check_for_violation,
-            removed_ids=True,
-            skip_instrumentation=False)
+        if size not in self.replacements:
+            return []
 
-        with open(test_case.asm_path, "r") as f:
-            instructions = f.readlines()
-        for i in inst_ids:
-            instructions = self._simplify_mask(instructions, i)
-        return self._get_test_case_from_instructions(instructions, "/tmp/pipe.asm")
+        tmp[i] = self.replacements[size] + "\n"
+        return tmp
 
-    def simplify_nop(self, test_case: TestCase, inputs: List[Input]) -> TestCase:
-        inst_ids = self._probe_test_case(
-            test_case,
-            inputs,
-            modify_func=self._replace_nop,
-            check_func=self._check_for_violation,
-            removed_ids=True,
-            skip_instrumentation=True)
+    def verify_modification(self, test_case: TestCase, inputs: List[Input]) -> bool:
+        return check_for_violation(self.fuzzer, test_case, inputs, self.ignore_list)
 
-        with open(test_case.asm_path, "r") as f:
-            instructions = f.readlines()
-        for i in inst_ids:
-            instructions = self._replace_nop(instructions, i)
-        return self._get_test_case_from_instructions(instructions, "/tmp/pipe.asm")
 
-    def minimize_labels(self, test_case: TestCase, _) -> TestCase:
+class LabelRemovalPass(BaseInstructionMinimizationPass):
+    """
+    A minimization pass that iteratively removes unused labels from the test case.
+    Note that no verification is performed in this pass as labels are not executed.
+    """
+    name = "Label Removal Pass"
+
+    def run(self, test_case: TestCase, inputs: List[Input]) -> TestCase:
         with open(test_case.asm_path, "r") as f:
             instructions = f.readlines()
 
         for i in range(len(instructions)):
-            print(".", end="", flush=True)
             line = instructions[i].strip().lower()
+
+            # skip non-labels
             if not line.startswith("."):
+                self.progress.next(False)
                 continue
+
+            # skip reserved labels
             if ".test_case_enter:" in line or \
                ".test_case_exit:" in line or \
                ".section" in line or \
@@ -391,41 +574,73 @@ class MinimizerViolation(Minimizer):
                "syntax" in line:
                 continue
 
+            # check if the label is used by other instructions
             label = instructions[i].strip().replace(":", "")
-            found = False
+            used = False
             for inst in instructions:
                 if label in inst and inst != instructions[i]:
-                    found = True
+                    used = True
                     break
-            if found:
-                continue
 
-            instructions[i] = ""
-        return self._get_test_case_from_instructions(instructions, "/tmp/pipe.asm")
+            # remove unused labels
+            if not used:
+                self.progress.next(True)
+                instructions[i] = ""
+            else:
+                self.progress.next(False)
 
-    def add_fences(self, test_case: TestCase, inputs: List[Input]) -> TestCase:
-        inst_ids = self._probe_test_case(
-            test_case, inputs, self._push_fence, self._check_for_violation, removed_ids=True)
+        self.progress.pass_finish()
+        return get_test_case_from_instructions(self.fuzzer, instructions)
+
+    def modify_instruction(self, instructions: List[str], cursor: int) -> List[str]:
+        return []  # unused
+
+    def verify_modification(self, test_case: TestCase, inputs: List[Input]) -> bool:
+        return True  # unused
+
+
+class FenceInsertionPass(BaseInstructionMinimizationPass):
+    """
+    A minimization pass that iteratively inserts LFENCE instructions before each instruction
+    and checks if the violation is still triggered.
+    """
+    name = "Fence Insertion Pass"
+
+    def run(self, test_case: TestCase, inputs: List[Input]) -> TestCase:
+        inst_ids = self.minimization_loop(test_case, inputs)
+        self.progress.pass_finish()
 
         with open(test_case.asm_path, "r") as f:
             instructions = f.readlines()
         for i in inst_ids:
             instructions = instructions[:i] + ["lfence\n"] + instructions[i:]
-        return self._get_test_case_from_instructions(instructions, "/tmp/pipe.asm")
+        return get_test_case_from_instructions(self.fuzzer, instructions)
 
-    def find_spec_source(self, test_case: TestCase, inputs: List[Input]) -> TestCase:
-        inst_ids = self._probe_test_case(
-            test_case,
-            inputs,
-            self._skip_instruction,
-            self._check_for_speculation,
-            removed_ids=False,
-            skip_instrumentation=False)
+    def modify_instruction(self, instructions: List[str], i: int) -> List[str]:
+        curr_instr = instructions[i].lower()
+        if curr_instr[0] == "j" or curr_instr[0:3] == "loop":
+            return []  # skip control-flow instructions - their target is already fenced
+        return instructions[:i] + ["lfence\n"] + instructions[i:]
+
+    def verify_modification(self, test_case: TestCase, inputs: List[Input]) -> bool:
+        return check_for_violation(self.fuzzer, test_case, inputs, self.ignore_list)
+
+
+class FindSpecSourcePass(BaseInstructionMinimizationPass):
+    """
+    An analysis pass that iterates over the test case and identifies instructions
+    that could be the source of speculation.
+    """
+    name = "Speculation Source Identification"
+
+    def run(self, test_case: TestCase, inputs: List[Input]) -> TestCase:
+        inst_ids = self.minimization_loop(test_case, inputs, skip_instrumentation_lines=False)
+        self.progress.pass_finish()
 
         with open(test_case.asm_path, "r") as f:
             instructions = f.readlines()
         if not inst_ids:
-            print("[WARNING] No speculation source found")
+            self.progress.pass_msg("No speculation source found")
 
         for i in inst_ids:
             if "# " in instructions[i]:
@@ -433,189 +648,38 @@ class MinimizerViolation(Minimizer):
                     instructions[i] = instructions[i][:-1] + ", speculation source ?\n"
             else:
                 instructions[i] = instructions[i][:-1] + "  # speculation source ?\n"
-        return self._get_test_case_from_instructions(instructions, "/tmp/pipe.asm")
+        return get_test_case_from_instructions(self.fuzzer, instructions)
 
-    def find_spec_sink(self, test_case: TestCase, inputs: List[Input]) -> TestCase:
-        inst_ids = self._probe_test_case(
-            test_case, inputs, self._skip_instruction, self._check_for_violation, removed_ids=False)
+    def modify_instruction(self, instructions: List[str], i: int) -> List[str]:
+        return instructions[:i] + instructions[i + 1:]
 
-        with open(test_case.asm_path, "r") as f:
-            instructions = f.readlines()
-        if not inst_ids:
-            print("[WARNING] No speculation sink found")
+    def verify_modification(self, test_case: TestCase, inputs: List[Input]) -> bool:
+        global CONF
+        sf = CONF.enable_speculation_filter
+        of = CONF.enable_observation_filter
+        CONF.enable_speculation_filter = True
+        CONF.enable_observation_filter = False
+        res = self.fuzzer.filter(test_case, inputs)
+        CONF.enable_speculation_filter = sf
+        CONF.enable_observation_filter = of
+        return res
 
-        i = inst_ids[0]
-        if "# " in instructions[i]:
-            if "speculation sink" not in instructions[i]:
-                instructions[i] = instructions[i][:-1] + ", speculation sink ?\n"
-        else:
-            instructions[i] = instructions[i][:-1] + "  # speculation sink ?\n"
-        return self._get_test_case_from_instructions(instructions, "/tmp/pipe.asm")
 
-    def find_min_input_sequence(self, test_case: TestCase, inputs: List[Input],
-                                enable_multipass: bool) -> Optional[EquivalenceClass]:
-        print("Reducing the number of inputs by halving...", end='')
-        org_len = len(inputs)
-        while len(inputs) > 5:
-            new_inputs = inputs[:len(inputs) // 2]
-            new_violation = self.fuzzer.fuzzing_round(test_case, new_inputs)
-            if not new_violation:
-                break
-            inputs = new_inputs
-            violation = new_violation
-        if len(inputs) < org_len:
-            print("to ", len(inputs))
-        else:
-            print("not reduced")
-            new_violation = self.fuzzer.fuzzing_round(test_case, inputs)
-            if not new_violation:
-                return None
+class AddViolationCommentsPass(BaseInstructionMinimizationPass):
+    """
+    An instrumentation pass that iterates over the test case and adds comments
+    with the memory addresses of the loads and stores that caused the violation.
+    """
+    name = "Violation Comment Insertion"
+    violation: EquivalenceClass
 
-        inputs = violation.input_sequence
-        org_ipc = CONF.inputs_per_class
-        CONF.inputs_per_class = 1  # disable boosting from now on
+    def set_violation(self, violation: EquivalenceClass):
+        self.violation = violation
 
-        n_iterations = 10 if enable_multipass else 1
-        for iteration in range(n_iterations):
-            print(f"Reducing the input sequence iteratively [attempt #{iteration}]:")
-            org_len = len(inputs)
-            for input_id in range(org_len, 0, -1):
-                new_inputs = inputs[0:input_id] + inputs[input_id + 1:]
-                new_violation = self.fuzzer.fuzzing_round(test_case, inputs)
-                if not new_violation:
-                    print("-", end="", flush=True)
-                    continue
-                print(".", end="", flush=True)
-                inputs = new_inputs
-                violation = new_violation
-            if len(inputs) < org_len:
-                print("\nreduced to ", len(inputs))
-            else:
-                print("\nnot reduced")
-                break
-        CONF.inputs_per_class = org_ipc
-        return violation
-
-    def find_min_inputs(self, test_case: TestCase, violation) -> List[Input]:
-        inputs = violation.input_sequence
-
-        org_conf = (CONF.inputs_per_class, CONF.minimizer_retries)
-        CONF.inputs_per_class = 1  # disable boosting from now on
-        CONF.minimizer_retries = 5
-
-        violating_input_ids = [i.input_id for i in violation.measurements]
-        if len(violating_input_ids) > 2:
-            violating_input_ids = violating_input_ids[:2]
-
-        # make a copy of the inputs
-        input_a = inputs[violating_input_ids[0]]
-        input_b = inputs[violating_input_ids[1]]
-        input_a_org = deepcopy(input_a)
-        input_b_org = deepcopy(input_b)
-
-        leaked = []
-        n_actors = len(CONF._actors)
-        assert len(input_a) == n_actors
-        assert len(input_b) == n_actors
-
-        # print header
-        print(f'\n{"Address":<11}', end="", flush=True)
-        for i in range(0, 64, 8):
-            print(f"+0x{i * 8:<6x}", end="", flush=True)
-
-        for actor_id in range(n_actors):
-            region_offset = 0
-            for region_name in ['main', 'faulty', 'gpr', 'simd']:
-                i = -1
-                region_size = len(input_a[actor_id][region_name])
-                while i < (region_size - 1):
-                    i += 1
-
-                    # progress indicator
-                    absolute_address = actor_id * 0x4000 + region_offset + i * 8
-                    if i % 64 == 0:
-                        print(f"\n0x{absolute_address:08x} ", end="", flush=True)
-                    elif i % 8 == 0:
-                        print(" ", end="", flush=True)
-
-                    # skip if the bytes are equal
-                    if input_a[actor_id][region_name][i] == input_b[actor_id][region_name][i]:
-                        print("=", end="", flush=True)
-                        continue
-
-                    # Try zeroing out blocks of decreasing size:
-                    # 1. find a suitable starting block size, fulfilling the following conditions:
-                    #    * the block size is less then 512 bytes (64 * 8)
-                    block_size = 64 - (i % 64)
-                    #    * the block does not overlap with the next region
-                    if block_size > region_size - i:
-                        block_size = region_size - i
-                    #    * the block size is a power of 2
-                    block_size = 2**int(log2(block_size))
-                    #    * i mod block_size == 0
-                    while block_size > 1 and i % block_size != 0:
-                        block_size //= 2
-                    # 2. binary search for the largest zeroed-out block that
-                    #    still triggers the violation
-                    success = False
-                    while block_size > 1:
-                        for j in range(block_size):
-                            input_a[actor_id][region_name][i + j] = 0
-                            input_b[actor_id][region_name][i + j] = 0
-                        if self._check_for_violation(test_case, inputs):
-                            n_64byte_blocks = block_size // 8
-                            n_remainder_bytes = block_size % 8
-                            if n_remainder_bytes > 0:
-                                print("." * n_remainder_bytes, end="", flush=True)
-                                if n_64byte_blocks > 0:
-                                    print(" ", end="", flush=True)
-                            if n_64byte_blocks > 0:
-                                print(("." * 8 + " ") * (n_64byte_blocks - 1), end="", flush=True)
-                                print("." * 8, end="", flush=True)
-                            i += block_size - 1
-                            success = True
-                            break
-                        for j in range(block_size):
-                            input_a[actor_id][region_name][i + j] = \
-                                input_a_org[actor_id][region_name][i + j]
-                            input_b[actor_id][region_name][i + j] = \
-                                input_b_org[actor_id][region_name][i + j]
-                        block_size //= 2
-                    if success:
-                        continue
-
-                    # try zeroing out a single byte
-                    input_a[actor_id][region_name][i] = 0
-                    input_b[actor_id][region_name][i] = 0
-                    if self._check_for_violation(test_case, inputs):
-                        print(".", end="", flush=True)
-                        continue
-
-                    # try copying the byte between the two inputs
-                    input_a[actor_id][region_name][i] = input_a_org[actor_id][region_name][i]
-                    input_b[actor_id][region_name][i] = input_a_org[actor_id][region_name][i]
-                    if self._check_for_violation(test_case, inputs):
-                        print("+", end="", flush=True)
-                        continue
-
-                    # if failing, restore the original value
-                    print("^", end="", flush=True)
-                    leaked.append(absolute_address)
-                    input_a[actor_id][region_name][i] = input_a_org[actor_id][region_name][i]
-                    input_b[actor_id][region_name][i] = input_b_org[actor_id][region_name][i]
-
-                region_offset += region_size * 8
-
-        print("\nLeaked bytes:")
-        print([hex(x) for x in leaked])
-
-        CONF.inputs_per_class = org_conf[0]
-        CONF.minimizer_retries = org_conf[1]
-        return inputs
-
-    def add_violation_comments(self, test_case: TestCase, violation) -> TestCase:
-        v_inputs = [m.input_ for m in violation.measurements[:2]]
-        v_input_ids = [m.input_id for m in violation.measurements[:2]]
+    def run(self, test_case: TestCase, inputs: List[Input]) -> TestCase:
+        # reproduce the violation to get violating input IDs
+        v_inputs = [m.input_ for m in self.violation.measurements[:2]]
+        v_input_ids = [m.input_id for m in self.violation.measurements[:2]]
 
         # create a model that will collect PC and memory traces
         sandbox_base, code_base = 0x2000000, 0x1000000
@@ -686,137 +750,402 @@ class MinimizerViolation(Minimizer):
 
         return test_case
 
-    # ==============================================================================================
-    # Hook functions
-    def _check_for_violation(self, test_case: TestCase, inputs: List[Input]) -> bool:
-        for _ in range(CONF.minimizer_retries):
-            if self.fuzzer.fuzzing_round(test_case, inputs, self.ignore_list) is not None:
-                return True
-        return False
+    def modify_instruction(self, _: List[str], __: int) -> List[str]:
+        return []  # unused
 
-    def _check_for_speculation(self, test_case: TestCase, inputs: List[Input]) -> bool:
-        global CONF
-        conf_state = deepcopy(CONF)
-        CONF.enable_speculation_filter = True
-        CONF.enable_observation_filter = False
-        res = self.fuzzer.filter(test_case, inputs)
-        CONF = conf_state
-        return not res
+    def verify_modification(self, _: TestCase, __: List[Input]) -> bool:
+        return True  # unused
 
-    def _check_for_observation(self, test_case: TestCase, inputs: List[Input]) -> bool:
-        global CONF
-        conf_state = deepcopy(CONF)
-        CONF.enable_speculation_filter = False
-        CONF.enable_observation_filter = True
-        res = self.fuzzer.filter(test_case, inputs)
-        CONF = conf_state
-        return not res
 
-    @staticmethod
-    def _skip_instruction(instructions, i) -> List:
-        return instructions[:i] + instructions[i + 1:]
+class InputSequenceMinimizationPass(BaseInputMinimizationPass):
+    """
+    A minimization pass that iteratively removes inputs from the violating the input sequence
+    and checks if the violation is still triggered.
+    """
+    name = "Input Sequence Minimization"
 
-    @staticmethod
-    def _simplify_instruction(instructions: List[str], i) -> List:
-        tmp = list(instructions)  # make a copy
-        clean_line = tmp[i].strip().lower()
-        words = clean_line.split(" ")
-        key = words[0]
-        replacement_func = INSTRUCTION_REPLACEMENTS.get(key, None)
-        if not replacement_func:
-            return []
-        tmp[i] = " ".join([replacement_func(clean_line)] + words[1:]) + "\n"
+    def run(self, test_case: TestCase, org_inputs: List[Input],
+            org_violation: EquivalenceClass) -> List[Input]:
+        self.progress.pass_msg("Reducing the number of inputs by halving")
+        org_len = len(org_inputs)
 
-        return tmp
-
-    @staticmethod
-    def _simplify_constant(instructions, i) -> List:
-        tmp = list(instructions)  # make a copy
-        clean_line = tmp[i].strip().lower()
-        words = clean_line.split(",")
-        for word_id, word in enumerate(words):
-            word = word.strip()
-            if word == "0":  # already replaced
+        violation = org_violation
+        nonboosted_inputs = org_inputs
+        while len(nonboosted_inputs) > 5:
+            new_inputs = nonboosted_inputs[:len(nonboosted_inputs) // 2]
+            new_violation = self.fuzzer.fuzzing_round(test_case, new_inputs)
+            if not new_violation:
                 break
-            if re.match(r"^-?[0-9]+$", word) or re.match(r"^-?0x[0-9a-f]+$", word) \
-               or re.match(r"^-?0b[01]+$", word):
-                tmp[i] = ", ".join(words[:word_id] + ["0"] + words[word_id + 1:]) + "\n"
-                return tmp
+            nonboosted_inputs = new_inputs
+            violation = new_violation
 
-        return []
+        if len(nonboosted_inputs) < org_len:
+            self.progress.pass_msg(f"Result: Reduced to {len(nonboosted_inputs)} inputs")
+        else:
+            self.progress.pass_msg("Result: Could not reduce the number of inputs")
 
-    @staticmethod
-    def _simplify_mask(instructions, i) -> List:
-        tmp = list(instructions)  # make a copy
+        # Get boosted inputs and disable boosting from now on
+        inputs = violation.input_sequence
+        org_ipc = CONF.inputs_per_class
+        CONF.inputs_per_class = 1  # disable boosting from now on
 
-        comment_split = tmp[i].split("#")
-        clean_line = comment_split[0].strip().lower()
-        comment = "#".join(comment_split[1:]) if len(comment_split) > 1 else ""
+        n_iterations = 10
+        self.progress.pass_msg("Reducing the input sequence iteratively")
+        for iteration in range(n_iterations):
+            self.progress.pass_msg(f"Iteration {iteration + 1}")
+            org_len = len(inputs)
+            for input_id in range(org_len, 0, -1):
+                new_inputs = inputs[0:input_id] + inputs[input_id + 1:]
+                new_violation = self.fuzzer.fuzzing_round(test_case, inputs)
+                if not new_violation:
+                    self.progress.next(False)
+                    continue
+                self.progress.next(True)
+                inputs = new_inputs
+                violation = new_violation
+            self.progress.pass_finish()
+            if len(inputs) == org_len:
+                break
+        self.progress.pass_msg(f"Result: Reduced to {len(inputs)} inputs")
+        CONF.inputs_per_class = org_ipc
+        return violation.input_sequence
 
-        words = clean_line.split(",")
-        for word_id, word in enumerate(words):
-            word = word.strip()
-            replacement = MASK_REPLACEMENTS.get(word, None)
-            if replacement:
-                tmp[i] = ", ".join(words[:word_id] + [replacement] + words[word_id + 1:]) \
-                    + " #" + comment
-                return tmp
 
-        return []
+class DifferentialInputMinimizerPass(BaseInputMinimizationPass):
+    """
+    A minimization pass that iteratively minimizes the difference between two violating inputs.
+    It tries to zero out blocks of decreasing size and checks if the violation is still triggered.
+    If this is not possible, it tries to copy the byte between the two inputs.
+    """
+    name = "Differential Input Minimizer"
 
-    @staticmethod
-    def _replace_nop(instructions, i) -> List:
-        replacements = {
-            1: "nop",
-            2: "nop dword ptr [rax]",
-            3: "nop dword ptr [rax]",
-            4: "nop dword ptr [rax + 1]",
-            5: "nop dword ptr [rax + rax*2 + 1]",
-            6: "nop dword ptr [rax + rax*2 + 1]",
-            7: "nop dword ptr [rax + 0xff]",
+    def run(self, test_case: TestCase, _: List[Input], violation: EquivalenceClass) -> List[Input]:
+        inputs = violation.input_sequence
+
+        # Disable boosting for this pass as we already operate on the boosted inputs
+        org_conf = (CONF.inputs_per_class,)
+        CONF.inputs_per_class = 1
+
+        # Determine the violating input IDs
+        violating_input_ids = [i.input_id for i in violation.measurements]
+        if len(violating_input_ids) > 2:
+            violating_input_ids = violating_input_ids[:2]
+
+        # Set the non-violating inputs as the ignore list; do it locally to avoid side effects
+        local_ignore_list = [
+            i for i in range(len(violation.input_sequence)) if i not in violating_input_ids
+        ]
+
+        # make a copy of the inputs
+        input_a = inputs[violating_input_ids[0]]
+        input_b = inputs[violating_input_ids[1]]
+        input_a_org = deepcopy(input_a)
+        input_b_org = deepcopy(input_b)
+        input_a.data_size
+
+        leaked = []
+        n_actors = len(CONF._actors)
+        assert len(input_a) == n_actors
+        assert len(input_b) == n_actors
+
+        # print header
+        print(f'\n{"Address":<11}', end="", flush=True)
+        for i in range(0, 64, 8):
+            print(f"+0x{i * 8:<6x}", end="", flush=True)
+
+        for actor_id in range(n_actors):
+            region_offset = 0
+            for region_name in ['main', 'faulty', 'gpr', 'simd']:
+                i = -1
+                region_size = len(input_a[actor_id][region_name])
+                while i < (region_size - 1):
+                    i += 1
+
+                    # progress indicator
+                    absolute_address = actor_id * 0x4000 + region_offset + i * 8
+                    if i % 64 == 0:
+                        print(f"\n0x{absolute_address:08x} ", end="", flush=True)
+                    elif i % 8 == 0:
+                        print(" ", end="", flush=True)
+
+                    # skip if the bytes are equal
+                    if input_a[actor_id][region_name][i] == input_b[actor_id][region_name][i]:
+                        print("=", end="", flush=True)
+                        continue
+
+                    # Try zeroing out blocks of decreasing size:
+                    # 1. find a suitable starting block size, fulfilling the following conditions:
+                    #    * the block size is less then 512 bytes (64 * 8)
+                    block_size = 64 - (i % 64)
+                    #    * the block does not overlap with the next region
+                    if block_size > region_size - i:
+                        block_size = region_size - i
+                    #    * the block size is a power of 2
+                    block_size = 2**int(log2(block_size))
+                    #    * i mod block_size == 0
+                    while block_size > 1 and i % block_size != 0:
+                        block_size //= 2
+                    # 2. binary search for the largest zeroed-out block that
+                    #    still triggers the violation
+                    success = False
+                    while block_size > 1:
+                        for j in range(block_size):
+                            input_a[actor_id][region_name][i + j] = 0
+                            input_b[actor_id][region_name][i + j] = 0
+                        if check_for_violation(self.fuzzer, test_case, inputs, local_ignore_list):
+                            n_64byte_blocks = block_size // 8
+                            n_remainder_bytes = block_size % 8
+                            if n_remainder_bytes > 0:
+                                print("." * n_remainder_bytes, end="", flush=True)
+                                if n_64byte_blocks > 0:
+                                    print(" ", end="", flush=True)
+                            if n_64byte_blocks > 0:
+                                print(("." * 8 + " ") * (n_64byte_blocks - 1), end="", flush=True)
+                                print("." * 8, end="", flush=True)
+                            i += block_size - 1
+                            success = True
+                            break
+                        for j in range(block_size):
+                            input_a[actor_id][region_name][i + j] = \
+                                input_a_org[actor_id][region_name][i + j]
+                            input_b[actor_id][region_name][i + j] = \
+                                input_b_org[actor_id][region_name][i + j]
+                        block_size //= 2
+                    if success:
+                        continue
+
+                    # try zeroing out a single byte
+                    input_a[actor_id][region_name][i] = 0
+                    input_b[actor_id][region_name][i] = 0
+                    if check_for_violation(self.fuzzer, test_case, inputs, local_ignore_list):
+                        print(".", end="", flush=True)
+                        continue
+
+                    # try copying the byte between the two inputs
+                    input_a[actor_id][region_name][i] = input_a_org[actor_id][region_name][i]
+                    input_b[actor_id][region_name][i] = input_a_org[actor_id][region_name][i]
+                    if check_for_violation(self.fuzzer, test_case, inputs, local_ignore_list):
+                        print("+", end="", flush=True)
+                        continue
+
+                    # if failing, restore the original value
+                    print("^", end="", flush=True)
+                    leaked.append(absolute_address)
+                    input_a[actor_id][region_name][i] = input_a_org[actor_id][region_name][i]
+                    input_b[actor_id][region_name][i] = input_b_org[actor_id][region_name][i]
+
+                region_offset += region_size * 8
+        print("")
+
+        self.progress.pass_msg(f"Result: Leaked {len(leaked)} bytes")
+        self.progress.pass_msg(f"Addresses: {[hex(x) for x in leaked]}")
+
+        CONF.inputs_per_class = org_conf[0]
+        return inputs
+
+
+# ==================================================================================================
+# High-level minimization algorithm
+# ==================================================================================================
+class MainMinimizer(Minimizer):
+    """
+    Main class for the postprocessing module. It selects the appropriate minimization passes
+    based on the command-line arguments, and then runs them.
+    """
+
+    ignore_list: List[int]
+    """ List of input IDs that will be ignored during minimization """
+
+    pass_map: Dict[str, PassDesc]
+    """ Mapping of pass names to their classes """
+
+    def __init__(self, fuzzer: Fuzzer, instruction_set_spec: InstructionSetAbstract):
+        self.fuzzer = fuzzer
+        self.fuzzer.initialize_modules()
+        self.LOG = Logger()
+        self.progress = ProgressPrinter()
+        self.instruction_set_spec = instruction_set_spec
+        self.LOG.info = False
+        self.ignore_list = []
+
+        # manage tmp directory
+        if not os.path.exists(TMP_DIR):
+            os.makedirs(TMP_DIR)
+
+        # initialize the pass map
+        self.pass_map = {
+            "instruction_pass": PassDesc(InstructionRemovalPass, True, False, False),
+            "simplification_pass": PassDesc(InstructionSimplificationPass, True, False, False),
+            "nop_pass": PassDesc(NopReplacementPass, True, False, False),
+            "constant_pass": PassDesc(ConstantSimplificationPass, True, False, False),
+            "mask_pass": PassDesc(MaskSimplificationPass, True, False, False),
+            "label_pass": PassDesc(LabelRemovalPass, False, False, False),
+            "fence_pass": PassDesc(FenceInsertionPass, False, False, True),
+            "input_seq_pass": PassDesc(InputSequenceMinimizationPass, False, True, False),
+            "input_diff_pass": PassDesc(DifferentialInputMinimizerPass, False, True, False),
+            "source_analysis": PassDesc(FindSpecSourcePass, False, False, True),
+            "comment_pass": PassDesc(AddViolationCommentsPass, False, False, True),
         }
 
-        tmp = list(instructions)  # make a copy
+    def __del__(self):
+        # remove tmp directory
+        if os.path.exists(TMP_DIR):
+            shutil.rmtree(TMP_DIR)
 
-        line = tmp[i].strip().lower()
-        if "nop" in line:
-            return []
+    def run(self, test_case_asm: str, n_inputs: int, test_case_outfile: str, input_outdir: str,
+            n_attempts: int, **enabled_passes):
+        """
+        Run the minimization passes based on the command-line arguments, passed as arguments
+        to this function. It first reproduces the violation, then run input passes,
+        then instruction passes, and finally the analysis passes. The resulting minimized program
+        is stored into `test_case_outfile` and the resulting minimized input sequence is stored
+        into `input_outdir`.
 
-        # determine the instruction size
-        with open("tmp.asm", "w") as f:
-            f.write(".intel_syntax noprefix\n")
-            f.write(line)
-            f.write("\n")
-        run("as tmp.asm -o tmp.o", shell=True, check=True)
-        run("objcopy -O binary --only-section=.text tmp.o tmp.o", shell=True, check=True)
-        size = os.path.getsize("tmp.o")
-        os.remove("tmp.asm")
-        os.remove("tmp.o")
+        :param test_case_asm: Path to the test case assembly file
+        :param n_inputs: Number of inputs to use during the minimization
+        :param test_case_outfile: Path to store the minimized test case
+        :param input_outdir: Path to store the minimized inputs
+        :param n_attempts: Number of attempts to run the instruction minimization passes
+        :param enabled_passes: Dictionary of arguments to enable/disable the passes.
+               Supported keys:
+               - enable_instruction_pass
+               - enable_simplification_pass
+               - enable_nop_pass
+               - enable_constant_pass
+               - enable_mask_pass
+               - enable_label_pass
+               - enable_fence_pass
+               - enable_input_seq_pass
+               - enable_input_diff_pass
+               - enable_source_analysis
+               - enable_comment_pass
+        :return: None
+        """
 
-        if size > 7:
-            return []
+        # Check arguments
+        assert CONF.instruction_set == "x86-64", "Postprocessor supports only x86-64 so far"
 
-        tmp[i] = replacements[size] + "\n"
+        # Reset the ignore list
+        self.ignore_list = []
 
-        return tmp
+        # Adjust the sample size to reduce non-reproducibility
+        CONF.executor_sample_sizes = [CONF.executor_sample_sizes[-1]]
 
-    @staticmethod
-    def _push_fence(instructions, i) -> List:
-        curr_instr = instructions[i].lower()
-        if curr_instr[0] == "j" or curr_instr[0:3] == "loop":
-            return []  # skip control-flow instructions - their target is already fenced
-        return instructions[:i] + ["lfence\n"] + instructions[i:]
+        # Parse the test case and inputs
+        test_case: TestCase = self.fuzzer.asm_parser.parse_file(test_case_asm)
+        self.fuzzer.input_gen.n_actors = len(test_case.actors)
+        inputs: List[Input] = self.fuzzer.input_gen.generate(n_inputs)
 
-    # ==============================================================================================
-    # Helpers
-    def _get_test_case_from_instructions(self,
-                                         instructions: List[str],
-                                         path: str = "/tmp/minimised.asm") -> TestCase:
-        run(f"touch {path}", shell=True, check=True)
-        with open(path, "w+") as f:
-            f.seek(0)  # is it necessary??
-            for line in instructions:
-                f.write(line)
-            f.truncate()  # is it necessary??
-        tc = self.fuzzer.asm_parser.parse_file(path)
-        return tc
+        # Check if the violation can be reproduced
+        self.progress.pass_start("Reproducing the violation")
+        for _ in range(CONF.minimizer_retries):
+            violation = self.fuzzer.fuzzing_round(test_case, inputs)
+            if violation:
+                self.progress.pass_msg("Violation reproduced. Proceeding with minimization")
+                break
+        else:
+            self.progress.pass_msg("Could not reproduce the violation. Exiting")
+            return
+
+        # Get lists of enabled passes
+        passes: List[PassDesc] = \
+            [v for k, v in self.pass_map.items() if enabled_passes.get(f"enable_{k}", False)]
+        input_passes = [p.cls_ for p in passes if p.is_input_pass]
+        program_passes = [p.cls_ for p in passes if p.is_instruction_pass]
+        analysis_passes = [p.cls_ for p in passes if p.is_analysis_pass]
+
+        # Run the input minimization passes
+        if input_passes:
+            inputs = self._run_input_passes(test_case, inputs, violation, input_outdir,
+                                            input_passes)
+
+            # Disable boosting from now on: The minimized input sequence is guaranteed to be boosted
+            CONF.inputs_per_class = 1
+
+            # Since the input sequence have changed, we need to recreate the violation
+            violation = self.fuzzer.fuzzing_round(test_case, inputs)
+            if not violation:
+                self.LOG.error("Non-reproducible input sequence minimization. Exiting")
+
+        # Set the non-violating inputs as the ignore list
+        violating_ids = [m.input_id for m in violation.measurements]
+        self.ignore_list = \
+            [i for i in range(len(violation.input_sequence)) if i not in violating_ids]
+        self.progress.pass_msg(f"Violating input IDs: {violating_ids}")
+
+        # Run the instruction minimization passes
+        for attempt in range(n_attempts):
+            self.progress.global_msg(f"Minimization attempt {attempt + 1}/{n_attempts}")
+            old_tc = deepcopy(test_case)
+            test_case = self._run_instruction_passes(program_passes, test_case, inputs, violation,
+                                                     test_case_outfile)
+            if test_case == old_tc:  # break if no progress was made
+                break
+
+        # Run the analysis passes
+        test_case = self._run_instruction_passes(analysis_passes, test_case, inputs, violation,
+                                                 test_case_outfile)
+
+        # Get rid of unused labels
+        if enabled_passes.get("enable_label_pass", False):
+            test_case = self._run_instruction_passes([LabelRemovalPass], test_case, inputs,
+                                                     violation, test_case_outfile)
+
+        # Store the results
+        self.progress.pass_start("Storing the results")
+        shutil.copy(test_case.asm_path, test_case_outfile)
+
+    def _run_input_passes(self, test_case: TestCase, inputs: List[Input],
+                          org_violation: EquivalenceClass, outdir: str,
+                          passes: List) -> List[Input]:
+        violation = org_violation
+
+        for pass_cls in passes:
+            # Create the pass object
+            pass_ = pass_cls(self.fuzzer, self.instruction_set_spec, self.progress)
+            self.progress.pass_start(pass_.name)
+
+            # Run the pass
+            new_inputs = pass_.run(test_case, inputs, violation)
+
+            # If new input sequence was produced, recreate the violation
+            if new_inputs != inputs:
+                new_violation = self.fuzzer.fuzzing_round(test_case, new_inputs)
+                if new_violation:
+                    violation = new_violation
+                    inputs = new_inputs
+                else:
+                    self.progress.pass_msg("[WARNING] Non-reproducible sequence minimization"
+                                           ". Rolling back to the previous state")
+
+        # Create the output directory, if not already exists
+        if outdir and not os.path.exists(outdir):
+            try:
+                os.makedirs(outdir)
+            except OSError:
+                self.LOG.error(f"Creation of the directory {outdir} failed")
+            outdir = os.path.abspath(outdir)
+
+        # Store the results
+        self.progress.pass_msg(f"Saving new inputs in '{outdir}'")
+        for i in range(len(inputs)):
+            inputs[i].save(f"{outdir}/min_input_{i:04}.bin")
+
+        return inputs
+
+    def _run_instruction_passes(self, passes: List, test_case: TestCase, inputs: List[Input],
+                                org_violation: EquivalenceClass, outfile: str) -> TestCase:
+        # create pass objects
+        pass_objs = [c(self.fuzzer, self.instruction_set_spec, self.progress) for c in passes]
+        for pass_obj in pass_objs:
+            pass_obj.set_ignore_list(self.ignore_list)
+            if getattr(pass_obj, 'set_violation', None):
+                pass_obj.set_violation(org_violation)
+
+        # run passes
+        for pass_obj in pass_objs:
+            self.progress.pass_start(pass_obj.name)
+            test_case = pass_obj.run(test_case, inputs)
+            shutil.copy(test_case.asm_path, outfile)
+
+        return test_case

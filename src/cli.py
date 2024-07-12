@@ -140,80 +140,134 @@ def main() -> int:
 
     # ==============================================================================================
     # Postprocessing interface
-    parser_mini = subparsers.add_parser('minimize', add_help=True)
-    parser_mini.add_argument(
-        '--genfile',
-        '-g',
-        type=str,
-        required=True,
+    parser_mini = subparsers.add_parser(
+        'minimize',
+        add_help=True,
+        help="Minimize a test case by executing a series of minimization passes. "
+        "The set of passes is controlled via CLI arguments.",
     )
     parser_mini.add_argument(
-        '--outfile',
-        '-o',
+        '--testcase',
+        '-t',
         type=str,
         required=True,
+        help="Path to the test case program that needs to be minimized.",
     )
-    parser_mini.add_argument("-c", "--config", type=str, required=False)
     parser_mini.add_argument(
         "-i",
         "--num-inputs",
         type=int,
-        default=100,
-        help="Number of inputs per test case.",
+        required=True,
+        help="Number of inputs to the program that will be used during minimization.",
     )
     parser_mini.add_argument(
-        "--no-minimize",
-        action='store_true',
-        default=False,
-        help="Don't minimize the test case, but apply the other postprocessing passes (if enabled)."
+        "-s",
+        "--instruction-set",
+        type=str,
+        required=True,
+        help="Path to the instruction set specification (JSON) file.")
+    parser_mini.add_argument(
+        "-c",
+        "--config",
+        type=str,
+        required=True,
+        help="Path to the configuration file that will be used during minimization.",
     )
     parser_mini.add_argument(
-        "--simplify",
-        action='store_true',
-        default=False,
-        help="Try replacing complex instructions with similar but simpler instructions.")
-    parser_mini.add_argument(
-        "-f",
-        "--add-fences",
-        action='store_true',
-        default=False,
-        help="Add as many LFENCEs as possible, while preserving the violation.",
+        '--testcase-outfile',
+        '-o',
+        type=str,
+        required=True,
+        help="Output path for the minimized test case program.",
     )
     parser_mini.add_argument(
-        "--find-sources",
-        action='store_true',
-        default=False,
-        help="Scan the test case to find the instructions that trigger speculation\n "
-        "and that cause speculative leakage, and label them as such in the assembly\n "
-        "file comments.",
-    )
-    parser_mini.add_argument(
-        "--find-min-input-sequence",
-        action='store_true',
-        default=False,
-        help="Find a minimal input sequence that still trigger the violation.")
-    parser_mini.add_argument(
-        "--find-min-inputs",
-        action='store_true',
-        default=False,
-        help="Minimize the differences between the inputs that trigger the violation.")
-    parser_mini.add_argument(
-        "--min-input-destination",
+        '--input-outdir',
         type=str,
         default=None,
-        help="Destination directory for storing minimized inputs.")
-    parser_mini.add_argument("-s", "--instruction-set", type=str, required=True)
+        help="Output directory for storing minimized inputs.",
+    )
     parser_mini.add_argument(
-        "--enable-multipass",
-        action='store_true',
-        default=False,
-        help="Enable the minimizer to run the minimization algorithm multiple times\n "
-        "to find the smallest test case that triggers the violation.")
+        '--num-attempts',
+        type=int,
+        default=1,
+        help="Number of attempts to minimize the test case.",
+    )
     parser_mini.add_argument(
-        "--enable-violation-comments",
-        action='store_true',
+        '--enable-instruction-pass',
+        type=bool,
+        default=True,
+        help="Enable the instruction minimization pass that iteratively removes "
+        "instructions while preserving the violation.",
+    )
+    parser_mini.add_argument(
+        '--enable-simplification-pass',
+        type=bool,
         default=False,
-        help="Add comments to the assembly file with details about the violation\n.")
+        help="Enable the instruction simplification pass that replaces complex "
+        "instructions with simpler ones while preserving the violation.",
+    )
+    parser_mini.add_argument(
+        '--enable-nop-pass',
+        type=bool,
+        default=False,
+        help="Enable the NOP replacement pass that replaces instructions with NOPs "
+        "while preserving the violation.",
+    )
+    parser_mini.add_argument(
+        '--enable-constant-pass',
+        type=bool,
+        default=False,
+        help="Enable the constant simplification pass that replaces constants with 0s "
+        "while preserving the violation.",
+    )
+    parser_mini.add_argument(
+        '--enable-mask-pass',
+        type=bool,
+        default=False,
+        help="Enable the mask simplification pass that reduces the size of instrumentation "
+        "masks while preserving the violation.",
+    )
+    parser_mini.add_argument(
+        '--enable-label-pass',
+        type=bool,
+        default=True,
+        help="Enable the label removal pass that removes unused labels from the assembly file.",
+    )
+    parser_mini.add_argument(
+        '--enable-fence-pass',
+        type=bool,
+        default=False,
+        help="Enable the fence insertion pass that adds LFENCEs after instructions "
+        "while preserving the violation.",
+    )
+    parser_mini.add_argument(
+        "--enable-input-seq-pass",
+        type=bool,
+        default=False,
+        help="Enable the input sequence minimization pass that removes inputs from "
+        "the original generated sequence while preserving the violation.",
+    )
+    parser_mini.add_argument(
+        "--enable-input-diff-pass",
+        type=bool,
+        default=False,
+        help="Enable the violating input difference minimization pass that removes "
+        "inputs that do not contribute to the violation.",
+    )
+    parser_mini.add_argument(
+        "--enable-source-analysis",
+        type=bool,
+        default=False,
+        help="Enable the speculation source identification pass that identifies the "
+        "instructions that trigger speculation.",
+    )
+    parser_mini.add_argument(
+        "--enable-comment-pass",
+        type=bool,
+        default=False,
+        help="Enable the violation comment pass that adds comments to the assembly file "
+        "with details about the violation.",
+    )
 
     # ==============================================================================================
     # Standalone interface to test case generation
@@ -305,12 +359,23 @@ def main() -> int:
     if getattr(args, 'config', None):
         CONF.load(args.config)
 
+    # Check if the file and directory arguments are valid
+    if getattr(args, 'testcase', None) and not os.path.isfile(args.testcase):
+        print("[ERROR]", f"The test case file `{args.testcase}` does not exist")
+        return 1
+    if getattr(args, 'working_directory', None) and not os.path.isdir(args.working_directory):
+        print("[ERROR]", f"The working directory `{args.working_directory}` does not exist")
+        return 1
+    if (getattr(args, 'enable_input_seq_pass', None)
+        or getattr(args, 'enable_input_diff_pass', None)) \
+            and not args.input_outdir:
+        print(
+            "[ERROR]", "Passes --enable-input-seq-pass and --enable-input-diff-pass "
+            "require flag --input-outdir to be set.")
+        return 1
+
     # Fuzzing
     if args.subparser_name == 'fuzz' or args.subparser_name == 'tfuzz':
-        # Make sure we're ready for fuzzing
-        if args.working_directory and not os.path.isdir(args.working_directory):
-            SystemExit("The working directory does not exist")
-
         testcase = args.testcase if args.subparser_name == 'fuzz' else args.template
         fuzzer = get_fuzzer(args.instruction_set, args.working_directory, testcase, "")
         if args.subparser_name == 'tfuzz':
@@ -346,13 +411,30 @@ def main() -> int:
 
     # Test case minimization
     if args.subparser_name == "minimize":
-        fuzzer = get_fuzzer(args.instruction_set, "", args.genfile, "")
+        if (args.enable_input_seq_pass or args.enable_input_diff_pass) and not args.input_outdir:
+            SystemExit("ERROR: Passes --enable-input-seq-pass and --enable-input-diff-pass \n"
+                       "require flag --input_outdir to be set.")
+
+        fuzzer = get_fuzzer(args.instruction_set, "", args.testcase, "")
         minimizer = get_minimizer(fuzzer, args.instruction_set)
-        minimizer.run(args.genfile, args.outfile, args.num_inputs, not args.no_minimize,
-                      args.simplify, args.add_fences, args.find_sources,
-                      args.find_min_input_sequence, args.find_min_inputs,
-                      args.min_input_destination, args.enable_multipass,
-                      args.enable_violation_comments)
+        minimizer.run(
+            test_case_asm=args.testcase,
+            n_inputs=args.num_inputs,
+            test_case_outfile=args.testcase_outfile,
+            input_outdir=args.input_outdir,
+            n_attempts=args.num_attempts,
+            enable_instruction_pass=args.enable_instruction_pass,
+            enable_simplification_pass=args.enable_simplification_pass,
+            enable_nop_pass=args.enable_nop_pass,
+            enable_constant_pass=args.enable_constant_pass,
+            enable_mask_pass=args.enable_mask_pass,
+            enable_label_pass=args.enable_label_pass,
+            enable_fence_pass=args.enable_fence_pass,
+            enable_input_seq_pass=args.enable_input_seq_pass,
+            enable_input_diff_pass=args.enable_input_diff_pass,
+            enable_source_analysis=args.enable_source_analysis,
+            enable_comment_pass=args.enable_comment_pass,
+        )
         return 0
 
     # Configuration tuning
