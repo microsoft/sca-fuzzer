@@ -497,20 +497,38 @@ class NopReplacementPass(BaseInstructionMinimizationPass):
         9: "nop qword ptr [rax + rax + 0xff]  # 9 B",
     }
 
+    def __init__(self, fuzzer: Fuzzer, instruction_set_spec: InstructionSetAbstract,
+                 progress: ProgressPrinter):
+        super().__init__(fuzzer, instruction_set_spec, progress)
+        self.LOG = Logger()
+
     def run(self, test_case: TestCase, inputs: List[Input]) -> TestCase:
-        inst_ids = self.minimization_loop(test_case, inputs, skip_instrumentation_lines=True)
+        modified_ids = self.minimization_loop(test_case, inputs, skip_instrumentation_lines=True)
         self.progress.pass_finish()
 
-        instructions = []
         with open(test_case.asm_path, "r") as f:
-            for i, line in enumerate(f):
+            lines = f.readlines()
+
+        instructions = []
+        for i, line in enumerate(lines):
+            # skip non-modifiable lines
+            if i not in modified_ids:
                 instructions.append(line)
-                if i in inst_ids:
-                    # This instruction could be replaced with a NOP
-                    instructions = self.modify_instruction(instructions, i)
-                    # And the instrumentation tag from the previous line can be cleared
-                    if "instrumentation" in instructions[-2].lower():
-                        instructions[-2] = instructions[-2].replace("instrumentation", "")
+                continue
+
+            # get the NOP replacement
+            replacement = self.modify_instruction([line], 0)
+            if not replacement:
+                self.LOG.warning("postprocessor", f"Inconsistent NOP output: {line}")
+                instructions.append(line)
+                continue
+
+            # This instruction could be replaced with a NOP
+            instructions.append(replacement[0])
+
+            # And the instrumentation tag from the previous line can be cleared
+            if "instrumentation" in instructions[-2].lower():
+                instructions[-2] = instructions[-2].replace("instrumentation", "")
 
         return get_test_case_from_instructions(self.fuzzer, instructions)
 
