@@ -11,7 +11,7 @@ import subprocess
 import os.path
 import csv
 import numpy as np
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Set
 
 from ..interfaces import HTrace, Input, TestCase, Executor
 from ..config import CONF
@@ -53,7 +53,7 @@ class X86Executor(Executor):
     previous_num_inputs: int = 0
     feedback: List[List[int]]
     curr_test_case: TestCase
-    ignore_list: List[int]
+    ignore_list: Set[int]
 
     def __init__(self):
         super().__init__()
@@ -124,10 +124,10 @@ class X86Executor(Executor):
         """ Sets a list of inputs IDs that should be ignored by the executor.
         The executor will executed the inputs with these IDs as normal (in case they are
         necessary for priming the uarch state), but their htraces will be set to zero """
-        self.ignore_list = list(ignore_list)
+        self.ignore_list = set(ignore_list)
 
     def extend_ignore_list(self, ignore_list: List[int]):
-        self.ignore_list.extend(ignore_list)
+        self.ignore_list.update(ignore_list)
 
     def read_base_addresses(self):
         with open('/sys/x86_executor/print_sandbox_base', 'r') as f:
@@ -142,7 +142,7 @@ class X86Executor(Executor):
     def load_test_case(self, test_case: TestCase):
         self.__write_test_case(test_case)
         self.curr_test_case = test_case
-        self.ignore_list = []
+        self.ignore_list = set()
 
     def trace_test_case(self, inputs: List[Input], n_reps: int) -> List[HTrace]:
         """ see interfaces.py:Executor for documentation """
