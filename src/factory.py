@@ -72,7 +72,7 @@ ANALYSERS: Dict[str, Type[interfaces.Analyser]] = {
 }
 
 MINIMIZERS: Dict[str, Type[interfaces.Minimizer]] = {
-    'violation': postprocessor.MinimizerViolation,
+    'violation': postprocessor.MainMinimizer,
 }
 
 SPEC_DOWNLOADERS: Dict[str, Type] = {

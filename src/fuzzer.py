@@ -137,7 +137,7 @@ class FuzzerGeneric(Fuzzer):
         self.LOG.dbg_report_coverage(self.model)
         return STAT.violations > 0
 
-    def filter(self, test_case, inputs):
+    def filter(self, test_case, inputs) -> bool:
         return False  # implemented by architecture-specific subclasses
 
     def fuzzing_round(self,

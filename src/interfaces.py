@@ -1133,7 +1133,13 @@ class Fuzzer(ABC):
         pass
 
     @abstractmethod
-    def filter(self, test_case, inputs):
+    def filter(self, test_case, inputs) -> bool:
+        """
+        A filter function that can be used to check if a test case is not useful
+        :param test_case: The test case to be checked
+        :param inputs: The inputs to be used with the test case
+        :return: True if the test case should be filtered out (not useful), False otherwise (useful)
+        """
         pass
 
     @abstractmethod
@@ -1150,10 +1156,19 @@ class Minimizer(ABC):
         pass
 
     @abstractmethod
-    def run(self, test_case_asm: str, outfile: str, num_inputs: int, enable_minimize: bool,
-            enable_simplify: bool, enable_add_fences: bool, enable_find_sources: bool,
-            find_min_input_sequence: bool, enable_minimize_inputs: bool, min_input_destination: str,
-            enable_multipass: bool, enable_violation_comments: bool):
+    def run(
+        self,
+        test_case_asm: str,
+        n_inputs: int,
+        test_case_outfile: str,
+        input_outdir: str,
+        n_attempts: int,
+        **kwargs,
+    ):
+        """
+        Run the minimizer on a test case.
+        See postprocessor.py:MainMinimizer for the full list of arguments.
+        """
         pass
 
 
