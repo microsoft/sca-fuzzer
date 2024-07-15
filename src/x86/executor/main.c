@@ -570,6 +570,12 @@ static int __init executor_init(void)
         return -1;
     }
 
+    // Check SIMD compatibility
+    if (cpu_has(cpuinfo, X86_FEATURE_XMM) == 0) {
+        printk(KERN_ERR "x86_executor: ERROR: The CPU does not support SSE\n");
+        return -1;
+    }
+
     // Make sure that we have all requirements
     _get_required_kernel_functions();
 
