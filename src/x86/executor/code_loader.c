@@ -298,6 +298,9 @@ static inline void prologue(void)
         "mov r12, 0\n"
         "mov r13, 0\n"
 
+        // set HTRACE_REGISTER to -1 to be able to detect missing measurement_start
+        "mov "HTRACE_REGISTER", -1\n"
+
         "mov rbp, rsp\n"
         "sub rsp, 0x1000\n"
 
@@ -317,6 +320,8 @@ static inline void epilogue(void)
         // if we see no interrupts, store the hardware trace (r13)
         // otherwise, store zero
         "cmp r12, 0; jne 1f \n"
+        // same goes for uninitialized hardware trace
+        "cmp "HTRACE_REGISTER", -1; je 1f \n"
         "   mov qword ptr [rax + 0x00], r13 \n"
         "   mov qword ptr [rax + 0x08], r10 \n"
         "   mov qword ptr [rax + 0x10], r9 \n"
