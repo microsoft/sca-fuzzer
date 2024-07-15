@@ -328,13 +328,14 @@ void __attribute__((noipa)) body_macro_probe(void)
 void __attribute__((noipa)) body_macro_flush(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
-    asm_volatile_intel(""                  //
-                       MACRO_PROLOGUE()    //
-                       "lea rbx, [r14]\n"  //
-                       FLUSH("rbx", "rax") //
-                       READ_PFC_START()    //
-                       MACRO_EPILOGUE()    //
-                       "lfence\n"          //
+    asm_volatile_intel(""                                               //
+                       MACRO_PROLOGUE()                                 //
+                       "lea rbx, [r14]\n"                               //
+                       FLUSH("rbx", "rax")                              //
+                       "xor " HTRACE_REGISTER ", " HTRACE_REGISTER "\n" //
+                       READ_PFC_START()                                 //
+                       MACRO_EPILOGUE()                                 //
+                       "lfence\n"                                       //
     );
     asm volatile(".quad " xstr(MACRO_END));
 }
