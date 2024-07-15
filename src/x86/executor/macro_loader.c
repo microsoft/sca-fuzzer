@@ -306,10 +306,10 @@ void __attribute__((noipa)) body_macro_probe(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                                                //
-                       "cmp " HTRACE_REGISTER ", 0\n"                    // skip if already called
-                       "jnz 99f\n"                                       //
                        "cmp " HTRACE_REGISTER ", -1\n"                   // skip if uninitialized
                        "je 99f\n"                                        //
+                       "cmp " HTRACE_REGISTER ", 0\n"                    // skip if already called
+                       "jnz 99f\n"                                       //
                        MACRO_PROLOGUE()                                  //
                        "push r15\n"                                      //
                        "lfence\n"                                        //
@@ -344,10 +344,10 @@ void __attribute__((noipa)) body_macro_reload(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                                           //
-                       "cmp " HTRACE_REGISTER ", 0\n"               // skip if already called
-                       "jnz 98f\n"                                  //
                        "cmp " HTRACE_REGISTER ", -1\n"              // skip if uninitialized
                        "je 98f\n"                                   //
+                       "cmp " HTRACE_REGISTER ", 0\n"               // skip if already called
+                       "jnz 98f\n"                                  //
                        MACRO_PROLOGUE()                             //
                        "lfence\n"                                   //
                        READ_PFC_END()                               //
@@ -384,10 +384,10 @@ void __attribute__((noipa)) body_macro_tsc_end(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                               //
-                       "cmp " HTRACE_REGISTER ", 0\n"   // skip if already called
-                       "jg 97f\n"                       //
                        "cmp " HTRACE_REGISTER ", -1\n"  // skip if uninitialized
                        "je 97f\n"                       //
+                       "cmp " HTRACE_REGISTER ", 0\n"   // skip if already called
+                       "jg 97f\n"                       //
                        MACRO_PROLOGUE()                 //
                        READ_PFC_END()                   //
                        "lfence; rdtsc; lfence\n"        //
