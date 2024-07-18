@@ -1155,15 +1155,8 @@ class Minimizer(ABC):
         pass
 
     @abstractmethod
-    def run(
-        self,
-        test_case_asm: str,
-        n_inputs: int,
-        test_case_outfile: str,
-        input_outdir: str,
-        n_attempts: int,
-        **kwargs,
-    ):
+    def run(self, test_case_asm: str, n_inputs: int, test_case_outfile: str, input_outdir: str,
+            n_attempts: int, **kwargs):
         """
         Run the minimizer on a test case.
         See postprocessor.py:MainMinimizer for the full list of arguments.
