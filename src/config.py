@@ -134,8 +134,6 @@ class Conf:
     sample sizes """
     executor_filtering_repetitions: int = 10
     """ executor_filtering_repetitions: number of repetitions while filtering test cases """
-    executor_violation_retries: int = 5
-    """ executor_violation_retries: number of retries for test cases that produce violations """
     executor_taskset: int = 0
     """ executor_taskset: id of the CPU core on which the executor is running test cases """
     enable_pre_run_flush: bool = True
