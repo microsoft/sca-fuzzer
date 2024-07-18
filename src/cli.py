@@ -7,6 +7,7 @@ SPDX-License-Identifier: MIT
 """
 
 import os
+import unicorn
 from argparse import ArgumentParser
 from .factory import get_minimizer, get_fuzzer, get_downloader
 from .config import CONF
@@ -372,6 +373,13 @@ def main() -> int:
         print(
             "[ERROR]", "Passes --enable-input-seq-pass and --enable-input-diff-pass "
             "require flag --input-outdir to be set.")
+        return 1
+
+    # Enforce the Unicorn version: New versions of Unicorn have a bug that causes false positives
+    # in the fuzzer. This is a temporary workaround until the bug is fixed.
+    if unicorn.__version__ != '1.0.3':
+        print("[ERROR]", "The fuzzer requires Unicorn version 1.0.3. Please install it using "
+              "`pip install unicorn==1.0.3`.")
         return 1
 
     # Fuzzing
