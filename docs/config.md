@@ -5,7 +5,7 @@ For an example of how to write the config file, see [src/tests/big-fuzz.yaml](sr
 
 ## Fuzzing Configuration
 
-```
+```yaml
 Name: fuzzer
 Default: "basic"
 Options: "basic" | "architectural" | "archdiff"
@@ -23,10 +23,9 @@ the fuzzer with a previously-untested instruction set, or when a new contract is
 for semi-microarchitectural violations, similar to ZenBleed. This mode is experimental and
 should be used with caution.
 
-```
+```yaml
 Name: enable_priming
 Default: True
-
 ```
 
 This option enables or disables priming. This options should be set to True in most cases,
@@ -44,10 +43,9 @@ sequence will be (i1 . . . i99,i200,i101 . . . i199,i100). If the violation pers
 sequence, it is a true positive. If the violation disappears, it is a false positive, and it
 will be discarded.
 
-```
+```yaml
 Name: enable_speculation_filter
 Default: False
-
 ```
 
 If enabled, Revizor will discard test cases that do not trigger speculation.
@@ -55,7 +53,7 @@ If enabled, Revizor will discard test cases that do not trigger speculation.
 This option is useful for improving the throughput of the fuzzer,
 but it can discard potential violations if the leakage is not caused by speculation.
 
-```
+```yaml
 Name: enable_observation_filter
 Default: False
 ```
@@ -68,14 +66,14 @@ If the traces are identical, the test case is discarded.
 This option is useful for improving the throughput of the fuzzer,
 but it can discard potential violations if the leakage is not caused by speculation.
 
-```
+```yaml
 Name: enable_fast_path_model
 Default: False
 ```
 
 If enabled, the same contract trace will be used for all inputs in the same taint-based input class.
 
-```
+```yaml
 Name: color
 Default: False
 ```
@@ -83,7 +81,7 @@ Default: False
 If enabled, the output will be colored.
 This option is helps a lot with readability, but may produce corrupted output when redirected to a file.
 
-```
+```yaml
 Name: logging_modes
 Default: ["info", "stat"]
 Options: "info" | "stat" | "dbg_timestamp" | "dbg_violation" | "dbg_dump_htraces"
@@ -107,7 +105,7 @@ This option controls the output:
 * `dbg_generator` - prints a list of instructions used to generate test cases;
 * `dbg_priming` - prints information about the priming process; only useful for debugging the priming mechanism itself.
 
-```
+```yaml
 Name: multiline_output
 Default: False
 ```
@@ -118,7 +116,7 @@ Otherwise, the fuzzing progress will be continuously overwriting the same line (
 
 ## Program Generator Configuration
 
-```
+```yaml
 Name: instruction_set
 Default: "x86-64"
 Options: "x86-64"
@@ -126,7 +124,7 @@ Options: "x86-64"
 
 The instruction set under test. Currently, only x86-64 is supported.
 
-```
+```yaml
 Name: instruction_categories
 Default: ["BASE-BINARY", "BASE-BITBYTE", "BASE-COND_BR"]
 Options: "BASE-BINARY" | "BASE-BITBYTE" | "BASE-CMOV" | "BASE-COND_BR" | "BASE-CONVERT"
@@ -144,7 +142,7 @@ Select a list of instruction categories to be used when generating programs.
 This list effectively filters out instructions from the ISA descriptor file (e.g., `base.json`)
 passed via the command line (`-s`).
 
-```
+```yaml
 Name: instruction_blocklist
 Default: ["enterw", "enter", "leavew", "leave", "int", "encls", "vmxon", "stgi", "skinit"
          "ldmxcsr", "stmxcsr", "lfence", "mfence", "sfence", "clflush", "clflushopt"
@@ -164,7 +162,7 @@ The resulting instruction pool is:
 The instructions that are blocked by default are known to cause issues in the model or executor,
 and hence should generally be avoided when fuzzing.
 
-```
+```yaml
 Name: instruction_allowlist
 Default: []
 Options: (any instruction names)
@@ -177,7 +175,7 @@ thus adding instructions on top of the categories.
 The resulting instruction pool is:
      (instructions from instruction_categories - instruction_blocklist) + instruction_allowlist
 
-```
+```yaml
 Name: program_generator_seed
 Default: 0
 ```
@@ -185,7 +183,7 @@ Default: 0
 Seed of the program generator. If set to zero, a random seed will be used for each run.
 
 
-```
+```yaml
 Name: program_size
 Default: 24
 ```
@@ -193,7 +191,7 @@ Default: 24
 Number of instructions per program. The actual size might be larger because of the instrumentation.
 
 
-```
+```yaml
 Name: avg_mem_accesses
 Default: 12
 ```
@@ -201,21 +199,21 @@ Default: 12
 Average number of memory accesses in generated programs.
 The actual number will be random, but the average over all programs will be close to this value.
 
-```
+```yaml
 Name: min_bb_per_function
 Default: 1
 ```
 
 Minimal number of basic blocks per function in generated programs.
 
-```
+```yaml
 Name: max_bb_per_function
 Default: 2
 ```
 
 Maximal number of basic blocks per function in generated programs.
 
-```
+```yaml
 Name: min_successors_per_bb
 Default: 1
 ```
@@ -229,7 +227,7 @@ for correctness
 Note 2: If min_successors_per_bb > max_successors_per_bb, the value is
 overwritten with max_successors_per_bb
 
-```
+```yaml
 Name: max_successors_per_bb
 Default: 1
 ```
@@ -240,7 +238,7 @@ Note: this config option is a *hint*; it could be ignored if the instruction set
 have the necessary instructions to satisfy it, or if a certain number of successor is required
 for correctness
 
-```
+```yaml
 Name: register_allowlist
 Default: []
 Options: (any register names)
@@ -251,7 +249,7 @@ A list of registers that CAN be used for generating programs.
 This list has higher priority than `register_blocklist`.
 The resulting list is: (all registers - `register_blocklist`) + `register_allowlist`.
 
-```
+```yaml
 Name: register_blocklist
 Default: (all but RAX, RBX, RCX, RDX, RDI, RSI, XMM0-XMM7)
 Options: (any register names)
@@ -264,7 +262,7 @@ The resulting list is: (all registers - `register_blocklist`) + `register_allowl
 
 The default blocked registers are used by the executor internally, and thus should be avoided.
 
-```
+```yaml
 Name: generator_faults_allowlist
 Default: []
 Options: "div-by-zero" | "div-overflow" | "opcode-undefined" | "bounds-range-exceeded"
@@ -306,7 +304,7 @@ actors:
 
 The following options are available for each actor:
 
-```
+```yaml
 Actor Option: mode
 Default: "host"
 Options: "host" | "guest"
@@ -316,7 +314,7 @@ The execution mode of the actor. The available options are:
 * `host` - the actor runs in the normal, non-virtualized mode.
 * `guest` - the actor runs in a VM (one VM per actor).
 
-```
+```yaml
 Actor Option: privilege_level
 Default: "kernel"
 Options: "user" | "kernel"
@@ -326,7 +324,7 @@ The privilege level of the actor. The available options are:
 * `user` - the actor runs in user mode (CPL=3).
 * `kernel` - the actor runs in kernel mode (CPL=0).
 
-```
+```yaml
 Actor Option: data_properties
 Default: (see below)
 Options: "present" | "writable" | "user" | "accessed"
@@ -349,7 +347,7 @@ The available options are:
 Note that the above properties are set in the host page tables for actors with `mode: host`,
 and in the guest page tables for actors with `mode: guest`.
 
-```
+```yaml
 Actor Option: data_ept_properties
 Default: (see below)
 Options: "present" | "writable" | "executable" | "accessed" | "dirty" | "user"
@@ -371,7 +369,7 @@ The available options are:
 * `reserved_bit` [default: False] - the value of the Reserved bit in the EPT/NPT entry.
 * `randomized` [default: False] - if true, the values of the above properties will be randomized for each test case.
 
-```
+```yaml
 Actor Option: observer
 Default: False
 ```
@@ -379,7 +377,7 @@ Default: False
 If enabled, the actor will be an observer actor, hence modelling an attacker.
 This option is only used if the contract is `noninterference`, and it is ignored otherwise.
 
-```
+```yaml
 Actor Option: instruction_blocklist
 Default: []
 Options: (any instruction names)
@@ -387,7 +385,7 @@ Options: (any instruction names)
 
 Actor-specific instruction blocklist. This list has priority over the global `instruction_blocklist`.
 
-```
+```yaml
 Actor Option: fault_blocklist
 Default: []
 Options: (any fault names)
@@ -397,14 +395,14 @@ Actor-specific fault blocklist. This list has priority over the global `generato
 
 ## Input Generator Configuration
 
-```
+```yaml
 Name: input_gen_seed
 Default: 10
 ```
 
 Seed of the input generator. If set to zero, a random seed will be used for each run.
 
-```
+```yaml
 Name: input_gen_entropy_bits
 Default: 16
 Options: 0-31
@@ -412,7 +410,7 @@ Options: 0-31
 
 Entropy of the random values created by the input generator.
 
-```
+```yaml
 Name: inputs_per_class
 Default: 2
 ```
@@ -422,7 +420,7 @@ For the explanation of the input classes and the generation algorithm, see (this
 
 ## Contract Configuration
 
-```
+```yaml
 Name: contract_execution_clause
 Default: ["seq"]
 Options: "seq" | "no_speculation" | "seq-assist" | "cond" | "conditional_br_misprediction"
@@ -456,7 +454,7 @@ In multi-actor context, only one option is available:
 * `noninterference` - the observer actor is permitted to leak its own data and the addresses of memory accesses of the other actors. No other data is allowed to be leak.
 
 
-```
+```yaml
 Name: contract_observation_clause
 Default: "ct"
 Options: "none" | "l1d" | "memory" | "ct" | "loads+stores+pc" | "ct-nonspecstore"
@@ -479,7 +477,7 @@ The available options are:
 * `tct` (truncated constant time tracer) - the model observes address of the memory access and of the program counter at cache line granularity.
 * `tcto` (truncated constant time tracer with overflows) - the model address of the memory access and of the program counter at cache line granularity + observe cache line overflows.
 
-```
+```yaml
 Name: model_min_nesting
 Default: 1
 ```
@@ -487,7 +485,7 @@ Default: 1
 Minimum number of nested mispredictions in the model.
 This value is used to generate the contract traces on the fast path of the fuzzer.
 
-```
+```yaml
 Name: model_max_nesting
 Default: 30
 ```
@@ -496,7 +494,7 @@ Maximum number of nested mispredictions in the model.
 This value is used to generate the contract traces on the slow path of the fuzzer,
 i.e., when a potential violation is detected and the fuzzer tries to check if it is a true positive.
 
-```
+```yaml
 Name: model_max_spec_window
 Default: 250
 ```
@@ -505,7 +503,7 @@ Size of the speculation window in the model.
 
 ## Executor Configuration
 
-```
+```yaml
 Name: executor
 Default: (auto-detected)
 Options: "x86-64-intel" | "x86-64-amd"
@@ -514,7 +512,7 @@ Options: "x86-64-intel" | "x86-64-amd"
 The executor type. The default value is auto-detected based on the `cpuinfo`.
 Should be changed only if the auto-detection fails.
 
-```
+```yaml
 Name: executor_mode
 Default: "P+P"
 Options: "P+P" | "F+R" | "E+R" | "PP+P" | "TSC"
@@ -527,14 +525,14 @@ Hardware trace collection mode. The available options are:
 * `PP+P` - partial prime and probe (i.e., leave a subset of cache lines unprimed).
 * `TSC` - use RDTSCP instruction to measure the time of the execution.
 
-```
+```yaml
 Name: executor_warmups
 Default: 5
 ```
 
 Number of warmup rounds executed before starting to collect hardware traces.
 
-```
+```yaml
 Name: executor_sample_sizes
 Default: [10]
 ```
@@ -543,35 +541,35 @@ A list of sample sizes to be used during the measurements.
 The executor will first collect the hardware traces with the first sample size in the list,
 and if a violation is detected, it will try to reproduce it with all the following sample sizes.
 
-```
+```yaml
 Name: executor_filtering_repetitions
 Default: 10
 ```
 
 The sample size to be used by the speculation and observation filters.
 
-```
+```yaml
 Name: executor_taskset
 Default: 0
 ```
 
 The ID of the CPU core on which the executor is running test cases.
 
-```
+```yaml
 Name: enable_pre_run_flush
 Default: True
 ```
 
 If enabled, the executor will do its best to flush the microarchitectural state before running test cases.
 
-```
+```yaml
 Name: x86_executor_enable_ssbp_patch
 Default: True
 ```
 
 Enable a microcode patch against Speculative Store Bypass, if available.
 
-```
+```yaml
 Name: x86_executor_enable_prefetcher
 Default: False
 ```
@@ -580,7 +578,7 @@ Enable all prefetchers, if the software controls are available.
 
 ## Analyser Configuration
 
-```
+```yaml
 Name: analyser
 Default: "chi2"
 Options: "chi2" | "mwu" | "sets" | "bitmaps"
@@ -594,7 +592,7 @@ The available options are:
 * `mwu` - [experimental; both false positives and negatives are possible]
   use the Mann-Whitney U test to compare the hardware traces of inputs in the same contract-equivalence class. This test effectively checks if the hardware traces from two different inputs come from the same distribution. A violation is reported if the test fails.
 
-```
+```yaml
 Name: analyser_subsets_is_violation
 Default: False
 ```
@@ -603,7 +601,7 @@ This option is relevant only for the `sets` and `bitmaps` analysers.
 
 If enabled, the analyser will not label hardware traces as mismatching if they form a subset relation.
 
-```
+```yaml
 Name: analyser_outliers_threshold
 Default: 0.1
 ```
@@ -612,7 +610,7 @@ This option is relevant only for the `sets` and `bitmaps` analysers.
 
 The analyser will ignore the hardware traces that appear in less than this percentage of the repetitions.
 
-```
+```yaml
 Name: analyser_stat_threshold
 Default: 0.5
 ```
@@ -629,7 +627,7 @@ For the mwu test, the threshold is applied to the p-value.
 
 ## Miscellaneous Configuration
 
-```
+```yaml
 Name: coverage_type
 Default: "none"
 Options: "none" | "model_instructions"
