@@ -8,9 +8,20 @@ SPDX-License-Identifier: MIT
 
 import os
 import unicorn
-from argparse import ArgumentParser
+from argparse import ArgumentParser, ArgumentTypeError
 from .factory import get_minimizer, get_fuzzer, get_downloader
 from .config import CONF
+
+
+def arg2bool(arg) -> bool:
+    if isinstance(arg, bool):
+        return arg
+    if arg.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif arg.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise ArgumentTypeError('Boolean value expected.')
 
 
 def main() -> int:
@@ -195,76 +206,76 @@ def main() -> int:
     )
     parser_mini.add_argument(
         '--enable-instruction-pass',
-        type=bool,
+        type=arg2bool,
         default=True,
         help="Enable the instruction minimization pass that iteratively removes "
         "instructions while preserving the violation.",
     )
     parser_mini.add_argument(
         '--enable-simplification-pass',
-        type=bool,
+        type=arg2bool,
         default=False,
         help="Enable the instruction simplification pass that replaces complex "
         "instructions with simpler ones while preserving the violation.",
     )
     parser_mini.add_argument(
         '--enable-nop-pass',
-        type=bool,
+        type=arg2bool,
         default=False,
         help="Enable the NOP replacement pass that replaces instructions with NOPs "
         "while preserving the violation.",
     )
     parser_mini.add_argument(
         '--enable-constant-pass',
-        type=bool,
+        type=arg2bool,
         default=False,
         help="Enable the constant simplification pass that replaces constants with 0s "
         "while preserving the violation.",
     )
     parser_mini.add_argument(
         '--enable-mask-pass',
-        type=bool,
+        type=arg2bool,
         default=False,
         help="Enable the mask simplification pass that reduces the size of instrumentation "
         "masks while preserving the violation.",
     )
     parser_mini.add_argument(
         '--enable-label-pass',
-        type=bool,
+        type=arg2bool,
         default=True,
         help="Enable the label removal pass that removes unused labels from the assembly file.",
     )
     parser_mini.add_argument(
         '--enable-fence-pass',
-        type=bool,
+        type=arg2bool,
         default=False,
         help="Enable the fence insertion pass that adds LFENCEs after instructions "
         "while preserving the violation.",
     )
     parser_mini.add_argument(
         "--enable-input-seq-pass",
-        type=bool,
+        type=arg2bool,
         default=False,
         help="Enable the input sequence minimization pass that removes inputs from "
         "the original generated sequence while preserving the violation.",
     )
     parser_mini.add_argument(
         "--enable-input-diff-pass",
-        type=bool,
+        type=arg2bool,
         default=False,
         help="Enable the violating input difference minimization pass that removes "
         "inputs that do not contribute to the violation.",
     )
     parser_mini.add_argument(
         "--enable-source-analysis",
-        type=bool,
+        type=arg2bool,
         default=False,
         help="Enable the speculation source identification pass that identifies the "
         "instructions that trigger speculation.",
     )
     parser_mini.add_argument(
         "--enable-comment-pass",
-        type=bool,
+        type=arg2bool,
         default=False,
         help="Enable the violation comment pass that adds comments to the assembly file "
         "with details about the violation.",
@@ -377,9 +388,10 @@ def main() -> int:
 
     # Enforce the Unicorn version: New versions of Unicorn have a bug that causes false positives
     # in the fuzzer. This is a temporary workaround until the bug is fixed.
-    if unicorn.__version__ != '1.0.3':
-        print("[ERROR]", "The fuzzer requires Unicorn version 1.0.3. Please install it using "
-              "`pip install unicorn==1.0.3`.")
+    if unicorn.__version__ != '1.0.3':  # type: ignore
+        print(
+            "[ERROR]", "The fuzzer requires Unicorn version 1.0.3. Please install it using "
+            "`pip install unicorn==1.0.3`.")
         return 1
 
     # Fuzzing
