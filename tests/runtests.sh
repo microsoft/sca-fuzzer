@@ -16,8 +16,8 @@ cd - >/dev/null || exit
 
 echo ""
 echo "===== Code Style Checking with flake8 ====="
-cd $SCRIPT_DIR/../src || exit
-python3 -m flake8 --max-line-length 100 --ignore E402,W503 .
+cd $SCRIPT_DIR/.. || exit
+python3 -m flake8 --max-line-length 100 --ignore E402,W503 .  --count --show-source --statistics
 cd - >/dev/null || exit
 
 echo ""

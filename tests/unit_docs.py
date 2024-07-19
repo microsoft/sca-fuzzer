@@ -68,7 +68,7 @@ class DocumentationTest(unittest.TestCase):
             k for k in inspect.getmembers(CONF, lambda x: not inspect.isroutine(x))
             if not k[0].startswith("_")
         ]
-        options_values = CONF._option_values
+        alternatives = CONF._option_values
 
         # check if all alternatives and defaults are documented
         for name, default_ in options:
@@ -78,13 +78,13 @@ class DocumentationTest(unittest.TestCase):
                 self.assertEqual(
                     str(default_),
                     doc_options[name][0],
-                    msg=f"Default value for `{name}` is incorrect: {default_} != {doc_options[name][0]}"
+                    msg=f"Default for `{name}` is incorrect: {default_} != {doc_options[name][0]}"
                 )
 
             if doc_options[name][1]:
                 doc_values = doc_options[name][1]
                 self.assertSetEqual(
-                    set(options_values[name]),
+                    set(alternatives[name]),
                     set(doc_values),
-                    msg=f"Options for `{name}` are incorrect: {options_values[name]} != {doc_values}"
+                    msg=f"Options for `{name}` are incorrect: {alternatives[name]} != {doc_values}"
                 )
