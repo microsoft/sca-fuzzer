@@ -7,8 +7,8 @@ For an example of how to write the config file, see [src/tests/big-fuzz.yaml](ht
 
 ```yaml
 Name: fuzzer
-Default: "basic"
-Options: "basic" | "architectural" | "archdiff"
+Default: 'basic'
+Options: 'basic' | 'architectural' | 'archdiff'
 ```
 
 This option selects the fuzzing mode. The available options are:
@@ -68,7 +68,7 @@ but it can discard potential violations if the leakage is not caused by speculat
 
 ```yaml
 Name: enable_fast_path_model
-Default: False
+Default: True
 ```
 
 If enabled, the same contract trace will be used for all inputs in the same taint-based input class.
@@ -83,10 +83,8 @@ This option is helps a lot with readability, but may produce corrupted output wh
 
 ```yaml
 Name: logging_modes
-Default: ["info", "stat"]
-Options: "info" | "stat" | "dbg_timestamp" | "dbg_violation" | "dbg_dump_htraces"
-         | "dbg_dump_ctraces" | "dbg_dump_traces_unlimited" | "dbg_executor_raw"
-         | "dbg_model" | "dbg_coverage" | "dbg_generator" | "dbg_priming"
+Default: ['info', 'stat']
+Options: 'info' | 'stat' | 'dbg_timestamp' | 'dbg_violation' | 'dbg_dump_htraces' | 'dbg_dump_ctraces' | 'dbg_dump_traces_unlimited' | 'dbg_executor_raw' | 'dbg_model' | 'dbg_coverage' | 'dbg_generator' | 'dbg_priming'
 ```
 
 This option controls the output:
@@ -118,24 +116,16 @@ Otherwise, the fuzzing progress will be continuously overwriting the same line (
 
 ```yaml
 Name: instruction_set
-Default: "x86-64"
-Options: "x86-64"
+Default: 'x86-64'
+Options: 'x86-64'
 ```
 
 The instruction set under test. Currently, only x86-64 is supported.
 
 ```yaml
 Name: instruction_categories
-Default: ["BASE-BINARY", "BASE-BITBYTE", "BASE-COND_BR"]
-Options: "BASE-BINARY" | "BASE-BITBYTE" | "BASE-CMOV" | "BASE-COND_BR" | "BASE-CONVERT"
-         | "BASE-DATAXFER" | "BASE-FLAGOP" | "BASE-LOGICAL" | "BASE-MISC" | "BASE-NOP"
-         | "BASE-POP" | "BASE-PUSH" | "BASE-SEMAPHORE" | "BASE-SETCC" | "BASE-STRINGOP"
-         | "BASE-WIDENOP" | "BASE-INTERRUPT" | "BASE-SYSTEM" | "LONGMODE-CONVERT"
-         | "LONGMODE-DATAXFER" | "LONGMODE-SEMAPHORE" | "LONGMODE-SYSCALL" | "SSE-SSE"
-         | "SSE-DATAXFER" | "SSE-MISC" | "SSE-LOGICAL_FP" | "SSE2-SSE" | "SSE2-DATAXFER"
-         | "SSE2-MISC" | "SSE2-LOGICAL_FP" | "SSE2-LOGICAL" | "SSE3-SSE" | "SSE3-DATAXFER"
-         | "SSE4-LOGICAL" | "SSE4a-BITBYTE" | "SSE4a-DATAXFER" | "CLFLUSHOPT-CLFLUSHOPT"
-         | "CLFSH-MISC" | "MPX-MPX" | "SMX-SYSTEM" | "VTX-VTX" | "XSAVE-XSAVE"
+Default: ['BASE-BINARY', 'BASE-BITBYTE', 'BASE-COND_BR']
+Options: 'BASE-BINARY' | 'BASE-BITBYTE' | 'BASE-CMOV' | 'BASE-COND_BR' | 'BASE-CONVERT' | 'BASE-DATAXFER' | 'BASE-FLAGOP' | 'BASE-LOGICAL' | 'BASE-MISC' | 'BASE-NOP' | 'BASE-POP' | 'BASE-PUSH' | 'BASE-SEMAPHORE' | 'BASE-SETCC' | 'BASE-STRINGOP' | 'BASE-WIDENOP' | 'BASE-INTERRUPT' | 'BASE-SYSTEM' | 'LONGMODE-CONVERT' | 'LONGMODE-DATAXFER' | 'LONGMODE-SEMAPHORE' | 'LONGMODE-SYSCALL' | 'LONGMODE-SYSRET' | 'SSE-SSE' | 'SSE-DATAXFER' | 'SSE-MISC' | 'SSE-LOGICAL_FP' | 'SSE2-SSE' | 'SSE2-DATAXFER' | 'SSE2-MISC' | 'SSE2-LOGICAL_FP' | 'SSE2-LOGICAL' | 'SSE3-SSE' | 'SSE3-DATAXFER' | 'SSE4-LOGICAL' | 'SSE4a-BITBYTE' | 'SSE4a-DATAXFER' | 'CLFLUSHOPT-CLFLUSHOPT' | 'CLFSH-MISC' | 'MPX-MPX' | 'SMX-SYSTEM' | 'VTX-VTX' | 'XSAVE-XSAVE'
 ```
 
 Select a list of instruction categories to be used when generating programs.
@@ -144,12 +134,7 @@ passed via the command line (`-s`).
 
 ```yaml
 Name: instruction_blocklist
-Default: ["enterw", "enter", "leavew", "leave", "int", "encls", "vmxon", "stgi", "skinit"
-         "ldmxcsr", "stmxcsr", "lfence", "mfence", "sfence", "clflush", "clflushopt"
-         "divps", "divss", "divpd", "divsd", "mulss", "mulps", "mulpd", "mulsd"
-         "rsqrtps", "rsqrtss", "sqrtps", "sqrtss", "sqrtpd", "sqrtsd", "addps", "addss"
-         "addpd", "addsd", "subps", "subss", "subpd", "subsd", "addsubpd", "addsubps"
-         "haddpd", "haddps", "hsubpd", "hsubps"]
+Default: ['enterw', 'enter', 'leavew', 'leave', 'int', 'encls', 'vmxon', 'stgi', 'skinit', 'ldmxcsr', 'stmxcsr', 'lfence', 'mfence', 'sfence', 'clflush', 'clflushopt', 'divps', 'divss', 'divpd', 'divsd', 'mulss', 'mulps', 'mulpd', 'mulsd', 'rsqrtps', 'rsqrtss', 'sqrtps', 'sqrtss', 'sqrtpd', 'sqrtsd', 'addps', 'addss', 'addpd', 'addsd', 'subps', 'subss', 'subpd', 'subsd', 'addsubpd', 'addsubps', 'haddpd', 'haddps', 'hsubpd', 'hsubps', 'sti', 'cli', 'xlat', 'xlatb', 'cmpxchg8b', 'lock cmpxchg8b', 'cmpxchg16b', 'lock cmpxchg16b', 'cpuid', 'cmpps', 'cmpss', 'cmppd', 'cmpsd', 'movq2dq', 'movdq2q', 'rcpps', 'rcpss', 'maskmovdqu']
 Options: (any instruction names)
 ```
 
@@ -265,8 +250,7 @@ The default blocked registers are used by the executor internally, and thus shou
 ```yaml
 Name: generator_faults_allowlist
 Default: []
-Options: "div-by-zero" | "div-overflow" | "opcode-undefined" | "bounds-range-exceeded"
-         | "breakpoint" | "debug-register" | "non-canonical-access" | "user-to-kernel-access"
+Options: 'div-by-zero' | 'div-overflow' | 'opcode-undefined' | 'bounds-range-exceeded' | 'breakpoint' | 'debug-register' | 'non-canonical-access' | 'user-to-kernel-access'
 ```
 
 By default, the generator will produce programs that never trigger exceptions.
@@ -306,8 +290,8 @@ The following options are available for each actor:
 
 ```yaml
 Actor Option: mode
-Default: "host"
-Options: "host" | "guest"
+Default: 'host'
+Options: 'host' | 'guest'
 ```
 
 The execution mode of the actor. The available options are:
@@ -316,8 +300,8 @@ The execution mode of the actor. The available options are:
 
 ```yaml
 Actor Option: privilege_level
-Default: "kernel"
-Options: "user" | "kernel"
+Default: 'kernel'
+Options: 'user' | 'kernel'
 ```
 
 The privilege level of the actor. The available options are:
@@ -327,8 +311,8 @@ The privilege level of the actor. The available options are:
 ```yaml
 Actor Option: data_properties
 Default: (see below)
-Options: "present" | "writable" | "user" | "accessed"
-         | "dirty" | "executable" | "reserved_bit" | "randomized"
+Options: 'present' | 'writable' | 'user' | 'accessed'
+         | 'dirty' | 'executable' | 'reserved_bit' | 'randomized'
 ```
 
 The properties of the data memory used by the actor.
@@ -350,8 +334,8 @@ and in the guest page tables for actors with `mode: guest`.
 ```yaml
 Actor Option: data_ept_properties
 Default: (see below)
-Options: "present" | "writable" | "executable" | "accessed" | "dirty" | "user"
-        | "reserved_bit" | "randomized"
+Options: 'present' | 'writable' | 'executable' | 'accessed' | 'dirty' | 'user'
+        | 'reserved_bit' | 'randomized'
 ```
 
 The properties of the EPT entry used by the actor (on Intel) or the NPT entry (on AMD).
@@ -396,6 +380,14 @@ Actor-specific fault blocklist. This list has priority over the global `generato
 ## Input Generator Configuration
 
 ```yaml
+Name: input_generator
+Default: 'random'
+Options: 'random'
+```
+
+The input generator type. Currently, only random input generation is supported.
+
+```yaml
 Name: input_gen_seed
 Default: 10
 ```
@@ -405,10 +397,9 @@ Seed of the input generator. If set to zero, a random seed will be used for each
 ```yaml
 Name: input_gen_entropy_bits
 Default: 16
-Options: 0-31
 ```
 
-Entropy of the random values created by the input generator.
+Entropy of the random values created by the input generator. The maximum value is 31.
 
 ```yaml
 Name: inputs_per_class
@@ -422,13 +413,8 @@ For the explanation of the input classes and the generation algorithm, see (this
 
 ```yaml
 Name: contract_execution_clause
-Default: ["seq"]
-Options: "seq" | "no_speculation" | "seq-assist" | "cond" | "conditional_br_misprediction"
-    | "bpas" | "nullinj-fault" | "nullinj-assist" | "delayed-exception-handling"
-    | "div-zero" | "div-overflow" | "meltdown" | "fault-skip" | "noncanonical"
-    | "vspec-ops-div" | "vspec-ops-memory-faults" | "vspec-ops-memory-assists"
-    | "vspec-ops-gp" | "vspec-all-div" | "vspec-all-memory-faults"
-    | "vspec-all-memory-assists" | "noninterference"
+Default: ['seq']
+Options: 'seq' | 'no_speculation' | 'seq-assist' | 'cond' | 'conditional_br_misprediction' | 'bpas' | 'nullinj-fault' | 'nullinj-assist' | 'delayed-exception-handling' | 'div-zero' | 'div-overflow' | 'meltdown' | 'fault-skip' | 'noncanonical' | 'vspec-ops-div' | 'vspec-ops-memory-faults' | 'vspec-ops-memory-assists' | 'vspec-ops-gp' | 'vspec-all-div' | 'vspec-all-memory-faults' | 'vspec-all-memory-assists' | 'noninterference'
 ```
 
 The execution clause of the contract.
@@ -456,9 +442,8 @@ In multi-actor context, only one option is available:
 
 ```yaml
 Name: contract_observation_clause
-Default: "ct"
-Options: "none" | "l1d" | "memory" | "ct" | "loads+stores+pc" | "ct-nonspecstore"
-    | "ctr" | "arch" | "tct" | "tcto"
+Default: 'ct'
+Options: 'none' | 'l1d' | 'memory' | 'pc' | 'ct' | 'loads+stores+pc' | 'ct-nonspecstore' | 'ctr' | 'arch' | 'tct' | 'tcto'
 ```
 
 The observation clause of the contract. In most cases, the default value should be used.
@@ -506,7 +491,7 @@ Size of the speculation window in the model.
 ```yaml
 Name: executor
 Default: (auto-detected)
-Options: "x86-64-intel" | "x86-64-amd"
+Options: 'x86-64-intel' | 'x86-64-amd'
 ```
 
 The executor type. The default value is auto-detected based on the `cpuinfo`.
@@ -514,8 +499,8 @@ Should be changed only if the auto-detection fails.
 
 ```yaml
 Name: executor_mode
-Default: "P+P"
-Options: "P+P" | "F+R" | "E+R" | "PP+P" | "TSC"
+Default: 'P+P'
+Options: 'P+P' | 'F+R' | 'E+R' | 'PP+P' | 'TSC'
 ```
 
 Hardware trace collection mode. The available options are:
@@ -576,12 +561,37 @@ Default: False
 
 Enable all prefetchers, if the software controls are available.
 
+```yaml
+Name: x86_disable_div64
+Default: True
+```
+
+Do not generate 64-bit division instructions.
+Useful for avoiding certain types of speculation that are specific to 64-bit division.
+
+```yaml
+Name: x86_enable_hpa_gpa_collisions
+Default: False
+```
+
+When a test case contains at least one guest actor, allocate its memory in the guest physical address space to match the corresponding host physical addresses of the main actor.
+Useful for testing Foreshadow-like leaks.
+
+```yaml
+Name: x86_generator_align_locks
+Default: True
+```
+
+When generating memory accesses with locks, apply instrumentation to align the locks to 8 bytes.
+Useful for avoiding faults on unaligned accesses.
+
+
 ## Analyser Configuration
 
 ```yaml
 Name: analyser
-Default: "chi2"
-Options: "chi2" | "mwu" | "sets" | "bitmaps"
+Default: 'chi2'
+Options: 'chi2' | 'mwu' | 'sets' | 'bitmaps'
 ```
 
 The type of the analyser that is used to compare the hardware traces and contract traces.
@@ -629,10 +639,17 @@ For the mwu test, the threshold is applied to the p-value.
 
 ```yaml
 Name: coverage_type
-Default: "none"
-Options: "none" | "model_instructions"
+Default: 'none'
+Options: 'none' | 'model_instructions'
 ```
 
 The type of coverage tracking. The available options are:
 * `none` - disable coverage tracking.
 * `model_instructions` - track how many times the model executed each instruction.
+
+```yaml
+Name: minimizer_retries
+Default: 1
+```
+
+Number of minimization retries. When the minimizer performs a check to reduce a test case, each check is attempted this number of times and it succeeds if at least one check is successful.

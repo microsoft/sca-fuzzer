@@ -14,7 +14,7 @@ from ..interfaces import TestCase, Input, InstructionSetAbstract, EquivalenceCla
     HTrace
 from ..util import STAT, Logger
 from ..config import CONF
-from .x86_config import buggy_instructions
+from .x86_config import _buggy_instructions
 from .x86_executor import X86IntelExecutor
 
 
@@ -25,13 +25,13 @@ def update_instruction_list():
     to avoid code duplication between X86Fuzzer and X86ArchitecturalFuzzer
     """
     if 'opcode-undefined' not in CONF.generator_faults_allowlist:
-        CONF._default_instruction_blocklist.extend(["ud", "ud2"])
+        CONF.instruction_blocklist.extend(["ud", "ud2"])
     if 'bounds-range-exceeded' not in CONF.generator_faults_allowlist:
-        CONF._default_instruction_blocklist.extend(['bound', 'bndcl', 'bndcu'])
+        CONF.instruction_blocklist.extend(['bound', 'bndcl', 'bndcu'])
     if 'breakpoint' not in CONF.generator_faults_allowlist:
-        CONF._default_instruction_blocklist.extend(["int3"])
+        CONF.instruction_blocklist.extend(["int3"])
     if 'debug-register' not in CONF.generator_faults_allowlist:
-        CONF._default_instruction_blocklist.extend(["int1"])
+        CONF.instruction_blocklist.extend(["int1"])
 
 
 def check_instruction_list(instruction_set: InstructionSetAbstract):
@@ -58,7 +58,7 @@ def check_instruction_list(instruction_set: InstructionSetAbstract):
             LOG.warning("fuzzer", "debug-register enabled, but INT1 instruction is missing")
 
     # Print a warning if the instruction set contains instructions that are known to be problematic
-    for inst_name in buggy_instructions:
+    for inst_name in _buggy_instructions:
         if inst_name in all_instruction_names:
             LOG.warning(
                 "fuzzer", f"Instruction {inst_name} is known to cause false positives\n"

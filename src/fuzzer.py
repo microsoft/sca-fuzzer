@@ -338,7 +338,7 @@ class FuzzerGeneric(Fuzzer):
         test_case.save(f"{violation_dir}/program.asm")
         for i, input_ in enumerate(violation.input_sequence):
             input_.save(f"{violation_dir}/input_{i:04}.bin")
-        shutil.copy2(CONF.config_path, f"{violation_dir}/org-config.yaml")
+        shutil.copy2(CONF._config_path, f"{violation_dir}/org-config.yaml")
 
         # create patched configs for reproducing and minimizing the violation
         shutil.copy2(f"{violation_dir}/org-config.yaml", f"{violation_dir}/reproduce.yaml")
