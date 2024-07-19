@@ -451,7 +451,7 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
 
         return inst
 
-    def generate_reg_operand(self, spec: OperandSpec, parent: Instruction) -> Operand:
+    def generate_reg_operand(self, spec: OperandSpec, _: Instruction) -> Operand:
         reg_type = spec.values[0]
         if reg_type == 'gpr':  # deprecated?
             choices = self.target_desc.registers[spec.width]
@@ -460,17 +460,8 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         else:
             choices = spec.values
 
-        if not CONF.avoid_data_dependencies:
-            reg = random.choice(choices)
-            return RegisterOperand(reg, spec.width, spec.src, spec.dest)
-
-        if parent.latest_reg_operand and parent.latest_reg_operand.value in choices:
-            return parent.latest_reg_operand
-
         reg = random.choice(choices)
-        op = RegisterOperand(reg, spec.width, spec.src, spec.dest)
-        parent.latest_reg_operand = op
-        return op
+        return RegisterOperand(reg, spec.width, spec.src, spec.dest)
 
     def generate_mem_operand(self, spec: OperandSpec, _: Instruction) -> Operand:
         if spec.values:

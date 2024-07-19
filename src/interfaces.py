@@ -420,9 +420,6 @@ class Instruction:
     size: int = 0
     _inst_brief: str = ""
 
-    # TODO: remove latest_reg_operand from this class. It belongs in the generator
-    latest_reg_operand: Optional[Operand] = None  # for avoiding dependencies
-
     def __init__(self, name: str, is_instrumentation=False, category="", control_flow=False):
         self.name = name
         self.operands = []

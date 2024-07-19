@@ -163,7 +163,7 @@ def get_analyser() -> interfaces.Analyser:
 
 def get_minimizer(fuzzer: interfaces.Fuzzer,
                   instruction_set: interfaces.InstructionSetAbstract) -> interfaces.Minimizer:
-    return _get_from_config(MINIMIZERS, CONF.minimizer, "minimizer", fuzzer, instruction_set)
+    return _get_from_config(MINIMIZERS, "violation", "minimizer", fuzzer, instruction_set)
 
 
 def get_downloader(arch: str, extensions: List[str], out_file: str) -> Callable:
