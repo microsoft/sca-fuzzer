@@ -147,25 +147,6 @@ _option_values = {
         "VTX-VTX",
         "XSAVE-XSAVE",
     ],
-    "logging_modes": [
-        "info",
-        "stat",
-        "dbg_generator",
-        "dbg_timestamp",
-        "dbg_violation",
-        "dbg_dump_htraces",
-        "dbg_dump_ctraces",
-        "dbg_dump_traces_unlimited",
-        "dbg_model",
-        "dbg_coverage",
-        "dbg_isa_loader",
-        "dbg_priming",
-        "dbg_executor_raw",
-    ],
-    "coverage_type": [
-        "none",
-        "model_instructions",
-    ]
 }
 
 # by default, we always handle page faults
@@ -190,7 +171,7 @@ executor: str = try_get_cpu_vendor()
 instruction_categories: List[str] = ["BASE-BINARY", "BASE-BITBYTE", "BASE-COND_BR"]
 """ instruction_categories: a default list of tested instruction categories """
 
-buggy_instructions: List[str] = [
+_buggy_instructions: List[str] = [
     "sti",  # enables interrupts
     "cli",  # disables interrupts; blocked just in case
     "xlat",  # requires support of segment registers
@@ -232,7 +213,7 @@ instruction_blocklist: List[str] = [
     'subps', 'subss', 'subpd', 'subsd',
     'addsubpd', 'addsubps', 'haddpd', 'haddps', 'hsubpd', 'hsubps',
 ]  # yapf: disable
-instruction_blocklist.extend(buggy_instructions)
+instruction_blocklist.extend(_buggy_instructions)
 
 # x86 executor internally uses R8...R15, RSP, RBP and, thus, they are excluded
 # segment registers are also excluded as we don't support their handling so far

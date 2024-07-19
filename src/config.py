@@ -16,7 +16,6 @@ class ConfigException(SystemExit):
 
 
 class Conf:
-    config_path: str = ""
     # ==============================================================================================
     # Fuzzer
     fuzzer: str = "basic"
@@ -176,15 +175,52 @@ class Conf:
     color: bool = False
 
     # ==============================================================================================
+    # Alternatives for config options (also extended by ISA-specific config.py)
+    _option_values: Dict[str, List] = {
+        "fuzzer": ["basic", "architectural", "archdiff"],
+        "generator": ["random"],
+        "instruction_set": ["x86-64"],
+        "input_generator": ["random"],
+        "model": ["x86-unicorn"],
+        "contract_execution_clause": [
+            "seq", "no_speculation", "seq-assist", "cond", "conditional_br_misprediction", "bpas",
+            "nullinj-fault", "nullinj-assist", "delayed-exception-handling", "div-zero",
+            "div-overflow", "meltdown", "fault-skip", "noncanonical", "vspec-ops-div",
+            "vspec-ops-memory-faults", "vspec-ops-memory-assists", "vspec-ops-gp", "vspec-all-div",
+            "vspec-all-memory-faults", "vspec-all-memory-assists", "noninterference"
+        ],
+        "contract_observation_clause": [
+            "none", "l1d", "pc", "memory", "ct", "loads+stores+pc", "ct-nonspecstore", "ctr",
+            "arch", "tct", "tcto"
+        ],
+        "executor": ["x86-intel", "x86-amd"],
+        "analyser": ["bitmaps", "sets", "mwu", "chi2"],
+        "coverage_type": ["none", "model_instructions"],
+        "logging_modes": [
+            "info",
+            "stat",
+            "dbg_generator",
+            "dbg_timestamp",
+            "dbg_violation",
+            "dbg_dump_htraces",
+            "dbg_dump_ctraces",
+            "dbg_dump_traces_unlimited",
+            "dbg_model",
+            "dbg_coverage",
+            "dbg_priming",
+            "dbg_executor_raw",
+        ],
+    }
+
+    # ==============================================================================================
     # Internal
     _borg_shared_state: Dict = {}
     _no_generation: bool = False
-    _option_values: Dict[str, List]  # set by ISA-specific config.py
-    _default_instruction_blocklist: List[str] = []
     _handled_faults: List[str]  # set by ISA-specific config.py
     _generator_fault_to_fault_name: Dict[str, str]  # set by ISA-specific config.py
     _actors: OrderedDict[str, Dict]
     _actor_default: Dict
+    _config_path: str = ""
 
     def __init__(self) -> None:
         # implementation of Borg pattern
@@ -193,7 +229,7 @@ class Conf:
             self._actors = OrderedDict()
 
     def load(self, config_path: str) -> None:
-        self.config_path = config_path
+        self._config_path = config_path
         with open(config_path, "r") as f:
             config_update: Dict = yaml.safe_load(f)
 
@@ -208,9 +244,6 @@ class Conf:
             if var == "instruction_set":
                 super().__setattr__("instruction_set", value)
                 self.set_to_arch_defaults()
-                continue
-            if var == "instruction_blocklist":
-                self._default_instruction_blocklist.extend(value)
                 continue
             if var == "generator_faults_allowlist":
                 self.update_handled_faults_with_generator_faults(value)
@@ -291,9 +324,6 @@ class Conf:
             raise ConfigException("ERROR: ISA-specific config.py must define _option_values")
 
         for name, value in config_defaults.items():
-            if name == "instruction_blocklist":
-                self._default_instruction_blocklist.extend(value)
-                continue
             if name == "generator_faults_allowlist":
                 self.update_handled_faults_with_generator_faults(value)
                 continue
@@ -301,6 +331,10 @@ class Conf:
                 self._actor_default = deepcopy(value)
                 self._actors = OrderedDict()
                 self._actors['main'] = deepcopy(value)
+                continue
+            if name == "_option_values":
+                for k, v in value.items():
+                    self._option_values[k] = v
                 continue
 
             setattr(self, name, value)

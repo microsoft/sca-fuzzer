@@ -82,7 +82,7 @@ class InstructionSet(InstructionSetAbstract):
             if include_categories and spec.category not in include_categories:
                 return False
 
-            if spec.name in CONF._default_instruction_blocklist:
+            if spec.name in CONF.instruction_blocklist:
                 return False
 
             for operand in spec.operands:
