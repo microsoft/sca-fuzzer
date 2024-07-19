@@ -85,11 +85,6 @@ class Conf:
     'unsafe' instruction sequences that could potentially trigger an exception. Model and executor
      will also be configured to handle these exceptions gracefully """
 
-    avoid_data_dependencies: bool = False
-    """ [DEPRECATED] avoid_data_dependencies: """
-    feedback_driven_generator: bool = False
-    """ [DEPRECATED] feedback_driven_generator: """
-
     # ==============================================================================================
     # Input Generator
     input_generator: str = 'random'
@@ -98,8 +93,6 @@ class Conf:
     """ input_gen_seed: input generation seed; will use a random seed if set to zero """
     input_gen_entropy_bits: int = 16
     """ input_gen_entropy_bits: entropy of the random values created by the input generator """
-    memory_access_zeroed_bits: int = 0
-    """ [DEPRECATED] memory_access_zeroed_bits: """
     inputs_per_class: int = 2
     """ inputs_per_class: number of inputs per input class """
 
@@ -171,8 +164,6 @@ class Conf:
 
     # ==============================================================================================
     # Minimizer
-    minimizer: str = 'violation'
-    """ minimizer: type of the test case minimizer """
     minimizer_retries: int = 1
     """ minimizer_retries: number of attempts to reproduce the violation when minimizing """
 
@@ -244,10 +235,8 @@ class Conf:
         if type(self.__getattribute__(name)) != type(value):
             raise ConfigException(f"ERROR: Wrong type of the configuration variable {name}.\n"
                                   f"It's likely a typo in the configuration file.")
-        if self.input_gen_entropy_bits + self.memory_access_zeroed_bits > 32:
-            raise ConfigException(
-                "ERROR: The sum of input_gen_entropy_bits and memory_access_zeroed_bits"
-                " must be less or equal to 32 bits")
+        if self.input_gen_entropy_bits > 32:
+            raise ConfigException("ERROR: input_gen_entropy_bits must be less or equal to 32 bits")
 
         self._check_options(name, value)
         setattr(self, name, value)

@@ -218,8 +218,8 @@ class X86SandboxPass(Pass):
         self.faults = faults
 
         input_memory_size = MAIN_AREA_SIZE + FAULTY_AREA_SIZE
-        mask_size = int(math.log(input_memory_size, 2)) - CONF.memory_access_zeroed_bits
-        self.sandbox_address_mask = "0b" + "1" * mask_size + "0" * CONF.memory_access_zeroed_bits
+        mask_size = int(math.log(input_memory_size, 2))
+        self.sandbox_address_mask = "0b" + "1" * mask_size
 
     def run_on_test_case(self, test_case: TestCase) -> None:
         for func in test_case.functions:

@@ -46,7 +46,6 @@ cd $work_dir
 
 cat <<EOF >template.yaml
 input_gen_entropy_bits: 24
-memory_access_zeroed_bits: 0
 inputs_per_class: 2
 
 enable_speculation_filter: true

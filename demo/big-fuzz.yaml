@@ -72,7 +72,6 @@ logging_modes:
   # - dbg_dump_traces_unlimited
   # - dbg_model
   - dbg_coverage
-  # - dbg_isa_loader
   # - dbg_priming
   # - dbg_executor_raw
 

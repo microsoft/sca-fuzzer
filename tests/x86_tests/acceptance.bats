@@ -62,7 +62,6 @@ ARCH_BASE="
 $BASE
 fuzzer: architectural
 enable_priming: false
-memory_access_zeroed_bits: 0
 inputs_per_class: 1
 logging_modes:
  - dbg_violation
@@ -212,7 +211,6 @@ EOF
 $BASE
 fuzzer: architectural
 enable_priming: false
-memory_access_zeroed_bits: 0
 inputs_per_class: 1
 
 $BASE_AND_SIMD_CATEGORIES
