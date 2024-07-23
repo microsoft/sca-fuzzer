@@ -923,27 +923,40 @@ class DummyTaintTracker(TaintTrackerInterface):
 
 
 class BaseTaintTracker(TaintTrackerInterface):
-    """ Base class for taint tracking that implements ISA-agnostic tracking """
+    """
+    Base class for taint tracking that implements ISA-agnostic tracking.
+
+    The algorithm is as follows:
+    - start_instruction: get the static source and destination operands of the instruction
+    - track_memory_access: get dynamic source and destination memory addresses
+    - taint_*: collect the labels (register names or mem. addresses) that are
+      exposed by this instruction in the contract trace
+    - finalize_instruction:
+      1. propagate the dependencies of the source operands to the destination operands
+      2. update the list of tainted labels with the dependencies of the labels
+         collected by taint_* methods
+    - get_taint: produce an InputTaint object based on the all tainted labels
+    """
     strict_undefined: bool = True
     _instruction: Optional[Instruction] = None
     sandbox_base: int = 0
 
-    src_regs: List[str]
-    dest_regs: List[str]
-    reg_dependencies: Dict[str, Set]
+    src_regs: Set[str]
+    dest_regs: Set[str]
+    reg_deps: Dict[str, Set]
 
-    src_flags: List[str]
-    dest_flags: List[str]
-    flag_dependencies: Dict[str, Set]
+    src_flags: Set[str]
+    dest_flags: Set[str]
+    flag_deps: Dict[str, Set]
 
-    src_mems: List[str]
-    dest_mems: List[str]
-    mem_dependencies: Dict[str, Set]
+    src_mems: Set[str]
+    dest_mems: Set[str]
+    mem_deps: Dict[str, Set]
 
-    mem_address_regs: List[str]
+    mem_address_regs: Set[str]
 
     tainted_labels: Set[str]
-    pending_taint: List[str]
+    pending_taint: Set[str]
 
     # ISA-specific fields
     uc_target_desc: UnicornTargetDesc
@@ -956,102 +969,81 @@ class BaseTaintTracker(TaintTrackerInterface):
         self.reset(initial_observations)
         assert CONF.instruction_set == "x86-64", "Taint tracking is only supported for x86_64"
 
+    # ----------------------------------------------------------------------------------------------
+    # State management methods
     def reset(self, initial_observations):
         self.initial_observations = initial_observations
-        self.flag_dependencies = {}
-        self.reg_dependencies = {}
-        self.mem_dependencies = {}
+        self.flag_deps = {}
+        self.reg_deps = {}
+        self.mem_deps = {}
         self.tainted_labels = set(self.initial_observations)
         self.checkpoints = []
 
-    def start_instruction(self, instruction):
-        """ Collect source and target registers/flags """
+    def checkpoint(self):
         if self._instruction:
-            self._finalize_instruction()  # finalize the previous instruction
+            self._finalize_instruction()
+        self.checkpoints.append((copy.deepcopy(self.flag_deps), copy.deepcopy(self.reg_deps),
+                                 copy.deepcopy(self.mem_deps)))
 
+    def rollback(self):
+        assert self.checkpoints, "There are no more checkpoints"
+        if self._instruction:
+            self._finalize_instruction()
+        t = self.checkpoints.pop()
+        self.flag_deps = copy.deepcopy(t[0])
+        self.reg_deps = copy.deepcopy(t[1])
+        self.mem_deps = copy.deepcopy(t[2])
+
+    # ----------------------------------------------------------------------------------------------
+    # Dependency propagation methods
+    def start_instruction(self, instruction: Instruction):
+        """
+        Parse instruction and record its static source and destination operands.
+        Static means the operands that we can identify without executing the instruction.
+        The remaining dynamic operands are collected by track_* methods.
+
+        :param instruction: the instruction to be parsed
+        """
+        # make sure that the previous instruction is finalized
+        if self._instruction:
+            self._finalize_instruction()
+
+        # restart the tracking
         self._instruction = instruction
-        self.src_regs = []
-        self.src_flags = []
-        self.src_mems = []
-        self.dest_regs = []
-        self.dest_flags = []
-        self.dest_mems = []
-        self.pending_taint = []
-        self.mem_address_regs = []
+        self.src_regs = set()
+        self.src_flags = set()
+        self.src_mems = set()
+        self.dest_regs = set()
+        self.dest_flags = set()
+        self.dest_mems = set()
+        self.pending_taint = set()
+        self.mem_address_regs = set()
 
+        # Parse the instruction operands
         for op in instruction.get_all_operands():
             if isinstance(op, RegisterOperand):
+                # Registers: normalize the names and record them
                 value = self.target_desc.reg_normalized[op.value]
                 if op.src:
-                    self.src_regs.append(value)
+                    self.src_regs.add(value)
                 if op.dest:
-                    self.dest_regs.append(value)
+                    self.dest_regs.add(value)
             elif isinstance(op, FlagsOperand):
-                self.src_flags = op.get_read_flags()
+                # Flags: record the read and write flags; optionally, record the undefined flags
+                self.src_flags = set(op.get_read_flags())
                 if self.strict_undefined:
-                    self.src_flags.extend(op.get_undef_flags())
-                self.dest_flags = op.get_write_flags()
+                    self.src_flags.update(op.get_undef_flags())
+                self.dest_flags = set(op.get_write_flags())
             elif isinstance(op, MemoryOperand):
+                # Memory: record the names of the address registers
                 for sub_op in re.split(r'\+|-|\*| ', op.value):
                     if sub_op and sub_op in self.target_desc.reg_normalized:
-                        self.mem_address_regs.append(self.target_desc.reg_normalized[sub_op])
-
-        # FIXME: this is an x86-specific implementation and it should be moved to the x86 model
-        if "mov" in instruction.name and instruction.category == "BASE-DATAXFER":
-            dest_regs = instruction.get_dest_operands()
-            assert len(dest_regs) == 1, "MOV instruction with multiple destinations"
-            if isinstance(dest_regs[0], RegisterOperand) and dest_regs[0].width == 64:
-                value = self.target_desc.reg_normalized[dest_regs[0].value]
-                self.reg_dependencies[value] = set()
+                        self.mem_address_regs.add(self.target_desc.reg_normalized[sub_op])
 
         flag_op = instruction.get_flags_operand()
         if flag_op:
             for flag in flag_op.get_overwrite_flags():
-                self.flag_dependencies[flag] = set()
-
-    def _finalize_instruction(self):
-        """Propagate dependencies from source operands to destinations """
-
-        # Compute source label
-        src_labels = set()
-        for reg in self.src_regs:
-            src_labels.update(self.reg_dependencies.get(reg, {reg}))
-        for flag in self.src_flags:
-            src_labels.update(self.flag_dependencies.get(flag, {flag}))
-        for addr in self.src_mems:
-            src_labels.update(self.mem_dependencies.get(addr, {addr}))
-
-        # Propagate label to all targets
-        uniq_labels = src_labels
-        for reg in self.dest_regs:
-            if reg in self.reg_dependencies:
-                self.reg_dependencies[reg].update(uniq_labels)
-            else:
-                self.reg_dependencies[reg] = copy.copy(uniq_labels)
-                self.reg_dependencies[reg].add(reg)
-
-        for flg in self.dest_flags:
-            if flg in self.flag_dependencies:
-                self.flag_dependencies[flg].update(uniq_labels)
-            else:
-                self.flag_dependencies[flg] = copy.copy(uniq_labels)
-                self.flag_dependencies[flg].add(flg)
-
-        for mem in self.dest_mems:
-            if mem in self.mem_dependencies:
-                self.mem_dependencies[mem].update(uniq_labels)
-            else:
-                self.mem_dependencies[mem] = copy.copy(uniq_labels)
-                self.mem_dependencies[mem].add(mem)
-
-        # Update taints
-        for label in self.pending_taint:
-            if label.startswith("0x"):
-                self.tainted_labels.update(self.mem_dependencies.get(label, {label}))
-            else:
-                self.tainted_labels.update(self.reg_dependencies.get(label, {label}))
-
-        self._instruction = None
+                self.flag_deps[flag] = set()
 
     def track_memory_access(self, address: int, size: int, is_write: bool):
         """ Tracking concrete memory accesses """
@@ -1064,41 +1056,77 @@ class BaseTaintTracker(TaintTrackerInterface):
         # add all addresses to tracking
         track_list = self.dest_mems if is_write else self.src_mems
         for i in range(masked_start_addr, masked_end_addr + 1, 8):
-            track_list.append(hex(i))
+            track_list.add(hex(i))
 
+    def _finalize_instruction(self):
+        """
+        Propagate dependencies from source operands to destinations
+        """
+        inst = self._instruction
+        assert inst, "_finalize_instruction called before start_instruction"
+
+        # Get dependencies of the source operands
+        src_dependencies = set()
+        for reg in self.src_regs:
+            src_dependencies.update(self.reg_deps.get(reg, {reg}))
+        for flag in self.src_flags:
+            src_dependencies.update(self.flag_deps.get(flag, {flag}))
+        for addr in self.src_mems:
+            src_dependencies.update(self.mem_deps.get(addr, {addr}))
+
+        # Propagate source dependencies to destination operands
+        for reg in self.dest_regs:
+            if reg in self.reg_deps:
+                self.reg_deps[reg].update(src_dependencies)
+            else:
+                self.reg_deps[reg] = copy.copy(src_dependencies)
+                self.reg_deps[reg].add(reg)
+        for flg in self.dest_flags:
+            if flg in self.flag_deps:
+                self.flag_deps[flg].update(src_dependencies)
+            else:
+                self.flag_deps[flg] = copy.copy(src_dependencies)
+                self.flag_deps[flg].add(flg)
+        for mem in self.dest_mems:
+            if mem in self.mem_deps:
+                self.mem_deps[mem].update(src_dependencies)
+            else:
+                self.mem_deps[mem] = copy.copy(src_dependencies)
+                self.mem_deps[mem].add(mem)
+
+        # Update taints
+        for label in self.pending_taint:
+            if label.startswith("0x"):
+                self.tainted_labels.update(self.mem_deps.get(label, {label}))
+            else:
+                self.tainted_labels.update(self.reg_deps.get(label, {label}))
+        # Reset the instruction
+        self._instruction = None
+
+    # ----------------------------------------------------------------------------------------------
+    # Tainting callbacks
     def taint_pc(self):
         if self._instruction and self._instruction.control_flow:
-            self.pending_taint.append("RIP")
+            self.pending_taint.add("RIP")
 
     def taint_memory_access_address(self):
         for reg in self.mem_address_regs:
-            self.pending_taint.append(reg)
+            self.pending_taint.add(reg)
 
-    def taint_memory_load(self):
+    def taint_loaded_value(self):
         for addr in self.src_mems:
-            self.pending_taint.append(addr)
+            self.pending_taint.add(addr)
 
-    def taint_memory_store(self):
-        for addr in self.dest_mems:
-            self.pending_taint.append(addr)
-
-    def checkpoint(self):
-        if self._instruction:
-            self._finalize_instruction()
-        self.checkpoints.append(
-            (copy.deepcopy(self.flag_dependencies), copy.deepcopy(self.reg_dependencies),
-             copy.deepcopy(self.mem_dependencies)))
-
-    def rollback(self):
-        assert self.checkpoints, "There are no more checkpoints"
-        if self._instruction:
-            self._finalize_instruction()
-        t = self.checkpoints.pop()
-        self.flag_dependencies = copy.deepcopy(t[0])
-        self.reg_dependencies = copy.deepcopy(t[1])
-        self.mem_dependencies = copy.deepcopy(t[2])
-
+    # ----------------------------------------------------------------------------------------------
+    # Taint output methods
     def get_taint(self) -> InputTaint:
+        """
+        Produce an InputTaint object based on the taints collected during
+        the model execution.
+
+        :return: an InputTaint object
+        """
+
         if self._instruction:
             self._finalize_instruction()
 
@@ -1109,11 +1137,11 @@ class BaseTaintTracker(TaintTrackerInterface):
         simd_start = taint[0].dtype.fields['simd'][1] // 8
 
         for label in self.tainted_labels:
-            input_offset = -1  # the location of the label within the Input array
             if label.startswith('0x'):
                 # memory address
                 # we taint the 64-bits block that contains the address
                 input_offset = (int(label, 16)) // 8
+                tainted_positions.append(input_offset)
             else:
                 # uncomment if to create violations of vspec-ops-div
                 # if not label == 'D':
@@ -1121,13 +1149,13 @@ class BaseTaintTracker(TaintTrackerInterface):
                 if reg in self._registers:
                     input_offset = register_start + \
                         self._registers.index(self.uc_target_desc.reg_decode[label])
+                    tainted_positions.append(input_offset)
                 elif reg in self._simd_registers:
                     input_offset = simd_start + \
                         self._simd_registers.index(self.uc_target_desc.reg_decode[label]) * 2
+                    tainted_positions.append(input_offset)
                 # else:
                 # print(f"Register {label} is not tracked")
-            if input_offset >= 0:
-                tainted_positions.append(input_offset)
 
         tainted_positions = list(dict.fromkeys(tainted_positions))
         tainted_positions.sort()
