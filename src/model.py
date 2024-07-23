@@ -940,18 +940,19 @@ class BaseTaintTracker(TaintTrackerInterface):
     strict_undefined: bool = True
     _instruction: Optional[Instruction] = None
     sandbox_base: int = 0
+    checkpoints: List[Tuple[Dict[str, Set[str]], Dict[str, Set[str]], Dict[str, Set[str]]]]
 
     src_regs: Set[str]
     dest_regs: Set[str]
-    reg_deps: Dict[str, Set]
+    reg_deps: Dict[str, Set[str]]
 
     src_flags: Set[str]
     dest_flags: Set[str]
-    flag_deps: Dict[str, Set]
+    flag_deps: Dict[str, Set[str]]
 
     src_mems: Set[str]
     dest_mems: Set[str]
-    mem_deps: Dict[str, Set]
+    mem_deps: Dict[str, Set[str]]
 
     mem_address_regs: Set[str]
 
@@ -971,7 +972,9 @@ class BaseTaintTracker(TaintTrackerInterface):
 
     # ----------------------------------------------------------------------------------------------
     # State management methods
-    def reset(self, initial_observations):
+    def reset(self, initial_observations) -> None:
+        """ Reset the taint tracker state """
+        # print("=============")
         self.initial_observations = initial_observations
         self.flag_deps = {}
         self.reg_deps = {}
@@ -979,13 +982,19 @@ class BaseTaintTracker(TaintTrackerInterface):
         self.tainted_labels = set(self.initial_observations)
         self.checkpoints = []
 
-    def checkpoint(self):
+    def checkpoint(self) -> None:
+        """ Save the current state of the taint tracker """
         if self._instruction:
             self._finalize_instruction()
         self.checkpoints.append((copy.deepcopy(self.flag_deps), copy.deepcopy(self.reg_deps),
                                  copy.deepcopy(self.mem_deps)))
 
-    def rollback(self):
+    def rollback(self) -> None:
+        """
+        Restore the state of the taint tracker from the top-most checkpoint
+
+        :raises AssertionError: if there are no more checkpoints
+        """
         assert self.checkpoints, "There are no more checkpoints"
         if self._instruction:
             self._finalize_instruction()
@@ -996,7 +1005,7 @@ class BaseTaintTracker(TaintTrackerInterface):
 
     # ----------------------------------------------------------------------------------------------
     # Dependency propagation methods
-    def start_instruction(self, instruction: Instruction):
+    def start_instruction(self, instruction: Instruction) -> None:
         """
         Parse instruction and record its static source and destination operands.
         Static means the operands that we can identify without executing the instruction.
@@ -1051,8 +1060,14 @@ class BaseTaintTracker(TaintTrackerInterface):
             for flag in flag_op.get_overwrite_flags():
                 self.flag_deps[flag] = set()
 
-    def track_memory_access(self, address: int, size: int, is_write: bool):
-        """ Tracking concrete memory accesses """
+    def track_memory_access(self, address: int, size: int, is_write: bool) -> None:
+        """
+        Add the address of the memory access to the list of current instruction dependencies
+
+        :param address: the address of the memory access
+        :param size: the size of the memory access
+        :param is_write: True if the memory access is a write (store), False if it's a read (load)
+        """
         # mask the address - we taint at the granularity of 8 bytes
         address -= self.sandbox_base
         masked_start_addr = address & 0xffff_ffff_ffff_fff8
@@ -1064,9 +1079,11 @@ class BaseTaintTracker(TaintTrackerInterface):
         for i in range(masked_start_addr, masked_end_addr + 1, 8):
             track_list.add(hex(i))
 
-    def _finalize_instruction(self):
+    def _finalize_instruction(self) -> None:
         """
         Propagate dependencies from source operands to destinations
+
+        :raises AssertionError: if called before start_instruction
         """
         inst = self._instruction
         assert inst, "_finalize_instruction called before start_instruction"
@@ -1130,15 +1147,30 @@ class BaseTaintTracker(TaintTrackerInterface):
 
     # ----------------------------------------------------------------------------------------------
     # Tainting callbacks
-    def taint_pc(self):
+    def taint_pc(self) -> None:
+        """
+        Taint the RIP register.
+
+        This method is meant to be called by the tracer when it exposes a PC.
+        """
         if self._instruction and self._instruction.control_flow:
             self.pending_taint.add("RIP")
 
-    def taint_memory_access_address(self):
+    def taint_memory_access_address(self) -> None:
+        """
+        Taint the memory addresses accessed by the instruction.
+
+        This method is meant to be called by the tracer when it exposes a memory address.
+        """
         for reg in self.mem_address_regs:
             self.pending_taint.add(reg)
 
-    def taint_loaded_value(self):
+    def taint_loaded_value(self) -> None:
+        """
+        Taint the value loaded from memory.
+
+        This method is meant to be called by the tracer when it exposes a loaded value.
+        """
         for addr in self.src_mems:
             self.pending_taint.add(addr)
 
