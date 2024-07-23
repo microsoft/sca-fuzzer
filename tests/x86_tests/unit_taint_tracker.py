@@ -112,6 +112,42 @@ class X86TaintTrackerTest(unittest.TestCase):
         tracker._finalize_instruction()
         self.assertCountEqual(tracker.reg_deps['XMM0'], ['XMM0', 'XMM1'])
 
+    def test_dependency_override(self):
+        """ Test that dependencies are overridden when a 64-bit register is written to"""
+        tracker = x86_model.X86TaintTracker([])
+
+        inst = Instruction("MOV").add_op(get_r64_dest("RAX")).add_op(get_r64_src("RBX"))
+        tracker.start_instruction(inst)
+        tracker._finalize_instruction()
+        self.assertCountEqual(tracker.reg_deps['A'], ['B'])
+
+        inst = Instruction("MOV").add_op(get_r64_dest("RAX")).add_op(get_r64_src("RCX"))
+        tracker.start_instruction(inst)
+        tracker._finalize_instruction()
+        self.assertCountEqual(tracker.reg_deps['A'], ['C'])
+
+    def test_dependency_override_32bit(self):
+        """ Test that dependencies are NOT overridden when a 32-bit register is written to"""
+        tracker = x86_model.X86TaintTracker([])
+
+        inst = Instruction("MOV").add_op(get_r32_dest("EAX")).add_op(get_r32_src("EBX"))
+        tracker.start_instruction(inst)
+        tracker._finalize_instruction()
+        self.assertCountEqual(tracker.reg_deps['A'], ['B', 'A'])
+
+        inst = Instruction("MOV").add_op(get_r32_dest("EAX")).add_op(get_r32_src("ECX"))
+        tracker.start_instruction(inst)
+        tracker._finalize_instruction()
+        self.assertCountEqual(tracker.reg_deps['A'], ['B', 'C', 'A'])
+
+    def test_dependency_lea(self):
+        """ Test that LEA instructions are handled correctly """
+        tracker = x86_model.X86TaintTracker([])
+
+        inst = Instruction("LEA").add_op(get_r64_dest("RAX")).add_op(AgenOperand("RDX + RBX", 8))
+        tracker.start_instruction(inst)
+        tracker._finalize_instruction()
+        self.assertCountEqual(tracker.reg_deps['A'], ['B', 'D'])
 
     def test_tainting_memory_access(self):
         """ Test that memory accesses are tainted correctly """
