@@ -623,11 +623,3 @@ def stable_hash_bytes(data: bytes) -> int:
 
 def stable_hash_intlist(data: List[int]) -> int:
     return xxhash.xxh64(str(data), seed=0).intdigest()
-
-
-class NotSupportedException(Exception):
-    pass
-
-
-class UnreachableCode(Exception):
-    pass

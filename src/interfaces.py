@@ -1197,3 +1197,26 @@ class TaintTrackerInterface(ABC):
     @abstractmethod
     def get_taint(self) -> InputTaint:
         pass
+
+
+# ==================================================================================================
+# Exceptions
+# ==================================================================================================
+class GeneratorException(Exception):
+    """ Exception raised when an error occurs during test case generation """
+    pass
+
+
+class HardwareTracingError(Exception):
+    """ Exception raised when an error occurs during hardware tracing """
+    pass
+
+
+class NotSupportedException(Exception):
+    """ Exception raised when a feature is not supported """
+    pass
+
+
+class UnreachableCode(Exception):
+    """ Exception raised when an unreachable code path is reached """
+    pass
