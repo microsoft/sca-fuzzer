@@ -16,13 +16,10 @@ from copy import deepcopy
 from .isa_loader import InstructionSet
 from .interfaces import Generator, TestCase, Operand, RegisterOperand, FlagsOperand, \
     MemoryOperand, ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, \
-    Function, OperandSpec, InstructionSpec, CondOperand, Actor, ActorMode, ActorPL
-from .util import NotSupportedException, Logger
+    Function, OperandSpec, InstructionSpec, CondOperand, Actor, ActorMode, ActorPL, \
+    NotSupportedException
+from .util import Logger
 from .config import CONF
-
-
-class GeneratorException(Exception):
-    pass
 
 
 # ==================================================================================================

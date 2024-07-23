@@ -29,9 +29,9 @@ from unicorn import Uc, UcError, UC_MEM_WRITE, UC_MEM_READ, UC_SECOND_SCALE, UC_
 from .interfaces import CTrace, TestCase, Model, InputTaint, Instruction, ExecutionTrace, \
     TracedInstruction, TracedMemAccess, Input, Tracer, Actor, ActorMode, ActorPL, \
     RegisterOperand, FlagsOperand, MemoryOperand, TaintTrackerInterface, TargetDesc, \
-    get_sandbox_addr, SANDBOX_DATA_SIZE, SANDBOX_CODE_SIZE
+    get_sandbox_addr, SANDBOX_DATA_SIZE, SANDBOX_CODE_SIZE, NotSupportedException, AgenOperand
 from .config import CONF
-from .util import Logger, NotSupportedException
+from .util import Logger
 
 # ==================================================================================================
 # Custom Data Types and Constants
