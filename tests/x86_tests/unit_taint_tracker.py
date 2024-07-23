@@ -102,6 +102,16 @@ class X86TaintTrackerTest(unittest.TestCase):
         tracker._finalize_instruction()
         self.assertCountEqual(tracker.reg_deps['A'], ['0x100', '0x108'])
 
+    def test_dependency_xmm(self):
+        """ Test dependency tracking for XMM registers """
+        tracker = x86_model.X86TaintTracker([])
+
+        inst = Instruction("MOVAPS").add_op(RegisterOperand("XMM0", 128, False, True)).add_op(
+            RegisterOperand("XMM1", 128, True, False))
+        tracker.start_instruction(inst)
+        tracker._finalize_instruction()
+        self.assertCountEqual(tracker.reg_deps['XMM0'], ['XMM0', 'XMM1'])
+
 
     def test_tainting_memory_access(self):
         """ Test that memory accesses are tainted correctly """

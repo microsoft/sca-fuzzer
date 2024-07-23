@@ -1154,6 +1154,7 @@ class BaseTaintTracker(TaintTrackerInterface):
                     input_offset = simd_start + \
                         self._simd_registers.index(self.uc_target_desc.reg_decode[label]) * 2
                     tainted_positions.append(input_offset)
+                    tainted_positions.append(input_offset + 1)
                 # else:
                 # print(f"Register {label} is not tracked")
 
