@@ -91,6 +91,18 @@ class X86TaintTrackerTest(unittest.TestCase):
         tracker.track_memory_access(0x200, 8, False)
         tracker._finalize_instruction()
         self.assertCountEqual(tracker.reg_deps['DI'], ['SI', '0x200'])
+
+    def test_dependency_tracking_split_access(self):
+        """ Memory accesses that split 8-byte boundaries must taint both parts """
+        tracker = x86_model.X86TaintTracker([])
+
+        inst = Instruction("MOV").add_op(get_r64_dest("RAX")).add_op(get_m64_src("RCX"))
+        tracker.start_instruction(inst)
+        tracker.track_memory_access(0x104, 8, False)
+        tracker._finalize_instruction()
+        self.assertCountEqual(tracker.reg_deps['A'], ['0x100', '0x108'])
+
+
     def test_tainting_memory_access(self):
         """ Test that memory accesses are tainted correctly """
         tracker = x86_model.X86TaintTracker([])
