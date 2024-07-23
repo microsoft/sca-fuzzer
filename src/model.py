@@ -1039,6 +1039,12 @@ class BaseTaintTracker(TaintTrackerInterface):
                 for sub_op in re.split(r'\+|-|\*| ', op.value):
                     if sub_op and sub_op in self.target_desc.reg_normalized:
                         self.mem_address_regs.add(self.target_desc.reg_normalized[sub_op])
+            elif isinstance(op, AgenOperand):
+                # LEA operand: record the names of the address registers
+                # Note that we record the names in self.src_regs, because it's not a memory access
+                for sub_op in re.split(r'\+|-|\*| ', op.value):
+                    if sub_op and sub_op in self.target_desc.reg_normalized:
+                        self.src_regs.add(self.target_desc.reg_normalized[sub_op])
 
         flag_op = instruction.get_flags_operand()
         if flag_op:
@@ -1100,6 +1106,25 @@ class BaseTaintTracker(TaintTrackerInterface):
                 self.tainted_labels.update(self.mem_deps.get(label, {label}))
             else:
                 self.tainted_labels.update(self.reg_deps.get(label, {label}))
+
+        # Identify if the instruction overrides previous dependencies
+        # (so far we consider only two such case: MOV and LEA)
+        # FIXME: this is an x86-specific implementation and it should be moved to the x86 model
+        override: bool = False
+        inst_name = inst.name.lower()
+        if (inst_name.startswith("mov") or inst_name == "lea") \
+                and self.dest_regs \
+                and inst.get_reg_operands()[0].width == 64:
+            override = True
+
+        # If the instruction overrides previous dependencies, remove them
+        if override:
+            assert len(self.dest_regs) == 1, "MOV instruction with multiple destinations"
+            reg = self.dest_regs.pop()
+            for dep in list(self.reg_deps[reg]):
+                if dep not in src_dependencies:
+                    self.reg_deps[reg].remove(dep)
+
         # Reset the instruction
         self._instruction = None
 

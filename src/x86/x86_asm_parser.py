@@ -201,7 +201,10 @@ class X86AsmParser(AsmParserGeneric):
                 assert spec.control_flow or spec.name == "macro"
                 op = LabelOperand(op_raw)
             else:  # AGEN
-                op = AgenOperand(op_raw, op_spec.width)
+                address_match = re.search(r'\[(.*)\]', op_raw)
+                parser_assert(address_match is not None, line_num, "Invalid memory address")
+                address = address_match.group(1)  # type: ignore
+                op = AgenOperand(address, op_spec.width)
             inst.operands.append(op)
 
         for op_spec in spec.implicit_operands:
