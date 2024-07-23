@@ -34,41 +34,24 @@ class EquivalenceAnalyserCommon(Analyser):
         of this class implements a different way to compare the htraces. For example, the
         ProbabilisticAnalyser compares the distributions of traces.
 
-        :return A list of contract violations, i.e., the equivalence classes that
-                contain contract-equivalent measurements with non-equivalent htraces
+        :param inputs: a list of inputs
+        :param ctraces: a list of contract traces
+        :param htraces: a list of hardware traces
+        :param stats: whether to update the statistics based on the results
+        :return: if a violation is found, return a list of equivalence classes that contain
+                 contract counterexamples. Otherwise, return an empty list.
         """
-        if not htraces:  # might be empty due to tracing errors
+        # Skip if there are no htraces
+        if not htraces:
             return []
 
-        equivalence_classes: List[EquivalenceClass] = self._build_equivalence_classes(
-            inputs, ctraces, htraces, stats)
-
-        violations: List[EquivalenceClass] = []
-        for eq_cls in equivalence_classes:
-            # if all htraces in the class match, it's definitely not a violation
-            if len(eq_cls.htrace_groups) < 2:
-                continue
-
-            violations.append(eq_cls)
-
-        return violations
-
-    def _build_equivalence_classes(self,
-                                   inputs: List[Input],
-                                   ctraces: List[CTrace],
-                                   htraces: List[HTrace],
-                                   stats=False) -> List[EquivalenceClass]:
-        """
-        Collect inputs into equivalence classes based on ctraces and group the inputs within
-        the equivalence class by the htrace
-        """
-
-        # map ctraces to their IDs
+        # Build a list of equivalence classes:
+        #   1. Map ctraces to their IDs
         equivalent_inputs_ids = defaultdict(list)
         for i, ctrace in enumerate(ctraces):
             equivalent_inputs_ids[ctrace].append(i)
 
-        # build all equivalence. classes
+        #   2. Build all equivalence. classes
         all_classes: List[EquivalenceClass] = []
         for ctrace, ids in equivalent_inputs_ids.items():
             eq_cls = EquivalenceClass(ctrace, inputs)
@@ -79,23 +62,30 @@ class EquivalenceAnalyserCommon(Analyser):
                 eq_cls.measurements.append(Measurement(i, inputs[i], ctrace, htraces[i]))
             all_classes.append(eq_cls)
 
-        # find effective classes
+        #   3. Find effective classes
         effective_classes: List[EquivalenceClass] = []
         for eq_cls in all_classes:
             if len(eq_cls.measurements) > 1:
                 effective_classes.append(eq_cls)
         effective_classes.sort(key=lambda x: x.ctrace)
 
+        #   4. Build a map of htraces
+        for eq_cls in effective_classes:
+            self.build_htrace_groups(eq_cls)
+
+        # Update statistics
         if stats:
             STAT.eff_classes += len(effective_classes)
             STAT.single_entry_classes += len(all_classes) - len(effective_classes)
             STAT.analysed_test_cases += 1
 
-        # build maps of htraces
+        # Check if any of the equivalence classes is a contract counterexample
+        violations: List[EquivalenceClass] = []
         for eq_cls in effective_classes:
-            self.build_htrace_groups(eq_cls)
+            if len(eq_cls.htrace_groups) >= 2:
+                violations.append(eq_cls)
 
-        return effective_classes
+        return violations
 
     def build_htrace_groups(self, eq_cls: EquivalenceClass) -> None:
         """ see interfaces.py:Analyser for the docstring """
