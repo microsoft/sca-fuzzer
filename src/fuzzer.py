@@ -297,7 +297,14 @@ class FuzzerGeneric(Fuzzer):
                                                     end_nesting)
                     return None
 
-
+        # 2.5 FP might appear because of a mismatch between the model and the executor.
+        # Such cases are rare, hence we check for them last.
+        # To remove such FPs, we check if the violation is caused by an architectural mismatch
+        if self.is_architectural_mismatch(test_case, violations[0]):
+            if self.work_dir and not CONF._no_generation:
+                self.LOG.warning("fuzzer", f"Storing the bug into {self.work_dir}/bugs/")
+                self._store_violation_artifact(test_case, violations[0], f"{self.work_dir}/bugs/")
+            return None
 
         # Violation survived all checks. Report it
         self.LOG.trc_fuzzer_dump_traces(self.model, args.inputs, htraces, self.reference_htraces,
