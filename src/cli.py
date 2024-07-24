@@ -70,42 +70,48 @@ def main() -> int:
 
     # ==============================================================================================
     # Template-based fuzzing
-    parser_fuzz = subparsers.add_parser('tfuzz', add_help=True)
-    parser_fuzz.add_argument("-s", "--instruction-set", type=str, required=True)
-    parser_fuzz.add_argument("-c", "--config", type=str, required=False)
-    parser_fuzz.add_argument(
+    parser_tfuzz = subparsers.add_parser('tfuzz', add_help=True)
+    parser_tfuzz.add_argument("-s", "--instruction-set", type=str, required=True)
+    parser_tfuzz.add_argument("-c", "--config", type=str, required=False)
+    parser_tfuzz.add_argument(
         "-n",
         "--num-test-cases",
         type=int,
         default=1,
         help="Number of test cases.",
     )
-    parser_fuzz.add_argument(
+    parser_tfuzz.add_argument(
         "-i",
         "--num-inputs",
         type=int,
         default=100,
         help="Number of inputs per test case.",
     )
-    parser_fuzz.add_argument(
+    parser_tfuzz.add_argument(
         '-w',
         '--working-directory',
         type=str,
         default='',
     )
-    parser_fuzz.add_argument(
+    parser_tfuzz.add_argument(
         '-t',
         '--template',
         type=str,
         required=True,
         help="The template to use for generating test cases")
-    parser_fuzz.add_argument(
+    parser_tfuzz.add_argument(
         '--timeout',
         type=int,
         default=0,
         help="Run fuzzing with a time limit [seconds]. No timeout when set to zero.")
-    parser_fuzz.add_argument(
+    parser_tfuzz.add_argument(
         '--nonstop', action='store_true', help="Don't stop after detecting an unexpected result")
+    parser_tfuzz.add_argument(
+        '--enable-store-violations',
+        type=arg2bool,
+        default=True,
+        help="If set, store all detected violations in working directory.",
+    )
 
     # ==============================================================================================
     # Standalone interface to trace analysis
