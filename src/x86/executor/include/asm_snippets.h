@@ -8,10 +8,25 @@
 // clang-format off
 
 #include "hardware_desc.h"
+#include <asm/msr-index.h>
 
 #ifndef VENDOR_ID
 #error "VENDOR_ID is not defined! Make sure to include this header late enough."
 #endif
+
+/// Reserved registers
+#define STATUS_REGISTER        "r12"
+#define STATUS_REGISTER_32     "r12d"
+#define STATUS_REGISTER_8      "r12b"
+#define HTRACE_REGISTER        "r13"
+
+/// State machine of the tracing process
+#define SR_UNINITIALIZED       0
+#define SR_STARTED             1
+#define SR_ENDED               2
+#define SET_SR_STARTED()       "mov "STATUS_REGISTER_8", "xstr(SR_STARTED)" \n"
+#define SET_SR_ENDED()         "mov "STATUS_REGISTER_8", "xstr(SR_ENDED)" \n"
+
 
 /// Accessors to MSRs
 ///
@@ -59,17 +74,64 @@
 
 /// Detection of System Management Interrupts (SMIs)
 ///
-#if VENDOR_ID == 1  // Intel
-#define READ_SMI_START(DEST) READ_MSR_START("0x00000034", DEST)
-#define READ_SMI_END(DEST) READ_MSR_END("0x00000034", DEST)
 
-#elif VENDOR_ID == 2  // AMD
-#define READ_SMI_START(DEST) \
-    READ_PFC_ONE("5") \
-    "sub "DEST", rdx \n"
-#define READ_SMI_END(DEST) \
-    READ_PFC_ONE("5") \
-    "add "DEST", rdx \n"
+/// @brief Clear the upper 32 bits of the STATUS_REGISTER
+#define CLEAR_SMI_STATUS() \
+   "mov "STATUS_REGISTER_32", "STATUS_REGISTER_32" \n"
+
+#if VENDOR_ID == VENDOR_INTEL_
+/// @brief Start monitoring SMIs by reading the current value of the SMI counter (MSR 0x34)
+///        and storing it in the STATUS_REGISTER[63:32]
+///  clobber: rax, rcx, rdx
+#define READ_SMI_START()               \
+    "mov rcx, "xstr(MSR_SMI_COUNT)"\n" \
+    "lfence; rdmsr; lfence         \n" \
+    "mov rcx, 0                    \n" \
+    "sub ecx, eax                  \n" \
+    "shl rcx, 32                   \n" \
+    CLEAR_SMI_STATUS()                 \
+    "or "STATUS_REGISTER", rcx     \n"
+
+/// @brief End monitoring SMIs by reading the current value of the SMI counter (MSR 0x34)
+///        and storing the difference between the current and the previous value
+///        in the STATUS_REGISTER[31:0]
+/// clobber: rax, rcx, rdx
+#define READ_SMI_END()                 \
+    "mov rcx, "xstr(MSR_SMI_COUNT)"\n" \
+    "lfence; rdmsr; lfence         \n" \
+    "mov rcx, "STATUS_REGISTER"    \n" \
+    "shr rcx, 32                   \n" \
+    "add ecx, eax                  \n" \
+    "shl rcx, 32                   \n" \
+    CLEAR_SMI_STATUS()                 \
+    "or "STATUS_REGISTER", rcx     \n"
+#elif VENDOR_ID == VENDOR_AMD_
+/// @brief Start monitoring SMIs by reading the current value of the SMI counter (PMU ID 5)
+///        and storing it in the STATUS_REGISTER[63:32]
+///  clobber: rax, rcx, rdx
+#define READ_SMI_START()            \
+    "mov rcx, 5                 \n" \
+    "lfence; rdpmc; lfence      \n" \
+    "mov rcx, 0                 \n" \
+    "sub ecx, eax               \n" \
+    "shl rcx, 32                \n" \
+    CLEAR_SMI_STATUS()              \
+    "or "STATUS_REGISTER", rcx  \n"
+
+/// @brief End monitoring SMIs by reading the current value of the SMI counter (PMU ID 5)
+///        and storing the difference between the current and the previous value
+///        in the STATUS_REGISTER[31:0]
+/// clobber: rax, rcx, rdx
+#define READ_SMI_END()              \
+    "mov rcx, 5                 \n" \
+    "lfence; rdpmc; lfence      \n" \
+    "mov rcx, "STATUS_REGISTER" \n" \
+    "shr rcx, 32                \n" \
+    "add ecx, eax               \n" \
+    "shl rcx, 32                \n" \
+    CLEAR_SMI_STATUS()              \
+    "or "STATUS_REGISTER", rcx  \n"
+
 #endif
 
 

@@ -249,8 +249,8 @@ void __attribute__((noipa)) body_macro_prime(void)
                        MACRO_PROLOGUE()                                  //
                        "lea rax, [r15 + " xstr(L1D_PRIMING_OFFSET) "]\n" //
                        PRIME("rax", "rbx", "rcx", "rdx", "32")           //
-                       "xor " HTRACE_REGISTER ", " HTRACE_REGISTER "\n"  //
                        READ_PFC_START()                                  //
+                       SET_SR_STARTED()                                  //
                        MACRO_EPILOGUE()                                  //
                        "lfence\n"                                        //
     );
@@ -264,8 +264,8 @@ void __attribute__((noipa)) body_macro_fast_prime(void)
                        MACRO_PROLOGUE()                                  //
                        "lea rax, [r15 + " xstr(L1D_PRIMING_OFFSET) "]\n" //
                        PRIME("rax", "rbx", "rcx", "rdx", "1")            //
-                       "xor " HTRACE_REGISTER ", " HTRACE_REGISTER "\n"  //
                        READ_PFC_START()                                  //
+                       SET_SR_STARTED()                                  //
                        MACRO_EPILOGUE()                                  //
                        "lfence\n"                                        //
     );
@@ -279,8 +279,8 @@ void __attribute__((noipa)) body_macro_partial_prime(void)
                        MACRO_PROLOGUE()                                  //
                        "lea rax, [r15 + " xstr(L1D_PRIMING_OFFSET) "]\n" //
                        PRIME_PARTIAL("rax", "rbx", "rcx", "rdx", "32")   //
-                       "xor " HTRACE_REGISTER ", " HTRACE_REGISTER "\n"  //
                        READ_PFC_START()                                  //
+                       SET_SR_STARTED()                                  //
                        MACRO_EPILOGUE()                                  //
                        "lfence\n"                                        //
     );
@@ -294,8 +294,8 @@ void __attribute__((noipa)) body_macro_fast_partial_prime(void)
                        MACRO_PROLOGUE()                                  //
                        "lea rax, [r15 + " xstr(L1D_PRIMING_OFFSET) "]\n" //
                        PRIME_PARTIAL("rax", "rbx", "rcx", "rdx", "1")    //
-                       "xor " HTRACE_REGISTER ", " HTRACE_REGISTER "\n"  //
                        READ_PFC_START()                                  //
+                       SET_SR_STARTED()                                  //
                        MACRO_EPILOGUE()                                  //
                        "lfence\n"                                        //
     );
@@ -305,22 +305,23 @@ void __attribute__((noipa)) body_macro_fast_partial_prime(void)
 void __attribute__((noipa)) body_macro_probe(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
-    asm_volatile_intel(""                                                //
-                       "cmp " HTRACE_REGISTER ", -1\n"                   // skip if uninitialized
-                       "je 99f\n"                                        //
-                       "cmp " HTRACE_REGISTER ", 0\n"                    // skip if already called
-                       "jnz 99f\n"                                       //
-                       MACRO_PROLOGUE()                                  //
-                       "push r15\n"                                      //
-                       "lfence\n"                                        //
-                       READ_PFC_END()                                    //
-                       "lea r15, [r15 + " xstr(L1D_PRIMING_OFFSET) "]\n" //
-                       PROBE("r15", "rbx", "r11", HTRACE_REGISTER)       //
-                       "pop r15\n"                                       //
-                       "mov qword ptr [rsp - 8], 0 \n"                   //
-                       MACRO_EPILOGUE()                                  //
-                       "99:\n"                                           //
+    // clang-format off
+    asm_volatile_intel(""                                                     
+                       "cmp " STATUS_REGISTER_8 ", "xstr(SR_STARTED)"\n"      
+                       "jne 99f\n"                                            
+                       MACRO_PROLOGUE()                                       
+                       "push r15\n"                                           
+                       "lfence\n"                                             
+                       READ_PFC_END()                                         
+                       "lea r15, [r15 + " xstr(L1D_PRIMING_OFFSET) "]\n"      
+                       PROBE("r15", "rbx", "r11", HTRACE_REGISTER)            
+                       "pop r15\n"                                            
+                       "mov qword ptr [rsp - 8], 0 \n"                        
+                       SET_SR_ENDED()                                         
+                       MACRO_EPILOGUE()                                       
+                       "99:\n"                                                
     );
+    // clang-format on
     asm volatile(".quad " xstr(MACRO_END));
 }
 
@@ -328,14 +329,14 @@ void __attribute__((noipa)) body_macro_probe(void)
 void __attribute__((noipa)) body_macro_flush(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
-    asm_volatile_intel(""                                               //
-                       MACRO_PROLOGUE()                                 //
-                       "lea rbx, [r14]\n"                               //
-                       FLUSH("rbx", "rax")                              //
-                       "xor " HTRACE_REGISTER ", " HTRACE_REGISTER "\n" //
-                       READ_PFC_START()                                 //
-                       MACRO_EPILOGUE()                                 //
-                       "lfence\n"                                       //
+    asm_volatile_intel(""                  //
+                       MACRO_PROLOGUE()    //
+                       "lea rbx, [r14]\n"  //
+                       FLUSH("rbx", "rax") //
+                       READ_PFC_START()    //
+                       SET_SR_STARTED()    //
+                       MACRO_EPILOGUE()    //
+                       "lfence\n"          //
     );
     asm volatile(".quad " xstr(MACRO_END));
 }
@@ -343,21 +344,22 @@ void __attribute__((noipa)) body_macro_flush(void)
 void __attribute__((noipa)) body_macro_reload(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
-    asm_volatile_intel(""                                           //
-                       "cmp " HTRACE_REGISTER ", -1\n"              // skip if uninitialized
-                       "je 98f\n"                                   //
-                       "cmp " HTRACE_REGISTER ", 0\n"               // skip if already called
-                       "jnz 98f\n"                                  //
-                       MACRO_PROLOGUE()                             //
-                       "lfence\n"                                   //
-                       READ_PFC_END()                               //
-                       RELOAD("r14", "rbx", "r11", HTRACE_REGISTER) //
-                       "mov rax, 1\n"                               //
-                       "shl rax, 63\n"                              //
-                       "or " HTRACE_REGISTER ", rax\n"              //
-                       MACRO_EPILOGUE()                             //
-                       "98:\n"                                      //
+    // clang-format off
+    asm_volatile_intel(""
+                       "cmp " STATUS_REGISTER_8 ", "xstr(SR_STARTED)"\n"
+                       "jne 98f\n"
+                       MACRO_PROLOGUE()
+                       "lfence\n"
+                       READ_PFC_END()
+                       RELOAD("r14", "rbx", "r11", HTRACE_REGISTER)
+                       "mov rax, 1\n"
+                       "shl rax, 63\n"
+                       "or " HTRACE_REGISTER ", rax\n"
+                       SET_SR_ENDED()
+                       MACRO_EPILOGUE()
+                       "98:\n"
     );
+    // clang-format on
     asm volatile(".quad " xstr(MACRO_END));
 }
 
@@ -374,6 +376,7 @@ void __attribute__((noipa)) body_macro_tsc_start(void)
                        "sub " HTRACE_REGISTER ", rdx\n"                 //
                        "lfence\n"                                       //
                        READ_PFC_START()                                 //
+                       SET_SR_STARTED()                                 //
                        MACRO_EPILOGUE()                                 //
                        "lfence\n"                                       //
     );
@@ -383,20 +386,21 @@ void __attribute__((noipa)) body_macro_tsc_start(void)
 void __attribute__((noipa)) body_macro_tsc_end(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
-    asm_volatile_intel(""                               //
-                       "cmp " HTRACE_REGISTER ", -1\n"  // skip if uninitialized
-                       "je 97f\n"                       //
-                       "cmp " HTRACE_REGISTER ", 0\n"   // skip if already called
-                       "jg 97f\n"                       //
-                       MACRO_PROLOGUE()                 //
-                       READ_PFC_END()                   //
-                       "lfence; rdtsc; lfence\n"        //
-                       "shl rdx, 32\n"                  //
-                       "or rdx, rax\n"                  //
-                       "add " HTRACE_REGISTER ", rdx\n" //
-                       MACRO_EPILOGUE()                 //
-                       "97:\n"                          //
+    // clang-format off
+    asm_volatile_intel(""
+                       "cmp " STATUS_REGISTER_8 ", "xstr(SR_STARTED)"\n"
+                       "jne 97f\n"
+                       MACRO_PROLOGUE()
+                       READ_PFC_END()
+                       "lfence; rdtsc; lfence\n"
+                       "shl rdx, 32\n"
+                       "or rdx, rax\n"
+                       "add " HTRACE_REGISTER ", rdx\n"
+                       SET_SR_ENDED()
+                       MACRO_EPILOGUE()
+                       "97:\n"
     );
+    // clang-format on
     asm volatile(".quad " xstr(MACRO_END));
 }
 

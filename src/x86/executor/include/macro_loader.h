@@ -7,6 +7,7 @@
 #define _MACRO_H_
 
 #include "test_case_parser.h"
+#include "asm_snippets.h"
 #include <linux/types.h>
 
 typedef enum {
@@ -31,7 +32,6 @@ typedef enum {
     MACRO_SET_DATA_PERMISSIONS = 18,
 } macro_name_e;
 
-#define HTRACE_REGISTER        "r13"
 #define MACRO_PLACEHOLDER_SIZE 8
 
 int expand_macro(tc_symbol_entry_t *macro, uint8_t *dest, uint8_t *macro_dest, size_t *macro_size);
