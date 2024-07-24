@@ -11,7 +11,7 @@ from typing import NoReturn, Dict, List
 from pprint import pformat
 from traceback import print_stack
 from collections import Counter
-from .interfaces import EquivalenceClass, SANDBOX_CODE_SIZE, Model, HTrace
+from .interfaces import Violation, SANDBOX_CODE_SIZE, Model, HTrace
 from .config import CONF
 
 MASK_64BIT = pow(2, 64)
@@ -295,8 +295,8 @@ class Logger:
             print(f"Duration: {(now - self.start_time).total_seconds():.1f}")
             print(datetime.today().strftime('Finished at %H:%M:%S'))
 
-    def trc_fuzzer_dump_traces(self, model, inputs, htraces, reference_htraces, ctraces,
-                               hw_feedback, nesting):
+    def trc_fuzzer_dump_traces(self, model: Model, inputs, htraces, reference_htraces, ctraces,
+                               nesting: int):
         if not __debug__:
             return
         if not self.dbg_dump_htraces and not self.dbg_dump_ctraces:
@@ -320,7 +320,7 @@ class Logger:
                 print("    ")
                 print(f"CTr{i:<2} {pretty_trace(ctrace, ctrace > pow(2, 64), '      ')}")
                 print(f"HTr{i:<2} {pretty_htrace(htraces[i])}")
-                print(f"Feedback{i}: {hw_feedback[i]}")
+                print(f"Feedback{i}: {htraces[i].perf_counters_max}")
 
             return
 
@@ -337,23 +337,45 @@ class Logger:
                       f"| Hash: {ctraces[i]}")
             if self.dbg_dump_htraces:
                 print(f"  HTr:\n{pretty_htrace(htraces[i], offset='    ')}", end="")
-            if CONF.color and hw_feedback[i][0] > hw_feedback[i][1]:
-                print(f"  Feedback: {YELLOW}{hw_feedback[i]}{COL_RESET}")
+            if CONF.color and htraces[i].perf_counters_max[0] > htraces[i].perf_counters_max[1]:
+                print(f"  Feedback: {YELLOW}{htraces[i].perf_counters_max}{COL_RESET}")
             else:
-                print(f"  Feedback: {hw_feedback[i]}")
+                print(f"  Feedback: {htraces[i].perf_counters_max}")
         self.dbg_model = org_debug_state
 
-    def fuzzer_report_violations(self, violation: EquivalenceClass, model):
+    def dbg_fuzzer_dump_architectural_traces(self, hardware_regs: List[List[int]],
+                                             model_regs: List[List[int]]) -> None:
+        if not __debug__:
+            return
+        if not self.dbg_dump_htraces and not self.dbg_dump_ctraces:
+            return
+
+        print("\n========================== Architectural Traces ==============================")
+        for i in range(len(hardware_regs)):
+            if i > 100 and not self.dbg_dump_traces_unlimited:
+                self.warning("fuzzer", "Trace output is limited to 100 traces")
+                break
+            print(f"Input {i}:")
+            if self.dbg_dump_ctraces:
+                print(f"  Model Registers: {model_regs[i]}")
+            if self.dbg_dump_htraces:
+                print(f"  HW Registers:    {hardware_regs[i]}")
+
+    def fuzzer_report_violations(self, violation: Violation, model) -> None:
         print("\n\n================================ Violations detected ==========================")
         print("Contract trace:")
         if CONF.contract_observation_clause != 'l1d':
             print(f" {violation.ctrace} (hash)")
         else:
-            if violation.ctrace <= pow(2, 64):
-                print(f"  {violation.ctrace:064b}")
+            # special case: L1D trace
+            value = violation.ctrace.hash_
+            if value <= pow(2, 64):
+                # no speculative observation
+                print(f"  {value:064b}")
             else:
-                print(f"  {violation.ctrace % MASK_64BIT:064b} [ns]\n"
-                      f"  {(violation.ctrace >> 64) % MASK_64BIT:064b} [s]\n")
+                # contains speculative observation
+                print(f"  {value % MASK_64BIT:064b} [ns]\n"
+                      f"  {(value >> 64) % MASK_64BIT:064b} [s]\n")
         print("Hardware traces:")
         if len(violation.htrace_groups) == 2:
             inputs1 = [m.input_id for m in violation.htrace_groups[0]]
@@ -388,6 +410,21 @@ class Logger:
                 self.dbg_model = model_debug_state
                 print("\n\n")
 
+    def fuzzer_report_architectural_violation(self, input_id: int, hardware_regs: List[int],
+                                              model_regs: List[int]) -> None:
+        regs = ['rax', 'rbx', 'rcx', 'rdx', 'rsi', 'rdi']
+        mr_str = ""
+        hr_str = ""
+        for i in range(len(regs)):
+            mr_str += f"{regs[i]}:{model_regs[i]:016x} "
+            hr_str += f"{regs[i]}:{hardware_regs[i]:016x} "
+
+        s = "Architectural violation detected\n"
+        s += f"Input {input_id}:\n"
+        s += f"  Model Registers:\n  {mr_str}\n"
+        s += f"  HW Registers:   \n  {hr_str}\n"
+        self.warning("fuzzer", s)
+
     def dbg_priming_progress(self, input_id, current_input_id):
         if not __debug__:
             return
@@ -405,22 +442,22 @@ class Logger:
         print(f"{'HTrace':64} Original|New")
         print(f"{pretty_htrace_pair(htrace_to_reproduce, new_htrace)}")
 
-    def dbg_executor_raw_traces(self, all_results):
+    def dbg_executor_raw_traces(self, all_traces, all_pfc):
         if not __debug__:
             return
         if not self.dbg_executor_raw:
             return
 
         counters = {}
-        for input_id in range(len(all_results)):
+        for input_id in range(len(all_traces)):
             if input_id not in counters:
                 counters[input_id] = Counter()
-            for m_id in range(len(all_results[0])):
-                counters[input_id][all_results[input_id][m_id]['htrace']] += 1
+            for m_id in range(len(all_traces[0])):
+                counters[input_id][all_traces[input_id][m_id]] += 1
         print("Collected raw traces:")
-        for input_id in range(len(all_results)):
-            for m_id in range(len(all_results[0])):
-                t = all_results[input_id][m_id]['htrace']
+        for input_id in range(len(all_traces)):
+            for m_id in range(len(all_traces[0])):
+                t = all_traces[input_id][m_id]
                 c = counters[input_id][t]
             for t, c in sorted(counters[input_id].items()):
                 print(f"{input_id:03}, {pretty_trace(t)}, {t}, {c}")

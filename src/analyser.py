@@ -8,7 +8,7 @@ from collections import defaultdict, Counter
 from typing import List, Dict
 from scipy import stats  # type: ignore
 
-from .interfaces import HTrace, CTrace, Input, EquivalenceClass, Analyser, Measurement
+from .interfaces import HTrace, CTrace, Input, EquivalenceClass, Analyser, Measurement, Violation
 from .config import CONF
 from .util import STAT, Logger
 
@@ -23,7 +23,7 @@ class EquivalenceAnalyserCommon(Analyser):
                           inputs: List[Input],
                           ctraces: List[CTrace],
                           htraces: List[HTrace],
-                          stats=False) -> List[EquivalenceClass]:
+                          stats=False) -> List[Violation]:
         """
         Group the measurements by their ctrace (i.e., build equivalence classes of measurements
         w.r.t. their ctrace) and check if all htraces in the same equivalence class are equal.
@@ -49,48 +49,55 @@ class EquivalenceAnalyserCommon(Analyser):
         #   1. Map ctraces to their IDs
         equivalent_inputs_ids = defaultdict(list)
         for i, ctrace in enumerate(ctraces):
+            # skip the measurements with corrupted/ignored htraces
+            if not htraces[i].raw:
+                continue
             equivalent_inputs_ids[ctrace].append(i)
 
-        #   2. Build all equivalence. classes
-        all_classes: List[EquivalenceClass] = []
-        for ctrace, ids in equivalent_inputs_ids.items():
-            eq_cls = EquivalenceClass(ctrace, inputs)
-            for i in ids:
-                # skip the measurements with corrupted/ignored htraces
-                if not htraces[i].raw:
-                    continue
-                eq_cls.measurements.append(Measurement(i, inputs[i], ctrace, htraces[i]))
-            all_classes.append(eq_cls)
-
-        #   3. Find effective classes
+        #   2. Build equivalence classes
         effective_classes: List[EquivalenceClass] = []
-        for eq_cls in all_classes:
-            if len(eq_cls.measurements) > 1:
-                effective_classes.append(eq_cls)
+        for ctrace, ids in equivalent_inputs_ids.items():
+            # skip ineffective eq. classes
+            if len(ids) < 2:
+                continue
+
+            # get all measurements in the class
+            measurements = [Measurement(i, inputs[i], ctrace, htraces[i]) for i in ids]
+
+            # Build htrace groups
+            htrace_groups = self._build_htrace_groups(measurements)
+
+            # Create an equivalence class
+            eq_cls = EquivalenceClass(ctrace, measurements, htrace_groups)
+            effective_classes.append(eq_cls)
+
+        #   3. Sort the equivalence classes by ctrace
         effective_classes.sort(key=lambda x: x.ctrace)
 
-        #   4. Build a map of htraces
+        # Check if any of the equivalence classes is a contract counterexample
+        violations: List[Violation] = []
         for eq_cls in effective_classes:
-            self.build_htrace_groups(eq_cls)
+            if len(eq_cls.htrace_groups) >= 2:
+                violations.append(Violation(eq_cls, inputs))
 
         # Update statistics
         if stats:
             STAT.eff_classes += len(effective_classes)
-            STAT.single_entry_classes += len(all_classes) - len(effective_classes)
+            STAT.single_entry_classes += len(equivalent_inputs_ids) - len(effective_classes)
             STAT.analysed_test_cases += 1
-
-        # Check if any of the equivalence classes is a contract counterexample
-        violations: List[EquivalenceClass] = []
-        for eq_cls in effective_classes:
-            if len(eq_cls.htrace_groups) >= 2:
-                violations.append(eq_cls)
 
         return violations
 
-    def build_htrace_groups(self, eq_cls: EquivalenceClass) -> None:
-        """ see interfaces.py:Analyser for the docstring """
+    def _build_htrace_groups(self, measurements: List[Measurement]) -> List[List[Measurement]]:
+        """
+        Group measurements that have equivalent htraces, and set the htrace_groups attribute
+        for the given equivalence class
+
+        :param measurements: List of measurements to be grouped
+        :return: List of groups of measurements
+        """
         groups: List[List[Measurement]] = []
-        for m in eq_cls.measurements:
+        for m in measurements:
             if not groups:
                 groups.append([m])
                 continue
@@ -101,8 +108,7 @@ class EquivalenceAnalyserCommon(Analyser):
                     break
             else:
                 groups.append([m])
-
-        eq_cls.htrace_groups = groups
+        return groups
 
 
 class MergedBitmapAnalyser(EquivalenceAnalyserCommon):

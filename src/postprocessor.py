@@ -16,7 +16,7 @@ from math import log2
 from copy import deepcopy
 from subprocess import run
 from typing import List, NamedTuple, Dict
-from .interfaces import Input, TestCase, Minimizer, Fuzzer, InstructionSetAbstract, EquivalenceClass
+from .interfaces import Input, TestCase, Minimizer, Fuzzer, InstructionSetAbstract, Violation
 from .model import CTTracer
 from .x86.x86_model import X86UnicornDEH, SANDBOX_CODE_SIZE
 from .config import CONF
@@ -244,7 +244,7 @@ class BaseInputMinimizationPass(abc.ABC):
 
     @abc.abstractmethod
     def run(self, test_case: TestCase, org_inputs: List[Input],
-            org_violation: EquivalenceClass) -> List[Input]:
+            org_violation: Violation) -> List[Input]:
         """ Main function that runs the minimization pass
         :param test_case: The test case object to work on
         :param org_inputs: List of inputs to minimize
@@ -689,9 +689,9 @@ class AddViolationCommentsPass(BaseInstructionMinimizationPass):
     with the memory addresses of the loads and stores that caused the violation.
     """
     name = "Violation Comment Insertion"
-    violation: EquivalenceClass
+    violation: Violation
 
-    def set_violation(self, violation: EquivalenceClass):
+    def set_violation(self, violation: Violation):
         self.violation = violation
 
     def run(self, test_case: TestCase, inputs: List[Input]) -> TestCase:
@@ -701,8 +701,7 @@ class AddViolationCommentsPass(BaseInstructionMinimizationPass):
 
         # create a model that will collect PC and memory traces
         sandbox_base, code_base = 0x2000000, 0x1000000
-        model = X86UnicornDEH(sandbox_base, code_base)
-        model.tracer = CTTracer()
+        model = X86UnicornDEH(sandbox_base, code_base, CTTracer())
 
         # collect traces
         ctraces = []
@@ -783,7 +782,7 @@ class InputSequenceMinimizationPass(BaseInputMinimizationPass):
     name = "Input Sequence Minimization"
 
     def run(self, test_case: TestCase, org_inputs: List[Input],
-            org_violation: EquivalenceClass) -> List[Input]:
+            org_violation: Violation) -> List[Input]:
         self.progress.pass_msg("Reducing the number of inputs by halving")
         org_len = len(org_inputs)
 
@@ -837,7 +836,7 @@ class DifferentialInputMinimizerPass(BaseInputMinimizationPass):
     """
     name = "Differential Input Minimizer"
 
-    def run(self, test_case: TestCase, _: List[Input], violation: EquivalenceClass) -> List[Input]:
+    def run(self, test_case: TestCase, _: List[Input], violation: Violation) -> List[Input]:
         inputs = violation.input_sequence
 
         # Disable boosting for this pass as we already operate on the boosted inputs
@@ -1114,7 +1113,7 @@ class MainMinimizer(Minimizer):
         shutil.copy(test_case.asm_path, test_case_outfile)
 
     def _run_input_passes(self, test_case: TestCase, inputs: List[Input],
-                          org_violation: EquivalenceClass, outdir: str,
+                          org_violation: Violation, outdir: str,
                           passes: List) -> List[Input]:
         violation = org_violation
 
@@ -1152,7 +1151,7 @@ class MainMinimizer(Minimizer):
         return inputs
 
     def _run_instruction_passes(self, passes: List, test_case: TestCase, inputs: List[Input],
-                                org_violation: EquivalenceClass, outfile: str) -> TestCase:
+                                org_violation: Violation, outfile: str) -> TestCase:
         # create pass objects
         pass_objs = [c(self.fuzzer, self.instruction_set_spec, self.progress) for c in passes]
         for pass_obj in pass_objs:

@@ -87,6 +87,12 @@ contract_execution_clause:
   - delayed-exception-handling
 "
 
+CT_SEQ_AS="
+contract_observation_clause: ct
+contract_execution_clause:
+  - seq-assist
+"
+
 LOGGING_OFF="
 logging_modes:
   -
@@ -98,8 +104,6 @@ logging_modes:
 function setup() {
     PROJECT_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../../" >/dev/null 2>&1 && pwd)"
     ASM_DIR="$PROJECT_ROOT/tests/x86_tests/asm"
-    cli="$PROJECT_ROOT/revizor.py"
-    cli_opt="python3 -OO $PROJECT_ROOT/revizor.py"
 
     ISA="$PROJECT_ROOT/base.json"
     if [ ! -f "$ISA" ]; then
@@ -107,6 +111,10 @@ function setup() {
         echo "Follow the instructions in README.md to download it, and copy into this directory."
         false
     fi
+
+    cli="$PROJECT_ROOT/revizor.py"
+    cli_opt="python3 -OO $PROJECT_ROOT/revizor.py"
+    fuzz_opt="$cli fuzz -s $ISA --save-violations f"
 
     # tmp directory for tests
     TEST_DIR=$(mktemp -d)
@@ -172,25 +180,25 @@ function intel_only() {
 @test "Architectural Test: Model and Executor are initialized with the same values (registers)" {
     tmp_config=$(mktemp -p $TEST_DIR)
     echo "$ARCH_BASE" >>$tmp_config
-    assert_no_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/model_match.asm -c $tmp_config -i 20"
+    assert_no_violation "$fuzz_opt -t $ASM_DIR/model_match.asm -c $tmp_config -i 20"
 }
 
 @test "Architectural Test: Model and Executor are initialized with the same values (memory)" {
     tmp_config=$(mktemp -p $TEST_DIR)
     echo "$ARCH_BASE" >>$tmp_config
-    assert_no_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/model_match_memory.asm -c $tmp_config -i 20"
+    assert_no_violation "$fuzz_opt -t $ASM_DIR/model_match_memory.asm -c $tmp_config -i 20"
 }
 
 @test "Architectural Test: Model and Executor are initialized with the same values (flags)" {
     tmp_config=$(mktemp -p $TEST_DIR)
     echo "$ARCH_BASE" >>$tmp_config
-    assert_no_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/model_flags_match.asm -c $tmp_config -i 20"
+    assert_no_violation "$fuzz_opt -t $ASM_DIR/model_flags_match.asm -c $tmp_config -i 20"
 }
 
 @test "Architectural Test: Model and Executor are initialized with the same values (SIMD registers)" {
     tmp_config=$(mktemp -p $TEST_DIR)
     echo "$ARCH_BASE" >>$tmp_config
-    assert_no_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/model_flags_match.asm -c $tmp_config -i 20"
+    assert_no_violation "$fuzz_opt -t $ASM_DIR/model_flags_match.asm -c $tmp_config -i 20"
 }
 
 @test "Architectural Test: 100 Random Test Cases" {
@@ -202,7 +210,7 @@ avg_mem_accesses: 150
 max_bb_per_function: 3
 min_bb_per_function: 3
 EOF
-    assert_no_violation "$cli_opt fuzz -s $ISA -c $tmp_config -n 100 -i 10"
+    assert_no_violation "$fuzz_opt -c $tmp_config -n 100 -i 10"
 }
 
 @test "ArchDiff Test: 10 Random Test Cases" {
@@ -219,97 +227,73 @@ avg_mem_accesses: 50
 max_bb_per_function: 3
 min_bb_per_function: 3
 EOF
-    assert_no_violation "$cli_opt fuzz -s $ISA -c $tmp_config -n 10 -i 10"
+    assert_no_violation "$fuzz_opt -c $tmp_config -n 10 -i 10"
 }
 
 @test "Test Basics: Sequence of direct jumps" {
-    assert_no_violation "$cli_opt fuzz -s $ISA -c $CT_SEQ_CONF -t $ASM_DIR/direct_jumps.asm -i 100"
+    assert_no_violation "$fuzz_opt -c $CT_SEQ_CONF -t $ASM_DIR/direct_jumps.asm -i 100"
 }
 
 @test "Test Basics: Long in-reg test case" {
-    assert_no_violation "$cli_opt fuzz -s $ISA -c $CT_SEQ_CONF -t $ASM_DIR/large_arithmetic.asm -i 100"
+    assert_no_violation "$fuzz_opt -c $CT_SEQ_CONF -t $ASM_DIR/large_arithmetic.asm -i 100"
 }
 
 @test "Test Basics: Sequence of calls" {
-    assert_no_violation "$cli_opt fuzz -s $ISA -c $CT_SEQ_CONF -t $ASM_DIR/calls.asm -i 100"
+    assert_no_violation "$fuzz_opt -c $CT_SEQ_CONF -t $ASM_DIR/calls.asm -i 100"
 }
 
 @test "Detection [spectre-type]: Spectre V1; load variant" {
-    assert_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/spectre_v1.asm -i 20"
-    assert_no_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/spectre_v1.asm -c $CT_COND_CONF -i 20"
+    assert_violation "$fuzz_opt -t $ASM_DIR/spectre_v1.asm -i 20"
+    assert_no_violation "$fuzz_opt -t $ASM_DIR/spectre_v1.asm -c $CT_COND_CONF -i 20"
 }
 
 @test "Detection [spectre-type]: Spectre V1; store variant" {
     intel_only
-    assert_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/spectre_v1.1.asm -i 20"
-    assert_no_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/spectre_v1.1.asm -c $CT_COND_CONF -i 20"
+    assert_violation "$fuzz_opt -t $ASM_DIR/spectre_v1.1.asm -i 20"
+    assert_no_violation "$fuzz_opt -t $ASM_DIR/spectre_v1.1.asm -c $CT_COND_CONF -i 20"
 }
 
 @test "Detection [spectre-type]: Spectre V1; nested variant" {
-    assert_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/spectre_v1_n2.asm -i 20"
-    assert_no_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/spectre_v1_n2.asm -c $CT_COND_CONF -i 20"
+    assert_violation "$fuzz_opt -t $ASM_DIR/spectre_v1_n2.asm -i 20"
+    assert_no_violation "$fuzz_opt -t $ASM_DIR/spectre_v1_n2.asm -c $CT_COND_CONF -i 20"
 }
 
 @test "Detection [spectre-type]: Spectre V2 (BTI)" {
-    assert_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/spectre_v2.asm -i 20"
+    assert_violation "$fuzz_opt -t $ASM_DIR/spectre_v2.asm -i 20"
 }
 
 @test "Detection [spectre-type]: Spectre V4 (SSBP)" {
     tmp_config=$(mktemp -p $TEST_DIR)
     printf "$BASE \ninput_gen_seed: 400 \nx86_executor_enable_ssbp_patch: false " >$tmp_config
-    assert_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/spectre_v4.asm -c $tmp_config -i 100"
+    assert_violation "$fuzz_opt -t $ASM_DIR/spectre_v4.asm -c $tmp_config -i 100"
 
     printf "$BASE \ncontract_execution_clause:\n  - bpas " >>$tmp_config
-    assert_no_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/spectre_v4.asm -c $tmp_config  -i 100"
+    assert_no_violation "$fuzz_opt -t $ASM_DIR/spectre_v4.asm -c $tmp_config  -i 100"
 
     # used default config to test SSBP patch (it is enabled by default)
-    assert_no_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/spectre_v4.asm -i 100"
+    assert_no_violation "$fuzz_opt -t $ASM_DIR/spectre_v4.asm -i 100"
 }
 
 @test "Detection [spectre-type]: Spectre V5 (return misprediction)" {
-    assert_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/spectre_ret.asm -i 10"
-}
-
-@test "Detection [meltdown-type]: MDS/LVI" {
-    intel_only
-    tmp_config=$(mktemp -p $TEST_DIR)
-    echo "$CT_DEH $LOGGING_OFF" >$tmp_config
-    echo "actors:" >>$tmp_config
-    echo "  - main:" >>$tmp_config
-    echo "    - data_properties:" >>$tmp_config
-    echo "      - accessed: false" >>$tmp_config
-
-    if cat /proc/cpuinfo | grep "mds"; then
-        cmd="$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/mds.asm -i 100"
-        assert_violation $cmd
-
-        printf "contract_execution_clause:\n  - vspec-all-memory-assists\n" >>$tmp_config
-        assert_no_violation $cmd
-    else
-        cmd="$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/lvi.asm -i 20"
-        assert_violation $cmd
-
-        printf "contract_execution_clause:\n  - nullinj-assist\n" >>$tmp_config
-        assert_no_violation $cmd
-    fi
+    assert_violation "$fuzz_opt -t $ASM_DIR/spectre_ret.asm -i 10"
 }
 
 @test "Detection [meltdown-type]: #DE-zero speculation" {
     tmp_config=$(mktemp -p $TEST_DIR)
     printf "$CT_DEH $LOGGING_OFF \ngenerator_faults_allowlist:\n  - div-by-zero\n" >$tmp_config
-    assert_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault-div-zero-speculation.asm -i 3"
+    assert_violation "$fuzz_opt -c $tmp_config -t $ASM_DIR/fault-div-zero-speculation.asm -i 3"
 
     printf "contract_execution_clause:\n  - vspec-ops-div\n" >>$tmp_config
-    assert_no_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault-div-zero-speculation.asm -i 3"
+    assert_no_violation "$fuzz_opt -c $tmp_config -t $ASM_DIR/fault-div-zero-speculation.asm -i 3"
 }
 
 @test "Detection [meltdown-type]: #DE-overflow speculation" {
     tmp_config=$(mktemp -p $TEST_DIR)
     printf "$CT_DEH $LOGGING_OFF \ngenerator_faults_allowlist:\n  - div-overflow\n" >$tmp_config
-    assert_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault-div-overflow-speculation.asm -i 3"
+    assert_violation "$fuzz_opt -c $tmp_config -t $ASM_DIR/fault-div-overflow-speculation.asm -i 3"
 
     printf "contract_execution_clause:\n  - vspec-ops-div\n" >>$tmp_config
-    assert_no_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault-div-overflow-speculation.asm -i 3"
+    assert_no_violation "$fuzz_opt -c $tmp_config -t $ASM_DIR/fault-div-overflow-speculation.asm -i 3"
 }
 
 @test "Detection [meltdown-type]: #PF-present speculation" {
@@ -323,10 +307,10 @@ EOF
     echo "  - main:" >>$tmp_config
     echo "    - data_properties:" >>$tmp_config
     echo "      - present: false" >>$tmp_config
-    assert_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault_load.asm -i 5"
+    assert_violation "$fuzz_opt -c $tmp_config -t $ASM_DIR/fault_load.asm -i 5"
 
     printf "contract_execution_clause:\n  - nullinj-fault\n" >>$tmp_config
-    assert_no_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault_load.asm -i 3"
+    assert_no_violation "$fuzz_opt -c $tmp_config -t $ASM_DIR/fault_load.asm -i 3"
 }
 
 @test "Detection [meltdown-type]: #PF-writable speculation" {
@@ -340,34 +324,37 @@ EOF
     echo "  - main:" >>$tmp_config
     echo "    - data_properties:" >>$tmp_config
     echo "      - writable: false" >>$tmp_config
-    assert_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault_rmw.asm -i 5"
+    assert_violation "$fuzz_opt -c $tmp_config -t $ASM_DIR/fault_rmw.asm -i 5"
 
     printf "contract_execution_clause:\n  - nullinj-fault\n" >>$tmp_config
-    assert_no_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault_rmw.asm -i 5"
+    assert_no_violation "$fuzz_opt -c $tmp_config -t $ASM_DIR/fault_rmw.asm -i 5"
 }
 
 @test "Detection [meltdown-type]: #PF-smap speculation" {
     intel_only
+    if ! grep "smap" /proc/cpuinfo; then
+        skip
+    fi
     tmp_config=$(mktemp -p $TEST_DIR)
     echo "$CT_DEH $LOGGING_OFF" >$tmp_config
     echo "actors:" >>$tmp_config
     echo "  - main:" >>$tmp_config
     echo "    - data_properties:" >>$tmp_config
     echo "      - user: true" >>$tmp_config
-    assert_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault_load.asm -i 5"
+    assert_violation "$fuzz_opt -c $tmp_config -t $ASM_DIR/fault_load.asm -i 5"
 
     printf "contract_execution_clause:\n  - nullinj-fault\n" >>$tmp_config
-    assert_no_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault_rmw.asm -i 5"
+    assert_no_violation "$fuzz_opt -c $tmp_config -t $ASM_DIR/fault_rmw.asm -i 5"
 }
 
 @test "Detection [meltdown-type]: #BR speculation (MPX)" {
     if grep "BNDCU" $ISA >/dev/null; then
         tmp_config=$(mktemp -p $TEST_DIR)
         printf "$CT_SEQ $LOGGING_OFF \ngenerator_faults_allowlist:\n  - bounds-range-exceeded\n" >$tmp_config
-        assert_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault_BR.asm -i 2"
+        assert_violation "$fuzz_opt -c $tmp_config -t $ASM_DIR/fault_BR.asm -i 2"
 
         printf "$CT_DEH" >>$tmp_config
-        assert_no_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault_BR.asm -i 2"
+        assert_no_violation "$fuzz_opt -c $tmp_config -t $ASM_DIR/fault_BR.asm -i 2"
     else
         skip
     fi
@@ -376,19 +363,19 @@ EOF
 @test "Sequential handling: #DB-instruction" {
     tmp_config=$(mktemp -p $TEST_DIR)
     printf "$CT_SEQ $LOGGING_OFF \ngenerator_faults_allowlist:\n  - debug-register\n" >$tmp_config
-    assert_no_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault_INT1.asm -i 100"
+    assert_no_violation "$fuzz_opt -c $tmp_config -t $ASM_DIR/fault_INT1.asm -i 100"
 }
 
 @test "Sequential handling: #BP" {
     tmp_config=$(mktemp -p $TEST_DIR)
     printf "$CT_SEQ $LOGGING_OFF \ngenerator_faults_allowlist:\n  - breakpoint\n" >$tmp_config
-    assert_no_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault_INT3.asm -i 100"
+    assert_no_violation "$fuzz_opt -c $tmp_config -t $ASM_DIR/fault_INT3.asm -i 100"
 }
 
 @test "Sequential handling: #UD" {
     tmp_config=$(mktemp -p $TEST_DIR)
     printf "$CT_SEQ $LOGGING_OFF \ngenerator_faults_allowlist:\n  - opcode-undefined\n" >$tmp_config
-    assert_no_violation "$cli_opt fuzz -s $ISA -c $tmp_config -t $ASM_DIR/fault_UD.asm -i 100"
+    assert_no_violation "$fuzz_opt -c $tmp_config -t $ASM_DIR/fault_UD.asm -i 100"
 }
 
 @test "Feature: Storing and loading test cases" {
@@ -401,7 +388,7 @@ EOF
 @test "Feature: Taint tracking of SIMD registers" {
     tmp_config=$(mktemp -p $TEST_DIR)
     printf "$CT_SEQ $BASE_AND_SIMD_CATEGORIES" >$tmp_config
-    run bash -c "$cli_opt fuzz -s $ISA -c $tmp_config -n 10 -i 10"
+    run bash -c "$fuzz_opt -c $tmp_config -n 10 -i 10"
     echo "$output"
     [[ "$output" == *"Effective Cls: 10.0"* ]]
     rm $tmp_config
@@ -423,7 +410,7 @@ EOF
 @test "Feature: Multi-actor test case" {
     tmp_config=$(mktemp -p $TEST_DIR)
     printf "actors:\n  - actor2:\n    - mode: "host"\n" > $tmp_config
-    assert_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/actor_switch.asm -c $tmp_config -i 20"
+    assert_violation "$fuzz_opt -t $ASM_DIR/actor_switch.asm -c $tmp_config -i 20"
     rm $tmp_config
 }
 
@@ -431,7 +418,7 @@ EOF
     tmp_config=$(mktemp -p $TEST_DIR)
     echo "$ARCH_BASE" >$tmp_config
     printf "actors:\n  - actor2:\n    - mode: "host"\n" >> $tmp_config
-    assert_no_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/actor_switch.asm -c $tmp_config -i 20"
+    assert_no_violation "$fuzz_opt -t $ASM_DIR/actor_switch.asm -c $tmp_config -i 20"
     rm $tmp_config
 }
 
@@ -441,7 +428,7 @@ EOF
         printf "actors:\n  - actor2:\n    - mode: "guest"\n" > $tmp_config
         echo "1" > /sys/x86_executor/enable_hpa_gpa_collisions
 
-        assert_no_violation "$cli_opt fuzz -s $ISA -t $ASM_DIR/vmx_switch.asm -c $tmp_config -i 20"
+        assert_no_violation "$fuzz_opt -t $ASM_DIR/vmx_switch.asm -c $tmp_config -i 20"
 
         echo "Testing page table allocation..."
         run cat /sys/x86_executor/dbg_guest_page_tables
@@ -465,7 +452,7 @@ EOF
     echo "logging_modes:" >>$tmp_config
     echo "  - dbg_dump_htraces" >>$tmp_config
 
-    local cmd="$cli fuzz -s $ISA -t $ASM_DIR/macro_fault_handler.asm -c $tmp_config -i 1"
+    local cmd="$cli fuzz -s $ISA --save-violations f -t $ASM_DIR/macro_fault_handler.asm -c $tmp_config -i 1"
     run bash -c "$cmd"
     echo "Command: $cmd"
     echo "Exit code: $status"

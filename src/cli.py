@@ -382,6 +382,8 @@ def main() -> int:
     # Update configuration
     if getattr(args, 'config', None):
         CONF.load(args.config)
+    if getattr(args, 'testcase', None):
+        CONF._no_generation = True
 
     # Check if the file and directory arguments are valid
     if getattr(args, 'testcase', None) and not os.path.isfile(args.testcase):

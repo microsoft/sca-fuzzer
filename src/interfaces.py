@@ -7,6 +7,7 @@ SPDX-License-Identifier: MIT
 from __future__ import annotations
 
 import shutil
+import xxhash
 from typing import List, Dict, Tuple, Optional, NamedTuple
 from collections import defaultdict
 from abc import ABC, abstractmethod
@@ -405,21 +406,43 @@ class CondOperand(Operand):
 
 class Instruction:
     name: str
+    """ name: The name of the instruction without any operands """
     operands: List[Operand]
+    """ operands: List of explicit operands of the instruction """
     implicit_operands: List[Operand]
+    """ implicit_operands: List of implicit operands, which are not explicitly specified in the
+    instruction but are used by the instruction. For example, flags operand in x86 instructions """
     category: str
-    control_flow = False
+    """ category: The category of the instruction, e.g., BASE-BINARY. The keyword matches
+    the category in the instruction set description file (typically called base.json)"""
+    control_flow: bool = False
+    """ control_flow: If True, the instruction is a control flow instruction
+    (branch, call, return, etc.) """
 
     next: Optional[Instruction] = None
+    """ next: Next instruction in the double-linked list of instructions """
     previous: Optional[Instruction] = None
+    """ previous: Previous instruction in the double-linked list of instructions """
+
     is_instrumentation: bool
+    """ is_instrumentation: If True, the instruction is an instrumentation instruction,
+    which means that it was inserted by the generator to prevent faults or false positives """
     is_from_template: bool = False
+    """ is_from_template: If True, the instruction was directly copied from the template rather
+    then being automatically created by the generator """
     is_noremove: bool = False
-    section_offset: int = 0
+    """ is_noremove: If True, the instruction should be skipped while doing minimization passes """
     section_id: int = 0
+    """ section_id: The ID of the section in the object file where the instruction is located """
+    section_offset: int = 0
+    """ section_offset: The section offset of the instruction in the object file """
     line_num: int = 0
+    """ line_num: The line number in the source (assembly) file where the instruction is located """
     size: int = 0
+    """ size: The size of the instruction in bytes, after it has been assembled """
     _inst_brief: str = ""
+    """ _inst_brief: A brief representation of the instruction,
+    used for hashing and for debug messages """
 
     def __init__(self, name: str, is_instrumentation=False, category="", control_flow=False):
         self.name = name
@@ -767,23 +790,79 @@ class TestCase:
 # ==================================================================================================
 # Traces
 # ==================================================================================================
-CTrace = int
 InputID = int
 
 
-class HTrace:
+class CTrace:
+    """
+    CTrace is a class that represents a contract trace. It is a container for a list of integers
+    that represent raw trace collected from the model and a hash of the trace. The hash is used to
+    compare traces for equality.
+    """
     raw: List[int]
     hash_: int
 
-    def __init__(self, trace_list: List[int]) -> None:
+    def __init__(self, raw_trace: List) -> None:
+        self.raw = raw_trace
+        self.hash_ = xxhash.xxh64(str(raw_trace), seed=0).intdigest()
+
+    def __eq__(self, other):
+        return self.hash_ == other.hash_
+
+    def __lt__(self, other):
+        return self.hash_ < other.hash_
+
+    def __gt__(self, other):
+        return self.hash_ > other.hash_
+
+    def __len__(self):
+        return len(self.raw)
+
+    def __str__(self):
+        return str(self.hash_)
+
+    def __hash__(self) -> int:
+        return self.hash_
+
+    @classmethod
+    def get_null(cls):
+        """ Get a dummy CTrace object with empty contract trace """
+        return cls([])
+
+
+class HTrace:
+    """
+    HTrace is a class that represents a hardware trace. It is a container for a list of integers
+    that represents hardware traces collected from the executor over multiple repeated runs
+    with the same program and input. It also contains a hash of the trace and a list of values for
+    performance counters collected together with the hardware trace. The hash is used to compare
+    traces for equality.
+    """
+    raw: List[int]
+    hash_: int
+    perf_counters: np.ndarray
+    perf_counters_max: List[int]
+
+    def __init__(self, trace_list: List[int], perf_counters: Optional[np.ndarray] = None) -> None:
         self.raw = trace_list
-        self.hash_ = hash(tuple(trace_list))
+        self.hash_ = xxhash.xxh64(str(trace_list), seed=0).intdigest()
+        if perf_counters is None:
+            self.perf_counters = np.array([0, 0, 0, 0, 0])
+            self.perf_counters_max = [0, 0, 0, 0, 0]
+        else:
+            self.perf_counters = perf_counters
+            self.perf_counters_max = max(perf_counters, key=lambda x: x[0])
 
     def __eq__(self, other):
         return self.hash_ == other.hash_
 
     def __len__(self):
         return len(self.raw)
+
+    @classmethod
+    def get_null(cls):
+        """ Get a dummy HTrace object with empty hardware trace and zeros for perf counters """
+        return cls([])
 
 
 class Measurement(NamedTuple):
@@ -799,29 +878,42 @@ class EquivalenceClass:
     htrace_groups: List[List[Measurement]]
     """ htrace_groups: a list of htrace groups; each group is a list of measurements that produced
     the same htrace (or a equivalent htraces under the current analyser). """
-    input_sequence: List[Input]
-    """ input_sequence: the complete sequence of inputs that triggered the violation """
 
     MOD2P64 = pow(2, 64)
 
-    def __init__(self, ctrace: CTrace, inputs: List[Input]) -> None:
-        self.measurements = []
+    def __init__(self, ctrace: CTrace, measurements: List[Measurement],
+                 htrace_groups: List[List[Measurement]]) -> None:
         self.ctrace = ctrace
-        self.input_sequence = inputs
-
-    def __str__(self):
-        s = f"Size: {len(self.measurements)}\n"
-        s += f"Ctrace:\n" \
-             f"{self.ctrace % self.MOD2P64:064b} [ns]\n" \
-             f"{(self.ctrace >> 64) % self.MOD2P64:064b} [s]\n"
-        s += "Htraces:\n"
-        for hg in self.htrace_groups:
-            s += f"{hg[0]:064b}\n"
-        s = s.replace("0", "_").replace("1", "^")
-        return s
+        self.measurements = measurements
+        self.htrace_groups = htrace_groups
 
     def __len__(self):
         return len(self.measurements)
+
+
+class Violation(EquivalenceClass):
+    """ Violation is a special type of equivalence class that represents a violation of a contract.
+    It is a container for a list of measurements that triggered the violation, a list of groups of
+    htraces, and a sequence of inputs that triggered the violation. """
+
+    ctrace: CTrace
+    measurements: List[Measurement]
+    htrace_groups: List[List[Measurement]]
+    """ htrace_groups: a list of htrace groups; each group is a list of measurements that produced
+    the same htrace (or a equivalent htraces under the current analyser). """
+    input_sequence: List[Input]
+    """ input_sequence: the complete sequence of inputs that triggered the violation """
+
+    def __init__(self, eq_cls: EquivalenceClass, inputs: List[Input]) -> None:
+        self.measurements = eq_cls.measurements
+        self.ctrace = eq_cls.ctrace
+        self.htrace_groups = eq_cls.htrace_groups
+        self.input_sequence = inputs
+
+    @classmethod
+    def from_measurements(cls, ctrace: CTrace, measurements: List[Measurement],
+                          htrace_groups: List[List[Measurement]], inputs: List[Input]):
+        return cls(EquivalenceClass(ctrace, measurements, htrace_groups), inputs)
 
 
 # Execution Tracing
@@ -1010,11 +1102,8 @@ class Tracer(ABC):
     trace: List
 
     @abstractmethod
-    def get_contract_trace(self, model: Model) -> CTrace:
+    def produce_trace(self, model: Model) -> CTrace:
         pass
-
-    def get_contract_trace_full(self) -> List[int]:
-        return self.trace
 
 
 class Model(ABC):
@@ -1027,8 +1116,20 @@ class Model(ABC):
     instruction_coverage: Dict[str, int]
     is_speculative_contract: bool = False
 
-    @abstractmethod
-    def __init__(self, sandbox_base: int, code_base: int):
+    mismatch_check_mode: bool = False
+    """ mismatch_check_mode: If True, the model will return GPR values instead of
+    contract traces, which is used to check for mismatches between the model and the executor """
+
+    def __init__(self,
+                 sandbox_base: int,
+                 code_start: int,
+                 tracer: Tracer,
+                 enable_mismatch_check_mode: bool = False):
+        self.code_start = code_start
+        self.sandbox_base = sandbox_base
+        self.tracer = tracer
+        self.mismatch_check_mode = enable_mismatch_check_mode
+
         self.instruction_coverage = defaultdict(int)
         super().__init__()
 
@@ -1050,6 +1151,14 @@ class Model(ABC):
 
 
 class Executor(ABC):
+    mismatch_check_mode: bool = False
+    """ mismatch_check_mode: If True, the executor will return GPR values instead of
+    hardware traces, which is used to check for mismatches between the model and the executor """
+
+    @abstractmethod
+    def __init__(self, enable_mismatch_check_mode: bool = False):
+        self.mismatch_check_mode = enable_mismatch_check_mode
+        super().__init__()
 
     @abstractmethod
     def load_test_case(self, test_case: TestCase):
@@ -1068,10 +1177,6 @@ class Executor(ABC):
 
     @abstractmethod
     def read_base_addresses(self) -> Tuple[int, int]:
-        pass
-
-    @abstractmethod
-    def get_last_feedback(self) -> List:
         pass
 
     @abstractmethod
@@ -1095,15 +1200,7 @@ class Analyser(ABC):
                           inputs: List[Input],
                           ctraces: List[CTrace],
                           htraces: List[HTrace],
-                          stats=False) -> List[EquivalenceClass]:
-        pass
-
-    @abstractmethod
-    def build_htrace_groups(self, eq_cls) -> None:
-        """ Group measurements that have equivalent htraces, and set the htrace_groups attribute
-         for the given equivalence class
-        :param eq_cls: Equivalence class to be processed
-        """
+                          stats=False) -> List[Violation]:
         pass
 
     @abstractmethod
@@ -1143,7 +1240,7 @@ class Fuzzer(ABC):
     def fuzzing_round(self,
                       test_case: TestCase,
                       inputs: List[Input],
-                      ignore_list: List[int] = []) -> Optional[EquivalenceClass]:
+                      ignore_list: List[int] = []) -> Optional[Violation]:
         pass
 
 
@@ -1164,10 +1261,10 @@ class Minimizer(ABC):
 
 class TaintTrackerInterface(ABC):
 
-    def __init__(self, initial_observations, sandbox_base=0):
+    def __init__(self, initial_observations: List[str], sandbox_base: int = 0):
         pass
 
-    def reset(self, initial_observations):
+    def reset(self, initial_observations: List[str]):
         pass
 
     def start_instruction(self, instruction: Instruction) -> None:
@@ -1182,10 +1279,7 @@ class TaintTrackerInterface(ABC):
     def taint_memory_access_address(self):
         pass
 
-    def taint_memory_load(self):
-        pass
-
-    def taint_memory_store(self):
+    def taint_loaded_value(self):
         pass
 
     def checkpoint(self):
