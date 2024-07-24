@@ -26,7 +26,7 @@ instruction_blocklist:
   - DIV
   - IDIV
 
-actor:
+actors:
   - main:
     - data_properties:
       - present: false
