@@ -96,7 +96,7 @@ class UnicornTracer(Tracer):
         self.trace = []
         self.execution_trace = []
 
-    def get_contract_trace(self, model: Model) -> CTrace:
+    def produce_trace(self, model: Model) -> CTrace:
         # make the trace reproducible by normalizing the addresses
         normalized_trace: List[int] = []
         for val in self.trace:
@@ -107,7 +107,7 @@ class UnicornTracer(Tracer):
             else:
                 normalized_trace.append(val)
 
-        return hash(tuple(normalized_trace))
+        return CTrace(normalized_trace)
 
     def get_contract_trace_full(self) -> List[int]:
         return self.trace
@@ -165,11 +165,14 @@ class NoneTracer(UnicornTracer):
     def observe_instruction(self, _, __, ___):
         pass
 
-    def get_contract_trace(self, _) -> CTrace:
-        return 0
+    def produce_trace(self, _) -> CTrace:
+        return CTrace.get_null()
 
 
 class L1DTracer(UnicornTracer):
+    """
+    Memory address tracer that compresses the trace to imitate L1D cache observations.
+    """
 
     def init_trace(self, _, __):
         self.trace = [0, 0]
@@ -192,8 +195,15 @@ class L1DTracer(UnicornTracer):
     def observe_instruction(self, address: int, size: int, model):
         super(L1DTracer, self).observe_instruction(address, size, model)
 
-    def get_contract_trace(self, _) -> CTrace:
-        return (self.trace[1] << 64) + self.trace[0]
+    def produce_trace(self, _) -> CTrace:
+        """
+        Return the collected trace. Since the trace is a single 64-bit value,
+        we don't need hashing, and instead we assign the trace value to the hash.
+        """
+        trace = (self.trace[1] << 64) + self.trace[0]
+        ctrace_obj = CTrace([trace])
+        ctrace_obj.hash_ = trace
+        return ctrace_obj
 
 
 class PCTracer(UnicornTracer):
@@ -287,26 +297,8 @@ class ArchTracer(CTRTracer):
         if access == UC_MEM_READ:
             val = int.from_bytes(model.emulator.mem_read(address, size), byteorder='little')
             self.trace.append(val)
-            model.taint_tracker.taint_memory_load()
+            model.taint_tracker.taint_loaded_value()
         super(ArchTracer, self).observe_mem_access(access, address, size, value, model)
-
-
-class GPRTracer(UnicornTracer):
-    """
-    This is a special type of tracer, primarily used for debugging the model.
-    It returns the values of all GPRs after the test case finished its execution.
-    """
-
-    def init_trace(self, emulator: Uc, uc_target_desc: UnicornTargetDesc) -> None:
-        self.emulator = emulator
-        self.uc_target_desc = uc_target_desc
-        return super().init_trace(emulator, uc_target_desc)
-
-    def get_contract_trace(self, _) -> CTrace:
-        registers = self.uc_target_desc.registers[:-1]  # exclude the last register (stack pointer)
-        self.trace = [int(self.emulator.reg_read(reg)) for reg in registers]  # type: ignore
-        self.trace = self.trace[:-1]  # exclude flags
-        return self.trace[0]
 
 
 # ==================================================================================================
@@ -341,13 +333,13 @@ class UnicornModel(Model, ABC):
     tainting_enabled: bool = False
     execution_tracing_enabled: bool = False
 
-    def __init__(self, sandbox_base: int, code_start: int):
-        super().__init__(sandbox_base, code_start)
+    def __init__(self,
+                 sandbox_base: int,
+                 code_start: int,
+                 tracer: Tracer,
+                 enable_mismatch_check_mode: bool = False):
+        super().__init__(sandbox_base, code_start, tracer, enable_mismatch_check_mode)
         self.LOG = Logger()
-
-        self.code_start = code_start
-        self.code_end = 0  # set by subclasses
-        self.sandbox_base = sandbox_base
 
     @staticmethod
     @abstractmethod
@@ -474,6 +466,7 @@ class UnicornSeq(UnicornModel):
     current_instruction: Instruction  # the instruction currently being executed
     current_actor: Actor  # the active actor
     local_coverage: Optional[Dict[str, int]]  # local coverage for the current test case
+    initial_taints: List[str]  # initial taints for taint tracker
 
     # test case code
     code_start: UcPointer  # the lower bound of the code area
@@ -506,8 +499,12 @@ class UnicornSeq(UnicornModel):
     }
     had_arch_fault: bool = False
 
-    def __init__(self, sandbox_base, code_start):
-        super().__init__(sandbox_base, code_start)
+    def __init__(self,
+                 sandbox_base: int,
+                 code_start: int,
+                 tracer: Tracer,
+                 enable_mismatch_check_mode: bool = False):
+        super().__init__(sandbox_base, code_start, tracer, enable_mismatch_check_mode)
 
         # sandbox
         self.underflow_pad_base = get_sandbox_addr(sandbox_base, "underflow_pad")
@@ -625,6 +622,7 @@ class UnicornSeq(UnicornModel):
                 a. If self.is_speculating, rollback to the last checkpoint
                 b. Otherwise, terminate execution
         """
+        assert self.tracer
         self.nesting = nesting
 
         contract_traces: List[CTrace] = []
@@ -693,9 +691,16 @@ class UnicornSeq(UnicornModel):
                 # otherwise, we're done with this execution
                 break
 
+            # Special Case: Execution in mismatch_check_mode
+            # Instead of the contract trace, store the values of registers after execution
+            if self.mismatch_check_mode:
+                register_list = self.uc_target_desc.registers
+                registers = register_list[:-2]  # exclude RSP and EFLAGS
+                reg_values = [int(self.emulator.reg_read(reg)) for reg in registers]  # type: ignore
+                self.tracer.trace = reg_values
+
             # store the results
-            assert self.tracer
-            contract_traces.append(self.tracer.get_contract_trace(self))
+            contract_traces.append(self.tracer.produce_trace(self))
             execution_traces.append(self.tracer.get_execution_trace())
             taints.append(self.taint_tracker.get_taint())
 
@@ -1018,6 +1023,7 @@ class BaseTaintTracker(TaintTrackerInterface):
             self._finalize_instruction()
 
         # restart the tracking
+        # print("-----------------------------------")
         self._instruction = instruction
         self.src_regs = set()
         self.src_flags = set()
@@ -1116,13 +1122,21 @@ class BaseTaintTracker(TaintTrackerInterface):
             else:
                 self.mem_deps[mem] = copy.copy(src_dependencies)
                 self.mem_deps[mem].add(mem)
+        # print(self.dest_regs, self.src_regs)
+        # print(self.dest_flags, self.src_flags)
+        # print(self.dest_mems, self.src_mems)
+        # print(self.reg_deps)
+        # print(self.flag_deps)
+        # print(self.mem_deps)
 
         # Update taints
+        # print(self.pending_taint)
         for label in self.pending_taint:
             if label.startswith("0x"):
                 self.tainted_labels.update(self.mem_deps.get(label, {label}))
             else:
                 self.tainted_labels.update(self.reg_deps.get(label, {label}))
+        # print(self.tainted_labels)
 
         # Identify if the instruction overrides previous dependencies
         # (so far we consider only two such case: MOV and LEA)

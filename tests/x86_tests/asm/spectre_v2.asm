@@ -30,6 +30,26 @@ lea rbx, qword ptr [rbx + rax + 1]
 lea rbx, qword ptr [rbx + rax - 1]
 lea rbx, qword ptr [rbx + rax + 1]
 lea rbx, qword ptr [rbx + rax - 1]
+lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax - 1]
+lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax - 1]
+lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax - 1]
+lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax - 1]
+lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax - 1]
+lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax - 1]
+lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax - 1]
+lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax - 1]
+lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax - 1]
+lea rbx, qword ptr [rbx + rax + 1]
+lea rbx, qword ptr [rbx + rax - 1]
 
 # reduce the entropy in rbx
 and rbx, 0b1000000
@@ -44,5 +64,9 @@ jmp rsi   # misprediction
     mov rdx, qword ptr [r14 + rax]
 .l2:
 mfence
+
+# override the targets to avoid failing the arch. check
+mov rdx, 0
+mov rsi, 0
 
 .test_case_exit:

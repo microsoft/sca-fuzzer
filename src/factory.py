@@ -29,12 +29,11 @@ TRACERS: Dict[str, Type[model.UnicornTracer]] = {
     "ct-nonspecstore": model.CTNonSpecStoreTracer,
     "ctr": model.CTRTracer,
     "arch": model.ArchTracer,
-    "gpr": model.GPRTracer,
     "tct": model.TruncatedCTTracer,
     "tcto": model.TruncatedCTWithOverflowsTracer,
 }
 
-X86_SIMPLE_EXECUTION_CLAUSES: Dict[str, Type[x86_model.UnicornModel]] = {
+X86_EXECUTION_CLAUSES: Dict[str, Type[x86_model.UnicornModel]] = {
     "seq": x86_model.X86UnicornSeq,
     "no_speculation": x86_model.X86UnicornSeq,
     "seq-assist": x86_model.X86SequentialAssist,
@@ -57,6 +56,8 @@ X86_SIMPLE_EXECUTION_CLAUSES: Dict[str, Type[x86_model.UnicornModel]] = {
     "vspec-all-memory-faults": x86_model.X86UnicornVspecAllMemoryFaults,
     "vspec-all-memory-assists": x86_model.X86UnicornVspecAllMemoryAssists,
     "noninterference": x86_model.ActorNonInterferenceModel,
+    "cond-bpas": x86_model.X86UnicornCondBpas,
+    "cond-nullinj-fault": x86_model.X86NullInjCond,
 }
 
 EXECUTORS = {
@@ -126,35 +127,29 @@ def get_input_generator(seed: int) -> interfaces.InputGenerator:
     return _get_from_config(INPUT_GENERATORS, CONF.input_generator, "input_generator", seed)
 
 
-def get_model(bases: Tuple[int, int]) -> interfaces.Model:
-    model_instance: model.UnicornModel
+def get_model(bases: Tuple[int, int], enable_mismatch_check_mode: bool = False) -> interfaces.Model:
+    # observational clause of the contract
+    tracer = _get_from_config(TRACERS, CONF.contract_observation_clause,
+                              "contract_observation_clause")
 
-    if CONF.instruction_set == 'x86-64':
-        if "cond" in CONF.contract_execution_clause and "bpas" in CONF.contract_execution_clause:
-            model_instance = x86_model.X86UnicornCondBpas(bases[0], bases[1])
-        elif "conditional_br_misprediction" in CONF.contract_execution_clause and \
-             "nullinj-fault" in CONF.contract_execution_clause:
-            model_instance = x86_model.X86NullInjCond(bases[0], bases[1])
-        elif len(CONF.contract_execution_clause) == 1:
-            model_instance = _get_from_config(X86_SIMPLE_EXECUTION_CLAUSES,
-                                              CONF.contract_execution_clause[0],
-                                              "contract_execution_clause", bases[0], bases[1])
-        else:
-            raise ConfigException(
-                "ERROR: unknown value of `contract_execution_clause` configuration option")
-
+    # execution clause of the contract
+    if "cond" in CONF.contract_execution_clause and "bpas" in CONF.contract_execution_clause:
+        clause_name = "cond-bpas"
+    elif "conditional_br_misprediction" in CONF.contract_execution_clause and \
+            "nullinj-fault" in CONF.contract_execution_clause:
+        clause_name = "cond-nullinj-fault"
+    elif len(CONF.contract_execution_clause) == 1:
+        clause_name = CONF.contract_execution_clause[0]
     else:
-        raise ConfigException("ERROR: unknown value of `model` configuration option")
+        raise ConfigException(
+            "ERROR: unknown value of `contract_execution_clause` configuration option")
 
-    # observational part of the contract
-    model_instance.tracer = _get_from_config(TRACERS, CONF.contract_observation_clause,
-                                             "contract_observation_clause")
-
-    return model_instance
+    return _get_from_config(X86_EXECUTION_CLAUSES, clause_name, "contract_execution_clause",
+                            bases[0], bases[1], tracer, enable_mismatch_check_mode)
 
 
-def get_executor() -> interfaces.Executor:
-    return _get_from_config(EXECUTORS, CONF.executor, "executor")
+def get_executor(enable_mismatch_check_mode: bool = False) -> interfaces.Executor:
+    return _get_from_config(EXECUTORS, CONF.executor, "executor", enable_mismatch_check_mode)
 
 
 def get_analyser() -> interfaces.Analyser:

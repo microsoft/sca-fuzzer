@@ -15,11 +15,11 @@ from unicorn import Uc, UcError, UC_MEM_WRITE, UC_ARCH_X86, UC_MODE_64, UC_PROT_
 
 from ..interfaces import Input, FlagsOperand, RegisterOperand, MemoryOperand, AgenOperand, \
     TestCase, Instruction, Symbol, SANDBOX_DATA_SIZE, FAULTY_AREA_SIZE, OVERFLOW_PAD_SIZE, \
-    UNDERFLOW_PAD_SIZE, SANDBOX_CODE_SIZE, get_sandbox_addr, ActorPL, InputTaint, CTrace, ActorMode
+    UNDERFLOW_PAD_SIZE, SANDBOX_CODE_SIZE, get_sandbox_addr, ActorPL, InputTaint, CTrace, \
+    ActorMode, UnreachableCode, NotSupportedException
 from ..model import UnicornModel, UnicornTracer, UnicornSpec, UnicornSeq, BaseTaintTracker, \
     MacroInterpreter
-from ..util import UnreachableCode, NotSupportedException, BLUE, COL_RESET, Logger, \
-    stable_hash_intlist, stable_hash_bytes
+from ..util import BLUE, COL_RESET, Logger, stable_hash_bytes
 from ..config import CONF
 from .x86_target_desc import X86UnicornTargetDesc, X86TargetDesc
 
@@ -366,8 +366,8 @@ class X86UnicornSeq(UnicornSeq):
     rw_forbidden: Dict[int, bool]
     w_forbidden: Dict[int, bool]
 
-    def __init__(self, sandbox_base, code_start):
-        super().__init__(sandbox_base, code_start)
+    def __init__(self, sandbox_base, code_start, tracer, enable_mismatch_check_mode=False):
+        super().__init__(sandbox_base, code_start, tracer, enable_mismatch_check_mode)
         self.target_desc = X86TargetDesc()
         self.uc_target_desc = X86UnicornTargetDesc()
 
@@ -445,7 +445,10 @@ class X86UnicornSeq(UnicornSeq):
 
     def _load_input(self, input_: Input):
         """
-        Set registers and stack before starting the emulation
+        Set the memory and register values in the emulator accroding to the input object provided.
+        In addition, set the memory permissions for each actor.
+
+        :param input_: Input object containing the memory and register values for each actor.
         """
 
         def patch_flags(flags: np.uint64) -> np.uint64:
@@ -2031,8 +2034,8 @@ class ActorNonInterferenceModel(X86UnicornSeq):
     test_case: TestCase
     observer_actor_ids: List[int]
 
-    def __init__(self, sandbox_base: int, code_base: int):
-        super().__init__(sandbox_base, code_base)
+    def __init__(self, *args):
+        super().__init__(*args)
         n_observers = len([desc for desc in CONF._actors.values() if desc['observer']])
         if n_observers == len(CONF._actors):
             raise NotSupportedException("ActorNonInterferenceModel"
@@ -2061,11 +2064,12 @@ class ActorNonInterferenceModel(X86UnicornSeq):
 
     def _add_observer_traces(self, inputs: List[Input], ctraces: List[CTrace]):
         for input_id, input_ in enumerate(inputs):
-            fragment_hashes: List[int] = [ctraces[input_id]]
+            fragment_hashes: List[int] = []
             for actor_id in self.observer_actor_ids:
                 input_fragment = input_[actor_id]
                 fragment_hashes.append(stable_hash_bytes(input_fragment.tobytes()))
-            ctraces[input_id] = stable_hash_intlist(fragment_hashes)
+            new_trace = ctraces[input_id].raw + fragment_hashes
+            ctraces[input_id] = CTrace(new_trace)
 
     def _taint_observers(self, taints: List[InputTaint]):
         for taint in taints:

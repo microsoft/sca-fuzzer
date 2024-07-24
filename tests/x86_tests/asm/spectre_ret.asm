@@ -27,4 +27,8 @@ ret
 mov rdx, qword ptr [rcx + 64]
 mfence
 
+# clear to avoid failing the arch check
+mov rcx, 0
+mov rdx, 0
+
 .test_case_exit:
