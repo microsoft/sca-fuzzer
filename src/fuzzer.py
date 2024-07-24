@@ -64,35 +64,26 @@ class FuzzerGeneric(Fuzzer):
     def start_random(self,
                      num_test_cases: int,
                      num_inputs: int,
-                     timeout: int,
-                     nonstop: bool = False) -> bool:
+    def start_random(self, num_test_cases: int, num_inputs: int, timeout: int, nonstop: bool,
+                     save_violations: bool) -> bool:
         self.initialize_modules()
         self.generation_function = self.generator.create_test_case
-        return self._start(num_test_cases, num_inputs, timeout, nonstop)
+        return self._start(num_test_cases, num_inputs, timeout, nonstop, save_violations)
 
-    def start_from_template(self,
-                            num_test_cases: int,
-                            num_inputs: int,
-                            timeout: int,
-                            nonstop: bool = False) -> bool:
+    def start_from_template(self, num_test_cases: int, num_inputs: int, timeout: int, nonstop: bool,
+                            save_violations: bool) -> bool:
         self.initialize_modules()
         self.generation_function = self.generator.create_test_case_from_template
-        return self._start(num_test_cases, num_inputs, timeout, nonstop)
+        return self._start(num_test_cases, num_inputs, timeout, nonstop, save_violations)
 
-    def start_from_asm(self,
-                       num_test_cases: int,
-                       num_inputs: int,
-                       timeout: int,
-                       nonstop: bool = False) -> bool:
+    def start_from_asm(self, num_test_cases: int, num_inputs: int, timeout: int, nonstop: bool,
+                       save_violations: bool) -> bool:
         self.initialize_modules()
         self.generation_function = self.asm_parser.parse_file
-        return self._start(num_test_cases, num_inputs, timeout, nonstop)
+        return self._start(num_test_cases, num_inputs, timeout, nonstop, save_violations)
 
-    def _start(self,
-               num_test_cases: int,
-               num_inputs: int,
-               timeout: int,
-               nonstop: bool = False) -> bool:
+    def _start(self, num_test_cases: int, num_inputs: int, timeout: int, nonstop: bool,
+               save_violations: bool) -> bool:
         start_time = datetime.today()
         self.LOG.fuzzer_start(num_test_cases, start_time)
 
@@ -128,7 +119,8 @@ class FuzzerGeneric(Fuzzer):
 
             if violation:
                 self.LOG.fuzzer_report_violations(violation, self.model)
-                self.store_test_case(test_case, violation)
+                if save_violations:
+                    self._store_violation_artifact(test_case, violation, self.work_dir)
                 STAT.violations += 1
                 if not nonstop:
                     break

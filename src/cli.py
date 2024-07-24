@@ -52,7 +52,7 @@ def main() -> int:
         '-w',
         '--working-directory',
         type=str,
-        default='',
+        default='.',
     )
     parser_fuzz.add_argument(
         '-t',
@@ -67,6 +67,12 @@ def main() -> int:
         help="Run fuzzing with a time limit [seconds]. No timeout when set to zero.")
     parser_fuzz.add_argument(
         '--nonstop', action='store_true', help="Don't stop after detecting an unexpected result")
+    parser_fuzz.add_argument(
+        '--save-violations',
+        type=arg2bool,
+        default=True,
+        help="If set, store all detected violations in working directory.",
+    )
 
     # ==============================================================================================
     # Template-based fuzzing
@@ -406,20 +412,21 @@ def main() -> int:
         fuzzer = get_fuzzer(args.instruction_set, args.working_directory, testcase, "")
         if args.subparser_name == 'tfuzz':
             exit_code = fuzzer.start_from_template(args.num_test_cases, args.num_inputs,
-                                                   args.timeout, args.nonstop)
+                                                   args.timeout, args.nonstop,
+                                                   args.save_violations)
         elif testcase:
             # deprecated mode; will be removed soon (duplicates `reproduce`)
             exit_code = fuzzer.start_from_asm(args.num_test_cases, args.num_inputs, args.timeout,
-                                              args.nonstop)
+                                              args.nonstop, args.save_violations)
         else:
             exit_code = fuzzer.start_random(args.num_test_cases, args.num_inputs, args.timeout,
-                                            args.nonstop)
+                                            args.nonstop, args.save_violations)
         return exit_code
 
     # Reproducing a violation
     if args.subparser_name == 'reproduce':
         fuzzer = get_fuzzer(args.instruction_set, "", args.testcase, args.inputs)
-        exit_code = fuzzer.start_from_asm(1, args.num_inputs, 0, False)
+        exit_code = fuzzer.start_from_asm(1, args.num_inputs, 0, False, False)
         return exit_code
 
     # Stand-alone generation
