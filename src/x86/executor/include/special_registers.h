@@ -9,9 +9,6 @@
 #include <linux/types.h>
 #include "hardware_desc.h"
 
-// A few MSR definitions missing in the kernel
-#define MSR_SYSCFG 0xc0010010
-
 typedef struct {
     uint64_t cr0;
     uint64_t cr4;

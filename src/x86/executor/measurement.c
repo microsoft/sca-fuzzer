@@ -23,8 +23,8 @@
 #include "memory_guest.h"
 #include "perf_counters.h"
 #include "special_registers.h"
-#include "vmx.h"
 #include "svm.h"
+#include "vmx.h"
 
 measurement_t *measurements = NULL; // global
 
@@ -153,7 +153,6 @@ int run_experiment(void)
             goto cleanup;
 
         // store the measurement
-        // printk(KERN_ERR "x86_executor: measurement %llu\n", result.htrace[0]);
         measurement_t result = sandbox->util->latest_measurement;
         measurements[i_].htrace[0] = result.htrace[0];
         memcpy(measurements[i_].pfc_reading, result.pfc_reading, sizeof(uint64_t) * NUM_PFC);

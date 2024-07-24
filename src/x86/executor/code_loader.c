@@ -9,15 +9,7 @@
 // -----------------------------------------------------------------------------------------------
 // Note on registers.
 // Some of the registers are reserved for a specific purpose and should never be overwritten.
-// These include:
-//   R8 - performance counter #3
-//   R9 - performance counter #2
-//   R10 - performance counter #1
-//   R11 - temporary data for macros
-//   R12 - SMI counter
-//   R13 - hardware trace
-//   R14 - base address of the current actor's main data area
-//   R15 - base address of the utility area
+// See ./docs/registers.md for more information.
 
 #include "code_loader.h"
 #include "asm_snippets.h"
@@ -298,25 +290,33 @@ static inline void prologue(void)
         "mov r12, 0\n"
         "mov r13, 0\n"
 
+        // initialize special registers
+        "mov "HTRACE_REGISTER", 0\n"
+        "mov "STATUS_REGISTER", 0\n"
+
         "mov rbp, rsp\n"
         "sub rsp, 0x1000\n"
 
         // start monitoring interrupts
-        READ_SMI_START("r12")
+        READ_SMI_START()
     );
 }
 
 static inline void epilogue(void)
 {
     asm_volatile_intel(
-        READ_SMI_END("r12")
+        // rbx <- SMI counter
+        READ_SMI_END()
+        "mov rbx, "STATUS_REGISTER"\n"
+        "shr rbx, 32\n"
 
         // rax <- &latest_measurement
         "lea rax, [r15 + "xstr(MEASUREMENT_OFFSET)"]\n"
 
-        // if we see no interrupts, store the hardware trace (r13)
-        // otherwise, store zero
-        "cmp r12, 0; jne 1f \n"
+        // check for errors (detected SMI or incomplete measurement);
+        // if there are any, we clear the measurement; otherwise, we store the measurements
+        "cmp rbx, 0; jne 1f \n"
+        "cmp "STATUS_REGISTER_8", "xstr(SR_ENDED)"; jne 1f \n"
         "   mov qword ptr [rax + 0x00], r13 \n"
         "   mov qword ptr [rax + 0x08], r10 \n"
         "   mov qword ptr [rax + 0x10], r9 \n"
