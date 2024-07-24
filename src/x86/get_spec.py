@@ -144,6 +144,7 @@ class X86Transformer:
             name = name.removeprefix("{load} ")
             name = name.removeprefix("{store} ")
             name = name.removeprefix("{disp32} ")
+            name = name.lower()
             self.instruction.name = name
 
             try:
@@ -151,7 +152,8 @@ class X86Transformer:
                     op_type = op_node.attrib['type']
                     if op_type == 'reg':
                         parsed_op = self.parse_reg_operand(op_node)
-                        if op_node.text == "rip" and name not in self.not_control_flow:
+                        text = getattr(op_node, 'text', '').lower()
+                        if text == "rip" and name not in self.not_control_flow:
                             self.instruction.control_flow = True
                     elif op_type == 'mem':
                         parsed_op = self.parse_mem_operand(op_node)
