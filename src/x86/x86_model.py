@@ -514,13 +514,13 @@ class X86UnicornSeq(UnicornSeq):
             else:
                 return f"0x{val:016x}"
 
-        emulator = self.emulator
-        rax = compressed(emulator.reg_read(ucc.UC_X86_REG_RAX))
-        rbx = compressed(emulator.reg_read(ucc.UC_X86_REG_RBX))
-        rcx = compressed(emulator.reg_read(ucc.UC_X86_REG_RCX))
-        rdx = compressed(emulator.reg_read(ucc.UC_X86_REG_RDX))
-        rsi = compressed(emulator.reg_read(ucc.UC_X86_REG_RSI))
-        rdi = compressed(emulator.reg_read(ucc.UC_X86_REG_RDI))
+        em = self.emulator
+        rax = compressed(em.reg_read(ucc.UC_X86_REG_RAX))
+        rbx = compressed(em.reg_read(ucc.UC_X86_REG_RBX))
+        rcx = compressed(em.reg_read(ucc.UC_X86_REG_RCX))
+        rdx = compressed(em.reg_read(ucc.UC_X86_REG_RDX))
+        rsi = compressed(em.reg_read(ucc.UC_X86_REG_RSI))
+        rdi = compressed(em.reg_read(ucc.UC_X86_REG_RDI))
 
         if not oneline:
             print("\n\nRegisters:")
@@ -534,19 +534,19 @@ class X86UnicornSeq(UnicornSeq):
             if CONF.color:
                 print(f"  {BLUE}rax={COL_RESET}{rax} "
                       f"{BLUE}rbx={COL_RESET}{rbx} "
-                      f"{BLUE}rcx={COL_RESET}{rcx} "
-                      f"{BLUE}rdx={COL_RESET}{rdx}\n"
-                      f"  {BLUE}rsi={COL_RESET}{rsi} "
-                      f"{BLUE}rdi={COL_RESET}{rdi} "
-                      f"{BLUE}flags={COL_RESET}0b{emulator.reg_read(ucc.UC_X86_REG_EFLAGS):012b}\n"
-                      f"  {BLUE}xmm0={COL_RESET}0x{emulator.reg_read(ucc.UC_X86_REG_XMM0):x} "
-                      f"{BLUE}xmm1={COL_RESET}0x{emulator.reg_read(ucc.UC_X86_REG_XMM1):x} \n"
-                      f"  {BLUE}xmm2={COL_RESET}0x{emulator.reg_read(ucc.UC_X86_REG_XMM2):x} "
-                      f"{BLUE}xmm3={COL_RESET}0x{emulator.reg_read(ucc.UC_X86_REG_XMM3):x} \n"
-                      f"  {BLUE}xmm4={COL_RESET}0x{emulator.reg_read(ucc.UC_X86_REG_XMM4):x} "
-                      f"{BLUE}xmm5={COL_RESET}0x{emulator.reg_read(ucc.UC_X86_REG_XMM5):x} \n"
-                      f"  {BLUE}xmm6={COL_RESET}0x{emulator.reg_read(ucc.UC_X86_REG_XMM6):x} "
-                      f"{BLUE}xmm7={COL_RESET}0x{emulator.reg_read(ucc.UC_X86_REG_XMM7):x} \n")
+                      f"{BLUE}rcx={COL_RESET}{rcx}\n"
+                      f"  {BLUE}rdx={COL_RESET}{rdx} "
+                      f"{BLUE}rsi={COL_RESET}{rsi} "
+                      f"{BLUE}rdi={COL_RESET}{rdi}\n"
+                      f"  {BLUE}flags={COL_RESET}0b{em.reg_read(ucc.UC_X86_REG_EFLAGS):012b}\n"
+                      f"  {BLUE}xmm0={COL_RESET}0x{em.reg_read(ucc.UC_X86_REG_XMM0):032x} "
+                      f"{BLUE}xmm1={COL_RESET}0x{em.reg_read(ucc.UC_X86_REG_XMM1):032x} \n"
+                      f"  {BLUE}xmm2={COL_RESET}0x{em.reg_read(ucc.UC_X86_REG_XMM2):032x} "
+                      f"{BLUE}xmm3={COL_RESET}0x{em.reg_read(ucc.UC_X86_REG_XMM3):032x} \n"
+                      f"  {BLUE}xmm4={COL_RESET}0x{em.reg_read(ucc.UC_X86_REG_XMM4):032x} "
+                      f"{BLUE}xmm5={COL_RESET}0x{em.reg_read(ucc.UC_X86_REG_XMM5):032x} \n"
+                      f"  {BLUE}xmm6={COL_RESET}0x{em.reg_read(ucc.UC_X86_REG_XMM6):032x} "
+                      f"{BLUE}xmm7={COL_RESET}0x{em.reg_read(ucc.UC_X86_REG_XMM7):032x} \n")
             else:
                 print(f"  rax={rax} "
                       f"rbx={rbx} "
@@ -554,15 +554,15 @@ class X86UnicornSeq(UnicornSeq):
                       f"rdx={rdx}\n"
                       f"  rsi={rsi} "
                       f"rdi={rdi} "
-                      f"flags=0b{emulator.reg_read(ucc.UC_X86_REG_EFLAGS):012b}\n"
-                      f"  xmm0=0x{emulator.reg_read(ucc.UC_X86_REG_XMM0):x} "
-                      f"xmm1=0x{emulator.reg_read(ucc.UC_X86_REG_XMM1):x} \n"
-                      f"  xmm2=0x{emulator.reg_read(ucc.UC_X86_REG_XMM2):x} "
-                      f"xmm3=0x{emulator.reg_read(ucc.UC_X86_REG_XMM3):x} \n"
-                      f"  xmm4=0x{emulator.reg_read(ucc.UC_X86_REG_XMM4):x} "
-                      f"xmm5=0x{emulator.reg_read(ucc.UC_X86_REG_XMM5):x} \n"
-                      f"  xmm6=0x{emulator.reg_read(ucc.UC_X86_REG_XMM6):x} "
-                      f"xmm7=0x{emulator.reg_read(ucc.UC_X86_REG_XMM7):x} \n")
+                      f"flags=0b{em.reg_read(ucc.UC_X86_REG_EFLAGS):012b}\n"
+                      f"  xmm0=0x{em.reg_read(ucc.UC_X86_REG_XMM0):032x} "
+                      f"xmm1=0x{em.reg_read(ucc.UC_X86_REG_XMM1):032x} \n"
+                      f"  xmm2=0x{em.reg_read(ucc.UC_X86_REG_XMM2):032x} "
+                      f"xmm3=0x{em.reg_read(ucc.UC_X86_REG_XMM3):032x} \n"
+                      f"  xmm4=0x{em.reg_read(ucc.UC_X86_REG_XMM4):032x} "
+                      f"xmm5=0x{em.reg_read(ucc.UC_X86_REG_XMM5):032x} \n"
+                      f"  xmm6=0x{em.reg_read(ucc.UC_X86_REG_XMM6):032x} "
+                      f"xmm7=0x{em.reg_read(ucc.UC_X86_REG_XMM7):032x} \n")
 
     def post_execution_patch(self) -> None:
         # workaround for Unicorn not enabling MPX
