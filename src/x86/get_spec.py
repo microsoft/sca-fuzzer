@@ -392,7 +392,7 @@ class Downloader:
 
     def run(self):
         subprocess.run(
-            "wget "
+            "curl -L -o x86_instructions.xml "
             "https://github.com/microsoft/sca-fuzzer/releases/download/v1.2/x86_instructions.xml",
             shell=True,
             check=True)
