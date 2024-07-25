@@ -148,6 +148,17 @@ The instructions that are blocked by default are known to cause issues in the mo
 and hence should generally be avoided when fuzzing.
 
 ```yaml
+Name: instruction_blocklist_append
+Default: []
+Options: (any instruction names)
+```
+
+A list of instructions that will be appended to the default instruction blocklist.
+This option is identical to `instruction_blocklist`, but the list is added to the previous
+blocklist instead of replacing it.
+This is useful when you want to block some instructions in addition to the default blocklist.
+
+```yaml
 Name: instruction_allowlist
 Default: []
 Options: (any instruction names)

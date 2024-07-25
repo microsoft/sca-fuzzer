@@ -92,6 +92,9 @@ class Conf:
     filters out instructions from instruction_categories, but not from instruction_allowlist.
     The resulting list is:
      (instructions from instruction_categories - instruction_blocklist) + instruction_allowlist """
+    instruction_blocklist_append: List[str] = []
+    """ instruction_blocklist_append: same as instruction_blocklist, but the list is added
+    to the existing blocklist instead of replacing it """
     program_generator_seed: int = 0
     """ program_generator_seed: seed of the program generator """
     program_size: int = 24
@@ -283,6 +286,7 @@ class Conf:
         if 'instruction_set' in config_update:
             self.instruction_set = config_update['instruction_set']
             self.set_to_arch_defaults()
+            config_update.pop('instruction_set')
 
         # set the rest of the options
         for var, value in config_update.items():
@@ -291,11 +295,6 @@ class Conf:
             # recursively parse the included file
             if var == "file":
                 self._load_from_dict(value)
-                continue
-
-            if var == "instruction_set":
-                super().__setattr__("instruction_set", value)
-                self.set_to_arch_defaults()
                 continue
             if var == "generator_faults_allowlist":
                 self.update_handled_faults_with_generator_faults(value)
@@ -308,7 +307,7 @@ class Conf:
             self.safe_set(var, value)
 
     def safe_set(self, name: str, value) -> None:
-        assert name not in ["instruction_set", "instruction_blocklist"]
+        assert name not in ["instruction_set"]
 
         # sanity checks
         if name[0] == "_":
