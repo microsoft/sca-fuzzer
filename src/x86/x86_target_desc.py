@@ -8,7 +8,6 @@ from typing import List
 import re
 import unicorn.x86_const as ucc  # type: ignore
 
-
 from ..interfaces import Instruction, TargetDesc, MacroSpec, CPUDesc
 from ..model import UnicornTargetDesc
 from ..config import CONF
@@ -16,12 +15,19 @@ from ..config import CONF
 
 class X86TargetDesc(TargetDesc):
     register_sizes = {
+        "xmm0": 128, "xmm1": 128, "xmm2": 128, "xmm3": 128, "xmm4": 128, "xmm5": 128, "xmm6": 128,
+        "xmm7": 128, "xmm8": 128, "xmm9": 128, "xmm10": 128, "xmm11": 128, "xmm12": 128,
+        "xmm13": 128, "xmm14": 128, "xmm15": 128,
+
         "rax": 64, "rbx": 64, "rcx": 64, "rdx": 64, "rsi": 64, "rdi": 64, "rsp": 64, "rbp": 64,
         "r8": 64, "r9": 64, "r10": 64, "r11": 64, "r12": 64, "r13": 64, "r14": 64, "r15": 64,
+
         "eax": 32, "ebx": 32, "ecx": 32, "edx": 32, "esi": 32, "edi": 32, "r8d": 32, "r9d": 32,
         "r10d": 32, "r11d": 32, "r12d": 32, "r13d": 32, "r14d": 32, "r15d": 32,
+
         "ax": 16, "bx": 16, "cx": 16, "dx": 16, "si": 16, "di": 16, "r8w": 16, "r9w": 16,
         "r10w": 16, "r11w": 16, "r12w": 16, "r13w": 16, "r14w": 16, "r15w": 16,
+
         "al": 8, "bl": 8, "cl": 8, "dl": 8, "sil": 8, "dil": 8, "r8b": 8, "r9b": 8,
         "r10b": 8, "r11b": 8, "r12b": 8, "r13b": 8, "r14b": 8, "r15b": 8,
         "ah": 8, "bh": 8, "ch": 8, "dh": 8,
