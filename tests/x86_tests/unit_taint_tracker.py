@@ -140,6 +140,17 @@ class X86TaintTrackerTest(unittest.TestCase):
         tracker._finalize_instruction()
         self.assertCountEqual(tracker.reg_deps['A'], ['B', 'C', 'A'])
 
+    def test_dependency_override_partial(self):
+        """ Test that partial update instructions (e.g., MOVHPS) do NOT override dependencies """
+        tracker = x86_model.X86TaintTracker([])
+
+        inst = Instruction("MOVHPS").add_op(RegisterOperand("XMM1", 128, False,
+                                                            True)).add_op(get_m64_src("RCX"))
+        tracker.start_instruction(inst)
+        tracker.track_memory_access(0x100, 8, False)
+        tracker._finalize_instruction()
+        self.assertCountEqual(tracker.reg_deps['XMM1'], ['XMM1', '0x100'])
+
     def test_dependency_lea(self):
         """ Test that LEA instructions are handled correctly """
         tracker = x86_model.X86TaintTracker([])

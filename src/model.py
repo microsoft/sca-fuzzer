@@ -1129,10 +1129,10 @@ class BaseTaintTracker(TaintTrackerInterface):
         # FIXME: this is an x86-specific implementation and it should be moved to the x86 model
         override: bool = False
         inst_name = inst.name.lower()
-        if (inst_name.startswith("mov") or inst_name == "lea") \
-                and self.dest_regs \
-                and inst.get_reg_operands()[0].width == 64:
-            override = True
+        if (inst_name.startswith("mov") or inst_name == "lea") and len(self.dest_regs) == 1:
+            reg = inst.get_reg_operands()[0].value
+            if self.target_desc.register_sizes.get(reg, 0) == 64:
+                override = True
 
         # If the instruction overrides previous dependencies, remove them
         if override:
