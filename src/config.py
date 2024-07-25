@@ -5,16 +5,60 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 import yaml
+import os
 from copy import deepcopy
-from typing import List, Dict
+from typing import List, Dict, IO, Any
 from collections import OrderedDict
 from .x86 import x86_config
 
 
+# ==================================================================================================
+# Helper classes
+# ==================================================================================================
+class IncludeLoader(yaml.SafeLoader):
+    """
+    Helper class to enable `!include` statements in configuration files
+    """
+    visited: List[str] = []
+
+    def __init__(self, stream: IO) -> None:
+        self._root = os.path.split(stream.name)[0]
+        self.visited.append(os.path.abspath(stream.name))
+        super(IncludeLoader, self).__init__(stream)
+
+    def __del__(self) -> None:
+        self.visited.pop()
+
+    def include(self, node: yaml.Node) -> Any:
+        """
+        Include another YAML file
+        """
+        # get the name of the file to include
+        filename = os.path.join(self._root, self.construct_scalar(node))  # type: ignore
+
+        # check for cycles
+        if os.path.abspath(filename) in self.visited:
+            raise ConfigException(f"Circular include detected in {filename}")
+
+        # check if the file exists
+        if not os.path.exists(filename):
+            raise ConfigException(f"Included file {filename} does not exist")
+
+        with open(filename, 'r') as f:
+            return yaml.load(f, IncludeLoader)
+
+
+IncludeLoader.add_constructor('!include', IncludeLoader.include)
+
+
 class ConfigException(SystemExit):
-    pass
+    def __init__(self, message: str) -> None:
+        super().__init__("\nCONFIG ERROR: " + message + "\n")
 
 
+# ==================================================================================================
+# Main configuration class
+# ==================================================================================================
 class Conf:
     # ==============================================================================================
     # Fuzzer
@@ -231,8 +275,10 @@ class Conf:
     def load(self, config_path: str) -> None:
         self._config_path = config_path
         with open(config_path, "r") as f:
-            config_update: Dict = yaml.safe_load(f)
+            config_update: Dict = yaml.load(f, IncludeLoader)
+        self._load_from_dict(config_update)
 
+    def _load_from_dict(self, config_update: Dict) -> None:
         # make sure to set the architecture-dependent defaults first
         if 'instruction_set' in config_update:
             self.instruction_set = config_update['instruction_set']
@@ -240,7 +286,13 @@ class Conf:
 
         # set the rest of the options
         for var, value in config_update.items():
-            # print(f"CONF: setting {name} to {value}")
+            # print(f"CONF: setting {var} to {value}")
+
+            # recursively parse the included file
+            if var == "file":
+                self._load_from_dict(value)
+                continue
+
             if var == "instruction_set":
                 super().__setattr__("instruction_set", value)
                 self.set_to_arch_defaults()
@@ -261,15 +313,15 @@ class Conf:
         # sanity checks
         if name[0] == "_":
             raise ConfigException(
-                f"ERROR: Attempting to set an internal configuration variable {name}.")
+                f"Attempting to set an internal configuration variable {name}.")
         if getattr(self, name, None) is None:
-            raise ConfigException(f"ERROR: Unknown configuration variable {name}.\n"
+            raise ConfigException(f"Unknown configuration variable {name}.\n"
                                   f"It's likely a typo in the configuration file.")
         if type(self.__getattribute__(name)) != type(value):
-            raise ConfigException(f"ERROR: Wrong type of the configuration variable {name}.\n"
+            raise ConfigException(f"Wrong type of the configuration variable {name}.\n"
                                   f"It's likely a typo in the configuration file.")
         if self.input_gen_entropy_bits > 32:
-            raise ConfigException("ERROR: input_gen_entropy_bits must be less or equal to 32 bits")
+            raise ConfigException("input_gen_entropy_bits must be less or equal to 32 bits")
 
         self._check_options(name, value)
         setattr(self, name, value)
@@ -295,11 +347,11 @@ class Conf:
                 invalid_value = v
                 break
         else:
-            raise ConfigException(f"ERROR: Unexpected type of config variable {name}")
+            raise ConfigException(f"Unexpected type of config variable {name}")
 
         if invalid_value:
             raise ConfigException(
-                f"ERROR: Unknown value '{invalid_value}' of config variable '{name}'\n"
+                f"Unknown value '{invalid_value}' of config variable '{name}'\n"
                 f"Possible options: {options}")
         return
 
@@ -309,7 +361,7 @@ class Conf:
         if self.instruction_set == "x86-64":
             config = x86_config
         else:
-            raise ConfigException(f"ERROR: Unknown architecture {self.instruction_set}")
+            raise ConfigException(f"Unknown architecture {self.instruction_set}")
 
         config_defaults = {}
         for c in dir(config):
@@ -321,7 +373,7 @@ class Conf:
             config_defaults[c] = values
 
         if "_option_values" not in config_defaults:
-            raise ConfigException("ERROR: ISA-specific config.py must define _option_values")
+            raise ConfigException("ISA-specific config.py must define _option_values")
 
         for name, value in config_defaults.items():
             if name == "generator_faults_allowlist":
@@ -344,7 +396,7 @@ class Conf:
             if not gen_fault:
                 continue
             if gen_fault not in self._generator_fault_to_fault_name:
-                raise ConfigException(f"ERROR: Unknown generator fault {gen_fault}")
+                raise ConfigException(f"Unknown generator fault {gen_fault}")
             fault = self._generator_fault_to_fault_name[gen_fault]
             if fault not in self._handled_faults:
                 self._handled_faults.append(fault)
@@ -357,10 +409,10 @@ class Conf:
 
             if name == "main":
                 if update.get('mode', 'host') != 'host':
-                    raise ConfigException("ERROR: The main actor must be in 'host' mode")
+                    raise ConfigException("The main actor must be in 'host' mode")
                 if update.get('privilege_level', 'kernel') != 'kernel':
                     raise ConfigException(
-                        "ERROR: The main actor must have 'kernel' privilege_level")
+                        "The main actor must have 'kernel' privilege_level")
 
             if name in self._actors:
                 entry = self._actors[name]
@@ -369,27 +421,27 @@ class Conf:
 
             for k, v in update.items():
                 if k == "mode" and v not in self._option_values["actor_mode"]:
-                    raise ConfigException(f"ERROR: Unsupported actor mode {v}")
+                    raise ConfigException(f"Unsupported actor mode {v}")
                 if k == "privilege_level" and v not in self._option_values["actor_privilege_level"]:
-                    raise ConfigException(f"ERROR: Unsupported actor privilege_level {v}")
+                    raise ConfigException(f"Unsupported actor privilege_level {v}")
 
                 if k == "data_properties":
                     for property_ in v:
                         for p_key, p_value in property_.items():
                             if p_key not in self._option_values["actor_data_properties"]:
                                 raise ConfigException(
-                                    f"ERROR: Unsupported actor data_properties value {p_key}")
+                                    f"Unsupported actor data_properties value {p_key}")
                             entry[k][p_key] = p_value
                     continue
                 if k == "data_ept_properties":
                     if update.get('mode', 'host') != 'guest':
                         raise ConfigException(
-                            "ERROR: data_ept_properties can only be used in guest mode")
+                            "data_ept_properties can only be used in guest mode")
                     for property_ in v:
                         for p_key, p_value in property_.items():
                             if p_key not in self._option_values["actor_data_ept_properties"]:
                                 raise ConfigException(
-                                    f"ERROR: Unsupported actor data_ept_properties value {p_key}")
+                                    f"Unsupported actor data_ept_properties value {p_key}")
                             entry[k][p_key] = p_value
                     continue
                 if k == "instruction_blocklist" or k == "fault_blocklist":
