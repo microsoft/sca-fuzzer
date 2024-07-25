@@ -519,7 +519,7 @@ Number of warmup rounds executed before starting to collect hardware traces.
 
 ```yaml
 Name: executor_sample_sizes
-Default: [10]
+Default: [10, 50, 100, 500]
 ```
 
 A list of sample sizes to be used during the measurements.
