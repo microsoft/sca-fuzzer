@@ -1093,6 +1093,7 @@ class BaseTaintTracker(TaintTrackerInterface):
         """
         inst = self._instruction
         assert inst, "_finalize_instruction called before start_instruction"
+        inst_name = inst.name.lower()
 
         # Get dependencies of the source operands
         src_dependencies = set()
@@ -1129,6 +1130,10 @@ class BaseTaintTracker(TaintTrackerInterface):
         # print(self.flag_deps)
         # print(self.mem_deps)
 
+        # Workaround for REP instructions with implicit RCX dependency
+        if "rep" in inst_name and "C" in self.src_regs and self.pending_taint:
+            self.pending_taint.add('C')
+
         # Update taints
         # print(self.pending_taint)
         for label in self.pending_taint:
@@ -1142,7 +1147,6 @@ class BaseTaintTracker(TaintTrackerInterface):
         # (so far we consider only two such case: MOV and LEA)
         # FIXME: this is an x86-specific implementation and it should be moved to the x86 model
         override: bool = False
-        inst_name = inst.name.lower()
         if (inst_name.startswith("mov") or inst_name == "lea") and len(self.dest_regs) == 1:
             reg = inst.get_reg_operands()[0].value
             if self.target_desc.register_sizes.get(reg, 0) == 64:
