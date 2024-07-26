@@ -566,11 +566,6 @@ class FuzzerGeneric(Fuzzer):
 
         logger.fuzzer_finish()
 
-    def tune(self, num_test_cases: int, num_inputs: int, n_samples: int) -> None:
-        self.LOG.fuzzer_start(0, datetime.today())
-        self.LOG.warning("fuzzer", "Tuning is not implemented yet!")
-        self.LOG.fuzzer_finish()
-
     # ==============================================================================================
     # Checking for false positives
     def _priming(self, violations: List[Violation], inputs: List[Input]) -> List[Violation]:
