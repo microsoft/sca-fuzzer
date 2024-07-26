@@ -25,15 +25,30 @@ def arg2bool(arg) -> bool:
 
 
 def main() -> int:
-    parser = ArgumentParser(description='', add_help=True)
+    parser = ArgumentParser(add_help=False)
     subparsers = parser.add_subparsers(dest='subparser_name')
     subparsers.required = True
 
     # ==============================================================================================
+    # Common arguments
+    parser.add_argument(
+        "-c",
+        "--config",
+        type=str,
+        required=False,
+        help="Path to the configuration file (YAML) that will be used during fuzzing.",
+    )
+    parser.add_argument(
+        "-s",
+        "--instruction-set",
+        type=str,
+        required=True,
+        help="Path to the instruction set specification (JSON) file.",
+    )
+
+    # ==============================================================================================
     # Fuzzing
-    parser_fuzz = subparsers.add_parser('fuzz', add_help=True)
-    parser_fuzz.add_argument("-s", "--instruction-set", type=str, required=True)
-    parser_fuzz.add_argument("-c", "--config", type=str, required=False)
+    parser_fuzz = subparsers.add_parser('fuzz', add_help=True, parents=[parser])
     parser_fuzz.add_argument(
         "-n",
         "--num-test-cases",
@@ -76,9 +91,7 @@ def main() -> int:
 
     # ==============================================================================================
     # Template-based fuzzing
-    parser_tfuzz = subparsers.add_parser('tfuzz', add_help=True)
-    parser_tfuzz.add_argument("-s", "--instruction-set", type=str, required=True)
-    parser_tfuzz.add_argument("-c", "--config", type=str, required=False)
+    parser_tfuzz = subparsers.add_parser('tfuzz', add_help=True, parents=[parser])
     parser_tfuzz.add_argument(
         "-n",
         "--num-test-cases",
@@ -121,7 +134,7 @@ def main() -> int:
 
     # ==============================================================================================
     # Standalone interface to trace analysis
-    parser_analyser = subparsers.add_parser('analyse', add_help=True)
+    parser_analyser = subparsers.add_parser('analyse', add_help=True, parents=[parser])
     parser_analyser.add_argument(
         '--ctraces',
         type=str,
@@ -132,13 +145,10 @@ def main() -> int:
         type=str,
         required=True,
     )
-    parser_analyser.add_argument("-c", "--config", type=str, required=False)
 
     # ==============================================================================================
     # Reproducing violation
-    parser_reproduce = subparsers.add_parser('reproduce', add_help=True)
-    parser_reproduce.add_argument("-s", "--instruction-set", type=str, required=True)
-    parser_reproduce.add_argument("-c", "--config", type=str, required=False)
+    parser_reproduce = subparsers.add_parser('reproduce', add_help=True, parents=[parser])
     parser_reproduce.add_argument(
         '-t',
         '--testcase',
@@ -167,6 +177,7 @@ def main() -> int:
     parser_mini = subparsers.add_parser(
         'minimize',
         add_help=True,
+        parents=[parser],
         help="Minimize a test case by executing a series of minimization passes. "
         "The set of passes is controlled via CLI arguments.",
     )
@@ -183,19 +194,6 @@ def main() -> int:
         type=int,
         required=True,
         help="Number of inputs to the program that will be used during minimization.",
-    )
-    parser_mini.add_argument(
-        "-s",
-        "--instruction-set",
-        type=str,
-        required=True,
-        help="Path to the instruction set specification (JSON) file.")
-    parser_mini.add_argument(
-        "-c",
-        "--config",
-        type=str,
-        required=True,
-        help="Path to the configuration file that will be used during minimization.",
     )
     parser_mini.add_argument(
         '--testcase-outfile',
@@ -295,8 +293,7 @@ def main() -> int:
 
     # ==============================================================================================
     # Standalone interface to test case generation
-    parser_generator = subparsers.add_parser('generate', add_help=True)
-    parser_generator.add_argument("-s", "--instruction-set", type=str, required=True)
+    parser_generator = subparsers.add_parser('generate', add_help=True, parents=[parser])
     parser_generator.add_argument(
         "-r",
         "--seed",
@@ -318,7 +315,6 @@ def main() -> int:
         default=100,
         help="Number of inputs per test case.",
     )
-    parser_generator.add_argument("-c", "--config", type=str, required=False)
     parser_generator.add_argument(
         '-w',
         '--working-directory',
@@ -381,8 +377,7 @@ def main() -> int:
         fuzzer = get_fuzzer(args.instruction_set, args.working_directory, testcase, "")
         if args.subparser_name == 'tfuzz':
             exit_code = fuzzer.start_from_template(args.num_test_cases, args.num_inputs,
-                                                   args.timeout, args.nonstop,
-                                                   args.save_violations)
+                                                   args.timeout, args.nonstop, args.save_violations)
         elif testcase:
             # deprecated mode; will be removed soon (duplicates `reproduce`)
             exit_code = fuzzer.start_from_asm(args.num_test_cases, args.num_inputs, args.timeout,
