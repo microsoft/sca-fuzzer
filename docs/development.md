@@ -2,7 +2,7 @@
 
 This page contains various bits of information helpful when developing and expanding Revizor.
 
-# Running Tests
+## Tests
 
 To run automated tests you will need to install a few more dependencies:
 * [Bash Automated Testing System](https://bats-core.readthedocs.io/en/latest/index.html)
@@ -12,186 +12,98 @@ To run automated tests you will need to install a few more dependencies:
 With the dependencies installed, you can run the tests with:
 
 ```bash
-make test
+./tests/runtests.sh
 ```
 
-If a few (up to 3) "Detection" tests fail, it's fine, you might just have a slightly different microarchitecture.
-But if other tests fail - something is broken.
+Note that some of the acceptance tests are microarchitecture-dependent.
+These tests are labeled "Detection" (e.g., "Detection [spectre-type] Spectre V1; load variant"), and they may fail if the CPU under test does not have a given vulnerability.
+Generally, if a few of these tests fail, it is not a problem, but if all of them (or a significant portion) fail, it indicates an issue with the fuzzer.
 
-# Revizor's Architecture
+## Code Style
 
-![architecture](assets/arch.png)
+Please follow these coding standards when writing code for inclusion in Revizor.
 
-Revizor has **five** chief components:
+Python:
+* Unless otherwise specified, follow PEP 8. But remember that PEP 8 is only a guide, so respect the style of the surrounding code as a primary goal.
+* An exception to PEP 8 is our rules on line lengths. Don’t limit lines of code to 79 characters if it means the code looks significantly uglier or is harder to read. We allow up to 100 characters.
+* All files should be formatted using the `flake8` auto-formatter. Use all default settings except for the line width (`--max-line-length 100`)
+* The Python and C files use 4 spaces for indentation, and YAML uses 2 spaces.
+* The project repository includes an .editorconfig file. We recommend using a text editor with EditorConfig support to avoid indentation and whitespace issues.
+* Use underscores, not camelCase, for variable, function and method names (i.e. poll.get_unique_voters(), not poll.getUniqueVoters()).
+* Use InitialCaps for class names (or for factory functions that return classes).
+* In docstrings, follow PEP 257.
 
-1. Test Case Generator
-2. Input Generator
-3. Model
-4. Executor
-5. Analyser
+C:
+* All files should be formatted using the `clang-format`. The settings are included into the `.clang-format` files in the directories with C files. Just run the formatter with: `clang-format -i *.c`
 
-The **Test Case Generator** and **Input Generator** are responsible for
-generating random test cases to be run through the **Model** and **Executor**.
-The results are examined by the **Analyser** for contract violations.
+Misc:
+* Remove import statements that are no longer used when you change code. flake8 will identify these imports for you. If an unused import needs to remain for backwards-compatibility, mark the end of with # NOQA to silence the flake8 warning.
+* Systematically remove all trailing whitespaces from your code as those add unnecessary bytes, add visual clutter to the patches and can also occasionally cause unnecessary merge conflicts. Some IDE’s can be configured to automatically remove them and most VCS tools can be set to highlight them in diff outputs.
 
-## Test Case Generator
+## Git Messages
 
-The TCG is responsible for generating random assembly test cases. It takes an
-Instruction Set Specification as input in order for it to understand the
-instructions and syntax it can use for generation.
+We practice the following conventions for commit messages:
 
-## Input Generator
+```
+<scope>: [<type>] <subject>
+```
 
-The IG is responsible for generating the *inputs* that are passed into a test
-case created by the TCG. Largely, this means **register** and **memory** values
-that the microarchitecture will be primed with before executing the test case.
-In this way, a single test case program can be run across several different
-inputs, allowing for multiple contract traces (and later, hardware traces) to be
-collected for analysis.
+Where:
+* `<scope>`: The scope of the change.
+* `<type>`: The type of the change.
+* `<subject>`: A short description of the change.
 
-## Model
+### Scopes
 
-The Model's job is to accept test cases and inputs from the TCG & IG and
-*emulate* the test case to collect **contract traces**. A single test case seeded
-with several inputs (`N` inputs) will create several contract traces (`N`
-contract traces) as the model's output. These are passed to the Analyser to
-determine **input classes**.
+The following scopes are typical:
+* `all`: Changes that affect the entire project (e.g., major refactoring)
+* `fuzz`: Changes to the core fuzzer algorithm.
+* `cli`: Changes to the command-line interface.
+* `exec`: Changes to the executor.
+* `model`: Changes to the model.
+* `analyser`: Changes to the analyser.
+* `mini`: Changes to the postprocessor (i.e., minimizer).
+* `gen`: Changes to the program generator
+* `input_gen`: Changes to the input generator
+* `tests`: Changes to the tests
+* `isa`: Changes to the ISA loader or to `get_spec` files
 
-## Executor
+If a commit covers several scopes, use the most relevant one.
 
-The Executor, on the other side from the Model, is responsible for running the
-*same* test cases (with the *same* inputs) on physical hardware to collect
-**hardware traces**. Hardware traces from the same input class are collected and
-studied by the Analyser to detect **contract violations**.
+If a commit targets a specific architecture (e.g., x86), add the architecture to the scope (e.g., `fuzz/x86`).
 
-## Analyser
+### Types
 
-The Analyser receives contract traces from the Model and hardware traces from
-the Executor to accomplish two primary goals:
+Use one of the following types:
+* `feat`: A new feature.
+* `fix`: A bug fix.
+* `docs`: Documentation changes.
+* `chore`: Changes to the build process or auxiliary tools.
+* `ft`: Fault tolerance changes (e.g., adding error handling or recovery mechanisms).
+* `refact`: Refactoring of the codebase. This includes code style change.
+* `perf`: Performance improvements.
+* `revert`: Reverts a previous commit.
 
-1. Compare contract traces to set up **input classes**.
-2. Compare hardware traces to detect **contract violations**.
+If possible, try to use only these types.
+If you need to use a different type, please discuss it with a maintainer.
 
+## Git Branches
 
-# Revizor Modules and Interfaces
+We practice the (git workflow)[https://git-scm.com/docs/gitworkflows], with a few modifications.
 
-Revizor's implementation and [architecture](architecture.md) is separated into
-multiple Python files:
+We use the following branches for graduation:
+* `main`: The latest release. This branch should always be stable, and it is the last branch to receive changes.
+* `main-fixes`: Commits that go in the next maintenance release. This branch is created from the last release branch.
+* `pre-release`: Stable commits that go in the next release.
+* `dev`: The development branch. This branch is the first to receive changes.
 
-* `cli.py` - implements the command-line interface of revizor.
-* `config.py` - implements parsing and managing of revizor's YAML configuration
-  file.
-* `generator.py` - implements the **Test Case Generator** portion of
-  [revizor's architecture](architecture.md).
-* `input_generator.py` - implements the **Input Generator** portion of
-  [revizor's architecture](architecture.md).
-* `model.py` - implements the Unicorn-based **Model** portion of
-  [revizor's architecture](architecture.md).
-* `executor.py` - implements the **Executor** portion of
-  [revizor's architecture](architecture.md).
-* `analyser.py` - implements the **Analyser** portion of
-  [revizor's architecture](architecture.md).
-* `postprocessor.py` - defines the `MinimizerViolation` class, used during
-  `minimize` mode to reduce a violation-inducing test case down to a smaller
-  size while still maintaining the violation-inducing behavior.
-* `fuzzer.py` - implements `fuzz` mode that utilizes all main components to
-  perform end-to-end hardware fuzzing.
-* `factory.py` - used to configure revizor accordingly to the user provided
-  YAML configuration. Implements a simplified version of the Factory pattern:
-  Defines a series of dictionaries that allows revizor to choose
-  between various contract, generation techniques, executors, analysers, etc.
-  In future, it be also used to implement  multiple-ISA support.
-* `interfaces.py` - defines abstract classes (i.e., interfaces) of all main
-  components of revizor (e.g., abstract  `Executor`, `Model`, `TestCase`,
-   `Input`, etc)
-* `isa\_loader.py` - defines the `InstructionSet` class, used to load an
-  ISA's specifications from a JSON file provided via the
-  [command-line interface](cli.md).
-* `service.py` - defines logging, statistical, and other services to all other
-  modules within revizor.
+Commits should be merged upwards:
+* `dev` -> `pre-release` -> `main`
+* In case of hot fixes, `main-fixes` -> `main` AND `main-fixes` -> `pre-release`
 
-## Architecture-specific Implementation
+For working on unstable code (e.g., progress on features or bug fixes), use either forks or feature branches.
+Use forks if you are the only one working on the feature, and use a pull request to merge the changes back into the main repository.
+Use a feature branch if multiple people are working on the feature, in which case name the branch `feature-<name>` or `bugfix-<name>`, and make sure to branch from the `dev` branch.
 
-The modules above are ISA-independent. The architecture-specific implementations
-are located in the subdirectories. For example, the implementation of the modules
-for the x86-64 architecture is located in `src/x86/`. It's structure largely
-mirrors the main modules of revizor (e.g., `x86_model.py` contains x86-specific
-parts of the **Model** module). The only unique parts are:
-
-* `*_target_desc.py` - defines constants describing the ISA (e.g., a list of
-  available registers) and some helper functions.
-* `get_spec.py` - a script for transforming the ISA description provided
-  by the CPU vendor (different for every vendor) into a unified JSON format
-* `executor/` - contains a low-level implementation of the executor. The
-  implementation will be different for each architecture. For black-box x86 CPUs,
-  it is a Linux kernel module.
-
-## Abstract Test Case
-
-This describes a number of Python classes within revizor that define parts of an
-assembly test case. Revizor's TCG uses them to generate syntactically-valid
-assembly. The classes are defined in `interfaces.py`.
-
-#### `OperandSpec`
-
-The `OperandSpec` class defines a set of valid operands for any given assembly
-instruction. Each `InstructionSpec` object (described below) contains a list of
-these operand specifications. It contains properties such as:
-
-* The `type` of operand
-* The `width` of the operand
-* Whether or not the operand is a `src` or `dest` operand
-
-#### `InstructionSpec`
-
-This class represents a single instruction specification. It contains a name
-(i.e. the actual instruction mnemonic, such as `ADD`) and a list of
-`OperandSpec`s, defining valid operands for the instruction. It also has a
-number of boolean flags that indicate unique attributes about the instruction,
-such as:
-
-* If the instruction contains a memory write
-* If the instruction is a control-flow instruction
-
-#### `Operand`
-
-The `Operand` class defines an actual operand to be used in an instruction
-placed into the TCG's generated test case (not to be confused with
-`OperandSpec`, which is a set of rules used to define possible operand choices
-for an instruction). This is an **abstract base class** that provides a number
-of sub-classes:
-
-* `RegisterOperand`
-* `MemoryOperand`
-* `ImmediateOperand`
-* `LabelOperand`
-* `AgenOperand`
-* `FlagsOperand`
-
-#### `Instruction`
-
-Similar to the relationship between `OperandSpec` and `Operand`, the
-`Instruction` class defines an actual instruction, constrained by an
-`InstructionSpec`, that is used during test case generation. It contains a list
-of `Operand`s and is linked to its neighboring instructions via object
-references.
-
-#### `BasicBlock`
-
-Thisi class represents a single basic block within the generated test case (a
-**basic block** is a straight-line sequence of assembly instructions that has a
-single entry and exit point). It contains a list of all instructions contained
-within, references to its successor basic block(s), and a list of "terminator"
-instructions (instructions that exit the basic block, such as a branch).
-
-#### `Function`
-
-This object represents a collection of basic blocks that form a function. It has
-an "entry" basic block and an "exit" basic block, along with a list of all basic
-blocks that comprise the function.
-
-#### `TestCaseDAG`
-
-**DAG** is short for **Directed Acyclic Graph**. This object represents the
-*entire* test case's control flow. It contains a list of functions that, within,
-define all instructions to be written out to the test case's assembly file.
+The only exception is the `gh-pages` branch, which is used for the project's website.
+This branch is used by automated tools and should never be used for development.
