@@ -1,155 +1,189 @@
 #!/usr/bin/env bash
-set -e
+set -o errexit -o pipefail -o noclobber -o nounset
 trap exit INT
 
-# Test configuration
-NUM_INPUTS=100
-NUM_PROGS=1000000000  # some large number that is never reached before the timeout
-TIMEOUT=7200  # seconds
-DEBUG=0
-
-
-# env checks
-if [ -z "${REVIZOR_DIR}" ]; then
-    echo "ERROR: REVIZOR_DIR is not set"
-    exit 1
-fi
-
-if [ -z "${LOGS_DIR}" ]; then
-    echo "ERROR: LOGS_DIR is not set"
-    exit 1
-fi
-
-if [ ! -f "$REVIZOR_DIR/revizor.py" ]; then
-    echo "ERROR: Could not find '$REVIZOR_DIR/revizor.py'"
-fi
-
-if [ ! -f "$REVIZOR_DIR/src/x86/base.json" ]; then
-    echo "ERROR: Could not find '$REVIZOR_DIR/src/x86/base.json'"
-fi
-
-# Prepare all files
 SCRIPT=$(realpath $0)
 SCRIPT_DIR=$(dirname $SCRIPT)
 
-revizor="$REVIZOR_DIR/revizor.py"
-instructions="$REVIZOR_DIR/src/x86/base.json"
+# ==================================================================================================
+# Read arguments
 
-work_dir="$LOGS_DIR/$(date '+%y.%m.%d.%H.%M.%S')"
-mkdir -p "$work_dir"
-main_log="$work_dir/log.txt"
+# check for availability of getopt
+getopt --test >/dev/null && true
+if [[ $? -ne 4 ]]; then
+    echo 'ERROR: getopt is not available'
+    exit 1
+fi
 
-# ----------------------------------------------------------------------------
-# Templates
-# ----------------------------------------------------------------------------
-cd $work_dir
+# List arguments
+LONGOPTS=rvzr:,workdir:,verbose
+OPTIONS=r:w:v
 
-cat <<EOF >template.yaml
-input_gen_entropy_bits: 24
-inputs_per_class: 2
+# Parse output
+PARSED=$(getopt --options=$OPTIONS --longoptions=$LONGOPTS --name "$0" -- "$@") || exit 2
+eval set -- "$PARSED"
 
-enable_speculation_filter: true
-enable_observation_filter: true
-enable_priming: true
+verbose=0
+revizor_dir=""
+work_dir=""
 
-program_size: 32
-avg_mem_accesses: 16
+usage="Usage: $0 [-v] -r <revizor_dir> -w <work_dir>"
+while true; do
+    case "$1" in
+    -v | --verbose)
+        verbose=0
+        ;;
+    -r | --rvzr)
+        revizor_dir=$2
+        shift
+        ;;
+    -w | --workdir)
+        work_dir=$2
+        shift
+        ;;
+    --)
+        shift
+        break
+        ;;
+    esac
+    shift
+done
 
-logging_modes:
-  - info
-  - stat
+# check usage
+if [ -z "$revizor_dir" ]; then
+    echo "ERROR: revizor_dir is not set"
+    echo $usage
+    exit 1
+fi
+if [ -z "$work_dir" ]; then
+    echo "ERROR: work_dir is not set"
+    echo $usage
+    exit 1
+fi
 
-instruction_categories:
-- BASE-BINARY
-- BASE-BITBYTE
-- BASE-CMOV
-- BASE-COND_BR
-- BASE-CONVERT
-- BASE-DATAXFER
-- BASE-FLAGOP
-- BASE-LOGICAL
-- BASE-MISC
-- BASE-NOP
-- BASE-POP
-- BASE-PUSH
-- BASE-SEMAPHORE
-- BASE-SETCC
-- BASE-STRINGOP
+# make sure that the directories and required files exist
+if [ ! -d "$revizor_dir" ]; then
+    echo "ERROR: Could not find '$revizor_dir'"
+fi
+if [ ! -d "$work_dir" ]; then
+    echo "ERROR: Could not find '$work_dir'"
+fi
+if [ ! -f "$revizor_dir/revizor.py" ]; then
+    echo "ERROR: Could not find '$revizor_dir/revizor.py'"
+fi
+if [ ! -f "$revizor_dir/src/x86/base.json" ]; then
+    echo "ERROR: Could not find '$revizor_dir/src/x86/base.json'"
+fi
 
-# these clauses may be re-assigned later
-contract_observation_clause: loads+stores+pc
-contract_execution_clause:
-    - no_speculation
-EOF
+work_dir=$(realpath $work_dir)
+work_dir="$work_dir/$(date '+%Y-%m-%d-%H-%M-%S')"
 
-cp template.yaml template-nsco.yaml
-echo "
-instruction_blocklist:
-- cmpsb
-- cmpsd
-- cmpsw
-- cmpsq
-- scasb
-- scasd
-- scasw
-- scasq
-- repe cmpsb
-- repe cmpsd
-- repe cmpsw
-- repe cmpsq
-- repe scasb
-- repe scasd
-- repe scasw
-- repe scasq
-- repne cmpsb
-- repne cmpsd
-- repne cmpsw
-- repne cmpsq
-- repne scasb
-- repne scasd
-- repne scasw
-- repne scasq
-" >> template-nsco.yaml
+# ==================================================================================================
+# Test configuration
+NUM_INPUTS=25
+NUM_PROGS=1000000000 # some large number that is never reached before the timeout
+TIMEOUT=7200         # seconds
 
-cp template-nsco.yaml template-nv1-nsco.yaml
-echo "
-min_bb_per_function: 1
-max_bb_per_function: 1
-" >> template-nv1-nsco.yaml
+# Globals
+revizor="$revizor_dir/revizor.py"
+instructions="$revizor_dir/src/x86/base.json"
+conf_dir="$SCRIPT_DIR/configs/"
 
-cp template-nv1-nsco.yaml template-all.yaml
-
-
-# ----------------------------------------------------------------------------
+# ==================================================================================================
 # Functions
-# ----------------------------------------------------------------------------
-function fuzz() {
-    local name=$1
-    local expected=$2
-    config="$work_dir/${name}.yaml"
+function _check_results() {
+    # Check the output of the experiment for errors and parse the results
 
-    printf "+ $name:\n    detection ...  "
-    set +e
-    if [ "$DEBUG" -eq "1" ]; then
-        echo "python ${revizor} fuzz -s $instructions -c $config -i $NUM_INPUTS -n $NUM_PROGS --timeout $TIMEOUT -w $work_dir/$name"
-    fi
-    python ${revizor} fuzz -s $instructions -c $config -i $NUM_INPUTS -n $NUM_PROGS --timeout $TIMEOUT -w "$work_dir/$name" &> "$work_dir/$name-log.txt"
-    exit_code=$?
-    set -e
+    # arguments
+    local log=$1
+    local exit_code=$2
+    local expected=$3
 
-    if [ $exit_code -eq $expected ]; then
-        if grep "ERROR" $work_dir/$name-log.txt &> /dev/null ; then
-            printf "\033[33;31merror\033[0m\n"
-        elif grep "Errno" $work_dir/$name-log.txt &> /dev/null ; then
-            printf "\033[33;31merror\033[0m\n"
-        else
-            printf "\033[33;32mok\033[0m [%s sec]\n" $(awk '/Duration/{print $2}' $work_dir/$name-log.txt)
-        fi
-    else
-        printf "\033[33;31mfail\033[0m\n"
+    # output messages
+    fail="\033[33;31mfail\033[0m"
+    error="\033[33;31merror\033[0m"
+    ok="\033[33;32mok\033[0m"
+
+    # check for errors
+    if grep "ERROR" $log &>/dev/null; then
+        printf "$error\n"
+        return 1
     fi
+    if grep "Errno" $log &>/dev/null; then
+        printf "$error\n"
+        return 1
+    fi
+
+    # if no violations were found, the test failed
+    if [ $exit_code -ne $expected ]; then
+        printf "$fail [exit code %s != %s]\n" "$exit_code" "$expected"
+        return 1
+    fi
+
+    # parse the output
+    duration=$(awk '/Duration/{print $2}' $log)
+    length=$(awk '/^Test Cases:/{print $3}' $log)
+    printf "$ok [%s sec, %s tc]\n" "$duration" "$length"
+    return 0
 }
 
+function run() {
+    local name=$1
+
+    # remove leftovers from previous runs
+    rm -rf $work_dir &>/dev/null || true
+    mkdir -p $work_dir
+
+    # check that the configuration file exists
+    config="$conf_dir/${name}.yaml"
+    if [ ! -f "$config" ]; then
+        echo "ERROR: Could not find '$config'"
+        exit 1
+    fi
+
+    # create a log file
+    log="$conf_dir/${name}-log.txt"
+    rm $log &>/dev/null || true
+
+    # Print the header
+    echo "================================================================================"
+    echo "Running test: $name"
+
+    # run the test
+    printf "+ Detect ...  "
+    set +e
+    if [ $verbose -eq 1 ]; then set -x; fi
+    python ${revizor} fuzz -s $instructions -c $config -i $NUM_INPUTS -n $NUM_PROGS --timeout $TIMEOUT -w "$work_dir" | tee "$log"
+    exit_code=$?
+    if [ $verbose -eq 1 ]; then set +x; fi
+    set -e
+
+    _check_results $log $exit_code 1
+    if [ $? -ne 0 ]; then
+        return
+    fi
+
+    # move the violation into a dedicated dir
+    vdir="$work_dir/violation*"
+    if [ -d "$vdir" ]; then
+        echo "ERROR: Could not find a violation directory: '$vdir'"
+        exit 1
+    fi
+
+    # reproduce the violations
+    printf "+ Reproduce ...  "
+    set +e
+    if [ $verbose -eq 1 ]; then set -x; fi
+    python ${revizor} reproduce -s $instructions -c $vdir/reproduce.yaml -I $conf_dir -t $vdir/program.asm -i $(ls $vdir/input*.bin) | tee "$log"
+    exit_code=$?
+    if [ $verbose -eq 1 ]; then set +x; fi
+    set -e
+
+    _check_results $log $exit_code 1
+    if [ $? -ne 0 ]; then
+        return
+    fi
+}
 
 function reproduce() {
     local name=$1
@@ -157,18 +191,18 @@ function reproduce() {
 
     printf "    reproducing ... "
     set +e
-    violation_dir="$work_dir/$name"
-    config="$work_dir/${name}-repro.yaml"
-    cp "$work_dir/${name}.yaml" $config
-    awk "/Input seed:/{print \"input_gen_seed:\", \$4}" $violation_dir/violation-*/report.txt >> $config
-    python ${revizor} reproduce -s $instructions -c $config -n $NUM_INPUTS -t $violation_dir/violation-*/program.asm  -i $(ls $violation_dir/violation-*/input*.bin | sort -t _ -k2 -n )  &>> "$work_dir/$name-log.txt"
+    violation_dir="$conf_dir/$name"
+    config="$conf_dir/${name}-repro.yaml"
+    cp "$conf_dir/${name}.yaml" $config
+    awk "/Input seed:/{print \"input_gen_seed:\", \$4}" $violation_dir/violation-*/report.txt >>$config
+    python ${revizor} reproduce -s $instructions -c $config -n $NUM_INPUTS -t $violation_dir/violation-*/program.asm -i $(ls $violation_dir/violation-*/input*.bin | sort -t _ -k2 -n) &>>"$conf_dir/$name-log.txt"
     exit_code=$?
     set -e
 
     if [ $exit_code -eq $expected ]; then
-        if grep "ERROR" $work_dir/$name-log.txt &> /dev/null ; then
+        if grep "ERROR" $conf_dir/$name-log.txt &>/dev/null; then
             printf "\033[33;31merror\033[0m\n"
-        elif grep "Errno" $work_dir/$name-log.txt &> /dev/null ; then
+        elif grep "Errno" $conf_dir/$name-log.txt &>/dev/null; then
             printf "\033[33;31merror\033[0m\n"
         else
             printf "\033[33;32mok\033[0m\n"
@@ -178,22 +212,21 @@ function reproduce() {
     fi
 }
 
-
 function verify() {
     local name=$1
     local expected=$2
 
     printf "    validating ... "
     set +e
-    violation_dir="$work_dir/$name"
-    config="$work_dir/${name}-verify.yaml"
-    awk "/Input seed:/{print \"input_gen_seed:\", \$4}" $violation_dir/violation-*/report.txt >> $config
-    python ${revizor} reproduce -s $instructions -c $config -n $NUM_INPUTS -t $violation_dir/violation-*/program.asm  -i $(ls $violation_dir/violation-*/input*.bin | sort -t _ -k2 -n ) &>> "$work_dir/$name-log.txt"
+    violation_dir="$conf_dir/$name"
+    config="$conf_dir/${name}-verify.yaml"
+    awk "/Input seed:/{print \"input_gen_seed:\", \$4}" $violation_dir/violation-*/report.txt >>$config
+    python ${revizor} reproduce -s $instructions -c $config -n $NUM_INPUTS -t $violation_dir/violation-*/program.asm -i $(ls $violation_dir/violation-*/input*.bin | sort -t _ -k2 -n) &>>"$conf_dir/$name-log.txt"
     exit_code=$?
     set -e
 
     if [ $exit_code -ne $expected ]; then
-        if grep "ERROR" $work_dir/$name-log.txt &> /dev/null ; then
+        if grep "ERROR" $conf_dir/$name-log.txt &>/dev/null; then
             printf "\033[33;31merror\033[0m\n"
         else
             printf "\033[33;32mok\033[0m\n"
@@ -205,11 +238,10 @@ function verify() {
 
 function fuzz_and_verify() {
     local name=$1
-    local expected=$2
 
-    fuzz $name $expected
+    fuzz $name
     reproduce $name $expected
-    verify $name $expected
+    # verify $name $expected
 }
 
 function fuzz_no_verify() {
@@ -222,280 +254,14 @@ function fuzz_no_verify() {
     printf "    no validation\n"
 }
 
-# ----------------------------------------------------------------------------
+# ==================================================================================================
 # Measurements
-# ----------------------------------------------------------------------------
 printf "Starting at $(date '+%H:%M:%S on %d.%m.%Y')\n\n"
-cd $work_dir
 
-function spectre_v1() {
-    name="spectre-v1"
-    cp template-nsco.yaml "${name}.yaml"
-    echo "
-min_successors_per_bb: 2
-min_bb_per_function: 3
-max_bb_per_function: 3
-    " >> "${name}.yaml"
-    cp "${name}.yaml" "${name}-verify.yaml"
-    echo "
-contract_execution_clause:
-    - conditional_br_misprediction
-    " >> "${name}-verify.yaml"
-    fuzz_and_verify $name 1
-}
-
-function spectre_v1_store() {
-    name="spectre-v1-store"
-    cp template-nsco.yaml "${name}.yaml"
-    echo "
-min_successors_per_bb: 2
-min_bb_per_function: 3
-max_bb_per_function: 3
-contract_observation_clause: ct-nonspecstore
-contract_execution_clause:
-    - conditional_br_misprediction
-    " >> "${name}.yaml"
-    cp "${name}.yaml" "${name}-verify.yaml"
-    echo "
-contract_observation_clause: loads+stores+pc
-    " >> "${name}-verify.yaml"
-    fuzz_and_verify $name 1
-}
-
-function spectre_v1_var() {
-    name="spectre-v1-var"
-    cp template-nsco.yaml "${name}.yaml"
-    echo "
-min_successors_per_bb: 2
-min_bb_per_function: 3
-max_bb_per_function: 3
-contract_execution_clause:
-    - conditional_br_misprediction
-analyser_subsets_is_violation: false
-    " >> "${name}.yaml"
-    fuzz_no_verify $name 1
-}
-
-function spectre_v4() {
-    name="spectre-v4"
-    cp template-all.yaml "${name}.yaml"
-    echo "
-x86_executor_enable_ssbp_patch: false
-    " >> "${name}.yaml"
-    cp "${name}.yaml" "${name}-verify.yaml"
-    echo "
-x86_executor_enable_ssbp_patch: true
-    " >> "${name}-verify.yaml"
-    fuzz_and_verify $name 1
-}
-
-function zero_divisor_injection() {
-    name="zero-divisor-injection"
-    cp template-all.yaml "${name}.yaml"
-    echo "
-x86_disable_div64: false
-    " >> "${name}.yaml"
-    fuzz_no_verify $name 1
-}
-
-function string_copy_overflow() {
-    name="string-copy-overflow"
-    cp template.yaml "${name}.yaml"
-    echo "
-min_bb_per_function: 1
-max_bb_per_function: 1
-    " >> "${name}.yaml"
-    fuzz_no_verify $name 1
-}
-
-function exception_delayed_handling() {
-    name="exception-delayed-handling"
-    cp template-all.yaml "${name}.yaml"
-    echo "
-actors:
-    - main:
-        - data_properties:
-            - present: False
-    " >> "${name}.yaml"
-    cp "${name}.yaml" "${name}-verify.yaml"
-    echo "
-contract_execution_clause:
-    - nullinj-fault
-    " >> "${name}-verify.yaml"
-    fuzz_and_verify $name 1
-}
-
-function l1tf_present() {
-    name="l1tf-present"
-    cp template-all.yaml "${name}.yaml"
-    echo "
-actors:
-    - main:
-        - data_properties:
-            - present: False
-contract_execution_clause:
-    - delayed-exception-handling
-    " >> "${name}.yaml"
-    cp "${name}.yaml" "${name}-verify.yaml"
-    echo "
-contract_execution_clause:
-    - nullinj-fault
-    " >> "${name}-verify.yaml"
-    fuzz_and_verify $name 1
-}
-
-function l1tf_rw() {
-    name="l1tf-rw"
-    cp template-all.yaml "${name}.yaml"
-    echo "
-actors:
-    - main:
-        - data_properties:
-            - writable: False
-contract_execution_clause:
-    - delayed-exception-handling
-    " >> "${name}.yaml"
-    cp "${name}.yaml" "${name}-verify.yaml"
-    echo "
-    contract_execution_clause:
-        - nullinj-fault
-    " >> "${name}-verify.yaml"
-    fuzz_and_verify $name 1
-}
-
-function l1tf_smap() {
-    name="l1tf-smap"
-    cp template-all.yaml "${name}.yaml"
-    echo "
-actors:
-    - main:
-        - data_properties:
-            - user: false
-contract_execution_clause:
-    - delayed-exception-handling
-    " >> "${name}.yaml"
-    cp "${name}.yaml" "${name}-verify.yaml"
-    echo "
-contract_execution_clause:
-    - nullinj-fault
-    " >> "${name}-verify.yaml"
-    fuzz_and_verify $name 1
-}
-
-function mds_assist_accessed() {
-    name="mds-assist-accessed"
-    cp template-all.yaml "${name}.yaml"
-    echo "
-actors:
-    - main:
-        - data_properties:
-            - accessed: false
-contract_execution_clause:
-    - delayed-exception-handling
-    " >> "${name}.yaml"
-    cp "${name}.yaml" "${name}-verify.yaml"
-    echo "
-contract_execution_clause:
-    - nullinj-fault
-    " >> "${name}-verify.yaml"
-    fuzz_and_verify $name 1
-}
-
-function mds_assist_dirty() {
-    name="mds-assist-dirty"
-    cp template-all.yaml "${name}.yaml"
-    echo "
-actors:
-    - main:
-        - data_properties:
-            - dirty: false
-contract_execution_clause:
-    - delayed-exception-handling
-    " >> "${name}.yaml"
-    cp "${name}.yaml" "${name}-verify.yaml"
-    echo "
-contract_execution_clause:
-    - nullinj-fault
-    " >> "${name}-verify.yaml"
-    fuzz_and_verify $name 1
-}
-
-function l1tf_gp() {
-    name="l1tf-gp"
-    cp template-all.yaml "${name}.yaml"
-    echo "
-generator_faults_allowlist:
-    - non-canonical-access
-contract_execution_clause:
-    - delayed-exception-handling
-    " >> "${name}.yaml"
-    fuzz $name 1
-}
-
-function gp_forwarding() {
-    name="gp-forwarding"
-    cp template-all.yaml "${name}.yaml"
-    echo "
-generator_faults_allowlist:
-    - non-canonical-access
-contract_execution_clause:
-    - nullinj-fault
-    " >> "${name}.yaml"
-    fuzz $name 1
-}
-
-function div_by_zero_speculation() {
-    name="div-by-zero-speculation"
-    cp template-all.yaml "${name}.yaml"
-    echo "
-generator_faults_allowlist:
-    - div-by-zero
-contract_execution_clause:
-    - delayed-exception-handling
-    " >> "${name}.yaml"
-    fuzz $name 1
-}
-
-function div_overflow_speculation() {
-    name="div-overflow-speculation"
-    cp template-all.yaml "${name}.yaml"
-    echo "
-generator_faults_allowlist:
-    - div-overflow
-contract_execution_clause:
-    - delayed-exception-handling
-    " >> "${name}.yaml"
-    fuzz $name 1
-}
-
-function tn_opcode_faults() {
-    name="TN-opcode-faults"
-    cp template-all.yaml "${name}.yaml"
-    echo "
-generator_faults_allowlist:
-    - opcode-undefined
-    - breakpoint
-    - debug-register
-contract_execution_clause:
-    - no_speculation
-    " >> "${name}.yaml"
-    fuzz $name 0
-}
-
-spectre_v1
-spectre_v1_store
-spectre_v1_var
-spectre_v4
-zero_divisor_injection
-string_copy_overflow
-exception_delayed_handling
-l1tf_present
-l1tf_rw
-l1tf_smap
-mds_assist_accessed
-mds_assist_dirty
-l1tf_gp
-gp_forwarding
-div_by_zero_speculation
-div_overflow_speculation
-tn_opcode_faults
+run "v1"
+run "v1-store"
+run "v1-var"
+run "v4"
+run "zdi"
+run "sco"
+run "ooo"

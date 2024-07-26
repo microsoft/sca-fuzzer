@@ -1,0 +1,3 @@
+file: !include common-nsco.yaml
+
+x86_executor_enable_ssbp_patch: false
