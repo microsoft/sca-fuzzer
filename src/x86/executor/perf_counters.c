@@ -5,6 +5,7 @@
 
 #include <linux/kernel.h>
 #include <linux/types.h>
+#include <asm/msr-index.h>
 
 #include "main.h"
 #include "shortcuts.h"
@@ -154,18 +155,18 @@ static int pfc_write(unsigned int id, struct pfc_config *config, unsigned int us
 {
     uint64_t perf_configuration;
 #if VENDOR_ID == 1
-    uint64_t global_ctrl = native_read_msr(0x38F);
+    uint64_t global_ctrl = native_read_msr(MSR_CORE_PERF_GLOBAL_CTRL);
     global_ctrl |= ((uint64_t)7 << 32) | 15;
-    wrmsr64(0x38F, global_ctrl);
+    wrmsr64(MSR_CORE_PERF_GLOBAL_CTRL, global_ctrl);
 
-    perf_configuration = native_read_msr(0x186 + id);
+    perf_configuration = native_read_msr(MSR_P6_EVNTSEL0 + id);
 
     // disable the counter
     perf_configuration &= ~(((uint64_t)1 << 32) - 1);
-    wrmsr64(0x186 + id, perf_configuration);
+    wrmsr64(MSR_P6_EVNTSEL0 + id, perf_configuration);
 
     // clear
-    wrmsr64(0x0C1 + id, 0ULL);
+    wrmsr64(MSR_IA32_PERFCTR0 + id, 0ULL);
 
     perf_configuration |= ((config->cmask & 0xFF) << 24);
     perf_configuration |= (config->inv << 23);
@@ -176,7 +177,7 @@ static int pfc_write(unsigned int id, struct pfc_config *config, unsigned int us
     perf_configuration |= (usr << 16);
     perf_configuration |= ((config->umask & 0xFF) << 8);
     perf_configuration |= (config->evt_num & 0xFF);
-    wrmsr64(0x186 + id, perf_configuration);
+    wrmsr64(MSR_P6_EVNTSEL0 + id, perf_configuration);
 #elif VENDOR_ID == 2
     perf_configuration = 0;
     perf_configuration |= ((config->evt_num) & 0xF00) << 24;
