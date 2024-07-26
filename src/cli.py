@@ -31,14 +31,24 @@ def main() -> int:
 
     # ==============================================================================================
     # Common arguments
-    parser.add_argument(
+    common_parser = ArgumentParser(add_help=False)
+    common_parser.add_argument(
         "-c",
         "--config",
         type=str,
         required=False,
         help="Path to the configuration file (YAML) that will be used during fuzzing.",
     )
-    parser.add_argument(
+    common_parser.add_argument(
+        "-I",
+        "--include-dir",
+        type=str,
+        default=".",
+        required=False,
+        help="Path to the directory containing configuration files that included by the main "
+        " configuration file (received via --config).",
+    )
+    common_parser.add_argument(
         "-s",
         "--instruction-set",
         type=str,
@@ -48,7 +58,7 @@ def main() -> int:
 
     # ==============================================================================================
     # Fuzzing
-    parser_fuzz = subparsers.add_parser('fuzz', add_help=True, parents=[parser])
+    parser_fuzz = subparsers.add_parser('fuzz', add_help=True, parents=[common_parser])
     parser_fuzz.add_argument(
         "-n",
         "--num-test-cases",
@@ -91,7 +101,7 @@ def main() -> int:
 
     # ==============================================================================================
     # Template-based fuzzing
-    parser_tfuzz = subparsers.add_parser('tfuzz', add_help=True, parents=[parser])
+    parser_tfuzz = subparsers.add_parser('tfuzz', add_help=True, parents=[common_parser])
     parser_tfuzz.add_argument(
         "-n",
         "--num-test-cases",
@@ -134,7 +144,7 @@ def main() -> int:
 
     # ==============================================================================================
     # Standalone interface to trace analysis
-    parser_analyser = subparsers.add_parser('analyse', add_help=True, parents=[parser])
+    parser_analyser = subparsers.add_parser('analyse', add_help=True, parents=[common_parser])
     parser_analyser.add_argument(
         '--ctraces',
         type=str,
@@ -148,7 +158,7 @@ def main() -> int:
 
     # ==============================================================================================
     # Reproducing violation
-    parser_reproduce = subparsers.add_parser('reproduce', add_help=True, parents=[parser])
+    parser_reproduce = subparsers.add_parser('reproduce', add_help=True, parents=[common_parser])
     parser_reproduce.add_argument(
         '-t',
         '--testcase',
@@ -177,7 +187,7 @@ def main() -> int:
     parser_mini = subparsers.add_parser(
         'minimize',
         add_help=True,
-        parents=[parser],
+        parents=[common_parser],
         help="Minimize a test case by executing a series of minimization passes. "
         "The set of passes is controlled via CLI arguments.",
     )
@@ -293,7 +303,7 @@ def main() -> int:
 
     # ==============================================================================================
     # Standalone interface to test case generation
-    parser_generator = subparsers.add_parser('generate', add_help=True, parents=[parser])
+    parser_generator = subparsers.add_parser('generate', add_help=True, parents=[common_parser])
     parser_generator.add_argument(
         "-r",
         "--seed",
@@ -344,7 +354,7 @@ def main() -> int:
 
     # Update configuration
     if getattr(args, 'config', None):
-        CONF.load(args.config)
+        CONF.load(args.config, args.include_dir)
     if getattr(args, 'testcase', None):
         CONF._no_generation = True
 

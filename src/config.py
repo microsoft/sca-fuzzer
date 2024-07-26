@@ -21,28 +21,32 @@ class IncludeLoader(yaml.SafeLoader):
     """
     visited: List[str] = []
 
-    def __init__(self, stream: IO) -> None:
-        self._root = os.path.split(stream.name)[0]
+    def __init__(self, stream: IO, include_dir: str = "") -> None:
+        self._search_paths = [os.path.split(stream.name)[0]]
+        if include_dir:
+            self._search_paths.append(include_dir)
         self.visited.append(os.path.abspath(stream.name))
         super(IncludeLoader, self).__init__(stream)
 
     def __del__(self) -> None:
-        self.visited.pop()
+        if self.visited:
+            self.visited.pop()
 
     def include(self, node: yaml.Node) -> Any:
         """
         Include another YAML file
         """
-        # get the name of the file to include
-        filename = os.path.join(self._root, self.construct_scalar(node))  # type: ignore
+        # find the included file
+        for root in self._search_paths:
+            filename = os.path.join(root, self.construct_scalar(node))  # type: ignore
+            if os.path.exists(filename):
+                break
+        else:
+            raise ConfigException(f"Included file {filename} does not exist")
 
         # check for cycles
         if os.path.abspath(filename) in self.visited:
             raise ConfigException(f"Circular include detected in {filename}")
-
-        # check if the file exists
-        if not os.path.exists(filename):
-            raise ConfigException(f"Included file {filename} does not exist")
 
         with open(filename, 'r') as f:
             return yaml.load(f, IncludeLoader)
@@ -52,6 +56,7 @@ IncludeLoader.add_constructor('!include', IncludeLoader.include)
 
 
 class ConfigException(SystemExit):
+
     def __init__(self, message: str) -> None:
         super().__init__("\nCONFIG ERROR: " + message + "\n")
 
@@ -273,10 +278,15 @@ class Conf:
         if not getattr(self, '_actors', None):
             self._actors = OrderedDict()
 
-    def load(self, config_path: str) -> None:
+    def load(self, config_path: str, include_dir: str = "") -> None:
         self._config_path = config_path
+        config_update: Dict = {}
         with open(config_path, "r") as f:
-            config_update: Dict = yaml.load(f, IncludeLoader)
+            loader = IncludeLoader(f, include_dir)
+            try:
+                config_update = loader.get_single_data()
+            finally:
+                loader.dispose()
         self._load_from_dict(config_update)
         self._value_sanity_check()
 
@@ -287,14 +297,14 @@ class Conf:
             self.set_to_arch_defaults()
             config_update.pop('instruction_set')
 
+        # recursively parse the included file
+        if 'file' in config_update:
+            self._load_from_dict(config_update['file'])
+            config_update.pop('file')
+
         # set the rest of the options
         for var, value in config_update.items():
             # print(f"CONF: setting {var} to {value}")
-
-            # recursively parse the included file
-            if var == "file":
-                self._load_from_dict(value)
-                continue
             if var == "generator_faults_allowlist":
                 self.update_handled_faults_with_generator_faults(value)
                 self.safe_set(var, value)
@@ -310,8 +320,7 @@ class Conf:
 
         # sanity checks
         if name[0] == "_":
-            raise ConfigException(
-                f"Attempting to set an internal configuration variable {name}.")
+            raise ConfigException(f"Attempting to set an internal configuration variable {name}.")
         if getattr(self, name, None) is None:
             raise ConfigException(f"Unknown configuration variable {name}.\n"
                                   f"It's likely a typo in the configuration file.")
@@ -346,9 +355,8 @@ class Conf:
             raise ConfigException(f"Unexpected type of config variable {name}")
 
         if invalid_value:
-            raise ConfigException(
-                f"Unknown value '{invalid_value}' of config variable '{name}'\n"
-                f"Possible options: {options}")
+            raise ConfigException(f"Unknown value '{invalid_value}' of config variable '{name}'\n"
+                                  f"Possible options: {options}")
         return
 
     def _value_sanity_check(self) -> None:
@@ -416,8 +424,7 @@ class Conf:
                 if update.get('mode', 'host') != 'host':
                     raise ConfigException("The main actor must be in 'host' mode")
                 if update.get('privilege_level', 'kernel') != 'kernel':
-                    raise ConfigException(
-                        "The main actor must have 'kernel' privilege_level")
+                    raise ConfigException("The main actor must have 'kernel' privilege_level")
 
             if name in self._actors:
                 entry = self._actors[name]
@@ -440,8 +447,7 @@ class Conf:
                     continue
                 if k == "data_ept_properties":
                     if update.get('mode', 'host') != 'guest':
-                        raise ConfigException(
-                            "data_ept_properties can only be used in guest mode")
+                        raise ConfigException("data_ept_properties can only be used in guest mode")
                     for property_ in v:
                         for p_key, p_value in property_.items():
                             if p_key not in self._option_values["actor_data_ept_properties"]:
