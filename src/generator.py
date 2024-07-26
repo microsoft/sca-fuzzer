@@ -382,8 +382,8 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
         # Define the maximum allowed number of successors for any BB
         if self.instruction_set.has_conditional_branch:
             max_successors = CONF.max_successors_per_bb if CONF.max_successors_per_bb < 2 else 2
-            min_successors = CONF.min_successors_per_bb \
-                if CONF.min_successors_per_bb < max_successors else max_successors
+            min_successors = CONF.min_successors_per_bb if CONF.min_successors_per_bb < 2 else 2
+            assert min_successors <= max_successors, "min_successors_per_bb > max_successors_per_bb"
         else:
             max_successors = 1
             min_successors = 1

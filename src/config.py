@@ -109,9 +109,7 @@ class Conf:
     """ min_bb_per_function: min. number of successors for each basic block in generated programs
     Note 1: this config option is a *hint*; it could be ignored if the instruction set does not
     have the necessary instructions to satisfy it, or if a certain number of successor is required
-    for correctness
-    Note 2: If min_successors_per_bb > max_successors_per_bb, the value is
-    overwritten with max_successors_per_bb """
+    for correctness"""
     max_successors_per_bb: int = 1
     """ min_bb_per_function: min. number of successors for each basic block in generated programs
     Note: this config option is a *hint*; it could be ignored if the instruction set does not
@@ -280,6 +278,7 @@ class Conf:
         with open(config_path, "r") as f:
             config_update: Dict = yaml.load(f, IncludeLoader)
         self._load_from_dict(config_update)
+        self._value_sanity_check()
 
     def _load_from_dict(self, config_update: Dict) -> None:
         # make sure to set the architecture-dependent defaults first
@@ -319,8 +318,6 @@ class Conf:
         if type(self.__getattribute__(name)) != type(value):
             raise ConfigException(f"Wrong type of the configuration variable {name}.\n"
                                   f"It's likely a typo in the configuration file.")
-        if self.input_gen_entropy_bits > 32:
-            raise ConfigException("input_gen_entropy_bits must be less or equal to 32 bits")
 
         self._check_options(name, value)
         setattr(self, name, value)
@@ -353,6 +350,15 @@ class Conf:
                 f"Unknown value '{invalid_value}' of config variable '{name}'\n"
                 f"Possible options: {options}")
         return
+
+    def _value_sanity_check(self) -> None:
+        """
+        Check if the configuration values make sense
+        """
+        if self.input_gen_entropy_bits > 32:
+            raise ConfigException("input_gen_entropy_bits must be less or equal to 32 bits")
+        if self.min_successors_per_bb > self.max_successors_per_bb:
+            raise ConfigException("min_successors_per_bb is larger than max_successors_per_bb")
 
     def set_to_arch_defaults(self):
         """ Set config options according to the architecture-specific defaults """
