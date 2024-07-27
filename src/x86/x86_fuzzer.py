@@ -81,6 +81,26 @@ def quick_and_dirty_mode(executor: X86Executor) -> Generator[None, None, None]:
         executor.set_quick_and_dirty(False)
 
 
+def create_fenced_test_case(test_case: TestCase, fenced_name: str, asm_parser) -> TestCase:
+    with open(test_case.asm_path, 'r') as f:
+        with open(fenced_name, 'w') as fenced_asm:
+            started = False
+            for line in f:
+                fenced_asm.write(line + '\n')
+                line = line.strip().lower()
+                if line == '.test_case_enter:':
+                    started = True
+                    continue
+                if not started:
+                    continue
+                if line and line[0] not in ["#", ".", "j"] \
+                        and "loop" not in line \
+                        and "macro" not in line:
+                    fenced_asm.write('lfence\n')
+    fenced_test_case = asm_parser.parse_file(fenced_name)
+    return fenced_test_case
+
+
 # ==================================================================================================
 # Fuzzer classes
 # ==================================================================================================
@@ -141,7 +161,7 @@ class X86Fuzzer(FuzzerGeneric):
             # for this create a fenced version of the test case and collect traces for it
             if CONF.enable_observation_filter:
                 fenced = tempfile.NamedTemporaryFile(delete=False)
-                fenced_test_case = self._create_fenced_test_case(test_case, fenced.name)
+                fenced_test_case = create_fenced_test_case(test_case, fenced.name, self.asm_parser)
                 try:
                     self.executor.load_test_case(fenced_test_case)
                     fenced_htraces = self.executor.trace_test_case(inputs, reps)
@@ -159,25 +179,6 @@ class X86Fuzzer(FuzzerGeneric):
                     return True
 
             return False
-
-    def _create_fenced_test_case(self, test_case: TestCase, fenced_name: str) -> TestCase:
-        with open(test_case.asm_path, 'r') as f:
-            with open(fenced_name, 'w') as fenced_asm:
-                started = False
-                for line in f:
-                    fenced_asm.write(line + '\n')
-                    line = line.strip().lower()
-                    if line == '.test_case_enter:':
-                        started = True
-                        continue
-                    if not started:
-                        continue
-                    if line and line[0] not in ["#", ".", "j"] \
-                            and "loop" not in line \
-                            and "macro" not in line:
-                        fenced_asm.write('lfence\n')
-        fenced_test_case = self.asm_parser.parse_file(fenced_name)
-        return fenced_test_case
 
 
 class X86ArchitecturalFuzzer(ArchitecturalFuzzer):
@@ -204,10 +205,6 @@ class X86ArchDiffFuzzer(FuzzerGeneric):
         check_instruction_list(self.instruction_set)
         return super()._start(num_test_cases, num_inputs, timeout, nonstop, save_violations)
 
-    def get_arch_traces(self, inputs) -> List[List[HTrace]]:
-        htraces: List[List[HTrace]] = [[t] for t in self.executor.trace_test_case(inputs, 1)]
-        return htraces
-
     def _build_dummy_ecls(self) -> Violation:
         inputs = [Input()]
         ctrace = CTrace.get_null()
@@ -219,43 +216,43 @@ class X86ArchDiffFuzzer(FuzzerGeneric):
                       test_case: TestCase,
                       inputs: List[Input],
                       _: List[int] = []) -> Optional[Violation]:
-        self.executor.set_quick_and_dirty(True)
+        with quick_and_dirty_mode(self.executor):
+            # collect non-fenced traces
+            self.arch_executor.load_test_case(test_case)
+            reg_values: List[List[int]] = []
+            try:
+                htraces: List[HTrace] = self.arch_executor.trace_test_case(inputs, 1)
+            except HardwareTracingError:
+                return None
+            for htrace in htraces:
+                reg_values.append([htrace.raw[0]] + [int(v) for v in htrace.perf_counters[0]])
 
-        # collect non-fenced traces
-        self.executor.load_test_case(test_case)
-        htraces = self.get_arch_traces(inputs)
+            # collect fenced traces
+            fenced = tempfile.NamedTemporaryFile(delete=False)
+            fenced_test_case = create_fenced_test_case(test_case, fenced.name, self.asm_parser)
+            self.arch_executor.load_test_case(fenced_test_case)
+            fenced_reg_values: List[List[int]] = []
+            try:
+                htraces = self.arch_executor.trace_test_case(inputs, 1)
+            except HardwareTracingError:
+                return None
+            for htrace in htraces:
+                fenced_reg_values.append([htrace.raw[0]]
+                                         + [int(v) for v in htrace.perf_counters[0]])
+            os.remove(fenced.name)
 
-        # collect fenced traces
-        with open(test_case.asm_path, 'r') as f:
-            with open('fenced.asm', 'w') as fenced_asm:
-                started = False
-                for line in f:
-                    fenced_asm.write(line + '\n')
-                    line = line.strip().lower()
-                    if line == '.test_case_enter:':
-                        started = True
-                        continue
-                    if not started:
-                        continue
-                    if line and line[0] not in ["#", ".", "J"] and "loop" not in line:
-                        fenced_asm.write('lfence\n')
+            for i, input_ in enumerate(inputs):
+                if fenced_reg_values[i] == reg_values[i]:
+                    if "dbg_dump_htraces" in CONF.logging_modes:
+                        print(f"Input #{i}")
+                        print(f"Fenced:       {[v for v in fenced_reg_values[i]]}")
+                        print(f"Non-fenced:   {[v for v in reg_values[i]]}")
+                    continue
 
-        fenced_test_case = self.asm_parser.parse_file('fenced.asm')
-        self.executor.load_test_case(fenced_test_case)
-        fenced_htraces = self.get_arch_traces(inputs)
-
-        for i, input_ in enumerate(inputs):
-            if fenced_htraces[i] != htraces[i]:
                 if "dbg_violation" in CONF.logging_modes:
                     print(f"Input #{i}")
-                    print(f"Fenced:       {[v.raw for v in fenced_htraces[i]]}")
-                    print(f"Non-fenced:   {[v.raw for v in htraces[i]]}")
+                    print(f"Fenced:       {[v for v in fenced_reg_values[i]]}")
+                    print(f"Non-fenced:   {[v for v in reg_values[i]]}")
 
                 return self._build_dummy_ecls()
-
-            if "dbg_dump_htraces" in CONF.logging_modes:
-                print(f"Input #{i}")
-                print(f"Fenced:       {[v.raw for v in fenced_htraces[i]]}")
-                print(f"Non-fenced:   {[v.raw for v in htraces[i]]}")
-
-        return None
+            return None
