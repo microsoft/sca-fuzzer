@@ -70,7 +70,7 @@
 #define CHECK_ERR(msg)                                                                             \
     if (err) {                                                                                     \
         PRINT_ERR(" Error [" msg "]\n");                                                           \
-        return err;                                                                                \
+        return -EIO;                                                                                \
     }
 
 // Memory management
