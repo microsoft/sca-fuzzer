@@ -1,0 +1,7 @@
+file: !include common.yaml
+file: !include ct-deh.yaml
+
+actors:
+  - main:
+    - data_properties:
+      - user: true

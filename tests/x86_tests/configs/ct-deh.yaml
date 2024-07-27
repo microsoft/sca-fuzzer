@@ -1,0 +1,3 @@
+contract_observation_clause: ct
+contract_execution_clause:
+  - delayed-exception-handling

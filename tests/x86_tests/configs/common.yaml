@@ -1,0 +1,10 @@
+input_gen_seed: 1234567
+program_generator_seed: 1234567
+
+# Acceptance tests do not require a large sample size
+executor_sample_sizes:
+  - 10
+
+# No logging
+logging_modes:
+  -

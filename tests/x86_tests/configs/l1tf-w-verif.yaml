@@ -1,0 +1,10 @@
+file: !include common.yaml
+
+contract_execution_clause:
+  - nullinj-fault
+
+actors:
+  - main:
+    - data_properties:
+      - writable: false
+

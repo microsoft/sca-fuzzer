@@ -1,0 +1,4 @@
+file: !include common.yaml
+
+input_gen_seed: 400
+x86_executor_enable_ssbp_patch: false
