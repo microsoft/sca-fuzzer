@@ -214,6 +214,7 @@ class X86Executor(Executor):
         super().__init__(enable_mismatch_check_mode)
         self.LOG = Logger()
         self.target_desc = X86TargetDesc()
+        self.ignore_list = set()
 
         # Check the execution environment:
         if is_smt_enabled() and not enable_mismatch_check_mode:
@@ -254,8 +255,7 @@ class X86Executor(Executor):
 
         :param ignore_list: a list of input IDs to ignore
         """
-        # self.ignore_list = set(ignore_list)
-        pass
+        self.ignore_list = set(ignore_list)
 
     def extend_ignore_list(self, ignore_list: List[int]):
         """
@@ -263,8 +263,7 @@ class X86Executor(Executor):
 
         :param ignore_list: a list of input IDs to add to the ignore list
         """
-        # self.ignore_list.update(ignore_list)
-        pass
+        self.ignore_list.update(ignore_list)
 
     # ==============================================================================================
     # Interface: Base Addresses
