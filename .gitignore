@@ -15,3 +15,5 @@ src/x86/executor/measurement.o.ur-safe
 dbg/
 site
 dist/
+generated
+generated.asm

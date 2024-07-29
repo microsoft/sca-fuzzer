@@ -113,7 +113,7 @@ def main() -> int:
     parser_tfuzz.add_argument(
         '--nonstop', action='store_true', help="Don't stop after detecting an unexpected result")
     parser_tfuzz.add_argument(
-        '--enable-store-violations',
+        '--save-violations',
         type=arg2bool,
         default=True,
         help="If set, store all detected violations in working directory.",
