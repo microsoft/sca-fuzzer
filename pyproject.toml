@@ -23,6 +23,8 @@ dependencies = [
     "pyelftools",
     "xxhash",
     "scipy",
+    "mypy",
+    "flake8"
 ]
 maintainers = [{name = "Oleksii Oleksenko", email = ""}]
 
@@ -40,16 +42,18 @@ exclude = [
   "demo/",
   "docs/",
   "mkdocs-overrides/",
-  "src/tests/",
   "src/x86/executor/",
-  "src/x86/tests/",
+  "tests/",
+  "tests/x86_tests/",
+  "tests/x86_tests/",
+  "base.json",
+  "site/",
+  "dbg/",
+  "revizor.code-workspace",
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/"]
+packages = ["revizor"]
 
 [project.scripts]
 rvzr = "revizor.cli:main"
-
-[tool.hatch.build.targets.wheel]
-packages = ["revizor"]
