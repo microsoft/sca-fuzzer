@@ -36,14 +36,9 @@ ifdef VMBUILD
 EXTRA_CFLAGS += -DVMBUILD
 endif
 
-# disable objtool warnings - a lot of code in the module violates the checks intentionally,
+# hide objtool warnings - a lot of code in the module violates the checks intentionally,
 # so it's impossible to fix
-CONFIG_RETHUNK=n
-CONFIG_RETPOLINE=n
-CONFIG_STACK_VALIDATION=n
-CONFIG_X86_KERNEL_IBT=n
-CONFIG_HAVE_UACCESS_VALIDATION=n
-
+GREP_FILTER = "return found in RETHUNK|indirect call found in RETPOLINE|call without frame pointer|undefined stack stae|return with modified stack frame|unsupported instruction in callable|undefined stack state"
 
 # file-specific flags
 CFLAGS_code_loader.o := -Wno-attribute-warning  # workaround for __write_overflow_field warning
@@ -57,7 +52,7 @@ else
 	$(eval EXTRA_CFLAGS += -DVMBUILD)
 endif
 endif
-	make -C $(KDIR) M=$(PWD) modules
+	make -C $(KDIR) M=$(PWD) modules 2>&1 | grep -vE $(GREP_FILTER)
 
 clean:
 	make -C $(KDIR) M=$(PWD) clean
@@ -66,7 +61,7 @@ install:
 	sudo insmod $(NAME).ko
 
 uninstall:
-	sudo rmmod $(NAME)
+	sudo rmmod $(NAME) || true
 
 # --------------- debugging crushes ---------------
 dbg_symbols:
