@@ -77,7 +77,7 @@ The following command-line arguments are supported in `analyse` mode:
                         The template to use for generating test cases
   --timeout TIMEOUT     Run fuzzing with a time limit [seconds]. No timeout when set to zero.
   --nonstop             Don't stop after detecting an unexpected result
-  --enable-store-violations ENABLE_STORE_VIOLATIONS
+  --save-violations SAVE_VIOLATIONS
                         If set, store all detected violations in working directory.
 ```
 
