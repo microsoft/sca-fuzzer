@@ -1,15 +1,22 @@
 # Command-Line Interface
 
+Revizor is controlled via two interfaces: command line and configuration file.
+Command line arguments specify the mode of operation and set high-level parameters (e.g., file paths, number of fuzzing rounds).
+Configuration files specify details of the fuzzing campaign (e.g., the target contract, generation parameters, etc).
+
+This document describes the command-line interface.
+For information on configuration files, see the [configuration documentation](configuration.md).
+
+## Modes
+
 Revizor can run in one of multiple "modes":
 
-* **Fuzzing mode** is revizor's main form of execution. It's what invokes all
-  components of [revizor's architecture](architecture.md) to enable hardware
-  fuzzing.
-* **Analysis mode** invokes the analyser to compare existing contract traces and
-  hardware traces.
-* **Minimize mode** accepts a test case and attempts to minimize its size.
-  It acts as a "watered-down" version of **fuzzing mode** that focuses solely on
-  a single test case.
+* **Fuzzing mode** is revizor's main form of execution.
+In this mode, revizor generates random test cases, tests them on the target CPU and the model,
+and checks for contract violations.
+* **Template fuzzing mode** is a variant of fuzzing mode that uses a template to generate test cases.
+* **Reproduce mode** is a variant of fuzzing mode that attempts to reproduce a violation found in a previous run.
+* **Minimize mode** accepts a test case and attempts to simplify it by applying a series of passes.
 
 To select a mode on the command-line, begin your command with:
 
@@ -18,7 +25,8 @@ rvzr MODE # ... arguments go here
 
 # Where MODE can be:
 #   fuzz            for fuzzing mode
-#   analyse         for analysis mode
+#   tfuzz           for template fuzzing mode
+#   reproduce       for reproduce mode
 #   minimize        for test case minimization mode
 ```
 
@@ -26,46 +34,74 @@ rvzr MODE # ... arguments go here
 
 The following command-line arguments are supported in `fuzz` mode:
 
-* `-s` / `--instruction-set` - accepts a path to an XML file specifying the
-  instruction set revizor should use.
-* `-c` / `--config` - accepts a path to a YAML configuration file for revizor.
-* `-n` / `--num-test-cases` - accepts an integer specifying the number of test
-  cases to create and test during the fuzzing campaign.
-* `-i` / `--num-inputs` - accepts an integer specifying the number of inputs to
-  generate for each test case (which corresponds to the number of contract
-  traces to collect).
-* `-w` / `--working-directory` - accepts a path to a directory into which
-  revizor will place its output files during the campaign.
-* `-t` / `--testcase` - accepts a path to an existing test case for the fuzzer
-  to run. (Revizor will *only* run this test case if this is specified.)
-* `--timeout` - accepts an integer specifying the number of seconds to run the
-  fuzzer. Once the timeout has been reached, fuzzing will cease.
-* `--nonstop` - if enabled, this keeps the fuzzer running after it encounters a
-  violation. (Otherwise, if it's not specified, revizor will stop after the
-  first violation is found.)
+```
+  -h, --help            show this help message and exit
+  -c CONFIG, --config CONFIG
+                        Path to the configuration file (YAML) that will be used during fuzzing.
+  -I INCLUDE_DIR, --include-dir INCLUDE_DIR
+                        Path to the directory containing configuration files that included by the main configuration file (received via --config).
+  -s INSTRUCTION_SET, --instruction-set INSTRUCTION_SET
+                        Path to the instruction set specification (JSON) file.
+  -n NUM_TEST_CASES, --num-test-cases NUM_TEST_CASES
+                        Number of test cases.
+  -i NUM_INPUTS, --num-inputs NUM_INPUTS
+                        Number of inputs per test case.
+  -w WORKING_DIRECTORY, --working-directory WORKING_DIRECTORY
+  -t TESTCASE, --testcase TESTCASE
+                        Use an existing test case [DEPRECATED - see reproduce]
+  --timeout TIMEOUT     Run fuzzing with a time limit [seconds]. No timeout when set to zero.
+  --nonstop             Don't stop after detecting an unexpected result
+  --save-violations SAVE_VIOLATIONS
+                        If set, store all detected violations in working directory.
+```
 
-## Analysis Mode
+## Template Fuzzing Mode
 
 The following command-line arguments are supported in `analyse` mode:
 
-* `--ctraces` - accepts a path to a file containing contract traces.
-* `--htraces` - accepts a path to a file containing hardware traces.
-* `-c` / `--config` - accepts a path to a YAML configuration file for revizor.
+```
+  -h, --help            show this help message and exit
+  -c CONFIG, --config CONFIG
+                        Path to the configuration file (YAML) that will be used during fuzzing.
+  -I INCLUDE_DIR, --include-dir INCLUDE_DIR
+                        Path to the directory containing configuration files that included by the main configuration file (received
+                        via --config).
+  -s INSTRUCTION_SET, --instruction-set INSTRUCTION_SET
+                        Path to the instruction set specification (JSON) file.
+  -n NUM_TEST_CASES, --num-test-cases NUM_TEST_CASES
+                        Number of test cases.
+  -i NUM_INPUTS, --num-inputs NUM_INPUTS
+                        Number of inputs per test case.
+  -w WORKING_DIRECTORY, --working-directory WORKING_DIRECTORY
+  -t TEMPLATE, --template TEMPLATE
+                        The template to use for generating test cases
+  --timeout TIMEOUT     Run fuzzing with a time limit [seconds]. No timeout when set to zero.
+  --nonstop             Don't stop after detecting an unexpected result
+  --enable-store-violations ENABLE_STORE_VIOLATIONS
+                        If set, store all detected violations in working directory.
+```
+
+## Reproduce Mode
+
+The following command-line arguments are supported in `reproduce` mode:
+
+```
+  -h, --help            show this help message and exit
+  -c CONFIG, --config CONFIG
+                        Path to the configuration file (YAML) that will be used during fuzzing.
+  -I INCLUDE_DIR, --include-dir INCLUDE_DIR
+                        Path to the directory containing configuration files that included by the main configuration file (received
+                        via --config).
+  -s INSTRUCTION_SET, --instruction-set INSTRUCTION_SET
+                        Path to the instruction set specification (JSON) file.
+  -t TESTCASE, --testcase TESTCASE
+                        Path to the test case
+  -i [INPUTS ...], --inputs [INPUTS ...]
+                        Path to the directory with inputs
+  -n NUM_INPUTS, --num-inputs NUM_INPUTS
+                        Number of inputs per test case. [IGNORED if --input-dir is set]
+```
 
 ## Minimize Mode
 
-The following command-line arguments are support in `minimize` mode:
-
-* `-i` / `--infile` - accepts a path to the test case revizor will attempt to
-  minimize.
-* `-o` / `--outfile` - accepts a path specifying where the minimized version of
-  the original test case will be written to.
-* `-c` / `--config` - accepts a path to a YAML configuration file for revizor.
-* `-n` / `--num-inputs` - accepts an integer specifying the number of inputs to
-  try for the test case.
-* `-f` / `--add-fences` - if enabled, revizor will add as many `LFENCE`
-  instructions as possible to the test case's assembly code while still
-  preserving the violation-inducing behavior.
-* `-s` / `--instruction-set` - accepts a path to an XML file specifying the
-  instruction set revizor should use.
-
+Minimize mode is described in detail in the [minimization documentation](minimization.md).

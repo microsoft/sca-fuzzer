@@ -57,6 +57,7 @@ Where:
 
 The following scopes are typical:
 * `all`: Changes that affect the entire project (e.g., major refactoring)
+* `root`: Root directory changes (e.g., readme, git, author list)
 * `fuzz`: Changes to the core fuzzer algorithm.
 * `cli`: Changes to the command-line interface.
 * `exec`: Changes to the executor.
