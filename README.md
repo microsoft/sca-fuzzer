@@ -9,29 +9,29 @@
 Revizor is a security-oriented fuzzer for detecting information leaks in CPUs, such as [Spectre and Meltdown](https://meltdownattack.com/).
 It tests CPUs against [Leakage Contracts](https://arxiv.org/abs/2006.03841) and searches for unexpected leaks.
 
-For more details, see our [Paper](https://dl.acm.org/doi/10.1145/3503222.3507729) (open access [here](https://arxiv.org/abs/2105.06872)), and the [follow-up paper](https://arxiv.org/pdf/2301.07642.pdf).
+For more details, see our [Paper](https://dl.acm.org/doi/10.1145/3503222.3507729) (open access [here](https://arxiv.org/abs/2105.06872)), and the follow-up papers ([1](https://arxiv.org/pdf/2301.07642.pdf), [2](https://www.usenix.org/conference/usenixsecurity23/presentation/hofmann)).
 
 ## Installation
 
 **Warning**:
-Keep in mind that the Revizor runs randomly-generated code in kernel space.
-As you can imagine, things could go wrong.
-Make sure you're not running Revizor on an important machine.
+Revizor runs randomly-generated code in kernel space.
+This means that a misconfiguration (or a bug) can crash the system and potentially lead to data loss.
+Make sure you're not running Revizor on a production machine, and that you have a backup of your data.
 
-### 1. Check Requirements
+### 1. Requirements
 
 * Architecture: Revizor supports Intel and AMD x86-64 CPUs.
-We also have experimental support for ARM CPUs (see `arm-port` branch) but it is at very early stages, use it on your own peril.
+We have experimental support for ARM CPUs (see `arm-port` branch) but it is at very early stages, so use it on your own peril.
 
 * No virtualization: You will need a bare-metal OS installation.
-Testing from inside a VM is not (yet) supported.
+Testing from inside a VM is not supported.
 
 * OS: The target machine has to be running Linux v4.15 or later.
 
-### 2. Install Revizor Python Package
+### 2. Python Package
 
 The preferred installation method is using `pip` within a virtual environment.
-The environment must be running Python 3.9 or later.
+The python version must be 3.9 or later.
 
 ```bash
 sudo apt install python3.9 python3.9-venv
@@ -41,20 +41,18 @@ source ~/venv-revizor/bin/activate
 pip install revizor-fuzzer
 ```
 
-### 3. Install Revizor Executor (kernel module)
+### 3. Executor
 
-Then build and install the kernel module:
+In addition to the Python package, you will need to build and install the executor, which is a kernel module.
 
 ```bash
 # building a kernel module require kernel headers
-sudo apt-get install linux-headers-$(uname -r)
-# required for cpuid.h
-sudo apt-get install linux-headers-generic
+sudo apt-get install linux-headers-$(uname -r) linux-headers-generic
 
 # get the source code
 git clone https://github.com/microsoft/sca-fuzzer.git
 
-# build the executor
+# build executor
 cd sca-fuzzer/src/x86/executor
 make uninstall  # the command will give an error message, but it's ok!
 make clean
@@ -67,22 +65,82 @@ make install
 ```bash
 rvzr download_spec -a x86-64 --extensions ALL_SUPPORTED --outfile base.json
 
-# alternatively, use the following command to include system instructions
-# but mind that adding these instructions with incorrect configuration will likely crash the system!
+# Alternatively, use the following command to include system instructions;
+# however, mind that testing these instructions may crash the system if misconfigured!
 # rvzr download_spec -a x86-64 --extensions ALL_AND_UNSAFE --outfile base.json
 ```
 
-### 5. (Optional) System Configuration
+### 5. Test the Installation
 
-For more stable results, disable hyperthreading (there's usually a BIOS option for it).
-If you do not disable hyperthreading, you will see a warning every time you invoke Revizor; you can ignore it.
+To make sure that the installation was successful, run the following command:
 
-Optionally (and it *really* is optional), you can boot the kernel on a single core by adding `-maxcpus=1` to the boot parameters ([how to add a boot parameter](https://wiki.ubuntu.com/Kernel/KernelBootParameters)).
+```bash
+./tests/quick-test.sh
 
+# The expected output is:
+Detection: OK
+Filtering: OK
+```
+
+If you see any other output, check if the previous steps were executed correctly.
+If you still have issues, please [open an issue](https://github.com/microsoft/sca-fuzzer/issues).
+
+
+### 6. (Optional) System Configuration
+
+External processes can interfere with Revizor's measurements.
+To minimize this interference, we recommend the following system configuration:
+* Disable Hyperthreading (BIOS option);
+* Disable Turbo Boost (BIOS option);
+* Boot the kernel on a single core (add `-maxcpus=1` to [Linux boot parameters]((https://wiki.ubuntu.com/Kernel/KernelBootParameters))).
+
+If you skip these steps, Revizor may produce false positives, especially if you use a low (sample size)[./docs/config.md) for measurements.
+However, a large sample size (> 300-400) usually mitigates this issue.
+
+## Quick Start
+
+The following is an example of a simple fuzzing session with Revizor that will detect Spectre V1-like violations.
+
+Create a configuration file `config.yaml` with the following content:
+```yaml
+# config.yaml
+instruction_categories:
+  - BASE-BINARY  # arithmetic instructions
+  - BASE-COND_BR  # conditional branches
+max_bb_per_function: 5  # up to 5 branches per test case
+min_bb_per_function: 1
+max_successors_per_bb: 2  # enable basic blocks with conditional branches
+
+contract_observation_clause: loads+stores+pc  # aka CT
+contract_execution_clause:
+  - no_speculation  # aka SEQ
+```
+
+Start the fuzzer:
+```bash
+rvzr fuzz -s base.json -i 50 -n 1000 -c config.yaml -w .
+```
+
+You will likely see a violation within a few minutes, as most modern CPUs implement branch prediction, which is a prerequisite for Spectre-like attacks, and so the contract `CT-SEQ` is likely to be violated.
+
+```
+================================ Violations detected ==========================
+Contract trace:
+ 18422470923634754929 (hash)
+Hardware traces:
+  Input group 1: [7]
+  Input group 2: [57]
+  ^..........................................^.............^^..^^. [500    | 0     ]
+  ^....^...................................................^^..^^. [0      | 500   ]
+
+```
+
+You can find the violating test case as well as the violation report in the directory named `./violation-*/`.
+It will contain an assembly file `program.asm` that surfaced a violation, a sequence of inputs `input_*.bin` to this program, and some details about the violation in `report.txt`.
 
 ## Command Line Interface
 
-The fuzzer is controlled via a single command line interface `rvzr` (or `revizor.py` if you're running directly from the source directory).
+The fuzzer is controlled via a single command line interface `rvzr` (or `revizor.py` if you're running directly from the source tree).
 
 It accepts the following arguments:
 * `-s, --instruction-set PATH` - path to the ISA description file
@@ -101,6 +159,7 @@ will run the fuzzer for 100 iterations (i.e., 100 test cases), with 10 inputs pe
 The fuzzer will use the ISA spec stored in the `base.json` file, and will read the configuration from `config.yaml`. If the fuzzer finds a violation, it will be stored in the `./violations` directory.
 
 See [docs](https://microsoft.github.io/sca-fuzzer/cli/) for more details.
+
 
 ## How To Fuzz With Revizor
 
@@ -135,48 +194,6 @@ rvzr fuzz -s base.json -i 50 -n 100 -c config.yaml  -w .
 
 This command should terminate with no violations.
 
-
-### Detection of a Simple Contract Violation
-
-Next, we could intentionally make a mistake in a contract to check that Revizor can detect it.
-To this end, we can modify the config file from the previous example to include instructions that trigger speculation (e.g., conditional branches) but keep the contract the same:
-```yaml
-# config.yaml
-instruction_categories:
-  - BASE-BINARY  # arithmetic instructions
-  - BASE-COND_BR  # conditional branches
-max_bb_per_function: 5  # up to 5 branches per test case
-min_bb_per_function: 1
-max_successors_per_bb: 2  # enable basic blocks with conditional branches
-
-contract_observation_clause: loads+stores+pc  # aka CT
-contract_execution_clause:
-  - no_speculation  # aka SEQ
-```
-
-Start the fuzzer:
-```bash
-rvzr fuzz -s base.json -i 50 -n 1000 -c config.yaml -w .
-```
-
-As your CPU-under-test almost definitely implements branch prediction, Revizor should detect a violation within a few minutes, with a message similar to this:
-
-```
-================================ Violations detected ==========================
-  Contract trace (hash):
-
-    0111010000011100111000001010010011110101110011110100000111010110
-  Hardware traces:
-   Inputs [907599882]:
-    .....^......^......^...........................................^
-   Inputs [2282448906]:
-    ...................^.....^...................................^.^
-
-```
-
-You can find the violating test case as well as the violation report in the directory named `./violation-*/`.
-It will contain an assembly file `program.asm` that surfaced a violation, a sequence of inputs `input_*.bin` to this program, and some details about the violation in `report.txt`.
-
 ### Full-Scale Fuzzing Campaign
 
 To start a full-scale test, write your own configuration file (see description [here](docs/config.md) and an example config [here](demo/big-fuzz.yaml)), and launch the fuzzer.
@@ -195,10 +212,13 @@ rvzr reproduce -s base.json -c violation-<timestamp>/reproduce.yaml -t violation
 If the violation is reproducible, it is useful to minimize it, so that it is easier to understand the root cause (note that minimization uses a different config file):
 
 ```shell
-rvzr minimize -s base.json -c violation-<timestamp>/minimize.yaml -g violation-<timestamp>/program.asm -o violation-<timestamp>/minimized.asm -i 100 --simplify --enable-multipass --find-sources
+rvzr minimize -s base.json -c violation-<timestamp>/minimize.yaml -g violation-<timestamp>/program.asm -o violation-<timestamp>/minimized.asm -i 100 --num-attempts 10 --enable-simplification-pass
 ```
 
-The result of minimization will be stored in `violation-<timestamp>/minimized.asm`. The further analysis is manual; you can find an example in [this guide](fuzzing-guide.md).
+The result of minimization will be stored in `violation-<timestamp>/minimized.asm`.
+If the result is still too complicated, try [other minimization passes](./docs/minimization.md).
+
+The further analysis is manual; you can find an example in [this guide](fuzzing-guide.md).
 
 ## Need Help with Revizor?
 
@@ -215,21 +235,26 @@ For more details, see [the website](https://microsoft.github.io/sca-fuzzer/).
 
 To cite this project, you can use the following references:
 
-1. The original paper that introduced the concepts of Model-based Relation Testing, and which describes the main ideas behind Revizor.
- 
+1. Original paper that introduced the concept of Model-based Relation Testing as well as the Revizor tool:
+
     Oleksii Oleksenko, Christof Fetzer, Boris Köpf, Mark Silberstein. "[Revizor: Testing Black-box CPUs against Speculation Contracts](https://www.microsoft.com/en-us/research/publication/revizor-testing-black-box-cpus-against-speculation-contracts/)" in Proceedings of the 27th ACM International Conference on Architectural Support for Programming Languages and Operating Systems (ASPLOS), 2022.
 
-2. The paper that introduced the idea of Leakage Contracts, as well as its theoretical foundations.
+2. Theoretical foundations of leakage contract:
 
     Marco Guarnieri, Boris Köpf, Jan Reineke, and Pepe Vila. "[Hardware-software contracts for secure speculation](https://www.microsoft.com/en-us/research/publication/hardware-software-contracts-for-secure-speculation/)" in Proceedings of the 2021 IEEE Symposium on Security and Privacy (SP), 2021.
 
-3. A more accessible summary of the two papers above, in a journal format.
+3. Accessible summary of the two papers above, in a journal format:
 
     Oleksii Oleksenko, Christof Fetzer, Boris Köpf, Mark Silberstein. "Revizor: Testing Black-box CPUs against Speculation Contracts". In IEEE Micro, 2023.
 
-4. The paper that introduced taint-based input generation, speculation filtering, and observation filtering:
+4. Paper that introduced speculation filtering, observation filtering, and contract-based input generation:
 
     Oleksii Oleksenko, Marco Guarnieri, Boris Köpf, and Mark Silberstein. "[Hide and Seek with Spectres: Efficient discovery of speculative information leaks with random testing](https://www.microsoft.com/en-us/research/publication/hide-and-seek-with-spectres-efficient-discovery-of-speculative-information-leaks-with-random-testing/)" in Proceedings of the 2023 IEEE Symposium on Security and Privacy (SP), 2022.
+
+5. Paper that introduced exception-based testing (i.e., focus on Meltdown, Foreshadow) into Revizor:
+
+    Jana Hofmann, Emanuele Vannacci, Cédric Fournet, Boris Köpf, and Oleksii Oleksenko. "[Speculation at Fault: Modeling and Testing Microarchitectural Leakage of CPU Exceptions.](https://www.usenix.org/conference/usenixsecurity23/presentation/hofmann)" in Proceedings of 32nd USENIX Security Symposium (USENIX Security), 2023.
+
 
 ## Contributing
 
