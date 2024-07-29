@@ -5,7 +5,7 @@ Below is a list of registers and their purpose.
 
 ## `R15`
 
-Contains the base address of the UTILITY area in the [sandbox](./docs/sandbox.md).
+Contains the base address of the UTILITY area in the [sandbox](sandbox.md).
 
 If the test case does not enter a VM, the register value remains constant during the execution of the test cases.
 Otherwise, the register value is updated to point to the UTILITY area of the currently active VM when the `switch_h2g` macro is called, and it is restored to the original value when the `switch_g2h` macro is called.
@@ -14,7 +14,7 @@ The register is used by internal functions, such as the implementation of Prime+
 
 ## `R14`
 
-Contains the base address of the current actor's [sandbox](./docs/sandbox.md) (namely, it points to the base of the actor's MAIN area).
+Contains the base address of the current actor's [sandbox](sandbox.md) (namely, it points to the base of the actor's MAIN area).
 
 At the beginning of the test case execution, the register is set to the base address of the MAIN area of the first actor (actor `main`). The register value is updated to point to the MAIN area of the currently active actor when a macro from the `landing_*` group of macros is called. It is also updated by the `fault_handler` macro.
 
@@ -68,7 +68,7 @@ When a `measurement_end` macro is executed, the registers are updated with the f
 ## Other General Purpose Registers
 
 The remaining registers (`rax`, `rcx`, `rdx`, `rsi`, `rdi`, `rflags`) are available for use in the test cases and can be modified freely.
-A special case are `rsp` and `rbp`, which can be used in the test cases, but their values must always remain within the sandbox (see [Sandbox](./docs/sandbox.md)).
+A special case are `rsp` and `rbp`, which can be used in the test cases, but their values must always remain within the sandbox (see [Sandbox](sandbox.md)).
 
 ## Vector Registers
 

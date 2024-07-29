@@ -5,7 +5,7 @@ Command line arguments specify the mode of operation and set high-level paramete
 Configuration files specify details of the fuzzing campaign (e.g., the target contract, generation parameters, etc).
 
 This document describes the command-line interface.
-For information on configuration files, see the [configuration documentation](configuration.md).
+For information on configuration files, see the [configuration documentation](config.md).
 
 ## Modes
 
