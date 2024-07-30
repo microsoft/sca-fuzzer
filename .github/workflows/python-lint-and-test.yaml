@@ -7,13 +7,15 @@ on:
   push:
     branches:
       - main
+      - main-fixes
       - pre-release
-      - 1.3-dev
+      - dev
   pull_request:
     branches:
       - main
+      - main-fixes
       - pre-release
-      - 1.3-dev
+      - dev
 
 jobs:
   build:
