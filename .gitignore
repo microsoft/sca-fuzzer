@@ -10,6 +10,8 @@ src/x86/*.json
 *.code-workspace
 *.o
 src/generated.asm
+generated.asm
+generated
 src/x86/executor/.cache.mk
 src/x86/executor/measurement.o.ur-safe
 dbg/
