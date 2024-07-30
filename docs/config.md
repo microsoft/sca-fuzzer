@@ -12,6 +12,7 @@ Options: 'basic' | 'architectural' | 'archdiff'
 ```
 
 This option selects the fuzzing mode. The available options are:
+
 * `basic` - normal model-based fuzzing. A violation in this mode indicates that the CPU
 exposes more information than predicted by the contract. This option should be used in most
 testing campaigns.
@@ -88,6 +89,7 @@ Options: 'info' | 'stat' | 'dbg_timestamp' | 'dbg_violation' | 'dbg_dump_htraces
 ```
 
 This option controls the output:
+
 * `info` - general information about the progress of fuzzing;
 * `stat` - statistics the end of the fuzzing campaign;
 * `dbg_timestamp` - every 1000 test cases print the timestamp during the fuzzing process;
@@ -270,6 +272,7 @@ that could potentially trigger an exception. The model and executor will also be
 these exceptions gracefully.
 
 The available options are:
+
 * `div-by-zero` - generate divisions with unmasked divisor, which can cause a division by zero exception.
 * `div-overflow` - generate divisions with unmasked dividend, which can cause an overflow exception.
 * `opcode-undefined` - generate undefined opcodes, which can cause an undefined opcode exception.
@@ -306,6 +309,7 @@ Options: 'host' | 'guest'
 ```
 
 The execution mode of the actor. The available options are:
+
 * `host` - the actor runs in the normal, non-virtualized mode.
 * `guest` - the actor runs in a VM (one VM per actor).
 
@@ -316,6 +320,7 @@ Options: 'user' | 'kernel'
 ```
 
 The privilege level of the actor. The available options are:
+
 * `user` - the actor runs in user mode (CPL=3).
 * `kernel` - the actor runs in kernel mode (CPL=0).
 
@@ -330,6 +335,7 @@ The properties of the data memory used by the actor.
 These properties are applied only to the second page (FAULTY_AREA) of the actor's data region.
 
 The available options are:
+
 * `present` [default: True] - the value of the Present bit in the page table entry.
 * `writable` [default: True] - the value of the Writable bit in the page table entry.
 * `user` [default: False] - the value of the User/Supervisor bit in the page table entry.
@@ -355,6 +361,7 @@ The properties are applied only to the second page (FAULTY_AREA) of the actor's 
 This property has no effect on actors with `mode: host`.
 
 The available options are:
+
 * `present` [default: True] - the value of the Present bit in the EPT/NPT entry.
 * `writable` [default: True] - the value of the Writable bit in the EPT/NPT entry.
 * `executable` [default: False] - the value of the Executable bit in the EPT/NPT entry.
@@ -431,6 +438,7 @@ Options: 'seq' | 'no_speculation' | 'seq-assist' | 'cond' | 'conditional_br_misp
 The execution clause of the contract.
 
 For single-actor experiments, the following options are available:
+
 * `seq` - sequential execution.
 * `no_speculation` - sequential execution. Synonym for `seq`.
 * `seq-assist` - sequential execution with possible microcode assists.
@@ -460,6 +468,7 @@ Options: 'none' | 'l1d' | 'memory' | 'pc' | 'ct' | 'loads+stores+pc' | 'ct-nonsp
 The observation clause of the contract. In most cases, the default value should be used.
 
 The available options are:
+
 * `none` - the model observes nothing. Useful for testing the fuzzer.
 * `l1d` - the model observes the addresses of data accesses, adjusted to imitate the L1D cache trace.
   Has very few real applications, and should be generally avoided.
@@ -515,6 +524,7 @@ Options: 'P+P' | 'F+R' | 'E+R' | 'PP+P' | 'TSC'
 ```
 
 Hardware trace collection mode. The available options are:
+
 * `P+P` - prime and probe.
 * `F+R` - flush and reload.
 * `E+R` - evict and reload.
@@ -606,7 +616,9 @@ Options: 'chi2' | 'mwu' | 'sets' | 'bitmaps'
 ```
 
 The type of the analyser that is used to compare the hardware traces and contract traces.
+
 The available options are:
+
 * `sets` - combine the hardware traces for each input into a set. A violation is reported if two inputs in the same contract-equivalence class have different sets of hardware traces.
 * `bitmaps` - combine the hardware traces for each input into a bitmap. A violation is reported if two inputs in the same contract-equivalence class have different bitmaps of hardware traces.
 * `chi2` - use the chi-squared homogeneity test to compare the hardware traces of inputs in the same contract-equivalence class. This test effectively checks if the hardware traces from two different inputs come from the same distribution. A violation is reported if the test fails.
@@ -655,6 +667,7 @@ Options: 'none' | 'model_instructions'
 ```
 
 The type of coverage tracking. The available options are:
+
 * `none` - disable coverage tracking.
 * `model_instructions` - track how many times the model executed each instruction.
 
