@@ -78,11 +78,12 @@ If you still have issues, please [open an issue](https://github.com/microsoft/sc
 
 External processes can interfere with Revizor's measurements.
 To minimize this interference, we recommend the following system configuration:
+
 * Disable Hyperthreading (BIOS option);
 * Disable Turbo Boost (BIOS option);
 * Boot the kernel on a single core (add `-maxcpus=1` to [Linux boot parameters]((https://wiki.ubuntu.com/Kernel/KernelBootParameters))).
 
-If you skip these steps, Revizor may produce false positives, especially if you use a low (sample size)[./docs/config.md) for measurements.
+If you skip these steps, Revizor may produce false positives, especially if you use a low value for [`executor_sample_sizes`](config.md#executor-configuration) for measurements.
 However, a large sample size (> 300-400) usually mitigates this issue.
 
 ## Quick Start
@@ -131,6 +132,7 @@ It will contain an assembly file `program.asm` that surfaced a violation, a sequ
 The fuzzer is controlled via a single command line interface `rvzr` (or `revizor.py` if you're running directly from the source tree).
 
 It accepts the following arguments:
+
 * `-s, --instruction-set PATH` - path to the ISA description file
 * `-c, --config PATH` - path to the fuzzing configuration file
 * `-n , --num-test-cases N` - number of test cases to be tested
@@ -152,6 +154,7 @@ See [docs](https://microsoft.github.io/sca-fuzzer/cli/) for more details.
 ## How To Fuzz With Revizor
 
 The fuzzing process is controlled by a configuration file in the YAML format, passed via `--config` option. At the very minimum, this file should contain the following fields:
+
 * `contract_observation_clause` and `contract_execution_clause` describe the contract that the CPU-under-test is tested against. See [this page](https://microsoft.github.io/sca-fuzzer/config/) for a list of available contracts. If you don't know what a contract is, Sec. 3 of [this paper](https://arxiv.org/pdf/2105.06872.pdf) will give you a high-level introduction to contracts, and [this paper](https://www.microsoft.com/en-us/research/publication/hardware-software-contracts-for-secure-speculation/) will provide a deep dive into contracts.
 * `instruction_categories` is a list of instruction types that will be tested. Effectively, Revizor uses this list to filter out instructions from `base.json` (the file you downloaded via `rvzr download_spec`).
 

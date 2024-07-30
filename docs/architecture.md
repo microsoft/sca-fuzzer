@@ -2,21 +2,7 @@
 
 Below is a high-level overview of Revizor's architecture and its key modules.
 
-- [Revizor Architecture](#revizor-architecture)
-  - [Overview](#overview)
-  - [Revizor Modules and Interfaces](#revizor-modules-and-interfaces)
-    - [Architecture-specific Implementation](#architecture-specific-implementation)
-    - [Abstract Test Case](#abstract-test-case)
-      - [`OperandSpec`](#operandspec)
-      - [`InstructionSpec`](#instructionspec)
-      - [`Operand`](#operand)
-      - [`Instruction`](#instruction)
-      - [`BasicBlock`](#basicblock)
-      - [`Function`](#function)
-      - [`TestCaseDAG`](#testcasedag)
-
-
-## Overview
+[THE FOLLOWING IS A WORK IN PROGRESS]
 
 ![architecture](assets/arch.png)
 
@@ -32,13 +18,13 @@ The **Test Case Generator** and **Input Generator** are responsible for
 generating random test cases to be run through the **Model** and **Executor**.
 The results are examined by the **Analyser** for contract violations.
 
-* Test Case Generator
+### Test Case (Program) Generator
 
 The TCG is responsible for generating random assembly test cases. It takes an
 Instruction Set Specification as input in order for it to understand the
 instructions and syntax it can use for generation.
 
-* Input Generator
+### Input Generator
 
 The IG is responsible for generating the *inputs* that are passed into a test
 case created by the TCG. Largely, this means **register** and **memory** values
@@ -47,7 +33,7 @@ In this way, a single test case program can be run across several different
 inputs, allowing for multiple contract traces (and later, hardware traces) to be
 collected for analysis.
 
-* Model
+###  Model
 
 The Model's job is to accept test cases and inputs from the TCG & IG and
 *emulate* the test case to collect **contract traces**. A single test case seeded
@@ -55,14 +41,14 @@ with several inputs (`N` inputs) will create several contract traces (`N`
 contract traces) as the model's output. These are passed to the Analyser to
 determine **input classes**.
 
-* Executor
+### Executor
 
 The Executor, on the other side from the Model, is responsible for running the
 *same* test cases (with the *same* inputs) on physical hardware to collect
 **hardware traces**. Hardware traces from the same input class are collected and
 studied by the Analyser to detect **contract violations**.
 
-* Analyser
+### Analyser
 
 The Analyser receives contract traces from the Model and hardware traces from
 the Executor to accomplish two primary goals:

@@ -172,13 +172,13 @@ This output indicates that the pass successfully minimized the input difference 
 
 The following example demonstrates a typical workflow of using the `minimize` mode to simplify a violating program and its input sequence.
 
-0. Let's assume that a violation artifact was produces as a result of a fuzzing campaign like this:
+Let's assume that a violation artifact was produces as a result of a fuzzing campaign like this:
 
 ```bash
 rvzr fuzz -s base.json -c config.yaml -n 1000 -i 25 -w .
 ```
 
-1. The first step is to minimize the violating program by enabling all program passes:
+The first step is to minimize the violating program by enabling all program passes:
 
 ```bash
 rvzr minimize -s base.json -c ./violation-000000-000000/minimize.yaml \
@@ -192,7 +192,7 @@ rvzr minimize -s base.json -c ./violation-000000-000000/minimize.yaml \
      --enable-label-pass 1
 ```
 
-2. Verify the violation is preserved by reproducing it with the minimized program and the original input sequence:
+Then verify the violation is preserved by reproducing it with the minimized program and the original input sequence:
 
 ```bash
 rvzr fuzz -s base.json -c minimize.yaml -t min.asm -i 25
@@ -201,7 +201,7 @@ rvzr fuzz -s base.json -c minimize.yaml -t min.asm -i 25
 If the violation is detected, move to the next step.
 Otherwise, re-run the first command with a lower number of `--num-attempts` or try to disable some of the passes.
 
-3. The next step is to minimize the inputs by enabling all input passes, and to add analysis comments:
+The next step is to minimize the inputs by enabling all input passes, and to add analysis comments:
 
 ```bash
 rvzr minimize -s base.json -c ./violation/violation-240712-132351/minimize.yaml \
@@ -214,7 +214,7 @@ rvzr minimize -s base.json -c ./violation/violation-240712-132351/minimize.yaml 
     --enable-comment-pass 1
 ```
 
-4. The final step is to try to reproduce the violation with the minimized program and inputs to verify that the violation is preserved:
+The final step is to try to reproduce the violation with the minimized program and inputs to verify that the violation is preserved:
 
 ```bash
 rvzr reproduce -s base.json -c ./violation/violation-240712-132351/reproduce.yaml \
