@@ -912,17 +912,19 @@ For an example of how to write the config file, see <a href="https://github.com/
 <span class="nt">Default</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;basic&#39;</span>
 <span class="nt">Options</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;basic&#39;</span><span class="w"> </span><span class="p p-Indicator">|</span><span class="err"> &#39;architectural&#39; | &#39;archdiff&#39;</span>
 </code></pre></div>
-<p>This option selects the fuzzing mode. The available options are:
-* <code>basic</code> - normal model-based fuzzing. A violation in this mode indicates that the CPU
+<p>This option selects the fuzzing mode. The available options are:</p>
+<ul>
+<li><code>basic</code> - normal model-based fuzzing. A violation in this mode indicates that the CPU
 exposes more information than predicted by the contract. This option should be used in most
-testing campaigns.
-* <code>architectural</code> - self-fuzzing for architectural mismatches between the model and the executor.
+testing campaigns.</li>
+<li><code>architectural</code> - self-fuzzing for architectural mismatches between the model and the executor.
 This option should be used for testing the fuzzer itself, i.e., a violation in this
 mode indicates a bug in the fuzzer rather then a bug in the CPU. This is useful when running
-the fuzzer with a previously-untested instruction set, or when a new contract is implemented.
-* <code>archdiff</code> - fuzzing for architectural invariants. This is a special mode targeted for
+the fuzzer with a previously-untested instruction set, or when a new contract is implemented.</li>
+<li><code>archdiff</code> - fuzzing for architectural invariants. This is a special mode targeted for
 for semi-microarchitectural violations, similar to ZenBleed. This mode is experimental and
-should be used with caution.</p>
+should be used with caution.</li>
+</ul>
 <div class="highlight"><pre><span></span><code><span class="nt">Name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">enable_priming</span>
 <span class="nt">Default</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
 </code></pre></div>
@@ -966,21 +968,23 @@ This option is helps a lot with readability, but may produce corrupted output wh
 <span class="nt">Default</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&#39;info&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;stat&#39;</span><span class="p p-Indicator">]</span>
 <span class="nt">Options</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;info&#39;</span><span class="w"> </span><span class="p p-Indicator">|</span><span class="err"> &#39;stat&#39; | &#39;dbg_timestamp&#39; | &#39;dbg_violation&#39; | &#39;dbg_dump_htraces&#39; | &#39;dbg_dump_ctraces&#39; | &#39;dbg_dump_traces_unlimited&#39; | &#39;dbg_executor_raw&#39; | &#39;dbg_model&#39; | &#39;dbg_coverage&#39; | &#39;dbg_generator&#39; | &#39;dbg_priming&#39;</span>
 </code></pre></div>
-<p>This option controls the output:
-* <code>info</code> - general information about the progress of fuzzing;
-* <code>stat</code> - statistics the end of the fuzzing campaign;
-* <code>dbg_timestamp</code> - every 1000 test cases print the timestamp during the fuzzing process;
-* <code>dbg_violation</code> - upon detecting a violation, print detailed information about it;
-* <code>dbg_dump_htraces</code> - print the first 100 hardware traces for every test case;
-* <code>dbg_dump_ctraces</code> - print the first 100 contract traces for every test case;
-* <code>dbg_dump_traces_unlimited</code> - print ALL traces (use carefully, produces LOTS of text);
-* <code>dbg_executor_raw</code> - prints hardware traces for every stage of the fuzzing process;
+<p>This option controls the output:</p>
+<ul>
+<li><code>info</code> - general information about the progress of fuzzing;</li>
+<li><code>stat</code> - statistics the end of the fuzzing campaign;</li>
+<li><code>dbg_timestamp</code> - every 1000 test cases print the timestamp during the fuzzing process;</li>
+<li><code>dbg_violation</code> - upon detecting a violation, print detailed information about it;</li>
+<li><code>dbg_dump_htraces</code> - print the first 100 hardware traces for every test case;</li>
+<li><code>dbg_dump_ctraces</code> - print the first 100 contract traces for every test case;</li>
+<li><code>dbg_dump_traces_unlimited</code> - print ALL traces (use carefully, produces LOTS of text);</li>
+<li><code>dbg_executor_raw</code> - prints hardware traces for every stage of the fuzzing process;
   this differs from <code>dbg_dump_htraces</code> in that it prints the traces collected by
-  speculation/observation filters as well as at every iteration of multi-sample collection;
-* <code>dbg_model</code> - print a detailed info about EVERY instruction executed on the model (use carefully, produces LOTS of text);
-* <code>dbg_coverage</code> - stores instruction coverage information;
-* <code>dbg_generator</code> - prints a list of instructions used to generate test cases;
-* <code>dbg_priming</code> - prints information about the priming process; only useful for debugging the priming mechanism itself.</p>
+  speculation/observation filters as well as at every iteration of multi-sample collection;</li>
+<li><code>dbg_model</code> - print a detailed info about EVERY instruction executed on the model (use carefully, produces LOTS of text);</li>
+<li><code>dbg_coverage</code> - stores instruction coverage information;</li>
+<li><code>dbg_generator</code> - prints a list of instructions used to generate test cases;</li>
+<li><code>dbg_priming</code> - prints information about the priming process; only useful for debugging the priming mechanism itself.</li>
+</ul>
 <div class="highlight"><pre><span></span><code><span class="nt">Name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">multiline_output</span>
 <span class="nt">Default</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">False</span>
 </code></pre></div>
@@ -1086,16 +1090,18 @@ The resulting list is: (all registers - <code>register_blocklist</code>) + <code
 This option modifies this behavior by permitting the generator to produce 'unsafe' instruction sequences
 that could potentially trigger an exception. The model and executor will also be configured to handle
 these exceptions gracefully.</p>
-<p>The available options are:
-* <code>div-by-zero</code> - generate divisions with unmasked divisor, which can cause a division by zero exception.
-* <code>div-overflow</code> - generate divisions with unmasked dividend, which can cause an overflow exception.
-* <code>opcode-undefined</code> - generate undefined opcodes, which can cause an undefined opcode exception.
-* <code>bounds-range-exceeded</code> - apply MPX instructions for random bounds checks.
-  This is possible only if MPX is included in the tested instruction set.
-* <code>breakpoint</code> - generate breakpoints, which can cause INT3 exceptions.
-* <code>debug-register</code> - generate instructions that cause INT1 exceptions.
-* <code>non-canonical-access</code> - randomly select a memory access in a generated program and instrument it to access a non-canonical address.
-* <code>user-to-kernel-access</code> - randomly select a memory access in a user actor's code and instrument it to access a kernel address; works only if there is at least one user actor.</p>
+<p>The available options are:</p>
+<ul>
+<li><code>div-by-zero</code> - generate divisions with unmasked divisor, which can cause a division by zero exception.</li>
+<li><code>div-overflow</code> - generate divisions with unmasked dividend, which can cause an overflow exception.</li>
+<li><code>opcode-undefined</code> - generate undefined opcodes, which can cause an undefined opcode exception.</li>
+<li><code>bounds-range-exceeded</code> - apply MPX instructions for random bounds checks.
+  This is possible only if MPX is included in the tested instruction set.</li>
+<li><code>breakpoint</code> - generate breakpoints, which can cause INT3 exceptions.</li>
+<li><code>debug-register</code> - generate instructions that cause INT1 exceptions.</li>
+<li><code>non-canonical-access</code> - randomly select a memory access in a generated program and instrument it to access a non-canonical address.</li>
+<li><code>user-to-kernel-access</code> - randomly select a memory access in a user actor's code and instrument it to access a kernel address; works only if there is at least one user actor.</li>
+</ul>
 <h2 id="actor-configuration">Actor Configuration</h2>
 <p>All actors are defined in the <code>actors</code> list, with the following syntax:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">actors</span><span class="p">:</span>
@@ -1114,16 +1120,20 @@ these exceptions gracefully.</p>
 <span class="nt">Default</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;host&#39;</span>
 <span class="nt">Options</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;host&#39;</span><span class="w"> </span><span class="p p-Indicator">|</span><span class="err"> &#39;guest&#39;</span>
 </code></pre></div>
-<p>The execution mode of the actor. The available options are:
-* <code>host</code> - the actor runs in the normal, non-virtualized mode.
-* <code>guest</code> - the actor runs in a VM (one VM per actor).</p>
+<p>The execution mode of the actor. The available options are:</p>
+<ul>
+<li><code>host</code> - the actor runs in the normal, non-virtualized mode.</li>
+<li><code>guest</code> - the actor runs in a VM (one VM per actor).</li>
+</ul>
 <div class="highlight"><pre><span></span><code><span class="nt">Actor Option</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">privilege_level</span>
 <span class="nt">Default</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;kernel&#39;</span>
 <span class="nt">Options</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;user&#39;</span><span class="w"> </span><span class="p p-Indicator">|</span><span class="err"> &#39;kernel&#39;</span>
 </code></pre></div>
-<p>The privilege level of the actor. The available options are:
-* <code>user</code> - the actor runs in user mode (CPL=3).
-* <code>kernel</code> - the actor runs in kernel mode (CPL=0).</p>
+<p>The privilege level of the actor. The available options are:</p>
+<ul>
+<li><code>user</code> - the actor runs in user mode (CPL=3).</li>
+<li><code>kernel</code> - the actor runs in kernel mode (CPL=0).</li>
+</ul>
 <div class="highlight"><pre><span></span><code><span class="nt">Actor Option</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data_properties</span>
 <span class="nt">Default</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">(see below)</span>
 <span class="nt">Options</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;present&#39;</span><span class="w"> </span><span class="p p-Indicator">|</span><span class="err"> &#39;writable&#39; | &#39;user&#39; | &#39;accessed&#39;</span>
@@ -1131,15 +1141,17 @@ these exceptions gracefully.</p>
 </code></pre></div>
 <p>The properties of the data memory used by the actor.
 These properties are applied only to the second page (FAULTY_AREA) of the actor's data region.</p>
-<p>The available options are:
-* <code>present</code> [default: True] - the value of the Present bit in the page table entry.
-* <code>writable</code> [default: True] - the value of the Writable bit in the page table entry.
-* <code>user</code> [default: False] - the value of the User/Supervisor bit in the page table entry.
-* <code>accessed</code> [default: True] - the value of the Accessed bit in the page table entry.
-* <code>dirty</code> [default: True] - the value of the Dirty bit in the page table entry.
-* <code>executable</code> [default: False] - the value of the Executable bit in the page table entry.
-* <code>reserved_bit</code> [default: False] - the value of the Reserved bit in the page table entry.
-* <code>randomized</code> [default: False] - if true, the values of the above properties will be randomized for each test case.</p>
+<p>The available options are:</p>
+<ul>
+<li><code>present</code> [default: True] - the value of the Present bit in the page table entry.</li>
+<li><code>writable</code> [default: True] - the value of the Writable bit in the page table entry.</li>
+<li><code>user</code> [default: False] - the value of the User/Supervisor bit in the page table entry.</li>
+<li><code>accessed</code> [default: True] - the value of the Accessed bit in the page table entry.</li>
+<li><code>dirty</code> [default: True] - the value of the Dirty bit in the page table entry.</li>
+<li><code>executable</code> [default: False] - the value of the Executable bit in the page table entry.</li>
+<li><code>reserved_bit</code> [default: False] - the value of the Reserved bit in the page table entry.</li>
+<li><code>randomized</code> [default: False] - if true, the values of the above properties will be randomized for each test case.</li>
+</ul>
 <p>Note that the above properties are set in the host page tables for actors with <code>mode: host</code>,
 and in the guest page tables for actors with <code>mode: guest</code>.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">Actor Option</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data_ept_properties</span>
@@ -1150,15 +1162,17 @@ and in the guest page tables for actors with <code>mode: guest</code>.</p>
 <p>The properties of the EPT entry used by the actor (on Intel) or the NPT entry (on AMD).
 The properties are applied only to the second page (FAULTY_AREA) of the actor's data region.</p>
 <p>This property has no effect on actors with <code>mode: host</code>.</p>
-<p>The available options are:
-* <code>present</code> [default: True] - the value of the Present bit in the EPT/NPT entry.
-* <code>writable</code> [default: True] - the value of the Writable bit in the EPT/NPT entry.
-* <code>executable</code> [default: False] - the value of the Executable bit in the EPT/NPT entry.
-* <code>accessed</code> [default: True] - the value of the Accessed bit in the EPT/NPT entry.
-* <code>dirty</code> [default: True] - the value of the Dirty bit in the EPT/NPT entry.
-* <code>user</code> [default: False] - the value of the User/Supervisor bit in the EPT/NPT entry.
-* <code>reserved_bit</code> [default: False] - the value of the Reserved bit in the EPT/NPT entry.
-* <code>randomized</code> [default: False] - if true, the values of the above properties will be randomized for each test case.</p>
+<p>The available options are:</p>
+<ul>
+<li><code>present</code> [default: True] - the value of the Present bit in the EPT/NPT entry.</li>
+<li><code>writable</code> [default: True] - the value of the Writable bit in the EPT/NPT entry.</li>
+<li><code>executable</code> [default: False] - the value of the Executable bit in the EPT/NPT entry.</li>
+<li><code>accessed</code> [default: True] - the value of the Accessed bit in the EPT/NPT entry.</li>
+<li><code>dirty</code> [default: True] - the value of the Dirty bit in the EPT/NPT entry.</li>
+<li><code>user</code> [default: False] - the value of the User/Supervisor bit in the EPT/NPT entry.</li>
+<li><code>reserved_bit</code> [default: False] - the value of the Reserved bit in the EPT/NPT entry.</li>
+<li><code>randomized</code> [default: False] - if true, the values of the above properties will be randomized for each test case.</li>
+</ul>
 <div class="highlight"><pre><span></span><code><span class="nt">Actor Option</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">observer</span>
 <span class="nt">Default</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">False</span>
 </code></pre></div>
@@ -1199,22 +1213,24 @@ For the explanation of the input classes and the generation algorithm, see (this
 <span class="nt">Options</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;seq&#39;</span><span class="w"> </span><span class="p p-Indicator">|</span><span class="err"> &#39;no_speculation&#39; | &#39;seq-assist&#39; | &#39;cond&#39; | &#39;conditional_br_misprediction&#39; | &#39;bpas&#39; | &#39;nullinj-fault&#39; | &#39;nullinj-assist&#39; | &#39;delayed-exception-handling&#39; | &#39;div-zero&#39; | &#39;div-overflow&#39; | &#39;meltdown&#39; | &#39;fault-skip&#39; | &#39;noncanonical&#39; | &#39;vspec-ops-div&#39; | &#39;vspec-ops-memory-faults&#39; | &#39;vspec-ops-memory-assists&#39; | &#39;vspec-ops-gp&#39; | &#39;vspec-all-div&#39; | &#39;vspec-all-memory-faults&#39; | &#39;vspec-all-memory-assists&#39; | &#39;noninterference&#39;</span>
 </code></pre></div>
 <p>The execution clause of the contract.</p>
-<p>For single-actor experiments, the following options are available:
-* <code>seq</code> - sequential execution.
-* <code>no_speculation</code> - sequential execution. Synonym for <code>seq</code>.
-* <code>seq-assist</code> - sequential execution with possible microcode assists.
-* <code>cond</code> - permitted misprediction of conditional branches.
-* <code>conditional_br_misprediction</code> - permitted misprediction of conditional branches. Synonym for <code>cond</code>.
-* <code>bpas</code> - permitted speculative store bypass
-* <code>nullinj-fault</code> - page faults are permitted to speculatively return zero.
-* <code>nullinj-assist</code> - microcode assists are permitted to speculatively return zero.
-* <code>delayed-exception-handling</code> - upon an exception or a fault, data-independent instructions that follow the exception are allowed to execute speculatively.
-* <code>meltdown</code> - permission-based page faults are permitted to speculatively return the value in the memory.
-* <code>fault-skip</code> - upon a fault, the faulting instruction is speculatively skipped.
-* <code>noncanonical</code> - permitted speculative non-canonical memory accesses.
-* <code>vspec*</code> - experimental contracts for value speculation. See (this paper)[https://www.usenix.org/system/files/usenixsecurity23-hofmann.pdf] for details.
-* <code>div-zero</code> - experimental contract; do not use.
-* <code>div-overflow</code> - experimental contract; do not use.</p>
+<p>For single-actor experiments, the following options are available:</p>
+<ul>
+<li><code>seq</code> - sequential execution.</li>
+<li><code>no_speculation</code> - sequential execution. Synonym for <code>seq</code>.</li>
+<li><code>seq-assist</code> - sequential execution with possible microcode assists.</li>
+<li><code>cond</code> - permitted misprediction of conditional branches.</li>
+<li><code>conditional_br_misprediction</code> - permitted misprediction of conditional branches. Synonym for <code>cond</code>.</li>
+<li><code>bpas</code> - permitted speculative store bypass</li>
+<li><code>nullinj-fault</code> - page faults are permitted to speculatively return zero.</li>
+<li><code>nullinj-assist</code> - microcode assists are permitted to speculatively return zero.</li>
+<li><code>delayed-exception-handling</code> - upon an exception or a fault, data-independent instructions that follow the exception are allowed to execute speculatively.</li>
+<li><code>meltdown</code> - permission-based page faults are permitted to speculatively return the value in the memory.</li>
+<li><code>fault-skip</code> - upon a fault, the faulting instruction is speculatively skipped.</li>
+<li><code>noncanonical</code> - permitted speculative non-canonical memory accesses.</li>
+<li><code>vspec*</code> - experimental contracts for value speculation. See (this paper)[https://www.usenix.org/system/files/usenixsecurity23-hofmann.pdf] for details.</li>
+<li><code>div-zero</code> - experimental contract; do not use.</li>
+<li><code>div-overflow</code> - experimental contract; do not use.</li>
+</ul>
 <p>In multi-actor context, only one option is available:
 * <code>noninterference</code> - the observer actor is permitted to leak its own data and the addresses of memory accesses of the other actors. No other data is allowed to be leak.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">Name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">contract_observation_clause</span>
@@ -1222,19 +1238,21 @@ For the explanation of the input classes and the generation algorithm, see (this
 <span class="nt">Options</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;none&#39;</span><span class="w"> </span><span class="p p-Indicator">|</span><span class="err"> &#39;l1d&#39; | &#39;memory&#39; | &#39;pc&#39; | &#39;ct&#39; | &#39;loads+stores+pc&#39; | &#39;ct-nonspecstore&#39; | &#39;ctr&#39; | &#39;arch&#39; | &#39;tct&#39; | &#39;tcto&#39;</span>
 </code></pre></div>
 <p>The observation clause of the contract. In most cases, the default value should be used.</p>
-<p>The available options are:
-* <code>none</code> - the model observes nothing. Useful for testing the fuzzer.
-* <code>l1d</code> - the model observes the addresses of data accesses, adjusted to imitate the L1D cache trace.
-  Has very few real applications, and should be generally avoided.
-* <code>memory</code> - the model observes the addresses of data accesses.
-* <code>ct</code> (constant time tracer) - the model observes the addresses of data accesses and the control flow.
-* <code>loads+stores+pc</code> - the model observes the addresses of data accesses and the control flow. Synonym for <code>ct</code>.
-* <code>ct-nonspecstore</code> - the model observes the addresses of data accesses and the control flow, but does not observe the addresses of stores during speculation.
-* <code>ctr</code> - the model observes the addresses of data accesses and the control flow, as well as the values of the general-purpose registers.
-* <code>arch</code> - the model observes the addresses of data accesses and the control flow, as well as the values loaded from memory.
-  This clause imitates the security guarantees provided by secure speculation mechanisms like STT.
-* <code>tct</code> (truncated constant time tracer) - the model observes address of the memory access and of the program counter at cache line granularity.
-* <code>tcto</code> (truncated constant time tracer with overflows) - the model address of the memory access and of the program counter at cache line granularity + observe cache line overflows.</p>
+<p>The available options are:</p>
+<ul>
+<li><code>none</code> - the model observes nothing. Useful for testing the fuzzer.</li>
+<li><code>l1d</code> - the model observes the addresses of data accesses, adjusted to imitate the L1D cache trace.
+  Has very few real applications, and should be generally avoided.</li>
+<li><code>memory</code> - the model observes the addresses of data accesses.</li>
+<li><code>ct</code> (constant time tracer) - the model observes the addresses of data accesses and the control flow.</li>
+<li><code>loads+stores+pc</code> - the model observes the addresses of data accesses and the control flow. Synonym for <code>ct</code>.</li>
+<li><code>ct-nonspecstore</code> - the model observes the addresses of data accesses and the control flow, but does not observe the addresses of stores during speculation.</li>
+<li><code>ctr</code> - the model observes the addresses of data accesses and the control flow, as well as the values of the general-purpose registers.</li>
+<li><code>arch</code> - the model observes the addresses of data accesses and the control flow, as well as the values loaded from memory.
+  This clause imitates the security guarantees provided by secure speculation mechanisms like STT.</li>
+<li><code>tct</code> (truncated constant time tracer) - the model observes address of the memory access and of the program counter at cache line granularity.</li>
+<li><code>tcto</code> (truncated constant time tracer with overflows) - the model address of the memory access and of the program counter at cache line granularity + observe cache line overflows.</li>
+</ul>
 <div class="highlight"><pre><span></span><code><span class="nt">Name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">model_min_nesting</span>
 <span class="nt">Default</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
 </code></pre></div>
@@ -1261,12 +1279,14 @@ Should be changed only if the auto-detection fails.</p>
 <span class="nt">Default</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;P+P&#39;</span>
 <span class="nt">Options</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;P+P&#39;</span><span class="w"> </span><span class="p p-Indicator">|</span><span class="err"> &#39;F+R&#39; | &#39;E+R&#39; | &#39;PP+P&#39; | &#39;TSC&#39;</span>
 </code></pre></div>
-<p>Hardware trace collection mode. The available options are:
-* <code>P+P</code> - prime and probe.
-* <code>F+R</code> - flush and reload.
-* <code>E+R</code> - evict and reload.
-* <code>PP+P</code> - partial prime and probe (i.e., leave a subset of cache lines unprimed).
-* <code>TSC</code> - use RDTSCP instruction to measure the time of the execution.</p>
+<p>Hardware trace collection mode. The available options are:</p>
+<ul>
+<li><code>P+P</code> - prime and probe.</li>
+<li><code>F+R</code> - flush and reload.</li>
+<li><code>E+R</code> - evict and reload.</li>
+<li><code>PP+P</code> - partial prime and probe (i.e., leave a subset of cache lines unprimed).</li>
+<li><code>TSC</code> - use RDTSCP instruction to measure the time of the execution.</li>
+</ul>
 <div class="highlight"><pre><span></span><code><span class="nt">Name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">executor_warmups</span>
 <span class="nt">Default</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
 </code></pre></div>
@@ -1317,13 +1337,15 @@ Useful for avoiding faults on unaligned accesses.</p>
 <span class="nt">Default</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;chi2&#39;</span>
 <span class="nt">Options</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;chi2&#39;</span><span class="w"> </span><span class="p p-Indicator">|</span><span class="err"> &#39;mwu&#39; | &#39;sets&#39; | &#39;bitmaps&#39;</span>
 </code></pre></div>
-<p>The type of the analyser that is used to compare the hardware traces and contract traces.
-The available options are:
-* <code>sets</code> - combine the hardware traces for each input into a set. A violation is reported if two inputs in the same contract-equivalence class have different sets of hardware traces.
-* <code>bitmaps</code> - combine the hardware traces for each input into a bitmap. A violation is reported if two inputs in the same contract-equivalence class have different bitmaps of hardware traces.
-* <code>chi2</code> - use the chi-squared homogeneity test to compare the hardware traces of inputs in the same contract-equivalence class. This test effectively checks if the hardware traces from two different inputs come from the same distribution. A violation is reported if the test fails.
-* <code>mwu</code> - [experimental; both false positives and negatives are possible]
-  use the Mann-Whitney U test to compare the hardware traces of inputs in the same contract-equivalence class. This test effectively checks if the hardware traces from two different inputs come from the same distribution. A violation is reported if the test fails.</p>
+<p>The type of the analyser that is used to compare the hardware traces and contract traces.</p>
+<p>The available options are:</p>
+<ul>
+<li><code>sets</code> - combine the hardware traces for each input into a set. A violation is reported if two inputs in the same contract-equivalence class have different sets of hardware traces.</li>
+<li><code>bitmaps</code> - combine the hardware traces for each input into a bitmap. A violation is reported if two inputs in the same contract-equivalence class have different bitmaps of hardware traces.</li>
+<li><code>chi2</code> - use the chi-squared homogeneity test to compare the hardware traces of inputs in the same contract-equivalence class. This test effectively checks if the hardware traces from two different inputs come from the same distribution. A violation is reported if the test fails.</li>
+<li><code>mwu</code> - [experimental; both false positives and negatives are possible]
+  use the Mann-Whitney U test to compare the hardware traces of inputs in the same contract-equivalence class. This test effectively checks if the hardware traces from two different inputs come from the same distribution. A violation is reported if the test fails.</li>
+</ul>
 <div class="highlight"><pre><span></span><code><span class="nt">Name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">analyser_subsets_is_violation</span>
 <span class="nt">Default</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">False</span>
 </code></pre></div>
@@ -1347,9 +1369,11 @@ then the traces are considered equivalent.</p>
 <span class="nt">Default</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;none&#39;</span>
 <span class="nt">Options</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;none&#39;</span><span class="w"> </span><span class="p p-Indicator">|</span><span class="err"> &#39;model_instructions&#39;</span>
 </code></pre></div>
-<p>The type of coverage tracking. The available options are:
-* <code>none</code> - disable coverage tracking.
-* <code>model_instructions</code> - track how many times the model executed each instruction.</p>
+<p>The type of coverage tracking. The available options are:</p>
+<ul>
+<li><code>none</code> - disable coverage tracking.</li>
+<li><code>model_instructions</code> - track how many times the model executed each instruction.</li>
+</ul>
 <div class="highlight"><pre><span></span><code><span class="nt">Name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">minimizer_retries</span>
 <span class="nt">Default</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
 </code></pre></div>

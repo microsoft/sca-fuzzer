@@ -883,10 +883,12 @@
 <h1 id="development">Development</h1>
 <p>This page contains various bits of information helpful when developing and expanding Revizor.</p>
 <h2 id="tests">Tests</h2>
-<p>To run automated tests you will need to install a few more dependencies:
-* <a href="https://bats-core.readthedocs.io/en/latest/index.html">Bash Automated Testing System</a>
-* <a href="https://mypy.readthedocs.io/en/latest/getting_started.html#installing-and-running-mypy">mypy</a>
-* <a href="https://flake8.pycqa.org/en/latest/index.html">flake8</a></p>
+<p>To run automated tests you will need to install a few more dependencies:</p>
+<ul>
+<li><a href="https://bats-core.readthedocs.io/en/latest/index.html">Bash Automated Testing System</a></li>
+<li><a href="https://mypy.readthedocs.io/en/latest/getting_started.html#installing-and-running-mypy">mypy</a></li>
+<li><a href="https://flake8.pycqa.org/en/latest/index.html">flake8</a></li>
+</ul>
 <p>With the dependencies installed, you can run the tests with:</p>
 <div class="highlight"><pre><span></span><code>./tests/runtests.sh
 </code></pre></div>
@@ -895,66 +897,158 @@ These tests are labeled "Detection" (e.g., "Detection [spectre-type] Spectre V1;
 Generally, if a few of these tests fail, it is not a problem, but if all of them (or a significant portion) fail, it indicates an issue with the fuzzer.</p>
 <h2 id="code-style">Code Style</h2>
 <p>Please follow these coding standards when writing code for inclusion in Revizor.</p>
-<p>Python:
-* Unless otherwise specified, follow PEP 8. But remember that PEP 8 is only a guide, so respect the style of the surrounding code as a primary goal.
-* An exception to PEP 8 is our rules on line lengths. Don’t limit lines of code to 79 characters if it means the code looks significantly uglier or is harder to read. We allow up to 100 characters.
-* All files should be formatted using the <code>flake8</code> auto-formatter. Use all default settings except for the line width (<code>--max-line-length 100</code>)
-* The Python and C files use 4 spaces for indentation, and YAML uses 2 spaces.
-* The project repository includes an .editorconfig file. We recommend using a text editor with EditorConfig support to avoid indentation and whitespace issues.
-* Use underscores, not camelCase, for variable, function and method names (i.e. poll.get_unique_voters(), not poll.getUniqueVoters()).
-* Use InitialCaps for class names (or for factory functions that return classes).
-* In docstrings, follow PEP 257.</p>
-<p>C:
-* All files should be formatted using the <code>clang-format</code>. The settings are included into the <code>.clang-format</code> files in the directories with C files. Just run the formatter with: <code>clang-format -i *.c</code></p>
-<p>Misc:
-* Remove import statements that are no longer used when you change code. flake8 will identify these imports for you. If an unused import needs to remain for backwards-compatibility, mark the end of with # NOQA to silence the flake8 warning.
-* Systematically remove all trailing whitespaces from your code as those add unnecessary bytes, add visual clutter to the patches and can also occasionally cause unnecessary merge conflicts. Some IDE’s can be configured to automatically remove them and most VCS tools can be set to highlight them in diff outputs.</p>
+<p>Python:</p>
+<ul>
+<li>Unless otherwise specified, follow PEP 8. But remember that PEP 8 is only a guide, so respect the style of the surrounding code as a primary goal.</li>
+<li>An exception to PEP 8 is our rules on line lengths. Don’t limit lines of code to 79 characters if it means the code looks significantly uglier or is harder to read. We allow up to 100 characters.</li>
+<li>All files should be formatted using the <code>flake8</code> auto-formatter. Use all default settings except for the line width (<code>--max-line-length 100</code>)</li>
+<li>The Python and C files use 4 spaces for indentation, and YAML uses 2 spaces.</li>
+<li>The project repository includes an .editorconfig file. We recommend using a text editor with EditorConfig support to avoid indentation and whitespace issues.</li>
+<li>Use underscores, not camelCase, for variable, function and method names (i.e. poll.get_unique_voters(), not poll.getUniqueVoters()).</li>
+<li>Use InitialCaps for class names (or for factory functions that return classes).</li>
+<li>In docstrings, follow PEP 257.</li>
+</ul>
+<p>C:</p>
+<ul>
+<li>All files should be formatted using the <code>clang-format</code>. The settings are included into the <code>.clang-format</code> files in the directories with C files. Just run the formatter with: <code>clang-format -i *.c</code></li>
+</ul>
+<p>Misc:</p>
+<ul>
+<li>Remove import statements that are no longer used when you change code. flake8 will identify these imports for you. If an unused import needs to remain for backwards-compatibility, mark the end of with # NOQA to silence the flake8 warning.</li>
+<li>Systematically remove all trailing whitespaces from your code as those add unnecessary bytes, add visual clutter to the patches and can also occasionally cause unnecessary merge conflicts. Some IDE’s can be configured to automatically remove them and most VCS tools can be set to highlight them in diff outputs.</li>
+</ul>
 <h2 id="git-messages">Git Messages</h2>
 <p>We practice the following conventions for commit messages:</p>
 <div class="highlight"><pre><span></span><code>&lt;scope&gt;: [&lt;type&gt;] &lt;subject&gt;
 </code></pre></div>
-<p>Where:
-* <code>&lt;scope&gt;</code>: The scope of the change.
-* <code>&lt;type&gt;</code>: The type of the change.
-* <code>&lt;subject&gt;</code>: A short description of the change.</p>
+<p>Where:</p>
+<ul>
+<li><code>&lt;scope&gt;</code>: The scope of the change.</li>
+<li><code>&lt;type&gt;</code>: The type of the change.</li>
+<li><code>&lt;subject&gt;</code>: A short description of the change.</li>
+</ul>
 <h3 id="scopes">Scopes</h3>
-<p>The following scopes are typical:
-* <code>all</code>: Changes that affect the entire project (e.g., major refactoring)
-* <code>root</code>: Root directory changes (e.g., readme, git, author list)
-* <code>fuzz</code>: Changes to the core fuzzer algorithm.
-* <code>cli</code>: Changes to the command-line interface.
-* <code>exec</code>: Changes to the executor.
-* <code>model</code>: Changes to the model.
-* <code>analyser</code>: Changes to the analyser.
-* <code>mini</code>: Changes to the postprocessor (i.e., minimizer).
-* <code>gen</code>: Changes to the program generator
-* <code>input_gen</code>: Changes to the input generator
-* <code>tests</code>: Changes to the tests
-* <code>isa</code>: Changes to the ISA loader or to <code>get_spec</code> files</p>
+<p>The following scopes are typical:</p>
+<table>
+<thead>
+<tr>
+<th>Scope</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>all</code></td>
+<td>Changes that affect the entire project (e.g., major refactoring)</td>
+</tr>
+<tr>
+<td><code>root</code></td>
+<td>Root directory changes (e.g., readme, git, author list)</td>
+</tr>
+<tr>
+<td><code>fuzz</code></td>
+<td>Changes to the core fuzzer algorithm.</td>
+</tr>
+<tr>
+<td><code>cli</code></td>
+<td>Changes to the command-line interface.</td>
+</tr>
+<tr>
+<td><code>exec</code></td>
+<td>Changes to the executor.</td>
+</tr>
+<tr>
+<td><code>model</code></td>
+<td>Changes to the model.</td>
+</tr>
+<tr>
+<td><code>analyser</code></td>
+<td>Changes to the analyser.</td>
+</tr>
+<tr>
+<td><code>mini</code></td>
+<td>Changes to the postprocessor (i.e., minimizer).</td>
+</tr>
+<tr>
+<td><code>gen</code></td>
+<td>Changes to the program generator</td>
+</tr>
+<tr>
+<td><code>input_gen</code></td>
+<td>Changes to the input generator</td>
+</tr>
+<tr>
+<td><code>tests</code></td>
+<td>Changes to the tests</td>
+</tr>
+<tr>
+<td><code>isa</code></td>
+<td>Changes to the ISA loader or to <code>get_spec</code> files</td>
+</tr>
+</tbody>
+</table>
 <p>If a commit covers several scopes, use the most relevant one.</p>
 <p>If a commit targets a specific architecture (e.g., x86), add the architecture to the scope (e.g., <code>fuzz/x86</code>).</p>
 <h3 id="types">Types</h3>
-<p>Use one of the following types:
-* <code>feat</code>: A new feature.
-* <code>fix</code>: A bug fix.
-* <code>docs</code>: Documentation changes.
-* <code>chore</code>: Changes to the build process or auxiliary tools.
-* <code>ft</code>: Fault tolerance changes (e.g., adding error handling or recovery mechanisms).
-* <code>refact</code>: Refactoring of the codebase. This includes code style change.
-* <code>perf</code>: Performance improvements.
-* <code>revert</code>: Reverts a previous commit.</p>
+<p>Use one of the following types:</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>feat</code></td>
+<td>A new feature.</td>
+</tr>
+<tr>
+<td><code>fix</code></td>
+<td>A bug fix.</td>
+</tr>
+<tr>
+<td><code>docs</code></td>
+<td>Documentation changes.</td>
+</tr>
+<tr>
+<td><code>chore</code></td>
+<td>Changes to the build process or auxiliary tools.</td>
+</tr>
+<tr>
+<td><code>ft</code></td>
+<td>Fault tolerance changes (e.g., adding error handling or recovery mechanisms).</td>
+</tr>
+<tr>
+<td><code>refact</code></td>
+<td>Refactoring of the codebase. This includes code style change.</td>
+</tr>
+<tr>
+<td><code>perf</code></td>
+<td>Performance improvements.</td>
+</tr>
+<tr>
+<td><code>revert</code></td>
+<td>Reverts a previous commit.</td>
+</tr>
+</tbody>
+</table>
 <p>If possible, try to use only these types.
 If you need to use a different type, please discuss it with a maintainer.</p>
 <h2 id="git-branches">Git Branches</h2>
-<p>We practice the (git workflow)[https://git-scm.com/docs/gitworkflows], with a few modifications.</p>
-<p>We use the following branches for graduation:
-* <code>main</code>: The latest release. This branch should always be stable, and it is the last branch to receive changes.
-* <code>main-fixes</code>: Commits that go in the next maintenance release. This branch is created from the last release branch.
-* <code>pre-release</code>: Stable commits that go in the next release.
-* <code>dev</code>: The development branch. This branch is the first to receive changes.</p>
-<p>Commits should be merged upwards:
-* <code>dev</code> -&gt; <code>pre-release</code> -&gt; <code>main</code>
-* In case of hot fixes, <code>main-fixes</code> -&gt; <code>main</code> AND <code>main-fixes</code> -&gt; <code>pre-release</code></p>
+<p>We practice the <a href="https://git-scm.com/docs/gitworkflows">git workflow</a>, with a few modifications.</p>
+<p>We use the following branches for graduation:</p>
+<ul>
+<li><code>main</code>: The latest release. This branch should always be stable, and it is the last branch to receive changes.</li>
+<li><code>main-fixes</code>: Commits that go in the next maintenance release. This branch is created from the last release branch.</li>
+<li><code>pre-release</code>: Stable commits that go in the next release.</li>
+<li><code>dev</code>: The development branch. This branch is the first to receive changes.</li>
+</ul>
+<p>Commits should be merged upwards:</p>
+<ul>
+<li><code>dev</code> -&gt; <code>pre-release</code> -&gt; <code>main</code></li>
+<li>In case of hot fixes, <code>main-fixes</code> -&gt; <code>main</code> AND <code>main-fixes</code> -&gt; <code>pre-release</code></li>
+</ul>
 <p>For working on unstable code (e.g., progress on features or bug fixes), use either forks or feature branches.
 Use forks if you are the only one working on the feature, and use a pull request to merge the changes back into the main repository.
 Use a feature branch if multiple people are working on the feature, in which case name the branch <code>feature-&lt;name&gt;</code> or <code>bugfix-&lt;name&gt;</code>, and make sure to branch from the <code>dev</code> branch.</p>

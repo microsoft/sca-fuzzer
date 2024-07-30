@@ -613,9 +613,45 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#overview" class="md-nav__link">
+  <a href="#test-case-program-generator" class="md-nav__link">
     <span class="md-ellipsis">
-      Overview
+      Test Case (Program) Generator
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#input-generator" class="md-nav__link">
+    <span class="md-ellipsis">
+      Input Generator
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#model" class="md-nav__link">
+    <span class="md-ellipsis">
+      Model
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#executor" class="md-nav__link">
+    <span class="md-ellipsis">
+      Executor
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#analyser" class="md-nav__link">
+    <span class="md-ellipsis">
+      Analyser
     </span>
   </a>
   
@@ -854,9 +890,45 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#overview" class="md-nav__link">
+  <a href="#test-case-program-generator" class="md-nav__link">
     <span class="md-ellipsis">
-      Overview
+      Test Case (Program) Generator
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#input-generator" class="md-nav__link">
+    <span class="md-ellipsis">
+      Input Generator
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#model" class="md-nav__link">
+    <span class="md-ellipsis">
+      Model
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#executor" class="md-nav__link">
+    <span class="md-ellipsis">
+      Executor
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#analyser" class="md-nav__link">
+    <span class="md-ellipsis">
+      Analyser
     </span>
   </a>
   
@@ -984,23 +1056,7 @@
 
 <h1 id="revizor-architecture">Revizor Architecture</h1>
 <p>Below is a high-level overview of Revizor's architecture and its key modules.</p>
-<ul>
-<li><a href="#revizor-architecture">Revizor Architecture</a></li>
-<li><a href="#overview">Overview</a></li>
-<li><a href="#revizor-modules-and-interfaces">Revizor Modules and Interfaces</a><ul>
-<li><a href="#architecture-specific-implementation">Architecture-specific Implementation</a></li>
-<li><a href="#abstract-test-case">Abstract Test Case</a></li>
-<li><a href="#operandspec"><code>OperandSpec</code></a></li>
-<li><a href="#instructionspec"><code>InstructionSpec</code></a></li>
-<li><a href="#operand"><code>Operand</code></a></li>
-<li><a href="#instruction"><code>Instruction</code></a></li>
-<li><a href="#basicblock"><code>BasicBlock</code></a></li>
-<li><a href="#function"><code>Function</code></a></li>
-<li><a href="#testcasedag"><code>TestCaseDAG</code></a></li>
-</ul>
-</li>
-</ul>
-<h2 id="overview">Overview</h2>
+<p>[THE FOLLOWING IS A WORK IN PROGRESS]</p>
 <p><img alt="architecture" src="../assets/arch.png" /></p>
 <p>Revizor has <strong>five</strong> chief components:</p>
 <ol>
@@ -1013,39 +1069,29 @@
 <p>The <strong>Test Case Generator</strong> and <strong>Input Generator</strong> are responsible for
 generating random test cases to be run through the <strong>Model</strong> and <strong>Executor</strong>.
 The results are examined by the <strong>Analyser</strong> for contract violations.</p>
-<ul>
-<li>Test Case Generator</li>
-</ul>
+<h3 id="test-case-program-generator">Test Case (Program) Generator</h3>
 <p>The TCG is responsible for generating random assembly test cases. It takes an
 Instruction Set Specification as input in order for it to understand the
 instructions and syntax it can use for generation.</p>
-<ul>
-<li>Input Generator</li>
-</ul>
+<h3 id="input-generator">Input Generator</h3>
 <p>The IG is responsible for generating the <em>inputs</em> that are passed into a test
 case created by the TCG. Largely, this means <strong>register</strong> and <strong>memory</strong> values
 that the microarchitecture will be primed with before executing the test case.
 In this way, a single test case program can be run across several different
 inputs, allowing for multiple contract traces (and later, hardware traces) to be
 collected for analysis.</p>
-<ul>
-<li>Model</li>
-</ul>
+<h3 id="model">Model</h3>
 <p>The Model's job is to accept test cases and inputs from the TCG &amp; IG and
 <em>emulate</em> the test case to collect <strong>contract traces</strong>. A single test case seeded
 with several inputs (<code>N</code> inputs) will create several contract traces (<code>N</code>
 contract traces) as the model's output. These are passed to the Analyser to
 determine <strong>input classes</strong>.</p>
-<ul>
-<li>Executor</li>
-</ul>
+<h3 id="executor">Executor</h3>
 <p>The Executor, on the other side from the Model, is responsible for running the
 <em>same</em> test cases (with the <em>same</em> inputs) on physical hardware to collect
 <strong>hardware traces</strong>. Hardware traces from the same input class are collected and
 studied by the Analyser to detect <strong>contract violations</strong>.</p>
-<ul>
-<li>Analyser</li>
-</ul>
+<h3 id="analyser">Analyser</h3>
 <p>The Analyser receives contract traces from the Model and hardware traces from
 the Executor to accomplish two primary goals:</p>
 <ol>

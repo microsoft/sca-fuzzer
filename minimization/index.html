@@ -1051,14 +1051,10 @@ It prints out a compact representation of the input difference, with each charac
 <p>This output indicates that the pass successfully minimized the input difference for all bytes except for the byte at address <code>0x2020</code>, which remained different in the two inputs, and the bytes at addresses <code>0x2000-0x2018</code> and <code>0x2028</code> were already the same in both inputs.</p>
 <h2 id="usage-example">Usage Example</h2>
 <p>The following example demonstrates a typical workflow of using the <code>minimize</code> mode to simplify a violating program and its input sequence.</p>
-<ol>
-<li>Let's assume that a violation artifact was produces as a result of a fuzzing campaign like this:</li>
-</ol>
+<p>Let's assume that a violation artifact was produces as a result of a fuzzing campaign like this:</p>
 <div class="highlight"><pre><span></span><code>rvzr<span class="w"> </span>fuzz<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>config.yaml<span class="w"> </span>-n<span class="w"> </span><span class="m">1000</span><span class="w"> </span>-i<span class="w"> </span><span class="m">25</span><span class="w"> </span>-w<span class="w"> </span>.
 </code></pre></div>
-<ol>
-<li>The first step is to minimize the violating program by enabling all program passes:</li>
-</ol>
+<p>The first step is to minimize the violating program by enabling all program passes:</p>
 <div class="highlight"><pre><span></span><code>rvzr<span class="w"> </span>minimize<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>./violation-000000-000000/minimize.yaml<span class="w"> </span><span class="se">\</span>
 <span class="w">     </span>-t<span class="w"> </span>./violation/violation-000000-000000/program.asm<span class="w"> </span><span class="se">\</span>
 <span class="w">     </span>-o<span class="w"> </span>min.asm<span class="w"> </span>-i<span class="w"> </span><span class="m">25</span><span class="w"> </span>--num-attempts<span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="se">\</span>
@@ -1069,16 +1065,12 @@ It prints out a compact representation of the input difference, with each charac
 <span class="w">     </span>--enable-mask-pass<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
 <span class="w">     </span>--enable-label-pass<span class="w"> </span><span class="m">1</span>
 </code></pre></div>
-<ol>
-<li>Verify the violation is preserved by reproducing it with the minimized program and the original input sequence:</li>
-</ol>
+<p>Then verify the violation is preserved by reproducing it with the minimized program and the original input sequence:</p>
 <div class="highlight"><pre><span></span><code>rvzr<span class="w"> </span>fuzz<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>minimize.yaml<span class="w"> </span>-t<span class="w"> </span>min.asm<span class="w"> </span>-i<span class="w"> </span><span class="m">25</span>
 </code></pre></div>
 <p>If the violation is detected, move to the next step.
 Otherwise, re-run the first command with a lower number of <code>--num-attempts</code> or try to disable some of the passes.</p>
-<ol>
-<li>The next step is to minimize the inputs by enabling all input passes, and to add analysis comments:</li>
-</ol>
+<p>The next step is to minimize the inputs by enabling all input passes, and to add analysis comments:</p>
 <div class="highlight"><pre><span></span><code>rvzr<span class="w"> </span>minimize<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>./violation/violation-240712-132351/minimize.yaml<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>-t<span class="w"> </span>min.asm<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>-o<span class="w"> </span>commented.asm<span class="w"> </span>-i<span class="w"> </span><span class="m">25</span><span class="w">  </span><span class="se">\</span>
@@ -1088,9 +1080,7 @@ Otherwise, re-run the first command with a lower number of <code>--num-attempts<
 <span class="w">    </span>--enable-source-analysis<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--enable-comment-pass<span class="w"> </span><span class="m">1</span>
 </code></pre></div>
-<ol>
-<li>The final step is to try to reproduce the violation with the minimized program and inputs to verify that the violation is preserved:</li>
-</ol>
+<p>The final step is to try to reproduce the violation with the minimized program and inputs to verify that the violation is preserved:</p>
 <div class="highlight"><pre><span></span><code>rvzr<span class="w"> </span>reproduce<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>./violation/violation-240712-132351/reproduce.yaml<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>-t<span class="w"> </span>commented.asm<span class="w"> </span>-i<span class="w"> </span>./inputs/min_input*.bin
 </code></pre></div>

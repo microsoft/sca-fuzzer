@@ -1089,11 +1089,13 @@ Filtering:<span class="w"> </span>OK
 If you still have issues, please <a href="https://github.com/microsoft/sca-fuzzer/issues">open an issue</a>.</p>
 <h3 id="6-optional-system-configuration">6. (Optional) System Configuration</h3>
 <p>External processes can interfere with Revizor's measurements.
-To minimize this interference, we recommend the following system configuration:
-* Disable Hyperthreading (BIOS option);
-* Disable Turbo Boost (BIOS option);
-* Boot the kernel on a single core (add <code>-maxcpus=1</code> to <a href="(https://wiki.ubuntu.com/Kernel/KernelBootParameters)">Linux boot parameters</a>).</p>
-<p>If you skip these steps, Revizor may produce false positives, especially if you use a low (sample size)[./docs/config.md) for measurements.
+To minimize this interference, we recommend the following system configuration:</p>
+<ul>
+<li>Disable Hyperthreading (BIOS option);</li>
+<li>Disable Turbo Boost (BIOS option);</li>
+<li>Boot the kernel on a single core (add <code>-maxcpus=1</code> to <a href="(https://wiki.ubuntu.com/Kernel/KernelBootParameters)">Linux boot parameters</a>).</li>
+</ul>
+<p>If you skip these steps, Revizor may produce false positives, especially if you use a low value for <a href="../config/#executor-configuration"><code>executor_sample_sizes</code></a> for measurements.
 However, a large sample size (&gt; 300-400) usually mitigates this issue.</p>
 <h2 id="quick-start">Quick Start</h2>
 <p>The following is an example of a simple fuzzing session with Revizor that will detect Spectre V1-like violations.</p>
@@ -1127,14 +1129,16 @@ Hardware traces:
 It will contain an assembly file <code>program.asm</code> that surfaced a violation, a sequence of inputs <code>input_*.bin</code> to this program, and some details about the violation in <code>report.txt</code>.</p>
 <h2 id="command-line-interface">Command Line Interface</h2>
 <p>The fuzzer is controlled via a single command line interface <code>rvzr</code> (or <code>revizor.py</code> if you're running directly from the source tree).</p>
-<p>It accepts the following arguments:
-* <code>-s, --instruction-set PATH</code> - path to the ISA description file
-* <code>-c, --config PATH</code> - path to the fuzzing configuration file
-* <code>-n , --num-test-cases N</code> - number of test cases to be tested
-* <code>-i , --num-inputs N</code> - number of input classes per test case. The number of actual inputs = input classes * inputs_per_class, which is a configuration option
-* <code>-t , --testcase PATH</code> - use an existing test case instead of generating random test cases
-* <code>--timeout TIMEOUT</code> - run fuzzing with a time limit [seconds]
-* <code>-w</code> - working directory where the detected violations will be stored</p>
+<p>It accepts the following arguments:</p>
+<ul>
+<li><code>-s, --instruction-set PATH</code> - path to the ISA description file</li>
+<li><code>-c, --config PATH</code> - path to the fuzzing configuration file</li>
+<li><code>-n , --num-test-cases N</code> - number of test cases to be tested</li>
+<li><code>-i , --num-inputs N</code> - number of input classes per test case. The number of actual inputs = input classes * inputs_per_class, which is a configuration option</li>
+<li><code>-t , --testcase PATH</code> - use an existing test case instead of generating random test cases</li>
+<li><code>--timeout TIMEOUT</code> - run fuzzing with a time limit [seconds]</li>
+<li><code>-w</code> - working directory where the detected violations will be stored</li>
+</ul>
 <p>For example, this command
 <div class="highlight"><pre><span></span><code>rvzr<span class="w"> </span>fuzz<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-n<span class="w"> </span><span class="m">100</span><span class="w"> </span>-i<span class="w"> </span><span class="m">10</span><span class="w">  </span>-c<span class="w"> </span>config.yaml<span class="w"> </span>-w<span class="w"> </span>./violations
 </code></pre></div>
@@ -1142,9 +1146,11 @@ will run the fuzzer for 100 iterations (i.e., 100 test cases), with 10 inputs pe
 The fuzzer will use the ISA spec stored in the <code>base.json</code> file, and will read the configuration from <code>config.yaml</code>. If the fuzzer finds a violation, it will be stored in the <code>./violations</code> directory.</p>
 <p>See <a href="https://microsoft.github.io/sca-fuzzer/cli/">docs</a> for more details.</p>
 <h2 id="how-to-fuzz-with-revizor">How To Fuzz With Revizor</h2>
-<p>The fuzzing process is controlled by a configuration file in the YAML format, passed via <code>--config</code> option. At the very minimum, this file should contain the following fields:
-* <code>contract_observation_clause</code> and <code>contract_execution_clause</code> describe the contract that the CPU-under-test is tested against. See <a href="https://microsoft.github.io/sca-fuzzer/config/">this page</a> for a list of available contracts. If you don't know what a contract is, Sec. 3 of <a href="https://arxiv.org/pdf/2105.06872.pdf">this paper</a> will give you a high-level introduction to contracts, and <a href="https://www.microsoft.com/en-us/research/publication/hardware-software-contracts-for-secure-speculation/">this paper</a> will provide a deep dive into contracts.
-* <code>instruction_categories</code> is a list of instruction types that will be tested. Effectively, Revizor uses this list to filter out instructions from <code>base.json</code> (the file you downloaded via <code>rvzr download_spec</code>).</p>
+<p>The fuzzing process is controlled by a configuration file in the YAML format, passed via <code>--config</code> option. At the very minimum, this file should contain the following fields:</p>
+<ul>
+<li><code>contract_observation_clause</code> and <code>contract_execution_clause</code> describe the contract that the CPU-under-test is tested against. See <a href="https://microsoft.github.io/sca-fuzzer/config/">this page</a> for a list of available contracts. If you don't know what a contract is, Sec. 3 of <a href="https://arxiv.org/pdf/2105.06872.pdf">this paper</a> will give you a high-level introduction to contracts, and <a href="https://www.microsoft.com/en-us/research/publication/hardware-software-contracts-for-secure-speculation/">this paper</a> will provide a deep dive into contracts.</li>
+<li><code>instruction_categories</code> is a list of instruction types that will be tested. Effectively, Revizor uses this list to filter out instructions from <code>base.json</code> (the file you downloaded via <code>rvzr download_spec</code>).</li>
+</ul>
 <p>For a full list of configuration options, see <a href="https://microsoft.github.io/sca-fuzzer/config/">docs</a>.</p>
 <h3 id="baseline-experiment">Baseline Experiment</h3>
 <p>After a fresh installation, it is normally a good idea to do a quick test run to check that everything works ok.</p>
