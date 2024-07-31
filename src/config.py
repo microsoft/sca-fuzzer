@@ -285,6 +285,9 @@ class Conf:
             loader = IncludeLoader(f, include_dir)
             try:
                 config_update = loader.get_single_data()
+            except yaml.scanner.ScannerError as e:  # type: ignore
+                raise ConfigException(
+                    f"Error parsing the configuration file {config_path}:\nError: {e}")
             finally:
                 loader.dispose()
         self._load_from_dict(config_update)
