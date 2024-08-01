@@ -216,8 +216,8 @@ class X86RandomGeneratorTest(unittest.TestCase):
 
         self.assertEqual(tc.symbol_table[0], Symbol(0, 0, 0, 0))  # function_0
         self.assertEqual(tc.symbol_table[1], Symbol(0, 0, 1, 0))
-        self.assertEqual(tc.symbol_table[2], Symbol(0, 6, 2, 0))
-        self.assertEqual(tc.symbol_table[3], Symbol(0, 14, 0, 1))  # function_1
+        self.assertEqual(tc.symbol_table[2], Symbol(0, 9, 2, 0))
+        self.assertEqual(tc.symbol_table[3], Symbol(0, 20, 0, 1))  # function_1
         self.assertEqual(tc.symbol_table[4], Symbol(1, 0, 0, 2))  # function_2
 
         CONF._actors = prev_actors

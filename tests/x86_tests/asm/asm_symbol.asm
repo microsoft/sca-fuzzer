@@ -2,11 +2,11 @@
 .test_case_enter:
 .section .data.main
 
-.macro.measurement_start: nop dword ptr [rax + 1*rax + 1]
+.macro.measurement_start: nop qword ptr [rax + 0xff]
 
 nop
 
-.macro.measurement_end: nop dword ptr [rax + 1*rax + 1]
+.macro.measurement_end: nop qword ptr [rax + 0xff]
 
 and rax, rax
 
