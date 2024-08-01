@@ -271,8 +271,12 @@ class X86AsmParser(AsmParserGeneric):
             with open(patched_asm_file + ".tmp", "w") as patched:
                 for line in f:
                     line = line.lower()
-                    if line.startswith(".macro") and "nop" not in line:
-                        patched.write(line[:-1] + macro_placeholder + "\n")
+                    if line.startswith(".macro"):
+                        if "nop" not in line:
+                            patched.write(line[:-1] + macro_placeholder + "\n")
+                        else:
+                            assert macro_placeholder in line, "Unexpected NOP placeholder: " + line
+                            patched.write(line)
                     else:
                         patched.write(line)
         os.rename(patched_asm_file + ".tmp", patched_asm_file)
