@@ -585,7 +585,7 @@ static inline size_t start_macro_set_h2g_target(macro_args_t args, uint8_t *dest
         APPEND_BYTES_TO_DEST(0x49, 0xbb);
         APPEND_U64_TO_DEST(vmcb_hva_addr);
         // ASM: mov r11, [r11]
-        APPEND_BYTES_TO_DEST(0x49, 0x8b, 0x1b);
+        APPEND_BYTES_TO_DEST(0x4d, 0x8b, 0x1b);
         // ASM: add r11, VMCB_RIP_OFFSET
         APPEND_BYTES_TO_DEST(0x49, 0x81, 0xc3);
         APPEND_U32_TO_DEST(VMCB_RIP_OFFSET);

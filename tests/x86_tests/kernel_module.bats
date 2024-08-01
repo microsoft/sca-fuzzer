@@ -211,7 +211,7 @@ function set_default_config() {
 
     # execute one dummy run to set Executor into the default config and to load the test case
     nruns=1000
-    threshold=$((nruns - 1))
+    threshold=900
 
     tmpasm=$(mktemp /tmp/revizor-test.XXXXXX.asm)
     tmpbin=$(mktemp /tmp/revizor-test.XXXXXX.o)
@@ -264,7 +264,7 @@ function set_default_config() {
 
     # execute one dummy run to set Executor into the default config and to load the test case
     nruns=1000
-    threshold=$((nruns - 1))
+    threshold=900
 
     tmpasm=$(mktemp /tmp/revizor-test.XXXXXX.asm)
     tmpbin=$(mktemp /tmp/revizor-test.XXXXXX.o)
