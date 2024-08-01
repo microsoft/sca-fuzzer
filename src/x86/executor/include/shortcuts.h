@@ -42,6 +42,10 @@
 #define PRINT_ERR(msg, ...)       printk(KERN_ERR "[x86_executor] " msg, ##__VA_ARGS__);
 #define PRINT_ERRS(src, msg, ...) printk(KERN_ERR "[x86_executor:" src "] " msg, ##__VA_ARGS__);
 
+#define PRINT_WARN(msg, ...) printk(KERN_WARNING "[x86_executor] " msg, ##__VA_ARGS__);
+#define PRINT_WARNS(src, msg, ...)                                                                 \
+    printk(KERN_WARNING "[x86_executor:" src "] " msg, ##__VA_ARGS__);
+
 // Error handling
 #define ASSERT(condition, src)                                                                     \
     if (!(condition)) {                                                                            \
@@ -70,7 +74,7 @@
 #define CHECK_ERR(msg)                                                                             \
     if (err) {                                                                                     \
         PRINT_ERR(" Error [" msg "]\n");                                                           \
-        return -EIO;                                                                                \
+        return -EIO;                                                                               \
     }
 
 // Memory management
@@ -79,7 +83,7 @@
         void *ptr = kmalloc(x, GFP_KERNEL);                                                        \
         if (!ptr) {                                                                                \
             PRINT_ERR(" Error allocating memory\n");                                               \
-            return -ENOMEM;                                                                           \
+            return -ENOMEM;                                                                        \
         }                                                                                          \
         ptr;                                                                                       \
     })
@@ -88,7 +92,7 @@
         void *ptr = kzalloc(x, GFP_KERNEL);                                                        \
         if (!ptr) {                                                                                \
             PRINT_ERR(" Error zero-allocating memory\n");                                          \
-            return -ENOMEM;                                                                           \
+            return -ENOMEM;                                                                        \
         }                                                                                          \
         ptr;                                                                                       \
     })
@@ -103,7 +107,7 @@
         void *ptr = vmalloc(x);                                                                    \
         if (!ptr) {                                                                                \
             PRINT_ERR(" Error allocating memory\n");                                               \
-            return -ENOMEM;                                                                           \
+            return -ENOMEM;                                                                        \
         }                                                                                          \
         ptr;                                                                                       \
     })
@@ -118,7 +122,7 @@
         struct page *ptr = alloc_pages(GFP_KERNEL, get_order(size));                               \
         if (!ptr) {                                                                                \
             PRINT_ERR(" Error allocating pages\n");                                                \
-            return -ENOMEM;                                                                           \
+            return -ENOMEM;                                                                        \
         }                                                                                          \
         ptr;                                                                                       \
     })

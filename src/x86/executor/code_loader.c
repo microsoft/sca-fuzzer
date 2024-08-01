@@ -15,6 +15,7 @@
 #include "asm_snippets.h"
 #include "macro_loader.h"
 #include "main.h"
+#include "measurement.h"
 #include "sandbox_manager.h"
 #include "shortcuts.h"
 #include "test_case_parser.h"
@@ -292,7 +293,7 @@ static inline void prologue(void)
 
         // initialize special registers
         "mov "HTRACE_REGISTER", 0\n"
-        "mov "STATUS_REGISTER", 0\n"
+        "mov "STATUS_REGISTER", "xstr(STATUS_UNINITIALIZED)"\n"
 
         "mov rbp, rsp\n"
         "sub rsp, 0x1000\n"
@@ -307,30 +308,18 @@ static inline void epilogue(void)
     asm_volatile_intel(
         // rbx <- SMI counter
         READ_SMI_END()
-        "mov rbx, "STATUS_REGISTER"\n"
-        "shr rbx, 32\n"
 
         // rax <- &latest_measurement
         "lea rax, [r15 + "xstr(MEASUREMENT_OFFSET)"]\n"
 
-        // check for errors (detected SMI or incomplete measurement);
-        // if there are any, we clear the measurement; otherwise, we store the measurements
-        "cmp rbx, 0; jne 1f \n"
-        "cmp "STATUS_REGISTER_8", "xstr(SR_ENDED)"; jne 1f \n"
-        "   mov qword ptr [rax + 0x00], r13 \n"
-        "   mov qword ptr [rax + 0x08], r10 \n"
-        "   mov qword ptr [rax + 0x10], r9 \n"
-        "   mov qword ptr [rax + 0x18], r8 \n"
-
-            // to show that the measurement is valid, we set the last byte to 0x01
-        "   or byte ptr [rax + 0x07], 0x80 \n"
-        "   jmp 2f \n"
-        "1: \n"
-        "   mov qword ptr [rax + 0x00], 0 \n"
-        "   mov qword ptr [rax + 0x08], 0 \n"
-        "   mov qword ptr [rax + 0x10], 0 \n"
-        "   mov qword ptr [rax + 0x18], 0 \n"
-        "2: \n"
+        // Store the results
+        "mov qword ptr [rax + 0x00], "HTRACE_REGISTER" \n"  // HTrace
+        "mov qword ptr [rax + 0x08], r10 \n"                // PFC0
+        "mov qword ptr [rax + 0x10], r9 \n"                 // PFC1
+        "mov qword ptr [rax + 0x18], r8 \n"                 // PFC2
+        "mov qword ptr [rax + 0x20], 0 \n"                  // PFC3 (unused)
+        "mov qword ptr [rax + 0x28], 0 \n"                  // PFC4 (unused)
+        "mov qword ptr [rax + 0x30], "STATUS_REGISTER" \n"  // Measurement status
 
         // rsp = sandbox->util->stored_rsp
         "mov rsp, qword ptr [r15 + "xstr(STORED_RSP_OFFSET)"]\n"
@@ -356,14 +345,18 @@ static inline void epilogue(void)
 static inline void epilogue_dbg_gpr(void)
 {
     asm_volatile_intel(
+        // r14 <- &latest_measurement
         // clobber r14; not in use anymore
         "lea r14, [r15 + "xstr(MEASUREMENT_OFFSET)"]\n"
+
+        // Store the results
         "mov qword ptr [r14 + 0x00], rax\n"
         "mov qword ptr [r14 + 0x08], rbx\n"
         "mov qword ptr [r14 + 0x10], rcx\n"
         "mov qword ptr [r14 + 0x18], rdx\n"
         "mov qword ptr [r14 + 0x20], rsi\n"
         "mov qword ptr [r14 + 0x28], rdi\n"
+        "mov qword ptr [r14 + 0x30], "STATUS_REGISTER"\n"
 
         // rsp = sandbox->util->stored_rsp
         "mov rsp, qword ptr [r15 + "xstr(STORED_RSP_OFFSET)"]\n"

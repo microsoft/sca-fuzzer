@@ -8,6 +8,7 @@
 // clang-format off
 
 #include "hardware_desc.h"
+#include "measurement.h"
 #include <asm/msr-index.h>
 
 #ifndef VENDOR_ID
@@ -21,11 +22,8 @@
 #define HTRACE_REGISTER        "r13"
 
 /// State machine of the tracing process
-#define SR_UNINITIALIZED       0
-#define SR_STARTED             1
-#define SR_ENDED               2
-#define SET_SR_STARTED()       "mov "STATUS_REGISTER_8", "xstr(SR_STARTED)" \n"
-#define SET_SR_ENDED()         "mov "STATUS_REGISTER_8", "xstr(SR_ENDED)" \n"
+#define SET_SR_STARTED()       "mov "STATUS_REGISTER_8", "xstr(STATUS_STARTED)" \n"
+#define SET_SR_ENDED()         "mov "STATUS_REGISTER_8", "xstr(STATUS_ENDED)" \n"
 
 
 /// Accessors to MSRs

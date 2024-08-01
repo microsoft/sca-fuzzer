@@ -307,7 +307,7 @@ void __attribute__((noipa)) body_macro_probe(void)
     asm volatile(".quad " xstr(MACRO_START));
     // clang-format off
     asm_volatile_intel(""
-                       "cmp " STATUS_REGISTER_8 ", "xstr(SR_STARTED)"\n"
+                       "cmp " STATUS_REGISTER_8 ", "xstr(STATUS_STARTED)"\n"
                        "jne 99f\n"
                        MACRO_PROLOGUE()
                        "push r15\n"
@@ -346,7 +346,7 @@ void __attribute__((noipa)) body_macro_reload(void)
     asm volatile(".quad " xstr(MACRO_START));
     // clang-format off
     asm_volatile_intel(""
-                       "cmp " STATUS_REGISTER_8 ", "xstr(SR_STARTED)"\n"
+                       "cmp " STATUS_REGISTER_8 ", "xstr(STATUS_STARTED)"\n"
                        "jne 98f\n"
                        MACRO_PROLOGUE()
                        "lfence\n"
@@ -388,7 +388,7 @@ void __attribute__((noipa)) body_macro_tsc_end(void)
     asm volatile(".quad " xstr(MACRO_START));
     // clang-format off
     asm_volatile_intel(""
-                       "cmp " STATUS_REGISTER_8 ", "xstr(SR_STARTED)"\n"
+                       "cmp " STATUS_REGISTER_8 ", "xstr(STATUS_STARTED)"\n"
                        "jne 97f\n"
                        MACRO_PROLOGUE()
                        READ_PFC_END()
