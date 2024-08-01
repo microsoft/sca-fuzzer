@@ -6,20 +6,21 @@
 .function_main1:
 
 .function_main2:
-    .macro.measurement_start:
     .macro.set_h2g_target.actor2.function_a2:
     .macro.set_g2h_target.main.function_fin:
     .macro.switch_h2g.actor2:
 
 .function_fin:
     .macro.landing_g2h:
-    .macro.measurement_end:
     nop
 
 # ----------------------------- actor 2 ------------------------------------------------------------
 .section .data.actor2
 .function_a2:
     .macro.landing_h2g:
+    .macro.measurement_start:
+    .macro.measurement_end:
+
     .macro.switch_g2h.main:
 
 # ----------------------------- exit    ------------------------------------------------------------
