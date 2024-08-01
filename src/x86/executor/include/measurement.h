@@ -12,9 +12,20 @@
 #define HTRACE_WIDTH 1
 #define NUM_PFC      5
 
+#define STATUS_UNINITIALIZED 0
+#define STATUS_STARTED       1
+#define STATUS_ENDED         2
+
+typedef struct measurement_status {
+    uint8_t measurement_state;
+    uint8_t reserved[3];
+    uint32_t smi_count;
+} __attribute__((packed)) measurement_status_t;
+
 typedef struct Measurement {
     uint64_t htrace[HTRACE_WIDTH];
     uint64_t pfc_reading[NUM_PFC];
+    measurement_status_t status;
 } __attribute__((packed)) measurement_t;
 
 extern measurement_t *measurements;

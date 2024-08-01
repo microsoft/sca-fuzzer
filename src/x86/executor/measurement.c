@@ -143,19 +143,41 @@ int run_experiment(void)
         // Catch all exceptions
         set_test_case_idt();
 
-        // execute
+        // Execute
         char *main_data = &sandbox->data[0].main_area[0];
         err = ((int (*)(char *))loaded_test_case_entry)(main_data);
 
+        // Restore the original IDT and sandbox state
         unset_test_case_idt();
         restore_faulty_page_permissions();
-        if (err)
+        if (err) // Note: this check HAS to be after IDT/PT reset to avoid corrupting system state
             goto cleanup;
 
-        // store the measurement
+        // Store the measurement
         measurement_t result = sandbox->util->latest_measurement;
         measurements[i_].htrace[0] = result.htrace[0];
         memcpy(measurements[i_].pfc_reading, result.pfc_reading, sizeof(uint64_t) * NUM_PFC);
+
+        // Post-process the measurement
+        // (only in normal, non-debug non-warmup runs)
+        if (i >= 0 && !dbg_gpr_mode) {
+            // Check for measurement corruption
+            // Note: we intentionally do not set `err` upon corruption, because they
+            // are expected to happen every once in a while because of SMIs,
+            // and thus we want to handle them gracefully
+            if (result.status.measurement_state != STATUS_ENDED) {
+                PRINT_WARNS("run_experiment", "Corrupted measurement: Incomplete run, state=%d",
+                            result.status.measurement_state);
+                goto cleanup;
+            } else if (result.status.smi_count != 0) {
+                PRINT_WARNS("run_experiment", "Corrupted measurement: SMI detected, count=%d",
+                            result.status.smi_count);
+                goto cleanup;
+            } else {
+                // set the upper bit of htrace to indicate that the measurement is valid
+                measurements[i_].htrace[0] |= 1ULL << 63;
+            }
+        }
     }
 
 cleanup:
