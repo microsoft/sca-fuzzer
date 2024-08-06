@@ -406,6 +406,7 @@ class X86Executor(Executor):
 
         # Post-process the results and check for errors
         if not self.mismatch_check_mode:  # no need to post-process in mismatch check mode
+            mask = np.uint64(0x0FFFFFFFFFFFFFF0)
             for input_id in range(n_inputs):
                 for rep_id in range(n_reps):
                     # Zero-out traces for ignored inputs
@@ -415,7 +416,7 @@ class X86Executor(Executor):
 
                     # When using TSC mode, we need to mask the lower 4 bits of the trace
                     if CONF.executor_mode == 'TSC':
-                        all_traces[input_id][rep_id] &= 0x0FFFFFFFFFFFFFF0
+                        all_traces[input_id][rep_id] &= mask
 
         # Aggregate measurements into HTrace objects
         traces = []
