@@ -6,6 +6,7 @@ SPDX-License-Identifier: MIT
 """
 
 import xxhash
+import numpy as np
 from datetime import datetime
 from typing import NoReturn, Dict, List
 from pprint import pformat
@@ -577,8 +578,9 @@ def pretty_htrace(htrace: HTrace, offset: str = ""):
     trace_distribution = sorted(counter.items(), key=lambda x: x[1], reverse=True)
 
     if CONF.executor_mode == "TSC":
+        mask = np.uint64(0xFFFFFFFFFFFFFF)
         for t, c in trace_distribution:
-            t = t & 0xFFFFFFFFFFFFFF
+            t = t & mask
             final_str += f"{offset}{t} [{c}]\n"
         return final_str
 
@@ -603,8 +605,9 @@ def pretty_htrace_pair(htrace1: HTrace, htrace2: HTrace, offset: str = ""):
     traces = sorted(keys, key=lambda x: (c1[x] << 10000) + c2[x], reverse=True)
 
     if CONF.executor_mode == "TSC":
+        mask = np.uint64(0xFFFFFFFFFFFFFF)
         for t in traces:
-            t = t & 0xFFFFFFFFFFFFFF
+            t = t & mask
             final_str += f"{offset}{t} [{c1[t]:<6} | {c2[t]:<6}]\n"
         return final_str
 
