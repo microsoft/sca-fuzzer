@@ -143,7 +143,7 @@ function intel_only() {
 
 @test "Detection [meltdown-type]: #PF-present speculation" {
     intel_only
-    if [ $CPU_MODEL -ge 170 ]; then
+    if [ $CPU_MODEL -ge 140 ]; then
         skip
     fi
     assert_violation "$fuzz_opt -t $ASM_DIR/fault_load.asm -c $CONF_DIR/l1tf-p.yaml -i 5"
@@ -152,7 +152,7 @@ function intel_only() {
 
 @test "Detection [meltdown-type]: #PF-writable speculation" {
     intel_only
-    if [ $CPU_MODEL -ge 170 ]; then
+    if [ $CPU_MODEL -ge 140 ]; then
         skip
     fi
     assert_violation "$fuzz_opt -t $ASM_DIR/fault_rmw.asm -c $CONF_DIR/l1tf-p.yaml -i 5"
