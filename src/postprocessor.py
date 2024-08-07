@@ -180,6 +180,8 @@ class BaseInstructionMinimizationPass(abc.ABC):
         """
 
         def line_is_skipped(line: str) -> bool:
+            if not line:
+                return True
             # We skip lines that meet the following criteria:
             is_skipped = (line == "")  # empty line
             is_skipped |= (line[0] == "#")  # comment
@@ -858,12 +860,14 @@ class DifferentialInputMinimizerPass(BaseInputMinimizationPass):
         input_b = inputs[violating_input_ids[1]]
         input_a_org = deepcopy(input_a)
         input_b_org = deepcopy(input_b)
-        input_a.data_size
 
         leaked = []
         n_actors = len(CONF._actors)
         assert len(input_a) == n_actors
         assert len(input_b) == n_actors
+
+        self.progress.pass_msg("Minimizing the difference between inputs"
+                               f" {violating_input_ids[0]} and {violating_input_ids[1]}")
 
         # print header
         print(f'\n{"Address":<11}', end="", flush=True)
@@ -884,11 +888,6 @@ class DifferentialInputMinimizerPass(BaseInputMinimizationPass):
                         print(f"\n0x{absolute_address:08x} ", end="", flush=True)
                     elif i % 8 == 0:
                         print(" ", end="", flush=True)
-
-                    # skip if the bytes are equal
-                    if input_a[actor_id][region_name][i] == input_b[actor_id][region_name][i]:
-                        print("=", end="", flush=True)
-                        continue
 
                     # Try zeroing out blocks of decreasing size:
                     # 1. find a suitable starting block size, fulfilling the following conditions:
@@ -936,6 +935,14 @@ class DifferentialInputMinimizerPass(BaseInputMinimizationPass):
                     input_b[actor_id][region_name][i] = 0
                     if check_for_violation(self.fuzzer, test_case, inputs, local_ignore_list):
                         print(".", end="", flush=True)
+                        continue
+
+                    # move on if the bytes are already equal
+                    if input_a_org[actor_id][region_name][i] == \
+                       input_b_org[actor_id][region_name][i]:
+                        input_a[actor_id][region_name][i] = input_a_org[actor_id][region_name][i]
+                        input_b[actor_id][region_name][i] = input_b_org[actor_id][region_name][i]
+                        print("=", end="", flush=True)
                         continue
 
                     # try copying the byte between the two inputs
@@ -1112,9 +1119,8 @@ class MainMinimizer(Minimizer):
         self.progress.pass_start("Storing the results")
         shutil.copy(test_case.asm_path, test_case_outfile)
 
-    def _run_input_passes(self, test_case: TestCase, inputs: List[Input],
-                          org_violation: Violation, outdir: str,
-                          passes: List) -> List[Input]:
+    def _run_input_passes(self, test_case: TestCase, inputs: List[Input], org_violation: Violation,
+                          outdir: str, passes: List) -> List[Input]:
         violation = org_violation
 
         for pass_cls in passes:
@@ -1125,15 +1131,14 @@ class MainMinimizer(Minimizer):
             # Run the pass
             new_inputs = pass_.run(test_case, inputs, violation)
 
-            # If new input sequence was produced, recreate the violation
-            if new_inputs != inputs:
-                new_violation = self.fuzzer.fuzzing_round(test_case, new_inputs)
-                if new_violation:
-                    violation = new_violation
-                    inputs = new_inputs
-                else:
-                    self.progress.pass_msg("[WARNING] Non-reproducible sequence minimization"
-                                           ". Rolling back to the previous state")
+            # Recreate the violation with the new input sequence
+            new_violation = self.fuzzer.fuzzing_round(test_case, new_inputs)
+            if new_violation:
+                violation = new_violation
+                inputs = new_inputs
+            else:
+                self.progress.pass_msg("[WARNING] Non-reproducible sequence minimization"
+                                       ". Rolling back to the previous state")
 
         # Create the output directory, if not already exists
         if outdir and not os.path.exists(outdir):
