@@ -569,7 +569,7 @@ class X86UnicornSeq(UnicornSeq):
 
     def post_execution_patch(self) -> None:
         # workaround for Unicorn not enabling MPX
-        if self.current_instruction.name == "BNDCU":
+        if self.current_instruction.name == "bndcu":
             mem_op = self.current_instruction.get_mem_operands()[0]
             mem_regs = re.split(r'\+|-|\*', mem_op.value)
             assert len(mem_regs) == 2 and "r14" in mem_regs[0].lower(), "Invalid format of BNDCU"

@@ -34,6 +34,7 @@ function teardown() {
 }
 
 function assert_violation() {
+    # Check if the given test produces a contract violation
     local cmd="$@"
 
     run bash -c "$cmd"
@@ -51,6 +52,21 @@ function assert_no_violation() {
     echo "Exit code: $status"
     echo "Output: '$output'"
     [[ "$status" -eq 0 && "$output" != *"=== Violations detected ==="* ]]
+}
+
+function assert_violation_or_arch_fail() {
+    # Check if the given test produces a contract violation OR an architectural failure
+    local cmd="$@"
+
+    run bash -c "$cmd"
+    echo "Command: $cmd"
+    echo "Exit code: $status"
+    echo "Output: '$output'"
+    if [[ "$output" == *" Architectural violation "* ]]; then
+        return
+    fi
+
+    [[ "$status" -eq 1 && "$output" = *"=== Violations detected ==="* ]]
 }
 
 function intel_only() {
@@ -161,20 +177,21 @@ function intel_only() {
 
 @test "Detection [meltdown-type]: #PF-smap speculation" {
     intel_only
-    if ! grep "smap" /proc/cpuinfo; then
+    if ! grep "smap" /proc/cpuinfo >/dev/null; then
         skip
     fi
-    assert_violation "$fuzz_opt -t $ASM_DIR/fault_load.asm -c $CONF_DIR/meltdown.yaml -i 5"
-    assert_no_violation "$fuzz_opt -t $ASM_DIR/fault_load.asm -c $CONF_DIR/meltdown-verif.yaml-i 5"
+    # Note: an arch. violation is expected here if SMAP is disabled in the kernel
+    assert_violation_or_arch_fail "$fuzz_opt -t $ASM_DIR/fault_load.asm -c $CONF_DIR/meltdown.yaml -i 5"
+    assert_no_violation "$fuzz_opt -t $ASM_DIR/fault_load.asm -c $CONF_DIR/meltdown-verif.yaml -i 5"
 }
 
 @test "Detection [meltdown-type]: #BR speculation (MPX)" {
-    if grep "mpx" /proc/cpuinfo; then
-        assert_violation "$fuzz_opt -t $ASM_DIR/fault_BR.asm -c $CONF_DIR/mpx.yaml -i 2"
-        assert_no_violation "$fuzz_opt -t $ASM_DIR/fault_BR.asm -c $CONF_DIR/mpx-verif.yaml -i 2"
-    else
+    if ! grep "mpx" /proc/cpuinfo >/dev/null; then
         skip
     fi
+    # Note: an arch. violation is expected here if MPX is disabled in the kernel
+    assert_violation_or_arch_fail "$fuzz_opt -t $ASM_DIR/fault_BR.asm -c $CONF_DIR/mpx.yaml -i 2"
+    assert_no_violation "$fuzz_opt -t $ASM_DIR/fault_BR.asm -c $CONF_DIR/mpx-verif.yaml -i 2"
 }
 
 @test "Sequential handling: #DB-instruction" {
@@ -200,7 +217,7 @@ function intel_only() {
 
 @test "Feature: VM test case" {
     if cat /proc/cpuinfo | grep -e "vmx" -e "svm" >/dev/null; then
-        echo "1" > /sys/x86_executor/enable_hpa_gpa_collisions
+        echo "1" >/sys/x86_executor/enable_hpa_gpa_collisions
         assert_no_violation "$fuzz_opt -t $ASM_DIR/vm_switch.asm -c $CONF_DIR/vm-switch.yaml -i 20"
 
         echo "Testing page table allocation..."
