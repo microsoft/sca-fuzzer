@@ -20,6 +20,7 @@ class IncludeLoader(yaml.SafeLoader):
     Helper class to enable `!include` statements in configuration files
     """
     visited: List[str] = []
+    file_id_counter: int = 0
 
     def __init__(self, stream: IO, include_dir: str = "") -> None:
         self._search_paths = [os.path.split(stream.name)[0]]
@@ -51,8 +52,21 @@ class IncludeLoader(yaml.SafeLoader):
         with open(filename, 'r') as f:
             return yaml.load(f, IncludeLoader)
 
+    def construct_yaml_map(self, node):
+        """
+        Custom constructor that renames all `file` keys to `file_<unique_id>` to prevent multiple
+        include statements from overwriting each other
+        """
+        for k, _ in node.value:
+            if k.value == 'file':
+                k.value = f'file_{self.file_id_counter}'
+                self.file_id_counter += 1
+        data = self.construct_mapping(node)
+        return data
+
 
 IncludeLoader.add_constructor('!include', IncludeLoader.include)
+IncludeLoader.add_constructor(u'tag:yaml.org,2002:map', IncludeLoader.construct_yaml_map)
 
 
 class ConfigException(SystemExit):
@@ -300,10 +314,14 @@ class Conf:
             self.set_to_arch_defaults()
             config_update.pop('instruction_set')
 
-        # recursively parse the included file
-        if 'file' in config_update:
-            self._load_from_dict(config_update['file'])
-            config_update.pop('file')
+        # recursively load included files
+        file_keys = []
+        for k, v in config_update.items():
+            if "file_" in k:
+                self._load_from_dict(v)
+                file_keys.append(k)
+        for k in file_keys:  # remove the `file_*` keys as they have already been processed
+            config_update.pop(k)
 
         # set the rest of the options
         for var, value in config_update.items():
