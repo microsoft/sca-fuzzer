@@ -85,7 +85,7 @@ class UnicornTracer(Tracer):
     trace: List[int]
     execution_trace: ExecutionTrace
     instruction_id: int
-    enable_tracing: bool = False
+    enable_tracing: bool
 
     def __init__(self):
         super().__init__()
@@ -95,6 +95,7 @@ class UnicornTracer(Tracer):
     def init_trace(self, emulator: Uc, uc_target_desc: UnicornTargetDesc) -> None:
         self.trace = []
         self.execution_trace = []
+        self.enable_tracing = False
 
     def produce_trace(self, model: Model) -> CTrace:
         # make the trace reproducible by normalizing the addresses
@@ -177,6 +178,7 @@ class L1DTracer(UnicornTracer):
     def init_trace(self, _, __):
         self.trace = [0, 0]
         self.execution_trace = []
+        self.enable_tracing = False
 
     def add_mem_address_to_trace(self, address, model):
         page_offset = (address & 0b111111000000) >> 6
@@ -286,6 +288,7 @@ class CTRTracer(CTTracer):
     def init_trace(self, emulator: Uc, uc_target_desc: UnicornTargetDesc):
         self.trace = [emulator.reg_read(reg) for reg in uc_target_desc.registers]  # type: ignore
         self.execution_trace = []
+        self.enable_tracing = False
 
 
 class ArchTracer(CTRTracer):
