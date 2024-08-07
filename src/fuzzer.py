@@ -656,7 +656,7 @@ class FuzzerGeneric(Fuzzer):
         # Collect architectural model traces
         ctraces = self.arch_model.trace_test_case(inputs, CONF.model_max_nesting)
         for ctrace in ctraces:
-            model_regs.append(ctrace.raw)
+            model_regs.append([v % (2**64 - 1) for v in ctrace.raw[:6]])
 
         # Debug outputs
         self.LOG.dbg_fuzzer_dump_architectural_traces(hardware_regs, model_regs)
