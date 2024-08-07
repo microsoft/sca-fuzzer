@@ -6,7 +6,6 @@ SPDX-License-Identifier: MIT
 """
 
 import xxhash
-import numpy as np
 from datetime import datetime
 from typing import NoReturn, Dict, List
 from pprint import pformat
@@ -461,7 +460,7 @@ class Logger:
                 t = all_traces[input_id][m_id]
                 c = counters[input_id][t]
             for t, c in sorted(counters[input_id].items()):
-                print(f"{input_id:03}, {pretty_trace(t)}, {t}, {c}")
+                print(f"{input_id:03}, {pretty_trace(t)}, {t:20}, {c:5}")
 
     # ==============================================================================================
     # Model
@@ -578,7 +577,7 @@ def pretty_htrace(htrace: HTrace, offset: str = ""):
     trace_distribution = sorted(counter.items(), key=lambda x: x[1], reverse=True)
 
     if CONF.executor_mode == "TSC":
-        mask = np.uint64(0xFFFFFFFFFFFFFF)
+        mask = 0xFFFFFFFFFFFFFF
         for t, c in trace_distribution:
             t = t & mask
             final_str += f"{offset}{t} [{c}]\n"
@@ -605,10 +604,12 @@ def pretty_htrace_pair(htrace1: HTrace, htrace2: HTrace, offset: str = ""):
     traces = sorted(keys, key=lambda x: (c1[x] << 10000) + c2[x], reverse=True)
 
     if CONF.executor_mode == "TSC":
-        mask = np.uint64(0xFFFFFFFFFFFFFF)
+        mask = 0xFFFFFFFFFFFFFF
+        final_str += f"\n{offset}{'Trace':16} {'Group 1':6} | {'Group 2':6}\n"
+        final_str += f"{offset}{'-' * 16} {'-' * 7} | {'-' * 7}\n"
         for t in traces:
             t = t & mask
-            final_str += f"{offset}{t} [{c1[t]:<6} | {c2[t]:<6}]\n"
+            final_str += f"{offset}{t:<16} [{c1[t]:<6} | {c2[t]:<6}]\n"
         return final_str
 
     for t in traces:
