@@ -36,7 +36,7 @@ int unsafe_bubble(void);
 
 static inline int uarch_flush(void)
 {
-#if VENDOR_ID == 1 // Intel
+#if VENDOR_ID == VENDOR_INTEL_ // Intel
     static const u16 ds = __KERNEL_DS;
     asm volatile("verw %[ds]" : : [ds] "m"(ds) : "cc");
 #ifndef VMBUILD
@@ -44,7 +44,9 @@ static inline int uarch_flush(void)
 #endif
     asm volatile("wbinvd\n" : : :);
     asm volatile("lfence\n" : : :);
-#elif VENDOR_ID == 2 // AMD
+#elif VENDOR_ID == VENDOR_AMD_ // AMD
+    asm volatile("wbinvd\n" : : :);
+    asm volatile("lfence\n" : : :);
     // TBD
 #endif
     return 0;
