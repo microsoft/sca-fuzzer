@@ -1080,16 +1080,24 @@ class MainMinimizer(Minimizer):
 
         # Run the input minimization passes
         if input_passes:
-            inputs = self._run_input_passes(test_case, inputs, violation, input_outdir,
-                                            input_passes)
+            new_inputs = self._run_input_passes(test_case, inputs, violation, input_outdir,
+                                                input_passes)
 
-            # Disable boosting from now on: The minimized input sequence is guaranteed to be boosted
-            CONF.inputs_per_class = 1
+            # Check if the violation can be reproduced with the new inputs
+            org_ipc = CONF.inputs_per_class
+            new_violation = self.fuzzer.fuzzing_round(test_case, inputs)
+            if new_violation:
+                # Use new inputs in future passes
+                inputs = new_inputs
+                violation = new_violation
 
-            # Since the input sequence have changed, we need to recreate the violation
-            violation = self.fuzzer.fuzzing_round(test_case, inputs)
-            if not violation:
-                self.LOG.error("Non-reproducible input sequence minimization. Exiting")
+                # Disable boosting from now on:
+                # The minimized input sequence is now guaranteed to be boosted
+                CONF.inputs_per_class = 1
+            else:
+                CONF.inputs_per_class = org_ipc
+                self.LOG.warning("postprocessor",
+                                 "Non-reproducible input sequence minimization. Reverting")
 
         # Set the non-violating inputs as the ignore list
         violating_ids = [m.input_id for m in violation.measurements]
