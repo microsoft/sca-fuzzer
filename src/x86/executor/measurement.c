@@ -111,6 +111,44 @@ void recover_orig_state(void)
 // =================================================================================================
 // Measurement
 // =================================================================================================
+/// @brief Checks the measurement status for corruption
+/// @param status The measurement status structure to check
+/// @return 0 on valid (non-corrupted) measurement, -1 on corrupted measurement
+static int check_measurement_status(measurement_status_t *status)
+{
+    if (status->measurement_state != STATUS_ENDED) {
+        switch (status->measurement_state) {
+        case STATUS_UNINITIALIZED:
+            PRINT_WARNS("run_experiment",
+                        "Corrupted measurement: measurement_start macro was not executed, state=%d",
+                        status->measurement_state);
+            break;
+        case STATUS_STARTED:
+            PRINT_WARNS("run_experiment",
+                        "Corrupted measurement: measurement_end macro was not executed, state=%d",
+                        status->measurement_state);
+            break;
+        default:
+            PRINT_WARNS("run_experiment", "Corrupted measurement: unknown state, state=%d",
+                        status->measurement_state);
+        }
+        return -1;
+    }
+
+    if (status->smi_count != 0) {
+        PRINT_WARNS("run_experiment", "Corrupted measurement: SMI detected, count=%d",
+                    status->smi_count);
+        return -1;
+    }
+
+    return 0;
+}
+
+/// @brief Run a complete measurement experiment: setup the execution environment and execute
+///        the loaded test case for each inputs, storing the resulting hardware traces and PFC
+///        readings in the global `measurements` array
+/// @param void
+/// @return 0 on success, -1 on error
 int run_experiment(void)
 {
     int err = 0;
@@ -164,21 +202,15 @@ int run_experiment(void)
         // (only in normal, non-debug non-warmup runs)
         if (i >= 0 && !dbg_gpr_mode) {
             // Check for measurement corruption
-            // Note: we intentionally do not set `err` upon corruption, because they
-            // are expected to happen every once in a while because of SMIs,
-            // and thus we want to handle them gracefully
-            if (result.status.measurement_state != STATUS_ENDED) {
-                PRINT_WARNS("run_experiment", "Corrupted measurement: Incomplete run, state=%d",
-                            result.status.measurement_state);
+            if (check_measurement_status(&result.status) != 0)
+                // Note: we intentionally do not set the `err` variable upon corruption, because
+                // corruptions are expected to happen every once in a while because of SMIs,
+                // and thus we want to handle them gracefully
                 goto cleanup;
-            } else if (result.status.smi_count != 0) {
-                PRINT_WARNS("run_experiment", "Corrupted measurement: SMI detected, count=%d",
-                            result.status.smi_count);
-                goto cleanup;
-            } else {
-                // set the upper bit of htrace to indicate that the measurement is valid
-                measurements[i_].htrace[0] |= 1ULL << 63;
-            }
+
+            // If the measurement is valid, set the upper bit of htrace
+            // to distinguish correct htraces from corrupted ones
+            measurements[i_].htrace[0] |= 1ULL << 63;
         }
     }
 
@@ -190,8 +222,8 @@ cleanup:
     return err;
 }
 
-/// @brief A wrapper function that ensures that any bugs in run_experiment that cause an exception
-///        will be handled gracefully and won't crash the system
+/// @brief A wrapper function that ensures that any bugs in run_experiment that cause an
+///        exception will be handled gracefully and won't crash the system
 /// @param void
 __attribute__((unused)) void unsafe_bubble_wrapper(void)
 {
