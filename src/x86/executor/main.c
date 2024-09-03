@@ -10,7 +10,6 @@
 #include <linux/sysfs.h>
 #include <linux/version.h>
 #include <linux/kobject.h>
-#include <asm/virtext.h>
 #include <asm/processor.h>
 // clang-format on
 

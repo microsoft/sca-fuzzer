@@ -4,6 +4,7 @@
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "data_loader.h"
 #include "actor.h"
 #include "input_parser.h"
 #include "main.h"

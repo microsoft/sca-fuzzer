@@ -30,6 +30,8 @@ measurement_t *measurements = NULL; // global
 
 int unsafe_bubble(void);
 
+__attribute__((unused)) void unsafe_bubble_wrapper(void);
+
 // =================================================================================================
 // CPU configuration
 // =================================================================================================

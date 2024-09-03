@@ -16,6 +16,14 @@
 #undef VENDOR_INTEL
 #undef VENDOR_AMD
 
+// Memory
+#ifndef PHYSICAL_WIDTH
+#define PHYSICAL_WIDTH 51 // unused in the build; used only for syntax highlighting
+#error "PHYSICAL_WIDTH must be defined by the makefile"
+#endif
+
+#define MAX_PHYSICAL_ADDRESS ((1ULL << PHYSICAL_WIDTH) - 1)
+
 // Cache configuration
 #ifndef L1D_ASSOCIATIVITY
 #error "Undefined L1D_ASSOCIATIVITY"

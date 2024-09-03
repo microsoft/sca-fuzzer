@@ -242,7 +242,7 @@ static uint64_t update_r15(int section_id, uint8_t *dest, uint64_t cursor)
 
 // MEASUREMENT_START and MEASUREMENT_END -----------------------------------------------------------
 // Prime+Probe variants
-void __attribute__((noipa)) body_macro_prime(void)
+static void __attribute__((noipa)) body_macro_prime(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                                                //
@@ -257,7 +257,7 @@ void __attribute__((noipa)) body_macro_prime(void)
     asm volatile(".quad " xstr(MACRO_END));
 }
 
-void __attribute__((noipa)) body_macro_fast_prime(void)
+static void __attribute__((noipa)) body_macro_fast_prime(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                                                //
@@ -272,7 +272,7 @@ void __attribute__((noipa)) body_macro_fast_prime(void)
     asm volatile(".quad " xstr(MACRO_END));
 }
 
-void __attribute__((noipa)) body_macro_partial_prime(void)
+static void __attribute__((noipa)) body_macro_partial_prime(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                                                //
@@ -287,7 +287,7 @@ void __attribute__((noipa)) body_macro_partial_prime(void)
     asm volatile(".quad " xstr(MACRO_END));
 }
 
-void __attribute__((noipa)) body_macro_fast_partial_prime(void)
+static void __attribute__((noipa)) body_macro_fast_partial_prime(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                                                //
@@ -302,7 +302,7 @@ void __attribute__((noipa)) body_macro_fast_partial_prime(void)
     asm volatile(".quad " xstr(MACRO_END));
 }
 
-void __attribute__((noipa)) body_macro_probe(void)
+static void __attribute__((noipa)) body_macro_probe(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     // clang-format off
@@ -326,7 +326,7 @@ void __attribute__((noipa)) body_macro_probe(void)
 }
 
 // Flush + Reload and variants
-void __attribute__((noipa)) body_macro_flush(void)
+static void __attribute__((noipa)) body_macro_flush(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                  //
@@ -341,7 +341,7 @@ void __attribute__((noipa)) body_macro_flush(void)
     asm volatile(".quad " xstr(MACRO_END));
 }
 
-void __attribute__((noipa)) body_macro_reload(void)
+static void __attribute__((noipa)) body_macro_reload(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     // clang-format off
@@ -364,7 +364,7 @@ void __attribute__((noipa)) body_macro_reload(void)
 }
 
 // Time stamp counter
-void __attribute__((noipa)) body_macro_tsc_start(void)
+static void __attribute__((noipa)) body_macro_tsc_start(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel(""                                               //
@@ -383,7 +383,7 @@ void __attribute__((noipa)) body_macro_tsc_start(void)
     asm volatile(".quad " xstr(MACRO_END));
 }
 
-void __attribute__((noipa)) body_macro_tsc_end(void)
+static void __attribute__((noipa)) body_macro_tsc_end(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     // clang-format off
@@ -480,7 +480,7 @@ static inline size_t start_macro_set_k2u_target(macro_args_t args, uint8_t *dest
 // MACRO_SWITCH_K2U --------------------------------------------------------------------------------
 static inline size_t start_macro_switch_k2u(macro_args_t args, uint8_t *dest) { return 0; }
 
-void __attribute__((noipa)) body_macro_switch_k2u(void)
+static void __attribute__((noipa)) body_macro_switch_k2u(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     // clang-format off
@@ -552,7 +552,7 @@ static inline size_t start_macro_set_u2k_target(macro_args_t args, uint8_t *dest
 }
 
 // MACRO_SWITCH_U2K --------------------------------------------------------------------------------
-void __attribute__((noipa)) body_macro_switch_u2k(void)
+static void __attribute__((noipa)) body_macro_switch_u2k(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
     asm_volatile_intel("syscall\n");
@@ -602,7 +602,7 @@ static inline size_t start_macro_set_h2g_target(macro_args_t args, uint8_t *dest
     return cursor;
 }
 
-void __attribute__((noipa)) body_macro_set_h2g_target(void)
+static void __attribute__((noipa)) body_macro_set_h2g_target(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
 #if VENDOR_ID == 1
@@ -632,7 +632,7 @@ static inline size_t start_macro_switch_h2g(macro_args_t args, uint8_t *dest)
     return cursor;
 }
 
-void __attribute__((noipa)) body_macro_switch_h2g(void)
+static void __attribute__((noipa)) body_macro_switch_h2g(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
 #if VENDOR_ID == 1
@@ -666,7 +666,7 @@ static inline size_t start_macro_set_g2h_target(macro_args_t args, uint8_t *dest
     return cursor;
 }
 
-void __attribute__((noipa)) body_macro_set_g2h_target(void)
+static void __attribute__((noipa)) body_macro_set_g2h_target(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
 #if VENDOR_ID == VENDOR_INTEL_
@@ -683,7 +683,7 @@ void __attribute__((noipa)) body_macro_set_g2h_target(void)
 }
 
 // MACRO_SWITCH_G2H --------------------------------------------------------------------------------
-void __attribute__((noipa)) body_macro_switch_g2h(void)
+static void __attribute__((noipa)) body_macro_switch_g2h(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
 #if VENDOR_ID == 1
@@ -978,7 +978,7 @@ static macro_descr_t *get_macro_subtype_from_id(uint64_t macro_id)
 /// @param[in] owner ID of the actor owning the macro
 /// @param[out] dest Pointer to the destination buffer
 /// @return Size of the added code, in bytes
-uint64_t inject_macro_configurable_part(macro_descr_t *descr, uint64_t args, uint64_t owner,
+static uint64_t inject_macro_configurable_part(macro_descr_t *descr, uint64_t args, uint64_t owner,
                                         uint8_t *dest)
 {
     // Extract the macro arguments
@@ -999,7 +999,7 @@ uint64_t inject_macro_configurable_part(macro_descr_t *descr, uint64_t args, uin
 /// @param[in] descr Pointer to the macro descriptor
 /// @param[out] dest Pointer to the destination buffer
 /// @return Size of the added code, in bytes
-uint64_t inject_macro_static_part(macro_descr_t *descr, uint8_t *dest)
+static uint64_t inject_macro_static_part(macro_descr_t *descr, uint8_t *dest)
 {
     // Get pointers to the start and the end of the static part of the macro
     uint8_t *macro_wrapper_start = (uint8_t *)descr->body;
