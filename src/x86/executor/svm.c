@@ -189,6 +189,7 @@ static int set_vmcb_guest_state(vmcb_t *vmcb_hva)
 
     // - Debug registers
     save->dr7 = 0x400;
+    save->dr6 = 0;
 
     // - GPRs
     save->rip = (uint64_t)&guest_v_memory->code.section[0];
@@ -343,7 +344,10 @@ static int set_vmcb_control(vmcb_t *vmcb_hva, uint64_t actor_id)
     ctrl->pause_filter_thresh = 0;
 
     ctrl->iopm_base_pa = iopm_hpa;
+    ASSERT(ctrl->iopm_base_pa < MAX_PHYSICAL_ADDRESS, "set_vmcb_control");
+
     ctrl->msrpm_base_pa = msrpm_hpa;
+    ASSERT(ctrl->msrpm_base_pa < MAX_PHYSICAL_ADDRESS, "set_vmcb_control");
 
     ctrl->tsc_offset = 0;
 
@@ -358,6 +362,7 @@ static int set_vmcb_control(vmcb_t *vmcb_hva, uint64_t actor_id)
     ctrl->nested_ctl |= _BITULL(6); // Read-only guest page tables
 
     ctrl->nested_cr3 = (ept_ptr[actor_id].paddr << 12);
+    ASSERT(ctrl->nested_cr3 < MAX_PHYSICAL_ADDRESS, "set_vmcb_control");
 
     ctrl->exit_code = 0x42;
 
