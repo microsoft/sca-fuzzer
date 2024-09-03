@@ -92,7 +92,7 @@ static bool _ept_set = false;
 /// for a physical address in page tables (or at least I couldn't find one)
 /// @param hpa Host physical address to translate
 /// @return Host virtual address in high memory
-void *phys_to_vmalloc(uint64_t hpa, int actor_id)
+static void *phys_to_vmalloc(uint64_t hpa, int actor_id)
 {
     hgpa_t *flat_translations = (hgpa_t *)&_guest_memory_translations[actor_id];
     for (int i = 0; i < sizeof(guest_memory_translations_t) / sizeof(hgpa_t); i++) {
@@ -167,7 +167,7 @@ static inline int set_ept_entry(actor_ept_t *actor_ept_base, hgpa_t *translation
 /// guest_memory_t (see guest_page_tables.h), with the base address GUEST_MEMORY_START
 /// @param void
 /// @return 0 on success, -1 on failure
-int set_guest_page_tables(void)
+static int set_guest_page_tables(void)
 {
     int err = 0;
     uint64_t vaddr = 0;
@@ -269,7 +269,7 @@ int set_guest_page_tables(void)
 /// GUEST_MEMORY_START
 /// @param void
 /// @return 0 on success, -1 on failure
-int set_extended_page_tables(void)
+static int set_extended_page_tables(void)
 {
     int err = 0;
 
@@ -338,7 +338,7 @@ int set_extended_page_tables(void)
 /// tables
 /// @param void
 /// @return 0 on success, -1 on failure
-int update_eptp(void)
+static int update_eptp(void)
 {
     ASSERT(_ept_set, "update_eptp");
     SAFE_FREE(ept_ptr);

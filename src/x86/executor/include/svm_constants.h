@@ -4,7 +4,6 @@
 // SPDX-License-Identifier: MIT
 
 #include <asm/msr-index.h>
-#include <asm/virtext.h>
 
 #ifndef _X86_EXECUTOR_SVM_CONSTANTS_H_
 #define _X86_EXECUTOR_SVM_CONSTANTS_H_

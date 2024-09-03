@@ -39,6 +39,7 @@ endif
 # hide objtool warnings - a lot of code in the module violates the checks intentionally,
 # so it's impossible to fix
 GREP_FILTER = "return found in RETHUNK|indirect call found in RETPOLINE|call without frame pointer|undefined stack stae|return with modified stack frame|unsupported instruction in callable|undefined stack state|ENDBR: "
+OBJECT_FILES_NON_STANDARD := y
 
 # file-specific flags
 CFLAGS_code_loader.o := -Wno-attribute-warning  # workaround for __write_overflow_field warning

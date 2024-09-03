@@ -30,6 +30,10 @@ void fallback_handler(void);
 void bubble_handler(void);
 void nmi_handler(void);
 
+__attribute__((unused)) void bubble_handler_wrapper(void);
+__attribute__((unused)) void fallback_handler_wrapper(void);
+__attribute__((unused)) void nmi_handler_wrapper(void);
+
 MULTI_ENTRY_HANDLER_DECLARATIONS(fallback_handler);
 static void *fallback_handlers[] = {
     MULTI_ENTRY_HANDLER_LIST(fallback_handler) NULL,
@@ -66,7 +70,7 @@ static void set_intr_gate_default(gate_desc *idt, int interrupt_id, void *handle
     write_idt_entry(idt, interrupt_id, &desc);
 }
 
-void idt_set_custom_handlers(gate_desc *idt, struct desc_ptr *idtr, void *main_handler,
+static void idt_set_custom_handlers(gate_desc *idt, struct desc_ptr *idtr, void *main_handler,
                              void **secondary_handlers)
 {
     for (uint8_t idx = 0; idx < 255; idx++) {

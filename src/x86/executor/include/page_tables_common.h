@@ -6,15 +6,11 @@
 #ifndef _PAGE_TABLES_COMMON_H_
 #define _PAGE_TABLES_COMMON_H_
 
+#include "hardware_desc.h"
 #include <linux/slab.h> // PAGE_SIZE
 #include <linux/types.h>
 
 #define ENTRIES_PER_PAGE (PAGE_SIZE / sizeof(uint64_t))
-
-#ifndef PHYSICAL_WIDTH
-#define PHYSICAL_WIDTH 51 // unused in the build; used only for syntax highlighting
-#error "PHYSICAL_WIDTH must be defined by the makefile"
-#endif
 
 #define MODIFIABLE_PTE_BITS                                                                        \
     (_PAGE_PRESENT | _PAGE_RW | _PAGE_PWT | _PAGE_PCD | _PAGE_ACCESSED | _PAGE_DIRTY |             \
@@ -28,8 +24,7 @@
 #define _E_PAGE_DIRTY    (1 << 9)
 #define _E_PAGE_USER     (1 << 10)
 
-
-#if VENDOR_ID == 1 // Intel
+#if VENDOR_ID == VENDOR_INTEL_ // Intel
 #define MODIFIABLE_EPTE_BITS                                                                       \
     (_E_PAGE_PRESENT | _E_PAGE_RW | _E_PAGE_X | _E_PAGE_ACCESSED | _E_PAGE_DIRTY | _E_PAGE_USER |  \
      (1ULL << 51))
@@ -190,7 +185,6 @@ typedef struct {
 #else
 typedef pdpte_t epdpte_t;
 #endif
-
 
 #if VENDOR_ID == 1 // Intel
 typedef struct {

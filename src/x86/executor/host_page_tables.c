@@ -142,7 +142,7 @@ int store_orig_host_permissions(void)
 /// @param ptep
 /// @param old_pte
 /// @param vaddr
-void restore_pte(pte_t_ *ptep, pte_t_ old_pte, uint64_t vaddr)
+static void restore_pte(pte_t_ *ptep, pte_t_ old_pte, uint64_t vaddr)
 {
     uint64_t curr_pte_val = *(uint64_t *)ptep;
     uint64_t old_pte_val = *(uint64_t *)&old_pte;

@@ -6,6 +6,7 @@
 #ifndef _X86_EXECUTOR_VMX_H_
 #define _X86_EXECUTOR_VMX_H_
 
+#include <asm/vmx.h>
 #include <linux/types.h>
 
 // =================================================================================================
@@ -32,6 +33,10 @@
 #define MSR_FEATURE_CONTROL MSR_IA32_FEATURE_CONTROL
 #else
 #error "MSR_FEATURE_CONTROL not defined"
+#endif
+
+#ifndef SECONDARY_EXEC_XSAVES
+#define SECONDARY_EXEC_XSAVES SECONDARY_EXEC_ENABLE_XSAVES
 #endif
 
 // =================================================================================================

@@ -6,12 +6,12 @@
 #include <asm/io.h>
 #include <asm/msr-index.h>
 #include <asm/processor-flags.h>
-#include <asm/virtext.h>
 #include <linux/types.h>
 
 #include "actor.h"
 #include "shortcuts.h"
 
+#include "main.h"
 #include "fault_handler.h"
 #include "memory_guest.h"
 #include "special_registers.h"
@@ -211,7 +211,10 @@ static int check_vmx_controls(uint32_t options, uint32_t msr)
 int vmx_check_cpu_compatibility(void)
 {
     uint64_t msr_value = 0;
-    ASSERT_MSG(cpu_has_vmx(), "vmx_check_cpu_compatibility", "VMX is not supported on this CPU");
+
+    // Check if VMX is supported
+    ASSERT_MSG(cpu_has(cpuinfo, X86_FEATURE_VMX), "vmx_check_cpu_compatibility",
+              "VMX is not supported on this CPU");
 
     // Control registers
     uint64_t cr0 = read_cr0();

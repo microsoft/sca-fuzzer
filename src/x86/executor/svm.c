@@ -3,13 +3,14 @@
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#include <asm/virtext.h>
 #include <linux/types.h>
 
 #include "actor.h"
 #include "shortcuts.h"
 
+#include "main.h"
 #include "fault_handler.h"
+#include "hardware_desc.h"
 #include "memory_guest.h"
 #include "special_registers.h"
 #include "svm.h"
@@ -72,7 +73,7 @@ static void init_sys_seg(seg_t *seg, uint32_t type)
 /// @return 0 is compatible, -1 otherwise
 int svm_check_cpu_compatibility(void)
 {
-    ASSERT_MSG(cpu_has_svm(NULL), "svm_check_cpu_compatibility",
+    ASSERT_MSG(cpu_has(cpuinfo, X86_FEATURE_SVM), "svm_check_cpu_compatibility",
                "SVM is not supported on this CPU");
 
     // Control registers
