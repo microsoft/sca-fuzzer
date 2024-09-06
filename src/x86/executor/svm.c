@@ -361,7 +361,7 @@ static int set_vmcb_control(vmcb_t *vmcb_hva, uint64_t actor_id)
     ctrl->nested_ctl |= SVM_NESTED_CTL_NP_ENABLE;
     ctrl->nested_ctl |= _BITULL(6); // Read-only guest page tables
 
-    ctrl->nested_cr3 = (ept_ptr[actor_id].paddr << 12);
+    ctrl->nested_cr3 = (((uint64_t)ept_ptr[actor_id].paddr) << 12);
     ASSERT(ctrl->nested_cr3 < MAX_PHYSICAL_ADDRESS, "set_vmcb_control");
 
     ctrl->exit_code = 0x42;
