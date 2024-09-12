@@ -43,7 +43,7 @@ static int set_vmcb_control(vmcb_t *vmcb_hva, uint64_t actor_id);
 /// @brief Initialize a segment
 /// See arch/x86/svm.c for original implementation
 /// @param seg The segment to initialize
-static void inline init_seg(seg_t *seg, uint16_t selector, uint64_t base, uint32_t limit,
+inline static void init_seg(seg_t *seg, uint16_t selector, uint64_t base, uint32_t limit,
                             uint16_t attrib)
 {
     seg->selector = selector;

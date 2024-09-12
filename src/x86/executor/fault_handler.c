@@ -47,12 +47,12 @@ static void *bubble_handlers[] = {
 // =================================================================================================
 // IDT management
 // =================================================================================================
-static void inline native_sidt(void *dtr)
+inline static void native_sidt(void *dtr)
 {
     asm volatile("sidt %0" : "=m"(*((struct desc_ptr *)dtr)));
 }
 
-static void inline native_lidt(void *dtr)
+inline static void native_lidt(void *dtr)
 {
     asm volatile("lidt %0" ::"m"(*((struct desc_ptr *)dtr)));
 }
