@@ -24,7 +24,8 @@ dependencies = [
     "xxhash",
     "scipy",
     "mypy",
-    "flake8"
+    "flake8",
+    "setuptools"
 ]
 maintainers = [{name = "Oleksii Oleksenko", email = ""}]
 
