@@ -15,9 +15,10 @@ from copy import deepcopy
 
 from .isa_loader import InstructionSet
 from .interfaces import Generator, TestCase, Operand, RegisterOperand, FlagsOperand, \
-    MemoryOperand, ImmediateOperand, AgenOperand, LabelOperand, OT, Instruction, BasicBlock, \
-    Function, OperandSpec, InstructionSpec, CondOperand, Actor, ActorMode, ActorPL, \
+    MemoryOperand, ImmediateOperand, AgenOperand, LabelOperand, Instruction, BasicBlock, \
+    Function, CondOperand, Actor, ActorMode, ActorPL, \
     NotSupportedException
+from .instruction_spec import OT, OperandSpec, InstructionSpec
 from .util import Logger
 from .config import CONF
 

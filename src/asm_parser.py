@@ -11,8 +11,9 @@ import abc
 from typing import List, Dict, Tuple, NoReturn
 from collections import OrderedDict
 
-from .interfaces import AsmParser, OT, Instruction, InstructionSpec, TestCase, OperandSpec, \
+from .interfaces import AsmParser, Instruction, TestCase, \
     LabelOperand, Function, BasicBlock, Generator, ActorPL, ActorMode
+from .instruction_spec import OT, OperandSpec, InstructionSpec
 from .util import Logger
 from .config import CONF
 

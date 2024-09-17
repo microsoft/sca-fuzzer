@@ -9,7 +9,7 @@ from typing import List
 from xml.etree import ElementTree as ET
 
 
-class OperandSpec:
+class XMLOperandSpec:
     values: List[str]
     type_: str
     width: int
@@ -27,12 +27,12 @@ class OperandSpec:
         return json.dumps(self, default=vars)
 
 
-class InstructionSpec:
+class XMLInstructionSpec:
     name: str
     category: str = ""
     control_flow: bool = False
-    operands: List[OperandSpec]
-    implicit_operands: List[OperandSpec]
+    operands: List[XMLOperandSpec]
+    implicit_operands: List[XMLOperandSpec]
 
     def __init__(self) -> None:
         self.operands = []
@@ -65,8 +65,8 @@ class ParseFailed(Exception):
 
 class X86Transformer:
     tree: ET.Element
-    instructions: List[InstructionSpec]
-    current_spec: InstructionSpec
+    instructions: List[XMLInstructionSpec]
+    current_spec: XMLInstructionSpec
     reg_sizes = {
         "rax": 64,
         "rbx": 64,
@@ -134,7 +134,7 @@ class X86Transformer:
             if extensions and instruction_node.attrib['extension'] not in extensions:
                 continue
 
-            self.instruction = InstructionSpec()
+            self.instruction = XMLInstructionSpec()
             self.instruction.category = instruction_node.attrib['extension'] \
                 + "-" \
                 + instruction_node.attrib['category']
@@ -190,7 +190,7 @@ class X86Transformer:
             f.write(json_str)
 
     def parse_reg_operand(self, op):
-        spec = OperandSpec()
+        spec = XMLOperandSpec()
         spec.type_ = "REG"
         spec.values = op.text.lower().split(',')
         spec.src = True if op.attrib.get('r', "0") == "1" else False
@@ -216,7 +216,7 @@ class X86Transformer:
         if op.attrib.get('base', ''):
             choices = [op.attrib.get('base', '')]
 
-        spec = OperandSpec()
+        spec = XMLOperandSpec()
         spec.type_ = "MEM"
         spec.values = choices
         spec.src = True if op.attrib.get('r', "0") == "1" else False
@@ -226,7 +226,7 @@ class X86Transformer:
 
     @staticmethod
     def parse_agen_operand(op):
-        spec = OperandSpec()
+        spec = XMLOperandSpec()
         spec.type_ = "AGEN"
         spec.values = []
         spec.src = True
@@ -236,7 +236,7 @@ class X86Transformer:
 
     @staticmethod
     def parse_imm_operand(op):
-        spec = OperandSpec()
+        spec = XMLOperandSpec()
         spec.type_ = "IMM"
         if op.attrib.get('implicit', '0') == '1':
             spec.values = [op.text]
@@ -251,7 +251,7 @@ class X86Transformer:
 
     @staticmethod
     def parse_label_operand(_):
-        spec = OperandSpec()
+        spec = XMLOperandSpec()
         spec.type_ = "LABEL"
         spec.values = []
         spec.src = True
@@ -261,7 +261,7 @@ class X86Transformer:
 
     @staticmethod
     def parse_flags_operand(op):
-        spec = OperandSpec()
+        spec = XMLOperandSpec()
         spec.type_ = "FLAGS"
         spec.values = [
             op.attrib.get("flag_CF", ""),
@@ -283,11 +283,11 @@ class X86Transformer:
         """ adds the instructions specs that are missing from the XML file we use """
         if not extensions or "CLFSH" in extensions:
             for width in [8, 16, 32, 64]:
-                inst = InstructionSpec()
+                inst = XMLInstructionSpec()
                 inst.name = "clflush"
                 inst.category = "CLFSH-MISC"
                 inst.control_flow = False
-                op = OperandSpec()
+                op = XMLOperandSpec()
                 op.type_ = "MEM"
                 op.values = []
                 op.src = True
@@ -298,11 +298,11 @@ class X86Transformer:
 
         if not extensions or "CLFLUSHOPT" in extensions:
             for width in [8, 16, 32, 64]:
-                inst = InstructionSpec()
+                inst = XMLInstructionSpec()
                 inst.name = "clflushopt"
                 inst.category = "CLFLUSHOPT-CLFLUSHOPT"
                 inst.control_flow = False
-                op = OperandSpec()
+                op = XMLOperandSpec()
                 op.type_ = "MEM"
                 op.values = []
                 op.src = True
@@ -312,14 +312,14 @@ class X86Transformer:
                 self.instructions.append(inst)
 
         if not extensions or "BASE" in extensions:
-            inst = InstructionSpec()
+            inst = XMLInstructionSpec()
             inst.name = "int1"
             inst.category = "BASE-INTERRUPT"
             inst.control_flow = False
-            op1 = OperandSpec()
+            op1 = XMLOperandSpec()
             op1.type_, op1.src, op1.dest, op1.width = "REG", False, True, 64
             op1.values = ["rip"]
-            op2 = OperandSpec()
+            op2 = XMLOperandSpec()
             op2.type_, op2.src, op2.dest, op2.width = "FLAGS", False, False, 0
             op2.values = ["", "", "", "", "", "w", "w", "", ""]
             inst.implicit_operands = [op1, op2]
@@ -327,14 +327,14 @@ class X86Transformer:
 
         if not extensions or "MPX" in extensions:
             for name in ["bndcl", "bndcu"]:
-                inst = InstructionSpec()
+                inst = XMLInstructionSpec()
                 inst.name = name
                 inst.category = "MPX-MPX"
                 inst.control_flow = False
-                op1 = OperandSpec()
+                op1 = XMLOperandSpec()
                 op1.type_, op1.src, op1.dest, op1.width = "REG", True, False, 128
                 op1.values = ["bnd0", "bnd1", "bnd2", "bnd3"]
-                op2 = OperandSpec()
+                op2 = XMLOperandSpec()
                 op2.type_, op2.src, op2.dest, op2.width = "MEM", True, False, 64
                 op2.values = []
                 inst.operands = [op1, op2]

@@ -11,8 +11,9 @@ from typing import List, Dict
 
 from .x86_generator import X86Generator
 from ..asm_parser import AsmParserGeneric, parser_assert
-from ..interfaces import OT, Instruction, InstructionSpec, LabelOperand, Operand, RegisterOperand, \
+from ..interfaces import Instruction, InstructionSpec, LabelOperand, Operand, RegisterOperand, \
     MemoryOperand, ImmediateOperand, AgenOperand
+from ..instruction_spec import OT
 
 PATTERN_CONST_INT = re.compile("^-?[0-9]+$")
 PATTERN_CONST_HEX = re.compile("^-?0x[0-9abcdef]+$")

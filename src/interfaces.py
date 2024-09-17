@@ -6,84 +6,18 @@ SPDX-License-Identifier: MIT
 """
 from __future__ import annotations
 
-import shutil
-import xxhash
 from typing import List, Dict, Tuple, Optional, NamedTuple
 from collections import defaultdict
 from abc import ABC, abstractmethod
-import numpy as np
 from enum import Enum
 
+import shutil
+import xxhash
+import numpy as np
+
+from .instruction_spec import OT, InstructionSpec
+
 PAGE_SIZE = 4096
-
-
-# ==================================================================================================
-# Instruction Specifications
-# ==================================================================================================
-class OT(Enum):
-    """Operand Type"""
-    REG = 1
-    MEM = 2
-    IMM = 3
-    LABEL = 4
-    AGEN = 5  # memory address in LEA instructions
-    FLAGS = 6
-    COND = 7
-
-    def __str__(self):
-        return str(self._name_)
-
-
-class OperandSpec:
-    values: List[str]
-    type: OT
-    width: int
-    signed: bool = True
-    src: bool
-    dest: bool
-
-    # certain operand values have special handling (e.g., separate opcode when RAX is a destination)
-    # magic_value attribute indicates a specification for this special value
-    magic_value: bool = False
-
-    def __init__(self, values: List[str], type_: OT, src: bool, dest: bool):
-        self.values = values
-        self.type = type_
-        self.src = src
-        self.dest = dest
-        self.width = 0
-
-    def __str__(self):
-        return f"{self.values}"
-
-
-class InstructionSpec:
-    name: str
-    operands: List[OperandSpec]
-    implicit_operands: List[OperandSpec]
-    category: str
-    control_flow = False
-
-    has_mem_operand = False
-    has_write = False
-    has_magic_value: bool = False
-
-    def __init__(self):
-        self.operands = []
-        self.implicit_operands = []
-
-    def __str__(self):
-        ops = ""
-        for o in self.operands:
-            ops += str(o) + " "
-        return f"{self.name} {ops}"
-
-
-class MacroSpec(NamedTuple):
-    type_: SymbolType
-    name: str
-    args: Tuple[str, str, str, str]
-
 
 # ==================================================================================================
 # Sandbox layout and constants
@@ -953,6 +887,12 @@ class CPUDesc(NamedTuple):
     model: str
     family: str
     stepping: str
+
+
+class MacroSpec(NamedTuple):
+    type_: SymbolType
+    name: str
+    args: Tuple[str, str, str, str]
 
 
 class TargetDesc(ABC):

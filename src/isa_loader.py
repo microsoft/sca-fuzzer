@@ -7,7 +7,9 @@ SPDX-License-Identifier: MIT
 import json
 from typing import Dict, List
 from copy import deepcopy
-from .interfaces import OT, InstructionSetAbstract, OperandSpec, InstructionSpec
+
+from .interfaces import InstructionSetAbstract
+from .instruction_spec import OT, OperandSpec, InstructionSpec
 from .config import CONF
 
 

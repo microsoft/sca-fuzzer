@@ -114,7 +114,7 @@ parts of the **Model** module). The only unique parts are:
 
 This describes a number of Python classes within revizor that define parts of an
 assembly test case. Revizor's TCG uses them to generate syntactically-valid
-assembly. The classes are defined in `interfaces.py`.
+assembly.
 
 #### `OperandSpec`
 

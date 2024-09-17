@@ -13,11 +13,13 @@ from typing import List, Dict, Set, Optional
 
 from ..isa_loader import InstructionSet
 from ..interfaces import TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
-    ImmediateOperand, AgenOperand, OT, Instruction, BasicBlock, InstructionSpec, \
+    ImmediateOperand, AgenOperand, Instruction, BasicBlock, InstructionSpec, \
     MAIN_AREA_SIZE, FAULTY_AREA_SIZE, SANDBOX_DATA_SIZE, Function, ActorPL, PAGE_SIZE, \
     GeneratorException
 from ..generator import ConfigurableGenerator, RandomGenerator, Pass, Printer
 from ..config import CONF
+from ..instruction_spec import OT
+
 from .x86_target_desc import X86TargetDesc
 from .x86_elf_parser import X86ElfParser
 

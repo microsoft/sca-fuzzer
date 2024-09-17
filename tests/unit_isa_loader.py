@@ -8,7 +8,7 @@ import os
 import tempfile
 
 from src.isa_loader import InstructionSet
-from src.interfaces import OT, InstructionSpec
+from src.instruction_spec import OT, InstructionSpec
 
 basic = """
 [
