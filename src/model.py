@@ -29,7 +29,8 @@ from unicorn import Uc, UcError, UC_MEM_WRITE, UC_MEM_READ, UC_SECOND_SCALE, UC_
 from .interfaces import CTrace, TestCase, Model, InputTaint, Instruction, ExecutionTrace, \
     TracedInstruction, TracedMemAccess, Input, Tracer, Actor, ActorMode, ActorPL, \
     RegisterOperand, FlagsOperand, MemoryOperand, TaintTrackerInterface, TargetDesc, \
-    get_sandbox_addr, SANDBOX_DATA_SIZE, SANDBOX_CODE_SIZE, NotSupportedException, AgenOperand
+    NotSupportedException, AgenOperand
+from .sandbox import SandboxLayout, CodeArea, DataArea, CodeAddress, DataAddress
 from .config import CONF
 from .util import Logger
 
@@ -67,7 +68,7 @@ class MacroInterpreter:
     def __init__(self, model: UnicornSeq):
         pass
 
-    def interpret(self, macro: Instruction, address: int):
+    def interpret(self, macro: Instruction, pc: CodeAddress):
         pass
 
     def load_test_case(self, test_case: TestCase):
@@ -100,11 +101,12 @@ class UnicornTracer(Tracer):
     def produce_trace(self, model: Model) -> CTrace:
         # make the trace reproducible by normalizing the addresses
         normalized_trace: List[int] = []
+        layout = model.layout
         for val in self.trace:
-            if model.code_start <= val and val < model.code_end:
-                normalized_trace.append(val - model.code_start)
-            elif model.data_start < val and val < model.data_end:
-                normalized_trace.append(val - model.sandbox_base)
+            if layout.is_code_addr(val):
+                normalized_trace.append(layout.code_addr_to_offset(val))
+            elif layout.is_data_addr(val):
+                normalized_trace.append(layout.data_addr_to_offset(val))
             else:
                 normalized_trace.append(val)
 
@@ -133,7 +135,7 @@ class UnicornTracer(Tracer):
 
     def observe_mem_access(self, access, address: int, size: int, value: int,
                            model: UnicornModel) -> None:
-        normalized_address = address - model.sandbox_base
+        normalized_address = model.layout.data_addr_to_offset(address)
         is_store = (access != UC_MEM_READ)
         self.LOG.dbg_model_mem_access(normalized_address, value, address, size, is_store, model)
 
@@ -146,14 +148,14 @@ class UnicornTracer(Tracer):
             traced_instruction = self.execution_trace[self.instruction_id]
             traced_instruction.accesses.append(TracedMemAccess(normalized_address, val, is_store))
 
-    def observe_instruction(self, address: int, size: int, model: UnicornModel) -> None:
-        self.LOG.dbg_model_instruction(address, model)
+    def observe_instruction(self, pc: int, _: int, model: UnicornModel) -> None:
+        self.LOG.dbg_model_instruction(pc, model)
 
         if model.in_speculation:
             return
 
         if model.execution_tracing_enabled:
-            normalized_address = address - model.code_start
+            normalized_address = model.layout.code_addr_to_offset(pc)
             self.execution_trace.append(TracedInstruction(normalized_address, []))
             self.instruction_id = len(self.execution_trace) - 1
 
@@ -280,21 +282,20 @@ class CTNonSpecStoreTracer(PCTracer):
         super(CTNonSpecStoreTracer, self).observe_mem_access(access, address, size, value, model)
 
 
-class CTRTracer(CTTracer):
+class ArchTracer(CTTracer):
     """
-    When execution starts we also observe registers state.
+    Similar to CTTracer, with additional exposure of:
+     - Register state at the beginning of the execution
+     - The values loaded from memory
+
+    The main use case of this tracer is to model the guarantees provided by secure speculation
+    mechanisms, such as Speculative Taint Tracking (STT).
     """
 
     def init_trace(self, emulator: Uc, uc_target_desc: UnicornTargetDesc):
         self.trace = [emulator.reg_read(reg) for reg in uc_target_desc.registers]  # type: ignore
         self.execution_trace = []
         self.enable_tracing = False
-
-
-class ArchTracer(CTRTracer):
-    """
-    Observe (also) the value loaded from memory
-    """
 
     def observe_mem_access(self, access, address, size, value, model: UnicornModel):
         if access == UC_MEM_READ:
@@ -336,14 +337,6 @@ class UnicornModel(Model, ABC):
     tainting_enabled: bool = False
     execution_tracing_enabled: bool = False
 
-    def __init__(self,
-                 sandbox_base: int,
-                 code_start: int,
-                 tracer: Tracer,
-                 enable_mismatch_check_mode: bool = False):
-        super().__init__(sandbox_base, code_start, tracer, enable_mismatch_check_mode)
-        self.LOG = Logger()
-
     @staticmethod
     @abstractmethod
     def instruction_hook(emulator: Uc, address: int, size: int, model) -> None:
@@ -351,14 +344,12 @@ class UnicornModel(Model, ABC):
         Invoked when an instruction is executed.
         it records instruction
         """
-        pass
 
     @abstractmethod
     def _load_input(self, input_: Input):
         """
         Load registers and memory with given input: this is architecture specific
         """
-        pass
 
     @abstractmethod
     def _execute_test_case(self, inputs: List[Input],
@@ -388,11 +379,12 @@ class UnicornModel(Model, ABC):
         if raw:
             return [str(x) for x in trace]
         normalized_trace = []
+        layout = self.layout
         for val in trace:
-            if self.code_start <= val and val < self.code_end:
-                normalized_trace.append(f"pc:0x{val - self.code_start:x}")
-            elif self.data_start < val and val < self.data_end:
-                normalized_trace.append(f"mem:0x{val - self.sandbox_base:x}")
+            if layout.is_code_addr(val):
+                normalized_trace.append(f"pc:0x{layout.code_addr_to_offset(val):x}")
+            elif layout.is_data_addr(val):
+                normalized_trace.append(f"mem:0x{layout.data_addr_to_offset(val):x}")
             else:
                 normalized_trace.append(f"val:{val}")
         return normalized_trace
@@ -444,13 +436,11 @@ class UnicornModel(Model, ABC):
     def emulate_vm_execution(self, address: int) -> None:
         """ Emulate the execution of an instruction in VM guest mode """
         # implemented by ISA-specific subclasses
-        pass
 
     @abstractmethod
     def emulate_userspace_execution(self, address: int) -> None:
         """ Emulate the execution of an instruction in userspace mode """
         # implemented by ISA-specific subclasses
-        pass
 
 
 class UnicornSeq(UnicornModel):
@@ -471,17 +461,9 @@ class UnicornSeq(UnicornModel):
     local_coverage: Optional[Dict[str, int]]  # local coverage for the current test case
     initial_taints: List[str]  # initial taints for taint tracker
 
-    # test case code
-    code_start: UcPointer  # the lower bound of the code area
-    code_end: UcPointer  # the upper bound of the code area
+    # exit addresses within the sandbox
     exit_addr: UcPointer  # the address of the test case exit instruction
     fault_handler_addr: UcPointer  # the address of the fault handler
-
-    # test case data
-    main_area: UcPointer  # the base address of the main area
-    faulty_area: UcPointer  # the base address of the faulty area
-    reg_init_area: UcPointer  # the base address of the register initialization area
-    stack_base: UcPointer  # the base address of the stack at the beginning of the test case
 
     # ISA-specific fields
     architecture: Tuple[int, int]  # (UC_ARCH, UC_MODE)
@@ -503,18 +485,12 @@ class UnicornSeq(UnicornModel):
     had_arch_fault: bool = False
 
     def __init__(self,
-                 sandbox_base: int,
-                 code_start: int,
+                 data_start: DataAddress,
+                 code_start: CodeAddress,
                  tracer: Tracer,
                  enable_mismatch_check_mode: bool = False):
-        super().__init__(sandbox_base, code_start, tracer, enable_mismatch_check_mode)
-
-        # sandbox
-        self.underflow_pad_base = get_sandbox_addr(sandbox_base, "underflow_pad")
-        self.main_area = get_sandbox_addr(sandbox_base, "main")
-        self.faulty_area = get_sandbox_addr(sandbox_base, "faulty")
-        self.reg_init_area = get_sandbox_addr(sandbox_base, "reg_init")
-        self.stack_base = self.faulty_area - 8
+        super().__init__(data_start, code_start, tracer, enable_mismatch_check_mode)
+        self.LOG = Logger()
 
         # taint tracking (actual values are set by ISA-specific subclasses)
         self.initial_taints = []
@@ -546,6 +522,13 @@ class UnicornSeq(UnicornModel):
         Instantiate emulator and copy the test case into the emulator's memory
         """
         self.test_case = test_case
+        self.layout = SandboxLayout(*self.base_addresses, len(test_case.actors))
+
+        # get code and data boundaries
+        code_start = self.layout.code_start
+        code_size = self.layout.code_size
+        data_start = self.layout.data_start
+        data_size = self.layout.data_size
 
         main_actor = test_case.actors["main"]
         assert main_actor.elf_section, f"Actor {main_actor.name} has no ELF section"
@@ -564,42 +547,41 @@ class UnicornSeq(UnicornModel):
         code = b''
         for section in sections:
             code += section
-            padding = SANDBOX_CODE_SIZE - (len(section) % SANDBOX_CODE_SIZE)
+            code_area_size = self.layout.code_size_per_actor()
+            padding = code_area_size - (len(section) % code_area_size)
             code += b'\x90' * padding  # fill with NOPs
-        self.code_end = self.code_start + len(code)
-        self.exit_addr = self.code_start + main_actor.elf_section.size - 1
-
-        # sandbox data bounds
-        self.data_start = get_sandbox_addr(self.sandbox_base, "start")
-        self.data_end = self.sandbox_base + SANDBOX_DATA_SIZE * len(actors)
+        assert len(code) == code_size, f"Code size mismatch: {len(code)} != {code_size}"
+        self.exit_addr = code_start + main_actor.elf_section.size - 1
 
         # initialize emulator in x86-64 mode
         emulator = Uc(*self.architecture)
 
+        # allocate memory and write the code
+        # (the data will be written by the input loader)
         try:
-            # allocate memory
-            emulator.mem_map(self.code_start, SANDBOX_CODE_SIZE * len(actors))
-            emulator.mem_map(self.data_start, self.data_end - self.data_start)
+            emulator.mem_map(code_start, code_size)
+            emulator.mem_map(data_start, data_size)
+            emulator.mem_write(code_start, code)
+        except UcError as e:
+            self.LOG.error("[UnicornModel:load_test_case] %s" % e)
 
-            # write machine code to be emulated to memory
-            emulator.mem_write(self.code_start, code)
-
-            # set up callbacks
+        # set up callbacks
+        try:
             emulator.hook_add(UC_HOOK_MEM_READ | UC_HOOK_MEM_WRITE, self.trace_mem_access, self)
             emulator.hook_add(UC_HOOK_MEM_UNMAPPED, self.trace_mem_access, self)
             emulator.hook_add(UC_HOOK_CODE, self.instruction_hook, self)
-
-            self.emulator = emulator
-
         except UcError as e:
             self.LOG.error("[UnicornModel:load_test_case] %s" % e)
+
+        # Make the emulator available to the model
+        self.emulator = emulator
 
         # set the fault handler address
         fh_id = self.target_desc.macro_specs["fault_handler"].type_
         for symbol in test_case.symbol_table:
             if symbol.type_ == fh_id:
                 assert symbol.aid == 0, "Fault handler must be in the main actor"
-                self.fault_handler_addr = symbol.offset + self.code_start
+                self.fault_handler_addr = code_start + symbol.offset
                 break
         else:
             self.fault_handler_addr = self.exit_addr
@@ -613,7 +595,7 @@ class UnicornSeq(UnicornModel):
 
         The execution algorithm is as follows:
             - Load the inputs into registers and memory
-            - Start emulation at self.code_start
+            - Start emulation at self.layout.code_start
             - For each instruction, call the tracers and emulate speculation according to
                the contract (implemented by UnicornTracer and by subclasses)
             - When a fault is triggered:
@@ -634,33 +616,35 @@ class UnicornSeq(UnicornModel):
         self.local_coverage = \
             defaultdict(int) if CONF.coverage_type == "model_instructions" else None
 
+        em_start_pc = self.layout.code_start
+        em_end_pc = self.layout.code_end
+
         for index, input_ in enumerate(inputs):
             self.LOG.dbg_model_header(index)
 
             self._load_input(input_)
             self.reset_model()
-            start_address = self.code_start
+            pc = em_start_pc
             while True:
                 self.pending_fault_id = 0
 
                 # make sure that the actor is synchronized with the current address
-                aid = (start_address - self.code_start) // SANDBOX_CODE_SIZE
+                aid = self.layout.code_addr_to_actor_id(pc)
                 self.current_actor = self.test_case.get_actor_by_id(aid)
 
                 # check if we're re-entering into the exit address
-                if not self.in_speculation and self.exit_reached(start_address):
+                if not self.in_speculation and self.exit_reached(pc):
                     break
 
                 # check if we've rolled back to the fault handler; if so, rollback again as
                 # it indicates that rollback was supposed to terminate speculation
-                if self.in_speculation and start_address == self.fault_handler_addr:
-                    start_address = self.rollback()
+                if self.in_speculation and pc == self.fault_handler_addr:
+                    pc = self.rollback()
                     continue
 
                 # execute the test case
                 try:
-                    self.emulator.emu_start(
-                        start_address, self.code_end, timeout=10 * UC_SECOND_SCALE)
+                    self.emulator.emu_start(pc, em_end_pc, timeout=10 * UC_SECOND_SCALE)
                 except UcError as e:
                     # the type annotation below is ignored because some
                     # of the packaged versions of Unicorn do not have
@@ -679,16 +663,16 @@ class UnicornSeq(UnicornModel):
                     # another workaround, specifically for flags
                     self.emulator.reg_write(self.flags_id, self.emulator.reg_read(self.flags_id))
 
-                    start_address = self.handle_fault(self.pending_fault_id)
+                    pc = self.handle_fault(self.pending_fault_id)
                     self.pending_fault_id = 0
-                    if start_address and start_address != self.exit_addr:
+                    if pc and pc != self.exit_addr:
                         continue
 
                 # if we use one of the speculative contracts, we might have some residual simulation
                 # that did not reach the spec. window by the end of simulation. Those need
                 # to be rolled back
                 if self.in_speculation:
-                    start_address = self.rollback()
+                    pc = self.rollback()
                     continue
 
                 # otherwise, we're done with this execution
@@ -723,7 +707,8 @@ class UnicornSeq(UnicornModel):
 
         # when a fault is triggered, CPU stores the PC and the fault type
         # on stack - this has to be mirrored at the contract level
-        self.tracer.observe_mem_access(UC_MEM_WRITE, self.stack_base, 8, errno, self)
+        rsp = self.layout.get_data_addr(DataArea.RSP_INIT, 0)
+        self.tracer.observe_mem_access(UC_MEM_WRITE, rsp, 8, errno, self)
 
         next_addr = self.speculate_fault(errno)
         if next_addr:
@@ -748,7 +733,7 @@ class UnicornSeq(UnicornModel):
         self.LOG.error(f"Unexpected exception {errno} {self.err_to_str(errno)}", print_last_tb=True)
 
     @staticmethod
-    def instruction_hook(emulator: Uc, address: int, size: int, model) -> None:
+    def instruction_hook(emulator: Uc, address: int, size: int, model: UnicornSeq) -> None:
         # terminate execution if the exit instruction is reached
         if model.exit_reached(address):
             emulator.emu_stop()
@@ -757,7 +742,8 @@ class UnicornSeq(UnicornModel):
         # preserve context and trace the instruction
         model.previous_context = model.emulator.context_save()
         aid = model.current_actor.id_
-        section_start = model.code_start + SANDBOX_CODE_SIZE * aid
+        section_start = model.layout.get_code_addr(CodeArea.MAIN, aid)
+        # print(model.test_case.address_map)
         model.current_instruction = model.test_case.address_map[aid][address - section_start]
         model.trace_instruction(emulator, address, size, model)
 
@@ -793,7 +779,7 @@ class UnicornSeq(UnicornModel):
 
         # emulate page faults
         if model.current_actor.privilege_level == ActorPL.USER:
-            target_actor = (address - model.sandbox_base) // SANDBOX_DATA_SIZE
+            target_actor = model.layout.data_addr_to_actor_id(address)
             if target_actor != model.current_actor.id_:
                 model.pending_fault_id = 12
                 model.emulator.emu_stop()
@@ -894,7 +880,7 @@ class UnicornSpec(UnicornSeq):
         if not self.checkpoints:
             self.in_speculation = False
 
-        self.LOG.dbg_model_rollback(next_instr, self.code_start)
+        self.LOG.dbg_model_rollback(next_instr, self.layout.code_start)
         self.latest_rollback_address = next_instr
 
         # restore the speculation state
@@ -947,7 +933,7 @@ class BaseTaintTracker(TaintTrackerInterface):
     """
     strict_undefined: bool = True
     _instruction: Optional[Instruction] = None
-    sandbox_base: int = 0
+    data_start: int = 0
     checkpoints: List[Tuple[Dict[str, Set[str]], Dict[str, Set[str]], Dict[str, Set[str]]]]
 
     src_regs: Set[str]
@@ -973,8 +959,8 @@ class BaseTaintTracker(TaintTrackerInterface):
     _registers: List[int]
     _simd_registers: List[int]
 
-    def __init__(self, initial_observations, sandbox_base=0):
-        self.sandbox_base = sandbox_base
+    def __init__(self, initial_observations, data_start=0):
+        self.data_start = data_start
         self.reset(initial_observations)
         assert CONF.instruction_set == "x86-64", "Taint tracking is only supported for x86_64"
 
@@ -1078,7 +1064,7 @@ class BaseTaintTracker(TaintTrackerInterface):
         :param is_write: True if the memory access is a write (store), False if it's a read (load)
         """
         # mask the address - we taint at the granularity of 8 bytes
-        address -= self.sandbox_base
+        address -= self.data_start
         masked_start_addr = address & 0xffff_ffff_ffff_fff8
         end_addr = address + (size - 1)
         masked_end_addr = end_addr & 0xffff_ffff_ffff_fff8

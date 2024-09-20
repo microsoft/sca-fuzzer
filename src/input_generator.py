@@ -6,8 +6,10 @@ SPDX-License-Identifier: MIT
 """
 import os
 import random
-import numpy as np
 from typing import List, Tuple
+
+import numpy as np
+
 from .interfaces import Input, InputTaint, InputGenerator, InputFragment
 from .config import CONF
 from .util import Logger
@@ -34,7 +36,8 @@ class NumpyRandomInputGenerator(InputGenerator):
         size = input_.itemsize // 8
 
         rng = np.random.default_rng(seed=state)
-        for i in range(len(input_)):
+        n_inputs = len(input_)
+        for i in range(n_inputs):
             # generate random data
             data = rng.integers(self.max_input_value, size=size, dtype=np.uint64)  # type: ignore
 
@@ -76,20 +79,20 @@ class NumpyRandomInputGenerator(InputGenerator):
         if not inputs:
             return []
 
-        if len(inputs) != len(taints):
-            raise Exception("Error: Cannot extend inputs. "
-                            "The number of taints does not match the number of inputs.")
+        assert len(inputs) == len(taints), "Error: Cannot extend inputs. The number of taints" \
+                                           " does not match the number of inputs."
         n_actors = len(inputs[0])
 
         # create inputs
         new_inputs = []
+        n_data_entries_per_actor = Input.n_data_entries_per_actor()
         for i, input_ in enumerate(inputs):
             new_input, self._boosting_state = self._generate_one(self._boosting_state)
             for actor_id in range(n_actors):
                 taint = taints[i].linear_view(actor_id)
                 input_old = input_.linear_view(actor_id)
                 input_new = new_input.linear_view(actor_id)
-                for j in range(input_.data_size):
+                for j in range(n_data_entries_per_actor):
                     if taint[j]:
                         input_new[j] = input_old[j]
             new_inputs.append(new_input)

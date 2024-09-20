@@ -14,10 +14,10 @@ from typing import List, Dict, Set, Optional
 from ..isa_loader import InstructionSet
 from ..interfaces import TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
     ImmediateOperand, AgenOperand, Instruction, BasicBlock, InstructionSpec, \
-    MAIN_AREA_SIZE, FAULTY_AREA_SIZE, SANDBOX_DATA_SIZE, Function, ActorPL, PAGE_SIZE, \
-    GeneratorException
+    Function, ActorPL, PAGE_SIZE, GeneratorException
 from ..generator import ConfigurableGenerator, RandomGenerator, Pass, Printer
 from ..config import CONF
+from ..sandbox import SandboxLayout, DataArea
 from ..instruction_spec import OT
 
 from .x86_target_desc import X86TargetDesc
@@ -183,9 +183,16 @@ class X86U2KAccessPass(Pass):
                     self.instrument(instr, bb, func.owner.id_)
 
     def instrument(self, instr: Instruction, parent: BasicBlock, owner_id) -> None:
+        # randomly select the instruction to instrument
         probability = 1 / CONF.avg_mem_accesses
         if random.random() > probability:
             return
+
+        # calculate offset to the kernel (actor 0) FAULTY_AREA
+        layout = SandboxLayout(0, 0, owner_id)  # create a dummy layout to calculate the offset
+        user_main_start = layout.get_data_addr(DataArea.MAIN, owner_id)
+        kernel_faulty_start = layout.get_data_addr(DataArea.FAULTY, 0)
+        offset = user_main_start - kernel_faulty_start
 
         # select operand to patch
         mem_operands: List[MemoryOperand] = instr.get_mem_operands()
@@ -194,9 +201,8 @@ class X86U2KAccessPass(Pass):
         else:
             mem_operand = random.choice(mem_operands)
 
-        # subtract kernel offset
-        kernel_offset = owner_id * SANDBOX_DATA_SIZE - MAIN_AREA_SIZE  # select kernel FAULTY_AREA
-        mem_operand.value += " - " + str(kernel_offset)
+        # subtract the offset from the memory operand of the patched instruction
+        mem_operand.value += " - " + str(offset)
 
         # patch instrumentation added by X86SandboxPass so that it targets only one page
         previous_instr = instr.previous
@@ -220,9 +226,10 @@ class X86SandboxPass(Pass):
         self.target_desc = target_desc
         self.faults = faults
 
-        input_memory_size = MAIN_AREA_SIZE + FAULTY_AREA_SIZE
-        mask_size = int(math.log(input_memory_size, 2))
-        self.sandbox_address_mask = "0b" + "1" * mask_size
+        size_of_directly_accessible_memory = SandboxLayout.data_area_size(
+            DataArea.MAIN) + SandboxLayout.data_area_size(DataArea.FAULTY)
+        mask_width = int(math.log(size_of_directly_accessible_memory, 2))
+        self.sandbox_address_mask = "0b" + "1" * mask_width
 
     def run_on_test_case(self, test_case: TestCase) -> None:
         for func in test_case.functions:

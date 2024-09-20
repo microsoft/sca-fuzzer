@@ -27,7 +27,6 @@ TRACERS: Dict[str, Type[model.UnicornTracer]] = {
     "ct": model.CTTracer,
     "loads+stores+pc": model.CTTracer,
     "ct-nonspecstore": model.CTNonSpecStoreTracer,
-    "ctr": model.CTRTracer,
     "arch": model.ArchTracer,
     "tct": model.TruncatedCTTracer,
     "tcto": model.TruncatedCTWithOverflowsTracer,

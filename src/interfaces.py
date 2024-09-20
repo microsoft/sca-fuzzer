@@ -15,59 +15,10 @@ import shutil
 import xxhash
 import numpy as np
 
+from .sandbox import SandboxLayout, DataArea, DataAddress, CodeAddress
 from .instruction_spec import OT, InstructionSpec
 
 PAGE_SIZE = 4096
-
-# ==================================================================================================
-# Sandbox layout and constants
-# ==================================================================================================
-# Note: the constants *must* be identical to the actor_data_t and actor_code_t in executor
-# - Data layout:
-#   +-------------------+ (page-aligned)
-#   | OVERFLOW_PAD_SIZE |
-#   +-------------------+
-#   | REG_INIT_AREA_SIZE|
-#   +-------------------+ (page-aligned)
-#   | FAULTY_AREA_SIZE  |
-#   +-------------------+ (page-aligned)
-#   | MAIN_AREA_SIZE    |
-#   +-------------------+ (page-aligned)
-#   | UNDERFLOW_PAD_SIZE|
-#   +-------------------+
-#   | MACRO_STACK_SIZE  |
-#   +-------------------+ (page-aligned)
-MACRO_STACK_SIZE = 64
-UNDERFLOW_PAD_SIZE = (PAGE_SIZE - MACRO_STACK_SIZE)
-MAIN_AREA_SIZE = PAGE_SIZE
-FAULTY_AREA_SIZE = PAGE_SIZE
-GPR_SUBREGION_SIZE = 64  # 8 64-bit GPRs
-SIMD_SUBREGION_SIZE = 256  # 8 256-bit YMMs
-REG_INIT_AREA_SIZE = (GPR_SUBREGION_SIZE + SIMD_SUBREGION_SIZE)
-OVERFLOW_PAD_SIZE = (PAGE_SIZE - REG_INIT_AREA_SIZE)
-SANDBOX_DATA_SIZE = MAIN_AREA_SIZE + FAULTY_AREA_SIZE + 2 * PAGE_SIZE
-
-
-def get_sandbox_addr(sandbox_base: int, name: str):
-    name_to_addr = {
-        "start": lambda x: x - UNDERFLOW_PAD_SIZE - MACRO_STACK_SIZE,
-        "macro_stack": lambda x: x - UNDERFLOW_PAD_SIZE - MACRO_STACK_SIZE,
-        "underflow_pad": lambda x: x - UNDERFLOW_PAD_SIZE,
-        "main": lambda x: x,
-        "faulty": lambda x: x + MAIN_AREA_SIZE,
-        "sp": lambda x: x + MAIN_AREA_SIZE - 8,
-        "gpr": lambda x: x + MAIN_AREA_SIZE + FAULTY_AREA_SIZE,
-        "simd": lambda x: x + MAIN_AREA_SIZE + FAULTY_AREA_SIZE + GPR_SUBREGION_SIZE,
-        "reg_init": lambda x: x + MAIN_AREA_SIZE + FAULTY_AREA_SIZE,
-        "overflow_pad": lambda x: x + MAIN_AREA_SIZE + FAULTY_AREA_SIZE + REG_INIT_AREA_SIZE,
-    }
-    if name not in name_to_addr:
-        raise Exception(f"Invalid sandbox region name: {name}")
-    return name_to_addr[name](sandbox_base)
-
-
-# - Code layout:
-SANDBOX_CODE_SIZE = 3 * PAGE_SIZE
 
 # ==================================================================================================
 # Actors
@@ -122,14 +73,13 @@ class Actor:
 #
 # Ordering of GPRs:  RAX, RBX, RCX, RDX, RSI, RDI, FLAGS, (last 8 bytes unused)
 # Ordering of SIMD registers: YMM0, YMM1, ..., YMM7
+
 InputFragment = np.dtype(
-    [
-        ('main', np.uint64, MAIN_AREA_SIZE // 8),
-        ('faulty', np.uint64, FAULTY_AREA_SIZE // 8),
-        ('gpr', np.uint64, GPR_SUBREGION_SIZE // 8),
-        ('simd', np.uint64, SIMD_SUBREGION_SIZE // 8),
-        ('padding', np.uint64, (4096 - REG_INIT_AREA_SIZE) // 8),
-    ],
+    [('main', np.uint64, SandboxLayout.data_area_size(DataArea.MAIN) // 8),
+     ('faulty', np.uint64, SandboxLayout.data_area_size(DataArea.FAULTY) // 8),
+     ('gpr', np.uint64, SandboxLayout.data_area_size(DataArea.GPR) // 8),
+     ('simd', np.uint64, SandboxLayout.data_area_size(DataArea.SIMD) // 8),
+     ('padding', np.uint64, SandboxLayout.data_area_size(DataArea.OVERFLOW_PAD) // 8)],
     align=False,
 )
 
@@ -144,15 +94,12 @@ class Input(np.ndarray):
     the number of elements in InputFragment, i.e.,
         Input.size = n_actors * InputFragment.size
     """
-    seed: int = 0
-    data_size: int
 
-    def __init__(self, n_actors: int = 1) -> None:
-        pass  # unreachable; defined only for type checking
+    seed: int = 0
+    """ seed: The seed value used to generate this input """
 
     def __new__(cls, n_actors: int = 1):
         obj = super().__new__(cls, (n_actors,), InputFragment, None, 0, None, None)  # type: ignore
-        obj.data_size = (MAIN_AREA_SIZE + FAULTY_AREA_SIZE + REG_INIT_AREA_SIZE) // 8
         return obj
 
     def __array_finalize__(self, obj):
@@ -164,7 +111,33 @@ class Input(np.ndarray):
         h = hash(self.tobytes())
         return h
 
+    @classmethod
+    def data_size_per_actor(cls) -> int:
+        """
+        Get the size (in bytes) of the data area for a single actor.
+        :return: Size, in bytes
+        """
+        return (InputFragment['main'].itemsize + InputFragment['faulty'].itemsize
+                + InputFragment['gpr'].itemsize + InputFragment['simd'].itemsize)
+
+    @classmethod
+    def n_data_entries_per_actor(cls) -> int:
+        """
+        Get the number of entries in the input array for a single actor.
+
+        Note: This function is NOT equivalent to `data_size_per_actor`.
+        This is because array entries are 64-bit integers.
+        :return: Number of entries
+        """
+        return (InputFragment['main'].itemsize + InputFragment['faulty'].itemsize
+                + InputFragment['gpr'].itemsize + InputFragment['simd'].itemsize) // 8
+
     def get_simd128_registers(self, actor_id: int):
+        """
+        Get a list of SIMD registers for a single actor.
+        :param actor_id: The actor ID
+        :return: A list of 128-bit SIMD registers
+        """
         vals = []
         for i in range(0, InputFragment['simd'].shape[actor_id], 2):
             vals.append(int(self[0]['simd'][i + 1]) << 64 | int(self[0]['simd'][i]))
@@ -1047,11 +1020,8 @@ class Tracer(ABC):
 
 
 class Model(ABC):
-    sandbox_base: int = 0
-    code_start: int = 0
-    code_end: int = 0
-    data_start: int = 0
-    data_end: int = 0
+    layout: SandboxLayout
+    base_addresses: Tuple[DataAddress, CodeAddress]
     tracer: Tracer
     instruction_coverage: Dict[str, int]
     is_speculative_contract: bool = False
@@ -1061,12 +1031,11 @@ class Model(ABC):
     contract traces, which is used to check for mismatches between the model and the executor """
 
     def __init__(self,
-                 sandbox_base: int,
-                 code_start: int,
+                 data_start: DataAddress,
+                 code_start: CodeAddress,
                  tracer: Tracer,
                  enable_mismatch_check_mode: bool = False):
-        self.code_start = code_start
-        self.sandbox_base = sandbox_base
+        self.base_addresses = (data_start, code_start)
         self.tracer = tracer
         self.mismatch_check_mode = enable_mismatch_check_mode
 
@@ -1201,7 +1170,7 @@ class Minimizer(ABC):
 
 class TaintTrackerInterface(ABC):
 
-    def __init__(self, initial_observations: List[str], sandbox_base: int = 0):
+    def __init__(self, initial_observations: List[str], data_start: int = 0):
         pass
 
     def reset(self, initial_observations: List[str]):

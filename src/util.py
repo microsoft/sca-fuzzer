@@ -11,7 +11,8 @@ from typing import NoReturn, Dict, List
 from pprint import pformat
 from traceback import print_stack
 from collections import Counter
-from .interfaces import Violation, SANDBOX_CODE_SIZE, Model, HTrace
+from .interfaces import Violation, Model, HTrace
+from .sandbox import CodeArea
 from .config import CONF
 
 MASK_64BIT = pow(2, 64)
@@ -491,14 +492,15 @@ class Logger:
 
         print(msg)
 
-    def dbg_model_instruction(self, address, model):
+    def dbg_model_instruction(self, pc, model):
         if not __debug__:
             return
 
         if not self.dbg_model:
             return
 
-        section_offset = address - (model.code_start + model.current_actor.id_ * SANDBOX_CODE_SIZE)
+        section_start = model.layout.get_code_addr(CodeArea.MAIN, model.current_actor.id_)
+        section_offset = pc - section_start
         address_map = model.test_case.address_map[model.current_actor.id_]
         if section_offset not in address_map:
             return
@@ -510,11 +512,11 @@ class Logger:
             else:
                 name = GREEN + name + COL_RESET
 
-        code_offset = address - model.code_start
+        code_offset = model.layout.code_addr_to_offset(pc)
         if model.in_speculation:
             name = f"[transient, nesting = {len(model.checkpoints)}] " + name
         name = f"0x{code_offset:<2x}: {name}"
-        if code_offset == model.exit_addr - model.code_start - 1:
+        if pc == model.exit_addr - 1:
             name += " [test_case_exit]"
 
         print(name)

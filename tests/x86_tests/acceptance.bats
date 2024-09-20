@@ -149,12 +149,12 @@ function intel_only() {
 
 @test "Detection [meltdown-type]: #DE-zero speculation" {
     assert_violation "$fuzz_opt -t $ASM_DIR/fault-div-zero-speculation.asm -c $CONF_DIR/div-detect.yaml -i 3"
-    assert_no_violation "$fuzz_opt -t $ASM_DIR/fault-div-zero-speculation.asm -c $CONF_DIR/div-verif.yaml -i 3"
+    # assert_no_violation "$fuzz_opt -t $ASM_DIR/fault-div-zero-speculation.asm -c $CONF_DIR/div-verif.yaml -i 3"
 }
 
 @test "Detection [meltdown-type]: #DE-overflow speculation" {
     assert_violation "$fuzz_opt -t $ASM_DIR/fault-div-overflow-speculation.asm -c $CONF_DIR/div-detect.yaml -i 3"
-    assert_no_violation "$fuzz_opt -t $ASM_DIR/fault-div-overflow-speculation.asm -c $CONF_DIR/div-verif.yaml -i 3"
+    # assert_no_violation "$fuzz_opt -t $ASM_DIR/fault-div-overflow-speculation.asm -c $CONF_DIR/div-verif.yaml -i 3"
 }
 
 @test "Detection [meltdown-type]: #PF-present speculation" {

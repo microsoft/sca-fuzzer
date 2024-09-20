@@ -17,8 +17,9 @@ from copy import deepcopy
 from subprocess import run
 from typing import List, NamedTuple, Dict
 from .interfaces import Input, TestCase, Minimizer, Fuzzer, InstructionSetAbstract, Violation
+from .sandbox import CodeArea
 from .model import CTTracer
-from .x86.x86_model import X86UnicornDEH, SANDBOX_CODE_SIZE
+from .x86.x86_model import X86UnicornDEH
 from .config import CONF
 from .util import Logger
 
@@ -702,8 +703,8 @@ class AddViolationCommentsPass(BaseInstructionMinimizationPass):
         v_input_ids = [m.input_id for m in self.violation.measurements[:2]]
 
         # create a model that will collect PC and memory traces
-        sandbox_base, code_base = 0x2000000, 0x1000000
-        model = X86UnicornDEH(sandbox_base, code_base, CTTracer())
+        data_start, code_start = 0x2000000, 0x1000000
+        model = X86UnicornDEH(data_start, code_start, CTTracer())
 
         # collect traces
         ctraces = []
@@ -718,10 +719,10 @@ class AddViolationCommentsPass(BaseInstructionMinimizationPass):
         for ctrace in ctraces:
             ctrace_map = {}
             for v1, v2, v3 in zip(ctrace, ctrace[1:], ctrace[2:]):
-                if v1 >= code_base and v1 < sandbox_base and v2 >= sandbox_base:
-                    pc = v1 - code_base
-                    ld_addr = v2 - sandbox_base
-                    st_addr = v3 - sandbox_base if v3 >= sandbox_base else 0
+                if v1 >= code_start and v1 < data_start and v2 >= data_start:
+                    pc = v1 - code_start
+                    ld_addr = v2 - data_start
+                    st_addr = v3 - data_start if v3 >= data_start else 0
                     ctrace_map[pc] = (ld_addr, st_addr)
             ctrace_maps.append(ctrace_map)
 
@@ -733,8 +734,9 @@ class AddViolationCommentsPass(BaseInstructionMinimizationPass):
         # to simplify the next step, get a dictionary mapping assembly lines to PCs
         line_num_to_pc = {}
         for actor_id in test_case.address_map:
+            actor_start_pc = self.fuzzer.model.layout.get_code_addr(CodeArea.MAIN, actor_id)
             for inst in test_case.address_map[actor_id].values():
-                pc = inst.section_id * SANDBOX_CODE_SIZE + inst.section_offset
+                pc = actor_start_pc + inst.section_offset
                 line_num = inst.line_num
                 if line_num != 0:
                     line_num_to_pc[line_num] = pc

@@ -271,14 +271,14 @@ class X86Executor(Executor):
         """
         Read the base addresses of the code and the sandbox from the kernel module.
         This function is used to synchronize the memory layout between the executor and the model
-        :return: a tuple (sandbox_base, code_base)
+        :return: a tuple (data_start, code_start)
         """
 
         with open('/sys/x86_executor/print_sandbox_base', 'r') as f:
-            sandbox_base = f.readline()
+            data_start = f.readline()
         with open('/sys/x86_executor/print_code_base', 'r') as f:
-            code_base = f.readline()
-        return int(sandbox_base, 16), int(code_base, 16)
+            code_start = f.readline()
+        return int(data_start, 16), int(code_start, 16)
 
     # ==============================================================================================
     # Interface: Test Case Loading
@@ -433,9 +433,9 @@ class X86Executor(Executor):
             f.write((len(inputs)).to_bytes(8, byteorder='little'))  # number of inputs
 
             # metadata
-            fragment_size = (inputs[0].data_size * 8).to_bytes(8, byteorder='little')
-            for id_ in range(len(inputs[0])):
-                f.write(fragment_size)  # size
+            data_size_per_actor_bytes = Input.data_size_per_actor()
+            for _ in range(len(inputs[0])):
+                f.write((data_size_per_actor_bytes).to_bytes(8, byteorder='little'))  # size
                 f.write((0).to_bytes(8, byteorder='little'))  # reserved
 
             # data

@@ -14,11 +14,11 @@ from unicorn import Uc, UcError, UC_MEM_WRITE, UC_ARCH_X86, UC_MODE_64, UC_PROT_
     UC_PROT_NONE, UC_ERR_WRITE_PROT, UC_ERR_NOMEM, UC_ERR_EXCEPTION, UC_ERR_INSN_INVALID
 
 from ..interfaces import Input, FlagsOperand, RegisterOperand, MemoryOperand, AgenOperand, \
-    TestCase, Instruction, Symbol, SANDBOX_DATA_SIZE, FAULTY_AREA_SIZE, OVERFLOW_PAD_SIZE, \
-    UNDERFLOW_PAD_SIZE, SANDBOX_CODE_SIZE, get_sandbox_addr, ActorPL, InputTaint, CTrace, \
+    TestCase, Instruction, Symbol, ActorPL, InputTaint, CTrace, \
     ActorMode, UnreachableCode, NotSupportedException
 from ..model import UnicornModel, UnicornTracer, UnicornSpec, UnicornSeq, BaseTaintTracker, \
     MacroInterpreter
+from ..sandbox import CodeArea, CodeAddress, SandboxLayout, DataArea as DA
 from ..util import BLUE, COL_RESET, Logger, stable_hash_bytes
 from ..config import CONF
 from .x86_target_desc import X86UnicornTargetDesc, X86TargetDesc
@@ -71,7 +71,7 @@ class X86MacroInterpreter(MacroInterpreter):
             raise UcError(CRITICAL_ERROR)
         return self.function_table[function_id]
 
-    def interpret(self, macro: Instruction, address: int):
+    def interpret(self, macro: Instruction, pc: CodeAddress):
         macros: Dict[str, Callable] = {
             "measurement_start": self.macro_measurement_start,
             "measurement_end": self.macro_measurement_end,
@@ -93,7 +93,8 @@ class X86MacroInterpreter(MacroInterpreter):
         }
 
         actor_id = self.model.current_actor.id_
-        macro_offset = address - (self.model.code_start + SANDBOX_CODE_SIZE * actor_id)
+        macro_start = self.model.layout.get_code_addr(CodeArea.MAIN, actor_id)
+        macro_offset = pc - macro_start
         macro_args = self._get_macro_args(actor_id, macro_offset)
 
         interpreter_func = macros[macro.operands[0].value.lower()[1:]]
@@ -113,16 +114,17 @@ class X86MacroInterpreter(MacroInterpreter):
           and jump to the corresponding function address
         """
         model = self.model
-        section_addr = model.code_start + SANDBOX_CODE_SIZE * section_id
+        layout = model.layout
 
         # PC update
+        section_addr = layout.get_code_addr(CodeArea.MAIN, section_id)
         function_symbol = self._find_function_by_id(function_id)
         function_addr = section_addr + function_symbol.offset
         model.emulator.reg_write(model.uc_target_desc.pc_register, function_addr)
 
         # data area base and SP update
-        new_base = model.sandbox_base + SANDBOX_DATA_SIZE * section_id
-        new_sp = get_sandbox_addr(new_base, "sp")
+        new_base = layout.get_data_addr(DA.MAIN, section_id)
+        new_sp = layout.get_data_addr(DA.RSP_INIT, section_id)
         model.emulator.reg_write(model.uc_target_desc.actor_base_register, new_base)
         model.emulator.reg_write(model.uc_target_desc.sp_register, new_sp)
 
@@ -134,7 +136,7 @@ class X86MacroInterpreter(MacroInterpreter):
         """
         Decode arguments and store destination into curr_user_target
         """
-        section_addr = self.model.code_start + SANDBOX_CODE_SIZE * section_id
+        section_addr = self.model.layout.get_code_addr(CodeArea.MAIN, section_id)
         function_symbol = self._find_function_by_id(function_id)
         function_addr = section_addr + function_symbol.offset
         self.curr_user_target = function_addr
@@ -143,6 +145,7 @@ class X86MacroInterpreter(MacroInterpreter):
         """ Read the destination from curr_user_target and jump to it;
         also update data area base and SP """
         model = self.model
+        layout = model.layout
 
         # PC update
         model.emulator.reg_write(model.uc_target_desc.pc_register, self.curr_user_target)
@@ -153,8 +156,8 @@ class X86MacroInterpreter(MacroInterpreter):
         # model.emulator.mem_write(rsp - 8, flags.to_bytes(8, byteorder='little'))  # type: ignore
 
         # data area base and SP update
-        new_base = model.sandbox_base + SANDBOX_DATA_SIZE * section_id
-        new_sp = get_sandbox_addr(new_base, "sp")
+        new_base = layout.get_data_addr(DA.MAIN, section_id)
+        new_sp = layout.get_data_addr(DA.RSP_INIT, section_id)
         model.emulator.reg_write(model.uc_target_desc.actor_base_register, new_base)
         model.emulator.reg_write(ucc.UC_X86_REG_RSP, new_sp)
 
@@ -171,7 +174,7 @@ class X86MacroInterpreter(MacroInterpreter):
         model = self.model
 
         # update LSTAR
-        section_addr = model.code_start + SANDBOX_CODE_SIZE * section_id
+        section_addr = model.layout.get_code_addr(CodeArea.MAIN, section_id)
         function_symbol = self._find_function_by_id(function_id)
         function_addr = section_addr + function_symbol.offset
         self.pseudo_lstar = function_addr
@@ -186,8 +189,8 @@ class X86MacroInterpreter(MacroInterpreter):
         model.emulator.reg_write(model.uc_target_desc.pc_register, self.pseudo_lstar)
 
         # data area base and SP update
-        new_base = model.sandbox_base + SANDBOX_DATA_SIZE * section_id
-        new_sp = get_sandbox_addr(new_base, "sp")
+        new_base = model.layout.get_data_addr(DA.MAIN, section_id)
+        new_sp = model.layout.get_data_addr(DA.RSP_INIT, section_id)
         model.emulator.reg_write(model.uc_target_desc.actor_base_register, new_base)
         model.emulator.reg_write(ucc.UC_X86_REG_RSP, new_sp)
 
@@ -202,8 +205,8 @@ class X86MacroInterpreter(MacroInterpreter):
         model.emulator.reg_write(model.uc_target_desc.pc_register, self.curr_host_target)
 
         # data area base and SP update
-        new_base = model.sandbox_base + SANDBOX_DATA_SIZE * section_id
-        new_sp = get_sandbox_addr(new_base, "sp")
+        new_base = model.layout.get_data_addr(DA.MAIN, section_id)
+        new_sp = model.layout.get_data_addr(DA.RSP_INIT, section_id)
         model.emulator.reg_write(model.uc_target_desc.actor_base_register, new_base)
         model.emulator.reg_write(ucc.UC_X86_REG_RSP, new_sp)
 
@@ -225,8 +228,8 @@ class X86MacroInterpreter(MacroInterpreter):
         model.emulator.reg_write(model.uc_target_desc.pc_register, self.curr_guest_target)
 
         # data area base and SP update
-        new_base = model.sandbox_base + SANDBOX_DATA_SIZE * section_id
-        new_sp = get_sandbox_addr(new_base, "sp")
+        new_base = model.layout.get_data_addr(DA.MAIN, section_id)
+        new_sp = model.layout.get_data_addr(DA.RSP_INIT, section_id)
         model.emulator.reg_write(model.uc_target_desc.actor_base_register, new_base)
         model.emulator.reg_write(ucc.UC_X86_REG_RSP, new_sp)
 
@@ -239,13 +242,13 @@ class X86MacroInterpreter(MacroInterpreter):
             model.emulator.reg_write(ucc.UC_X86_REG_RAX, 0)
 
     def macro_set_h2g_target(self, section_id: int, function_id: int, _: int, __: int):
-        section_addr = self.model.code_start + SANDBOX_CODE_SIZE * section_id
+        section_addr = self.model.layout.get_code_addr(CodeArea.MAIN, section_id)
         function_symbol = self._find_function_by_id(function_id)
         function_addr = section_addr + function_symbol.offset
         self.curr_host_target = function_addr
 
     def macro_set_g2h_target(self, section_id: int, function_id: int, _: int, __: int):
-        section_addr = self.model.code_start + SANDBOX_CODE_SIZE * section_id
+        section_addr = self.model.layout.get_code_addr(CodeArea.MAIN, section_id)
         function_symbol = self._find_function_by_id(function_id)
         function_addr = section_addr + function_symbol.offset
         self.curr_guest_target = function_addr
@@ -350,7 +353,7 @@ class X86UserspaceEmulator(X86VMEmulator):
         "wbinvd", "wbnoinvd", "smsw", "lmsw", "rdfsbase", "rdgsbase", "wrfsbase", "wrgsbase",
         "swapgs", "vmclear", "vmlaunch", "vmptrld", "vmptrst", "vmread", "vmresume", "vmwrite",
         "vmxoff", "invvpid", "getsec", "loadiwkey", "pconfig", "encls", "enclv", "hlt", "xgetbv",
-        "xsetbv", "tlbsync"
+        "xsetbv"
     }
     always_exiting_registers = [
         "cr0", "cr2", "cr3", "cr8", "dr0", "dr1", "dr2", "dr3", "dr6", "dr7"
@@ -366,8 +369,8 @@ class X86UnicornSeq(UnicornSeq):
     rw_forbidden: Dict[int, bool]
     w_forbidden: Dict[int, bool]
 
-    def __init__(self, sandbox_base, code_start, tracer, enable_mismatch_check_mode=False):
-        super().__init__(sandbox_base, code_start, tracer, enable_mismatch_check_mode)
+    def __init__(self, data_start, code_start, tracer, enable_mismatch_check_mode=False):
+        super().__init__(data_start, code_start, tracer, enable_mismatch_check_mode)
         self.target_desc = X86TargetDesc()
         self.uc_target_desc = X86UnicornTargetDesc()
 
@@ -375,14 +378,14 @@ class X86UnicornSeq(UnicornSeq):
         self.vm_emulator = X86VMEmulator(self)
         self.user_emulator = X86UserspaceEmulator(self)
 
-        self.taint_tracker = X86TaintTracker([], sandbox_base)
+        self.taint_tracker = X86TaintTracker([], data_start)
         self.original_tain_tracker = self.taint_tracker
 
         self.architecture = (UC_ARCH_X86, UC_MODE_64)
         self.flags_id = ucc.UC_X86_REG_EFLAGS
 
-        self.underflow_pad_values = bytes(UNDERFLOW_PAD_SIZE)
-        self.overflow_pad_values = bytes(OVERFLOW_PAD_SIZE)
+        self.underflow_pad_values = bytes(SandboxLayout.data_area_size(DA.UNDERFLOW_PAD))
+        self.overflow_pad_values = bytes(SandboxLayout.data_area_size(DA.OVERFLOW_PAD))
 
         self._create_fault_masks()
 
@@ -454,36 +457,37 @@ class X86UnicornSeq(UnicornSeq):
         def patch_flags(flags: np.uint64) -> np.uint64:
             return (flags & np.uint64(2263)) | np.uint64(2)
 
+        def write_area(area: DA, actor_id: int, data: bytes):
+            em.mem_write(self.layout.get_data_addr(area, actor_id), data)
+
         # shortcuts to save on typing
-        s_base = self.sandbox_base
         em = self.emulator
         regs = self.uc_target_desc.registers
 
         # Initialize memory for each actor:
         for actor_id in range(len(self.actors_sorted)):
             input_fragment = input_[actor_id]
-            a_base = s_base + actor_id * SANDBOX_DATA_SIZE  # actor's sandbox base
 
             # - initialize overflows with zeroes
-            em.mem_write(get_sandbox_addr(a_base, "underflow_pad"), self.underflow_pad_values)
-            em.mem_write(get_sandbox_addr(a_base, "overflow_pad"), self.overflow_pad_values)
+            write_area(DA.OVERFLOW_PAD, actor_id, self.overflow_pad_values)
+            write_area(DA.UNDERFLOW_PAD, actor_id, self.underflow_pad_values)
 
             # - sandbox data pages
-            # Note: register init. area is not used by the model, but executor uses
-            # it to initialize registers, and we have to keep it consistent
-            em.mem_write(get_sandbox_addr(a_base, "main"), input_fragment['main'].tobytes())
-            em.mem_write(get_sandbox_addr(a_base, "faulty"), input_fragment['faulty'].tobytes())
-            em.mem_write(get_sandbox_addr(a_base, "gpr"), input_fragment['gpr'].tobytes())
-            em.mem_write(get_sandbox_addr(a_base, "simd"), input_fragment['simd'].tobytes())
+            write_area(DA.MAIN, actor_id, input_fragment['main'].tobytes())
+            write_area(DA.FAULTY, actor_id, input_fragment['faulty'].tobytes())
 
-            # patch the init values for some of the registers
-            gpr_base = get_sandbox_addr(a_base, "gpr")
-            em.mem_write(gpr_base + 6 * 8, patch_flags(input_fragment['gpr'][6]).tobytes())  # flags
-            em.mem_write(gpr_base + 7 * 8, np.uint64(self.stack_base).tobytes())  # RSP
+            # - GPRs
+            # Note: Executor uses the GPR area to initialize registers, so we need to patch them
+            #      before writing them to the emulator to ensure consitency.
+            input_fragment['gpr'][6] = patch_flags(input_fragment['gpr'][6])
+            input_fragment['gpr'][7] = np.uint64(self.layout.get_data_addr(DA.RSP_INIT, 0))
+            write_area(DA.GPR, actor_id, input_fragment['gpr'].tobytes())
 
-            # Set memory permissions
-            # Note: this code is at the end because we need to set the permissions
-            #       *after* the memory is initialized
+            # - SIMD
+            write_area(DA.SIMD, actor_id, input_fragment['simd'].tobytes())
+
+        # Set memory permissions
+        for actor_id in range(len(self.actors_sorted)):
             if self.rw_forbidden[actor_id]:
                 self.set_faulty_area_rw(actor_id, False, False)
             elif self.w_forbidden[actor_id]:
@@ -499,9 +503,9 @@ class X86UnicornSeq(UnicornSeq):
 
         # similarly to above, patch reg. values
         em.reg_write(ucc.UC_X86_REG_EFLAGS, int(patch_flags(input_fragment['gpr'][6])))
-        em.reg_write(ucc.UC_X86_REG_RSP, self.stack_base)
-        em.reg_write(ucc.UC_X86_REG_RBP, self.stack_base)
-        em.reg_write(ucc.UC_X86_REG_R14, s_base)
+        em.reg_write(ucc.UC_X86_REG_RSP, self.layout.get_data_addr(DA.RSP_INIT, 0))
+        em.reg_write(ucc.UC_X86_REG_RBP, self.layout.get_data_addr(DA.RSP_INIT, 0))
+        em.reg_write(ucc.UC_X86_REG_R14, self.layout.get_data_addr(DA.MAIN, 0))
 
         # - initialize SIMD
         for i, value in enumerate(input_.get_simd128_registers(0)):
@@ -510,12 +514,9 @@ class X86UnicornSeq(UnicornSeq):
     def print_state(self, oneline: bool = False):
 
         def compressed(val: int):
-            if val >= self.sandbox_base and val <= self.sandbox_base + 12288:
-                return f"+0x{val - self.sandbox_base:<15x}"
-            elif val >= self.sandbox_base - OVERFLOW_PAD_SIZE and val < self.sandbox_base:
-                return f"+0x{val - self.sandbox_base:<15x}"
-            else:
-                return f"0x{val:016x}"
+            if self.layout.is_data_addr(val):
+                return f"base+0x{self.layout.data_addr_to_offset(val):<9x}"
+            return f"0x{val:016x}"
 
         em = self.emulator
         rax = compressed(em.reg_read(ucc.UC_X86_REG_RAX))
@@ -586,14 +587,14 @@ class X86UnicornSeq(UnicornSeq):
         """ Sets the 'readable' and 'writable' property of the faulty area for the given actor """
         if actor_id == -1:
             actor_id = self.current_actor.id_
-        actor_base = self.sandbox_base + actor_id * SANDBOX_DATA_SIZE
-        faulty_base = get_sandbox_addr(actor_base, "faulty")
+        faulty_base = self.layout.get_data_addr(DA.FAULTY, actor_id)
+        faulty_size = self.layout.data_area_size(DA.FAULTY)
         if not r:
-            self.emulator.mem_protect(faulty_base, FAULTY_AREA_SIZE, UC_PROT_NONE)
+            self.emulator.mem_protect(faulty_base, faulty_size, UC_PROT_NONE)
         elif not w:
-            self.emulator.mem_protect(faulty_base, FAULTY_AREA_SIZE, UC_PROT_READ)
+            self.emulator.mem_protect(faulty_base, faulty_size, UC_PROT_READ)
         else:
-            self.emulator.mem_protect(faulty_base, FAULTY_AREA_SIZE)
+            self.emulator.mem_protect(faulty_base, faulty_size)
 
     def emulate_vm_execution(self, address: int) -> None:
         self.vm_emulator.run(self.current_instruction, address)
@@ -1378,6 +1379,10 @@ class X86UnicornVspecOps(X86FaultModelAbstract):
 
     def __init__(self, *args):
         super().__init__(*args)
+
+        raise NotImplementedError("This class is no longer maintained. Avoid using it unless you "
+                                  "are ready to update it to the latest version of Revizor.")
+
         # self.relevant_faults.update([6, 7, 12, 13, 21])
         self.reg_taints = {}
         self.reg_taints_checkpoints = []
@@ -1428,8 +1433,9 @@ class X86UnicornVspecOps(X86FaultModelAbstract):
                 # if register is a flag, project flags register on flag
                 if reg in {"CF", "PF", "AF", "ZF", "SF", "TF", "IF", "DF", "OF"}:
                     reg_value = int((reg_value & self.flags_translate[reg]) != 0)
-                pc = self.curr_instruction_addr - self.code_start
+                pc = self.layout.code_addr_to_offset(self.curr_instruction_addr)
                 reg_values.add(TaintedValue(pc, reg_id, reg_value))
+                print(f"reg: {reg_id}, value: {reg_value}, pc: {pc}")
 
         return reg_values, reg_values_tainted
 
@@ -1469,7 +1475,7 @@ class X86UnicornVspecOps(X86FaultModelAbstract):
                 if reg in self.curr_dest_regs_sizes and self.curr_dest_regs_sizes[reg] < 64:
                     reg_id = X86UnicornTargetDesc.reg_decode[reg]
                     reg_value: int = self.emulator.reg_read(reg_id)  # type: ignore
-                    pc = self.curr_instruction_addr - self.code_start
+                    pc = self.layout.code_addr_to_offset(self.curr_instruction_addr)
                     new_taint = {TaintedValue(pc, reg_id, reg_value)} | self.curr_taint
                     self.set_taint(reg, new_taint)
                 # if not, just set current taint as taint of reg
@@ -1481,7 +1487,7 @@ class X86UnicornVspecOps(X86FaultModelAbstract):
         size = self.curr_mem_load[1]
         mem_value = self.emulator.mem_read(address, size)
         mem_value = int.from_bytes(mem_value, 'little')
-        pc = self.curr_instruction_addr - self.code_start
+        pc = self.layout.code_addr_to_offset(self.curr_instruction_addr)
         return TaintedValue(pc, address, mem_value)
 
     def speculate_fault(self, errno: int) -> int:
@@ -1691,7 +1697,7 @@ class X86UnicornVspecOps(X86FaultModelAbstract):
                 # if address itself is not tainted, value stored at address to current taint
                 # and potentially add to taints
                 mem_value = int.from_bytes(mem_value, 'little')
-                pc = model.curr_instruction_addr - model.code_start
+                pc = model.layout.code_addr_to_offset(model.curr_instruction_addr)
                 model.curr_taint.add(TaintedValue(pc, address, mem_value))
                 model.update_reg_taints()
 
@@ -1760,9 +1766,9 @@ class x86UnicornVspecOpsMemoryFaults(X86UnicornVspecOps):
     def _get_curr_load_taint(self) -> TaintedValue:
         # The loaded value is undefined for faulting loads,
         # hence the memory value should not be included in dependencies
-        address = self.curr_mem_load[0]
-        pc = self.curr_instruction_addr - self.code_start
-        return TaintedValue(pc, address, 0)
+        load_addr = self.curr_mem_load[0]
+        pc = self.layout.code_addr_to_offset(self.curr_instruction_addr)
+        return TaintedValue(pc, load_addr, 0)
 
     @staticmethod
     def speculate_instruction(emulator: Uc, address, size, model) -> None:
@@ -1867,7 +1873,7 @@ class x86UnicornVspecOpsGP(X86UnicornVspecOps, X86NonCanonicalAddress):
                 size = self.curr_mem_load[1]
                 mem_value = self.emulator.mem_read(address, size)
                 mem_value = int.from_bytes(mem_value, 'little')
-                pc = self.curr_instruction_addr - self.code_start
+                pc = self.layout.code_addr_to_offset(self.curr_instruction_addr)
                 self.curr_taint.add(TaintedValue(pc, address, mem_value))
 
             if self.current_instruction.has_write():
@@ -2089,8 +2095,8 @@ class ActorNonInterferenceModel(X86UnicornSeq):
 # ==================================================================================================
 class X86TaintTracker(BaseTaintTracker):
 
-    def __init__(self, initial_observations, sandbox_base=0):
-        super().__init__(initial_observations, sandbox_base=sandbox_base)
+    def __init__(self, initial_observations, data_start=0):
+        super().__init__(initial_observations, data_start=data_start)
 
         # ISA-specific field setup
         self.target_desc = X86TargetDesc()
