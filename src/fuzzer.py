@@ -135,7 +135,7 @@ class FuzzerGeneric(Fuzzer):
 
             # Generate a test case
             test_case: TestCase = self.generation_function(self.existing_test_case)
-            self.input_gen.n_actors = len(test_case.actors)
+            self.input_gen.n_actors = test_case.n_actors()
             STAT.test_cases += 1
 
             # Prepare inputs
@@ -470,10 +470,10 @@ class FuzzerGeneric(Fuzzer):
             f.write(f"* Input seed: {violation.input_sequence[0].seed}\n")
             f.write("* Faulty page properties:\n")
             target_desc = self.generator.target_desc
-            for actor_id in test_case.actors:
+            for actor in test_case.get_sorted_actors():
+                actor_id = actor.get_id()
                 f.write(f"  - Actor {actor_id}:\n")
 
-                actor = test_case.actors[actor_id]
                 pte_fields = []
                 for field in target_desc.pte_bits:
                     offset, default = target_desc.pte_bits[field]

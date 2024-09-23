@@ -12,8 +12,9 @@ from typing import List, Dict, Tuple, NoReturn
 from collections import OrderedDict
 
 from .interfaces import AsmParser, Instruction, TestCase, \
-    LabelOperand, Function, BasicBlock, Generator, ActorPL, ActorMode
+    LabelOperand, Function, BasicBlock, Generator
 from .instruction_spec import OT, OperandSpec, InstructionSpec
+from .actor import ActorPL, ActorMode
 from .util import Logger
 from .config import CONF
 
@@ -100,7 +101,7 @@ class AsmParserGeneric(AsmParser):
         # parse lines and create their object representations
         for func_name, bbs in test_case_map.items():
             # print(func_name)
-            actor = test_case.actors[function_owners[func_name]]
+            actor = test_case.get_actor_by_name(function_owners[func_name])
             func = Function(func_name, actor)
             test_case.functions.append(func)
 
@@ -151,7 +152,7 @@ class AsmParserGeneric(AsmParser):
         if not test_case.functions:
             instr = Instruction("nop", False, "BASE-NOP", False)
             bb = BasicBlock(".bb_0")
-            main = Function(".function_0", test_case.actors["main"])
+            main = Function(".function_0", test_case.get_actor_by_name("main"))
             bb.insert_after(bb.get_last(), instr)
             main.append(bb)
             bb.successors.append(main.exit)

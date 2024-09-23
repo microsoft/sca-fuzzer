@@ -14,11 +14,12 @@ from unicorn import Uc, UcError, UC_MEM_WRITE, UC_ARCH_X86, UC_MODE_64, UC_PROT_
     UC_PROT_NONE, UC_ERR_WRITE_PROT, UC_ERR_NOMEM, UC_ERR_EXCEPTION, UC_ERR_INSN_INVALID
 
 from ..interfaces import Input, FlagsOperand, RegisterOperand, MemoryOperand, AgenOperand, \
-    TestCase, Instruction, Symbol, ActorPL, InputTaint, CTrace, \
-    ActorMode, UnreachableCode, NotSupportedException
+    TestCase, Instruction, Symbol, InputTaint, CTrace, \
+    UnreachableCode, NotSupportedException
 from ..model import UnicornModel, UnicornTracer, UnicornSpec, UnicornSeq, BaseTaintTracker, \
     MacroInterpreter
 from ..sandbox import CodeArea, CodeAddress, SandboxLayout, DataArea as DA
+from ..actor import ActorPL, ActorMode
 from ..util import BLUE, COL_RESET, Logger, stable_hash_bytes
 from ..config import CONF
 from .x86_target_desc import X86UnicornTargetDesc, X86TargetDesc
@@ -52,7 +53,7 @@ class X86MacroInterpreter(MacroInterpreter):
         self.function_table = [symbol for symbol in test_case.symbol_table if symbol.type_ == 0]
         self.function_table.sort(key=lambda s: [s.arg])
         self.macro_table = [symbol for symbol in test_case.symbol_table if symbol.type_ != 0]
-        self.sid_to_actor_name = {actor.id_: name for name, actor in test_case.actors.items()}
+        self.sid_to_actor = {actor.get_id(): actor for actor in test_case.get_actors()}
         self.pseudo_lstar = self.model.exit_addr
 
     def _get_macro_args(self, section_id: int, section_offset: int) -> Tuple[int, int, int, int]:
@@ -92,7 +93,7 @@ class X86MacroInterpreter(MacroInterpreter):
             "set_data_permissions": self.macro_set_data_permissions,
         }
 
-        actor_id = self.model.current_actor.id_
+        actor_id = self.model.current_actor.get_id()
         macro_start = self.model.layout.get_code_addr(CodeArea.MAIN, actor_id)
         macro_offset = pc - macro_start
         macro_args = self._get_macro_args(actor_id, macro_offset)
@@ -129,8 +130,7 @@ class X86MacroInterpreter(MacroInterpreter):
         model.emulator.reg_write(model.uc_target_desc.sp_register, new_sp)
 
         # actor update
-        actor_name = self.sid_to_actor_name[section_id]
-        model.current_actor = self.test_case.actors[actor_name]
+        model.current_actor = self.sid_to_actor[section_id]
 
     def macro_set_k2u_target(self, section_id: int, function_id: int, _: int, __: int):
         """
@@ -162,8 +162,7 @@ class X86MacroInterpreter(MacroInterpreter):
         model.emulator.reg_write(ucc.UC_X86_REG_RSP, new_sp)
 
         # actor update
-        actor_name = self.sid_to_actor_name[section_id]
-        model.current_actor = self.test_case.actors[actor_name]
+        model.current_actor = self.sid_to_actor[section_id]
 
     def macro_set_u2k_target(self, section_id: int, function_id: int, _: int, __: int):
         """ Set LSTAR to the target address if in kernel mode; otherwise, throw an exception """
@@ -195,8 +194,7 @@ class X86MacroInterpreter(MacroInterpreter):
         model.emulator.reg_write(ucc.UC_X86_REG_RSP, new_sp)
 
         # actor update
-        actor_name = self.sid_to_actor_name[section_id]
-        model.current_actor = self.test_case.actors[actor_name]
+        model.current_actor = self.sid_to_actor[section_id]
 
     def macro_switch_h2g(self, section_id: int, _: int, __: int, ___: int):
         model = self.model
@@ -214,8 +212,7 @@ class X86MacroInterpreter(MacroInterpreter):
         model.emulator.reg_write(ucc.UC_X86_REG_EFLAGS, 0b10)
 
         # actor update
-        actor_name = self.sid_to_actor_name[section_id]
-        model.current_actor = self.test_case.actors[actor_name]
+        model.current_actor = self.sid_to_actor[section_id]
 
         # AMD VMRUN clobbers RAX; we model it as a zero write to RAX
         if self.is_amd:
@@ -234,8 +231,7 @@ class X86MacroInterpreter(MacroInterpreter):
         model.emulator.reg_write(ucc.UC_X86_REG_RSP, new_sp)
 
         # actor update
-        actor_name = self.sid_to_actor_name[section_id]
-        model.current_actor = self.test_case.actors[actor_name]
+        model.current_actor = self.sid_to_actor[section_id]
 
         # AMD VMEXIT clobbers RAX; we model it as a zero write to RAX
         if self.is_amd:
@@ -425,8 +421,8 @@ class X86UnicornSeq(UnicornSeq):
     def load_test_case(self, test_case: TestCase) -> None:
         self.rw_forbidden = {}
         self.w_forbidden = {}
-        for actor in test_case.actors.values():
-            aid = actor.id_
+        for actor in test_case.get_sorted_actors():
+            aid = actor.get_id()
 
             pte: int = actor.data_properties
             inverse_pte = 0xffffffffffffffff ^ pte
@@ -586,7 +582,7 @@ class X86UnicornSeq(UnicornSeq):
     def set_faulty_area_rw(self, actor_id: int, r: bool, w: bool) -> None:
         """ Sets the 'readable' and 'writable' property of the faulty area for the given actor """
         if actor_id == -1:
-            actor_id = self.current_actor.id_
+            actor_id = self.current_actor.get_id()
         faulty_base = self.layout.get_data_addr(DA.FAULTY, actor_id)
         faulty_size = self.layout.data_area_size(DA.FAULTY)
         if not r:
@@ -824,7 +820,7 @@ class X86SequentialAssist(X86FaultModelAbstract):
             return 0
 
         # no speculation - simply reset the permissions
-        self.set_faulty_area_rw(self.current_actor.id_, True, True)
+        self.set_faulty_area_rw(self.current_actor.get_id(), True, True)
         return self.curr_instruction_addr
 
 
@@ -1011,11 +1007,11 @@ class X86UnicornNull(X86FaultModelAbstract):
         # restore permissions after speculation - we might have nested injections
         if model.pending_restore_protection:
             model.pending_restore_protection = False
-            aid = model.current_actor.id_
+            aid = model.current_actor.get_id()
             if model.rw_forbidden[aid]:
-                model.set_faulty_area_rw(model.current_actor.id_, False, False)
+                model.set_faulty_area_rw(model.current_actor.get_id(), False, False)
             elif model.w_forbidden[aid]:
-                model.set_faulty_area_rw(model.current_actor.id_, True, False)
+                model.set_faulty_area_rw(model.current_actor.get_id(), True, False)
         elif model.pending_re_execution:
             model.pending_re_execution = False
             model.pending_restore_protection = True
@@ -1048,11 +1044,11 @@ class X86UnicornNull(X86FaultModelAbstract):
 
         # repeat the instruction
         self.pending_re_execution = True
-        self.set_faulty_area_rw(self.current_actor.id_, True, True)
+        self.set_faulty_area_rw(self.current_actor.get_id(), True, True)
         return self.curr_instruction_addr
 
     def rollback(self) -> int:
-        self.set_faulty_area_rw(self.current_actor.id_, True, True)
+        self.set_faulty_area_rw(self.current_actor.get_id(), True, True)
         return super().rollback()
 
 
@@ -1080,7 +1076,7 @@ class X86Meltdown(X86FaultModelAbstract):
         self.checkpoint(self.emulator, self.fault_handler_addr)
 
         # remove protection
-        self.set_faulty_area_rw(self.current_actor.id_, True, True)
+        self.set_faulty_area_rw(self.current_actor.get_id(), True, True)
 
         return self.curr_instruction_addr
 
@@ -1774,11 +1770,11 @@ class x86UnicornVspecOpsMemoryFaults(X86UnicornVspecOps):
     def speculate_instruction(emulator: Uc, address, size, model) -> None:
         if model.pending_restore_protection:
             model.pending_restore_protection = False
-            aid = model.current_actor.id_
+            aid = model.current_actor.get_id()
             if model.rw_forbidden[aid]:
-                model.set_faulty_area_rw(model.current_actor.id_, False, False)
+                model.set_faulty_area_rw(model.current_actor.get_id(), False, False)
             elif model.w_forbidden[aid]:
-                model.set_faulty_area_rw(model.current_actor.id_, True, False)
+                model.set_faulty_area_rw(model.current_actor.get_id(), True, False)
         elif model.pending_re_execution:
             model.pending_re_execution = False
             model.pending_restore_protection = True
@@ -1787,10 +1783,10 @@ class x86UnicornVspecOpsMemoryFaults(X86UnicornVspecOps):
     def get_next_instruction(self):
         if self.exit_reached(self.next_instruction_addr):
             return 0  # no need for speculation if we're at the end
-        aid = self.current_actor.id_
+        aid = self.current_actor.get_id()
         if self.pending_fault_id == UC_ERR_WRITE_PROT and self.w_forbidden[aid]:
             # remove protection
-            self.set_faulty_area_rw(self.current_actor.id_, True, True)
+            self.set_faulty_area_rw(self.current_actor.get_id(), True, True)
             self.pending_re_execution = True
             return self.curr_instruction_addr
         else:
@@ -1807,7 +1803,7 @@ class x86UnicornVspecOpsMemoryAssists(x86UnicornVspecOpsMemoryFaults):
         next_instruction = super().rollback()
         if not self.in_speculation:
             # remove protection after the assists has completed
-            self.set_faulty_area_rw(self.current_actor.id_, True, True)
+            self.set_faulty_area_rw(self.current_actor.get_id(), True, True)
 
         return next_instruction
 
@@ -1987,11 +1983,11 @@ class X86UnicornVspecAllMemoryFaults(X86UnicornVspecAll):
     def speculate_instruction(emulator: Uc, address, size, model) -> None:
         if model.pending_restore_protection:
             model.pending_restore_protection = False
-            aid = model.current_actor.id_
+            aid = model.current_actor.get_id()
             if model.rw_forbidden[aid]:
-                model.set_faulty_area_rw(model.current_actor.id_, False, False)
+                model.set_faulty_area_rw(model.current_actor.get_id(), False, False)
             elif model.w_forbidden[aid]:
-                model.set_faulty_area_rw(model.current_actor.id_, True, False)
+                model.set_faulty_area_rw(model.current_actor.get_id(), True, False)
         elif model.pending_re_execution:
             model.pending_re_execution = False
             model.pending_restore_protection = True
@@ -2001,10 +1997,10 @@ class X86UnicornVspecAllMemoryFaults(X86UnicornVspecAll):
     def get_next_instruction(self):
         if self.exit_reached(self.next_instruction_addr):
             return 0  # no need for speculation if we're at the end
-        aid = self.current_actor.id_
+        aid = self.current_actor.get_id()
         if self.pending_fault_id == UC_ERR_WRITE_PROT and self.w_forbidden[aid]:
             # remove protection
-            self.set_faulty_area_rw(self.current_actor.id_, True, True)
+            self.set_faulty_area_rw(self.current_actor.get_id(), True, True)
             self.pending_re_execution = True
             return self.curr_instruction_addr
         else:
@@ -2021,7 +2017,7 @@ class X86UnicornVspecAllMemoryAssists(X86UnicornVspecAll):
         next_instruction = super().rollback()
         if not self.in_speculation:
             # remove protection after the assists has completed
-            self.set_faulty_area_rw(self.current_actor.id_, True, True)
+            self.set_faulty_area_rw(self.current_actor.get_id(), True, True)
         return next_instruction
 
     def get_rollback_address(self) -> int:
@@ -2053,7 +2049,7 @@ class ActorNonInterferenceModel(X86UnicornSeq):
     def load_test_case(self, test_case: TestCase) -> None:
         self.test_case = test_case
         self.observer_actor_ids = [
-            actor.id_ for actor in test_case.actors.values() if actor.observer
+            actor.get_id() for actor in test_case.get_actors() if actor.observer
         ]
         super().load_test_case(test_case)
 

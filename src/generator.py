@@ -16,8 +16,8 @@ from copy import deepcopy
 from .isa_loader import InstructionSet
 from .interfaces import Generator, TestCase, Operand, RegisterOperand, FlagsOperand, \
     MemoryOperand, ImmediateOperand, AgenOperand, LabelOperand, Instruction, BasicBlock, \
-    Function, CondOperand, Actor, ActorMode, ActorPL, \
-    NotSupportedException
+    Function, CondOperand, NotSupportedException
+from .actor import Actor
 from .instruction_spec import OT, OperandSpec, InstructionSpec
 from .util import Logger
 from .config import CONF
@@ -110,7 +110,7 @@ class ConfigurableGenerator(Generator, abc.ABC):
         self.create_actors(self.test_case)
 
         # create the main function
-        default_actor = self.test_case.actors["main"]
+        default_actor = self.test_case.get_actor_by_name("main")
         func = self.generate_function(".function_0", default_actor, self.test_case)
 
         # fill the function with instructions
@@ -221,80 +221,14 @@ class ConfigurableGenerator(Generator, abc.ABC):
         pass
 
     def create_actors(self, test_case: TestCase) -> None:
-
-        def pte_properties_to_mask(properties: dict, type_: int) -> int:
-            """
-            Converts a dictionary of PTE properties to a bitmask, later used to set the attributes
-            of faulty pages in the executor.
-            If properties['randomized'] is set to True, each bit has a chance of retaining its
-            default value. Otherwise, the mask is created with the exact values from the dictionary.
-            """
-
-            bits = self.target_desc.pte_bits if type_ == 0 else self.target_desc.epte_bits
-
-            # calculate the probability of a bit being set to its default value
-            probability_of_default = 0.0
-            if properties['randomized']:
-                count_non_default = 0
-                for bit_name in bits:
-                    if bits[bit_name][1] != properties[bit_name]:
-                        count_non_default += 1
-                probability_of_default = count_non_default / len(properties)
-
-            # create the mask
-            mask = 0
-            for bit_name in bits:
-                bit_offset, default_value = bits[bit_name]
-
-                # transform non_executable to executable
-                if bit_name == "non_executable":
-                    p_value = not properties["executable"]
-                else:
-                    p_value = properties[bit_name]
-
-                if random.random() < probability_of_default:
-                    p_value = default_value
-
-                bit_value = 1 if p_value else 0
-                mask |= bit_value << bit_offset
-            return mask
-
-        for name, desc in CONF._actors.items():
-            # determine the actor mode of execution
-            if desc['mode'] == "host":
-                mode = ActorMode.HOST
-            elif desc['mode'] == "guest":
-                mode = ActorMode.GUEST
-            else:
-                assert False, f"Invalid actor mode: {desc['mode']}"
-
-            if desc['privilege_level'] == "kernel":
-                pl = ActorPL.KERNEL
-            elif desc['privilege_level'] == "user":
-                pl = ActorPL.USER
-            else:
-                assert False, f"Invalid actor privilege_level: {desc['privilege_level']}"
-
-            # create the actor
-            if name == "main":
-                actor = test_case.actors["main"]
-            else:
-                id_ = 0  # will be assigned later by the ELF parser
-                actor = Actor(mode, pl, id_, name)
-
-            # create a PTE mask to be assigned to the faulty area of actors' sandboxes
-            actor.data_properties = pte_properties_to_mask(desc["data_properties"], 0)
-            if actor.mode == ActorMode.GUEST:
-                actor.data_ept_properties = pte_properties_to_mask(desc["data_ept_properties"], 1)
-
-            # assign observer properties (used by non-interference contracts)
-            actor.observer = desc['observer']
-
-            # check for duplicates (this should never be possible, but just in case)
-            assert name not in test_case.actors or test_case.actors[name] == actor, "Duplicate actr"
+        for name, actor_dict in CONF._actors.items():
+            actor = Actor.from_dict(actor_dict, self.target_desc)
 
             # add the actor to the test case
-            test_case.actors[name] = actor
+            if name == "main":  # the main actor is created by default; overwrite it
+                test_case.overwrite_actor(actor)
+            else:  # all other actors should not exist yet
+                test_case.add_actor(actor)
 
     @abc.abstractmethod
     def generate_function(self, name: str, owner: Actor, parent: TestCase) -> Function:
@@ -662,7 +596,7 @@ class RandomGenerator(ConfigurableGenerator, abc.ABC):
     def add_required_symbols(self, test_case: TestCase):
         # add measurement_start and measurement_end symbols
         func_main = test_case.functions[0]
-        assert func_main.owner == test_case.actors["main"]
+        assert func_main.owner.is_main()
 
         bb_first = func_main[0]
         instr = Instruction("macro", category="MACRO") \

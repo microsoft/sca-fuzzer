@@ -9,7 +9,6 @@ from __future__ import annotations
 from typing import List, Dict, Tuple, Optional, NamedTuple
 from collections import defaultdict
 from abc import ABC, abstractmethod
-from enum import Enum
 
 import shutil
 import xxhash
@@ -17,49 +16,10 @@ import numpy as np
 
 from .sandbox import SandboxLayout, DataArea, DataAddress, CodeAddress
 from .instruction_spec import OT, InstructionSpec
+from .actor import ActorID, ActorName, Actor, ActorMode, ActorPL
+from .target_desc import TargetDesc
 
 PAGE_SIZE = 4096
-
-# ==================================================================================================
-# Actors
-# ==================================================================================================
-ActorID = int
-ActorName = str
-
-
-class ActorMode(Enum):
-    HOST = 0
-    GUEST = 1
-
-
-class ActorPL(Enum):
-    KERNEL = 0
-    USER = 1
-
-
-class ElfSection(NamedTuple):
-    id_: int  # section id; will match the actor id if the actor IDs are ordered and contiguous
-    offset: int
-    size: int
-
-
-class Actor:
-    name: ActorName
-    mode: ActorMode
-    privilege_level: ActorPL
-    id_: ActorID
-    elf_section: Optional[ElfSection] = None
-    data_properties: int = 0
-    data_ept_properties: int = 0
-    code_properties: int = 0  # unused so far
-    observer: bool = False
-
-    def __init__(self, mode: ActorMode, pl: ActorPL, id_: ActorID, name: ActorName) -> None:
-        self.mode = mode
-        self.privilege_level = pl
-        self.id_ = id_
-        self.name = name
-
 
 # ==================================================================================================
 # Input
@@ -659,16 +619,17 @@ class TestCase:
     asm_path: str = ''
     obj_path: str = ''
     bin_path: str = ''
-    actors: Dict[ActorName, Actor]
     functions: List[Function]
     address_map: Dict[ActorID, Dict[int, Instruction]]
     seed: int
     exit: BasicBlock
     symbol_table: List[Symbol]
 
+    _actors: Dict[ActorName, Actor]
+
     def __init__(self, seed: int):
         self.seed = seed
-        self.actors = {"main": Actor(ActorMode.HOST, ActorPL.KERNEL, 0, "main")}
+        self._actors = {"main": self._create_default_main()}
         self.functions = []
         self.address_map = {}
         self.symbol_table = []
@@ -678,19 +639,96 @@ class TestCase:
         for func in self.functions:
             yield func
 
+    @staticmethod
+    def _create_default_main() -> Actor:
+        """ Create a main actor with default properties """
+        return Actor(ActorMode.HOST, ActorPL.KERNEL, "main")
+
+    def add_actor(self, actor: Actor) -> None:
+        """
+        Add an actor to the test case if it does not already exist.
+        :param actor: The actor to add
+        :return: None
+        :raises ValueError: If the actor already exists in the test case
+        """
+        if actor.name in self._actors:
+            raise ValueError(f"Actor {actor.name} already exists in the test case")
+        self._actors[actor.name] = actor
+
+    def overwrite_actor(self, actor: Actor):
+        """
+        Overwrite an actor in the test case.
+        :param actor: The actor to overwrite
+        :return: None
+        :raises ValueError: On attempt to set the main actor to an actor with non-default properties
+        """
+        if actor.is_main():
+            assert actor.mode == ActorMode.HOST
+            assert actor.privilege_level == ActorPL.KERNEL
+        self._actors[actor.name] = actor
+
+    def get_actor_by_name(self, name: ActorName) -> Actor:
+        """
+        Get an actor by name.
+        :param name: The name of the actor
+        :return: The actor
+        :raises ValueError: If the actor does not exist in the test case
+        """
+        if name not in self._actors:
+            raise ValueError(f"Actor {name} does not exist in the test case")
+        return self._actors[name]
+
+    def get_actor_by_id(self, aid: ActorID) -> Actor:
+        """
+        Get an actor by ID.
+        :param aid: The ID of the actor
+        :return: The actor
+        :raises KeyError: If the actor does not exist in the test case
+        """
+        for actor in self._actors.values():
+            if actor.get_id() == aid:
+                return actor
+        raise KeyError(f"Actor with ID {aid} does not exist in the test case")
+
+    def n_actors(self) -> int:
+        """
+        Get the number of actors in the test case.
+        :return: The number of actors
+        """
+        return len(self._actors)
+
+    def get_actors(self) -> List[Actor]:
+        """
+        Get a list of actors.
+        :return: A list of actors
+        """
+        return list(self._actors.values())
+
+    def get_sorted_actors(self) -> List[Actor]:
+        """
+        Get a list of actors sorted by ID.
+        :return: A list of actors
+        """
+        return sorted(self._actors.values(), key=lambda x: x.get_id())
+
     def get_function_by_name(self, name: str) -> Function:
+        """
+        Get a function by name
+        :param name: The name of the function
+        :return: The function
+        :raises ValueError: If the function does not exist in the test case
+        """
         for func in self.functions:
             if func.name == name:
                 return func
-        raise Exception(f"ERROR: Function {name} not found")
-
-    def get_actor_by_id(self, aid: ActorID) -> Actor:
-        for actor in self.actors.values():
-            if actor.id_ == aid:
-                return actor
-        raise Exception(f"ERROR: Actor {aid} not found")
+        raise ValueError(f"Function {name} does not exist in the test case")
 
     def save(self, path: str) -> None:
+        """
+        Save the test case to a file.
+        :param path: The path to the file
+        :return: None
+        """
         shutil.copy2(self.asm_path, path)
 
 
@@ -852,42 +890,6 @@ class InstructionSetAbstract(ABC):
 
     @abstractmethod
     def __init__(self, filename: str, include_categories=None):
-        pass
-
-
-class CPUDesc(NamedTuple):
-    vendor: str
-    model: str
-    family: str
-    stepping: str
-
-
-class MacroSpec(NamedTuple):
-    type_: SymbolType
-    name: str
-    args: Tuple[str, str, str, str]
-
-
-class TargetDesc(ABC):
-    register_sizes: Dict[str, int]
-    registers: Dict[int, List[str]]
-    simd_registers: Dict[int, List[str]]
-    branch_conditions: Dict[str, List[str]]
-    reg_normalized: Dict[str, str]
-    reg_denormalized: Dict[str, Dict[int, str]]
-    macro_specs: Dict[str, MacroSpec]
-    pte_bits: Dict[str, Tuple[int, bool]]
-    epte_bits: Dict[str, Tuple[int, bool]]
-    cpu_desc: CPUDesc
-
-    @staticmethod
-    @abstractmethod
-    def is_unconditional_branch(inst: Instruction) -> bool:
-        pass
-
-    @staticmethod
-    @abstractmethod
-    def is_call(inst: Instruction) -> bool:
         pass
 
 

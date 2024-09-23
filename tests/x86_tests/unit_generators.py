@@ -60,7 +60,7 @@ class X86RandomGeneratorTest(unittest.TestCase):
                                          CONF.instruction_categories)
         generator = X86RandomGenerator(instruction_set, CONF.program_generator_seed)
         tc = TestCase(0)
-        func = generator.generate_function(".function_0", tc.actors["main"], tc)
+        func = generator.generate_function(".function_0", tc.get_actor_by_name("main"), tc)
         printer = X86Printer(X86TargetDesc())
         all_instructions = ['.intel_syntax noprefix\n']
 
@@ -177,11 +177,11 @@ class X86RandomGeneratorTest(unittest.TestCase):
         tc: TestCase = parser.parse_file(
             (test_dir / "asm/asm_multiactor.asm").absolute().as_posix())
 
-        self.assertEqual(len(tc.actors), 2)
-        self.assertEqual(tc.actors["main"].mode, ActorMode.HOST)
-        self.assertEqual(tc.actors["main"].id_, 0)
-        self.assertEqual(tc.actors["guest_1"].mode, ActorMode.GUEST)
-        self.assertEqual(tc.actors["guest_1"].id_, 1)
+        self.assertEqual(tc.n_actors(), 2)
+        self.assertEqual(tc.get_actor_by_name("main").mode, ActorMode.HOST)
+        self.assertEqual(tc.get_actor_by_name("main").get_id(), 0)
+        self.assertEqual(tc.get_actor_by_name("guest_1").mode, ActorMode.GUEST)
+        self.assertEqual(tc.get_actor_by_name("guest_1").get_id(), 1)
 
         self.assertEqual(len(tc.functions), 4)
         f1 = tc.functions[0]
@@ -189,15 +189,15 @@ class X86RandomGeneratorTest(unittest.TestCase):
         f3 = tc.functions[2]
 
         self.assertEqual(f1.name, ".function_0")
-        self.assertEqual(f1.owner.id_, 0)
+        self.assertEqual(f1.owner.get_id(), 0)
         self.assertEqual(len(f1[0]), 3)
 
         self.assertEqual(f2.name, ".function_1")
-        self.assertEqual(f2.owner.id_, 1)
+        self.assertEqual(f2.owner.get_id(), 1)
         self.assertEqual(len(f2[0]), 1)
 
         self.assertEqual(f3.name, ".function_2")
-        self.assertEqual(f3.owner.id_, 0)
+        self.assertEqual(f3.owner.get_id(), 0)
         self.assertEqual(len(f3[0]), 1)
 
         CONF._actors = prev_actors
@@ -233,7 +233,7 @@ class X86RandomGeneratorTest(unittest.TestCase):
         read_instr = generator.generate_instruction(read_instr_spec)
 
         test_case = TestCase(0)
-        test_case.functions = [Function(".function_0", test_case.actors["main"])]
+        test_case.functions = [Function(".function_0", test_case.get_actor_by_name("main"))]
         bb = BasicBlock(".bb0")
         test_case.functions[0].append(bb)
         bb.insert_after(bb.get_last(), undef_instr)

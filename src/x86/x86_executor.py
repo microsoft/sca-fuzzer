@@ -9,12 +9,14 @@ SPDX-License-Identifier: MIT
 
 import subprocess
 import os.path
-import numpy as np
 from typing import List, Tuple, Set, Generator
+
+import numpy as np
 
 from ..interfaces import HTrace, Input, TestCase, Executor, HardwareTracingError
 from ..config import CONF
 from ..util import Logger, STAT
+from ..target_desc import Vendor
 from .x86_target_desc import X86TargetDesc
 
 
@@ -305,7 +307,7 @@ class X86Executor(Executor):
         self.ignore_list = set()
 
     def __write_test_case(self, test_case: TestCase):
-        actors = sorted(test_case.actors.values(), key=lambda a: (a.id_))
+        actors = test_case.get_sorted_actors()
 
         # sanity check
         for symbol in test_case.symbol_table:
@@ -319,12 +321,12 @@ class X86Executor(Executor):
 
             # actor metadata
             for actor in actors:
-                f.write((actor.id_).to_bytes(8, byteorder='little'))
+                f.write((actor.get_id()).to_bytes(8, byteorder='little'))
                 f.write((actor.mode.value).to_bytes(8, byteorder='little'))
                 f.write((actor.privilege_level.value).to_bytes(8, byteorder='little'))
                 f.write((actor.data_properties).to_bytes(8, byteorder='little'))
                 f.write((actor.data_ept_properties).to_bytes(8, byteorder='little'))
-                f.write((actor.code_properties).to_bytes(8, byteorder='little'))
+                f.write((0).to_bytes(8, byteorder='little'))  # unused
 
             # symbol table (first functions sorted by argument, then macros sorted by actor+offset)
             function_symbols = [s for s in test_case.symbol_table if s[2] == 0]
@@ -344,18 +346,19 @@ class X86Executor(Executor):
 
             # section metadata
             for actor in actors:
-                assert actor.elf_section is not None
+                section = actor.elf_section()
                 # print("section\n")
-                f.write((actor.id_).to_bytes(8, byteorder='little'))
-                f.write((actor.elf_section.size).to_bytes(8, byteorder='little'))
+                f.write((section.id_).to_bytes(8, byteorder='little'))
+                f.write((section.size).to_bytes(8, byteorder='little'))
                 f.write((0).to_bytes(8, byteorder='little'))
 
             # code
             with open(test_case.obj_path, 'rb') as bin_file:
                 for actor in actors:
-                    bin_file.seek(actor.elf_section.offset)  # type: ignore
-                    code = bin_file.read(actor.elf_section.size)  # type: ignore
-                    # print(code, actor.elf_section.size)
+                    section = actor.elf_section()
+                    bin_file.seek(section.offset)  # type: ignore
+                    code = bin_file.read(section.size)  # type: ignore
+                    # print(code, section.size)
                     f.write(code)
 
             # print(test_case.obj_path, f.tell())
@@ -455,7 +458,7 @@ class X86IntelExecutor(X86Executor):
 
     def __init__(self, *args):
         super().__init__(*args)
-        if self.target_desc.cpu_desc.vendor != "Intel":
+        if self.target_desc.cpu_desc.vendor != Vendor.INTEL:
             self.LOG.error(
                 "Attempting to run Intel executor on a non-Intel CPUs!\n"
                 "Change the `executor` configuration option to the appropriate vendor value.")
@@ -468,7 +471,7 @@ class X86AMDExecutor(X86Executor):
 
     def __init__(self, *args):
         super().__init__(*args)
-        if self.target_desc.cpu_desc.vendor != "AMD":
+        if self.target_desc.cpu_desc.vendor != Vendor.AMD:
             self.LOG.error(
                 "Attempting to run AMD executor on a non-AMD CPUs!\n"
                 "Change the `executor` configuration option to the appropriate vendor value.")

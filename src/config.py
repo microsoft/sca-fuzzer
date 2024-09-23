@@ -454,6 +454,7 @@ class Conf:
                 entry = self._actors[name]
             else:
                 entry = deepcopy(self._actor_default)
+                entry["name"] = name
 
             for k, v in update.items():
                 if k == "mode" and v not in self._option_values["actor_mode"]:

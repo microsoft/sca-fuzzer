@@ -27,10 +27,11 @@ from unicorn import Uc, UcError, UC_MEM_WRITE, UC_MEM_READ, UC_SECOND_SCALE, UC_
     UC_HOOK_MEM_WRITE, UC_HOOK_CODE, UC_HOOK_MEM_UNMAPPED
 
 from .interfaces import CTrace, TestCase, Model, InputTaint, Instruction, ExecutionTrace, \
-    TracedInstruction, TracedMemAccess, Input, Tracer, Actor, ActorMode, ActorPL, \
+    TracedInstruction, TracedMemAccess, Input, Tracer, \
     RegisterOperand, FlagsOperand, MemoryOperand, TaintTrackerInterface, TargetDesc, \
     NotSupportedException, AgenOperand
 from .sandbox import SandboxLayout, CodeArea, DataArea, CodeAddress, DataAddress
+from .actor import Actor, ActorMode, ActorPL
 from .config import CONF
 from .util import Logger
 
@@ -515,14 +516,14 @@ class UnicornSeq(UnicornModel):
             self.taint_tracker = DummyTaintTracker([])
         self.pending_fault_id = 0
         self.had_arch_fault = False
-        self.current_actor = self.test_case.actors["main"]
+        self.current_actor = self.test_case.get_actor_by_name("main")
 
     def load_test_case(self, test_case: TestCase) -> None:
         """
         Instantiate emulator and copy the test case into the emulator's memory
         """
         self.test_case = test_case
-        self.layout = SandboxLayout(*self.base_addresses, len(test_case.actors))
+        self.layout = SandboxLayout(*self.base_addresses, test_case.n_actors())
 
         # get code and data boundaries
         code_start = self.layout.code_start
@@ -530,28 +531,27 @@ class UnicornSeq(UnicornModel):
         data_start = self.layout.data_start
         data_size = self.layout.data_size
 
-        main_actor = test_case.actors["main"]
-        assert main_actor.elf_section, f"Actor {main_actor.name} has no ELF section"
-        actors = sorted(test_case.actors.values(), key=lambda a: (a.id_))
+        main_actor = self.test_case.get_actor_by_name("main")
+        actors = test_case.get_sorted_actors()
         self.actors_sorted = actors
 
         # read sections from the test case binary
         sections = []
         with open(test_case.obj_path, 'rb') as bin_file:
             for actor in actors:
-                assert actor.elf_section, f"Actor {actor.name} has no ELF section"
-                bin_file.seek(actor.elf_section.offset)
-                sections.append(bin_file.read(actor.elf_section.size))
+                section = actor.elf_section()
+                bin_file.seek(section.offset)
+                sections.append(bin_file.read(section.size))
 
         # create a complete binary
         code = b''
-        for section in sections:
-            code += section
+        for section_code in sections:
+            code += section_code
             code_area_size = self.layout.code_size_per_actor()
-            padding = code_area_size - (len(section) % code_area_size)
+            padding = code_area_size - (len(section_code) % code_area_size)
             code += b'\x90' * padding  # fill with NOPs
         assert len(code) == code_size, f"Code size mismatch: {len(code)} != {code_size}"
-        self.exit_addr = code_start + main_actor.elf_section.size - 1
+        self.exit_addr = code_start + main_actor.elf_section().size - 1
 
         # initialize emulator in x86-64 mode
         emulator = Uc(*self.architecture)
@@ -700,7 +700,7 @@ class UnicornSeq(UnicornModel):
 
     def exit_reached(self, address) -> bool:
         return address == self.exit_addr or \
-            (self.current_actor.id_ == 0 and address > self.exit_addr)
+            (self.current_actor.is_main() and address > self.exit_addr)
 
     def handle_fault(self, errno: int) -> int:
         self.LOG.dbg_model_exception(errno, self.err_to_str(errno))
@@ -741,7 +741,7 @@ class UnicornSeq(UnicornModel):
 
         # preserve context and trace the instruction
         model.previous_context = model.emulator.context_save()
-        aid = model.current_actor.id_
+        aid = model.current_actor.get_id()
         section_start = model.layout.get_code_addr(CodeArea.MAIN, aid)
         # print(model.test_case.address_map)
         model.current_instruction = model.test_case.address_map[aid][address - section_start]

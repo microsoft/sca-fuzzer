@@ -1059,7 +1059,7 @@ class MainMinimizer(Minimizer):
 
         # Parse the test case and inputs
         test_case: TestCase = self.fuzzer.asm_parser.parse_file(test_case_asm)
-        self.fuzzer.input_gen.n_actors = len(test_case.actors)
+        self.fuzzer.input_gen.n_actors = test_case.n_actors()
         inputs: List[Input] = self.fuzzer.input_gen.generate(n_inputs)
 
         # Check if the violation can be reproduced

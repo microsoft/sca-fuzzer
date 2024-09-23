@@ -199,7 +199,7 @@ class X86ModelTest(unittest.TestCase):  # pylint: disable=too-many-public-method
                     pte_mask: int = 0) -> List[CTrace]:
         asm_str = ASM_HEADER + "\n".join([x.text for x in instr_list]) + "\n.test_case_exit:\n"
         tc = self.load_tc(asm_str)
-        tc.actors["main"].data_properties = pte_mask
+        tc.get_actor_by_name("main").data_properties = pte_mask
         model.load_test_case(tc)
         ctraces = model.trace_test_case(inputs, nesting)
         return ctraces

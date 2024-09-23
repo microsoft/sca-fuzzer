@@ -8,8 +8,8 @@ from typing import Dict, List, Tuple, NoReturn
 
 from subprocess import run
 from elftools.elf.elffile import ELFFile, SymbolTableSection  # type: ignore
-from ..interfaces import ElfSection, Symbol, TestCase, Instruction, ActorID, MacroSpec, ActorPL, \
-    ActorMode
+from ..interfaces import Symbol, TestCase, Instruction
+from ..actor import ElfSection, ActorID, ActorPL, ActorMode
 from ..util import Logger
 from .x86_target_desc import X86TargetDesc
 
@@ -71,17 +71,15 @@ class X86ElfParser:
         # add collected data to the test case
         address_map: Dict[ActorID, Dict[int, Instruction]] = {}
         for section in section_entries:
-            actor_name = section.name
-            actor = test_case.actors[actor_name]
-            actor.elf_section = ElfSection(section.id_, section.offset, section.size)
-            actor.id_ = section.id_
+            actor = test_case.get_actor_by_name(section.name)
+            actor.assign_elf_section(ElfSection(section.id_, section.offset, section.size))
 
             # find functions belonging to this actor
             functions = [f for f in function_entries if f.parent_id == section.id_]
 
             # process functions
             counter = 0
-            address_map[actor.id_] = {}
+            address_map[actor.get_id()] = {}
             for func in functions:
                 # store function data
                 assert func.offset == instruction_addresses[section.name][counter], \
@@ -106,7 +104,7 @@ class X86ElfParser:
                         inst.section_offset = address
                         inst.size = instruction_addresses[section.name][counter + 1] - address if \
                             counter + 1 < len(instruction_addresses[section.name]) else 0
-                        address_map[actor.id_][address] = inst
+                        address_map[actor.get_id()][address] = inst
 
                         # add macros to the symbol table
                         if inst.name == "macro":
@@ -117,11 +115,15 @@ class X86ElfParser:
                         counter += 1
 
         # make sure that we found sections for all actors
-        if len(address_map) != len(test_case.actors):
-            for actor_name in test_case.actors:
-                if test_case.actors[actor_name].id_ == 0 and actor_name != "main":
-                    self.LOG.error(f"ELF parser failed to find section for actor `{actor_name}`")
-            self.LOG.error("ELF parser failed to find sections for all actors", print_last_tb=True)
+        for actor in test_case.get_actors():
+            try:
+                _ = actor.elf_section()  # will throw an exception if the section is not set
+            except AssertionError:
+                elf_parser_error(f"ELF parser failed to find section for actor `{actor.name}`")
+        assert len(address_map) == test_case.n_actors()
+
+        # validate that all macros are well-formed
+        self._validate_macros(test_case)
 
         # the last instruction in .data.main is the test case exit, and it must map to a NOP
         address_map[0][exit_addr] = Instruction("nop", False, "BASE-NOP", True)
@@ -260,26 +262,6 @@ class X86ElfParser:
                     return entry.id_
             elf_parser_error(f"Macro references an unknown function {name}")
 
-        def validate_actor_id(aid: int, macro_spec: MacroSpec) -> None:
-            actor = None
-            for actor in test_case.actors.values():
-                if actor.id_ == aid:
-                    break
-            if actor is None:
-                elf_parser_error(f"Macro references an unknown actor id {aid}")
-            if macro_spec.name == "set_k2u_target" and \
-               actor.privilege_level != ActorPL.USER and actor.mode != ActorMode.HOST:
-                elf_parser_error("Macro set_k2u_target expects a user actor")
-            if macro_spec.name == "set_u2k_target" and \
-               actor.privilege_level != ActorPL.KERNEL and actor.mode != ActorMode.HOST:
-                elf_parser_error("Macro set_u2k_target expects a kernel actor")
-            if macro_spec.name == "set_h2g_target" and \
-               actor.mode != ActorMode.HOST and actor.privilege_level != ActorPL.KERNEL:
-                elf_parser_error("Macro set_h2g_target expects a host actor")
-            if macro_spec.name == "set_g2h_target" and \
-               actor.mode != ActorMode.GUEST and actor.privilege_level != ActorPL.KERNEL:
-                elf_parser_error("Macro set_g2h_target expects a guest actor")
-
         assert inst.name == "macro"
         macro_name = inst.operands[0].value[1:]
         if macro_name.lower() not in self.target_desc.macro_specs:
@@ -294,7 +276,6 @@ class X86ElfParser:
                 continue
             elif macro_spec.args[i] == "actor_id":
                 actor_id = get_section_id(arg)
-                validate_actor_id(actor_id, macro_spec)
                 symbol_args += (actor_id << i * 16)
             elif macro_spec.args[i] == "function_id":
                 symbol_args += (get_function_id("." + arg) << i * 16)
@@ -314,3 +295,38 @@ class X86ElfParser:
             arg=symbol_args,
         )
         return symbol
+
+    def _validate_macros(self, test_case: TestCase) -> None:
+        """
+        Validate that all macros in the test case are well-formed
+        """
+        for symbol in test_case.symbol_table:
+            if symbol.type_ == 0:  # function
+                continue
+            macro_spec = self.target_desc.get_macro_spec_from_type(symbol.type_)
+
+            # validate that the actor id is valid
+            for i in range(4):
+                if macro_spec.args[i] != "actor_id":
+                    continue
+                target_actor_id = (symbol.arg >> (i * 16)) & 0xFFFF
+
+                # check that the actor exists
+                try:
+                    actor = test_case.get_actor_by_id(target_actor_id)
+                except KeyError:
+                    elf_parser_error(f"Macro references an unknown actor id {target_actor_id}")
+
+                # validate that the actor type matches the macro
+                if macro_spec.name == "set_k2u_target" and \
+                   actor.privilege_level != ActorPL.USER and actor.mode != ActorMode.HOST:
+                    elf_parser_error("Macro set_k2u_target expects a user actor")
+                if macro_spec.name == "set_u2k_target" and \
+                   actor.privilege_level != ActorPL.KERNEL and actor.mode != ActorMode.HOST:
+                    elf_parser_error("Macro set_u2k_target expects a kernel actor")
+                if macro_spec.name == "set_h2g_target" and \
+                   actor.mode != ActorMode.HOST and actor.privilege_level != ActorPL.KERNEL:
+                    elf_parser_error("Macro set_h2g_target expects a host actor")
+                if macro_spec.name == "set_g2h_target" and \
+                   actor.mode != ActorMode.GUEST and actor.privilege_level != ActorPL.KERNEL:
+                    elf_parser_error("Macro set_g2h_target expects a guest actor")

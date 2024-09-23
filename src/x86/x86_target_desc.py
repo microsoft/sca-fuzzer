@@ -8,7 +8,8 @@ from typing import List
 import re
 import unicorn.x86_const as ucc  # type: ignore
 
-from ..interfaces import Instruction, TargetDesc, MacroSpec, CPUDesc
+from ..interfaces import Instruction
+from ..target_desc import TargetDesc, CPUDesc, MacroSpec, Vendor
 from ..model import UnicornTargetDesc
 from ..config import CONF
 
@@ -249,23 +250,23 @@ class X86TargetDesc(TargetDesc):
         with open("/proc/cpuinfo", "r") as f:
             cpuinfo = f.read()
             if 'Intel' in cpuinfo:
-                vendor = 'Intel'
+                vendor = Vendor.INTEL
             elif 'AMD' in cpuinfo:
-                vendor = 'AMD'
+                vendor = Vendor.AMD
             else:
-                vendor = 'Unknown'
+                vendor = Vendor.UNKNOWN
 
             family_match = re.search(r"cpu family\s+:\s+(.*)", cpuinfo)
             assert family_match, "Failed to find family in /proc/cpuinfo"
-            family = family_match.group(1)
+            family = int(family_match.group(1), 16)
 
             model_match = re.search(r"model\s+:\s+(.*)", cpuinfo)
             assert model_match, "Failed to find model name in /proc/cpuinfo"
-            model = model_match.group(1)
+            model = int(model_match.group(1), 16)
 
             stepping_match = re.search(r"stepping\s+:\s+(.*)", cpuinfo)
             assert stepping_match, "Failed to find stepping in /proc/cpuinfo"
-            stepping = stepping_match.group(1)
+            stepping = int(stepping_match.group(1), 16)
 
         self.cpu_desc = CPUDesc(vendor, model, family, stepping)
 

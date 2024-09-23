@@ -14,10 +14,11 @@ from typing import List, Dict, Set, Optional
 from ..isa_loader import InstructionSet
 from ..interfaces import TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
     ImmediateOperand, AgenOperand, Instruction, BasicBlock, InstructionSpec, \
-    Function, ActorPL, PAGE_SIZE, GeneratorException
+    Function, PAGE_SIZE, GeneratorException
 from ..generator import ConfigurableGenerator, RandomGenerator, Pass, Printer
 from ..config import CONF
 from ..sandbox import SandboxLayout, DataArea
+from ..actor import ActorPL
 from ..instruction_spec import OT
 
 from .x86_target_desc import X86TargetDesc
@@ -180,7 +181,7 @@ class X86U2KAccessPass(Pass):
                         to_instrument.append(instr)
 
                 for instr in to_instrument:
-                    self.instrument(instr, bb, func.owner.id_)
+                    self.instrument(instr, bb, func.owner.get_id())
 
     def instrument(self, instr: Instruction, parent: BasicBlock, owner_id) -> None:
         # randomly select the instruction to instrument
