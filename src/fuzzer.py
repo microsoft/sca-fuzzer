@@ -11,9 +11,10 @@ from typing import Optional, List, Callable, Tuple
 import copy
 
 from . import factory
-from .interfaces import Fuzzer, CTrace, HTrace, Input, Violation, TestCase, \
-    Generator, InputGenerator, Model, Executor, Analyser, InputID, InputTaint, \
+from .interfaces import Fuzzer, CTrace, HTrace, Violation, TestCase, \
+    Generator, InputGenerator, Model, Executor, Analyser, InputID, \
     HardwareTracingError
+from .test_case_input import Input, InputTaint
 from .isa_loader import InstructionSet
 from .config import CONF
 from .util import Logger, STAT, pretty_htrace

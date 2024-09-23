@@ -5,16 +5,17 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 import re
-import numpy as np
 import copy
-from typing import Tuple, Dict, List, Set, NamedTuple, Callable
+from typing import Tuple, Dict, List, Set, NamedTuple, Callable, TYPE_CHECKING
+
+import numpy as np
 
 import unicorn.x86_const as ucc  # type: ignore
 from unicorn import Uc, UcError, UC_MEM_WRITE, UC_ARCH_X86, UC_MODE_64, UC_PROT_READ, \
     UC_PROT_NONE, UC_ERR_WRITE_PROT, UC_ERR_NOMEM, UC_ERR_EXCEPTION, UC_ERR_INSN_INVALID
 
-from ..interfaces import Input, FlagsOperand, RegisterOperand, MemoryOperand, AgenOperand, \
-    TestCase, Instruction, Symbol, InputTaint, CTrace, \
+from ..interfaces import FlagsOperand, RegisterOperand, MemoryOperand, AgenOperand, \
+    TestCase, Instruction, Symbol, CTrace, \
     UnreachableCode, NotSupportedException
 from ..model import UnicornModel, UnicornTracer, UnicornSpec, UnicornSeq, BaseTaintTracker, \
     MacroInterpreter
@@ -23,6 +24,9 @@ from ..actor import ActorPL, ActorMode
 from ..util import BLUE, COL_RESET, Logger, stable_hash_bytes
 from ..config import CONF
 from .x86_target_desc import X86UnicornTargetDesc, X86TargetDesc
+
+if TYPE_CHECKING:
+    from ..test_case_input import Input, InputTaint
 
 FLAGS_CF = 0b000000000001
 FLAGS_PF = 0b000000000100
@@ -442,7 +446,7 @@ class X86UnicornSeq(UnicornSeq):
         self.user_emulator.reset()
         return super().load_test_case(test_case)
 
-    def _load_input(self, input_: Input):
+    def _load_input(self, input_: 'Input') -> None:
         """
         Set the memory and register values in the emulator accroding to the input object provided.
         In addition, set the memory permissions for each actor.
@@ -515,12 +519,12 @@ class X86UnicornSeq(UnicornSeq):
             return f"0x{val:016x}"
 
         em = self.emulator
-        rax = compressed(em.reg_read(ucc.UC_X86_REG_RAX))
-        rbx = compressed(em.reg_read(ucc.UC_X86_REG_RBX))
-        rcx = compressed(em.reg_read(ucc.UC_X86_REG_RCX))
-        rdx = compressed(em.reg_read(ucc.UC_X86_REG_RDX))
-        rsi = compressed(em.reg_read(ucc.UC_X86_REG_RSI))
-        rdi = compressed(em.reg_read(ucc.UC_X86_REG_RDI))
+        rax = compressed(em.reg_read(ucc.UC_X86_REG_RAX))  # type: ignore
+        rbx = compressed(em.reg_read(ucc.UC_X86_REG_RBX))  # type: ignore
+        rcx = compressed(em.reg_read(ucc.UC_X86_REG_RCX))  # type: ignore
+        rdx = compressed(em.reg_read(ucc.UC_X86_REG_RDX))  # type: ignore
+        rsi = compressed(em.reg_read(ucc.UC_X86_REG_RSI))  # type: ignore
+        rdi = compressed(em.reg_read(ucc.UC_X86_REG_RDI))  # type: ignore
 
         if not oneline:
             print("\n\nRegisters:")
@@ -1388,7 +1392,7 @@ class X86UnicornVspecOps(X86FaultModelAbstract):
         self.whole_memory_tainted_checkpoints = []
         self.full_input_taint = TaintedValue(0, 0, self.input_hash)
 
-    def _load_input(self, input_: Input) -> None:
+    def _load_input(self, input_: 'Input') -> None:
         self.input_hash = hash(input_)
         self.full_input_taint = TaintedValue(0, 0, self.input_hash)
         self.curr_observation = set()
@@ -2053,18 +2057,19 @@ class ActorNonInterferenceModel(X86UnicornSeq):
         ]
         super().load_test_case(test_case)
 
-    def trace_test_case(self, inputs: List[Input], nesting: int) -> List[CTrace]:
+    def trace_test_case(self, inputs: List['Input'], nesting: int) -> List[CTrace]:
         ctraces = super().trace_test_case(inputs, nesting)
         self._add_observer_traces(inputs, ctraces)
         return ctraces
 
-    def trace_test_case_with_taints(self, inputs, nesting) -> Tuple[List[CTrace], List[InputTaint]]:
+    def trace_test_case_with_taints(self, inputs,
+                                    nesting) -> Tuple[List[CTrace], List['InputTaint']]:
         ctraces, taints = super().trace_test_case_with_taints(inputs, nesting)
         self._add_observer_traces(inputs, ctraces)
         self._taint_observers(taints)
         return ctraces, taints
 
-    def _add_observer_traces(self, inputs: List[Input], ctraces: List[CTrace]):
+    def _add_observer_traces(self, inputs: List['Input'], ctraces: List[CTrace]):
         for input_id, input_ in enumerate(inputs):
             fragment_hashes: List[int] = []
             for actor_id in self.observer_actor_ids:
@@ -2073,7 +2078,7 @@ class ActorNonInterferenceModel(X86UnicornSeq):
             new_trace = ctraces[input_id].raw + fragment_hashes
             ctraces[input_id] = CTrace(new_trace)
 
-    def _taint_observers(self, taints: List[InputTaint]):
+    def _taint_observers(self, taints: List['InputTaint']):
         for taint in taints:
             for actor_id in self.observer_actor_ids:
                 # create a view of the taint array as a 64-bit array

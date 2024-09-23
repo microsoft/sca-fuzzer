@@ -16,12 +16,14 @@ from math import log2
 from copy import deepcopy
 from subprocess import run
 from typing import List, NamedTuple, Dict
-from .interfaces import Input, TestCase, Minimizer, Fuzzer, InstructionSetAbstract, Violation
+from .interfaces import TestCase, Minimizer, Fuzzer, InstructionSetAbstract, Violation
 from .sandbox import CodeArea
 from .model import CTTracer
-from .x86.x86_model import X86UnicornDEH
+from .test_case_input import Input
 from .config import CONF
 from .util import Logger
+
+from .x86.x86_model import X86UnicornDEH
 
 TMP_DIR = "/tmp/rvzr_minimize"
 

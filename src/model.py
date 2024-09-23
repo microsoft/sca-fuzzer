@@ -26,12 +26,13 @@ import unicorn as uc
 from unicorn import Uc, UcError, UC_MEM_WRITE, UC_MEM_READ, UC_SECOND_SCALE, UC_HOOK_MEM_READ, \
     UC_HOOK_MEM_WRITE, UC_HOOK_CODE, UC_HOOK_MEM_UNMAPPED
 
-from .interfaces import CTrace, TestCase, Model, InputTaint, Instruction, ExecutionTrace, \
-    TracedInstruction, TracedMemAccess, Input, Tracer, \
+from .interfaces import CTrace, TestCase, Model, Instruction, ExecutionTrace, \
+    TracedInstruction, TracedMemAccess, Tracer, \
     RegisterOperand, FlagsOperand, MemoryOperand, TaintTrackerInterface, TargetDesc, \
     NotSupportedException, AgenOperand
 from .sandbox import SandboxLayout, CodeArea, DataArea, CodeAddress, DataAddress
 from .actor import Actor, ActorMode, ActorPL
+from .test_case_input import Input, InputTaint
 from .config import CONF
 from .util import Logger
 

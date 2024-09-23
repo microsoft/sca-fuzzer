@@ -11,8 +11,9 @@ import tempfile
 import os
 
 from ..fuzzer import FuzzerGeneric, ArchitecturalFuzzer
-from ..interfaces import TestCase, Input, InstructionSetAbstract, Violation, Measurement, \
+from ..interfaces import TestCase, InstructionSetAbstract, Violation, Measurement, \
     HTrace, HardwareTracingError, CTrace
+from ..test_case_input import Input
 from ..util import STAT, Logger
 from ..config import CONF
 from .x86_config import _buggy_instructions

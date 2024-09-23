@@ -21,6 +21,10 @@ The sandboxes have the following layouts:
     |-----|--------------------|
     | ... (repeat for n_actors)
 
+    # Ordering of registers:
+    GPR_AREA: [RAX, RBX, RCX, RDX, RSI, RDI, FLAGS, RSP, unused]
+    SIMD_AREA: [YMM0, YMM1, ..., YMM7]
+
     # Code Layout
     |-----|--------------------| main
     | A   | _CODE_AREA_SIZE    |
@@ -28,7 +32,6 @@ The sandboxes have the following layouts:
     |     | _MACRO_AREA_SIZE   |
     |-----|--------------------|
     | ... (repeat for n_actors)
-
 
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT

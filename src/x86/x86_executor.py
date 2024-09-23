@@ -13,10 +13,11 @@ from typing import List, Tuple, Set, Generator
 
 import numpy as np
 
-from ..interfaces import HTrace, Input, TestCase, Executor, HardwareTracingError
+from ..interfaces import HTrace, TestCase, Executor, HardwareTracingError
 from ..config import CONF
 from ..util import Logger, STAT
 from ..target_desc import Vendor
+from ..test_case_input import Input
 from .x86_target_desc import X86TargetDesc
 
 

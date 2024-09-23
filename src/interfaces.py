@@ -14,137 +14,13 @@ import shutil
 import xxhash
 import numpy as np
 
-from .sandbox import SandboxLayout, DataArea, DataAddress, CodeAddress
+from .sandbox import SandboxLayout, DataAddress, CodeAddress
 from .instruction_spec import OT, InstructionSpec
 from .actor import ActorID, ActorName, Actor, ActorMode, ActorPL
 from .target_desc import TargetDesc
+from .test_case_input import Input, InputTaint
 
 PAGE_SIZE = 4096
-
-# ==================================================================================================
-# Input
-# ==================================================================================================
-# InputFragment data type represents the input for a single actor. This array is designed to be
-# easily serialized and deserialized into/from a binary file.
-# InputFragment is a fixed-size array of 64-bit unsigned integers,
-# structured into 2 sub-arrays representing memory (`main` and `faulty`),
-# and 2 sub-arrays representing CPU registers (`gpr` and `simd`).
-# The array is used to initialize sandbox memory and CPU registers.
-#
-# Ordering of GPRs:  RAX, RBX, RCX, RDX, RSI, RDI, FLAGS, (last 8 bytes unused)
-# Ordering of SIMD registers: YMM0, YMM1, ..., YMM7
-
-InputFragment = np.dtype(
-    [('main', np.uint64, SandboxLayout.data_area_size(DataArea.MAIN) // 8),
-     ('faulty', np.uint64, SandboxLayout.data_area_size(DataArea.FAULTY) // 8),
-     ('gpr', np.uint64, SandboxLayout.data_area_size(DataArea.GPR) // 8),
-     ('simd', np.uint64, SandboxLayout.data_area_size(DataArea.SIMD) // 8),
-     ('padding', np.uint64, SandboxLayout.data_area_size(DataArea.OVERFLOW_PAD) // 8)],
-    align=False,
-)
-
-
-class Input(np.ndarray):
-    """
-    This class represents a single input to a test case. It is a fixed-size array of
-    64-bit unsigned integers, with a few addition methods for convenience. The array
-    is used to initialize the sandbox memory and the CPU registers.
-
-    The number of elements in Input is equal to the number of actors multiplied by
-    the number of elements in InputFragment, i.e.,
-        Input.size = n_actors * InputFragment.size
-    """
-
-    seed: int = 0
-    """ seed: The seed value used to generate this input """
-
-    def __new__(cls, n_actors: int = 1):
-        obj = super().__new__(cls, (n_actors,), InputFragment, None, 0, None, None)  # type: ignore
-        return obj
-
-    def __array_finalize__(self, obj):
-        if obj is None:
-            return
-
-    def __hash__(self) -> int:  # type: ignore
-        # hash of input is hash of input data, registers and memory
-        h = hash(self.tobytes())
-        return h
-
-    @classmethod
-    def data_size_per_actor(cls) -> int:
-        """
-        Get the size (in bytes) of the data area for a single actor.
-        :return: Size, in bytes
-        """
-        return (InputFragment['main'].itemsize + InputFragment['faulty'].itemsize
-                + InputFragment['gpr'].itemsize + InputFragment['simd'].itemsize)
-
-    @classmethod
-    def n_data_entries_per_actor(cls) -> int:
-        """
-        Get the number of entries in the input array for a single actor.
-
-        Note: This function is NOT equivalent to `data_size_per_actor`.
-        This is because array entries are 64-bit integers.
-        :return: Number of entries
-        """
-        return (InputFragment['main'].itemsize + InputFragment['faulty'].itemsize
-                + InputFragment['gpr'].itemsize + InputFragment['simd'].itemsize) // 8
-
-    def get_simd128_registers(self, actor_id: int):
-        """
-        Get a list of SIMD registers for a single actor.
-        :param actor_id: The actor ID
-        :return: A list of 128-bit SIMD registers
-        """
-        vals = []
-        for i in range(0, InputFragment['simd'].shape[actor_id], 2):
-            vals.append(int(self[0]['simd'][i + 1]) << 64 | int(self[0]['simd'][i]))
-        return vals
-
-    def __str__(self):
-        return str(self.seed)
-
-    def __repr__(self):
-        return str(self.seed)
-
-    def linear_view(self, actor_id) -> np.ndarray:
-        return self[actor_id].view((np.uint64, self[actor_id].itemsize // 8))
-
-    def save(self, path: str) -> None:
-        with open(path, 'wb') as f:
-            f.write(self.tobytes())
-
-    def load(self, path: str) -> None:
-        with open(path, 'rb') as f:
-            contents = np.fromfile(f, dtype=np.uint64)
-            n_actors = self.shape[0]
-            for actor_id in range(n_actors):
-                actor_start = actor_id * self.itemsize // 8
-                actor_end = actor_start + self.itemsize // 8
-                self.linear_view(actor_id)[:] = contents[actor_start:actor_end]
-
-
-class InputTaint(Input):
-    """
-    This class represents a taint vector for an input. It is a fixed-size array of
-    boolean values, with a few addition methods for convenience. The array is used
-    to indicate which input elements influence contract traces. The number of
-    elements in InputTaint is identical to Input class.
-
-    Each element is an boolean value: When it is True, the corresponding element of
-    the input impacts the contract trace.
-    """
-
-    def __new__(cls, n_actors: int = 1):
-        obj = super().__new__(cls, n_actors)  # type: ignore
-        obj.fill(False)
-        return obj
-
-    def __init__(self, n_actors: int = 1) -> None:
-        pass  # unreachable; defined only for type checking
-
 
 # ==================================================================================================
 # Test Cases

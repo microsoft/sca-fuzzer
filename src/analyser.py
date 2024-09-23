@@ -5,12 +5,15 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 from collections import defaultdict, Counter
-from typing import List, Dict
+from typing import List, Dict, TYPE_CHECKING
 from scipy import stats  # type: ignore
 
-from .interfaces import HTrace, CTrace, Input, EquivalenceClass, Analyser, Measurement, Violation
+from .interfaces import HTrace, CTrace, EquivalenceClass, Analyser, Measurement, Violation
 from .config import CONF
 from .util import STAT, Logger
+
+if TYPE_CHECKING:
+    from .test_case_input import Input
 
 
 class EquivalenceAnalyserCommon(Analyser):
@@ -20,7 +23,7 @@ class EquivalenceAnalyserCommon(Analyser):
         super().__init__()
 
     def filter_violations(self,
-                          inputs: List[Input],
+                          inputs: List['Input'],
                           ctraces: List[CTrace],
                           htraces: List[HTrace],
                           stats=False) -> List[Violation]:
