@@ -83,7 +83,7 @@ To minimize this interference, we recommend the following system configuration:
 * Disable Turbo Boost (BIOS option);
 * Boot the kernel on a single core (add `-maxcpus=1` to [Linux boot parameters]((https://wiki.ubuntu.com/Kernel/KernelBootParameters))).
 
-If you skip these steps, Revizor may produce false positives, especially if you use a low value for [`executor_sample_sizes`](config.md#executor-configuration) for measurements.
+If you skip these steps, Revizor may produce false positives, especially if you use a low value for [`executor_sample_sizes`](user/config.md#executor-configuration) for measurements.
 However, a large sample size (> 300-400) usually mitigates this issue.
 
 ## Quick Start
@@ -187,7 +187,7 @@ This command should terminate with no violations.
 
 ### Full-Scale Fuzzing Campaign
 
-To start a full-scale test, write your own configuration file (see description [here](config.md) and an example config [here](https://github.com/microsoft/sca-fuzzer/tree/main/demo/big-fuzz.yaml)), and launch the fuzzer.
+To start a full-scale test, write your own configuration file (see description [here](user/config.md) and an example config [here](https://github.com/microsoft/sca-fuzzer/tree/main/demo/big-fuzz.yaml)), and launch the fuzzer.
 
 Below is a example launch command, which will start a 24-hour fuzzing session, with 100 input classes per test case, and which uses [big-fuzz.yaml](https://github.com/microsoft/sca-fuzzer/tree/main/demo/big-fuzz.yaml) configuration:
 ```shell
@@ -207,9 +207,9 @@ rvzr minimize -s base.json -c violation-<timestamp>/minimize.yaml -g violation-<
 ```
 
 The result of minimization will be stored in `violation-<timestamp>/minimized.asm`.
-If the result is still too complicated, try [other minimization passes](minimization.md).
+If the result is still too complicated, try [other minimization passes](user/minimization.md).
 
-The further analysis is manual; you can find an example in [this guide](fuzzing-guide.md).
+The further analysis is manual; you can find an example in [this guide](user/fuzzing-guide.md).
 
 ## Need Help with Revizor?
 

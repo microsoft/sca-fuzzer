@@ -9,25 +9,20 @@ For information on configuration files, see the [configuration documentation](co
 
 ## Modes
 
-Revizor can run in one of multiple "modes":
-
-* **Fuzzing mode** is revizor's main form of execution.
-In this mode, revizor generates random test cases, tests them on the target CPU and the model,
-and checks for contract violations.
-* **Template fuzzing mode** is a variant of fuzzing mode that uses a template to generate test cases.
-* **Reproduce mode** is a variant of fuzzing mode that attempts to reproduce a violation found in a previous run.
-* **Minimize mode** accepts a test case and attempts to simplify it by applying a series of passes.
-
+The command line options depend on the selected mode of operation (see [modes page](modes.md) for their descriptions).
 To select a mode on the command-line, begin your command with:
 
 ```shell
 rvzr MODE # ... arguments go here
 
 # Where MODE can be:
-#   fuzz            for fuzzing mode
-#   tfuzz           for template fuzzing mode
-#   reproduce       for reproduce mode
-#   minimize        for test case minimization mode
+#   fuzz            fuzzing mode
+#   tfuzz           template fuzzing mode
+#   reproduce       reproduce mode
+#   minimize        test case minimization mode
+#   analyse         stand-alone trace analysis mode
+#   generate        stand-alone generation mode
+#   download_spec   call the script that downloads the instruction set specification
 ```
 
 ## Fuzzing Mode
@@ -104,4 +99,77 @@ The following command-line arguments are supported in `reproduce` mode:
 
 ## Minimize Mode
 
-Minimize mode is described in detail in the [minimization documentation](minimization.md).
+The following command-line arguments are supported in `minimize` mode.
+See also the [minimization documentation](minimization.md) for a list of available minimization passes.
+
+```
+  -h, --help            show this help message and exit
+  -c CONFIG, --config CONFIG
+                        Path to the configuration file (YAML) that will be used during fuzzing.
+  -I INCLUDE_DIR, --include-dir INCLUDE_DIR
+                        Path to the directory containing configuration files that included by the main configuration file (received
+                        via --config).
+  -s INSTRUCTION_SET, --instruction-set INSTRUCTION_SET
+                        Path to the instruction set specification (JSON) file.
+  --testcase TESTCASE, -t TESTCASE
+                        Path to the test case program that needs to be minimized.
+  -i NUM_INPUTS, --num-inputs NUM_INPUTS
+                        Number of inputs to the program that will be used during minimization.
+  --testcase-outfile TESTCASE_OUTFILE, -o TESTCASE_OUTFILE
+                        Output path for the minimized test case program.
+  --input-outdir INPUT_OUTDIR
+                        Output directory for storing minimized inputs.
+  --num-attempts NUM_ATTEMPTS
+                        Number of attempts to minimize the test case.
+  --enable-<pass>       Enable a specific pass during minimization.
+```
+
+## Stand-alone Trace Analysis Mode
+
+The following command-line arguments are supported in `analyse` mode:
+
+```
+  -h, --help            show this help message and exit
+  -c CONFIG, --config CONFIG
+                        Path to the configuration file (YAML) that will be used during fuzzing.
+  -I INCLUDE_DIR, --include-dir INCLUDE_DIR
+                        Path to the directory containing configuration files that included by the main configuration file (received
+                        via --config).
+  -s INSTRUCTION_SET, --instruction-set INSTRUCTION_SET
+                        Path to the instruction set specification (JSON) file.
+  --ctraces CTRACES
+  --htraces HTRACES
+```
+
+## Stand-alone Generation Mode
+
+The following command-line arguments are supported in `generate` mode:
+
+```
+  -h, --help            show this help message and exit
+  -c CONFIG, --config CONFIG
+                        Path to the configuration file (YAML) that will be used during fuzzing.
+  -I INCLUDE_DIR, --include-dir INCLUDE_DIR
+                        Path to the directory containing configuration files that included by the main configuration file (received
+                        via --config).
+  -s INSTRUCTION_SET, --instruction-set INSTRUCTION_SET
+                        Path to the instruction set specification (JSON) file.
+  -r SEED, --seed SEED  Add seed to generate test case.
+  -n NUM_TEST_CASES, --num-test-cases NUM_TEST_CASES
+                        Number of test cases.
+  -i NUM_INPUTS, --num-inputs NUM_INPUTS
+                        Number of inputs per test case.
+  -w WORKING_DIRECTORY, --working-directory WORKING_DIRECTORY
+  --permit-overwrite    Permit overwriting existing files.
+```
+
+## Download Instruction Set Specification
+
+The following command-line arguments are supported in `download_spec` mode:
+
+```
+  -h, --help            show this help message and exit
+  -a ARCHITECTURE, --architecture ARCHITECTURE   The ISA to download the specification for (e.g., x86-64)
+  --outfile OUTFILE, -o OUTFILE   The destination file to save the downloaded specification.
+  --extensions [EXTENSIONS ...]   List of ISA extensions to include in the specification (e.g., SSE, VTX)
+```

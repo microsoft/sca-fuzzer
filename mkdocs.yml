@@ -40,10 +40,11 @@ nav:
   - Home: index.md
   - Quick Start: quick-start.md
   - User Documentation:
-    - Command Line Interface: cli.md
-    - Configuration Options: config.md
-    - Fuzzing Guide: fuzzing-guide.md
-    - Minimization Passes: minimization.md
+    - Command Line Interface: user/cli.md
+    - Modes of Operation: user/modes.md
+    - Configuration Options: user/config.md
+    - Minimization Passes: user/minimization.md
+    - Fuzzing Guide: user/fuzzing-guide.md
   - Developer Documentation:
     - Developer Guide: development.md
     - How Revizor Works: how-revizor-works.md
