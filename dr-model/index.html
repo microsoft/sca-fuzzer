@@ -12,13 +12,9 @@
         <meta name="author" content="Microsoft">
       
       
-        <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/cli/">
+        <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/dr-model/">
       
       
-        <link rel="prev" href="../quick-start/">
-      
-      
-        <link rel="next" href="../config/">
       
       
       <link rel="icon" href="../assets/ms_icon.png">
@@ -26,7 +22,7 @@
     
     
       
-        <title>Command Line Interface - Revizor</title>
+        <title>DynamoRIO Backend for the Model - Revizor</title>
       
     
     
@@ -76,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#command-line-interface" class="md-skip">
+        <a href="#dynamorio-backend-for-the-model" class="md-skip">
           Skip to content
         </a>
       
@@ -109,7 +105,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Command Line Interface
+              DynamoRIO Backend for the Model
             
           </span>
         </div>
@@ -227,13 +223,11 @@
         
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="./" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../user/cli/" class="md-tabs__link">
           
   
   User Documentation
@@ -350,28 +344,23 @@
       
   
   
-    
   
   
-  
     
     
     
       
-        
-        
-      
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
             
   
   <span class="md-ellipsis">
@@ -382,7 +371,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             User Documentation
@@ -393,30 +382,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    Command Line Interface
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../user/cli/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -425,71 +394,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#modes" class="md-nav__link">
-    <span class="md-ellipsis">
-      Modes
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#fuzzing-mode" class="md-nav__link">
-    <span class="md-ellipsis">
-      Fuzzing Mode
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#template-fuzzing-mode" class="md-nav__link">
-    <span class="md-ellipsis">
-      Template Fuzzing Mode
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#reproduce-mode" class="md-nav__link">
-    <span class="md-ellipsis">
-      Reproduce Mode
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#minimize-mode" class="md-nav__link">
-    <span class="md-ellipsis">
-      Minimize Mode
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -502,7 +406,28 @@
   
   
     <li class="md-nav__item">
-      <a href="../config/" class="md-nav__link">
+      <a href="../user/modes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Modes of Operation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user/config/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -523,11 +448,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../fuzzing-guide/" class="md-nav__link">
+      <a href="../user/minimization/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Fuzzing Guide
+    Minimization Passes
   </span>
   
 
@@ -544,11 +469,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../minimization/" class="md-nav__link">
+      <a href="../user/fuzzing-guide/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Minimization Passes
+    Fuzzing Guide
   </span>
   
 
@@ -788,45 +713,18 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#modes" class="md-nav__link">
+  <a href="#design-overview" class="md-nav__link">
     <span class="md-ellipsis">
-      Modes
+      Design Overview
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#fuzzing-mode" class="md-nav__link">
+  <a href="#revizor-adaptor" class="md-nav__link">
     <span class="md-ellipsis">
-      Fuzzing Mode
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#template-fuzzing-mode" class="md-nav__link">
-    <span class="md-ellipsis">
-      Template Fuzzing Mode
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#reproduce-mode" class="md-nav__link">
-    <span class="md-ellipsis">
-      Reproduce Mode
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#minimize-mode" class="md-nav__link">
-    <span class="md-ellipsis">
-      Minimize Mode
+      Revizor Adaptor
     </span>
   </a>
   
@@ -850,93 +748,37 @@
   
 
 
-<h1 id="command-line-interface">Command-Line Interface</h1>
-<p>Revizor is controlled via two interfaces: command line and configuration file.
-Command line arguments specify the mode of operation and set high-level parameters (e.g., file paths, number of fuzzing rounds).
-Configuration files specify details of the fuzzing campaign (e.g., the target contract, generation parameters, etc).</p>
-<p>This document describes the command-line interface.
-For information on configuration files, see the <a href="../config/">configuration documentation</a>.</p>
-<h2 id="modes">Modes</h2>
-<p>Revizor can run in one of multiple "modes":</p>
-<ul>
-<li><strong>Fuzzing mode</strong> is revizor's main form of execution.
-In this mode, revizor generates random test cases, tests them on the target CPU and the model,
-and checks for contract violations.</li>
-<li><strong>Template fuzzing mode</strong> is a variant of fuzzing mode that uses a template to generate test cases.</li>
-<li><strong>Reproduce mode</strong> is a variant of fuzzing mode that attempts to reproduce a violation found in a previous run.</li>
-<li><strong>Minimize mode</strong> accepts a test case and attempts to simplify it by applying a series of passes.</li>
-</ul>
-<p>To select a mode on the command-line, begin your command with:</p>
-<div class="highlight"><pre><span></span><code>rvzr<span class="w"> </span>MODE<span class="w"> </span><span class="c1"># ... arguments go here</span>
-
-<span class="c1"># Where MODE can be:</span>
-<span class="c1">#   fuzz            for fuzzing mode</span>
-<span class="c1">#   tfuzz           for template fuzzing mode</span>
-<span class="c1">#   reproduce       for reproduce mode</span>
-<span class="c1">#   minimize        for test case minimization mode</span>
-</code></pre></div>
-<h2 id="fuzzing-mode">Fuzzing Mode</h2>
-<p>The following command-line arguments are supported in <code>fuzz</code> mode:</p>
-<div class="highlight"><pre><span></span><code>  -h, --help            show this help message and exit
-  -c CONFIG, --config CONFIG
-                        Path to the configuration file (YAML) that will be used during fuzzing.
-  -I INCLUDE_DIR, --include-dir INCLUDE_DIR
-                        Path to the directory containing configuration files that included by the main configuration file (received via --config).
-  -s INSTRUCTION_SET, --instruction-set INSTRUCTION_SET
-                        Path to the instruction set specification (JSON) file.
-  -n NUM_TEST_CASES, --num-test-cases NUM_TEST_CASES
-                        Number of test cases.
-  -i NUM_INPUTS, --num-inputs NUM_INPUTS
-                        Number of inputs per test case.
-  -w WORKING_DIRECTORY, --working-directory WORKING_DIRECTORY
-  -t TESTCASE, --testcase TESTCASE
-                        Use an existing test case [DEPRECATED - see reproduce]
-  --timeout TIMEOUT     Run fuzzing with a time limit [seconds]. No timeout when set to zero.
-  --nonstop             Don&#39;t stop after detecting an unexpected result
-  --save-violations SAVE_VIOLATIONS
-                        If set, store all detected violations in working directory.
-</code></pre></div>
-<h2 id="template-fuzzing-mode">Template Fuzzing Mode</h2>
-<p>The following command-line arguments are supported in <code>analyse</code> mode:</p>
-<div class="highlight"><pre><span></span><code>  -h, --help            show this help message and exit
-  -c CONFIG, --config CONFIG
-                        Path to the configuration file (YAML) that will be used during fuzzing.
-  -I INCLUDE_DIR, --include-dir INCLUDE_DIR
-                        Path to the directory containing configuration files that included by the main configuration file (received
-                        via --config).
-  -s INSTRUCTION_SET, --instruction-set INSTRUCTION_SET
-                        Path to the instruction set specification (JSON) file.
-  -n NUM_TEST_CASES, --num-test-cases NUM_TEST_CASES
-                        Number of test cases.
-  -i NUM_INPUTS, --num-inputs NUM_INPUTS
-                        Number of inputs per test case.
-  -w WORKING_DIRECTORY, --working-directory WORKING_DIRECTORY
-  -t TEMPLATE, --template TEMPLATE
-                        The template to use for generating test cases
-  --timeout TIMEOUT     Run fuzzing with a time limit [seconds]. No timeout when set to zero.
-  --nonstop             Don&#39;t stop after detecting an unexpected result
-  --enable-store-violations ENABLE_STORE_VIOLATIONS
-                        If set, store all detected violations in working directory.
-</code></pre></div>
-<h2 id="reproduce-mode">Reproduce Mode</h2>
-<p>The following command-line arguments are supported in <code>reproduce</code> mode:</p>
-<div class="highlight"><pre><span></span><code>  -h, --help            show this help message and exit
-  -c CONFIG, --config CONFIG
-                        Path to the configuration file (YAML) that will be used during fuzzing.
-  -I INCLUDE_DIR, --include-dir INCLUDE_DIR
-                        Path to the directory containing configuration files that included by the main configuration file (received
-                        via --config).
-  -s INSTRUCTION_SET, --instruction-set INSTRUCTION_SET
-                        Path to the instruction set specification (JSON) file.
-  -t TESTCASE, --testcase TESTCASE
-                        Path to the test case
-  -i [INPUTS ...], --inputs [INPUTS ...]
-                        Path to the directory with inputs
-  -n NUM_INPUTS, --num-inputs NUM_INPUTS
-                        Number of inputs per test case. [IGNORED if --input-dir is set]
-</code></pre></div>
-<h2 id="minimize-mode">Minimize Mode</h2>
-<p>Minimize mode is described in detail in the <a href="../minimization/">minimization documentation</a>.</p>
+<h1 id="dynamorio-backend-for-the-model">DynamoRIO Backend for the Model</h1>
+<p>This document describes the DynamoRIO backend for the model.
+As any other model, this backend is responsible for collecting contract traces for generated test cases.</p>
+<p>A unique feature of this backend, however, is that it is intentionally built to be re-usable for collecting contract traces on any target binary, not only Revizor-generated test cases.
+As such, it allows to build a whole pipeline: First, a target CPU is tested to find a matching contract, and then the software that is expected to be run on this CPU can be tested for leaks using the same contract.</p>
+<h2 id="design-overview">Design Overview</h2>
+<p>The backend is designed to be as generic as possible, so that it can be used for any target binary.
+The backend is connected to Revizor via two adaptors: the DynamoRIO loader is responsible for loading Revizor-generated test cases into the backend, and the Revizor adaptor is responsible for sending test cases to the backend and for receiving contract traces.</p>
+<p>┌─────────────────┐Test Case Object   ┌─────────────────┐
+│  Revizor Fuzzer ┼──────────────────►│ Revizor Adapter │
+│                 │    Contract Traces│                 │
+│                 ◄───────────────────┼                 │
+└─────────────────┘                   └─▲─────────────┬─┘
+                                        │Contract     │Test Case
+                                        │Traces       │Binary
+                                      ┌─┴─────────────▼─┐
+                                      │ Backend Loader  │
+                                      │                 │
+                                      │                 │
+                                      └─▲─────────────┬─┘
+                                        │             │Executable
+                                        │Contract     │ELF File
+                                        │Traces       │
+                                      ┌─┴─────────────▼─┐
+                                      │ DynamoRIO-based │
+                                      │                 │
+                                      │ Model Backend   │
+                                      └─────────────────┘</p>
+<p>Below is an overview of both adaptors and the backend.</p>
+<h2 id="revizor-adaptor">Revizor Adaptor</h2>
+<p>Revizor adaptor (<code>src/dr_model.py</code>) is responsible for sending test cases to the backend and for receiving contract traces.</p>
 
 
 

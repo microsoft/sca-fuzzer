@@ -18,7 +18,7 @@
         <link rel="prev" href="..">
       
       
-        <link rel="next" href="../cli/">
+        <link rel="next" href="../user/cli/">
       
       
       <link rel="icon" href="../assets/ms_icon.png">
@@ -233,7 +233,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../cli/" class="md-tabs__link">
+        <a href="../user/cli/" class="md-tabs__link">
           
   
   User Documentation
@@ -565,7 +565,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../cli/" class="md-nav__link">
+      <a href="../user/cli/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -586,7 +586,28 @@
   
   
     <li class="md-nav__item">
-      <a href="../config/" class="md-nav__link">
+      <a href="../user/modes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Modes of Operation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user/config/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -607,11 +628,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../fuzzing-guide/" class="md-nav__link">
+      <a href="../user/minimization/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Fuzzing Guide
+    Minimization Passes
   </span>
   
 
@@ -628,11 +649,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../minimization/" class="md-nav__link">
+      <a href="../user/fuzzing-guide/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Minimization Passes
+    Fuzzing Guide
   </span>
   
 
@@ -1095,7 +1116,7 @@ To minimize this interference, we recommend the following system configuration:<
 <li>Disable Turbo Boost (BIOS option);</li>
 <li>Boot the kernel on a single core (add <code>-maxcpus=1</code> to <a href="(https://wiki.ubuntu.com/Kernel/KernelBootParameters)">Linux boot parameters</a>).</li>
 </ul>
-<p>If you skip these steps, Revizor may produce false positives, especially if you use a low value for <a href="../config/#executor-configuration"><code>executor_sample_sizes</code></a> for measurements.
+<p>If you skip these steps, Revizor may produce false positives, especially if you use a low value for <a href="../user/config/#executor-configuration"><code>executor_sample_sizes</code></a> for measurements.
 However, a large sample size (&gt; 300-400) usually mitigates this issue.</p>
 <h2 id="quick-start">Quick Start</h2>
 <p>The following is an example of a simple fuzzing session with Revizor that will detect Spectre V1-like violations.</p>
@@ -1170,7 +1191,7 @@ The fuzzer will use the ISA spec stored in the <code>base.json</code> file, and 
 </code></pre></div></p>
 <p>This command should terminate with no violations.</p>
 <h3 id="full-scale-fuzzing-campaign">Full-Scale Fuzzing Campaign</h3>
-<p>To start a full-scale test, write your own configuration file (see description <a href="../config/">here</a> and an example config <a href="https://github.com/microsoft/sca-fuzzer/tree/main/demo/big-fuzz.yaml">here</a>), and launch the fuzzer.</p>
+<p>To start a full-scale test, write your own configuration file (see description <a href="../user/config/">here</a> and an example config <a href="https://github.com/microsoft/sca-fuzzer/tree/main/demo/big-fuzz.yaml">here</a>), and launch the fuzzer.</p>
 <p>Below is a example launch command, which will start a 24-hour fuzzing session, with 100 input classes per test case, and which uses <a href="https://github.com/microsoft/sca-fuzzer/tree/main/demo/big-fuzz.yaml">big-fuzz.yaml</a> configuration:
 <div class="highlight"><pre><span></span><code>rvzr<span class="w"> </span>fuzz<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>demo/big-fuzz.yaml<span class="w"> </span>-i<span class="w"> </span><span class="m">100</span><span class="w"> </span>-n<span class="w"> </span><span class="m">100000000</span><span class="w"> </span>--timeout<span class="w"> </span><span class="m">86400</span><span class="w"> </span>-w<span class="w"> </span><span class="sb">`</span><span class="nb">pwd</span><span class="sb">`</span><span class="w"> </span>--nonstop
 </code></pre></div></p>
@@ -1181,8 +1202,8 @@ The fuzzer will use the ISA spec stored in the <code>base.json</code> file, and 
 <div class="highlight"><pre><span></span><code>rvzr<span class="w"> </span>minimize<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>violation-&lt;timestamp&gt;/minimize.yaml<span class="w"> </span>-g<span class="w"> </span>violation-&lt;timestamp&gt;/program.asm<span class="w"> </span>-o<span class="w"> </span>violation-&lt;timestamp&gt;/minimized.asm<span class="w"> </span>-i<span class="w"> </span><span class="m">100</span><span class="w"> </span>--num-attempts<span class="w"> </span><span class="m">10</span><span class="w"> </span>--enable-simplification-pass
 </code></pre></div>
 <p>The result of minimization will be stored in <code>violation-&lt;timestamp&gt;/minimized.asm</code>.
-If the result is still too complicated, try <a href="../minimization/">other minimization passes</a>.</p>
-<p>The further analysis is manual; you can find an example in <a href="../fuzzing-guide/">this guide</a>.</p>
+If the result is still too complicated, try <a href="../user/minimization/">other minimization passes</a>.</p>
+<p>The further analysis is manual; you can find an example in <a href="../user/fuzzing-guide/">this guide</a>.</p>
 <h2 id="need-help-with-revizor">Need Help with Revizor?</h2>
 <p>If you find a bug in Revizor, don't hesitate to <a href="https://github.com/microsoft/sca-fuzzer/issues">open an issue</a>.</p>
 <p>If something is confusing or you need help in using Revizor, we have a <a href="https://github.com/microsoft/sca-fuzzer/discussions">discussion page</a>.</p>
