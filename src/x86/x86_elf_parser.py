@@ -203,12 +203,20 @@ class X86ElfParser:
             check=True,
             capture_output=True)
 
-        section_name = ""
+        section_name: str = ""
+        skip_this_section: bool = False
         for line in dump.stdout.decode().split("\n"):
             if not line:
                 continue
 
+            # parse section headers
             if "section" in line:
+                if ".note.gnu" in line:
+                    section_name = ""
+                    skip_this_section = True
+                    continue
+                skip_this_section = False
+
                 if ".data." not in line:
                     section_name = ""
                     continue
@@ -222,9 +230,12 @@ class X86ElfParser:
                     self.LOG.error(f"Invalid actor label or undefined actor: {line.split()[-1]}")
                 instruction_addresses[section_name] = []
                 continue
-            assert section_name != "", "Failed to parse objdump output (section_name)"
 
-            instruction_addresses[section_name].append(int(line[:-1], 16))
+            # parse instruction addresses
+            if not skip_this_section:
+                assert section_name != "", "Failed to parse objdump output (section_name)"
+                instruction_addresses[section_name].append(int(line[:-1], 16))
+
         return instruction_addresses
 
     def _symbol_from_macro_inst(self, inst: Instruction, symbol_entries: List[SectionMetadata],
