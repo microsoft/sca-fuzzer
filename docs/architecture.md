@@ -90,7 +90,7 @@ multiple Python files:
    `Input`, etc)
 * `isa\_loader.py` - defines the `InstructionSet` class, used to load an
   ISA's specifications from a JSON file provided via the
-  [command-line interface](cli.md).
+  [command-line interface](user/cli.md).
 * `service.py` - defines logging, statistical, and other services to all other
   modules within revizor.
 

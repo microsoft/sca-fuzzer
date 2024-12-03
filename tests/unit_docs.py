@@ -22,7 +22,7 @@ class DocumentationTest(unittest.TestCase):
         Test if the documentation contains all the config options.
         """
         # get the text of the config documentation
-        with open(DOC_DIR / "config.md", "r") as f:
+        with open(DOC_DIR / "user/config.md", "r") as f:
             doc_text = f.read()
 
         # get a list of config options
@@ -41,7 +41,7 @@ class DocumentationTest(unittest.TestCase):
         Test if the documentation contains all possible values for the config options.
         """
         # get the text of the config documentation
-        with open(DOC_DIR / "config.md", "r") as f:
+        with open(DOC_DIR / "user/config.md", "r") as f:
             doc_text = f.readlines()
 
         # build a map of config options to their possible values in the doc
