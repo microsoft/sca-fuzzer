@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#guide-on-running-a-testing-campaign-and-analyzing-a-violation" class="md-skip">
+        <a href="#tutorial-root-causing-a-violation-detected-by-revizor" class="md-skip">
           Skip to content
         </a>
       
@@ -526,64 +526,46 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#preparation" class="md-nav__link">
+  <a href="#prerequisites" class="md-nav__link">
     <span class="md-ellipsis">
-      Preparation
+      Prerequisites
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#fuzzing-campaign" class="md-nav__link">
+  <a href="#step-1-locate-the-violation-files" class="md-nav__link">
     <span class="md-ellipsis">
-      Fuzzing Campaign
+      Step 1: Locate the Violation Files
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#analyzing-the-violation" class="md-nav__link">
+  <a href="#step-2-reproduce-the-violation" class="md-nav__link">
     <span class="md-ellipsis">
-      Analyzing The Violation
+      Step 2: Reproduce the Violation
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Analyzing The Violation">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-2a-analyze-reproduction-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 2a: Analyze Reproduction Output
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 2a: Analyze Reproduction Output">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#1-remove-irrelevant-instructions-from-the-program" class="md-nav__link">
+  <a href="#insights-from-the-output" class="md-nav__link">
     <span class="md-ellipsis">
-      1. Remove irrelevant instructions from the program
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#2-add-speculation-fences-to-narrow-down-the-part-of-the-program-that-causes-leakage" class="md-nav__link">
-    <span class="md-ellipsis">
-      2. Add speculation fences to narrow down the part of the program that causes leakage
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-use-the-statistics-reported-by-revizor-to-find-the-specific-instruction-that-triggers-speculation" class="md-nav__link">
-    <span class="md-ellipsis">
-      3. Use the statistics reported by Revizor to find the specific instruction that triggers speculation
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#4-to-be-continued" class="md-nav__link">
-    <span class="md-ellipsis">
-      4. TO BE CONTINUED...
+      Insights from the Output
     </span>
   </a>
   
@@ -591,6 +573,108 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-3-minimize-the-program" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 3: Minimize the Program
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 3: Minimize the Program">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#explanation-of-passes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Explanation of Passes
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#verify-minimization" class="md-nav__link">
+    <span class="md-ellipsis">
+      Verify Minimization
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-4-minimize-inputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 4: Minimize Inputs
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 4: Minimize Inputs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#insights-from-the-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      Insights from the Summary
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#verify-minimization_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Verify Minimization
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-5-insert-speculation-fences" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 5: Insert Speculation Fences
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-6-map-hardware-traces-to-minimized-program-and-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 6: Map Hardware Traces to Minimized Program and Data
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-7-modify-the-program" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 7: Modify the Program
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#additional-resources" class="md-nav__link">
+    <span class="md-ellipsis">
+      Additional Resources
+    </span>
+  </a>
   
 </li>
       
@@ -833,64 +917,46 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#preparation" class="md-nav__link">
+  <a href="#prerequisites" class="md-nav__link">
     <span class="md-ellipsis">
-      Preparation
+      Prerequisites
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#fuzzing-campaign" class="md-nav__link">
+  <a href="#step-1-locate-the-violation-files" class="md-nav__link">
     <span class="md-ellipsis">
-      Fuzzing Campaign
+      Step 1: Locate the Violation Files
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#analyzing-the-violation" class="md-nav__link">
+  <a href="#step-2-reproduce-the-violation" class="md-nav__link">
     <span class="md-ellipsis">
-      Analyzing The Violation
+      Step 2: Reproduce the Violation
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Analyzing The Violation">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-2a-analyze-reproduction-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 2a: Analyze Reproduction Output
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 2a: Analyze Reproduction Output">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#1-remove-irrelevant-instructions-from-the-program" class="md-nav__link">
+  <a href="#insights-from-the-output" class="md-nav__link">
     <span class="md-ellipsis">
-      1. Remove irrelevant instructions from the program
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#2-add-speculation-fences-to-narrow-down-the-part-of-the-program-that-causes-leakage" class="md-nav__link">
-    <span class="md-ellipsis">
-      2. Add speculation fences to narrow down the part of the program that causes leakage
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-use-the-statistics-reported-by-revizor-to-find-the-specific-instruction-that-triggers-speculation" class="md-nav__link">
-    <span class="md-ellipsis">
-      3. Use the statistics reported by Revizor to find the specific instruction that triggers speculation
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#4-to-be-continued" class="md-nav__link">
-    <span class="md-ellipsis">
-      4. TO BE CONTINUED...
+      Insights from the Output
     </span>
   </a>
   
@@ -898,6 +964,108 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-3-minimize-the-program" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 3: Minimize the Program
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 3: Minimize the Program">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#explanation-of-passes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Explanation of Passes
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#verify-minimization" class="md-nav__link">
+    <span class="md-ellipsis">
+      Verify Minimization
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-4-minimize-inputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 4: Minimize Inputs
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 4: Minimize Inputs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#insights-from-the-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      Insights from the Summary
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#verify-minimization_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Verify Minimization
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-5-insert-speculation-fences" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 5: Insert Speculation Fences
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-6-map-hardware-traces-to-minimized-program-and-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 6: Map Hardware Traces to Minimized Program and Data
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-7-modify-the-program" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 7: Modify the Program
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#additional-resources" class="md-nav__link">
+    <span class="md-ellipsis">
+      Additional Resources
+    </span>
+  </a>
   
 </li>
       
@@ -919,249 +1087,290 @@
   
 
 
-<h1 id="guide-on-running-a-testing-campaign-and-analyzing-a-violation">Guide on running a testing campaign and analyzing a violation</h1>
-<p>In this guide, we will walk through the process of testing a CPU for unexpected speculative leaks with Revizor.
-We will also show how to analyze a contract violation discovered by this campaign.</p>
-<p>This example is based on a real testing campaign that led to a discovery of Zero Division Injection, described in <a href="https://arxiv.org/abs/2301.07642">Hide&amp;Seek with Spectres</a>.</p>
-<h2 id="preparation">Preparation</h2>
-<p>We perform a fuzzing campaign in which we test arithmetic operations on an x86-64 CPUs.
-As the source of side channel information (i.e., the source of hardware traces), we chose L1D cache.
-In other words, this campaign will test the information that arithmetic operations can expose through an L1D cache.</p>
-<p>For the sake of this example, let's assume that we do not know of any speculative vulnerabilities that could be triggered by these instructions.
-Accordingly, our expected contract is going to be <code>ct-seq</code>, a contract that describes cache leakage for non-speculating instructions.</p>
-<p>We encode this setup in the following configuration file:
-<div class="highlight"><pre><span></span><code><span class="nt">instruction_set</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">x86-64</span><span class="w"> </span><span class="c1"># target instruction set</span>
-
-<span class="c1"># define a pool of tested instructions</span>
-<span class="nt">instruction_categories</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">BASE-BINARY</span><span class="w">  </span><span class="c1"># BINARY is a keyword for arithmetic operations</span>
-
-<span class="c1"># by default, Revizor will not generate 64-bit divisions</span>
-<span class="c1"># we disable this behavior</span>
-<span class="nt">x86_disable_div64</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
-
-<span class="c1"># since we are relying on a cache side channel to collect hardware traces,</span>
-<span class="c1"># we expect to observe the addresses of loads and stores in the traces,</span>
-<span class="c1"># as well as the changes in the PC</span>
-<span class="nt">contract_observation_clause</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">loads+stores+pc</span>
-
-<span class="c1"># we expect to see not speculation in this fuzzing campaign</span>
-<span class="nt">contract_execution_clause</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">no_speculation</span>
-
-<span class="c1"># use Prime+Probe to collect hardware traces</span>
-<span class="nt">executor_mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">P+P</span>
-
-<span class="c1"># enable some optimization features to make fuzzing faster</span>
-<span class="nt">enable_speculation_filter</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<span class="nt">enable_observation_filter</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-
-<span class="c1"># by default Revizor adds conditional branches to all test cases</span>
-<span class="c1"># since we are not interested in branches in this experiment,</span>
-<span class="c1"># disable them</span>
-<span class="nt">min_bb_per_function</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
-<span class="nt">max_bb_per_function</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
-</code></pre></div></p>
-<p>We save the configuration into a file (<code>config.yaml</code>) and start a fuzzing campaign.</p>
-<h2 id="fuzzing-campaign">Fuzzing Campaign</h2>
-<p>We start Revizor with the following command:</p>
-<p><div class="highlight"><pre><span></span><code>rvzr<span class="w"> </span>fuzz<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>config.yaml<span class="w"> </span>-n<span class="w"> </span><span class="m">100000</span><span class="w"> </span>-i<span class="w"> </span><span class="m">100</span><span class="w"> </span>-w<span class="w"> </span>./results
+<h1 id="tutorial-root-causing-a-violation-detected-by-revizor">Tutorial: Root-Causing a Violation Detected by Revizor</h1>
+<p>This tutorial walks you through analysis of a contract violation detected by Revizor. The goal is to simplify the violation artifacts (program and inputs) and identify the root cause of the violation. The tutorial includes practical examples, explanations of commands, and interpretation of outputs.</p>
+<p>The examples below will show the process of root-causing a violation of the CT-SEQ contract on an x86-64 CPU. The same general procedure can be applied to other contracts and architectures.</p>
+<h2 id="prerequisites">Prerequisites</h2>
+<ol>
+<li><strong>Revizor Installed</strong>: Ensure Revizor is installed and functional.</li>
+<li><strong>Detected Violation</strong>: Revizor has already surfaced a violation and stored it in a <code>violation-&lt;timestamp&gt;</code> directory.</li>
+<li><strong>Configuration Files</strong>: You have access to the configuration file (<code>config.yaml</code>) used in the fuzzing campaign.</li>
+</ol>
+<hr />
+<h2 id="step-1-locate-the-violation-files">Step 1: Locate the Violation Files</h2>
+<p>When Revizor detects a violation, it creates a directory (<code>violation-&lt;timestamp&gt;</code>) containing:
+- <strong><code>program.asm</code></strong>: The test case program that caused the violation.
+- <strong><code>input_*.bin</code></strong>: A sequence of inputs that triggered the violation.
+- <strong><code>report.txt</code></strong>: Additional details about the violation, including hardware and contract traces.
+- <strong><code>org-config.yaml</code></strong>: The original configuration file used in the fuzzing campaign.
+- <strong><code>reproduce.yaml</code></strong>: A configuration file for reproducing the violation.
+- <strong><code>minimize.yaml</code></strong>: A configuration file for minimizing the test case.</p>
+<hr />
+<h2 id="step-2-reproduce-the-violation">Step 2: Reproduce the Violation</h2>
+<p>To confirm the violation and analyze its context, reproduce it using the following command:</p>
+<div class="highlight"><pre><span></span><code>rvzr<span class="w"> </span>reproduce<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>./violation-&lt;timestamp&gt;/reproduce.yaml<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-t<span class="w"> </span>./violation-&lt;timestamp&gt;/program.asm<span class="w"> </span>-i<span class="w"> </span>./violation-&lt;timestamp&gt;/input_*.bin
 </code></pre></div>
-(use <code>./revizor.py</code> instead of <code>rvzr</code> if you want to run Revizor directly from the source directory)</p>
-<p>Here
-* <code>-s base.json</code> - tells Revizor where to find a description of the tested instructions
-* <code>-c config.yaml</code> - points Revizor to the configuration file described above
-* <code>-n 100000</code> - number of randomly-generated programs to be tested. Note that 100k programs will be tested only if none of them surfaces a contract violation; otherwise, Revizor will stop as soon as it detects a violation
-* <code>-i 100</code> - number of inputs per test case
-* <code>-w ./results</code> - directory where the detected violations will be stored.</p>
-<p>After about an hour of fuzzing, Revizor finds a violation, saves the corresponding program into <code>./results/violation&lt;timestamp&gt;.asm</code>, and terminates.</p>
-<p>The violation on its own is already a sign that something unexpected is going on:
-Since we were testing against a contract that does not permit speculation (<code>no_speculation</code> in <code>config.yaml</code>), this violation indicates that Revizor found a program that speculatively leaks information.
-This is a new finding because there has been previously no reports of speculative leaks caused by arithmetic instructions.</p>
-<h2 id="analyzing-the-violation">Analyzing The Violation</h2>
-<p>The next step is to find out what caused this violation.
-The program that surfaced a violation looks like this:</p>
-<p><div class="highlight"><pre><span></span><code>.intel_syntax noprefix
-MFENCE # instrumentation
-.test_case_enter:
-.function_main:
-.bb_main.entry:
-JMP .bb_main.0
-.bb_main.0:
-AND RAX, 0b1111111111111 # instrumentation
-LOCK SBB word ptr [R14 + RAX], DX
-SUB RAX, -63
-NEG BX
-INC DL
-AND RAX, 0b1111111111111 # instrumentation
-LOCK ADC dword ptr [R14 + RAX], -12
-AND RBX, 0b1111111111111 # instrumentation
-SUB CL, byte ptr [R14 + RBX]
-AND RDI, 0b1111111111111 # instrumentation
-CMP word ptr [R14 + RDI], -24
-CMP RAX, 382711631
-AND RBX, 0b1111111111111 # instrumentation
-LOCK DEC byte ptr [R14 + RBX]
-IMUL CL
-SBB AL, -106
-CMP RAX, 383545172
-AND RBX, 0b1111111111111 # instrumentation
-SBB DL, byte ptr [R14 + RBX]
-AND RBX, 0b1111111111111 # instrumentation
-ADD word ptr [R14 + RBX], -102
-AND RBX, 0b1111111111111 # instrumentation
-LOCK INC dword ptr [R14 + RBX]
-AND RSI, 0b1111111111111 # instrumentation
-ADD EDX, dword ptr [R14 + RSI]
-SUB AL, 66
-OR RBX, 1 # instrumentation
-AND RDX, RBX # instrumentation
-SHR RDX, 1 # instrumentation
-DIV RBX
-IMUL ESI, EBX
-AND RDX, 0b1111111111111 # instrumentation
-MUL dword ptr [R14 + RDX]
-AND RAX, 0b1111111111111 # instrumentation
-LOCK SBB byte ptr [R14 + RAX], CL
-ADC DIL, 32
-SBB BL, DL
-OR RSI, 1 # instrumentation
-AND RDX, RSI # instrumentation
-SHR RDX, 1 # instrumentation
-DIV RSI
-.bb_main.exit:
-.test_case_exit:
-MFENCE # instrumentation
-</code></pre></div>
-(Note: if you're following along this guide, your detected violation is going to contain a completely different assembly. But don't worry about it, the analysis process is going to be the same.)</p>
-<p>This is a randomly-generated sequence of assembly instructions, so if we try to find out the source of the unexpected leakage in it, we will have to put a very considerable effort.
-Fortunately, we don't have to do it, as there are several techniques that can significantly simplify the analysis.</p>
-<h3 id="1-remove-irrelevant-instructions-from-the-program">1. Remove irrelevant instructions from the program</h3>
-<div class="highlight"><pre><span></span><code>rvzr<span class="w"> </span>minimize<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>config.yaml<span class="w"> </span>-i<span class="w"> </span>/results/violation&lt;timestamp&gt;.asm<span class="w"> </span>-o<span class="w"> </span>min.asm<span class="w"> </span>-n<span class="w"> </span><span class="m">100</span>
-</code></pre></div>
-<p>It simplifies the program and stores the result into <code>min.asm</code>. The result is:</p>
-<div class="highlight"><pre><span></span><code>.intel_syntax noprefix
-MFENCE # instrumentation
-.test_case_enter:
-.function_main:
-.bb_main.entry:
-.bb_main.0:
-AND RAX, 0b1111111111111 # instrumentation
-LOCK SBB word ptr [R14 + RAX], DX
-INC DL
-AND RBX, 0b1111111111111 # instrumentation
-LOCK DEC byte ptr [R14 + RBX]
-AND RBX, 0b1111111111111 # instrumentation
-SBB DL, byte ptr [R14 + RBX]
-OR RBX, 1 # instrumentation
-AND RDX, RBX # instrumentation
-SHR RDX, 1 # instrumentation
-DIV RBX
-AND RDX, 0b1111111111111 # instrumentation
-MUL dword ptr [R14 + RDX]
-AND RAX, 0b1111111111111 # instrumentation
-LOCK SBB byte ptr [R14 + RAX], CL
-.bb_main.exit:
-.test_case_exit:
-MFENCE # instrumentation
-</code></pre></div>
-<p>We can further simplify the test case manually, by removing the unused labels (e.g., <code>bb_main.0</code>).
-Note that <code>.test_case_enter:</code> and <code>.test_case_exit:</code> have to remain because Revizor's automation scripts use it to define the start and the end of the test case.</p>
-<p>As a result, we get a minimal version of the program:</p>
-<div class="highlight"><pre><span></span><code>.intel_syntax noprefix
-MFENCE # instrumentation
-.test_case_enter:
-AND RAX, 0b1111111111111 # instrumentation
-LOCK SBB word ptr [R14 + RAX], DX
-INC DL
-AND RBX, 0b1111111111111 # instrumentation
-LOCK DEC byte ptr [R14 + RBX]
-AND RBX, 0b1111111111111 # instrumentation
-SBB DL, byte ptr [R14 + RBX]
-OR RBX, 1 # instrumentation
-AND RDX, RBX # instrumentation
-SHR RDX, 1 # instrumentation
-DIV RBX
-AND RDX, 0b1111111111111 # instrumentation
-MUL dword ptr [R14 + RDX]
-AND RAX, 0b1111111111111 # instrumentation
-LOCK SBB byte ptr [R14 + RAX], CL
-.test_case_exit:
-MFENCE # instrumentation
-</code></pre></div>
-<p>To make sure that we didn't make a mistake while modifying the program, we can verify the result by reproducing the violation:</p>
-<div class="highlight"><pre><span></span><code>rvzr<span class="w"> </span>fuzz<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>config.yaml<span class="w"> </span>-t<span class="w"> </span>min.asm<span class="w"> </span>-i<span class="w"> </span><span class="m">100</span>
-</code></pre></div>
-<h3 id="2-add-speculation-fences-to-narrow-down-the-part-of-the-program-that-causes-leakage">2. Add speculation fences to narrow down the part of the program that causes leakage</h3>
-<div class="highlight"><pre><span></span><code>rvzr<span class="w"> </span>minimize<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>config.yaml<span class="w"> </span>-i<span class="w"> </span>min.asm<span class="w"> </span>-o<span class="w"> </span>min.asm<span class="w"> </span>-n<span class="w"> </span><span class="m">100</span><span class="w"> </span>--add-fences
-</code></pre></div>
-<p>This command iteratively attempts to add an <code>LFENCE</code> before every instruction in the program while checking if the violation persists. The result is:</p>
-<div class="highlight"><pre><span></span><code>.intel_syntax noprefix
-MFENCE # instrumentation
-.test_case_enter:
-LFENCE
-AND RAX, 0b1111111111111 # instrumentation
-LFENCE
-LOCK SBB word ptr [R14 + RAX], DX
-AND RBX, 0b1111111111111 # instrumentation
-LOCK DEC byte ptr [R14 + RBX]
-AND RBX, 0b1111111111111 # instrumentation
-SBB DL, byte ptr [R14 + RBX]
-OR RBX, 1 # instrumentation
-AND RDX, RBX # instrumentation
-SHR RDX, 1 # instrumentation
-DIV RBX
-AND RDX, 0b1111111111111 # instrumentation
-MUL dword ptr [R14 + RDX]
-AND RAX, 0b1111111111111 # instrumentation
-LOCK SBB byte ptr [R14 + RAX], CL
-.test_case_exit:
-MFENCE # instrumentation
-</code></pre></div>
-<p>Only two fences were inserted, after <code>.test_case_enter:</code> and after <code>AND RAX, 0b1111111111111</code>.
-It means that all the remaining instructions are somehow involved in the speculative leak (although we cannot yet tell how exactly).</p>
-<h3 id="3-use-the-statistics-reported-by-revizor-to-find-the-specific-instruction-that-triggers-speculation">3. Use the statistics reported by Revizor to find the specific instruction that triggers speculation</h3>
-<p>At this point, we start making manual changes to the program.
-We go through the program, try removing instructions one at a time, execute the modified program on Revizor, and check the statistic from the speculation filter.</p>
-<p>For example, let's say we start from the bottom.
-We first try to remove the last line (<code>LOCK SBB byte ptr [R14 + RAX], CL</code>), and execute the program on Revizor:
-<div class="highlight"><pre><span></span><code>rvzr<span class="w"> </span>fuzz<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>config.yaml<span class="w"> </span>-t<span class="w"> </span>min.asm<span class="w"> </span>-i<span class="w"> </span><span class="m">100</span>
+<p>If the violation is reproducible, Revizor will print "Violation detected" in the terminal output.
+The distribution of hardware traces in the reproduced violation should be roughly similar to the original violation. If the traces are significantly different, this might be a sign of a bug or a misconfiguration in the fuzzer.</p>
+<blockquote>
+<p><strong>Note</strong>: The cases of non-reproducible violations are expected to be rare, no more than one or two per machine/week of fuzzing. If your fuzzing campaign produces more, consider adjusting the configuration file to increase noise tolerance (see the <a href="https://microsoft.github.io/sca-fuzzer/user/config/">Configuration File Documentation</a>).</p>
+</blockquote>
+<h2 id="step-2a-analyze-reproduction-output">Step 2a: Analyze Reproduction Output</h2>
+<p>The output of the reproduction command provides valuable insights into the violation. Here is an example output:</p>
+<div class="highlight"><pre><span></span><code>================================ Violations detected ==========================
+Contract trace:
+ 14907365725669422044 (hash)
+Hardware traces:
+  Input group 1: [1, 21]
+  Input group 2: [11]
+  ^.^....^.....^.................^...^............^............... [500    | 10    ]
+  ^.^....^.....^................^^...^............^............... [0      | 490   ]
 
-INFO:<span class="w"> </span><span class="o">[</span>fuzzer<span class="o">]</span><span class="w"> </span>Starting<span class="w"> </span>at<span class="w"> </span><span class="m">17</span>:16:52
-<span class="m">0</span><span class="w">     </span><span class="o">(</span><span class="w"> </span><span class="m">0</span>%<span class="o">)</span><span class="p">|</span><span class="w"> </span>Stats:
-<span class="o">================================</span><span class="w"> </span><span class="nv">Statistics</span><span class="w"> </span><span class="o">===================================</span>
-Test<span class="w"> </span>Cases:<span class="w"> </span><span class="m">1</span>
-Inputs<span class="w"> </span>per<span class="w"> </span><span class="nb">test</span><span class="w"> </span><span class="k">case</span>:<span class="w"> </span><span class="m">200</span>.0
-Flaky<span class="w"> </span>violations:<span class="w"> </span><span class="m">0</span>
-Required<span class="w"> </span>priming:<span class="w"> </span><span class="m">0</span>
-Violations:<span class="w"> </span><span class="m">0</span>
+================================ Statistics ===================================
+Test Cases: 1
+Inputs per test case: 30.0
+Violations: 1
 Effectiveness:
-<span class="w">  </span>Effectiveness:<span class="w"> </span><span class="m">1</span>.0
-<span class="w">  </span>Total<span class="w"> </span>Cls:<span class="w"> </span><span class="m">20</span>.0
-<span class="w">  </span>Effective<span class="w"> </span>Cls:<span class="w"> </span><span class="m">20</span>.0
-Filters:
-<span class="w">  </span>Speculation<span class="w"> </span>Filter:<span class="w"> </span><span class="m">1</span>
-<span class="w">  </span>Observation<span class="w"> </span>Filter:<span class="w"> </span><span class="m">1</span>
-</code></pre></div></p>
-<p>Even though Revizor did not report a violation, the line <code>Speculation Filter: 1</code> tells us that Revizor detected some speculation. Accordingly, we deduce that the instruction we removed (<code>LOCK SBB</code>) is <em>not</em> the source of speculation.</p>
-<p>We continue the process with one instruction at a time, and we see the same result with the next three instructions (<code>AND</code>, <code>MUL</code>, and <code>AND</code>).
-However, when we try removing <code>DIV</code> from the program, we Revizor produces the following output:</p>
-<div class="highlight"><pre><span></span><code><span class="o">================================</span><span class="w"> </span><span class="nv">Statistics</span><span class="w"> </span><span class="o">===================================</span>
-Test<span class="w"> </span>Cases:<span class="w"> </span><span class="m">1</span>
-Inputs<span class="w"> </span>per<span class="w"> </span><span class="nb">test</span><span class="w"> </span><span class="k">case</span>:<span class="w"> </span><span class="m">200</span>.0
-Flaky<span class="w"> </span>violations:<span class="w"> </span><span class="m">0</span>
-Required<span class="w"> </span>priming:<span class="w"> </span><span class="m">0</span>
-Violations:<span class="w"> </span><span class="m">0</span>
-Effectiveness:
-<span class="w">  </span>Effectiveness:<span class="w"> </span><span class="m">0</span>.0
-<span class="w">  </span>Total<span class="w"> </span>Cls:<span class="w"> </span><span class="m">0</span>.0
-<span class="w">  </span>Effective<span class="w"> </span>Cls:<span class="w"> </span><span class="m">0</span>.0
-Filters:
-<span class="w">  </span>Speculation<span class="w"> </span>Filter:<span class="w"> </span><span class="m">0</span>
-<span class="w">  </span>Observation<span class="w"> </span>Filter:<span class="w"> </span><span class="m">0</span>
+  Total Cls: 30.0
+  Effective Cls: 30.0
+Discarded Test Cases:
+  Speculation Filter: 0
+  Observation Filter: 0
+  Fast Path: 0
+  Max Nesting Check: 0
+  Tainting Check: 0
+  Early Priming Check: 0
+  Large Sample Check: 0
+  Priming Check: 0
+
+Duration: 8.2
+Finished at 12:00:05
 </code></pre></div>
-<p>The line <code>Speculation Filter: 0</code> tells us that Revizor did not detect any speculation while executing the version of the program without <code>DIV</code>. It means that this division was the source of speculative leakage.</p>
-<h3 id="4-to-be-continued">4. TO BE CONTINUED...</h3>
+<h3 id="insights-from-the-output">Insights from the Output</h3>
+<ul>
+<li><strong>Violation detected</strong>: Indicates that the violation was successfully reproduced.</li>
+<li><strong>Contract Trace</strong>: The value (<code>14907365725669422044</code>) summarizes the contract trace for the inputs that triggered the violation.
+This value is a hash so it does not provide direct information about the contract trace, but it should match the value from the original violation.
+If you would like to see the complete contract trace, enable <code>dbg_dump_ctraces</code> in the configuration file.</li>
+<li><strong>Hardware Traces</strong>: The text under the <code>Hardware traces</code> section summarizes the hardware traces that constitute the violation.</li>
+<li>The text starting with <code>Input group</code> tells us that the violation was triggered by inputs #1, #11, and #21. The inputs #1 and #21 produced the same (or very similar) hardware traces, while input #11 produced a different set of traces - hence they are put into two different groups.</li>
+<li>The line with <code>^</code> and <code>.</code> characters represents the observed cache changes. Each character encodes the state of the corresponding L1D cache line after the test case has been executed with the given input. Character <code>^</code> indicates that the cache line was accessed (e.g., evicted if P+P mode is used), while <code>.</code> indicates that the cache line was not accessed. The cache sets are numbered left-to-right, starting from zero (TIP: set <code>color: true</code> in config file to improve readability). So, in the above example, the first hardware trace shows the accessed cache sets were 0, 2, 7, 13, 31, 35, and 49:
+<div class="highlight"><pre><span></span><code>      Set 2 accessed
+      |         Set 13 accessed
+      |          |                    Set 35 accessed
+      |          |                     |
+    ^.^....^.....^.................^...^............^...............
+    |      |                       |                |
+    |      |                       |                Set 49 accessed
+    |      |                       Set 31 accessed
+    |      Set 7 accessed
+    Set 0 accessed
+</code></pre></div></li>
+<li>The numbers at the end of the line (<code>[500    | 10    ]</code>) are the numbers of occurrences of the given hardware trace in the sample. Recall that the executor collects each hardware trace multiple times to deal with non-determinism and to filter noise (see <code>executor_sample_sizes</code> <a href="https://microsoft.github.io/sca-fuzzer/user/config/">configuration option</a>). The first number is the number of occurrences of the trace in the first input group (i.e., inputs #1 and #21), and the second number is the number of occurrences in the second input group (input #11). So, we can tell that the first input group always produced the same hardware trace, while the second input group mainly produced the second hardware trace, but there were a few (10) occurrences of the first trace as well.</li>
+<li><strong>Statistics</strong>: The statistics section can be largely ignored when root-causing the violation. Is it only useful for fine-tuning the fuzzing campaign.</li>
+</ul>
+<hr />
+<h2 id="step-3-minimize-the-program">Step 3: Minimize the Program</h2>
+<p>The violation program (<code>program.asm</code>) is a large, randomly generated sequence of instructions and it often contains many unnecessary instructions.</p>
+<blockquote>
+<p>TIP: If the violation is stable and reproducible, you can try to reduce the sample size to speed up the minimization process. To do so, modify the <code>executor_sample_sizes</code> parameter in the configuration file.</p>
+</blockquote>
+<p>Use minimization passes to simplify the program while preserving the violation:</p>
+<div class="highlight"><pre><span></span><code>rvzr<span class="w"> </span>minimize<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>./violation-&lt;timestamp&gt;/minimize.yaml<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-t<span class="w"> </span>./violation-&lt;timestamp&gt;/program.asm<span class="w"> </span>-o<span class="w"> </span>minimized.asm<span class="w"> </span>-i<span class="w"> </span>&lt;num_inputs&gt;<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--num-attempts<span class="w"> </span><span class="m">10</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--enable-instruction-pass<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--enable-simplification-pass<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--enable-label-pass<span class="w"> </span><span class="m">1</span>
+</code></pre></div>
+<h3 id="explanation-of-passes">Explanation of Passes</h3>
+<ul>
+<li>The default pass (no flag required) removes unnecessary instructions.</li>
+<li><code>--enable-simplification-pass</code> replaces complex instructions with simpler ones.</li>
+<li><code>--enable-label-pass</code> cleans up unused labels.</li>
+<li>The sequence of three passes is executed 10 time (<code>--num-attempts 10</code>) to ensure the best possible simplification.</li>
+</ul>
+<p>This example is the simplest form of minimization. For more advanced minimization options, consider adding the flags described in the <a href="https://microsoft.github.io/sca-fuzzer/user/minimization/">Minimization Passes Documentation</a>.</p>
+<h3 id="verify-minimization">Verify Minimization</h3>
+<p>The <code>minimized.asm</code> file contains a reduced version of the original program that still reproduces the violation.
+Run the <code>reproduce</code> command to ensure the minimizer did not introduce non-determinism.
+<div class="highlight"><pre><span></span><code>rvzr<span class="w"> </span>reproduce<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>./violation-&lt;timestamp&gt;/minimize.yaml<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-t<span class="w"> </span>minimized.asm<span class="w"> </span>-i<span class="w"> </span>&lt;num_inputs&gt;
+</code></pre></div></p>
+<p>If the violation is <em>not</em> reproducible, try re-running the minimizer without some some of the passes or decrease the number of attempts.</p>
+<hr />
+<h2 id="step-4-minimize-inputs">Step 4: Minimize Inputs</h2>
+<p>A test case input is the data used to initialize memory and register before executing the test case program.
+Hence, if we minimize the inputs that trigger the violation, we can isolate the exact conditions causing the violation and the data that leaks.</p>
+<p>Run the following command to minimize the inputs:
+<div class="highlight"><pre><span></span><code>rvzr<span class="w"> </span>minimize<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>./violation-&lt;timestamp&gt;/minimize.yaml<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-t<span class="w"> </span>minimized.asm<span class="w"> </span>-o<span class="w"> </span>commented.asm<span class="w"> </span>-i<span class="w"> </span>&lt;num_inputs&gt;<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--input-outdir<span class="w"> </span>./inputs<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--enable-input-diff-pass<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--enable-comment-pass<span class="w"> </span><span class="m">1</span>
+</code></pre></div></p>
+<p><strong>Result</strong>:
+- <strong><code>./inputs/min_input_*.bin</code></strong>: Minimized input sequence that still trigger the violation.
+- A printed summary of <strong>Leaked bytes</strong> in the terminal output. Be sure to record these for further analysis.</p>
+<h3 id="insights-from-the-summary">Insights from the Summary</h3>
+<p>Below is an example of the printed summary from the differential input minimizer:
+<div class="highlight"><pre><span></span><code>[PASS 2] Differential Input Minimizer
+  &gt; Minimizing the difference between inputs 1 and 11
+
+Address    +0x0     +0x40    +0x80    +0xc0    +0x100   +0x140   +0x180   +0x1c0
+0x00000000 ........ ........ ........ ........ ........ ........ ........ ........
+0x00000200 ........ =....... ........ ........ ........ ........ ........ ........
+0x00000400 ........ ........ ........ ........ ........ ........ ........ ........
+0x00000600 ........ ........ ........ ........ ........ ........ ........ ........
+0x00000800 ........ ........ ........ ........ ........ ........ ........ ........
+0x00000a00 ........ ........ ........ ........ ........ ........ ........ ........
+0x00000c00 ........ ........ ........ ........ ........ ........ ........ ........
+0x00000e00 ........ ........ ........ ........ ........ ........ ........ ........
+0x00001000 ........ ........ ........ ........ ........ ........ ........ ........
+0x00001200 ........ ........ ........ ........ ........ ........ ........ ........
+0x00001400 ........ ........ ........ ........ ........ ........ ........ ........
+0x00001600 ........ ........ ........ ........ ........ ........ ........ ........
+0x00001800 ........ ........ ........ ........ ........ ........ ........ ........
+0x00001a00 ........ ........ ........ ........ ........ ........ ........ ........
+0x00001c00 ........ ........ ........ ........ ........ ........ ........ ........
+0x00001e00 ........ ........ ........ ........ ........ ........ ........ ........
+0x00002000 .....^..
+0x00002040 ........ ........ ........ ........
+  &gt; Result: Leaked 1 bytes
+  &gt; Addresses: [&#39;0x2028&#39;]
+</code></pre></div></p>
+<p>The minimizer goes through the pair of inputs that trigger the violation - inputs #1 and #11 in this case - and tries to minimize the differences between them:
+* If both inputs already have identical values at a given address, the minimizer prints <code>=</code> for that address. In this example, this is the case for address <code>0x240</code>.
+* Next, the pass attempts to zero out one byte at a time in both inputs. If the violation persists, then the minimizer prints <code>.</code> for that address. In this example, most of the addresses are zeroed out.
+* Next, the pass attempts to copy one byte from input #1 into the same address in input #11. If the violation persists, then the minimizer prints <code>+</code> for that address. This example does not have such cases.
+* If both attempts fail, the pass restores the original values at the given address, prints <code>^</code>, and moves to the next address. In this example, the minimizer restored the original value at address <code>0x2028</code>.</p>
+<p>The interpretation of these results is case-specific, but generally, the values with <code>+</code> or <code>=</code> are those that create conditions for leakage, and the values with <code>^</code> are the addresses whose value leaks.</p>
+<p>In this example, the minimizer found that this test case leaks one byte at address <code>0x2028</code> (used to initialize RDI). The minimizer also found that the address <code>0x240</code> must contain specific non-zero values that must be the same in both inputs. This address in the input is used to initialize the corresponding offset in the sandbox of actor 0. See <a href="https://microsoft.github.io/sca-fuzzer/user/sandbox/">Sandbox Memory Layout</a> for more details about register and memory initialization.</p>
+<blockquote>
+<p>TIP 1: The <code>--enable-comment-pass 1</code> flag adds comments to the minimized input files, which can help you understand which instructions used which addresses.</p>
+<p>TIP 2: Ideally, the minimizer should be able to reduce the leakage to a single byte. If more then a couple bytes leak, it typically indicates that the violation is non-deterministic, and it might be a good idea to re-run the program minimizer or to change the configuration to increase the number of attempts/increase the noise threshold. If <em>no</em> bytes leak, this is a certain sign that something went wrong; re-run the minimizer.</p>
+</blockquote>
+<h3 id="verify-minimization_1">Verify Minimization</h3>
+<p>Run the minimized program with the reduced inputs to ensure the violation is still reproducible:
+<div class="highlight"><pre><span></span><code>rvzr<span class="w"> </span>reproduce<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>./violation-&lt;timestamp&gt;/reproduce.yaml<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-t<span class="w"> </span>commented.asm<span class="w"> </span>-i<span class="w"> </span>./inputs/min_input*.bin
+</code></pre></div></p>
+<h2 id="step-5-insert-speculation-fences">Step 5: Insert Speculation Fences</h2>
+<p>To isolate speculative behavior, add fences:
+<div class="highlight"><pre><span></span><code>rvzr<span class="w"> </span>minimize<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>./violation-&lt;timestamp&gt;/minimize.yaml<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-t<span class="w"> </span>commented.asm<span class="w"> </span>-o<span class="w"> </span>fenced.asm<span class="w"> </span>-i<span class="w"> </span>&lt;num_inputs&gt;<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--enable-fence-pass<span class="w"> </span><span class="m">1</span>
+</code></pre></div></p>
+<p>This pass with attempt to insert an <code>LFENCE</code> after every instruction in the program and check if the violation still occurs.</p>
+<p>In the resulting file (<code>fenced.asm</code>) the region <em>without</em> fences is the one that causes the violation. The remaining instructions are just setting up the data for the violation, and are likely irrelevant.</p>
+<blockquote>
+<p>TIP: If an <code>LFENCE</code> is inserted after <em>every</em> instruction in the test case and the violation still occurs, this is most likely due to a bug in the model or the executor. If you are using a custom model, consider checking the model for correctness. If you haven't made changes to the Revizor source code, please, open an issue in the <a href="https://github.com/microsoft/sca-fuzzer/issues">bug tracker</a>.</p>
+</blockquote>
+<hr />
+<h2 id="step-6-map-hardware-traces-to-minimized-program-and-data">Step 6: Map Hardware Traces to Minimized Program and Data</h2>
+<p>When both program and its inputs are minimized, you should be able to identify which instructions caused the cache accesses in the hardware traces and which data was leaked.</p>
+<p>When we run the <code>reproduce</code> command with the minimized program and inputs, we will see the following hardware traces:</p>
+<div class="highlight"><pre><span></span><code>================================ Violations detected ==========================
+Contract trace:
+ 2362171776002334258 (hash)
+Hardware traces:
+  Input group 1: [1]
+  Input group 2: [11]
+  ^...............................................^............... [420    | 0     ]
+  ^............................................................... [80     | 0     ]
+  ^..............^................................................ [0      | 500   ]
+</code></pre></div>
+<blockquote>
+<p>TIP: If in your case the input IDs have changed after minimization, you can either exclude some of the inputs from the arguments of the <code>reproduce</code> command, or re-run the minimizer with fewer passes.</p>
+</blockquote>
+<p>We see that the hardware traces have been significantly simplified compared to the original violation, and now there are at most two accessed cache sets in each trace: 0 and 48 for input #1, and 0 and 15 for input #11. This is a good sign: the minimization was successful.</p>
+<p>We can also tell that the only difference between the two traces is the accessed cache set 48 vs 15 . This is the cache set that is causing the violation, and we should be aiming to find the instruction that does the access.</p>
+<p>To do so, let's look at the contents of the <code>commented.asm</code> file. This file contains the minimized program with comments that show which memory addresses or cache lines are accessed by each instruction.</p>
+<div class="highlight"><pre><span></span><code>; ... skipped header ...
+1.  and rax, 0b1111111111111 # instrumentation
+2.  lfence
+3.  mov edx, dword ptr [r14 + rax]
+4.  # mem access: [1] 0x0 cl 0:0 | [11] 0x0 cl 0:0
+5.  or cx, 0b1000 # instrumentation
+6.  and cl, 0b11111000 # instrumentation
+7.  and dx, 0b11 #
+8.  and rsi, 0b1111111111111 #
+9.  add cl, 39 #
+10. mov rbx, 0b1111111111111 #
+11. bt si, dx
+12. jbe .bb_0.1
+13. jmp .exit_0
+14. .bb_0.1:
+15. mov ecx, edi
+16. and rcx, 0b1111111111000 # instrumentation
+17. mov byte ptr [r14 + rcx], 88
+; ... skipped footer ...
+</code></pre></div>
+<blockquote>
+<p>TIP: You can find the same information in a different format if you enable <code>dbg_violation</code> in the configuration file and run the <code>reproduce</code> command.</p>
+</blockquote>
+<p>This program contains only two memory accesses, at lines 3 and 17.</p>
+<p>The annotation at line 4 tells us that the <code>mov</code> instruction accesses memory offset <code>0x0</code> when executed with input 1 (<code>[1]</code>) and the same cache set when executed with input 11 (<code>[11]</code>). The notation <code>0:0</code> stands for cache set <code>0</code> and cache line offset <code>0</code>.</p>
+<p>This information lets us map this instruction to the first access in the hardware trace:</p>
+<div class="highlight"><pre><span></span><code>    ^...............................................^...............
+    |
+  This eviction maps to `mov edx, dword ptr [r14 + rax]` at line 3
+</code></pre></div>
+<p>The second memory access (line 17) does not have an annotation, which implies that the contract model has not executed this instruction with the inputs provided. It does not, however, mean that the CPU has not executed this instruction, as there is a chance that this instruction was executed speculatively. This is a typical scenario in violations detected by Revizor.</p>
+<p>If we look at the instructions prior to the memory access, we can see <code>jbe</code> instruction at line 12, which is a conditional jump - a common source of speculation, namely branch prediction. This type of speculation is not permitted by the target contract (CT-SEQ), so it could cause a violation. From this, we can make a hypothesis that the memory access at line 17 is speculative and is the one causing the second cache access:</p>
+<div class="highlight"><pre><span></span><code> Inputs [1]:
+              Hypothesis: This eviction maps to `mov` at line 17
+                                                  |
+  ^...............................................^...............
+
+ Inputs [11]:
+  ^..............^................................................
+                 |
+           Hypothesis: This eviction maps to `mov` at line 17
+</code></pre></div>
+<p>To check if our hypothesis is correct, let's cross-reference this information with the leaked bytes from the differential input minimizer:</p>
+<div class="highlight"><pre><span></span><code>; .. skip zero bytes
+0x00002000 .....^..
+0x00002040 ........ ........ ........ ........
+  &gt; Result: Leaked 1 bytes
+  &gt; Addresses: [&#39;0x2028&#39;]
+</code></pre></div>
+<p>This summary tells us that <code>rdi</code> has a differing value between inputs #1 and 11. At the same time, the first time <code>rdi</code> is used in the program is at line 15, where it is moved to <code>rcx</code>, and then later used as a part of the address in the memory access at line 17. This would make the speculative memory access at line 17 access different addresses with the two inputs, and would explain the difference between the hardware traces.</p>
+<p>At this point, the hypothesis is more-or-less confirmed, and we can declare that the root cause of the leak was the misprediction of the <code>jbe</code> branch at line 12, which caused the speculative execution of the memory access at line 17, and which in turn leaked the value of <code>rdi</code>.</p>
+<p>If we want to further increase our confidence, we can manually inspect the contents of the inputs at the address <code>0x2028</code> to see if the values correspond to the cache set ID that we observe in the hardware traces. This can be done by running the <code>hexdump</code> command on the input files:</p>
+<div class="highlight"><pre><span></span><code>$<span class="w"> </span>hexdump<span class="w"> </span>-C<span class="w"> </span>./inputs/min_input_0001.bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="m">2020</span>
+<span class="m">00002020</span><span class="w">  </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w">  </span>1e<span class="w"> </span>1c<span class="w"> </span>4a<span class="w"> </span><span class="m">00</span><span class="w"> </span>1e<span class="w"> </span>1c<span class="w"> </span>4a<span class="w"> </span><span class="m">00</span><span class="w">  </span><span class="p">|</span>..........J...J.<span class="p">|</span>
+$<span class="w"> </span>hexdump<span class="w"> </span>-C<span class="w"> </span>./inputs/min_input_0011.bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="m">2020</span>
+<span class="m">00002020</span><span class="w">  </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w">  </span>c8<span class="w"> </span><span class="m">13</span><span class="w"> </span><span class="m">58</span><span class="w"> </span><span class="m">00</span><span class="w"> </span>c8<span class="w"> </span><span class="m">13</span><span class="w"> </span><span class="m">58</span><span class="w"> </span><span class="m">00</span><span class="w">  </span><span class="p">|</span>..........X...X.<span class="p">|</span>
+</code></pre></div>
+<p>The values are <code>0x4a1c1e004a1c1e</code> for input #1 and <code>0x5813c8005813c8</code> for input #11. These are masked with <code>0b1111111111000</code> by <code>and</code> at line 16 and become <code>7192</code> and <code>5064</code> respectively. If we translate these values to cache set IDs (<code>id = (addr % 0x1000) // 64</code>), we get <code>48</code> and <code>15</code>. These values match the cache set IDs that we observed in the hardware traces, which confirms our hypothesis.</p>
+<p>If we want even more confidence, we can manually modify the input files (e.g, with <code>hexedit</code> tool) to see if the hardware traces change when we modify the value of <code>rdi</code> in the input files.</p>
+<hr />
+<h2 id="step-7-modify-the-program">Step 7: Modify the Program</h2>
+<p>In many cases, the minimization process will not provide a clear result as in the example above and you will not be able to make a specific hypothesis about the root cause of the violation. In such cases, you can try to modify the program in various ways to see if the violation still occurs. There are no strict rules on which modifications to make and you will have to rely on your intuition and knowledge of the target microarchitecture, but here are some general guidelines:</p>
+<ol>
+<li><strong>Simplify Instructions</strong>: Start by trying to manually replace instructions in <code>minimized.asm</code> with simpler ones. For example, replace complex instructions with memory operands with simple loads or stores.</li>
+<li><strong>Increase/Decrease Aliasing</strong>: Try to change the addresses of memory accesses to match (or not match if they already do) the addresses of other instruction. Such aliasing often triggers speculation (e.g., in Speculative Store Bypass or MDS attacks).</li>
+<li><strong>Add/Remove Dependent Instructions</strong>: If you have a hypothesis about which instruction triggers speculation, try adding or removing data-dependent instructions before it. This will change the size of the speculative window and might change hardware traces, which will give you more insight into the violation.</li>
+<li><strong>Change Memory Permissions</strong>: If the violation is related to memory accesses, try changing the permissions of the memory regions that are accessed by the program. For example, if the memory is read-only, try changing it to read-write. If the violation disappears, it might indicate that the violation is related to the permission checks in the CPU.</li>
+<li><strong>Change Instruction Operands</strong>: Try changing operands to add or remove data dependencies between instructions. For example, if you have a sequence of two moves <code>mov rax, [rax]; mov rbx, [rax]</code>, try changing the second move to <code>mov rbx, [rbx]</code> to see if the violation still occurs if there are no data dependencies between the instructions.</li>
+</ol>
+<p>After each modification, run the <code>reproduce</code> command to see if the violation still occurs:</p>
+<div class="highlight"><pre><span></span><code>rvzr<span class="w"> </span>reproduce<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>./violation-&lt;timestamp&gt;/reproduce.yaml<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-t<span class="w"> </span>modified.asm<span class="w"> </span>-i<span class="w"> </span>./inputs/min_input*.bin
+</code></pre></div>
+<blockquote>
+<p>NOTE: If you find any other strategies that work well, please consider sharing them by opening a pull request to this documentation. We would love to hear about your experiences and learn from them.</p>
+</blockquote>
+<hr />
+<h2 id="additional-resources">Additional Resources</h2>
+<ul>
+<li><a href="https://microsoft.github.io/sca-fuzzer/user/cli/">Command Line Interface</a></li>
+<li><a href="https://microsoft.github.io/sca-fuzzer/user/minimization/">Minimization Passes</a></li>
+<li><a href="https://microsoft.github.io/sca-fuzzer/user/config/">Configuration File Documentation</a></li>
+<li><a href="https://microsoft.github.io/sca-fuzzer/user/sandbox/">Sandbox Memory Layout</a></li>
+</ul>
 
 
 
