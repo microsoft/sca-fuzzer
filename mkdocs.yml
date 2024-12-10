@@ -44,7 +44,7 @@ nav:
     - Modes of Operation: user/modes.md
     - Configuration Options: user/config.md
     - Minimization Passes: user/minimization.md
-    - Fuzzing Guide: user/fuzzing-guide.md
+    - Violation Root-Causing: user/fuzzing-guide.md
   - Developer Documentation:
     - Developer Guide: development.md
     - How Revizor Works: how-revizor-works.md
