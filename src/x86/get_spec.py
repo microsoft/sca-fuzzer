@@ -125,6 +125,8 @@ class X86Transformer:
         self.tree = tree
 
     def parse_tree(self, extensions: List[str]):
+        self._check_extension_list(extensions)
+
         for instruction_node in self.tree.iter('instruction'):
             if instruction_node.attrib.get('sae', '') == '1' or \
                instruction_node.attrib.get('roundc', '') == '1' or \
@@ -178,7 +180,8 @@ class X86Transformer:
                     else:
                         self.instruction.operands.append(parsed_op)
 
-            except ParseFailed:
+            except ParseFailed as e:
+                print(f"WARN: Skipping instruction {self.instruction.name} due to `{e}`")
                 continue
 
             self.instructions.append(self.instruction)
@@ -200,17 +203,17 @@ class X86Transformer:
             if spec.values[0] in self.reg_sizes:
                 spec.width = self.reg_sizes[spec.values[0]]
             else:
-                raise ParseFailed()
+                raise ParseFailed(f"Unsupported register operand {spec.values[0]}")
         return spec
 
     @staticmethod
     def parse_mem_operand(op):
         # asserts are for unsupported instructions
         if op.attrib.get('VSIB', '0') != '0':
-            raise ParseFailed()
+            raise ParseFailed("Vector SIB memory addressing is not supported")
         # assert op.attrib.get('VSIB', '0') == '0'  # asm += '[' + op.attrib.get('VSIB') + '0]'
         if op.attrib.get('memory-suffix', '') != '':
-            raise ParseFailed()
+            raise ParseFailed(f"Unsupported memory suffix {op.attrib.get('memory-suffix', '')}")
 
         choices = []
         if op.attrib.get('base', ''):
@@ -340,6 +343,19 @@ class X86Transformer:
                 inst.operands = [op1, op2]
                 self.instructions.append(inst)
 
+    def _check_extension_list(self, extensions: List[str]):
+        # get a list of all available extensions
+        available_extensions = set()
+        for instruction_node in self.tree.iter('instruction'):
+            available_extensions.add(instruction_node.attrib['extension'])
+
+        # check if the requested extensions are available
+        for ext in extensions:
+            if ext not in available_extensions:
+                print(f"ERROR: Unknown extension {ext}")
+                print("\nAvailable extensions:")
+                print(list(available_extensions))
+
 
 SAFE_EXTENSIONS = [
     "BASE",
@@ -394,12 +410,14 @@ class Downloader:
         self.out_file = out_file
 
     def run(self):
+        print("> Downloading complete instruction spec...")
         subprocess.run(
             "curl -L -o x86_instructions.xml "
             "https://github.com/microsoft/sca-fuzzer/releases/download/v1.2.4/x86_instructions.xml",
             shell=True,
             check=True)
 
+        print("\n> Filtering and transforming the instruction spec...")
         try:
             transformer = X86Transformer()
             transformer.load_files("x86_instructions.xml")
