@@ -4,20 +4,42 @@ if [ "$1" == "" ] || [ $1 != "--ignore-errors" ]; then
     set -e
 fi
 
+if [ "$1" == "--strict" ]; then
+    echo "Including optional tests"
+    STRICT=true
+else
+    STRICT=false
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+ALL_PY=$(find src/ -name "*.py" | grep -v "config" | grep -v "fuzzer")
 
 echo ""
-echo "===== Type Checking with mypy ====="
+echo "===== MyPy ====="
 cd $SCRIPT_DIR/.. || exit
-MYPYPATH=src/ python3 -m mypy src/*.py src/x86/*.py --exclude src/tests/unit_isa_loader.py \
-    --exclude src/x86/tests/unit_model.py --exclude src/x86/tests/unit_executor.py \
-    --exclude src/x86/tests/unit_generators.py
+MYPYPATH=src/ python3 -m mypy --strict $ALL_PY --no-warn-unused-ignores
 cd - >/dev/null || exit
+
+if [ "$STRICT" = true ]; then
+    echo ""
+    cd $SCRIPT_DIR/.. || exit
+    echo "===== STRICT CHECK: MyPy (Unit Tests) ====="
+    MYPYPATH=src/ python3 -m mypy --strict tests/unit_*.py
+    MYPYPATH=src/ python3 -m mypy --strict tests/x86_tests/unit_*.py
+    cd - >/dev/null || exit
+
+    echo ""
+    cd $SCRIPT_DIR/.. || exit
+    echo "===== STRICT CHECK: PyLint ====="
+    python3 -m pylint --rcfile=.pylintrc $ALL_PY
+    cd - >/dev/null || exit
+fi
+# exit
 
 echo ""
 echo "===== Code Style Checking with flake8 ====="
 cd $SCRIPT_DIR/.. || exit
-python3 -m flake8 --max-line-length 100 --ignore E402,W503 .  --count --show-source --statistics
+python3 -m flake8 --max-line-length 100 --ignore E402,W503 . --count --show-source --statistics
 cd - >/dev/null || exit
 
 echo ""
@@ -25,6 +47,7 @@ echo "===== Core Unit Tests ====="
 cd $SCRIPT_DIR/.. || exit
 python3 -m unittest discover tests -p "unit_*.py" -v
 cd - >/dev/null || exit
+# exit
 
 echo ""
 echo "===== x86 kernel module ====="
@@ -41,9 +64,12 @@ python3 -m unittest tests.x86_tests.unit_generators -v
 echo "-------------"
 python3 -m unittest tests.x86_tests.unit_isa_loader -v
 echo "-------------"
-python3 -m unittest tests.x86_tests.unit_model -v
+python3 -m unittest tests.x86_tests.unit_model_unicorn -v
+echo "-------------"
+python3 -m unittest tests.x86_tests.unit_taint_tracker -v
 echo "-------------"
 cd - >/dev/null || exit
+# exit
 
 echo ""
 echo "===== x86 acceptance tests ====="

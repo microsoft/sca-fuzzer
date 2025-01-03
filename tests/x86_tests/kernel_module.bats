@@ -75,7 +75,7 @@ function set_default_config() {
 }
 
 @test "x86 executor: Printing base addresses" {
-    run cat /sys/x86_executor/print_sandbox_base
+    run cat /sys/x86_executor/print_data_base
     echo "Output: $output"
     [[ "$output" != "0" ]]
     run cat /sys/x86_executor/print_code_base

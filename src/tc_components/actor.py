@@ -4,11 +4,16 @@ File: Classes defining the actor abstraction.
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
-from typing import NamedTuple, Dict, Tuple
+from __future__ import annotations
+
+from typing import Dict, Tuple, Final, Optional, TYPE_CHECKING
 from enum import Enum
 import random
 
-from .target_desc import TargetDesc
+if TYPE_CHECKING:
+    from ..target_desc import TargetDesc
+    from ..config import PageConf, ActorConf
+    from .test_case_code import CodeSection
 
 ActorID = int
 ActorName = str
@@ -27,20 +32,7 @@ class ActorPL(Enum):
     USER = 1
 
 
-class ElfSection(NamedTuple):
-    """ Class representing the ELF section of an actor. """
-
-    id_: int
-    """ section id; will match the actor id if the actor IDs are ordered and contiguous """
-
-    offset: int
-    """ offset of the section in the ELF file """
-
-    size: int
-    """ size of the section in the ELF file """
-
-
-def _pte_properties_to_mask(properties: dict,
+def _pte_properties_to_mask(properties: PageConf,
                             def_bits_dict: Dict[str, Tuple[int, bool]]) -> PageProperties:
     """
     Convert a dictionary of PTE properties to a bitmask, later used to set the attributes
@@ -59,7 +51,13 @@ def _pte_properties_to_mask(properties: dict,
     if properties['randomized']:
         count_non_default = 0
         for bit_name in def_bits_dict:
-            if def_bits_dict[bit_name][1] != properties[bit_name]:
+            # transform non_executable to executable
+            if bit_name == "non_executable":
+                p_value = not properties["executable"]
+            else:
+                p_value = properties[bit_name]
+
+            if def_bits_dict[bit_name][1] != p_value:
                 count_non_default += 1
         probability_of_default = count_non_default / len(properties)
 
@@ -85,17 +83,18 @@ def _pte_properties_to_mask(properties: dict,
 class Actor:
     """ Class representing an actor in a test case. """
 
-    mode: ActorMode
-    privilege_level: ActorPL
-    name: ActorName
-    data_properties: PageProperties
-    data_ept_properties: PageProperties
-    observer: bool
-    _is_main: bool = False
+    mode: Final[ActorMode]
+    privilege_level: Final[ActorPL]
+    name: Final[ActorName]
+    data_properties: Final[PageProperties]
+    data_ept_properties: Final[PageProperties]
+    observer: Final[bool]
+    is_main: Final[bool]
 
-    _id: ActorID
-    _elf_section: ElfSection
-    _elf_section_assigned: bool = False
+    _code_section: Optional[CodeSection] = None
+
+    # ==============================================================================================
+    # Constructors
 
     def __init__(self,
                  mode: ActorMode,
@@ -110,10 +109,10 @@ class Actor:
         self.data_properties = data_properties
         self.data_ept_properties = data_ept_properties
         self.observer = is_observer
-        self._is_main = name == "main"
+        self.is_main = name == "main"
 
     @classmethod
-    def from_dict(cls, actor_dict: Dict, target_desc: TargetDesc):
+    def from_dict(cls, actor_dict: ActorConf, target_desc: TargetDesc) -> 'Actor':
         """
         Create an actor based on a dictionary of actor properties.
         :param actor_dict: dictionary of actor properties
@@ -153,32 +152,25 @@ class Actor:
             is_observer=actor_dict["observer"],
         )
 
-    def is_main(self) -> bool:
+    @classmethod
+    def create_main(cls) -> 'Actor':
         """
-        Check if the actor is the main actor.
-        :return: True if the actor is the main actor, False otherwise
+        Create the main actor with default properties.
+        :return: Actor object
         """
-        return self._is_main
+        return Actor(ActorMode.HOST, ActorPL.KERNEL, "main")
 
-    def assign_elf_section(self, section: ElfSection) -> None:
-        """
-        Assign an ELF section to the actor.
-        :param section: ELF section
-        :raises: AssertionError when attempting to assign a section with ID != 0 to the main actor
-        """
-        assert not self._is_main or section.id_ == 0, "Main actor must have section id 0"
-        self._elf_section = section
-        self._id = section.id_
-        self._elf_section_assigned = True
+    # ==============================================================================================
+    # Public methods
+    def assign_code_section(self, section: CodeSection) -> None:
+        """ Assign a code section to the actor. """
+        assert self._code_section is None, f"Code section already assigned to actor {self.name}"
+        self._code_section = section
 
-    def elf_section(self) -> ElfSection:
-        """
-        Get the ELF section assigned to the actor.
-        :return: ELF section
-        :raises: AssertionError if the ELF section has not been assigned
-        """
-        assert self._elf_section_assigned, f"ELF section not assigned to actor {self.name}"
-        return self._elf_section
+    def code_section(self) -> CodeSection:
+        """ Get the code section assigned to the actor. """
+        assert self._code_section is not None, f"Code section not assigned to actor {self.name}"
+        return self._code_section
 
     def get_id(self) -> ActorID:
         """
@@ -186,5 +178,7 @@ class Actor:
         :return: actor ID
         :raises: AssertionError if the ELF section has not been assigned
         """
-        assert self._elf_section_assigned, "ELF section not assigned to actor"
-        return self._id
+        assert self._code_section is not None, f"Code section not assigned to actor {self.name}"
+        assert self._code_section.id_ is not None, \
+            "assign_elf_data was not called on the child CodeSection"
+        return self._code_section.id_

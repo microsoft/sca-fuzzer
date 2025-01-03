@@ -1,5 +1,4 @@
 .intel_syntax noprefix
-.test_case_enter:
 .section .data.main
 mov rbx, 100
 .l1:

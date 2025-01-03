@@ -2,58 +2,85 @@
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
+
 import unittest
+from typing import List
+
+import numpy as np
+import numpy.typing as npt
+
 from src.analyser import MergedBitmapAnalyser, SetAnalyser, ChiSquaredAnalyser
-from src.interfaces import Input, HTrace
+from src.tc_components.test_case_data import InputData
+from src.tc_components.test_case_code import TestCaseProgram
+from src.traces import CTrace, HTrace, RawHTraceSample, CTraceEntry
 from src.config import CONF
+
+
+def _htrace_from_trace(trace_list: List[int]) -> HTrace:
+    samples: npt.NDArray[np.void] = np.ndarray(len(trace_list), dtype=RawHTraceSample)
+    for i, trace in enumerate(trace_list):
+        samples[i] = (trace, 0, 0, 0, 0, 0)
+    return HTrace(samples)
+
+
+def _ctrace_from_int(trace: int) -> CTrace:
+    return CTrace([CTraceEntry("val", trace)])
 
 
 class AnalyserTest(unittest.TestCase):
 
-    def test_merged_bitmap_analyser(self):
+    def test_merged_bitmap_analyser(self) -> None:
         analyser = MergedBitmapAnalyser()
-        dummy_input = Input()
+        dummy_input = InputData()
+        dummy_tc = TestCaseProgram("")
         inputs = [dummy_input] * 4
 
-        h1 = HTrace([0b1101, 0b1101])
-        h2 = HTrace([0b1011, 0b1011])
-        h3 = HTrace([0b1000, 0b1000])
-        h4 = HTrace([0b1000, 0b1000])
-        htraces = [h1, h2, h3, h4]
-        ctraces = [1, 1, 2, 2]
+        htraces_int = [[0b1101, 0b1101], [0b1011, 0b1011], [0b1000, 0b1000], [0b1000, 0b1000]]
+        htraces = [_htrace_from_trace(trace) for trace in htraces_int]
 
-        violations = analyser.filter_violations(inputs, ctraces, htraces)
+        ctraces_int = [1, 1, 2, 2]
+        ctraces = [_ctrace_from_int(trace) for trace in ctraces_int]
+
+        violations = analyser.filter_violations(ctraces, htraces, dummy_tc, inputs)
         self.assertEqual(len(violations), 1)
-        self.assertEqual(violations[0].ctrace, 1)
+        self.assertEqual(violations[0].ctrace, ctraces[0])
 
-    def test_set_analyser(self):
+    def test_set_analyser(self) -> None:
         analyser = SetAnalyser()
-        dummy_input = Input()
+        dummy_input = InputData()
+        dummy_tc = TestCaseProgram("")
         inputs = [dummy_input] * 4
 
-        h1 = HTrace([1, 2, 2, 1])
-        h2 = HTrace([1, 3, 3, 1])
-        h3 = HTrace([1, 1, 1, 1])
-        h4 = HTrace([1, 1, 1, 1])
-        htraces = [h1, h2, h3, h4]
-        ctraces = [1, 1, 2, 2]
+        htraces_int = [[1, 2, 2, 1], [1, 3, 3, 1], [1, 1, 1, 1], [1, 1, 1, 1]]
+        htraces = [_htrace_from_trace(trace) for trace in htraces_int]
 
-        violations = analyser.filter_violations(inputs, ctraces, htraces)
+        ctraces_int = [1, 1, 2, 2]
+        ctraces = [_ctrace_from_int(trace) for trace in ctraces_int]
+
+        violations = analyser.filter_violations(ctraces, htraces, dummy_tc, inputs)
         self.assertEqual(len(violations), 1)
-        self.assertEqual(violations[0].ctrace, 1)
+        self.assertEqual(violations[0].ctrace, ctraces[0])
 
-    def test_chi2_analyser(self):
+    def test_chi2_analyser(self) -> None:
         analyser = ChiSquaredAnalyser()
-        dummy_input = Input()
+        dummy_input = InputData()
+        dummy_tc = TestCaseProgram("")
         inputs = [dummy_input] * 4
 
         h1 = [1] * CONF.executor_sample_sizes[0]
         h2 = [2] * CONF.executor_sample_sizes[0]
         h2[0] = 1
         h2[1] = 1
-        htraces = [HTrace(h1), HTrace(h2), HTrace(h2), HTrace(h2)]
-        ctraces = [1, 1, 2, 2]
+        htraces = [
+            _htrace_from_trace(h1),
+            _htrace_from_trace(h2),
+            _htrace_from_trace(h2),
+            _htrace_from_trace(h2)
+        ]
 
-        violations = analyser.filter_violations(inputs, ctraces, htraces)
+        ctraces_int = [1, 1, 2, 2]
+        ctraces = [_ctrace_from_int(trace) for trace in ctraces_int]
+
+        violations = analyser.filter_violations(ctraces, htraces, dummy_tc, inputs)
         self.assertEqual(len(violations), 1)
-        self.assertEqual(violations[0].ctrace, 1)
+        self.assertEqual(violations[0].ctrace, ctraces[0])

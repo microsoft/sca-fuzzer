@@ -7,7 +7,7 @@ SPDX-License-Identifier: MIT
 """
 from dataclasses import dataclass
 from enum import Enum
-from typing import List
+from typing import List, Final, Tuple
 
 
 class OT(Enum):
@@ -22,8 +22,8 @@ class OT(Enum):
     FLAGS = 6  # Flags Operand
     COND = 7  # Condition Operand
 
-    def __str__(self):
-        return str(self._name_)
+    def __str__(self) -> str:
+        return str(self._name_)  # pylint: disable=no-member  # This is an intended private use
 
 
 @dataclass
@@ -33,13 +33,13 @@ class OperandSpec:
     Typically used in connection with an InstructionSpec.
     """
 
-    values: List[str]
+    values: Final[Tuple[str, ...]]
     """ List of operand values (e.g., register names, immediate values). """
 
-    type: OT
+    type: Final[OT]
     """ Type of the operand (e.g., register, memory, immediate). """
 
-    width: int
+    width: Final[int]
     """ Width of the operand in bits, if applicable (e.g., 64 for 64-bit register). """
 
     src: bool
@@ -48,23 +48,32 @@ class OperandSpec:
     dest: bool
     """ Indicates if the operand is a destination; i.e., if it is written by the instruction. """
 
-    signed: bool = True
+    is_signed: Final[bool]
     """ Indicates if the operand is signed. """
 
-    magic_value: bool = False
+    has_magic_value: Final[bool]
     """ Indicates if the operand has a special value that requires unique handling.
     (e.g., separate opcode when RAX is a destination)
     """
 
-    def __init__(self, values: List[str], type_: OT, src: bool, dest: bool):
-        self.values = values
+    def __init__(self,
+                 values: List[str],
+                 type_: OT,
+                 src: bool,
+                 dest: bool,
+                 width: int = 0,
+                 is_signed: bool = True,
+                 has_magic_value: bool = False):
+        self.values = tuple(values)
         self.type = type_
         self.src = src
         self.dest = dest
-        self.width = 0
+        self.width = width
+        self.is_signed = is_signed
+        self.has_magic_value = has_magic_value
 
-    def __str__(self):
-        return f"{self.values}"
+    def __str__(self) -> str:
+        return "(" + ", ".join(self.values) + ")"
 
 
 @dataclass
@@ -74,20 +83,20 @@ class InstructionSpec:
     Typically originates from a JSON specification file (base.json).
     """
 
-    name: str
+    name: Final[str]
     """ Name of the instruction. """
+
+    category: Final[str]
+    """ Category of the instruction. Originates from the JSON specification file. """
+
+    is_control_flow: Final[bool]
+    """ Indicates if the instruction alters control flow (e.g., jumps, calls). """
 
     operands: List[OperandSpec]
     """ List of explicit operands for the instruction. """
 
     implicit_operands: List[OperandSpec]
     """ List of implicit operands for the instruction. """
-
-    category: str
-    """ Category of the instruction. Originates from the JSON specification file. """
-
-    control_flow: bool = False
-    """ Indicates if the instruction alters control flow (e.g., jumps, calls). """
 
     has_mem_operand: bool = False
     """ Indicates if the instruction has a memory operand. """
@@ -98,11 +107,15 @@ class InstructionSpec:
     has_magic_value: bool = False
     """ Indicates if the instruction has a special value that requires unique handling. """
 
-    def __init__(self):
+    def __init__(self, name: str, category: str, is_control_flow: bool = False):
+        self.name = name
+        self.category = category
+        self.is_control_flow = is_control_flow
+
         self.operands = []
         self.implicit_operands = []
 
-    def __str__(self):
+    def __str__(self) -> str:
         ops = ""
         for o in self.operands:
             ops += str(o) + " "

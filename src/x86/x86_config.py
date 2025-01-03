@@ -7,15 +7,14 @@ SPDX-License-Identifier: MIT
 from typing import List
 
 
-def try_get_cpu_vendor():
+def try_get_cpu_vendor() -> str:
     with open('/proc/cpuinfo', 'r') as f:
         for line in f:
             if 'AuthenticAMD' in line:
                 return 'x86-64-amd'
             if 'GenuineIntel' in line:
                 return 'x86-64-intel'
-        else:
-            return 'x86-64-intel'
+        return 'x86-64-intel'
 
 
 _option_values = {

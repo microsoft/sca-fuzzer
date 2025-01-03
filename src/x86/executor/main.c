@@ -120,12 +120,12 @@ static ssize_t warmups_store(struct kobject *kobj, struct kobj_attribute *attr, 
                              size_t count);
 static struct kobj_attribute warmups_attribute = __ATTR(warmups, 0666, warmups_show, warmups_store);
 
-/// Getting the sandbox base address
+/// Getting the data base address
 ///
-static ssize_t print_sandbox_base_show(struct kobject *kobj, struct kobj_attribute *attr,
+static ssize_t print_data_base_show(struct kobject *kobj, struct kobj_attribute *attr,
                                        char *buf);
-static struct kobj_attribute print_sandbox_base_attribute =
-    __ATTR(print_sandbox_base, 0664, print_sandbox_base_show, NULL);
+static struct kobj_attribute print_data_base_attribute =
+    __ATTR(print_data_base, 0664, print_data_base_show, NULL);
 
 /// Getting the base address of the memory region where the test case is loaded
 ///
@@ -205,7 +205,7 @@ static struct attribute *sysfs_attributes[] = {
     &test_case_attribute.attr,
     &inputs_attribute.attr,
     &warmups_attribute.attr,
-    &print_sandbox_base_attribute.attr,
+    &print_data_base_attribute.attr,
     &print_code_base_attribute.attr,
     &enable_ssbp_patch_attribute.attr,
     &enable_prefetcher_attribute.attr,
@@ -357,9 +357,9 @@ static ssize_t warmups_store(struct kobject *kobj, struct kobj_attribute *attr, 
     return count;
 }
 
-static ssize_t print_sandbox_base_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+static ssize_t print_data_base_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
-    return sprintf(buf, "%llx\n", (long long unsigned)sandbox->data[0].main_area);
+    return sprintf(buf, "%llx\n", (long long unsigned)&sandbox->data[0]);
 }
 
 static ssize_t print_code_base_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)

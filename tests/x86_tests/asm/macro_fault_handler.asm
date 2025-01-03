@@ -1,6 +1,4 @@
 .intel_syntax noprefix
-.test_case_enter:
-
 .section .data.main
 .function_main_0:
 

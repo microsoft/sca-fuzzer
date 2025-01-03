@@ -1,5 +1,4 @@
 .intel_syntax noprefix
-.test_case_enter:
 .section .data.main
 and rax, 0b011111111111
 add rax, 0x1000

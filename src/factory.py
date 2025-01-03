@@ -1,137 +1,132 @@
 """
-File: Configuration factory
+File: Configuration factory; constructs objects based on the configuration options.
 
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
+from __future__ import annotations
+from typing import Dict, Type, List, TYPE_CHECKING, Any, Optional
 
-from typing import Tuple, Dict, Type, List, Callable
+from . import input_generator, analyser, executor, fuzzer, model
+from .model_unicorn import tracer, speculator_abc, speculators_basic, \
+    interpreter, model as uc_model
+from .postprocessing.minimizer import Minimizer
 
-from . import input_generator, analyser, postprocessor, interfaces, model
-from .x86 import x86_model, x86_executor, x86_fuzzer, x86_generator, x86_asm_parser, get_spec
+from .x86 import x86_executor, x86_fuzzer, x86_generator, x86_asm_parser, \
+    x86_elf_parser, x86_target_desc, get_spec
 from .config import CONF, ConfigException
 
-GENERATORS: Dict[str, Type[interfaces.Generator]] = {
-    "x86-64-random": x86_generator.X86RandomGenerator
-}
+if TYPE_CHECKING:
+    from .isa_spec import InstructionSet
+    from .target_desc import TargetDesc
+    from .generator import CodeGenerator
+    from .asm_parser import AsmParser
+    from .elf_parser import ELFParser
+    from .sandbox import BaseAddrTuple
 
-INPUT_GENERATORS: Dict[str, Type[interfaces.InputGenerator]] = {
-    'random': input_generator.NumpyRandomInputGenerator,
-}
 
-TRACERS: Dict[str, Type[model.UnicornTracer]] = {
-    "none": model.NoneTracer,
-    "l1d": model.L1DTracer,
-    "pc": model.PCTracer,
-    "memory": model.MemoryTracer,
-    "ct": model.CTTracer,
-    "loads+stores+pc": model.CTTracer,
-    "ct-nonspecstore": model.CTNonSpecStoreTracer,
-    "arch": model.ArchTracer,
-    "tct": model.TruncatedCTTracer,
-    "tcto": model.TruncatedCTWithOverflowsTracer,
-}
+class FactoryException(SystemExit):
+    """ Exception raised by the factory functions """
 
-X86_EXECUTION_CLAUSES: Dict[str, Type[x86_model.UnicornModel]] = {
-    "seq": x86_model.X86UnicornSeq,
-    "no_speculation": x86_model.X86UnicornSeq,
-    "seq-assist": x86_model.X86SequentialAssist,
-    "cond": x86_model.X86UnicornCond,
-    "conditional_br_misprediction": x86_model.X86UnicornCond,
-    "bpas": x86_model.X86UnicornBpas,
-    "nullinj-fault": x86_model.X86UnicornNull,
-    "nullinj-assist": x86_model.X86UnicornNullAssist,
-    "delayed-exception-handling": x86_model.X86UnicornDEH,
-    "div-zero": x86_model.X86UnicornDivZero,
-    "div-overflow": x86_model.X86UnicornDivOverflow,
-    "meltdown": x86_model.X86Meltdown,
-    "fault-skip": x86_model.X86FaultSkip,
-    "noncanonical": x86_model.X86NonCanonicalAddress,
-    "vspec-ops-div": x86_model.x86UnicornVspecOpsDIV,
-    "vspec-ops-memory-faults": x86_model.x86UnicornVspecOpsMemoryFaults,
-    "vspec-ops-memory-assists": x86_model.x86UnicornVspecOpsMemoryAssists,
-    "vspec-ops-gp": x86_model.x86UnicornVspecOpsGP,
-    "vspec-all-div": x86_model.x86UnicornVspecAllDIV,
-    "vspec-all-memory-faults": x86_model.X86UnicornVspecAllMemoryFaults,
-    "vspec-all-memory-assists": x86_model.X86UnicornVspecAllMemoryAssists,
-    "noninterference": x86_model.ActorNonInterferenceModel,
-    "cond-bpas": x86_model.X86UnicornCondBpas,
-    "cond-nullinj-fault": x86_model.X86NullInjCond,
-}
+    def __init__(self, options: Dict[str, Type[Any]], key: str, conf_option_name: str) -> None:
+        super().__init__(
+            f"ERROR: unknown value `{key}` of `{conf_option_name}` configuration option.\n"
+            "  Available options are:\n  - " + "\n  - ".join(options.keys()))
 
-EXECUTORS = {
-    'x86-64-intel': x86_executor.X86IntelExecutor,
-    'x86-64-amd': x86_executor.X86AMDExecutor,
-}
 
-ANALYSERS: Dict[str, Type[interfaces.Analyser]] = {
-    'bitmaps': analyser.MergedBitmapAnalyser,
-    'sets': analyser.SetAnalyser,
-    'mwu': analyser.MWUAnalyser,
-    'chi2': analyser.ChiSquaredAnalyser,
-}
-
-MINIMIZERS: Dict[str, Type[interfaces.Minimizer]] = {
-    'violation': postprocessor.MainMinimizer,
-}
-
-SPEC_DOWNLOADERS: Dict[str, Type] = {
-    'x86-64': get_spec.Downloader,
-}
-
-ASM_PARSERS: Dict[str, Type] = {
-    'x86-64': x86_asm_parser.X86AsmParser,
+# ==================================================================================================
+# Common enumerations
+# ==================================================================================================
+_TARGET_DESC: Dict[str, Type[TargetDesc]] = {
+    "x86-64": x86_target_desc.X86TargetDesc,
 }
 
 
-def _get_from_config(options: Dict, key: str, conf_option_name: str, *args):
-    GenCls = options.get(key, None)
-    if GenCls:
-        return GenCls(*args)
+# ==================================================================================================
+# Fuzzer Construction
+# ==================================================================================================
+def get_fuzzer(instruction_set_path: str, working_directory: str, existing_test_case: str,
+               input_paths: Optional[List[str]]) -> fuzzer.Fuzzer:
+    """ Construct a fuzzer based on the configuration options in the CONF object. """
 
-    raise ConfigException(
-        f"ERROR: unknown value `{key}` of `{conf_option_name}` configuration option.\n"
-        "  Available options are:\n  - " + "\n  - ".join(options.keys()))
-
-
-def get_fuzzer(instruction_set, working_directory, testcase, inputs):
     if CONF.fuzzer == "architectural":
         if CONF.instruction_set == "x86-64":
-            return x86_fuzzer.X86ArchitecturalFuzzer(instruction_set, working_directory, testcase,
-                                                     inputs)
+            return x86_fuzzer.X86ArchitecturalFuzzer(instruction_set_path, working_directory,
+                                                     existing_test_case, input_paths)
         raise ConfigException("ERROR: unknown value of `instruction_set` configuration option")
-    elif CONF.fuzzer == "archdiff":
+    if CONF.fuzzer == "archdiff":
         if CONF.instruction_set == "x86-64":
-            return x86_fuzzer.X86ArchDiffFuzzer(instruction_set, working_directory, testcase,
-                                                inputs)
+            return x86_fuzzer.X86ArchDiffFuzzer(instruction_set_path, working_directory,
+                                                existing_test_case, input_paths)
         raise ConfigException("ERROR: unknown value of `instruction_set` configuration option")
-    elif CONF.fuzzer == "basic":
+    if CONF.fuzzer == "basic":
         if CONF.instruction_set == "x86-64":
-            return x86_fuzzer.X86Fuzzer(instruction_set, working_directory, testcase, inputs)
+            return x86_fuzzer.X86Fuzzer(instruction_set_path, working_directory, existing_test_case,
+                                        input_paths)
         raise ConfigException("ERROR: unknown value of `instruction_set` configuration option")
     raise ConfigException("ERROR: unknown value of `fuzzer` configuration option")
 
 
-def get_program_generator(instruction_set: interfaces.InstructionSetAbstract,
-                          seed: int) -> interfaces.Generator:
-    return _get_from_config(GENERATORS, CONF.instruction_set + "-" + CONF.generator,
-                            "instruction_set", instruction_set, seed)
+# ==================================================================================================
+# Executor Construction
+# ==================================================================================================
+_EXECUTORS = {
+    'x86-64-intel': x86_executor.X86IntelExecutor,
+    'x86-64-amd': x86_executor.X86AMDExecutor,
+}
 
 
-def get_asm_parser(generator: interfaces.Generator) -> interfaces.AsmParser:
-    return _get_from_config(ASM_PARSERS, CONF.instruction_set, "instruction_set", generator)
+def get_executor(enable_mismatch_check_mode: bool = False) -> executor.Executor:
+    """ Construct an executor based on the configuration options in the CONF object. """
+    key: str = CONF.executor
+    if key not in _EXECUTORS:
+        raise FactoryException(_EXECUTORS, key, "executor")
+    return _EXECUTORS[key](enable_mismatch_check_mode)
 
 
-def get_input_generator(seed: int) -> interfaces.InputGenerator:
-    return _get_from_config(INPUT_GENERATORS, CONF.input_generator, "input_generator", seed)
+# ==================================================================================================
+# Model Construction
+# ==================================================================================================
+_TRACERS: Dict[str, Type[tracer.UnicornTracer]] = {
+    "none": tracer.NoneTracer,
+    "l1d": tracer.L1DTracer,
+    "pc": tracer.PCTracer,
+    "memory": tracer.MemoryTracer,
+    "ct": tracer.CTTracer,
+    "loads+stores+pc": tracer.CTTracer,
+    "ct-nonspecstore": tracer.CTNonSpecStoreTracer,
+    "arch": tracer.ArchTracer,
+    "tct": tracer.TruncatedCTTracer,
+    "tcto": tracer.TruncatedCTWithOverflowsTracer,
+}
+
+_SPECULATORS: Dict[str, Type[speculator_abc.UnicornSpeculator]] = {
+    "seq": speculators_basic.SeqSpeculator,
+    "no_speculation": speculators_basic.SeqSpeculator,
+    "cond": speculators_basic.X86CondSpeculator,
+    "conditional_br_misprediction": speculators_basic.X86CondSpeculator,
+    "bpas": speculators_basic.StoreBpasSpeculator,
+    "cond-bpas": speculators_basic.X86CondBpasSpeculator,
+
+    # "seq-assist": x86_unicorn_model.X86SequentialAssist,
+    # "nullinj-fault": x86_unicorn_model.X86UnicornNull,
+    # "nullinj-assist": x86_unicorn_model.X86UnicornNullAssist,
+    # "delayed-exception-handling": x86_unicorn_model.X86UnicornDEH,
+    # "meltdown": x86_unicorn_model.X86Meltdown,
+    # "noncanonical": x86_unicorn_model.X86NonCanonicalAddress,
+    # "vspec-ops-div": x86_unicorn_model.x86UnicornVspecOpsDIV,
+    # "vspec-ops-memory-faults": x86_unicorn_model.x86UnicornVspecOpsMemoryFaults,
+    # "vspec-ops-memory-assists": x86_unicorn_model.x86UnicornVspecOpsMemoryAssists,
+    # "vspec-ops-gp": x86_unicorn_model.x86UnicornVspecOpsGP,
+    # "vspec-all-div": x86_unicorn_model.x86UnicornVspecAllDIV,
+    # "vspec-all-memory-faults": x86_unicorn_model.X86UnicornVspecAllMemoryFaults,
+    # "vspec-all-memory-assists": x86_unicorn_model.X86UnicornVspecAllMemoryAssists,
+    # "noninterference": speculators_ni.ActorNonInterferenceSpeculator,
+}
 
 
-def get_model(bases: Tuple[int, int], enable_mismatch_check_mode: bool = False) -> interfaces.Model:
-    # observational clause of the contract
-    tracer = _get_from_config(TRACERS, CONF.contract_observation_clause,
-                              "contract_observation_clause")
-
-    # execution clause of the contract
+def _get_exec_clause_name() -> str:
+    """ Determine the name of the execution clause based on the configuration options """
     if "cond" in CONF.contract_execution_clause and "bpas" in CONF.contract_execution_clause:
         clause_name = "cond-bpas"
     elif "conditional_br_misprediction" in CONF.contract_execution_clause and \
@@ -142,23 +137,130 @@ def get_model(bases: Tuple[int, int], enable_mismatch_check_mode: bool = False) 
     else:
         raise ConfigException(
             "ERROR: unknown value of `contract_execution_clause` configuration option")
-
-    return _get_from_config(X86_EXECUTION_CLAUSES, clause_name, "contract_execution_clause",
-                            bases[0], bases[1], tracer, enable_mismatch_check_mode)
+    return clause_name
 
 
-def get_executor(enable_mismatch_check_mode: bool = False) -> interfaces.Executor:
-    return _get_from_config(EXECUTORS, CONF.executor, "executor", enable_mismatch_check_mode)
+def get_model(bases: BaseAddrTuple, enable_mismatch_check_mode: bool = False) -> model.Model:
+    """ Construct a model based on the configuration options in the CONF object. """
+
+    if CONF.instruction_set != "x86-64":
+        raise ConfigException("ERROR: unknown value of `instruction_set` configuration option")
+
+    target_desc = _TARGET_DESC[CONF.instruction_set]()
+    tracer_cls = _TRACERS[CONF.contract_observation_clause]
+    speculator_cls = _SPECULATORS[_get_exec_clause_name()]
+    interpreter_cls = interpreter.X86ExtraInterpreter
+    model_ = uc_model.X86UnicornModel(bases, target_desc, speculator_cls, tracer_cls,
+                                      interpreter_cls, enable_mismatch_check_mode)
+    return model_
 
 
-def get_analyser() -> interfaces.Analyser:
-    return _get_from_config(ANALYSERS, CONF.analyser, "analyser")
+# ==================================================================================================
+# Program Generator Construction and Related Classes
+# ==================================================================================================
+_GENERATORS: Dict[str, Type[CodeGenerator]] = {
+    "x86-64": x86_generator.X86Generator,
+}
+
+_ASM_PARSERS: Dict[str, Type[AsmParser]] = {
+    'x86-64': x86_asm_parser.X86AsmParser,
+}
+
+_ELF_PARSERS: Dict[str, Type[ELFParser]] = {
+    'x86-64': x86_elf_parser.X86ELFParser,
+}
 
 
-def get_minimizer(fuzzer: interfaces.Fuzzer,
-                  instruction_set: interfaces.InstructionSetAbstract) -> interfaces.Minimizer:
-    return _get_from_config(MINIMIZERS, "violation", "minimizer", fuzzer, instruction_set)
+def get_program_generator(seed: int, instruction_set: InstructionSet) -> CodeGenerator:
+    """
+    Produce a ProgramGenerator object based on the configuration options in the CONF object.
+    """
+    key: str = CONF.instruction_set
+    target_desc = _TARGET_DESC[key]()
+    elf_parser = _ELF_PARSERS[key](target_desc)
+    asm_parser = _ASM_PARSERS[key](instruction_set, target_desc)
+    generator = _GENERATORS[key](seed, instruction_set, target_desc, asm_parser, elf_parser)
+    return generator
 
 
-def get_downloader(arch: str, extensions: List[str], out_file: str) -> Callable:
-    return _get_from_config(SPEC_DOWNLOADERS, arch, "architecture", extensions, out_file)
+def get_asm_parser(instruction_set: InstructionSet) -> AsmParser:
+    """ Produce an AsmParser object based on the configuration options in the CONF object. """
+    key: str = CONF.instruction_set
+    target_desc = _TARGET_DESC[key]()
+    asm_parser = _ASM_PARSERS[key](instruction_set, target_desc)
+    return asm_parser
+
+
+def get_elf_parser() -> ELFParser:
+    """ Produce an ELFParser object based on the configuration options in the CONF object. """
+    key: str = CONF.instruction_set
+    target_desc = _TARGET_DESC[key]()
+    elf_parser = _ELF_PARSERS[key](target_desc)
+    return elf_parser
+
+
+# ==================================================================================================
+# Input Generator Construction
+# ==================================================================================================
+_INPUT_GENERATORS: Dict[str, Type[input_generator.InputGenerator]] = {
+    'random': input_generator.InputGenerator,
+}
+
+
+def get_input_generator(seed: int) -> input_generator.InputGenerator:
+    """ Produce an InputGenerator object based on the configuration options in the CONF object. """
+    key: str = CONF.input_generator
+    if key not in _INPUT_GENERATORS:
+        raise FactoryException(_INPUT_GENERATORS, key, "input_generator")
+    return _INPUT_GENERATORS[key](seed)
+
+
+# ==================================================================================================
+# Analyser Construction
+# ==================================================================================================
+_ANALYZERS: Dict[str, Type[analyser.Analyser]] = {
+    'bitmaps': analyser.MergedBitmapAnalyser,
+    'sets': analyser.SetAnalyser,
+    'mwu': analyser.MWUAnalyser,
+    'chi2': analyser.ChiSquaredAnalyser,
+}
+
+
+def get_analyser() -> analyser.Analyser:
+    """ Construct an analyser based on the configuration options in the CONF object. """
+    key: str = CONF.analyser
+    if key not in _ANALYZERS:
+        raise FactoryException(_ANALYZERS, key, "analyser")
+    return _ANALYZERS[key]()
+
+
+# ==================================================================================================
+# Minimizer Construction
+# ==================================================================================================
+_MINIMIZERS: Dict[str, Type[Minimizer]] = {
+    'violation': Minimizer,
+}
+
+
+def get_minimizer(fuzzer_: fuzzer.Fuzzer, instruction_set: InstructionSet) -> Minimizer:
+    """ Construct a minimizer based on the configuration options in the CONF object. """
+    key: str = "violation"  # expansion point for future; currently hardcoded
+    if key not in _MINIMIZERS:
+        raise FactoryException(_MINIMIZERS, key, "minimizer")
+    return _MINIMIZERS[key](fuzzer_, instruction_set)
+
+
+# ==================================================================================================
+# Spec Downloader Construction
+# ==================================================================================================
+_SPEC_DOWNLOADERS: Dict[str, Type[get_spec.Downloader]] = {
+    'x86-64': get_spec.Downloader,
+}
+
+
+def get_downloader(arch: str, extensions: List[str], out_file: str) -> get_spec.Downloader:
+    """ Construct a class that downloads an ISA spec for the given architecture. """
+    key: str = arch
+    if key not in _SPEC_DOWNLOADERS:
+        raise FactoryException(_SPEC_DOWNLOADERS, key, "downloader")
+    return _SPEC_DOWNLOADERS[key](extensions, out_file)

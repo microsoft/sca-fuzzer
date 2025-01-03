@@ -37,15 +37,16 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 from enum import Enum
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import numpy as np
 
 PAGE_SIZE = 4096
 
-SandboxAddress = int
-DataAddress = SandboxAddress
-CodeAddress = SandboxAddress
+SandboxAddr = int
+DataAddr = SandboxAddr
+CodeAddr = SandboxAddr
+BaseAddrTuple = Tuple[DataAddr, CodeAddr]
 
 
 # ==================================================================================================
@@ -84,13 +85,13 @@ class SandboxLayout:
     Layout of the data and code sandboxes. This class is responsible for ensuring
     consistency of memory layouts between the executor, the model, and the generators.
     """
-    data_start: DataAddress
-    data_end: DataAddress
-    code_start: CodeAddress
-    code_end: CodeAddress
+    data_start: DataAddr
+    data_end: DataAddr
+    code_start: CodeAddr
+    code_end: CodeAddr
 
-    _data_addresses: List[Dict[DataArea, DataAddress]]
-    _code_addresses: List[Dict[CodeArea, CodeAddress]]
+    _data_addresses: List[Dict[DataArea, DataAddr]]
+    _code_addresses: List[Dict[CodeArea, CodeAddr]]
 
     # NOTE: the constants in _DataAreaLayout and _CodeAreaLayout *must* be identical
     # to the actor_data_t and actor_code_t in executor (src/x86/executor/include/sandbox_manager.h)
@@ -181,17 +182,17 @@ class SandboxLayout:
     # ==============================================================================================
     # Object Interface
     # ==============================================================================================
-    def __init__(self, data_start: DataAddress, code_start: CodeAddress, n_actors: int):
+    def __init__(self, bases: BaseAddrTuple, n_actors: int):
         # Data boundaries
-        self.data_start = data_start
+        self.data_start = bases[0]
         self.data_size = self._DataAreaLayout.itemsize * n_actors
-        self.data_end = data_start + self.data_size
+        self.data_end = bases[0] + self.data_size
         assert self.data_size % PAGE_SIZE == 0
 
         # Code boundaries
-        self.code_start = code_start
+        self.code_start = bases[1]
         self.code_size = self._CodeAreaLayout.itemsize * n_actors
-        self.code_end = code_start + self.code_size
+        self.code_end = bases[1] + self.code_size
         assert self.code_size % PAGE_SIZE == 0
 
         # Pre-compute data and code addresses
@@ -208,7 +209,7 @@ class SandboxLayout:
             self._code_addresses.append(
                 {area: actor_code_start + self.code_area_offset(area) for area in CodeArea})
 
-    def get_data_addr(self, area: DataArea, actor_id: int) -> DataAddress:
+    def get_data_addr(self, area: DataArea, actor_id: int) -> DataAddr:
         """
         Get the starting address of a specific area in the data sandbox for a given actor.
         :param area: The area to get the address of.
@@ -218,7 +219,7 @@ class SandboxLayout:
         actor_data_start = self.data_start + actor_id * self.data_size_per_actor()
         return actor_data_start + self.data_area_offset(area)
 
-    def get_code_addr(self, area: CodeArea, actor_id: int) -> CodeAddress:
+    def get_code_addr(self, area: CodeArea, actor_id: int) -> CodeAddr:
         """
         Get the starting address of a specific area in the code sandbox for a given actor.
         :param area: The area to get the address of.
@@ -228,7 +229,7 @@ class SandboxLayout:
         actor_code_start = self.code_start + actor_id * self.code_size_per_actor()
         return actor_code_start + self.code_area_offset(area)
 
-    def is_data_addr(self, addr: DataAddress) -> bool:
+    def is_data_addr(self, addr: DataAddr) -> bool:
         """
         Check if the given address is within the data sandbox.
         :param addr: The address to check.
@@ -236,7 +237,7 @@ class SandboxLayout:
         """
         return self.data_start <= addr < self.data_end
 
-    def is_code_addr(self, addr: CodeAddress) -> bool:
+    def is_code_addr(self, addr: CodeAddr) -> bool:
         """
         Check if the given address is within the code sandbox.
         :param addr: The address to check.
@@ -244,7 +245,7 @@ class SandboxLayout:
         """
         return self.code_start <= addr < self.code_end
 
-    def data_addr_to_offset(self, addr: DataAddress) -> DataAddress:
+    def data_addr_to_offset(self, addr: DataAddr) -> DataAddr:
         """
         Convert the given address to an offset within the data sandbox.
         :param addr: The address to convert.
@@ -252,7 +253,7 @@ class SandboxLayout:
         """
         return addr - self.data_start
 
-    def code_addr_to_offset(self, addr: CodeAddress) -> CodeAddress:
+    def code_addr_to_offset(self, addr: CodeAddr) -> CodeAddr:
         """
         Convert the given address to an offset within the code sandbox.
         :param addr: The address to convert.
@@ -260,7 +261,7 @@ class SandboxLayout:
         """
         return addr - self.code_start
 
-    def code_addr_to_actor_id(self, addr: CodeAddress) -> int:
+    def code_addr_to_actor_id(self, addr: CodeAddr) -> int:
         """
         Given a code address, identify the actor ID that the code address belongs to.
         :param addr: Code address
@@ -268,7 +269,7 @@ class SandboxLayout:
         """
         return (addr - self.code_start) // self.code_size_per_actor()
 
-    def data_addr_to_actor_id(self, addr: DataAddress) -> int:
+    def data_addr_to_actor_id(self, addr: DataAddr) -> int:
         """
         Given a data address, identify the actor ID that the data address belongs to.
         :param addr: Data address

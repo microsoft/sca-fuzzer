@@ -1,5 +1,4 @@
 .intel_syntax noprefix
-.test_case_enter:
 .section .data.main
 xadd qword ptr [r14 + 4096], rax
 add rax, rbx

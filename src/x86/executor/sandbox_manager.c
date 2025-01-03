@@ -67,7 +67,7 @@ static int allocate_code(size_t n_actors)
 int allocate_sandbox(void)
 {
     int err = 0;
-    static int old_n_actors = 0;
+    static int old_n_actors = 1;
 
     // Allocate sandbox in host memory
     if (old_n_actors < n_actors) {

@@ -1,6 +1,4 @@
 .intel_syntax noprefix
-.test_case_enter:
-
 # ----------------------------- actor 1 ------------------------------------------------------------
 .section .data.main
 .function_main1:
@@ -19,6 +17,7 @@
 .function_a2:
     .macro.landing_h2g:
     .macro.measurement_start:
+    mov rax, qword ptr [r14 + 0x100]
     .macro.measurement_end:
 
     .macro.switch_g2h.main:

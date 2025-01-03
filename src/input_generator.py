@@ -1,5 +1,9 @@
 """
-File: Input Generation
+File: Input Generation.
+
+      An input is a sequence of bytes that is used to initialize memory and registers in
+      the model or executor before running a test case program. The input generator
+      is responsible for generating random inputs for the test cases.
 
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
@@ -10,28 +14,130 @@ from typing import List, Tuple
 
 import numpy as np
 
-from .interfaces import InputGenerator
-from .test_case_input import Input, InputTaint
+from .tc_components.test_case_data import InputData, InputTaint
 from .config import CONF
-from .util import Logger
+from .logs import inform
 
 POW32 = pow(2, 32)
 
 
-class NumpyRandomInputGenerator(InputGenerator):
-    """ Numpy-based implementation of the input gen """
+class InputGenerator:
+    """ Class responsible for generating random inputs for test cases. """
 
     _state: int = 0
     _boosting_state: int = 0
-    n_actors = 1
 
     def __init__(self, seed: int):
-        super().__init__(seed)
-        self.LOG = Logger()
         self.max_input_value = pow(2, CONF.input_gen_entropy_bits)
+        self._state = seed
 
-    def _generate_one(self, state: int) -> Tuple[Input, int]:
-        input_ = Input(self.n_actors)
+    def get_state(self) -> int:
+        """
+        Return the current state of the generator.
+        State is the seed value that will be used to generate the next input.
+        """
+        return self._state
+
+    def _reset_boosting_state(self) -> None:
+        """ Reset the state (i.e., seed) of the generator to the last state before boosting """
+        self._boosting_state = self._state
+
+    def generate(self, count: int, n_actors: int) -> List[InputData]:
+        """
+        Generate a list of random inputs.
+        :param count: The number of inputs to generate
+        :return: A list of generated inputs
+        """
+        # if it's the first invocation and the seed is zero - use random seed
+        if self._state == 0:
+            self._state = random.randint(0, pow(2, 32) - 1)
+            inform("input_gen", f"Setting input seed to: {self._state}")
+
+        generated_inputs = []
+        for _ in range(count):
+            input_, self._state = self._generate_one(self._state, n_actors)
+            generated_inputs.append(input_)
+
+        # make sure that boosted inputs will continue from the updated state
+        self._boosting_state = self._state
+        return generated_inputs
+
+    def generate_boosted(self, inputs: List[InputData], taints: List[InputTaint],
+                         inputs_per_class: int) -> List[InputData]:
+        """
+        Extend the given input sequence with new inputs such that the new inputs should produce
+        the same contract traces as the original inputs. This achieved by copying the original
+        inputs and modifying them based on the taints collected by the model while tracing the
+        test case with the original inputs (i.e, non-tainted values are replaced with random values,
+        and the tainted values are copied).
+
+        For example, if the original inputs are [A, B, C] and inputs_per_class=3,
+        then the new sequence will be [A, B, C, A', B', C', A'', B'', C''],
+        where A, A', and A'' produce the same contract traces, and so on.
+
+        NOTE: The function is idempotent, i.e., calling it multiple times with the same inputs
+        and taints will produce the same sequence of new inputs. This is because the state of the
+        generator is reset to the last state before boosting every time the function is called.
+        """
+        if not inputs:
+            return []
+        assert len(inputs) == len(taints), "Error: Cannot extend inputs. The number of taints" \
+                                           " does not match the number of inputs."
+        n_actors = len(inputs[0])
+        input_size = InputData.n_data_entries_per_actor()
+
+        self._reset_boosting_state()
+        boosted_inputs = list(inputs)  # make a copy
+        for _ in range(inputs_per_class - 1):
+            for i, input_ in enumerate(inputs):
+                # Generate new, fully random input
+                new_input, self._boosting_state = self._generate_one(self._boosting_state, n_actors)
+
+                # Copy tainted values from the original input
+                for actor_id in range(n_actors):
+                    taint = taints[i].linear_view(actor_id)
+                    input_old = input_.linear_view(actor_id)
+                    input_new = new_input.linear_view(actor_id)
+                    for j in range(input_size):
+                        if taint[j]:
+                            input_new[j] = input_old[j]
+
+                # Add the new input to the sequence
+                boosted_inputs.append(new_input)
+        return boosted_inputs
+
+    def load(self, input_paths: List[str]) -> List[InputData]:
+        """
+        Load a sequence of inputs from a directory with binary inputs.
+        """
+        # mirror the state update in generate() as 'load' function is used for reproducing
+        # violations, which requires the generator state to be identical to the one during
+        # fuzzing
+        if self._state == 0:
+            self._state = random.randint(0, pow(2, 32) - 1)
+            inform("input_gen", f"Setting input seed to: {self._state}")
+
+        inputs = []
+        n_actors = len(CONF.get_actors_conf())
+        for input_path in input_paths:
+            input_ = InputData(n_actors)
+
+            # check that the file is not corrupted
+            size = os.path.getsize(input_path)
+            expected = input_.itemsize * n_actors
+            if size != expected:
+                raise ValueError(f"Incorrect size of input `{input_path}` "
+                                 f"({size} B, expected {expected} B)")
+
+            input_.load(input_path)
+            inputs.append(input_)
+            self._state += 1
+
+        self._boosting_state = self._state
+        return inputs
+
+    def _generate_one(self, state: int, n_actors: int) -> Tuple[InputData, int]:
+        input_ = InputData(n_actors)
         input_.seed = state
 
         size = input_.itemsize // 8
@@ -48,76 +154,3 @@ class NumpyRandomInputGenerator(InputGenerator):
             input_.set_actor_data(i, data)
 
         return input_, state + 1
-
-    def generate(self, count: int) -> List[Input]:
-        # if it's the first invocation and the seed is zero - use random seed
-        if self._state == 0:
-            self._state = random.randint(0, pow(2, 32) - 1)
-            self.LOG.inform("input_gen", f"Setting input seed to: {self._state}")
-
-        generated_inputs = []
-        for _ in range(count):
-            input_, self._state = self._generate_one(self._state)
-            generated_inputs.append(input_)
-
-        # make sure that boosted inputs will continue from the updated state
-        self._boosting_state = self._state
-        return generated_inputs
-
-    def reset_boosting_state(self) -> None:
-        self._boosting_state = self._state
-
-    def extend_equivalence_classes(self, inputs: List[Input],
-                                   taints: List[InputTaint]) -> List[Input]:
-        """
-        Produce a new sequence of random inputs, but copy the tainted values from
-        the base sequence
-        """
-        if not inputs:
-            return []
-
-        assert len(inputs) == len(taints), "Error: Cannot extend inputs. The number of taints" \
-                                           " does not match the number of inputs."
-        n_actors = len(inputs[0])
-
-        # create inputs
-        new_inputs = []
-        n_data_entries_per_actor = Input.n_data_entries_per_actor()
-        for i, input_ in enumerate(inputs):
-            new_input, self._boosting_state = self._generate_one(self._boosting_state)
-            for actor_id in range(n_actors):
-                taint = taints[i].linear_view(actor_id)
-                input_old = input_.linear_view(actor_id)
-                input_new = new_input.linear_view(actor_id)
-                for j in range(n_data_entries_per_actor):
-                    if taint[j]:
-                        input_new[j] = input_old[j]
-            new_inputs.append(new_input)
-
-        return new_inputs
-
-    def load(self, input_paths: List[str]) -> List[Input]:
-        # mirror the state update in generate() as 'load' function is used for reproducing
-        # violations, which requires the generator state to be identical to the one during
-        # fuzzing
-        if self._state == 0:
-            self._state = random.randint(0, pow(2, 32) - 1)
-            self.LOG.inform("input_gen", f"Setting input seed to: {self._state}")
-
-        inputs = []
-        for input_path in input_paths:
-            input_ = Input(self.n_actors)
-
-            # check that the file is not corrupted
-            size = os.path.getsize(input_path)
-            expected = input_.itemsize * self.n_actors
-            if size != expected:
-                self.LOG.error(f"Incorrect size of input `{input_path}` "
-                               f"({size} B, expected {expected} B)")
-
-            input_.load(input_path)
-            inputs.append(input_)
-            self._state += 1
-
-        self._boosting_state = self._state
-        return inputs

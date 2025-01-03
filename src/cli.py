@@ -7,24 +7,31 @@ SPDX-License-Identifier: MIT
 """
 
 import os
-import unicorn
+import sys
+from typing import TYPE_CHECKING, Any
 from argparse import ArgumentParser, ArgumentTypeError
+
+import unicorn
+
 from .factory import get_minimizer, get_fuzzer, get_downloader
 from .config import CONF
+from .logs import update_logging_after_config_change
+
+if TYPE_CHECKING:
+    from .fuzzer import FuzzingMode
 
 
-def arg2bool(arg) -> bool:
+def _arg2bool(arg: Any) -> bool:
     if isinstance(arg, bool):
         return arg
     if arg.lower() in ('yes', 'true', 't', 'y', '1'):
         return True
-    elif arg.lower() in ('no', 'false', 'f', 'n', '0'):
+    if arg.lower() in ('no', 'false', 'f', 'n', '0'):
         return False
-    else:
-        raise ArgumentTypeError('Boolean value expected.')
+    raise ArgumentTypeError('Boolean value expected.')
 
 
-def main() -> int:
+def _parse_args() -> Any:  # pylint: disable=r0915
     parser = ArgumentParser(add_help=False)
     subparsers = parser.add_subparsers(dest='subparser_name')
     subparsers.required = True
@@ -94,7 +101,7 @@ def main() -> int:
         '--nonstop', action='store_true', help="Don't stop after detecting an unexpected result")
     parser_fuzz.add_argument(
         '--save-violations',
-        type=arg2bool,
+        type=_arg2bool,
         default=True,
         help="If set, store all detected violations in working directory.",
     )
@@ -137,7 +144,7 @@ def main() -> int:
         '--nonstop', action='store_true', help="Don't stop after detecting an unexpected result")
     parser_tfuzz.add_argument(
         '--save-violations',
-        type=arg2bool,
+        type=_arg2bool,
         default=True,
         help="If set, store all detected violations in working directory.",
     )
@@ -226,76 +233,69 @@ def main() -> int:
     )
     parser_mini.add_argument(
         '--enable-instruction-pass',
-        type=arg2bool,
+        type=_arg2bool,
         default=True,
         help="Enable the instruction minimization pass that iteratively removes "
         "instructions while preserving the violation.",
     )
     parser_mini.add_argument(
         '--enable-simplification-pass',
-        type=arg2bool,
+        type=_arg2bool,
         default=False,
         help="Enable the instruction simplification pass that replaces complex "
         "instructions with simpler ones while preserving the violation.",
     )
     parser_mini.add_argument(
         '--enable-nop-pass',
-        type=arg2bool,
+        type=_arg2bool,
         default=False,
         help="Enable the NOP replacement pass that replaces instructions with NOPs "
         "while preserving the violation.",
     )
     parser_mini.add_argument(
         '--enable-constant-pass',
-        type=arg2bool,
+        type=_arg2bool,
         default=False,
         help="Enable the constant simplification pass that replaces constants with 0s "
         "while preserving the violation.",
     )
     parser_mini.add_argument(
         '--enable-mask-pass',
-        type=arg2bool,
+        type=_arg2bool,
         default=False,
         help="Enable the mask simplification pass that reduces the size of instrumentation "
         "masks while preserving the violation.",
     )
     parser_mini.add_argument(
         '--enable-label-pass',
-        type=arg2bool,
+        type=_arg2bool,
         default=True,
         help="Enable the label removal pass that removes unused labels from the assembly file.",
     )
     parser_mini.add_argument(
         '--enable-fence-pass',
-        type=arg2bool,
+        type=_arg2bool,
         default=False,
         help="Enable the fence insertion pass that adds LFENCEs after instructions "
         "while preserving the violation.",
     )
     parser_mini.add_argument(
         "--enable-input-seq-pass",
-        type=arg2bool,
+        type=_arg2bool,
         default=False,
         help="Enable the input sequence minimization pass that removes inputs from "
         "the original generated sequence while preserving the violation.",
     )
     parser_mini.add_argument(
         "--enable-input-diff-pass",
-        type=arg2bool,
+        type=_arg2bool,
         default=False,
         help="Enable the violating input difference minimization pass that removes "
         "inputs that do not contribute to the violation.",
     )
     parser_mini.add_argument(
-        "--enable-source-analysis",
-        type=arg2bool,
-        default=False,
-        help="Enable the speculation source identification pass that identifies the "
-        "instructions that trigger speculation.",
-    )
-    parser_mini.add_argument(
         "--enable-comment-pass",
-        type=arg2bool,
+        type=_arg2bool,
         default=False,
         help="Enable the violation comment pass that adds comments to the assembly file "
         "with details about the violation.",
@@ -347,16 +347,21 @@ def main() -> int:
         required=True,
     )
     parser_get_isa.add_argument("--extensions", nargs="*", default=[])
+    return parser.parse_args()
 
-    # ==============================================================================================
-    # Invocations
-    args = parser.parse_args()
+
+def main() -> int:  # pylint: disable=r0911,r0912,r0915  # this function is necessarily complex
+    """
+    Parse command-line arguments and launch the fuzzer in the requested mode.
+    """
+    args = _parse_args()
 
     # Update configuration
     if getattr(args, 'config', None):
         CONF.load(args.config, args.include_dir)
     if getattr(args, 'testcase', None):
-        CONF._no_generation = True
+        CONF.disable_generation()
+    update_logging_after_config_change()
 
     # Check if the file and directory arguments are valid
     if getattr(args, 'testcase', None) and not os.path.isfile(args.testcase):
@@ -382,47 +387,51 @@ def main() -> int:
         return 1
 
     # Fuzzing
-    if args.subparser_name == 'fuzz' or args.subparser_name == 'tfuzz':
+    if args.subparser_name in ('fuzz', 'tfuzz'):
         testcase = args.testcase if args.subparser_name == 'fuzz' else args.template
-        fuzzer = get_fuzzer(args.instruction_set, args.working_directory, testcase, "")
+        fuzzer = get_fuzzer(args.instruction_set, args.working_directory, testcase, None)
+        type_: FuzzingMode
         if args.subparser_name == 'tfuzz':
-            exit_code = fuzzer.start_from_template(args.num_test_cases, args.num_inputs,
-                                                   args.timeout, args.nonstop, args.save_violations)
+            type_ = 'template'
         elif testcase:
-            # deprecated mode; will be removed soon (duplicates `reproduce`)
-            exit_code = fuzzer.start_from_asm(args.num_test_cases, args.num_inputs, args.timeout,
-                                              args.nonstop, args.save_violations)
+            type_ = 'asm'
         else:
-            exit_code = fuzzer.start_random(args.num_test_cases, args.num_inputs, args.timeout,
-                                            args.nonstop, args.save_violations)
+            type_ = 'random'
+        exit_code = fuzzer.start(
+            args.num_test_cases,
+            args.num_inputs,
+            args.timeout,
+            args.nonstop,
+            args.save_violations,
+            type_=type_)
         return exit_code
 
     # Reproducing a violation
     if args.subparser_name == 'reproduce':
         fuzzer = get_fuzzer(args.instruction_set, "", args.testcase, args.inputs)
-        exit_code = fuzzer.start_from_asm(1, args.num_inputs, 0, False, False)
+        exit_code = fuzzer.start(1, args.num_inputs, 0, False, False, type_='asm')
         return exit_code
 
     # Stand-alone generation
     if args.subparser_name == "generate":
-        fuzzer = get_fuzzer(args.instruction_set, args.working_directory, None, "")
-        fuzzer.generate_test_batch(args.seed, args.num_test_cases, args.num_inputs,
+        fuzzer = get_fuzzer(args.instruction_set, args.working_directory, "", None)
+        fuzzer.standalone_generate(args.seed, args.num_test_cases, args.num_inputs,
                                    args.permit_overwrite)
         return 0
 
     # Trace analysis
     if args.subparser_name == 'analyse':
-        fuzzer = get_fuzzer(args.instruction_set, "", None, "")
-        fuzzer.analyse_traces_from_files(args.ctraces, args.htraces)
+        fuzzer = get_fuzzer(args.instruction_set, "", "", None)
+        fuzzer.standalone_analyse(args.ctraces, args.htraces)
         return 0
 
     # Test case minimization
     if args.subparser_name == "minimize":
         if (args.enable_input_seq_pass or args.enable_input_diff_pass) and not args.input_outdir:
-            SystemExit("ERROR: Passes --enable-input-seq-pass and --enable-input-diff-pass \n"
-                       "require flag --input_outdir to be set.")
+            raise SystemExit("ERROR: Passes --enable-input-seq-pass and --enable-input-diff-pass \n"
+                             "require flag --input_outdir to be set.")
 
-        fuzzer = get_fuzzer(args.instruction_set, "", args.testcase, "")
+        fuzzer = get_fuzzer(args.instruction_set, "", args.testcase, None)
         minimizer = get_minimizer(fuzzer, args.instruction_set)
         minimizer.run(
             test_case_asm=args.testcase,
@@ -448,9 +457,10 @@ def main() -> int:
         get_downloader(args.architecture, args.extensions, args.outfile).run()  # type: ignore
         return 0
 
-    raise Exception("Unreachable")
+    print("[ERROR]", "Invalid subcommand")
+    return 1
 
 
 if __name__ == '__main__':
     print("[ERROR]", "This file is not meant to be run directly. Use `revizor.py` instead.")
-    exit(1)
+    sys.exit(1)

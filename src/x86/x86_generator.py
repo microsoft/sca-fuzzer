@@ -4,28 +4,42 @@ File: x86 implementation of the test case generator
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
-import abc
+from __future__ import annotations
+
 import math
 import re
 import random
 from copy import deepcopy
-from typing import List, Dict, Set, Optional
+from dataclasses import dataclass
+from typing import List, Dict, Set, TYPE_CHECKING, TextIO, Union, Final, Tuple, Callable, Literal
+from typing_extensions import assert_never
 
-from ..isa_loader import InstructionSet
-from ..interfaces import TestCase, Operand, RegisterOperand, FlagsOperand, MemoryOperand, \
-    ImmediateOperand, AgenOperand, Instruction, BasicBlock, InstructionSpec, \
-    Function, PAGE_SIZE, GeneratorException
-from ..generator import ConfigurableGenerator, RandomGenerator, Pass, Printer
+from ..generator import CodeGenerator, Pass, Printer
 from ..config import CONF
-from ..sandbox import SandboxLayout, DataArea
-from ..actor import ActorPL
-from ..instruction_spec import OT
+from ..sandbox import SandboxLayout, DataArea, PAGE_SIZE
+from ..instruction_spec import OT, InstructionSpec
+from ..tc_components.actor import ActorPL, ActorID
+from ..tc_components.instruction import Instruction, Operand, RegisterOp, FlagsOp, \
+    MemoryOp, ImmediateOp, AgenOp, copy_op_with_flow_modification, \
+    copy_inst_with_modification
+from ..tc_components.test_case_code import TestCaseProgram, BasicBlock, InstructionNode, \
+    Function, CodeSection
 
 from .x86_target_desc import X86TargetDesc
-from .x86_elf_parser import X86ElfParser
+
+if TYPE_CHECKING:
+    from ..elf_parser import ELFParser
+    from ..asm_parser import AsmParser
+    from ..isa_spec import InstructionSet
+    from ..target_desc import TargetDesc
 
 
-class FaultFilter:
+# ==================================================================================================
+# Private: Fault Type Identification
+# ==================================================================================================
+@dataclass
+class _FaultFilter:
+    """ Local service class that identifies which faults are allowed in test cases. """
 
     def __init__(self) -> None:
         self.div_by_zero: bool = 'div-by-zero' in CONF.generator_faults_allowlist
@@ -34,169 +48,251 @@ class FaultFilter:
         self.u2k_access: bool = 'user-to-kernel-access' in CONF.generator_faults_allowlist
 
 
-class X86Generator(ConfigurableGenerator, abc.ABC):
-    faults: FaultFilter
-    target_desc: X86TargetDesc
+# ==================================================================================================
+# Private: Assembly Printing
+# ==================================================================================================
+class _X86Printer(Printer):
+    prologue_template = [".intel_syntax noprefix\n"]
+    epilogue_template = [
+        ".section .data.main\n",
+        ".test_case_exit:\n",
+    ]
 
-    def __init__(self, instruction_set: InstructionSet, seed: int):
-        super(X86Generator, self).__init__(instruction_set, seed)
-        self.target_desc = X86TargetDesc()
-        self.elf_parser = X86ElfParser(self.target_desc)
-        self.faults = FaultFilter()
+    def __init__(self, target_desc: X86TargetDesc) -> None:
+        self.target_desc = target_desc
+        super().__init__()
 
-        # configure instrumentation passes
-        self.passes = [
-            X86PatchUndefinedFlagsPass(self.instruction_set, self),
-            X86SandboxPass(self.target_desc, self.faults),
-            X86PatchUndefinedResultPass(),
-        ]
-        if self.faults.non_canonical_access:
-            self.passes.append(X86NonCanonicalAddressPass())
-        if self.faults.u2k_access:
-            self.passes.append(X86U2KAccessPass())  # must be after X86SandboxPass
-        self.passes.append(X86PatchOpcodesPass())
-        self.printer = X86Printer(self.target_desc)
+    def print(self, test_case: TestCaseProgram) -> None:
+        """ Print the test case to the assembly file in Intel syntax """
 
-    def get_return_instruction(self) -> Instruction:
-        return Instruction("ret", False, "", True)
+        with open(test_case.asm_path(), "w") as f:
+            # print prologue
+            for line in self.prologue_template:
+                f.write(line)
 
-    def get_unconditional_jump_instruction(self) -> Instruction:
-        return Instruction("jmp", False, "UNCOND_BR", True)
+            # print the test case
+            for sec in test_case:
+                self._print_section(sec, f)
 
-    def get_elf_data(self, test_case: TestCase, obj_file: str) -> None:
-        self.elf_parser.parse(test_case, obj_file)
+            # print epilogue
+            for line in self.epilogue_template:
+                f.write(line)
 
+    def _print_section(self, sec: CodeSection, file_: TextIO) -> None:
+        file_.write(f".section .data.{sec.name}\n")
+        for func in sec:
+            self._print_function(func, file_)
 
-class X86lfencePass(Pass):
+    def _print_function(self, func: Function, file_: TextIO) -> None:
+        file_.write(f"{func.name}:\n")
+        for bb in func:
+            self._print_basic_block(bb, file_)
 
-    def run_on_test_case(self, test_case: TestCase) -> None:
-        for func in test_case.functions:
-            for bb in func:
-                insertion_points = []
-                for instr in bb:
-                    # make a copy to avoid infinite insertions
-                    insertion_points.append(instr)
+        self._print_basic_block(func.get_exit_bb(), file_)
 
-                for instr in insertion_points:
-                    bb.insert_after(instr, Instruction("lfence", True))
+    def _print_basic_block(self, bb: BasicBlock, file_: TextIO) -> None:
+        file_.write(f"{bb.name.lower()}:\n")
+        for inst in bb:
+            file_.write(self._instruction_to_str(inst) + "\n")
+        for inst in bb.terminators:
+            file_.write(self._instruction_to_str(inst) + "\n")
 
+    def _instruction_to_str(self, inst: Instruction) -> str:
+        if inst.name == "macro":
+            return self._macro_to_str(inst)
 
-class X86NonCanonicalAddressPass(Pass):
+        operands = ", ".join([self._operand_to_str(op) for op in inst.operands])
+        if inst.is_instrumentation:
+            comment = "# instrumentation"
+        elif inst.is_noremove:
+            comment = "# noremove"
+        else:
+            comment = ""
+        return f"{inst.name} {operands} {comment}"
 
-    def run_on_test_case(self, test_case: TestCase) -> None:
-        for func in test_case.functions:
-            for bb in func:
-                memory_instructions = []
-                for instr in bb:
-                    if instr.is_instrumentation or instr.is_from_template:
-                        continue
-                    if instr.name in ["div", "idiv"]:
-                        # Instrumentation is difficult to combine
-                        continue
-                    if instr.has_mem_operand(True):
-                        memory_instructions.append(instr)
+    def _operand_to_str(self, op: Operand) -> str:
+        if isinstance(op, (MemoryOp, AgenOp)):
+            prefix = self.target_desc.memory_addr_prefixes[op.width]
+            return f"{prefix} [{op.value}]"
 
-                # Collect src operands
-                for instr in memory_instructions:
-                    n = len(memory_instructions)
-                    rand_bool = random.randint(0, n) == 0
-                    if not rand_bool:
-                        continue
+        return op.value
 
-                    src_operands = []
-                    for o in instr.get_src_operands():
-                        if isinstance(o, RegisterOperand):
-                            src_operands.append(o)
-
-                    mem_operands = instr.get_mem_operands()
-                    implicit_mem_operands = instr.get_implicit_mem_operands()
-                    if mem_operands and not implicit_mem_operands:
-                        assert len(mem_operands) == 1, f"Unexpected instruction format {instr.name}"
-                        mem_operand: Operand = mem_operands[0]
-                        registers = mem_operand.value
-
-                        masks_list = ["rax", "rbx"]
-                        mask_reg = masks_list[0]
-                        # Do not overwrite offset register with mask
-                        for operands in src_operands:
-                            op_regs = re.split(r'\+|-|\*| ', operands.value)
-                            for reg in op_regs:
-                                if X86TargetDesc.reg_normalized[mask_reg] == \
-                                   X86TargetDesc.reg_normalized[reg]:
-                                    mask_reg = masks_list[1]
-
-                        offset_list = ["rcx", "rdx"]
-                        offset_reg = offset_list[0]
-                        # Do not reuse destination register
-                        for op in instr.get_all_operands():
-                            if not isinstance(op, RegisterOperand):
-                                continue
-                            if X86TargetDesc.reg_normalized[offset_reg] == \
-                               X86TargetDesc.reg_normalized[op.value]:
-                                offset_reg = offset_list[1]
-
-                        mask = hex((random.getrandbits(16) << 48))
-                        lea = Instruction("lea", True) \
-                            .add_op(RegisterOperand(offset_reg, 64, False, True)) \
-                            .add_op(MemoryOperand(registers, 64, True, False))
-                        bb.insert_before(instr, lea)
-                        mov = Instruction("mov", True) \
-                            .add_op(RegisterOperand(mask_reg, 64, True, True)) \
-                            .add_op(ImmediateOperand(mask, 64))
-                        bb.insert_before(instr, mov)
-                        mask = Instruction("xor", True) \
-                            .add_op(RegisterOperand(offset_reg, 64, True, True)) \
-                            .add_op(RegisterOperand(mask_reg, 64, True, False))
-                        bb.insert_before(instr, mask)
-                        for idx, op in enumerate(instr.operands):
-                            if op == mem_operand:
-                                old_op = instr.operands[idx]
-                                addr_op = MemoryOperand(offset_reg, old_op.get_width(), old_op.src,
-                                                        old_op.dest)
-                                instr.operands[idx] = addr_op
-
-                    # Make sure #GP only once. Otherwise Unicorn keeps raising an exception
-                    # when rolling back to the end of the code
-                    return
+    def _macro_to_str(self, inst: Instruction) -> str:
+        macro_placeholder = "nop qword ptr [rax + 0xff]"
+        if inst.operands[1].value.lower() == ".noarg":
+            return f".macro{inst.operands[0].value}: {macro_placeholder}"
+        return f".macro{inst.operands[0].value}{inst.operands[1].value}: {macro_placeholder}"
 
 
-class X86U2KAccessPass(Pass):
-    """ A pass that selects a random memory access instruction in a user actor and replaces it
-    with an access to the kernel actor's data (actor 0). """
+# ==================================================================================================
+# Private: Collection of Instrumentation Passes
+# ==================================================================================================
+class _X86NonCanonicalAddressPass(Pass):
+    """
+    A pass that selects a random memory access instruction and replaces it with an access to a
+    non-canonical address.
+    """
+    _target_desc: X86TargetDesc
 
-    def run_on_test_case(self, test_case: TestCase) -> None:
-        for func in test_case.functions:
-            if func.owner.privilege_level != ActorPL.USER:
+    def __init__(self, target_desc: X86TargetDesc) -> None:
+        super().__init__()
+        self._target_desc = target_desc
+
+    def run_on_test_case(self, test_case: TestCaseProgram) -> None:
+        for bb in test_case.iter_basic_blocks():
+            memory_instructions = []
+            for node in bb.iter_nodes():
+                instr = node.instruction
+                if instr.is_instrumentation or instr.is_from_template:
+                    continue
+                if instr.name in ["div", "idiv"]:
+                    # Instrumentation is difficult to combine
+                    continue
+                if instr.has_mem_operand(True):
+                    memory_instructions.append(node)
+
+            # instrument random memory access instructions
+            for node in memory_instructions:
+                n = len(memory_instructions)
+                rand_bool = random.randint(0, n) == 0
+                if not rand_bool:
+                    continue
+                self._instrument(node, bb)
+
+                # Make sure #GP happens only once. Otherwise Unicorn keeps raising an exception
+                # when rolling back to the end of the code
+                return
+
+    def _instrument(self, node: InstructionNode, parent: BasicBlock) -> None:
+        """ Instrument a selected memory access instruction to make the access non-canonical. """
+        # pylint: disable = too-many-locals
+        # NOTE: That's a fairly complex instrumentation, so the number of locals is justified
+        instr = node.instruction
+
+        # Collect src operands
+        src_operands = []
+        for o in instr.get_src_operands():
+            if isinstance(o, RegisterOp):
+                src_operands.append(o)
+
+        # Check if the instrumentation is possible
+        mem_operands = instr.get_mem_operands(include_explicit=True)
+        implicit_mem_operands = \
+            instr.get_mem_operands(include_explicit=False, include_implicit=True)
+        if not mem_operands or implicit_mem_operands:
+            return  # this instruction is hard to instrument; skip
+
+        # Find registers suitable for the instrumentation
+        assert len(mem_operands) == 1, f"Unexpected instruction format {instr.name}"
+        mem_operand: Operand = mem_operands[0]
+        mask_reg = self._find_mask_register(src_operands)
+        offset_reg = self._find_offset_register(instr)
+
+        # Generate a random mask to make the address non-canonical
+        mask = hex((random.getrandbits(16) << 48))
+
+        # Add the instrumentation sequence:
+        #  lea offset_reg, [mem_operand]
+        #  mov mask_reg, mask
+        #  xor offset_reg, mask_reg
+        lea = Instruction("lea", is_instrumentation=True) \
+            .add_op(RegisterOp(offset_reg, 64, False, True)) \
+            .add_op(MemoryOp(mem_operand.value, 64, True, False))
+        parent.insert_before(node, lea)
+        mov = Instruction("mov", is_instrumentation=True) \
+            .add_op(RegisterOp(mask_reg, 64, True, True)) \
+            .add_op(ImmediateOp(mask, 64))
+        parent.insert_before(node, mov)
+        mask_inst = Instruction("xor", is_instrumentation=True) \
+            .add_op(RegisterOp(offset_reg, 64, True, True)) \
+            .add_op(RegisterOp(mask_reg, 64, True, False))
+        parent.insert_before(node, mask_inst)
+
+        # Update the memory operand
+        for idx, op in enumerate(instr.operands):
+            if op == mem_operand:
+                old_op = instr.operands[idx]
+                assert isinstance(old_op, MemoryOp)
+                addr_op = MemoryOp(offset_reg, old_op.width, old_op.src, old_op.dest)
+                instr.operands[idx] = addr_op
+
+    def _find_mask_register(self, src_operands: List[RegisterOp]) -> str:
+        # Do not overwrite offset register with mask
+        candidate_list = ["rax", "rbx"]
+        mask_reg = candidate_list[0]
+        for operands in src_operands:
+            op_regs = re.split(r'\+|-|\*| ', operands.value)
+            for reg in op_regs:
+                if self._target_desc.reg_normalized[mask_reg] == \
+                   self._target_desc.reg_normalized[reg]:
+                    mask_reg = candidate_list[1]
+        return mask_reg
+
+    def _find_offset_register(self, inst: Instruction) -> str:
+        # Do not reuse destination register
+        candidate_list = ["rcx", "rdx"]
+        offset_reg = candidate_list[0]
+        for op in inst.get_all_operands():
+            if not isinstance(op, RegisterOp):
+                continue
+            if self._target_desc.reg_normalized[offset_reg] == \
+               self._target_desc.reg_normalized[op.value]:
+                offset_reg = candidate_list[1]
+        return offset_reg
+
+
+class _X86U2KAccessPass(Pass):
+    """
+    A pass that selects a random memory access instruction in a user actor and replaces it
+    with an access to the kernel actor's data (actor 0).
+    """
+
+    def run_on_test_case(self, test_case: TestCaseProgram) -> None:
+        for sec in test_case:
+            owner = sec.owner
+            if owner.privilege_level != ActorPL.USER:
                 continue
 
-            to_instrument: List[Instruction] = []
-            for bb in func:
-                for instr in bb:
-                    if instr.is_instrumentation or instr.is_from_template:
-                        continue
-                    if instr.name in ["div", "idiv"]:
-                        # Instrumentation is difficult to combine
-                        continue
-                    if instr.has_mem_operand(False):
-                        to_instrument.append(instr)
+            for func in sec:
+                to_instrument: List[InstructionNode] = []
+                for bb in func:
+                    for node in bb.iter_nodes():
+                        instr = node.instruction
+                        if instr.is_instrumentation or instr.is_from_template:
+                            continue
+                        if instr.name in ["div", "idiv"]:
+                            # Instrumentation is difficult to combine
+                            continue
+                        if instr.has_mem_operand(False):
+                            to_instrument.append(node)
 
-                for instr in to_instrument:
-                    self.instrument(instr, bb, func.owner.get_id())
+                    for node in to_instrument:
+                        # randomly select the instruction to instrument
+                        probability = 1 / CONF.avg_mem_accesses
+                        if random.random() > probability:
+                            continue
 
-    def instrument(self, instr: Instruction, parent: BasicBlock, owner_id) -> None:
-        # randomly select the instruction to instrument
-        probability = 1 / CONF.avg_mem_accesses
-        if random.random() > probability:
-            return
+                        self._instrument(node, bb, owner.get_id())
+
+    def _instrument(self, node: InstructionNode, _: BasicBlock, owner_id: ActorID) -> None:
+        """
+        Instrument a memory access instruction to access the kernel actor's data.
+        :param node: the node to instrument
+        :param parent: the parent basic block
+        :param owner_id: the owner ID of the function
+        :return: None
+        :raises: AssertionError if the instruction is not a memory access instruction
+        """
+        instr = node.instruction
 
         # calculate offset to the kernel (actor 0) FAULTY_AREA
-        layout = SandboxLayout(0, 0, owner_id)  # create a dummy layout to calculate the offset
+        layout = SandboxLayout((0, 0), owner_id)  # create a dummy layout to calculate the offset
         user_main_start = layout.get_data_addr(DataArea.MAIN, owner_id)
         kernel_faulty_start = layout.get_data_addr(DataArea.FAULTY, 0)
         offset = user_main_start - kernel_faulty_start
 
         # select operand to patch
-        mem_operands: List[MemoryOperand] = instr.get_mem_operands()
+        mem_operands: List[MemoryOp] = instr.get_mem_operands(True)
         if len(mem_operands) == 1:
             mem_operand = mem_operands[0]
         else:
@@ -206,23 +302,38 @@ class X86U2KAccessPass(Pass):
         mem_operand.value += " - " + str(offset)
 
         # patch instrumentation added by X86SandboxPass so that it targets only one page
-        previous_instr = instr.previous
-        while previous_instr and previous_instr.is_instrumentation:
-            for op in previous_instr.operands:
-                if not isinstance(op, ImmediateOperand):
+        previous_node = node.previous
+        while previous_node and previous_node.instruction.is_instrumentation:
+            for op in previous_node.instruction.operands:
+                if not isinstance(op, ImmediateOp):
                     continue
                 mask_value = int(op.value, base=0)
                 if mask_value > PAGE_SIZE:
                     mask_value %= PAGE_SIZE
                 op.value = bin(mask_value)
-            previous_instr = previous_instr.previous
+            previous_node = previous_node.previous
 
 
-class X86SandboxPass(Pass):
+_DispatcherKey = Literal["memory", "division", "bit_test", "repeated", "corrupted_cf", "enclu"]
+_SandboxDispatcher = Dict[_DispatcherKey, Tuple[List[InstructionNode],
+                                                Callable[[InstructionNode, BasicBlock], None]]]
+
+
+class _X86SandboxPass(Pass):
+    """
+    A pass that instruments the test case to prevent certain types of faults,
+    including:
+    - division by zero
+    - division overflow
+    - out-of-sandbox memory accesses
+    - CF corruption
+    - invalid ENCLU operands
+    """
+
     mask_3bits = "0b111"
     bit_test_names = ["bt", "btc", "btr", "bts", "lock bt", "lock btc", "lock btr", "lock bts"]
 
-    def __init__(self, target_desc: X86TargetDesc, faults: FaultFilter):
+    def __init__(self, target_desc: TargetDesc, faults: _FaultFilter) -> None:
         super().__init__()
         self.target_desc = target_desc
         self.faults = faults
@@ -232,116 +343,115 @@ class X86SandboxPass(Pass):
         mask_width = int(math.log(size_of_directly_accessible_memory, 2))
         self.sandbox_address_mask = "0b" + "1" * mask_width
 
-    def run_on_test_case(self, test_case: TestCase) -> None:
-        for func in test_case.functions:
-            for bb in func:
-                # collect all instructions that require sandboxing
-                memory_instructions = []
-                divisions = []
-                bit_tests = []
-                repeated_instructions = []
-                corrupted_cf = []
-                enclu = []
-                for inst in bb:
-                    if inst.is_instrumentation or inst.is_from_template:
-                        continue
+    def run_on_test_case(self, test_case: TestCaseProgram) -> None:
+        dispatcher: _SandboxDispatcher = {
+            "memory": ([], self._sandbox_memory_access),
+            "division": ([], self._sandbox_division),
+            "bit_test": ([], self._sandbox_bit_test),
+            "repeated": ([], self._sandbox_repeated_instruction),
+            "corrupted_cf": ([], self._sandbox_corrupted_cf),
+            "enclu": ([], self._sandbox_enclu),
+        }
 
-                    if inst.has_mem_operand(True):
-                        memory_instructions.append(inst)
-                    if inst.name in ["div", "rex div", "idiv", "rex idiv"]:
-                        divisions.append(inst)
-                    elif inst.name in self.bit_test_names:
-                        bit_tests.append(inst)
-                    elif "rep" in inst.name:
-                        repeated_instructions.append(inst)
-                    elif inst.category == "BASE-ROTATE" or inst.category == "BASE-SHIFT":
-                        corrupted_cf.append(inst)
-                    elif inst.name == "enclu":
-                        enclu.append(inst)
+        for bb in test_case.iter_basic_blocks():
+            dispatcher["memory"][0].clear()
+            dispatcher["division"][0].clear()
+            dispatcher["bit_test"][0].clear()
+            dispatcher["repeated"][0].clear()
+            dispatcher["corrupted_cf"][0].clear()
+            dispatcher["enclu"][0].clear()
 
-                # sandbox them
-                for inst in memory_instructions:
-                    self.sandbox_memory_access(inst, bb)
+            # collect all instructions that require sandboxing
+            for node in bb.iter_nodes():
+                inst = node.instruction
+                if inst.is_instrumentation or inst.is_from_template:
+                    continue
 
-                for inst in divisions:  # must be after memory accesses
-                    self.sandbox_division(inst, bb, func.owner.name)
+                if inst.has_mem_operand(True):
+                    dispatcher["memory"][0].append(node)
+                if inst.name in ["div", "rex div", "idiv", "rex idiv"]:
+                    dispatcher["division"][0].append(node)
+                elif inst.name in self.bit_test_names:
+                    dispatcher["bit_test"][0].append(node)
+                elif "rep" in inst.name:
+                    dispatcher["repeated"][0].append(node)
+                elif inst.category in ["BASE-ROTATE", "BASE-SHIFT"]:
+                    dispatcher["corrupted_cf"][0].append(node)
+                elif inst.name == "enclu":
+                    dispatcher["enclu"][0].append(node)
 
-                for inst in bit_tests:
-                    self.sandbox_bit_test(inst, bb)
+            # sandbox them
+            for _, (nodes, sandbox_func) in dispatcher.items():
+                for node in nodes:
+                    sandbox_func(node, bb)
 
-                for inst in repeated_instructions:
-                    self.sandbox_repeated_instruction(inst, bb)
-
-                for inst in corrupted_cf:
-                    self.sandbox_corrupted_cf(inst, bb)
-
-                for inst in enclu:
-                    self.sandbox_enclu(inst, bb)
-
-    def sandbox_memory_access(self, instr: Instruction, parent: BasicBlock):
+    def _sandbox_memory_access(self, node: InstructionNode, parent: BasicBlock) -> None:
         """ Force the memory accesses into the page starting from R14 """
-        mem_operands = instr.get_mem_operands()
-        implicit_mem_operands = instr.get_implicit_mem_operands()
+        instr = node.instruction
+
+        mem_operands = instr.get_mem_operands(True)
+        implicit_mem_operands = instr.get_mem_operands(
+            include_explicit=False, include_implicit=True)
         mask = self.sandbox_address_mask
         if "SSE" in instr.category \
            and "movup" not in instr.name \
            and "movdqu" not in instr.name \
            and "lddqu" not in instr.name:
             mask = mask[:-4] + "0" * 4
-        if CONF.x86_generator_align_locks:  # type: ignore
+
+        # FIXME: broken type
+        if CONF.x86_generator_align_locks:  # type: ignore  # pylint: disable = no-member
             if "lock" in instr.name or instr.name == "xchg":
                 mask = mask[:-3] + "0" * 3
 
         if mem_operands and not implicit_mem_operands:
             assert len(mem_operands) == 1, \
                 f"Instructions with multiple memory accesses are not yet supported: {instr.name}"
-            mem_operand: Operand = mem_operands[0]
+            mem_operand = mem_operands[0]
             address_reg = mem_operand.value
             imm_width = mem_operand.width if mem_operand.width <= 32 else 32
-            apply_mask = Instruction("and", True) \
-                .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
-                .add_op(ImmediateOperand(mask, imm_width)) \
-                .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
-            parent.insert_before(instr, apply_mask)
-            instr.get_mem_operands()[0].value = "r14 + " + address_reg
+            apply_mask = Instruction("and", is_instrumentation=True) \
+                .add_op(RegisterOp(address_reg, mem_operand.width, True, True)) \
+                .add_op(ImmediateOp(mask, imm_width)) \
+                .add_op(FlagsOp(("w", "w", "undef", "w", "w", "", "", "", "w")), True)
+            parent.insert_before(node, apply_mask)
+            instr.get_mem_operands(True)[0].value = "r14 + " + address_reg
             return
 
         mem_operands = implicit_mem_operands
-        if mem_operands:
-            # deduplicate operands
-            uniq_operands: Dict[str, MemoryOperand] = {}
-            for o in mem_operands:
-                if o.value not in uniq_operands:
-                    uniq_operands[o.value] = o
+        assert mem_operands, "Attempt to sandbox an instruction without memory operands"
 
-            # instrument each operand to sandbox the memory accesses
-            for address_reg, mem_operand in uniq_operands.items():
-                imm_width = mem_operand.width if mem_operand.width <= 32 else 32
-                assert address_reg in self.target_desc.registers[64], \
-                    f"Unexpected address register {address_reg} used in {instr}"
-                apply_mask = Instruction("and", True) \
-                    .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
-                    .add_op(ImmediateOperand(mask, imm_width)) \
-                    .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
-                parent.insert_before(instr, apply_mask)
+        # deduplicate operands
+        uniq_operands: Dict[str, MemoryOp] = {}
+        for o in mem_operands:
+            if o.value not in uniq_operands:
+                uniq_operands[o.value] = o
 
-                add_base = Instruction("add", True) \
-                    .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
-                    .add_op(RegisterOperand("r14", 64, True, False)) \
-                    .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
-                parent.insert_before(instr, add_base)
+        # instrument each operand to sandbox the memory accesses
+        for address_reg, mem_operand in uniq_operands.items():
+            imm_width = mem_operand.width if mem_operand.width <= 32 else 32
+            assert address_reg in self.target_desc.registers_by_size[64], \
+                f"Unexpected address register {address_reg} used in {instr}"
+            apply_mask = Instruction("and", is_instrumentation=True) \
+                .add_op(RegisterOp(address_reg, mem_operand.width, True, True)) \
+                .add_op(ImmediateOp(mask, imm_width)) \
+                .add_op(FlagsOp(("w", "w", "undef", "w", "w", "", "", "", "w")), True)
+            parent.insert_before(node, apply_mask)
 
-                # restore the original register value
-                remove_base = Instruction("sub", True) \
-                    .add_op(RegisterOperand(address_reg, mem_operand.width, True, True)) \
-                    .add_op(RegisterOperand("r14", 64, True, False)) \
-                    .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
-                parent.insert_after(instr, remove_base)
-            return
+            add_base = Instruction("add", is_instrumentation=True) \
+                .add_op(RegisterOp(address_reg, mem_operand.width, True, True)) \
+                .add_op(RegisterOp("r14", 64, True, False)) \
+                .add_op(FlagsOp(("w", "w", "undef", "w", "w", "", "", "", "w")), True)
+            parent.insert_before(node, add_base)
 
-        raise GeneratorException("Attempt to sandbox an instruction without memory operands")
+            # restore the original register value
+            remove_base = Instruction("sub", is_instrumentation=True) \
+                .add_op(RegisterOp(address_reg, mem_operand.width, True, True)) \
+                .add_op(RegisterOp("r14", 64, True, False)) \
+                .add_op(FlagsOp(("w", "w", "undef", "w", "w", "", "", "", "w")), True)
+            parent.insert_after(node, remove_base)
 
-    def sandbox_division(self, inst: Instruction, parent: BasicBlock, owner_name: str):
+    def _sandbox_division(self, node: InstructionNode, parent: BasicBlock) -> None:
         """
         In the experiments where division errors are not permitted, we prevent them
         through code instrumentation.
@@ -385,18 +495,28 @@ class X86SandboxPass(Pass):
             * entropy of D is reduced by (division_size - 2) bits (i.e., the resulting
               entropy of D is 2 bits, with the sign bit cleared)
         """
+        # pylint: disable = too-many-locals
+        # FIXME: this function has to be refactored to break it down into simpler parts
+
+        inst = node.instruction
+
         # Determine what type of fault is allowed
-        actor_blocklist = CONF._actors[owner_name]["fault_blocklist"]
+        owner_name = parent.get_owner().name
+        actor_blocklist = CONF.get_actors_conf()[owner_name]["fault_blocklist"]
         enable_div_by_zero = self.faults.div_by_zero & ("div-by-zero" not in actor_blocklist)
         enable_div_overflow = self.faults.div_overflow & ("div-overflow" not in actor_blocklist)
 
-        # Copy div source operand as we may need to modify it
-        divisor = deepcopy(inst.operands[0])
+        # Copy div source operand and label it as a destination; we may need to modify it
+        operand = inst.operands[0]
+        assert isinstance(operand, (RegisterOp, MemoryOp)), \
+               f"Unexpected operand type {operand}"
+        divisor = copy_op_with_flow_modification(operand, dest=True)
         size = divisor.width
 
         # This option prevents triggering of Zero Division Injection in the tests
-        if size == 64 and CONF.x86_disable_div64:  # type: ignore
-            parent.delete(inst)
+        # FIXME: Broken type hint
+        if size == 64 and CONF.x86_disable_div64:  # type: ignore  # pylint: disable = no-member
+            parent.delete(node)
             return
 
         # Prevent div by zero
@@ -404,12 +524,11 @@ class X86SandboxPass(Pass):
             if "idiv" not in inst.name or enable_div_overflow:
                 # for unsigned division and signed divisions with overflow permitted,
                 # it is sufficient to OR the divisor with 1 to prevent div by zero
-                instrumentation = Instruction("or", True) \
+                instrumentation = Instruction("or", is_instrumentation=True) \
                     .add_op(divisor) \
-                    .add_op(ImmediateOperand("1", 8)) \
-                    .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
-                parent.insert_before(inst, instrumentation)
-                divisor.dest = True
+                    .add_op(ImmediateOp("1", 8)) \
+                    .add_op(FlagsOp(("w", "w", "undef", "w", "w", "", "", "", "w")), True)
+                parent.insert_before(node, instrumentation)
             else:
                 # for signed divisions with overflows forbidden,
                 # we need to modify the divisor to make it both non-zero
@@ -420,27 +539,30 @@ class X86SandboxPass(Pass):
                 # that the divider is at least 15
                 # (the value 15 comes from the instrumentation below, where
                 # we make the dividend at most `4 << div_size - 1`)
-                instrumentation = Instruction("or", True) \
+                instrumentation = Instruction("or", is_instrumentation=True) \
                     .add_op(divisor) \
-                    .add_op(ImmediateOperand("0b1000", 8)) \
-                    .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
-                parent.insert_before(inst, instrumentation)
-                divisor.dest = True
+                    .add_op(ImmediateOp("0b1000", 8)) \
+                    .add_op(FlagsOp(("w", "w", "undef", "w", "w", "", "", "", "w")), True)
+                parent.insert_before(node, instrumentation)
 
                 # For negative dividers, we clear the lower 4 bits of the divider,
                 # thus making the value at most -15. To this end, we AND
                 # the lower 8 bits of the divider bit a bit mask 0b11110000
-                divider_8_bit = deepcopy(divisor)
-                divider_8_bit.width = 8
-                if isinstance(divisor, RegisterOperand):
+                divider_8_bit: Union[RegisterOp, MemoryOp]
+                if isinstance(divisor, MemoryOp):
+                    divider_8_bit = MemoryOp(divisor.value, 8, divisor.src, divisor.dest)
+                elif isinstance(divisor, RegisterOp):
                     reg_normalized = self.target_desc.reg_normalized[divisor.value]
                     reg_8_bit = self.target_desc.reg_denormalized[reg_normalized][8]
-                    divider_8_bit.value = reg_8_bit
-                instrumentation = Instruction("and", True) \
+                    divider_8_bit = RegisterOp(reg_8_bit, 8, divisor.src, divisor.dest)
+                else:
+                    assert_never(divisor)
+
+                instrumentation = Instruction("and", is_instrumentation=True) \
                     .add_op(divider_8_bit) \
-                    .add_op(ImmediateOperand("0b11111000", 8)) \
-                    .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
-                parent.insert_before(inst, instrumentation)
+                    .add_op(ImmediateOp("0b11111000", 8)) \
+                    .add_op(FlagsOp(("w", "w", "undef", "w", "w", "", "", "", "w")), True)
+                parent.insert_before(node, instrumentation)
 
         if enable_div_overflow:
             return
@@ -453,16 +575,16 @@ class X86SandboxPass(Pass):
         if divisor.value in ["rdx", "edx", "dx", "dh", "dl"] \
            or "rdx" in divisor.value \
            or ("rax" in divisor.value and size == 8):
-            parent.delete(inst)
+            parent.delete(node)
             return
 
         # Special case: dividend in AX
         # instrumentation: ax = 1
         if size == 8:
-            instrumentation = Instruction("mov", True).\
-                add_op(RegisterOperand("ax", 16, False, True)).\
-                add_op(ImmediateOperand("1", 16))
-            parent.insert_before(inst, instrumentation)
+            instrumentation = Instruction("mov", is_instrumentation=True).\
+                add_op(RegisterOp("ax", 16, False, True)).\
+                add_op(ImmediateOp("1", 16))
+            parent.insert_before(node, instrumentation)
             return
 
         # Normal case
@@ -474,81 +596,87 @@ class X86SandboxPass(Pass):
             # that's why we simplify the case by assigning zero to the upper bits of the dividend
             # instrumentation, thus making the dividend at most `4 << div_size - 1`
             # D = D & 3
-            instrumentation = Instruction("and", True) \
-                .add_op(RegisterOperand(d_register, size, True, True)) \
-                .add_op(ImmediateOperand("0b11", 8)) \
-                .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
-            parent.insert_before(inst, instrumentation)
+            instrumentation = Instruction("and", is_instrumentation=True) \
+                .add_op(RegisterOp(d_register, size, True, True)) \
+                .add_op(ImmediateOp("0b11", 8)) \
+                .add_op(FlagsOp(("w", "w", "undef", "w", "w", "", "", "", "w")), True)
+            parent.insert_before(node, instrumentation)
 
         # unsigned div
         else:
             # instrumentation:
             # D = (D & divisor) >> 1  # ensure that D is always smaller than the divisor
-            instrumentation = Instruction("and", True) \
-                .add_op(RegisterOperand(d_register, size, True, True)) \
+            instrumentation = Instruction("and", is_instrumentation=True) \
+                .add_op(RegisterOp(d_register, size, True, True)) \
                 .add_op(divisor) \
-                .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
-            parent.insert_before(inst, instrumentation)
-            divisor.dest = True
+                .add_op(FlagsOp(("w", "w", "undef", "w", "w", "", "", "", "w")), True)
+            parent.insert_before(node, instrumentation)
 
-            instrumentation = Instruction("shr", True) \
-                .add_op(RegisterOperand(d_register, size, True, True)) \
-                .add_op(ImmediateOperand("1", 8)) \
-                .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "undef"]), True)
-            parent.insert_before(inst, instrumentation)
+            instrumentation = Instruction("shr", is_instrumentation=True) \
+                .add_op(RegisterOp(d_register, size, True, True)) \
+                .add_op(ImmediateOp("1", 8)) \
+                .add_op(FlagsOp(("w", "w", "undef", "w", "w", "", "", "", "undef")), True)
+            parent.insert_before(node, instrumentation)
 
-    def sandbox_bit_test(self, inst: Instruction, parent: BasicBlock):
+    def _sandbox_bit_test(self, node: InstructionNode, parent: BasicBlock) -> None:
         """
         The address accessed by a BT* instruction is based on both of its operands.
         `sandbox_memory_access` take care of the first operand.
         This function ensures that the offset is always within a byte.
         """
+        inst = node.instruction
+
         address = inst.operands[0]
-        if isinstance(address, RegisterOperand):
+        if isinstance(address, RegisterOp):
             # this is a version that does not access memory
             # no need for sandboxing
             return
 
-        offset = deepcopy(inst.operands[1])
-        if isinstance(offset, ImmediateOperand):
+        offset = inst.operands[1]
+        if isinstance(offset, ImmediateOp):
             # The offset is an immediate
             # Simply replace it with a smaller value
             offset.value = str(random.randint(0, 7))
             return
 
         # The offset is in a register
+        assert isinstance(offset, RegisterOp)
+
         # Mask its upper bits to reduce the stored value to at most 7
         if address.value != offset.value:
-            apply_mask = Instruction("and", True) \
-                .add_op(offset) \
-                .add_op(ImmediateOperand(self.mask_3bits, 8)) \
-                .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
-            parent.insert_before(inst, apply_mask)
-            offset.dest = True
+            new_offset = copy_op_with_flow_modification(offset, dest=True)
+            apply_mask = Instruction("and", is_instrumentation=True) \
+                .add_op(new_offset) \
+                .add_op(ImmediateOp(self.mask_3bits, 8)) \
+                .add_op(FlagsOp(("w", "w", "undef", "w", "w", "", "", "", "w")), True)
+            parent.insert_before(node, apply_mask)
             return
 
         # Special case: offset and address use the same register
         # Sandboxing is impossible. Give up
-        parent.delete(inst)
+        parent.delete(node)
 
-    def sandbox_repeated_instruction(self, inst: Instruction, parent: BasicBlock):
-        apply_mask = Instruction("and", True) \
-            .add_op(RegisterOperand("rcx", 64, True, True)) \
-            .add_op(ImmediateOperand("0xff", 8)) \
-            .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
-        add_base = Instruction("add", True) \
-            .add_op(RegisterOperand("rcx", 64, True, True)) \
-            .add_op(ImmediateOperand("1", 1)) \
-            .add_op(FlagsOperand(["w", "w", "w", "w", "w", "", "", "", "w"]), True)
-        parent.insert_before(inst, apply_mask)
-        parent.insert_before(inst, add_base)
+    def _sandbox_repeated_instruction(self, node: InstructionNode, parent: BasicBlock) -> None:
+        apply_mask = Instruction("and", is_instrumentation=True) \
+            .add_op(RegisterOp("rcx", 64, True, True)) \
+            .add_op(ImmediateOp("0xff", 8)) \
+            .add_op(FlagsOp(("w", "w", "undef", "w", "w", "", "", "", "w")), True)
+        add_base = Instruction("add", is_instrumentation=True) \
+            .add_op(RegisterOp("rcx", 64, True, True)) \
+            .add_op(ImmediateOp("1", 1)) \
+            .add_op(FlagsOp(("w", "w", "w", "w", "w", "", "", "", "w")), True)
+        parent.insert_before(node, apply_mask)
+        parent.insert_before(node, add_base)
 
-    def sandbox_corrupted_cf(self, inst: Instruction, parent: BasicBlock):
-        set_cf = Instruction("stc", True) \
-            .add_op(FlagsOperand(["w", "", "", "", "", "", "", "", ""]), True)
-        parent.insert_after(inst, set_cf)
+    def _sandbox_corrupted_cf(self, node: InstructionNode, parent: BasicBlock) -> None:
+        # FIXME: This should be a separate pass
 
-    def sandbox_enclu(self, inst: Instruction, parent: BasicBlock):
+        set_cf = Instruction("stc", is_instrumentation=True) \
+            .add_op(FlagsOp(("w", "", "", "", "", "", "", "", "")), True)
+        parent.insert_after(node, set_cf)
+
+    def _sandbox_enclu(self, node: InstructionNode, parent: BasicBlock) -> None:
+        # FIXME: This should be a separate pass
         options = [
             "0",  # ereport
             "1",  # egetkey
@@ -557,13 +685,14 @@ class X86SandboxPass(Pass):
             "6",  # emodpe
             "7",  # eacceptcopy
         ]
-        set_rax = Instruction("mov", True) \
-            .add_op(RegisterOperand("eax", 32, True, True)) \
-            .add_op(ImmediateOperand(random.choice(options), 1))
-        parent.insert_before(inst, set_rax)
+        set_rax = Instruction("mov", is_instrumentation=True) \
+            .add_op(RegisterOp("eax", 32, True, True)) \
+            .add_op(ImmediateOp(random.choice(options), 1))
+        parent.insert_before(node, set_rax)
 
     @staticmethod
-    def requires_sandbox(inst: InstructionSpec):
+    def requires_sandbox(inst: InstructionSpec) -> bool:
+        """ Check if the instruction requires instrumentation to prevent faults """
         if inst.has_mem_operand:
             return True
         if inst.name in ["div", "rex div"]:
@@ -575,7 +704,7 @@ class X86SandboxPass(Pass):
         return False
 
 
-class X86PatchUndefinedFlagsPass(Pass):
+class _X86PatchUndefinedFlagsPass(Pass):
     """
     Some instructions have undefined effect on FLAGS (e.g., SHL may or may not overwrite OF).
     This causes a mismatch between Model execution and Executor, if the undefined behavior
@@ -595,7 +724,7 @@ class X86PatchUndefinedFlagsPass(Pass):
     """
     patch_candidates: List[InstructionSpec]
 
-    def __init__(self, instruction_set: InstructionSet, generator: ConfigurableGenerator):
+    def __init__(self, instruction_set: InstructionSet, generator: CodeGenerator) -> None:
         super().__init__()
         self.instruction_set = instruction_set
         self.generator = generator
@@ -603,11 +732,11 @@ class X86PatchUndefinedFlagsPass(Pass):
         self.patch_candidates = []
         for instruction_spec in instruction_set.instructions:
             # we don't want to change the control flow
-            if instruction_spec.control_flow:
+            if instruction_spec.is_control_flow:
                 continue
 
             # check if the instruction is safe to use on its own
-            if X86SandboxPass.requires_sandbox(instruction_spec):
+            if _X86SandboxPass.requires_sandbox(instruction_spec):
                 continue
 
             # check if it overwrites flags and if creates new dependencies
@@ -623,68 +752,76 @@ class X86PatchUndefinedFlagsPass(Pass):
             if not has_read and has_write:
                 self.patch_candidates.append(instruction_spec)
 
-    def run_on_test_case(self, test_case: TestCase) -> None:
-        for func in test_case.functions:
-            for bb in func:
-                # get a list of all instructions in the BB
-                all_instructions: List[Instruction] = []
-                for inst in bb:
-                    all_instructions.append(inst)
-                if len(bb.terminators) == 2:  # include conditional terminators
-                    all_instructions.append(bb.terminators[0])
+    def run_on_test_case(self, test_case: TestCaseProgram) -> None:
+        for bb in test_case.iter_basic_blocks():
+            self._patch_flags_in_bb(bb)
 
-                # keep track of the FLAGS dependencies as we iterate over instructions
-                flags_to_set: Set[str] = set()
+    def _patch_flags_in_bb(self, bb: BasicBlock) -> None:
+        # pylint: disable = too-many-branches
+        # FIXME: This function was written in a hurry and needs to be refactored
 
-                # walk the list in inverse order
-                while all_instructions:
-                    inst = all_instructions.pop()
-                    if inst.is_from_template:
-                        continue
+        # get a list of all instruction nodes in the BB
+        all_instructions: List[InstructionNode] = []
+        for node in bb.iter_nodes():
+            all_instructions.append(node)
 
-                    flags: Optional[FlagsOperand] = inst.get_flags_operand()
-                    if not flags:
-                        continue
+        # Initialize a list used to track the flags that have to be set
+        flags_to_set: Set[str] = set()
 
-                    # fix undefined flags by adding another instruction in-between
-                    undef_flags = [i for i in flags.get_undef_flags() if i in flags_to_set]
-                    if undef_flags:
-                        patches = self.find_flags_patch(undef_flags, flags_to_set)
-                        for patch in patches:
-                            bb.insert_after(inst, patch)
-                            patch.is_instrumentation = True
-                            # remove the flags overwritten by the patch
-                            for f in patch.get_flags_operand().get_write_flags():  # type: ignore
-                                flags_to_set.discard(f)
+        # Collect the flags read by the terminators (conditional jumps)
+        # Note: we assume that terminators do not modify flags
+        # and hence no patching is needed at this point
+        for term in bb.terminators:
+            flags = term.get_flags_operand()
+            if flags:
+                for f in flags.get_flags_by_type('read'):
+                    flags_to_set.add(f)
 
-                    # remove the flags overwritten by the instruction
-                    for f in flags.get_write_flags():
+        # Walk the instruction list in the reverse order
+        # During the walk, track flags have undefined values and overwrite them by adding
+        # extra instructions in-between
+        while all_instructions:
+            node = all_instructions.pop()
+            inst = node.instruction
+            flags = inst.get_flags_operand()
+
+            # skip template instructions and instructions that do not read/write flags
+            if inst.is_from_template or not flags:
+                continue
+
+            # fix undefined flags by adding another instruction in-between
+            undef_flags = [i for i in flags.get_flags_by_type('undef') if i in flags_to_set]
+            if undef_flags:
+                patches = self._find_flags_patch(undef_flags, flags_to_set)
+                for patch in patches:
+                    bb.insert_after(node, patch)
+                    # remove the flags overwritten by the patch
+                    for f in patch.get_flags_operand().get_flags_by_type('write'):  # type: ignore
                         flags_to_set.discard(f)
 
-                    # add new flag dependencies
-                    for f in flags.get_read_flags():
-                        flags_to_set.add(f)
+            # remove the flags overwritten by the instruction
+            for f in flags.get_flags_by_type('write'):
+                flags_to_set.discard(f)
 
-                # make sure that we do not have undefined flags when we enter the BB
-                if flags_to_set:
-                    # find a place to insert the patches
-                    inst = bb.get_first()
-                    while inst:
-                        if inst.name != "macro":
-                            break
-                        inst = inst.next
-                    if not inst:
-                        self.LOG.error("X86PatchUndefinedFlagsPass: No place to insert a patch")
+            # add new flag dependencies
+            for f in flags.get_flags_by_type('read'):
+                flags_to_set.add(f)
 
-                    patches = self.find_flags_patch(list(flags_to_set), flags_to_set)
-                    for patch in patches:
-                        bb.insert_before(inst, patch)
-                        patch.is_instrumentation = True
+        # make sure that we do not have undefined flags when we enter the BB
+        if flags_to_set:
+            # find a place to insert the patches
+            entry_node = bb.get_first(exclude_macros=True)
+            if not entry_node:
+                raise ValueError("X86PatchUndefinedFlagsPass: No place to insert a patch")
 
-    def find_flags_patch(self, undef_flags, flags_to_set) -> List[Instruction]:
+            patches = self._find_flags_patch(list(flags_to_set), flags_to_set)
+            for patch in patches:
+                bb.insert_before(entry_node, patch)
+
+    def _find_flags_patch(self, undef_flags: List[str],
+                          flags_to_set: Set[str]) -> List[Instruction]:
         """
         Find an instruction sequence that would overwrite a list of flags
-
         :param undef_flags: list of undefined flags that have to be overwritten
             by the patch instructions
         :param flags_to_set: list of flags that will be read by one of the following instructions,
@@ -695,14 +832,16 @@ class X86PatchUndefinedFlagsPass(Pass):
         org_undef = deepcopy(undef_flags)
         patches: List[Instruction] = []
         for instruction_spec in self.patch_candidates:
-            patch = self.generator.generate_instruction(instruction_spec)
+            patch = self.generator.generate_instruction(instruction_spec, True)
             patch_flags = patch.get_flags_operand()
             assert patch_flags
             new_undef_flags = [
-                i for i in patch_flags.get_undef_flags()
+                i for i in patch_flags.get_flags_by_type('undef')
                 if i not in undef_flags and i in flags_to_set
             ]
-            not_patched_flags = [i for i in undef_flags if i not in patch_flags.get_write_flags()]
+            not_patched_flags = [
+                i for i in undef_flags if i not in patch_flags.get_flags_by_type('write')
+            ]
 
             if not new_undef_flags and not_patched_flags != undef_flags:
                 patches.append(patch)
@@ -711,62 +850,70 @@ class X86PatchUndefinedFlagsPass(Pass):
                     break
 
         if undef_flags:
-            raise GeneratorException("Could not find an instruction to patch flags.\n"
-                                     f"  Initial flags to be patched: {org_undef}\n"
-                                     f"  Flags for which a patch was not found: {undef_flags}")
+            raise ValueError("Could not find an instruction to patch flags.\n"
+                             f"  Initial flags to be patched: {org_undef}\n"
+                             f"  Flags for which a patch was not found: {undef_flags}")
 
         return patches
 
 
-class X86PatchUndefinedResultPass(Pass):
+class _X86PatchUndefinedResultPass(Pass):
+    """
+    Some instructions have undefined results when the source operand is zero.
+    This pass patches such instructions to avoid undefined behavior.
+    """
 
-    def run_on_test_case(self, test_case: TestCase) -> None:
-        for func in test_case.functions:
-            for bb in func:
-                # collect all instructions that require patching
-                bit_scan = []
-                for inst in bb:
-                    if inst.is_instrumentation or inst.is_from_template:
-                        continue
-                    if inst.name in ["bsf", "bsr"]:
-                        bit_scan.append(inst)
-
-                # patch them
-                for inst in bit_scan:
-                    self.patch_bit_scan(inst, bb)
+    def run_on_test_case(self, test_case: TestCaseProgram) -> None:
+        # call _patch_bit_scan on all bit scan instructions
+        for bb in test_case.iter_basic_blocks():
+            bit_scan = []
+            for node in bb.iter_nodes():
+                inst = node.instruction
+                if inst.is_instrumentation or inst.is_from_template:
+                    continue
+                if inst.name in ["bsf", "bsr"]:
+                    bit_scan.append(node)
+            for node in bit_scan:
+                self._patch_bit_scan(node, bb)
 
     @staticmethod
-    def patch_bit_scan(inst: Instruction, parent: BasicBlock):
+    def _patch_bit_scan(node: InstructionNode, parent: BasicBlock) -> None:
         """
         Bit Scan instructions give an undefined result when the source operand is zero.
         To avoid it, set the most significant bit.
         """
-        source = deepcopy(inst.operands[1])  # copy because we may modify it
+        inst = node.instruction
+
+        # get the source operand
+        src_operand = inst.operands[1]
+        assert isinstance(src_operand, (RegisterOp, MemoryOp)), \
+               f"Unexpected operand type {src_operand}"
+
+        # copy because we may modify it
+        source = copy_op_with_flow_modification(src_operand, dest=True)
+
         mask = bin(1 << (source.width - 1))
         mask_size = source.width
         if source.width in [64, 32]:
             mask = "0b1000000000000000000000000000000"
             mask_size = 32
-        apply_mask = Instruction("or", True) \
+        apply_mask = Instruction("or", is_instrumentation=True) \
             .add_op(source) \
-            .add_op(ImmediateOperand(mask, mask_size)) \
-            .add_op(FlagsOperand(["w", "w", "undef", "w", "w", "", "", "", "w"]), True)
-        parent.insert_before(inst, apply_mask)
-        source.dest = True
+            .add_op(ImmediateOp(mask, mask_size)) \
+            .add_op(FlagsOp(("w", "w", "undef", "w", "w", "", "", "", "w")), True)
+        parent.insert_before(node, apply_mask)
 
 
-class X86PatchOpcodesPass(Pass):
+class _X86PatchOpcodesPass(Pass):
     """
     Replaces assembly instructions with their opcodes.
     This is necessary to test instruction with multiple opcodes and
     the instruction that are not supported/not permitted by the standard
     assembler.
     """
-    opcodes: Dict[str, List[str]] = {
+    _OPCODES: Final[Dict[str, List[str]]] = {
         "ud2": [
-            # UD2 instruction
-            "0x0f, 0x0b",
-
+            "0x0f, 0x0b",  # UD2 instruction
             # invalid in 64-bit mode;
             # all the following opcodes are padded
             # with NOP to prevent misinterpretation by objdump
@@ -795,109 +942,54 @@ class X86PatchOpcodesPass(Pass):
         "int1": ["0xf1"]
     }
 
-    def run_on_test_case(self, test_case: TestCase) -> None:
-        for func in test_case.functions:
-            for bb in func:
-                # collect all UD instructions
-                to_patch = []
-                for inst in bb:
-                    if inst.is_instrumentation or inst.is_from_template:
-                        continue
-                    if inst.name in self.opcodes.keys():
-                        to_patch.append(inst)
+    def run_on_test_case(self, test_case: TestCaseProgram) -> None:
+        for bb in test_case.iter_basic_blocks():
+            # collect all UD instructions
+            to_patch = []
+            for node in bb.iter_nodes():
+                inst = node.instruction
+                if inst.is_instrumentation or inst.is_from_template:
+                    continue
+                if inst.name in self._OPCODES:
+                    to_patch.append(node)
 
-                # patch them
-                for inst in to_patch:
-                    self.replace_opcode(inst, bb)
+            # patch them
+            for node in to_patch:
+                self._instrument(node, bb)
 
-    def replace_opcode(self, inst: Instruction, _: BasicBlock):
-        opcode_options = self.opcodes[inst.name]
+    def _instrument(self, node: InstructionNode, parent: BasicBlock) -> None:
+        inst = node.instruction
+        opcode_options = self._OPCODES[inst.name]
         opcode = random.choice(opcode_options)
-        inst.name = ".byte " + opcode
+        new_inst = copy_inst_with_modification(inst, name=".byte " + opcode)
+        parent.insert_before(node, new_inst)
+        parent.delete(node)
 
 
-class X86Printer(Printer):
-    memory_prefixes = {
-        8: "byte ptr",
-        16: "word ptr",
-        32: "dword ptr",
-        64: "qword ptr",
-        80: "tbyte ptr",
-        128: "xmmword ptr",
-        256: "ymmword ptr",
-        512: "zmmword ptr",
-        4608: "ptr",
-    }
-    prologue_template = [
-        ".intel_syntax noprefix\n",
-        ".test_case_enter:\n",
-    ]
-    epilogue_template = [
-        ".section .data.main\n",
-        ".test_case_exit:\n",
-    ]
+# ==================================================================================================
+# Public Interface
+# ==================================================================================================
+class X86Generator(CodeGenerator):
+    """ x86-specific implementation of the test case program generator """
 
-    def __init__(self, _: X86TargetDesc) -> None:
-        super().__init__()
+    _faults: _FaultFilter
 
-    def print(self, test_case: TestCase, outfile: str) -> None:
-        with open(outfile, "w") as f:
-            # print prologue
-            for line in self.prologue_template:
-                f.write(line)
+    def __init__(self, seed: int, instruction_set: InstructionSet, target_desc: TargetDesc,
+                 asm_parser: AsmParser, elf_parser: ELFParser) -> None:
+        super().__init__(seed, instruction_set, target_desc, asm_parser, elf_parser)
+        assert isinstance(self._target_desc, X86TargetDesc)
 
-            # print the test case
-            for func in test_case.functions:
-                self.print_function(func, f)
+        self._faults = _FaultFilter()
 
-            # print epilogue
-            for line in self.epilogue_template:
-                f.write(line)
-
-    def print_function(self, func: Function, file):
-        file.write(f".section .data.{func.owner.name}\n")
-        file.write(f"{func.name}:\n")
-        for bb in func:
-            self.print_basic_block(bb, file)
-
-        self.print_basic_block(func.exit, file)
-
-    def print_basic_block(self, bb: BasicBlock, file):
-        file.write(f"{bb.name.lower()}:\n")
-        for inst in bb:
-            file.write(self.instruction_to_str(inst) + "\n")
-        for inst in bb.terminators:
-            file.write(self.instruction_to_str(inst) + "\n")
-
-    def instruction_to_str(self, inst: Instruction):
-        if inst.name == "macro":
-            return self.macro_to_str(inst)
-
-        operands = ", ".join([self.operand_to_str(op) for op in inst.operands])
-        if inst.is_instrumentation:
-            comment = "# instrumentation"
-        elif inst.is_noremove:
-            comment = "# noremove"
-        else:
-            comment = ""
-        return f"{inst.name} {operands} {comment}"
-
-    def operand_to_str(self, op: Operand) -> str:
-        if isinstance(op, MemoryOperand) or isinstance(op, AgenOperand):
-            prefix = self.memory_prefixes[op.width]
-            return f"{prefix} [{op.value}]"
-
-        return op.value
-
-    def macro_to_str(self, inst: Instruction):
-        macro_placeholder = "nop qword ptr [rax + 0xff]"
-        if inst.operands[1].value.lower() == ".noarg":
-            return f".macro{inst.operands[0].value}: {macro_placeholder}"
-        else:
-            return f".macro{inst.operands[0].value}{inst.operands[1].value}: {macro_placeholder}"
-
-
-class X86RandomGenerator(X86Generator, RandomGenerator):
-
-    def __init__(self, instruction_set: InstructionSet, seed: int):
-        super().__init__(instruction_set, seed)
+        # configure instrumentation passes
+        self._passes = [
+            _X86PatchUndefinedFlagsPass(self._instruction_set, self),
+            _X86SandboxPass(self._target_desc, self._faults),
+            _X86PatchUndefinedResultPass(),
+        ]
+        if self._faults.non_canonical_access:
+            self._passes.append(_X86NonCanonicalAddressPass(self._target_desc))
+        if self._faults.u2k_access:
+            self._passes.append(_X86U2KAccessPass())  # must be after X86SandboxPass
+        self._passes.append(_X86PatchOpcodesPass())
+        self._printer = _X86Printer(self._target_desc)

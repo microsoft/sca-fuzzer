@@ -1,0 +1,21 @@
+[run]
+omit =
+    */__init__.py
+    cli.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    assert_never
+
+exclude_also =
+    if TYPE_CHECKING:
+    def _parse_args
+    def _km_write
+    def _is_smt_enabled
+    def _can_set_reserved
+    def _is_kernel_module_installed
+    def _configure_kernel_module
+    def _read_trace
+    def _rewind_km_output_to_end
+    if not skip_setup:

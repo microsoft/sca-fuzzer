@@ -7,7 +7,7 @@ import unittest
 import os
 import tempfile
 
-from src.isa_loader import InstructionSet
+from src.isa_spec import InstructionSet
 from src.instruction_spec import OT, InstructionSpec
 
 basic = """
@@ -21,6 +21,12 @@ basic = """
     {"type_": "FLAGS", "values": ["w", "r", "undef", "w", "w", "", "", "", "w"],
      "src": false, "dest": false, "width": 0}
   ]
+},
+{"name": "test2", "category": "CATEGORY", "control_flow": false,
+  "operands": [
+    {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16}
+  ],
+  "implicit_operands": []
 }
 ]
 """
@@ -45,7 +51,7 @@ duplicate = """
 
 class InstructionSetParserTest(unittest.TestCase):
 
-    def test_parsing(self):
+    def test_parsing(self) -> None:
         spec_file = tempfile.NamedTemporaryFile("w", delete=False)
         with open(spec_file.name, "w") as f:
             f.write(basic)
@@ -59,7 +65,7 @@ class InstructionSetParserTest(unittest.TestCase):
         self.assertEqual(spec.category, "CATEGORY")
         self.assertEqual(spec.has_mem_operand, True)
         self.assertEqual(spec.has_write, True)
-        self.assertEqual(spec.control_flow, True)
+        self.assertEqual(spec.is_control_flow, True)
 
         self.assertEqual(len(spec.operands), 2)
         op1 = spec.operands[0]
@@ -70,16 +76,16 @@ class InstructionSetParserTest(unittest.TestCase):
 
         op2 = spec.operands[1]
         self.assertEqual(op2.type, OT.REG)
-        self.assertEqual(op2.values, ["ax"])
+        self.assertEqual(op2.values, ("ax",))
         self.assertEqual(op2.src, True)
         self.assertEqual(op2.dest, False)
 
         self.assertEqual(len(spec.implicit_operands), 1)
         flags = spec.implicit_operands[0]
         self.assertEqual(flags.type, OT.FLAGS)
-        self.assertEqual(flags.values, ['w', 'r', 'undef', 'w', 'w', '', '', '', 'w'])
+        self.assertEqual(flags.values, ('w', 'r', 'undef', 'w', 'w', '', '', '', 'w'))
 
-    def test_dedup_identical(self):
+    def test_dedup_identical(self) -> None:
         spec_file = tempfile.NamedTemporaryFile("w", delete=False)
         with open(spec_file.name, "w") as f:
             f.write(duplicate)

@@ -4,17 +4,18 @@ File: x86-specific constants and lists
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
-from typing import List
+from typing import List, Dict, Final
 import re
 import unicorn.x86_const as ucc  # type: ignore
 
-from ..interfaces import Instruction
-from ..target_desc import TargetDesc, CPUDesc, MacroSpec, Vendor
-from ..model import UnicornTargetDesc
+from ..tc_components.instruction import Instruction
+from ..target_desc import TargetDesc, CPUDesc, MacroSpec, UnicornTargetDesc, Vendor, RegSize
 from ..config import CONF
 
 
 class X86TargetDesc(TargetDesc):
+    """ Target description for x86 architecture. """
+
     register_sizes = {
         "xmm0": 128, "xmm1": 128, "xmm2": 128, "xmm3": 128, "xmm4": 128, "xmm5": 128, "xmm6": 128,
         "xmm7": 128, "xmm8": 128, "xmm9": 128, "xmm10": 128, "xmm11": 128, "xmm12": 128,
@@ -33,6 +34,21 @@ class X86TargetDesc(TargetDesc):
         "r10b": 8, "r11b": 8, "r12b": 8, "r13b": 8, "r14b": 8, "r15b": 8,
         "ah": 8, "bh": 8, "ch": 8, "dh": 8,
     }  # yapf: disable
+
+    registers_by_size = {
+        8: ["al", "bl", "cl", "dl", "sil", "dil", "r8b", "r9b", "r10b", "r11b", "r12b", "r13b",
+            "r14b", "r15b"],
+        16: ["ax", "bx", "cx", "dx", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w",
+             "r14w", "r15w"],
+        32: ["eax", "ebx", "ecx", "edx", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d",
+             "r13d", "r14d", "r15d"],
+        64: ["rax", "rbx", "rcx", "rdx", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13",
+             "r14", "r15", "rsp", "rbp"],
+        128: ["bnd0", "bnd1", "bnd2", "bnd3",
+              "xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5",
+              "xmm6", "xmm7", "xmm8", "xmm9", "xmm10", "xmm11", "xmm12", "xmm13", "xmm14", "xmm15"]
+    }  # yapf: disable
+
     reg_normalized = {
         "rax": "A", "eax": "A", "ax": "A", "al": "A", "ah": "A",
         "rbx": "B", "ebx": "B", "bx": "B", "bl": "B", "bh": "B",
@@ -99,6 +115,7 @@ class X86TargetDesc(TargetDesc):
         "tsc": "TSC",
         "tscaux": "TSCAUX",
     }  # yapf: disable
+
     reg_denormalized = {
         "A": {64: "rax", 32: "eax", 16: "ax", 8: "al"},
         "B": {64: "rbx", 32: "ebx", 16: "bx", 8: "bl"},
@@ -132,25 +149,6 @@ class X86TargetDesc(TargetDesc):
         "XMM13": {128: "xmm13"},
         "XMM14": {128: "xmm14"},
         "XMM15": {128: "xmm15"}
-    }  # yapf: disable
-    registers = {
-        8: ["al", "bl", "cl", "dl", "sil", "dil", "r8b", "r9b", "r10b", "r11b", "r12b", "r13b",
-            "r14b", "r15b"],
-        16: ["ax", "bx", "cx", "dx", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w",
-             "r14w", "r15w"],
-        32: ["eax", "ebx", "ecx", "edx", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d",
-             "r13d", "r14d", "r15d"],
-        64: ["rax", "rbx", "rcx", "rdx", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13",
-             "r14", "r15", "rsp", "rbp"],
-        128: ["bnd0", "bnd1", "bnd2", "bnd3",
-              "xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5",
-              "xmm6", "xmm7", "xmm8", "xmm9", "xmm10", "xmm11", "xmm12", "xmm13", "xmm14", "xmm15"]
-    }  # yapf: disable
-    simd_registers = {
-        64: [f"mm{i}" for i in range(0, 8)],
-        128: [f"xmm{i}" for i in range(0, 32)],
-        256: [f"ymm{i}" for i in range(0, 32)],
-        512: [f"zmm{i}" for i in range(0, 32)],
     }  # yapf: disable
 
     pte_bits = {
@@ -186,6 +184,18 @@ class X86TargetDesc(TargetDesc):
         "dirty": (6, True),
         "reserved_bit": (51, False),
         "non_executable": (63, True),
+    }
+
+    memory_addr_prefixes: Final[Dict[int, str]] = {
+        8: "byte ptr",
+        16: "word ptr",
+        32: "dword ptr",
+        64: "qword ptr",
+        80: "tbyte ptr",
+        128: "xmmword ptr",
+        256: "ymmword ptr",
+        512: "zmmword ptr",
+        4608: "ptr",
     }
 
     # FIXME: macro IDs should not be hardcoded but rather received from the executor
@@ -235,26 +245,53 @@ class X86TargetDesc(TargetDesc):
             MacroSpec(18, "set_data_permissions", ("actor_id", "int", "int", ""))
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
-        # remove blocked registers
-        filtered_decoding = {}
-        for size, registers in self.registers.items():
+
+        # modify/set target parameters based on the CPU under test and the configuration
+        self.registers_by_size = self._filter_blocked_registers()
+        self.cpu_desc = self._build_cpu_desc()
+        self.epte_bits = \
+            self.epte_bits_intel if self.cpu_desc.vendor == 'Intel' else self.npte_bits_amd
+
+        # connect Unicorn TD
+        self.uc_target_desc = X86UnicornTargetDesc()
+
+    @classmethod
+    def get_vendor(cls) -> Vendor:
+        """ Read the CPU vendor from /proc/cpuinfo """
+        with open("/proc/cpuinfo", "r") as f:
+            cpuinfo = f.read()
+            vendor: Vendor
+            if 'Intel' in cpuinfo:
+                vendor = "Intel"
+            elif 'AMD' in cpuinfo:
+                vendor = "AMD"
+            else:
+                vendor = "Unknown"
+        return vendor
+
+    @staticmethod
+    def is_unconditional_branch(inst: Instruction) -> bool:
+        return inst.category == "BASE-UNCOND_BR"
+
+    @staticmethod
+    def is_call(inst: Instruction) -> bool:
+        return inst.category == "BASE-CALL"
+
+    def _filter_blocked_registers(self) -> Dict[RegSize, List[str]]:
+        filtered_decoding: Dict[RegSize, List[str]] = {}
+        for size, registers in self.registers_by_size.items():
             filtered_decoding[size] = []
             for register in registers:
                 if register not in CONF.register_blocklist or register in CONF.register_allowlist:
                     filtered_decoding[size].append(register)
-        self.registers = filtered_decoding
+        return filtered_decoding
 
-        # identify the CPU model we are running on
+    def _build_cpu_desc(self) -> CPUDesc:
+        vendor = self.get_vendor()
         with open("/proc/cpuinfo", "r") as f:
             cpuinfo = f.read()
-            if 'Intel' in cpuinfo:
-                vendor = Vendor.INTEL
-            elif 'AMD' in cpuinfo:
-                vendor = Vendor.AMD
-            else:
-                vendor = Vendor.UNKNOWN
 
             family_match = re.search(r"cpu family\s+:\s+(.*)", cpuinfo)
             assert family_match, "Failed to find family in /proc/cpuinfo"
@@ -268,21 +305,24 @@ class X86TargetDesc(TargetDesc):
             assert stepping_match, "Failed to find stepping in /proc/cpuinfo"
             stepping = int(stepping_match.group(1), 16)
 
-        self.cpu_desc = CPUDesc(vendor, model, family, stepping)
-
-        # select EPT/NPT bits based on the CPU vendor
-        self.epte_bits = self.epte_bits_intel if vendor == 'Intel' else self.npte_bits_amd
-
-    @staticmethod
-    def is_unconditional_branch(inst: Instruction) -> bool:
-        return inst.category == "BASE-UNCOND_BR"
-
-    @staticmethod
-    def is_call(inst: Instruction) -> bool:
-        return inst.category == "BASE-CALL"
+        return CPUDesc(vendor, model, family, stepping)
 
 
-class X86UnicornTargetDesc(UnicornTargetDesc):
+class X86UnicornTargetDesc(UnicornTargetDesc):  # pylint: disable=too-few-public-methods
+    """ x86 target description in the context of a Unicorn-based model. """
+
+    usable_registers: List[int] = [
+        ucc.UC_X86_REG_RAX, ucc.UC_X86_REG_RBX, ucc.UC_X86_REG_RCX, ucc.UC_X86_REG_RDX,
+        ucc.UC_X86_REG_RSI, ucc.UC_X86_REG_RDI, ucc.UC_X86_REG_EFLAGS, ucc.UC_X86_REG_RSP
+    ]
+
+    usable_simd128_registers: List[int] = [
+        ucc.UC_X86_REG_XMM0, ucc.UC_X86_REG_XMM1, ucc.UC_X86_REG_XMM2, ucc.UC_X86_REG_XMM3,
+        ucc.UC_X86_REG_XMM4, ucc.UC_X86_REG_XMM5, ucc.UC_X86_REG_XMM6, ucc.UC_X86_REG_XMM7,
+        ucc.UC_X86_REG_XMM8, ucc.UC_X86_REG_XMM9, ucc.UC_X86_REG_XMM10, ucc.UC_X86_REG_XMM11,
+        ucc.UC_X86_REG_XMM12, ucc.UC_X86_REG_XMM13, ucc.UC_X86_REG_XMM14, ucc.UC_X86_REG_XMM15
+    ]
+
     reg_str_to_constant = {
         "al": ucc.UC_X86_REG_AL,
         "bl": ucc.UC_X86_REG_BL,
@@ -337,7 +377,7 @@ class X86UnicornTargetDesc(UnicornTargetDesc):
         "xmm15": ucc.UC_X86_REG_XMM15,
     }
 
-    reg_decode = {
+    reg_norm_to_constant = {
         "A": ucc.UC_X86_REG_RAX,
         "B": ucc.UC_X86_REG_RBX,
         "C": ucc.UC_X86_REG_RCX,
@@ -406,18 +446,8 @@ class X86UnicornTargetDesc(UnicornTargetDesc):
         "TSCAUX": -1,
     }
 
-    registers: List[int] = [
-        ucc.UC_X86_REG_RAX, ucc.UC_X86_REG_RBX, ucc.UC_X86_REG_RCX, ucc.UC_X86_REG_RDX,
-        ucc.UC_X86_REG_RSI, ucc.UC_X86_REG_RDI, ucc.UC_X86_REG_EFLAGS, ucc.UC_X86_REG_RSP
-    ]
-    simd128_registers: List[int] = [
-        ucc.UC_X86_REG_XMM0, ucc.UC_X86_REG_XMM1, ucc.UC_X86_REG_XMM2, ucc.UC_X86_REG_XMM3,
-        ucc.UC_X86_REG_XMM4, ucc.UC_X86_REG_XMM5, ucc.UC_X86_REG_XMM6, ucc.UC_X86_REG_XMM7,
-        ucc.UC_X86_REG_XMM8, ucc.UC_X86_REG_XMM9, ucc.UC_X86_REG_XMM10, ucc.UC_X86_REG_XMM11,
-        ucc.UC_X86_REG_XMM12, ucc.UC_X86_REG_XMM13, ucc.UC_X86_REG_XMM14, ucc.UC_X86_REG_XMM15
-    ]
     barriers: List[str] = ['mfence', 'lfence']
     flags_register: int = ucc.UC_X86_REG_EFLAGS
     pc_register: int = ucc.UC_X86_REG_RIP
-    actor_base_register: int = ucc.UC_X86_REG_R14
     sp_register: int = ucc.UC_X86_REG_RSP
+    actor_base_register: int = ucc.UC_X86_REG_R14

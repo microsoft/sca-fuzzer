@@ -4,11 +4,13 @@ File: Fuzzing Configuration Options
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
-import yaml
 import os
 from copy import deepcopy
-from typing import List, Dict, IO, Any
 from collections import OrderedDict
+from typing import List, Dict, TextIO, Any, TypedDict, Set, Literal
+
+import yaml
+
 from .x86 import x86_config
 
 
@@ -22,7 +24,7 @@ class IncludeLoader(yaml.SafeLoader):
     visited: List[str] = []
     file_id_counter: int = 0
 
-    def __init__(self, stream: IO, include_dir: str = "") -> None:
+    def __init__(self, stream: TextIO, include_dir: str = "") -> None:
         self._search_paths = [os.path.split(stream.name)[0]]
         if include_dir:
             self._search_paths.append(include_dir)
@@ -38,12 +40,13 @@ class IncludeLoader(yaml.SafeLoader):
         Include another YAML file
         """
         # find the included file
+        relative_filename: str = self.construct_scalar(node)  # type: ignore
         for root in self._search_paths:
-            filename = os.path.join(root, self.construct_scalar(node))  # type: ignore
+            filename = os.path.join(root, relative_filename)
             if os.path.exists(filename):
                 break
         else:
-            raise ConfigException(f"Included file {filename} does not exist")
+            raise ConfigException(f"Included file {relative_filename} does not exist")
 
         # check for cycles
         if os.path.abspath(filename) in self.visited:
@@ -52,7 +55,7 @@ class IncludeLoader(yaml.SafeLoader):
         with open(filename, 'r') as f:
             return yaml.load(f, IncludeLoader)
 
-    def construct_yaml_map(self, node):
+    def construct_yaml_map(self, node: yaml.MappingNode) -> Dict[Any, Any]:
         """
         Custom constructor that renames all `file` keys to `file_<unique_id>` to prevent multiple
         include statements from overwriting each other
@@ -76,9 +79,39 @@ class ConfigException(SystemExit):
 
 
 # ==================================================================================================
+# Custom Types
+# ==================================================================================================
+PageConf = Dict[str, bool]
+
+
+class ActorConf(TypedDict):
+    """ Type definition for actor configuration """
+    name: str
+    mode: str
+    privilege_level: str
+    observer: bool
+    data_properties: PageConf
+    data_ept_properties: PageConf
+    instruction_blocklist: Set[str]
+    fault_blocklist: Set[str]
+
+
+ActorConfKey = Literal["name", "mode", "privilege_level", "observer", "data_properties",
+                       "data_ept_properties", "instruction_blocklist", "fault_blocklist"]
+
+ActorsConf = Dict[str, ActorConf]
+
+
+# ==================================================================================================
 # Main configuration class
 # ==================================================================================================
 class Conf:
+    """
+    Data class to store global configuration options. It implements the Borg pattern to ensure that
+    all instances share the same state. The configuration options are loaded from a YAML file and
+    can be accessed as class attributes.
+    """
+
     # ==============================================================================================
     # Fuzzer
     fuzzer: str = "basic"
@@ -240,7 +273,7 @@ class Conf:
 
     # ==============================================================================================
     # Alternatives for config options (also extended by ISA-specific config.py)
-    _option_values: Dict[str, List] = {
+    _option_values: Dict[str, List[str]] = {
         "fuzzer": ["basic", "architectural", "archdiff"],
         "generator": ["random"],
         "instruction_set": ["x86-64"],
@@ -278,12 +311,12 @@ class Conf:
 
     # ==============================================================================================
     # Internal
-    _borg_shared_state: Dict = {}
+    _borg_shared_state: Dict[Any, Any] = {}
     _no_generation: bool = False
     _handled_faults: List[str]  # set by ISA-specific config.py
     _generator_fault_to_fault_name: Dict[str, str]  # set by ISA-specific config.py
-    _actors: OrderedDict[str, Dict]
-    _actor_default: Dict
+    _actors: ActorsConf
+    _actor_default: ActorConf
     _config_path: str = ""
 
     def __init__(self) -> None:
@@ -294,20 +327,20 @@ class Conf:
 
     def load(self, config_path: str, include_dir: str = "") -> None:
         self._config_path = config_path
-        config_update: Dict = {}
+        config_update: Dict[str, Any] = {}
         with open(config_path, "r") as f:
             loader = IncludeLoader(f, include_dir)
             try:
                 config_update = loader.get_single_data()
             except yaml.scanner.ScannerError as e:  # type: ignore
                 raise ConfigException(
-                    f"Error parsing the configuration file {config_path}:\nError: {e}")
+                    f"Error parsing the configuration file {config_path}:\nError: {e}") from e
             finally:
-                loader.dispose()
+                loader.dispose()  # type: ignore
         self._load_from_dict(config_update)
         self._value_sanity_check()
 
-    def _load_from_dict(self, config_update: Dict) -> None:
+    def _load_from_dict(self, config_update: Dict[str, Any]) -> None:
         # make sure to set the architecture-dependent defaults first
         if 'instruction_set' in config_update:
             self.instruction_set = config_update['instruction_set']
@@ -339,7 +372,7 @@ class Conf:
 
             self.safe_set(var, value)
 
-    def safe_set(self, name: str, value) -> None:
+    def safe_set(self, name: str, value: Any) -> None:
         assert name not in ["instruction_set"]
 
         # sanity checks
@@ -355,7 +388,7 @@ class Conf:
         self._check_options(name, value)
         setattr(self, name, value)
 
-    def _check_options(self, name: str, value) -> None:
+    def _check_options(self, name: str, value: Any) -> None:
         if name not in self._option_values:
             return
         options = self._option_values[name]
@@ -392,7 +425,7 @@ class Conf:
         if self.min_successors_per_bb > self.max_successors_per_bb:
             raise ConfigException("min_successors_per_bb is larger than max_successors_per_bb")
 
-    def set_to_arch_defaults(self):
+    def set_to_arch_defaults(self) -> None:
         """ Set config options according to the architecture-specific defaults """
 
         if self.instruction_set == "x86-64":
@@ -428,7 +461,7 @@ class Conf:
 
             setattr(self, name, value)
 
-    def update_handled_faults_with_generator_faults(self, new: List[str]):
+    def update_handled_faults_with_generator_faults(self, new: List[str]) -> None:
         for gen_fault in new:
             if not gen_fault:
                 continue
@@ -438,7 +471,7 @@ class Conf:
             if fault not in self._handled_faults:
                 self._handled_faults.append(fault)
 
-    def set_actor_properties(self, new):
+    def set_actor_properties(self, new: List[Dict[str, List[Dict[ActorConfKey, Any]]]]) -> None:
         for actor_dict in new:
             name = next(iter(actor_dict))
             self._check_options("actor", actor_dict[name])
@@ -487,6 +520,18 @@ class Conf:
 
                 entry[k] = v
             self._actors[name] = entry
+
+    def disable_generation(self) -> None:
+        """ Disable random-generation mode """
+        self._no_generation = True
+
+    def is_generation_enabled(self) -> bool:
+        """ Check if the generation is globally enabled """
+        return not self._no_generation
+
+    def get_actors_conf(self) -> ActorsConf:
+        """ Get the configuration dictionary describing all actors """
+        return self._actors
 
 
 CONF = Conf()

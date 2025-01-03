@@ -8,5 +8,6 @@ executor_sample_sizes:
 # No logging
 logging_modes:
   -
+  # - dbg_model
   # - dbg_dump_htraces
   # - dbg_dump_ctraces

@@ -2,7 +2,6 @@
 # is input-independent. Therefore, this test case must not be flagged.
 
 .intel_syntax noprefix
-.test_case_enter:
 .section .data.main
 MOV rcx, r14
 

@@ -4,178 +4,530 @@ File: Fuzzing Orchestration
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
+# pylint: disable=too-many-instance-attributes
+
+from __future__ import annotations
+
 import shutil
 from pathlib import Path
 from datetime import datetime
-from typing import Optional, List, Callable, Tuple
-import copy
+from typing import TYPE_CHECKING, Optional, List, Callable, Literal, Final
+from typing_extensions import assert_never
+import numpy as np
 
 from . import factory
-from .interfaces import Fuzzer, CTrace, HTrace, Violation, TestCase, \
-    Generator, InputGenerator, Model, Executor, Analyser, InputID, \
-    HardwareTracingError
-from .test_case_input import Input, InputTaint
-from .isa_loader import InstructionSet
+
+from .traces import HTrace, CTrace, Violation, RawHTraceSample, ArrayOfSamples, CTraceEntry, \
+    TraceBundle
+from .tc_components.actor import ActorMode
+from .tc_components.test_case_code import TestCaseProgram
+from .tc_components.test_case_data import InputData
+from .isa_spec import InstructionSet
+from .analyser import Analyser
 from .config import CONF
-from .util import Logger, STAT, pretty_htrace
+from .stats import FuzzingStats
+from .logs import FuzzLogger, warning, update_logging_after_config_change
+
+if TYPE_CHECKING:
+    from .generator import CodeGenerator
+    from .input_generator import InputGenerator
+    from .asm_parser import AsmParser
+    from .elf_parser import ELFParser
+    from .model import Model
+    from .executor import Executor
+
+FuzzingMode = Literal["random", "template", "asm"]
+RoundStage = Literal["fast", "nesting", "taint_mistake", "priming", "noise", "arch_mismatch",
+                     "priming_large"]
+
+STAT = FuzzingStats()
 
 
-class TracingArguments:
+# ==================================================================================================
+# Private: Round Manager
+# ==================================================================================================
+class _RoundState:
     """
-    A container for the arguments of the _collect_traces function. This container is used to
-    simplify the function signature and make it easier to maintain consistent arguments
-    between various stages of a fuzzing round.
+    Collection of configuration options for various modules
+    in Revizor that are used in a fuzzing round, and that get updated
+    as the round progresses.
+    """
+    executor_n_reps: int
+    """ The number of repetitions to be used by the executor """
+
+    _start_nesting: int
+    max_nesting: int
+    model_nesting: int
+    """ Nesting level to be used by the model """
+
+    enable_fast_contract_tracing: bool
+    """ Whether to use the fast boosting feature in the _boost_inputs function """
+
+    enable_priming: bool
+    """ Whether to use the priming stage of the fuzzing round """
+
+    record_stats: bool = True
+    """ Whether to record statistics in the analyser """
+
+    update_ignore_list: bool = False
+    """ Whether to update the ignore list of the executor """
+
+    reuse_boosts: bool = False
+    """ Whether to reuse the boosted inputs collected by the previous stage of the round """
+
+    reuse_ctraces: bool = False
+    """ Whether to reuse contract traces collected by the previous stage of the round """
+
+    extend_htraces: bool = False
+    """ If true, all new collected htraces will be added
+    to the existing ones instead of replacing them """
+
+    is_initial: bool = True
+    """ Whether this is the first round of the fuzzing process """
+
+    def __init__(self, is_speculative: bool) -> None:
+        self.executor_n_reps = CONF.executor_sample_sizes[0]
+
+        self._start_nesting = CONF.model_min_nesting if is_speculative else 1
+        self.max_nesting = CONF.model_max_nesting if is_speculative else 1
+        assert self._start_nesting <= self.max_nesting
+        self.model_nesting = self._start_nesting
+
+        self.enable_fast_contract_tracing = CONF.enable_fast_path_model
+        self.enable_priming = CONF.enable_priming
+
+
+class _RoundManager:
+    """
+    A helper class responsible for maintaining a consistent configuration throughout
+    a fuzzing round, as well as for dispatching the test case to the model and executor.
+    """
+    test_case: TestCaseProgram
+    org_inputs: List[InputData]
+    boosted_inputs: List[InputData]
+
+    htraces: List[HTrace]
+    _reference_htraces: List[HTrace]
+
+    ctraces: List[CTrace]
+    _non_boosted_ctraces: List[CTrace]
+
+    violations: List[Violation]
+
+    fuzzer: Final[Fuzzer]
+    conf: Final[_RoundState]
+
+    def __init__(self, fuzzer: Fuzzer, test_case: TestCaseProgram, inputs: List[InputData]) -> None:
+        self.test_case = test_case
+        self.org_inputs = inputs
+        self.boosted_inputs = []
+
+        self.htraces = []
+        self.ctraces = []
+        self.violations = []
+
+        self.fuzzer = fuzzer
+        self.conf = _RoundState(fuzzer.model.is_speculative)
+
+        self.fuzzer.model.load_test_case(self.test_case)
+        self.fuzzer.executor.load_test_case(self.test_case)
+
+    def execute_stage(self, stage: RoundStage) -> None:
+        """ Run a given stage of the fuzzing round """
+        # pylint: disable=too-many-return-statements
+        # NOTE: This a selector function, so the large number of returns is justified
+
+        if stage == "fast":
+            assert self.conf.is_initial, "Fast path can be run only in the first round"
+            self._normal_stage()
+            self.conf.is_initial = False  # make sure that the fast path is run only once
+            self.conf.record_stats = False  # record stats only in the fast path
+            self._reference_htraces = self.htraces  # use the fast path traces as a reference
+            return
+
+        if stage == "nesting":
+            if self.conf.model_nesting != self.conf.max_nesting:
+                self.conf.model_nesting = self.conf.max_nesting
+                self._normal_stage()
+
+            # after this stage, the list of boosted inputs is stable, so we can start reusing
+            # them, and we can also start ignoring non-violating inputs in the executor
+            self.conf.reuse_boosts = True
+            self.conf.update_ignore_list = True
+            return
+
+        if stage == "taint_mistake":
+            if self.conf.enable_fast_contract_tracing:  # applicable only after fast tracing
+
+                self.conf.enable_fast_contract_tracing = False
+                self._normal_stage()
+
+            # after `nesting` and `taint_mistake` stages, we can be confident in contract traces
+            # and can start reusing them
+            assert self.conf.model_nesting == self.conf.max_nesting, "Invalid stage order"
+            self.conf.reuse_ctraces = True
+            return
+
+        if stage == "priming":
+            if not self.conf.enable_priming:
+                return
+            self._priming_check()
+            return
+
+        if stage == "noise":
+            if len(CONF.executor_sample_sizes) == 1:
+                return
+            self.conf.extend_htraces = True
+
+            for sample_size in CONF.executor_sample_sizes[1:]:
+                self.fuzzer.log.sample_size_increase(sample_size)
+                self.conf.executor_n_reps = sample_size - len(self.htraces[0])
+                self._normal_stage()
+            return
+
+        if stage == "priming_large":
+            if not self.conf.enable_priming or len(CONF.executor_sample_sizes) == 1:
+                return
+            self.conf.executor_n_reps = CONF.executor_sample_sizes[-1]
+            self._priming_check()
+            return
+
+        if stage == "arch_mismatch":
+            self._check_for_architectural_mismatch()
+            return
+
+    def finalize(self) -> None:
+        """ Finalize the fuzzing round """
+        self.fuzzer.log.dbg_dump_traces(self.boosted_inputs, self.htraces, self._reference_htraces,
+                                        self.ctraces)
+
+    def _normal_stage(self) -> None:
+        """ Run a single stage of the fuzzing round """
+        self._boost_inputs()
+        self._collect_ctraces()
+        try:
+            self._collect_htraces()
+        except IOError:
+            self.violations = []
+            return
+        self._check_violations()
+        self._update_ignore_list()
+
+    def _boost_inputs(self) -> None:
+        """ Trace the test case with the original inputs, collect taints, and use them to
+        generate boosted inputs """
+        self._non_boosted_ctraces, taints = \
+            self.fuzzer.model.trace_test_case_with_taints(self.org_inputs, self.conf.model_nesting)
+        self.boosted_inputs = self.fuzzer.input_gen.generate_boosted(self.org_inputs, taints,
+                                                                     CONF.inputs_per_class)
+
+    def _collect_ctraces(self) -> None:
+        """ Collect contract traces for the boosted inputs """
+        # contract traces are already collected
+        if self.conf.reuse_ctraces:
+            assert len(self.ctraces) == len(self.boosted_inputs), "No ctraces to reuse"
+            return
+
+        # records same ctrace for all members of the same input class
+        if self.conf.enable_fast_contract_tracing:
+            self.ctraces = self._non_boosted_ctraces * CONF.inputs_per_class
+            return
+
+        # compute ctraces separately for every boosted input
+        self.ctraces = \
+            self.fuzzer.model.trace_test_case(self.boosted_inputs, self.conf.model_nesting)
+
+    def _collect_htraces(self) -> None:
+        """ Collect hardware traces for the boosted inputs """
+        new_htraces = self.fuzzer.executor.trace_test_case(self.boosted_inputs,
+                                                           self.conf.executor_n_reps)
+        if not self.conf.extend_htraces:
+            self.htraces = new_htraces
+            return
+
+        # Merge new htraces with the existing ones
+        assert len(self.htraces) == len(new_htraces), "Number of htraces does not match"
+        for i, htrace in enumerate(new_htraces):
+            self.htraces[i] = htrace.merge(self.htraces[i])
+
+    def _check_violations(self) -> None:
+        """ Check the collected traces for contract violations """
+        assert self.ctraces and len(self.ctraces) == len(self.htraces), \
+            f"Invalid number of c- or htraces: {len(self.ctraces)} vs {len(self.htraces)}"
+        self.violations = self.fuzzer.analyser.filter_violations(
+            ctraces=self.ctraces,
+            htraces=self.htraces,
+            test_case_code=self.test_case,
+            inputs=self.boosted_inputs,
+            stats_=self.conf.record_stats)
+
+    def _update_ignore_list(self) -> None:
+        """
+        Label all non-violating inputs as ignored by executor, so that we don't trigger
+        a chain reaction of false positives when the measurement results are non-deterministic
+        """
+        if self.conf.update_ignore_list:
+            violating_ids = [m.input_id for v in self.violations for m in v.measurements]
+            ignored_input_ids = [
+                i for i in range(len(self.boosted_inputs)) if i not in violating_ids
+            ]
+            self.fuzzer.executor.extend_ignore_list(ignored_input_ids)
+
+    def _priming_check(self) -> None:
+        """
+        Perform a priming check, as described next.
+
+        Goal: Distinguish between violations caused by input data leaks and those caused by
+        cross-talk between inputs.
+
+        Approach: The priming check swaps the inputs that caused the violation with each other and
+        checks if the violation is still present. If the violation is still present, it is a genuine
+        violation; otherwise, it is a false positive.
+
+        Example: Given a violation caused by an input sequence (i1, i2, i1', i2'), where inputs
+        i2 and i2' produce the same contract trace but different hardware traces, hence causing a
+        violation. The violation could be caused either by the difference in the input data of
+        i2 vs i2', or it could be caused by the difference in the microarchitectural state
+        created by i1 vs i1'. The former is a genuine violation, while the latter is a false
+        positive.
+
+        To distinguish between the two, the priming check creates two new sequences:
+        (i1, i2', i1', i2') and (i1, i2, i1', i2).
+
+        If the trace produced by the first instance of i2' in the first sequence matches
+        the trace produced by i2' in the original sequence, AND
+        the trace produced by the second instance of i2 in the second sequence matches
+        the trace produced by i2 in the original sequence,
+        then the violation is genuine.
+        """
+
+        while self.violations:
+            self.fuzzer.log.priming(len(self.violations))
+
+            violation: Violation = self.violations.pop()
+            n_reps = violation.measurements[0].htrace.sample_size()
+            measurements_to_test = [hc[0] for hc in violation.get_hw_classes()]
+
+            for current_measurement in measurements_to_test:
+                current_input_id = current_measurement.input_id
+                htrace_to_reproduce = current_measurement.htrace
+                other_measurements = [m for m in measurements_to_test if m != current_measurement]
+
+                # list of inputs that produced a different HTrace
+                input_ids_to_test: List[int] = [m.input_id for m in other_measurements]
+
+                # iterate over inputs in the violation and swap them with current_input_id
+                for input_id in input_ids_to_test:
+                    self.fuzzer.log.dbg_priming_progress(input_id, current_input_id)
+
+                    # insert the tested input into its new place
+                    primer = list(self.boosted_inputs)
+                    primer[current_input_id] = self.boosted_inputs[input_id]
+
+                    # try the new input sequence and check if the traces observed for the new input
+                    # are equivalent to the original ones
+                    htraces: List[HTrace] = self.fuzzer.executor.trace_test_case(primer, n_reps)
+                    new_htrace = htraces[current_input_id]
+
+                    # fast exit in case of a tracing error
+                    if new_htrace.is_empty() or new_htrace.is_corrupted_or_ignored():
+                        warning("fuzzer", "Tracing error during priming. "
+                                "Skipping this test case")
+                        self.violations = []
+                        return
+
+                    if self.fuzzer.analyser.htraces_are_equivalent(new_htrace, htrace_to_reproduce):
+                        continue
+
+                    self.fuzzer.log.dbg_priming_fail(input_id, current_input_id,
+                                                     htrace_to_reproduce, new_htrace)
+
+                    # could not reproduce; it's a genuine violation
+                    self.violations = [violation]
+                    return
+
+            # all traces were reproduced, so it's a false positive
+            self.violations = []
+            return
+
+    def _check_for_architectural_mismatch(self) -> None:
+        """
+        Check if the given test cases causes an architectural mismatch between the model
+        and the executor. For example, this may happen if the model incorrectly emulates the
+        execution of an instruction due to a bug in the emulator.
+        """
+        hardware_regs: List[List[int]] = []
+        model_regs: List[List[int]] = []
+
+        self.fuzzer.arch_model.load_test_case(self.test_case)
+        self.fuzzer.arch_executor.load_test_case(self.test_case)
+
+        # Collect architectural hardware traces
+        try:
+            htraces = self.fuzzer.arch_executor.trace_test_case(self.boosted_inputs, n_reps=1)
+        except IOError:
+            warning("fuzz", "Error during architectural mismatch check. Skipping this test case")
+            self.violations = []  # skip test case in case of a tracing error
+            return
+        for htrace_obj in htraces:
+            raw_traces = htrace_obj.get_raw_readings()
+            assert len(raw_traces) == 1, "Expected only one hardware trace"
+            raw_trace_int = [int(v) for v in raw_traces[0]]
+            hardware_regs.append(raw_trace_int)
+
+        # Collect architectural model traces
+        ctraces = self.fuzzer.arch_model.trace_test_case(self.boosted_inputs,
+                                                         CONF.model_max_nesting)
+        for ctrace in ctraces:
+            model_regs.append([v % (2**64 - 1) for v in ctrace.get_untyped()[:6]])
+
+        # Debug outputs
+        self.fuzzer.log.dbg_dump_architectural_traces(hardware_regs, model_regs)
+
+        # Check for violations
+        # Note: since we simply check the equality of traces, we don't need to invoke the analyser
+        for i, input_ in enumerate(self.boosted_inputs):
+            if model_regs[i] == hardware_regs[i]:
+                continue
+            measurement = TraceBundle(i, input_, ctraces[i], htraces[i])
+            violation = Violation([measurement], self.boosted_inputs, self.test_case)
+            violation.set_trivial_hw_classes()
+            self.violations = [violation]
+            return
+        return
+
+
+# ==================================================================================================
+# Public: Fuzzer
+# ==================================================================================================
+class Fuzzer:
+    """
+    The main class that orchestrates the fuzzing process. It creates all necessary modules
+    and takes care of invoking them in the right order and passing the data between them.
+
+    The main interface to start fuzzing is the `start` method, which implements a multi-stage
+    algorithm to detect contract violations. The method implements the core fuzzing loop, which
+    is to generate a test case, prepare inputs, collect their traces, and check for violations.
+
+    The class also provides a set of stand-alone interfaces for generating test cases, analyzing
+    traces from files, and filtering out non-useful test cases.
     """
 
-    def __init__(self, inputs, n_reps, model_nesting, ctraces, record_stats, fast_boosting,
-                 update_ignore_list, reuse_ctraces, added_htraces):
-        self.inputs = inputs
-        self.n_reps = n_reps
-        self.model_nesting = model_nesting
-        self.ctraces = ctraces
-        self.record_stats = record_stats
-        self.fast_boosting = fast_boosting
-        self.update_ignore_list = update_ignore_list
-        self.reuse_ctraces = reuse_ctraces
-        self.added_htraces = added_htraces
-
-
-class FuzzerGeneric(Fuzzer):
-    """
-    A generic fuzzer that can be used for any architecture. It provides a basic implementation
-    of the fuzzer interface that can be used as a starting point for architecture-specific
-    fuzzers.
-
-    The fuzzer provides a multi-stage approach to testing, with the first measurement
-    being fast but with a chance of false positives, and the later stages filtering out various
-    types of potential false positives. The exact number of stages depends on the configuration.
-    """
-    instruction_set: InstructionSet
-    existing_test_case: str
-    input_paths: List[str]
-    generation_function: Callable[[str], TestCase]
-
-    generator: Generator
-    input_gen: InputGenerator
-    executor: Executor
     model: Model
+    executor: Executor
+    asm_parser: AsmParser
+    generator: CodeGenerator
+    input_gen: InputGenerator
     analyser: Analyser
+    elf_parser: ELFParser
 
     arch_executor: Executor
     arch_model: Model
+    log: FuzzLogger
 
-    LOG: Logger  # name capitalized to make logging easily distinguishable from the main logic
+    _isa_spec: InstructionSet
+    _existing_test_case: str
+    _work_dir: str
+    _input_paths: List[str]
+    _generation_function: Callable[[str], TestCaseProgram]
 
     def __init__(self,
                  instruction_set_spec: str,
                  work_dir: str,
                  existing_test_case: str = "",
-                 inputs: List[str] = []):
+                 input_paths: Optional[List[str]] = None):
         self._adjust_config(existing_test_case)
-        self.existing_test_case = existing_test_case
-        self.input_paths = inputs
 
-        self.instruction_set = InstructionSet(instruction_set_spec, CONF.instruction_categories)
-        self.work_dir = work_dir
-        self.LOG = Logger()
+        self._existing_test_case = existing_test_case
+        self._input_paths = input_paths if input_paths is not None else []
+        self._work_dir = work_dir
 
-        self.reference_htraces: List[HTrace] = []
-
-    def _adjust_config(self, _: str):
-        pass
-        # more adjustments could be implemented by subclasses!
-
-    def initialize_modules(self):
-        """ create all main modules """
-        isa = self.instruction_set
-        prog_seed = CONF.program_generator_seed
-        data_seed = CONF.input_gen_seed
-
-        self.generator = factory.get_program_generator(isa, prog_seed)
-        self.input_gen = factory.get_input_generator(data_seed)
+        # Create all main modules
+        self.log = FuzzLogger()
+        self._isa_spec = InstructionSet(instruction_set_spec, CONF.instruction_categories)
+        self.generator = factory.get_program_generator(CONF.program_generator_seed, self._isa_spec)
+        self.input_gen = factory.get_input_generator(CONF.input_gen_seed)
         self.executor = factory.get_executor()
         self.model = factory.get_model(self.executor.read_base_addresses())
         self.analyser = factory.get_analyser()
-        self.asm_parser = factory.get_asm_parser(self.generator)
+        self.asm_parser = factory.get_asm_parser(self._isa_spec)
+        self.elf_parser = factory.get_elf_parser()
 
-        self.arch_executor = factory.get_executor(True)
-        self.arch_model = factory.get_model(self.arch_executor.read_base_addresses(), True)
+        self.arch_executor = factory.get_executor(enable_mismatch_check_mode=True)
+        self.arch_model = factory.get_model(
+            self.arch_executor.read_base_addresses(), enable_mismatch_check_mode=True)
 
-    def start_random(self, num_test_cases: int, num_inputs: int, timeout: int, nonstop: bool,
-                     save_violations: bool) -> bool:
-        self.initialize_modules()
-        self.generation_function = self.generator.create_test_case
-        return self._start(num_test_cases, num_inputs, timeout, nonstop, save_violations)
-
-    def start_from_template(self, num_test_cases: int, num_inputs: int, timeout: int, nonstop: bool,
-                            save_violations: bool) -> bool:
-        self.initialize_modules()
-        self.generation_function = self.generator.create_test_case_from_template
-        return self._start(num_test_cases, num_inputs, timeout, nonstop, save_violations)
-
-    def start_from_asm(self, num_test_cases: int, num_inputs: int, timeout: int, nonstop: bool,
-                       save_violations: bool) -> bool:
-        self.initialize_modules()
-        self.generation_function = self.asm_parser.parse_file
-        return self._start(num_test_cases, num_inputs, timeout, nonstop, save_violations)
-
-    def _start(self, num_test_cases: int, num_inputs: int, timeout: int, nonstop: bool,
-               save_violations: bool) -> bool:
+    # ==============================================================================================
+    # Fuzzing Interface
+    def start(self, num_test_cases: int, num_inputs: int, timeout: int, nonstop: bool,
+              save_violations: bool, type_: FuzzingMode) -> bool:
+        """
+        Start the fuzzing process with the given parameters.
+        :param num_test_cases: the number of test cases to be generated
+        :param num_inputs: the number of inputs to be generated for each test case
+        :param timeout: the maximum time (in seconds) to run the fuzzer
+        :param nonstop: whether to continue the fuzzing process after the first violation
+        :param save_violations: whether to store the violation artifacts
+        :param type_: the type of fuzzing to be performed (random, template, asm)
+        :return: True if at least one violation was detected, False otherwise
+        """
+        # Print header
         start_time = datetime.today()
-        self.LOG.fuzzer_start(num_test_cases, start_time)
+        self.log.start(num_test_cases, start_time)
 
+        # Find an appropriate generation function
+        self._set_generation_function(type_)
+
+        # Start the fuzzing loop
         for i in range(num_test_cases):
-            self.LOG.fuzzer_start_round(i)
-
-            # terminate the fuzzer if the timeout has expired
-            if timeout:
-                now = datetime.today()
-                if (now - start_time).total_seconds() > timeout:
-                    self.LOG.fuzzer_timeout()
-                    break
+            self.log.start_round(i)
 
             # Generate a test case
-            test_case: TestCase = self.generation_function(self.existing_test_case)
-            self.input_gen.n_actors = test_case.n_actors()
+            test_case: TestCaseProgram = self._generation_function(self._existing_test_case)
             STAT.test_cases += 1
 
             # Prepare inputs
-            inputs: List[Input]
-            if self.input_paths:
-                inputs = self.input_gen.load(self.input_paths)
+            inputs: List[InputData]
+            if self._input_paths:
+                inputs = self.input_gen.load(self._input_paths)
             else:
-                inputs = self.input_gen.generate(num_inputs)
+                inputs = self.input_gen.generate(num_inputs, n_actors=test_case.n_actors())
             STAT.num_inputs += len(inputs) * CONF.inputs_per_class
 
             # Check if the test case is useful
-            if self.filter(test_case, inputs):
+            if self._filter(test_case, inputs):
                 continue
 
             # Fuzz the test case
-            violation = self.fuzzing_round(test_case, inputs)
-
+            violation = self.fuzzing_round(test_case, inputs, [])
             if violation:
-                self.LOG.fuzzer_report_violations(violation, self.model)
+                self.log.report_violations(violation)
+                self.log.dbg_violation(violation, self.model)
                 if save_violations:
-                    self._store_violation_artifact(test_case, violation, self.work_dir)
+                    self._store_violation_artifact(violation, self._work_dir)
                 STAT.violations += 1
                 if not nonstop:
                     break
 
-        self.LOG.fuzzer_finish()
-        self.LOG.dbg_report_coverage(self.model)
+            # Terminate the fuzzer if the timeout has expired
+            if timeout:
+                now = datetime.today()
+                if (now - start_time).total_seconds() > timeout:
+                    self.log.timeout()
+                    break
+
+        self.log.finish()
+        self.log.report_model_coverage(self.model)
         return STAT.violations > 0
 
-    def filter(self, test_case, inputs) -> bool:
-        return False  # implemented by architecture-specific subclasses
-
-    def fuzzing_round(self,
-                      test_case: TestCase,
-                      inputs: List[Input],
-                      ignore_list: List[int] = []) -> Optional[Violation]:
+    def fuzzing_round(self, test_case: TestCaseProgram, inputs: List[InputData],
+                      starting_ignore_list: List[int]) -> Optional[Violation]:
         """
         Run a single fuzzing round: collect contract and hardware traces for the given test
         case and inputs, and check for contract violations.
+
+        The function is typically used as a part of the fuzzing loop
+        (invoked by .start), but can be also used stand-alone by other classes.
 
         The function implements a multi-stage approach to testing, with the first measurement being
         fast but with a chance of false positives, and the later stages filtering out various
@@ -184,226 +536,176 @@ class FuzzerGeneric(Fuzzer):
 
         :param test_case: the test case to be executed
         :param inputs: the inputs to be tested
-        :param ignore_list: a list of input IDs to be ignored by the executor
+        :param starting_ignore_list: a list of input IDs to be ignored by the executor
         :return: the first detected violation or None if no violations were found
         """
-        # Common variables
-        htraces: List[HTrace] = []
-        violations: List[Violation] = []
+        # pylint: disable=too-many-return-statements
 
-        # Define the starting parameters for the current configuration
-        n_reps: int = CONF.executor_sample_sizes[0]
-        start_nesting: int = CONF.model_min_nesting if self.model.is_speculative_contract else 1
-        end_nesting: int = CONF.model_max_nesting if self.model.is_speculative_contract else 1
-        assert start_nesting <= end_nesting
+        # If a list of ignored inputs is provided, set it in the executor
+        if starting_ignore_list:
+            self.executor.set_ignore_list(starting_ignore_list)
 
-        # Create the tracing arguments
-        args = TracingArguments(
-            inputs=inputs,
-            n_reps=n_reps,
-            model_nesting=start_nesting,
-            ctraces=[],
-            record_stats=True,
-            fast_boosting=CONF.enable_fast_path_model,
-            update_ignore_list=True,
-            reuse_ctraces=False,
-            added_htraces=[])
-
-        # 0. Load the test case into the model and executor
-        self.model.load_test_case(test_case)
-        self.executor.load_test_case(test_case)
-        if ignore_list:
-            self.executor.set_ignore_list(ignore_list)
+        # Initialize the round manager and load the test case
+        round_manager = _RoundManager(self, test_case, inputs)
 
         # 1. Fast path: Collect traces with minimal nesting and repetitions
-        args.inputs, args.ctraces = self._boost_inputs(inputs, start_nesting)
-        violations, args.ctraces, htraces = self._collect_traces(args)
-        if not violations:
+        round_manager.execute_stage("fast")
+        if not round_manager.violations:
             STAT.fast_path += 1
+            round_manager.finalize()
             return None
-        self.reference_htraces = htraces  # we use the fast path traces as a reference
-        args.record_stats = False  # we record stats only in the fast path
 
         # 2. Slow path: Go through potential sources of false violations in the fast path,
         #    and check them one at a time, starting with the most likely ones
-        self.LOG.fuzzer_slow_path()
+        self.log.slow_path()
 
         # 2.1 FP might appear because the model did not go deep enough into nested speculation.
         #     To remove such FPs, we re-run the model tracing with max nesting. As taints depend on
         #     contract traces, we also have to re-boost the inputs, and re-collect hardware traces
         #     for the new inputs
-        if start_nesting != end_nesting:
-            args.model_nesting = end_nesting
-            args.inputs, args.ctraces = self._boost_inputs(inputs, end_nesting)
-            violations, args.ctraces, htraces = self._collect_traces(args)
-            if not violations:
-                STAT.fp_nesting += 1
-                return None
+        round_manager.execute_stage("nesting")
+        if not round_manager.violations:
+            STAT.fp_nesting += 1
+            round_manager.finalize()
+            return None
 
         # 2.2 FP might appear because of imperfect tainting (e.g., due to a bug in taint tracker).
         #     To remove such FPs, we collect contract traces for all boosted inputs, and check if
         #     the violation is still present
-        if CONF.enable_fast_path_model:
-            args.fast_boosting = False
-
-            full_ctraces = self.model.trace_test_case(args.inputs, end_nesting)
-            if full_ctraces != args.ctraces:
-                # notify the user about the mismatch
-                self.LOG.warning("fuzzer", "Fast path contract traces do not match the full traces")
-                if self.work_dir and not CONF._no_generation:
-                    self.LOG.warning("fuzzer", f"Storing the bug into {self.work_dir}/bugs/")
-                    self._store_violation_artifact(test_case, violations[0],
-                                                   f"{self.work_dir}/bugs/")
-
-                # re-run the experiment with the full contract traces
-                violations, args.ctraces, _ = self._collect_traces(args)
-                if not violations:
-                    STAT.fp_taint_mistakes += 1
-                    return None
-
-        # At this point, we can be confident in contract traces, so we can start reusing them
-        args.reuse_ctraces = True
+        prev_ctraces = list(round_manager.ctraces)
+        round_manager.execute_stage("taint_mistake")
+        if not round_manager.violations:
+            if round_manager.ctraces != prev_ctraces:  # this should not normally happen
+                self._report_bug_tainting(round_manager)
+            STAT.fp_taint_mistakes += 1
+            round_manager.finalize()
+            return None
 
         # 2.3 FP might appear because of interference between inputs. To remove such FPs, we
         #     use the priming test where we swap inputs that caused the violation with each other
-        if CONF.enable_priming:
-            violations = self._priming(violations, args.inputs)
-            if not violations:
-                STAT.fp_early_priming += 1
-                self.LOG.trc_fuzzer_dump_traces(self.model, args.inputs, htraces,
-                                                self.reference_htraces, args.ctraces, end_nesting)
-                return None
+        round_manager.execute_stage("priming")
+        if not round_manager.violations:
+            STAT.fp_priming += 1
+            round_manager.finalize()
+            return None
 
         # 2.4 FP might appear because we experienced noise. Retry the experiment with a larger
         #     sample size to reduce the impact of noise
-        for n_reps in CONF.executor_sample_sizes[1:]:
-            self.LOG.fuzzer_sample_size_increase(n_reps)
-            args.n_reps = n_reps
-            args.n_reps -= len(htraces[0].raw)  # subtract the number of repetitions already done
-            args.added_htraces = htraces
+        round_manager.execute_stage("noise")
+        if not round_manager.violations:
+            STAT.fp_large_sample += 1
+            return None
 
-            violations, _, htraces = self._collect_traces(args)
-            if not violations:
-                STAT.fp_large_sample += 1
-                return None
+        # 2.5 Priming might have failed because the sample size was too small, causing
+        #     non-deterministic results. Retry the priming test with the largest sample size
+        round_manager.execute_stage("priming_large")
+        if not round_manager.violations:
+            STAT.fp_priming += 1
+            round_manager.finalize()
+            return None
 
-            # 2.4.2 Priming might have failed because the sample size was too small, causing
-            #     non-deterministic results. Retry the priming test with the largest sample size
-            if CONF.enable_priming:
-                violations = self._priming(violations, args.inputs)
-                if not violations:
-                    STAT.fp_priming += 1
-                    self.LOG.trc_fuzzer_dump_traces(self.model, args.inputs, htraces,
-                                                    self.reference_htraces, args.ctraces,
-                                                    end_nesting)
-                    return None
-
-        # 2.5 FP might appear because of a mismatch between the model and the executor.
+        # 2.6 FP might appear because of a mismatch between the model and the executor.
         # Such cases are rare, hence we check for them last.
         # To remove such FPs, we check if the violation is caused by an architectural mismatch
-        if self.is_architectural_mismatch(test_case, violations[0]):
-            if self.work_dir and not CONF._no_generation:
-                self.LOG.warning("fuzzer", f"Storing the bug into {self.work_dir}/bugs/")
-                self._store_violation_artifact(test_case, violations[0], f"{self.work_dir}/bugs/")
+        round_manager.execute_stage("arch_mismatch")
+        if not round_manager.violations:
+            self._report_bug_arch(round_manager)
+            round_manager.finalize()
             return None
 
         # Violation survived all checks. Report it
-        self.LOG.trc_fuzzer_dump_traces(self.model, args.inputs, htraces, self.reference_htraces,
-                                        args.ctraces, end_nesting)
-        return violations[0]
+        round_manager.finalize()
+        return round_manager.violations[0]
 
-    def _collect_traces(
-            self, args: TracingArguments) -> Tuple[List[Violation], List[CTrace], List[HTrace]]:
+    # ==============================================================================================
+    # Single-stage Interfaces
+    def standalone_filter(self, test_case: TestCaseProgram, inputs: List[InputData]) -> bool:
+        """ Check if the given test case should be filtered out """
+        return self._filter(test_case, inputs)
+
+    def standalone_generate(self, program_generator_seed: int, num_test_cases: int, num_inputs: int,
+                            permit_overwrite: bool) -> None:
         """
-        Collect contract and hardware traces for the given inputs and check for violations.
-
-        Depending on the flags, the function can reuse contract traces, merge new hardware traces
-        with the existing ones, and update the ignore list of the executor.
-
-        :param args: Container for the arguments of the function:
-           - args.inputs: the inputs to be tested
-           - args.n_reps: the number of repetitions to be used for hardware tracing
-           - args.model_nesting: the nesting level to be used for contract tracing
-           - args.reuse_ctraces: the contract traces to be reused for the given inputs
-           - args.record_stats: whether to record statistics about the traces
-           - args.fast_boosting: whether to assume that boosted inputs will have
-               the same contract trace as the original inputs
-           - args.update_ignore_list: whether to update the ignore list of the executor
-           - args.added_htraces: additional hardware traces to be added to the existing ones
-        :return: a tuple of violations, contract traces, and hardware traces
+        Run a standalone test case generation and store the generated test case programs
+        and their inputs in the work directory
         """
-        # Collect contract traces
-        if args.reuse_ctraces:
-            ctraces = args.ctraces
-        elif args.fast_boosting:
-            # records same ctrace for all members of the same input class
-            ctraces = args.ctraces * CONF.inputs_per_class
+        self.log.start(0, datetime.today())
+
+        # prepare for generation
+        STAT.test_cases = num_test_cases
+        CONF.program_generator_seed = program_generator_seed
+        program_gen = factory.get_program_generator(CONF.program_generator_seed, self._isa_spec)
+        input_gen = factory.get_input_generator(CONF.input_gen_seed)
+
+        # generate test cases
+        Path(self._work_dir).mkdir(exist_ok=True)
+        for i in range(0, num_test_cases):
+            test_case_dir = self._work_dir + "/tc" + str(i)
+            try:
+                Path(test_case_dir).mkdir(exist_ok=permit_overwrite)
+            except FileExistsError:
+                raise FileExistsError(f"Directory '{test_case_dir}' already exists\n"
+                                      "       Use --permit-overwrite to overwrite the test case")
+
+            program_gen.create_test_case(test_case_dir + "/" + "program.asm", True)
+            inputs = input_gen.generate(num_inputs, n_actors=1)
+            for j, input_ in enumerate(inputs):
+                input_.save(f"{test_case_dir}/input{j}.bin")
+
+        self.log.finish()
+
+    def standalone_analyse(self, ctrace_file: str, htrace_file: str) -> None:
+        """ Check the contract and hardware traces in the given files for contract violations """
+        if "dbg_violation" in CONF.logging_modes:
+            CONF.logging_modes.remove("dbg_violation")
+            update_logging_after_config_change()
+
+        self.log.start(0, datetime.today())
+        STAT.test_cases = 1
+
+        # read traces
+        ctraces: List[CTrace] = []
+        htraces: List[HTrace] = []
+
+        with open(ctrace_file, 'r') as f:
+            for line in f:
+                ctraces.append(CTrace([CTraceEntry("val", int(line))]))
+        with open(htrace_file, 'r') as f:
+            for line in f:
+                sample: ArrayOfSamples = np.ndarray(1, dtype=RawHTraceSample)
+                sample[0]['trace'] = int(line)
+                htraces.append(HTrace(sample))
+
+        assert len(ctraces) == len(htraces), \
+            "The number of hardware traces does not match the number of contract traces"
+
+        dummy_inputs = factory.get_input_generator(0).generate(len(ctraces), n_actors=1)
+        dummy_tc = TestCaseProgram("generated.asm", 0)
+
+        # check for violations
+        analyser = factory.get_analyser()
+        violations = analyser.filter_violations(ctraces, htraces, dummy_tc, dummy_inputs, True)
+
+        # print results
+        if violations:
+            self.log.report_violations(violations[0])
+
+        self.log.finish()
+
+    # ==============================================================================================
+    # Private Methods
+    def _set_generation_function(self, type_: FuzzingMode) -> None:
+        """ Set the generation function based on the fuzzing mode """
+        if type_ == "random":
+            self._generation_function = self.generator.create_test_case
+        elif type_ == "template":
+            self._generation_function = self.generator.create_test_case_from_template
+        elif type_ == "asm":
+            self._generation_function = self._asm_parser_adapter
         else:
-            # compute ctraces separately for every boosted input
-            ctraces = self.model.trace_test_case(args.inputs, args.model_nesting)
-        assert len(ctraces) == len(args.inputs)
+            assert_never(f"Unknown fuzzing mode: {type_}")
 
-        # Collect hardware traces
-        try:
-            htraces = self.executor.trace_test_case(args.inputs, args.n_reps)
-        except HardwareTracingError:
-            return [], [], []
-        assert len(htraces) == len(args.inputs)
-
-        # Merge hardware traces if provided
-        if args.added_htraces:
-            for i, h in enumerate(htraces):
-                htraces[i] = HTrace(h.raw + args.added_htraces[i].raw)
-
-        # Check for violations
-        violations = self.analyser.filter_violations(
-            args.inputs, ctraces, htraces, stats=args.record_stats)
-        if not violations:
-            # if violation is detected, print debug traces (if requested)
-            self.LOG.trc_fuzzer_dump_traces(self.model, args.inputs, htraces,
-                                            self.reference_htraces, ctraces, CONF.model_max_nesting)
-
-        if args.update_ignore_list:
-            # label all non-violating inputs as ignored by executor, so that we don't trigger
-            # a chain reaction of false positives when the measurement results are non-deterministic
-            violating_ids = [m.input_id for v in violations for m in v.measurements]
-            ignored_input_ids = [i for i in range(len(args.inputs)) if i not in violating_ids]
-            self.executor.extend_ignore_list(ignored_input_ids)
-
-        return violations, ctraces, htraces
-
-    def _boost_inputs(self, inputs: List[Input], nesting) -> Tuple[List[Input], List[CTrace]]:
-        """
-        Boost the given inputs by generating additional inputs in the same equivalence classes,
-        and also collect the contract traces for the ORIGINAL (i.e., non-boosted) inputs. Note
-        that the contract traces for the boosted inputs are not collected here (for efficiency
-        reasons), but are collected in the _collect_traces function.
-
-        This function performs two tasks at once because contract tracing and input boosting
-        rely on the same emulation function, so it is more efficient to do them together.
-
-        :param inputs: the inputs to be boosted
-        :param nesting: the speculation nesting level to be used by the model
-        :return: a tuple of boosted inputs and contract traces for the original inputs
-        :raises AssertionError: if the number of contract traces does not match the number
-                of original inputs
-        """
-        ctraces: List[CTrace]
-        taints: List[InputTaint]
-
-        # collect taints and contract traces for initial inputs
-        ctraces, taints = self.model.trace_test_case_with_taints(inputs, nesting)
-
-        # ensure that we have many inputs in each input classes
-        self.input_gen.reset_boosting_state()
-        boosted_inputs = list(inputs)  # make a copy
-        for _ in range(CONF.inputs_per_class - 1):
-            boosted_inputs += self.input_gen.extend_equivalence_classes(inputs, taints)
-
-        assert len(inputs) == len(ctraces)
-        return boosted_inputs, ctraces
-
-    def _store_violation_artifact(self, test_case: TestCase, violation: Violation, path: str):
+    def _store_violation_artifact(self, violation: Violation, path: str) -> None:
         """
         Store a violation artifact into the given directory.
 
@@ -414,7 +716,6 @@ class FuzzerGeneric(Fuzzer):
         - the configuration file for reproducing violation from artifact (reproduce.yaml)
         - the configuration file for minimization (minimize.yaml)
 
-        :param test_case: the test case that caused the violation
         :param violation: the violation to be stored
         :param path: the path to the directory where the artifact should be stored;
                     if empty, the artifact is stored in the current directory
@@ -430,6 +731,7 @@ class FuzzerGeneric(Fuzzer):
         Path(violation_dir).mkdir()
 
         # store violation
+        test_case = violation.test_case_code
         test_case.save(f"{violation_dir}/program.asm")
         for i, input_ in enumerate(violation.input_sequence):
             input_.save(f"{violation_dir}/input_{i:04}.bin")
@@ -462,16 +764,16 @@ class FuzzerGeneric(Fuzzer):
             f.write(f"* Test Case ID: {STAT.test_cases - 1}\n")
             f.write(f"* Detected: {datetime.today().strftime('%d.%m.%y at %H:%M:%S')}\n\n")
             f.write("* Time to detection:"
-                    f" {(datetime.today() - self.LOG.start_time).total_seconds()}\n")
+                    f" {(datetime.today() - self.log.start_time).total_seconds()}\n")
             f.write("* Statistics:\n")
             f.write(str(STAT) + "\n")
 
             f.write("\n## Generation Properties\n")
-            f.write(f"* Program seed: {test_case.seed}\n")
+            f.write(f"* Program seed: {test_case.generator_seed}\n")
             f.write(f"* Input seed: {violation.input_sequence[0].seed}\n")
             f.write("* Faulty page properties:\n")
-            target_desc = self.generator.target_desc
-            for actor in test_case.get_sorted_actors():
+            target_desc = self.generator._target_desc
+            for actor in test_case.get_actors(sorted_=True):
                 actor_id = actor.get_id()
                 f.write(f"  - Actor {actor_id}:\n")
 
@@ -483,7 +785,7 @@ class FuzzerGeneric(Fuzzer):
                         pte_fields.append(f"{field}={value}")
                 f.write(f"    * PTE: {'; '.join(pte_fields)}\n")
 
-                if actor.mode != "guest":
+                if actor.mode != ActorMode.GUEST:
                     continue
                 epte_fields = []
                 for field in target_desc.epte_bits:
@@ -496,189 +798,54 @@ class FuzzerGeneric(Fuzzer):
             f.write("\n## Counterexample Inputs\n")
             for m in violation.measurements:
                 f.write(f"\nInput #{m.input_id}\n")
-                f.write(f"* Hardware trace:\n {pretty_htrace(m.htrace)}\n")
+                f.write(f"* Hardware trace:\n {m.htrace.full_str()}\n")
                 f.write(f"* Contract trace (hash): {m.ctrace}\n")
-                ctrace_full = self.model.dbg_get_trace_detailed(m.input_, CONF.model_max_nesting)
-                f.write(f"* Contract trace (detailed): {ctrace_full}\n")
+                f.write(f"* Contract trace (detailed): {m.ctrace.full_str()}\n")
 
         # re-enable colors if enabled previously
         CONF.color = color_on
 
-    # ==============================================================================================
-    # Single-stage interfaces
-    def generate_test_batch(self, program_generator_seed: int, num_test_cases: int, num_inputs: int,
-                            permit_overwrite: bool):
-        self.LOG.fuzzer_start(0, datetime.today())
+    def _report_bug_tainting(self, round_manager: _RoundManager) -> None:
+        warning("fuzzer", "Fast path contract traces do not match the full traces")
+        if self._work_dir and CONF.is_generation_enabled():
+            warning("fuzzer", f"Storing the bug into {self._work_dir}/bugs/")
+            self._store_violation_artifact(round_manager.violations[0], f"{self._work_dir}/bugs/")
 
-        # prepare for generation
-        STAT.test_cases = num_test_cases
-        CONF.program_generator_seed = program_generator_seed
-        program_gen = factory.get_program_generator(self.instruction_set,
-                                                    CONF.program_generator_seed)
-        input_gen = factory.get_input_generator(CONF.input_gen_seed)
+    def _report_bug_arch(self, round_manager: _RoundManager) -> None:
+        if self._work_dir and CONF.is_generation_enabled():
+            warning("fuzzer", f"Storing the bug into {self._work_dir}/bugs/")
+            self._store_violation_artifact(round_manager.violations[0], f"{self._work_dir}/bugs/")
 
-        # generate test cases
-        Path(self.work_dir).mkdir(exist_ok=True)
-        for i in range(0, num_test_cases):
-            test_case_dir = self.work_dir + "/tc" + str(i)
-            try:
-                Path(test_case_dir).mkdir(exist_ok=permit_overwrite)
-            except FileExistsError:
-                self.LOG.error(f"Directory '{test_case_dir}' already exists\n"
-                               "       Use --permit-overwrite to overwrite the test case")
-
-            program_gen.create_test_case(test_case_dir + "/" + "program.asm", True)
-            inputs = input_gen.generate(num_inputs)
-            for j, input_ in enumerate(inputs):
-                input_.save(f"{test_case_dir}/input{j}.bin")
-
-        self.LOG.fuzzer_finish()
-
-    @staticmethod
-    def analyse_traces_from_files(ctrace_file: str, htrace_file: str):
-        logger = Logger()
-        logger.dbg_violation = False  # make sure we don't try to call the model
-        logger.fuzzer_start(0, datetime.today())
-        STAT.test_cases = 1
-
-        # read traces
-        ctraces: List[CTrace] = []
-        htraces: List[HTrace] = []
-
-        with open(ctrace_file, 'r') as f:
-            for line in f:
-                ctraces.append(CTrace([int(line)]))
-        with open(htrace_file, 'r') as f:
-            for line in f:
-                htraces.append(HTrace([int(line)]))
-
-        assert len(ctraces) == len(htraces), \
-            "The number of hardware traces does not match the number of contract traces"
-
-        dummy_inputs = factory.get_input_generator(0).generate(len(ctraces))
-
-        # check for violations
-        analyser = factory.get_analyser()
-        violations = analyser.filter_violations(dummy_inputs, ctraces, htraces, True)
-
-        # print results
-        if violations:
-            logger.fuzzer_report_violations(violations[0], None)
-
-        logger.fuzzer_finish()
-
-    # ==============================================================================================
-    # Checking for false positives
-    def _priming(self, violations: List[Violation], inputs: List[Input]) -> List[Violation]:
-        violation_stack = list(violations)  # make a copy
-        while violation_stack:
-            self.LOG.fuzzer_priming(len(violation_stack))
-            violation: Violation = violation_stack.pop()
-            if self._prime_one(violation, inputs):
-                return [violation]
-        return []
-
-    def _prime_one(self, org_violation: Violation, all_inputs: List[Input]) -> bool:
+    # ----------------------------------------------------------------------------------------------
+    # Private: Subclass hooks for ISA-specific customization
+    def _filter(self, test_case: TestCaseProgram, inputs: List[InputData]) -> bool:
         """
-        Try priming the inputs that caused the violations
+        A filter function that can be used to check if a test case is not useful.
 
-        return: True if the violation survived priming
+        The function is typically used as a part of the fuzzing loop
+        (invoked by self.start_* methods), but can be also used stand-alone by other classes.
+
+        :param test_case: The test case to be checked
+        :param inputs: The inputs to be used with the test case
+        :return: True if the test case should be filtered out (not useful), False otherwise (useful)
         """
-        violation = copy.copy(org_violation)
-        measurements_to_test = [hg[0] for hg in violation.htrace_groups]
-        null_htrace = HTrace.get_null()
-        n_reps = len(violation.measurements[0].htrace.raw)
+        return False  # implemented by architecture-specific subclasses
 
-        for current_measurement in measurements_to_test:
-            current_input_id = current_measurement.input_id
-            htrace_to_reproduce = current_measurement.htrace
-            other_measurements = [m for m in measurements_to_test if m != current_measurement]
+    def _adjust_config(self, _: str) -> None:
+        """ Adjust the configuration based on the given test case """
 
-            # list of inputs that produced a different HTrace
-            input_ids_to_test: List[InputID] = [m.input_id for m in other_measurements]
-
-            # iterate over all inputs in the violation and insert swap them with current_input_id
-            for input_id in input_ids_to_test:
-                self.LOG.dbg_priming_progress(input_id, current_input_id)
-
-                # insert the tested input into its new place
-                primer = list(all_inputs)
-                primer[current_input_id] = all_inputs[input_id]
-
-                # try the new input sequence and check if the traces observed for the new input
-                # are equivalent to the original ones
-                htraces: List[HTrace] = self.executor.trace_test_case(primer, n_reps)
-                new_htrace = htraces[current_input_id]
-
-                # fast exit in case of a tracing error
-                if not new_htrace.raw or new_htrace == null_htrace:
-                    self.LOG.warning("fuzzer", "Tracing error during priming. "
-                                     "Skipping this test case")
-                    return False
-
-                if self.analyser.htraces_are_equivalent(new_htrace, htrace_to_reproduce):
-                    continue
-
-                self.LOG.dbg_priming_fail(input_id, current_input_id, htrace_to_reproduce,
-                                          new_htrace)
-
-                # could not reproduce; it's a genuine violation
-                return True
-
-        # all traces were reproduced, so it's a false positive
-        return False
-
-    def is_architectural_mismatch(self, test_case: TestCase, violation: Violation) -> bool:
-        """
-        Check if the violation is caused by an architectural mismatch between the model
-        and the executor. For example, this may happen if the model incorrectly emulates the
-        execution of an instruction due to a bug in the emulator.
-
-        :return: True if the violation is caused by an architectural mismatch; False otherwise
-        """
-        inputs = violation.input_sequence
-        hardware_regs: List[List[int]] = []
-        model_regs: List[List[int]] = []
-
-        self.arch_model.load_test_case(test_case)
-        self.arch_executor.load_test_case(test_case)
-
-        # Collect architectural hardware traces
-        try:
-            htraces = self.arch_executor.trace_test_case(inputs, 1)
-        except HardwareTracingError:
-            return False  # skip test case in case of a tracing error
-        for htrace_obj in htraces:
-            hardware_regs.append(
-                [htrace_obj.raw[0]]  # rax
-                + list(htrace_obj.perf_counters[0]),  # rbx ... rdi
-            )
-
-        # Collect architectural model traces
-        ctraces = self.arch_model.trace_test_case(inputs, CONF.model_max_nesting)
-        for ctrace in ctraces:
-            model_regs.append([v % (2**64 - 1) for v in ctrace.raw[:6]])
-
-        # Debug outputs
-        self.LOG.dbg_fuzzer_dump_architectural_traces(hardware_regs, model_regs)
-
-        # Check for violations
-        # Note: since we simply check the equality of traces, we don't need to invoke the analyser
-        for i in range(len(inputs)):
-            if model_regs[i] != hardware_regs[i]:
-                self.LOG.fuzzer_report_architectural_violation(i, hardware_regs[i], model_regs[i])
-                return True
-
-        return False
+    def _asm_parser_adapter(self, asm: str) -> TestCaseProgram:
+        # FIXME: this is a hack to fit the interface; refactor this
+        return self.asm_parser.parse_file(asm, self.generator, self.elf_parser)
 
 
-class ArchitecturalFuzzer(FuzzerGeneric):
+class ArchitecturalFuzzer(Fuzzer):
     """
     A simplified fuzzer that checks for architectural mismatches between the model and the
     executor. This fuzzer is useful for detecting bugs in Revizor, but it cannot detect
     contract violations.
 
-    The fuzzer piggy-backs on the is_architectural_mismatch function of FuzzerGeneric
+    The fuzzer piggy-backs on the check_for_architectural_mismatch function of Fuzzer
     to check for mismatches.
     """
 
@@ -686,25 +853,17 @@ class ArchitecturalFuzzer(FuzzerGeneric):
                  instruction_set_spec: str,
                  work_dir: str,
                  existing_test_case: str = "",
-                 inputs: List[str] = []):
+                 inputs: Optional[List[str]] = None):
         super().__init__(instruction_set_spec, work_dir, existing_test_case, inputs)
-        self.LOG.warning("fuzzer", "Running in architectural mode. "
-                         "Contract violations can't be detected!")
+        warning("fuzzer", "Running in architectural mode. "
+                "Contract violations can't be detected!")
 
-    def fuzzing_round(self,
-                      test_case: TestCase,
-                      inputs: List[Input],
-                      _: List[int] = []) -> Optional[Violation]:
+    def fuzzing_round(self, test_case: TestCaseProgram, inputs: List[InputData],
+                      _: List[int]) -> Optional[Violation]:
         """
         Run a single fuzzing round: collect contract and hardware traces for the given test
         case and inputs, and check for architectural mismatches.
         """
-        # Create a pseudo-violation to reuse the existing is_architectural_mismatch function
-        null_ctrace = CTrace.get_null()
-        violation = Violation.from_measurements(null_ctrace, [], [], inputs)
-
-        # Check for architectural mismatches
-        if self.is_architectural_mismatch(test_case, violation):
-            return violation
-
-        return None
+        round_manager = _RoundManager(self, test_case, inputs)
+        round_manager.execute_stage("arch_mismatch")
+        return round_manager.violations[0] if round_manager.violations else None

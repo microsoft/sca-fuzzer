@@ -1,5 +1,4 @@
 .intel_syntax noprefix
-.test_case_enter:
 .section .data.main
 mov rax, qword ptr [r14 + 4096]
 xor rax, rcx
