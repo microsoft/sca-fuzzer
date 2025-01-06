@@ -171,7 +171,8 @@ class CodeGenerator(ABC):
         if self._cached_template:
             test_case = deepcopy(self._cached_template)
         else:
-            test_case = self._asm_parser.parse_file(template_file, self, self._elf_parser)
+            test_case = self._asm_parser.parse_file(
+                template_file, self, self._elf_parser, is_template=True)
             self._cached_template = deepcopy(test_case)
 
         for func in test_case.iter_functions():

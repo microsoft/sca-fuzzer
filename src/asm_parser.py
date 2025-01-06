@@ -285,7 +285,7 @@ class AsmParser(ABC):
     # ----------------------------------------------------------------------------------------------
     # Public Interface
     def parse_file(self, asm_file: str, generator: CodeGenerator,
-                   elf_parser: ELFParser) -> TestCaseProgram:
+                   elf_parser: ELFParser, is_template: bool = False) -> TestCaseProgram:
         """
         Read a test case from a file, patch it to make it parsable (if necessary),
         create a complete TestCaseCode object based on it, and populate it with ELF data.
@@ -328,10 +328,11 @@ class AsmParser(ABC):
         # Perform final correctness checks
         self._check_test_case_correctness(test_case)
 
-        # Assembly the test case and populate with ELF data
-        test_case.assign_obj(asm_file[:-4] + ".o")
-        assemble(test_case)
-        elf_parser.populate_elf_data(test_case.get_obj(), test_case)
+        # Assemble the test case and populate with ELF data
+        if not is_template:  # there is no point in assembling a template
+            test_case.assign_obj(asm_file[:-4] + ".o")
+            assemble(test_case)
+            elf_parser.populate_elf_data(test_case.get_obj(), test_case)
 
         return test_case
 
