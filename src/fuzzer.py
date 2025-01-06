@@ -210,8 +210,9 @@ class _RoundManager:
         except IOError:
             self.violations = []
             return
-        self._check_violations()
-        self._update_ignore_list()
+        if len(self.org_inputs) > 0:
+            self._check_violations()
+            self._update_ignore_list()
 
     def _boost_inputs(self) -> None:
         """ Trace the test case with the original inputs, collect taints, and use them to

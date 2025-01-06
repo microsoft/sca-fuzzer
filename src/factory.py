@@ -98,6 +98,7 @@ _TRACERS: Dict[str, Type[tracer.UnicornTracer]] = {
     "arch": tracer.ArchTracer,
     "tct": tracer.TruncatedCTTracer,
     "tcto": tracer.TruncatedCTWithOverflowsTracer,
+    "ct-ni": tracer.ActorNITracer,
 }
 
 _SPECULATORS: Dict[str, Type[speculator_abc.UnicornSpeculator]] = {
@@ -121,7 +122,6 @@ _SPECULATORS: Dict[str, Type[speculator_abc.UnicornSpeculator]] = {
     # "vspec-all-div": x86_unicorn_model.x86UnicornVspecAllDIV,
     # "vspec-all-memory-faults": x86_unicorn_model.X86UnicornVspecAllMemoryFaults,
     # "vspec-all-memory-assists": x86_unicorn_model.X86UnicornVspecAllMemoryAssists,
-    # "noninterference": speculators_ni.ActorNonInterferenceSpeculator,
 }
 
 

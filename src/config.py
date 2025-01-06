@@ -284,11 +284,11 @@ class Conf:
             "nullinj-fault", "nullinj-assist", "delayed-exception-handling", "div-zero",
             "div-overflow", "meltdown", "fault-skip", "noncanonical", "vspec-ops-div",
             "vspec-ops-memory-faults", "vspec-ops-memory-assists", "vspec-ops-gp", "vspec-all-div",
-            "vspec-all-memory-faults", "vspec-all-memory-assists", "noninterference"
+            "vspec-all-memory-faults", "vspec-all-memory-assists"
         ],
         "contract_observation_clause": [
             "none", "l1d", "pc", "memory", "ct", "loads+stores+pc", "ct-nonspecstore", "ctr",
-            "arch", "tct", "tcto"
+            "arch", "tct", "tcto", "ct-ni"
         ],
         "executor": ["x86-intel", "x86-amd"],
         "analyser": ["bitmaps", "sets", "mwu", "chi2"],

@@ -15,6 +15,7 @@ from ..tc_components.instruction import Instruction, RegisterOp, FlagsOp, \
     MemoryOp, AgenOp, ImmediateOp, LabelOp, CondOp
 from ..tc_components.test_case_data import InputTaint
 from ..target_desc import TargetDesc
+from ..sandbox import SandboxLayout, DataArea
 from ..config import CONF
 
 if TYPE_CHECKING:
@@ -236,6 +237,17 @@ class UnicornTaintTracker:
             return
         assert_never(value_type)
 
+    def taint_actors(self, actor_ids: List[int]) -> None:
+        """
+        Taint all the memory addresses of the actors in the list
+        :param actor_ids: the list of actor IDs
+        """
+        data_size_per_actor = SandboxLayout.data_size_per_actor()
+        for actor_id in actor_ids:
+            actor_offset = actor_id * data_size_per_actor
+            for i in range(actor_offset, actor_offset + data_size_per_actor, 8):
+                self._tainted_labels.add(hex(i))
+
     # ----------------------------------------------------------------------------------------------
     # Taint output
     def get_taint(self, n_actors: int) -> InputTaint:
@@ -254,8 +266,8 @@ class UnicornTaintTracker:
 
         taint = InputTaint(n_actors)
         tainted_positions = []
-        register_start = taint[0].dtype.fields['gpr'][1]
-        simd_start = taint[0].dtype.fields['simd'][1]
+        register_start = SandboxLayout.data_area_offset(DataArea.GPR) // 8
+        simd_start = SandboxLayout.data_area_offset(DataArea.SIMD) // 8
 
         for label in self._tainted_labels:
             # Memory address
@@ -283,7 +295,7 @@ class UnicornTaintTracker:
         tainted_positions.sort()
 
         for actor_id in range(0, n_actors):
-            actor_offset = actor_id * 0x4000 // 8
+            actor_offset = actor_id * 0x4000 // 8 + 0x1000 // 8
             actor_end = (actor_id + 1) * 0x4000 // 8
             actor_taints = [
                 pos - actor_offset for pos in tainted_positions if actor_offset <= pos < actor_end

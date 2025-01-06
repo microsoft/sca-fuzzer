@@ -76,12 +76,13 @@ class _Dispatcher:
     def test_case_load_dispatch(self, test_case: TestCaseProgram) -> None:
         """ Call callbacks in service classes that need to be called when a test case is loaded """
         self._interpreter.load_test_case(test_case)
+        self._tracer.load_test_case(test_case)
         self.coverage.finish_test_case()
         self.coverage.start_test_case()
 
     def execution_start_dispatch(self, input_: InputData) -> None:
         """ Call callbacks in service classes that need to be called before model execution """
-        self._tracer.reset()
+        self._tracer.reset(input_)
         self._speculator.reset()
         self._taint_tracker.reset()
         self._interpreter.load_input(input_)
