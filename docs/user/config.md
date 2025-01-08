@@ -432,12 +432,10 @@ For the explanation of the input classes and the generation algorithm, see (this
 ```yaml
 Name: contract_execution_clause
 Default: ['seq']
-Options: 'seq' | 'no_speculation' | 'seq-assist' | 'cond' | 'conditional_br_misprediction' | 'bpas' | 'nullinj-fault' | 'nullinj-assist' | 'delayed-exception-handling' | 'div-zero' | 'div-overflow' | 'meltdown' | 'fault-skip' | 'noncanonical' | 'vspec-ops-div' | 'vspec-ops-memory-faults' | 'vspec-ops-memory-assists' | 'vspec-ops-gp' | 'vspec-all-div' | 'vspec-all-memory-faults' | 'vspec-all-memory-assists' | 'noninterference'
+Options: 'seq' | 'no_speculation' | 'seq-assist' | 'cond' | 'conditional_br_misprediction' | 'bpas' | 'nullinj-fault' | 'nullinj-assist' | 'delayed-exception-handling' | 'div-zero' | 'div-overflow' | 'meltdown' | 'fault-skip' | 'noncanonical' | 'vspec-ops-div' | 'vspec-ops-memory-faults' | 'vspec-ops-memory-assists' | 'vspec-ops-gp' | 'vspec-all-div' | 'vspec-all-memory-faults' | 'vspec-all-memory-assists'
 ```
 
 The execution clause of the contract.
-
-For single-actor experiments, the following options are available:
 
 * `seq` - sequential execution.
 * `no_speculation` - sequential execution. Synonym for `seq`.
@@ -455,19 +453,15 @@ For single-actor experiments, the following options are available:
 * `div-zero` - experimental contract; do not use.
 * `div-overflow` - experimental contract; do not use.
 
-In multi-actor context, only one option is available:
-* `noninterference` - the observer actor is permitted to leak its own data and the addresses of memory accesses of the other actors. No other data is allowed to be leak.
-
-
 ```yaml
 Name: contract_observation_clause
 Default: 'ct'
-Options: 'none' | 'l1d' | 'memory' | 'pc' | 'ct' | 'loads+stores+pc' | 'ct-nonspecstore' | 'ctr' | 'arch' | 'tct' | 'tcto'
+Options: 'none' | 'l1d' | 'memory' | 'pc' | 'ct' | 'loads+stores+pc' | 'ct-nonspecstore' | 'ctr' | 'arch' | 'tct' | 'tcto' | 'ct-ni'
 ```
 
 The observation clause of the contract. In most cases, the default value should be used.
 
-The available options are:
+For single-actor experiments, the following options are available:
 
 * `none` - the model observes nothing. Useful for testing the fuzzer.
 * `l1d` - the model observes the addresses of data accesses, adjusted to imitate the L1D cache trace.
@@ -481,6 +475,10 @@ The available options are:
   This clause imitates the security guarantees provided by secure speculation mechanisms like STT.
 * `tct` (truncated constant time tracer) - the model observes address of the memory access and of the program counter at cache line granularity.
 * `tcto` (truncated constant time tracer with overflows) - the model address of the memory access and of the program counter at cache line granularity + observe cache line overflows.
+
+In multi-actor context, only one option is available:
+
+* `ct-ni` - when executing actors with `observer: false`, the model observes the same data as as with `ct`. When executing actors with `observer: true`, the model observes complete memory of the actor as well as their register values.
 
 ```yaml
 Name: model_min_nesting
