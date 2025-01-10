@@ -1,14 +1,38 @@
 #!/usr/bin/env bash
 
-if [ "$1" == "" ] || [ $1 != "--ignore-errors" ]; then
+function parse_args() {
+    POSITIONAL_ARGS=()
+
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+        --strict)
+            STRICT=true
+            shift
+            ;;
+        --ignore-errors)
+            IGNORE_ERRORS=true
+            shift
+            ;;
+        --skip-km-tests)
+            SKIP_KM_TESTS=true
+            shift
+            ;;
+        -* | --*)
+            echo "Unknown option $1"
+            exit 1
+            ;;
+        esac
+    done
+}
+
+parse_args $@
+
+if [ "$IGNORE_ERRORS" != "true" ]; then
     set -e
 fi
 
-if [ "$1" == "--strict" ]; then
+if [ "$STRICT" = true ]; then
     echo "Including optional tests"
-    STRICT=true
-else
-    STRICT=false
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
@@ -17,15 +41,15 @@ ALL_PY=$(find src/ -name "*.py" | grep -v "config" | grep -v "fuzzer")
 echo ""
 echo "===== MyPy ====="
 cd $SCRIPT_DIR/.. || exit
-MYPYPATH=src/ python3 -m mypy --strict $ALL_PY --no-warn-unused-ignores
+MYPYPATH=src/ python3 -m mypy --strict $ALL_PY --no-warn-unused-ignores --untyped-calls-exclude=elftools
 cd - >/dev/null || exit
 
 if [ "$STRICT" = true ]; then
     echo ""
     cd $SCRIPT_DIR/.. || exit
     echo "===== STRICT CHECK: MyPy (Unit Tests) ====="
-    MYPYPATH=src/ python3 -m mypy --strict tests/unit_*.py
-    MYPYPATH=src/ python3 -m mypy --strict tests/x86_tests/unit_*.py
+    MYPYPATH=src/ python3 -m mypy --strict tests/unit_*.py --no-warn-unused-ignores --untyped-calls-exclude=elftools
+    MYPYPATH=src/ python3 -m mypy --strict tests/x86_tests/unit_*.py --no-warn-unused-ignores --untyped-calls-exclude=elftools
     cd - >/dev/null || exit
 
     echo ""
@@ -49,11 +73,13 @@ python3 -m unittest discover tests -p "unit_*.py" -v
 cd - >/dev/null || exit
 # exit
 
-echo ""
-echo "===== x86 kernel module ====="
-cd $SCRIPT_DIR || exit
-./x86_tests/kernel_module.bats
-cd - >/dev/null || exit
+if [ "$SKIP_KM_TESTS" != true ]; then
+    echo ""
+    echo "===== x86 kernel module ====="
+    cd $SCRIPT_DIR || exit
+    ./x86_tests/kernel_module.bats
+    cd - >/dev/null || exit
+fi
 
 echo ""
 echo "===== x86 unit tests ====="
@@ -71,8 +97,10 @@ echo "-------------"
 cd - >/dev/null || exit
 # exit
 
-echo ""
-echo "===== x86 acceptance tests ====="
-cd $SCRIPT_DIR || exit
-./x86_tests//acceptance.bats
-cd - >/dev/null || exit
+if [ "$SKIP_KM_TESTS" != true ]; then
+    echo ""
+    echo "===== x86 acceptance tests ====="
+    cd $SCRIPT_DIR || exit
+    ./x86_tests//acceptance.bats
+    cd - >/dev/null || exit
+fi
