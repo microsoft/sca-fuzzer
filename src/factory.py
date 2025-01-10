@@ -9,7 +9,7 @@ from typing import Dict, Type, List, TYPE_CHECKING, Any, Optional
 
 from . import input_generator, analyser, executor, fuzzer, model
 from .model_unicorn import tracer, speculator_abc, speculators_basic, \
-    speculators_fault, interpreter, model as uc_model
+    speculators_fault, speculators_vs, interpreter, model as uc_model
 from .postprocessing.minimizer import Minimizer
 
 from .x86 import x86_executor, x86_fuzzer, x86_generator, x86_asm_parser, \
@@ -115,13 +115,13 @@ _SPECULATORS: Dict[str, Type[speculator_abc.UnicornSpeculator]] = {
     "meltdown": speculators_fault.X86Meltdown,
     "noncanonical": speculators_fault.X86NonCanonicalAddress,
 
-    # "vspec-ops-div": x86_unicorn_model.x86UnicornVspecOpsDIV,
-    # "vspec-ops-memory-faults": x86_unicorn_model.x86UnicornVspecOpsMemoryFaults,
-    # "vspec-ops-memory-assists": x86_unicorn_model.x86UnicornVspecOpsMemoryAssists,
-    # "vspec-ops-gp": x86_unicorn_model.x86UnicornVspecOpsGP,
-    # "vspec-all-div": x86_unicorn_model.x86UnicornVspecAllDIV,
-    # "vspec-all-memory-faults": x86_unicorn_model.X86UnicornVspecAllMemoryFaults,
-    # "vspec-all-memory-assists": x86_unicorn_model.X86UnicornVspecAllMemoryAssists,
+    "vspec-ops-div": speculators_vs.VspecDIVSpeculator,
+    "vspec-ops-memory-faults": speculators_vs.VspecMemoryFaultsSpeculator,
+    "vspec-ops-memory-assists": speculators_vs.VspecMemoryAssistsSpeculator,
+    "vspec-ops-gp": speculators_vs.VspecGPSpeculator,
+    "vspec-all-div": speculators_vs.VspecAllDIVSpeculator,
+    "vspec-all-memory-faults": speculators_vs.VspecAllMemoryFaultsSpeculator,
+    "vspec-all-memory-assists": speculators_vs.VspecAllMemoryAssistsSpeculator,
 }
 
 

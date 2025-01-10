@@ -51,7 +51,7 @@ _FLAG_NAME_TO_BITMASK: Final[Dict[str, int]] = {
 }
 
 
-class _UnicornVspecBase(FaultSpeculator, ABC):
+class _VspecBaseSpeculator(FaultSpeculator, ABC):
     """
     Base class for unknown value speculation, implementing VSOps algorithm.
 
@@ -461,7 +461,8 @@ class _UnicornVspecBase(FaultSpeculator, ABC):
         return self._model.state.fault_handler_addr
 
 
-class _UnicornVspecBaseDIV(_UnicornVspecBase):
+class VspecDIVSpeculator(_VspecBaseSpeculator):
+    """ Operand value speculation on division errors """
 
     def __init__(self, target_desc: TargetDesc, model: UnicornModel,
                  taint_tracker: UnicornTaintTracker) -> None:
@@ -470,7 +471,9 @@ class _UnicornVspecBaseDIV(_UnicornVspecBase):
         self._errno_that_trigger_speculation = {21}
 
 
-class _UnicornVspecBaseMemoryFaults(_UnicornVspecBase):
+class VspecMemoryFaultsSpeculator(_VspecBaseSpeculator):
+    """ Operand value  speculation on page faults """
+
     pending_restore_protection: bool = False
     pending_re_execution: bool = False
 
@@ -519,7 +522,8 @@ class _UnicornVspecBaseMemoryFaults(_UnicornVspecBase):
         return self._next_instruction_addr
 
 
-class _UnicornVspecBaseMemoryAssists(_UnicornVspecBaseMemoryFaults):
+class VspecMemoryAssistsSpeculator(VspecMemoryFaultsSpeculator):
+    """ Operand value  speculation on page faults with memory assists """
 
     def __init__(self, target_desc: TargetDesc, model: UnicornModel,
                  taint_tracker: UnicornTaintTracker) -> None:
@@ -540,7 +544,9 @@ class _UnicornVspecBaseMemoryAssists(_UnicornVspecBaseMemoryFaults):
         return self._curr_instruction_addr
 
 
-class _UnicornVspecBaseGP(_UnicornVspecBase, X86NonCanonicalAddress):
+class VspecGPSpeculator(_VspecBaseSpeculator, X86NonCanonicalAddress):
+    """ Operand value  speculation on General Protection Faults """
+
     address_register: int
     register_value: int
 
@@ -625,7 +631,7 @@ class _UnicornVspecBaseGP(_UnicornVspecBase, X86NonCanonicalAddress):
     def _speculate_instruction(self, address: int, size: int) -> None:
         super(X86NonCanonicalAddress, self)._speculate_instruction(address, size)
         if address != self.faulty_instruction_addr:
-            super(_UnicornVspecBase, self)._speculate_instruction(address, size)
+            super(_VspecBaseSpeculator, self)._speculate_instruction(address, size)
 
     def _noncanonical_to_canonical(self, address: int) -> int:
         if address & (1 << 47):  # bit 48 is 1 => high address
@@ -644,7 +650,7 @@ class _UnicornVspecBaseGP(_UnicornVspecBase, X86NonCanonicalAddress):
         return super().reset()
 
 
-class X86UnicornVspecAll(_UnicornVspecBase):
+class VspecAllSpeculator(_VspecBaseSpeculator):
     """
     Most permissive contract.
     Uses vspec-unknown contract but destination operands in case of
@@ -685,7 +691,7 @@ class X86UnicornVspecAll(_UnicornVspecBase):
         return self._get_next_instruction()
 
 
-class x86UnicornVspecAllDIV(X86UnicornVspecAll):
+class VspecAllDIVSpeculator(VspecAllSpeculator):
     """ Any-value speculation on division errors """
 
     def __init__(self, target_desc: TargetDesc, model: UnicornModel,
@@ -695,7 +701,7 @@ class x86UnicornVspecAllDIV(X86UnicornVspecAll):
         self._errno_that_trigger_speculation = {21}
 
 
-class X86UnicornVspecAllMemoryFaults(X86UnicornVspecAll):
+class VspecAllMemoryFaultsSpeculator(VspecAllSpeculator):
     """ Any-value speculation on page faults """
 
     pending_restore_protection: bool = False
@@ -740,7 +746,7 @@ class X86UnicornVspecAllMemoryFaults(X86UnicornVspecAll):
         return self._next_instruction_addr
 
 
-class X86UnicornVspecAllMemoryAssists(X86UnicornVspecAll):
+class VspecAllMemoryAssistsSpeculator(VspecAllSpeculator):
     """ Any-value speculation on A/D-bit microcode assists (MDS style) """
 
     def __init__(self, target_desc: TargetDesc, model: UnicornModel,
