@@ -7,6 +7,7 @@ SPDX-License-Identifier: MIT
 
 from __future__ import annotations
 
+from abc import ABC
 from typing import TYPE_CHECKING, Set, Tuple, List, Optional
 from copy import copy
 import re
@@ -23,7 +24,7 @@ if TYPE_CHECKING:
     from ..tc_components.actor import ActorID
 
 
-class _FaultSpeculator(UnicornSpeculator):
+class FaultSpeculator(UnicornSpeculator, ABC):
     """
     Common set of functionality for all fault-based speculators.
     Namely, it:
@@ -54,14 +55,13 @@ class _FaultSpeculator(UnicornSpeculator):
         self._curr_instruction_addr = address
 
     def _restore_faulty_page_permissions(self, actor_id: ActorID) -> None:
-        assert (
-            self._model.state.page_permissions is not None
-        ), "Page permissions were not initialized"
+        assert (self._model.state.page_permissions
+                is not None), "Page permissions were not initialized"
         org_permissions = self._model.state.page_permissions[actor_id]
         self._model.set_faulty_area_rw(actor_id, org_permissions[0], org_permissions[1])
 
 
-class SequentialAssistSpeculator(_FaultSpeculator):
+class SequentialAssistSpeculator(FaultSpeculator):
     """Speculator that simulates sequential handling of memory-based microcode assists"""
 
     def __init__(
@@ -82,7 +82,7 @@ class SequentialAssistSpeculator(_FaultSpeculator):
         return self._curr_instruction_addr
 
 
-class X86UnicornDEH(_FaultSpeculator):
+class X86UnicornDEH(FaultSpeculator):
     """
     Contract for delayed exception handling (DEH).
     Models typical handling of exceptions on out-of-order CPUs
@@ -93,12 +93,8 @@ class X86UnicornDEH(_FaultSpeculator):
     _next_instruction_addr: int = 0
     _prev_tracing_state: Optional[bool] = None
 
-    def __init__(
-        self,
-        target_desc: TargetDesc,
-        model: UnicornModel,
-        taint_tracker: UnicornTaintTracker,
-    ) -> None:
+    def __init__(self, target_desc: TargetDesc, model: UnicornModel,
+                 taint_tracker: UnicornTaintTracker) -> None:
         super().__init__(target_desc, model, taint_tracker)
         self._errno_that_trigger_speculation = {6, 10, 12, 13, 21}
         self._dependencies = set()
@@ -203,10 +199,8 @@ class X86UnicornDEH(_FaultSpeculator):
         name = instruction.name
         if "cmpxchg" in name:
             dest = instruction.operands[0]
-            if (
-                isinstance(dest, MemoryOp)
-                or self._target_desc.reg_normalized[dest.value] not in old_dependencies
-            ):
+            if (isinstance(dest, MemoryOp)
+                    or self._target_desc.reg_normalized[dest.value] not in old_dependencies):
                 self._dependencies.remove(self._target_desc.reg_normalized["rax"])
                 flags = instruction.get_flags_operand()
                 assert flags
@@ -219,9 +213,7 @@ class X86UnicornDEH(_FaultSpeculator):
             op1, op2 = instruction.operands
             if isinstance(op1, RegisterOp):
                 # swap dependencies
-                op1_val, op2_val = [
-                    self._target_desc.reg_normalized[op.value] for op in [op1, op2]
-                ]
+                op1_val, op2_val = [self._target_desc.reg_normalized[op.value] for op in [op1, op2]]
                 if op1_val in old_dependencies and op2_val not in old_dependencies:
                     self._dependencies.remove(op1_val)
                 elif op1_val not in old_dependencies and op2_val in old_dependencies:
@@ -236,10 +228,8 @@ class X86UnicornDEH(_FaultSpeculator):
         elif "xadd" in name:
             assert len(instruction.operands) == 2
             op1, op2 = instruction.operands
-            if (
-                isinstance(op1, MemoryOp)
-                or self._target_desc.reg_normalized[op1.value] not in old_dependencies
-            ):
+            if (isinstance(op1, MemoryOp)
+                    or self._target_desc.reg_normalized[op1.value] not in old_dependencies):
                 self._dependencies.remove(self._target_desc.reg_normalized[op2.value])
 
         # special case 4 - zeroing and reset patterns
@@ -270,7 +260,7 @@ class X86UnicornDEH(_FaultSpeculator):
         return super().rollback()
 
 
-class X86UnicornNull(_FaultSpeculator):
+class X86UnicornNull(FaultSpeculator):
     """
     Contract describing zero injection on faults.
 
@@ -290,12 +280,8 @@ class X86UnicornNull(_FaultSpeculator):
     _pending_re_execution: bool = False
     _pending_restore_permissions: bool = False
 
-    def __init__(
-        self,
-        target_desc: TargetDesc,
-        model: UnicornModel,
-        taint_tracker: UnicornTaintTracker,
-    ) -> None:
+    def __init__(self, target_desc: TargetDesc, model: UnicornModel,
+                 taint_tracker: UnicornTaintTracker) -> None:
         super().__init__(target_desc, model, taint_tracker)
         self._errno_that_trigger_speculation = {12, 13}
 
@@ -304,9 +290,7 @@ class X86UnicornNull(_FaultSpeculator):
         self._model.set_faulty_area_rw(actor_id, True, True)
         return super().rollback()
 
-    def _speculate_mem_access(
-        self, access: int, address: int, size: int, value: int
-    ) -> None:
+    def _speculate_mem_access(self, access: int, address: int, size: int, value: int) -> None:
         # (this method is called before _speculate_fault)
 
         if access == UC_MEM_WRITE:
@@ -355,9 +339,7 @@ class X86UnicornNull(_FaultSpeculator):
         #  -> restore the permissions of the faulting page
         if self._pending_restore_permissions:
             self._pending_restore_permissions = False
-            self._restore_faulty_page_permissions(
-                self._model.state.current_actor.get_id()
-            )
+            self._restore_faulty_page_permissions(self._model.state.current_actor.get_id())
             self._curr_load = (0, 0)
             return
 
@@ -375,17 +357,13 @@ class X86UnicornNullAssist(X86UnicornNull):
         return self._curr_instruction_addr
 
 
-class X86Meltdown(_FaultSpeculator):
+class X86Meltdown(FaultSpeculator):
     """
     Loads from the faulty region speculatively return the in-memory value
     """
 
-    def __init__(
-        self,
-        target_desc: TargetDesc,
-        model: UnicornModel,
-        taint_tracker: UnicornTaintTracker,
-    ) -> None:
+    def __init__(self, target_desc: TargetDesc, model: UnicornModel,
+                 taint_tracker: UnicornTaintTracker) -> None:
         super().__init__(target_desc, model, taint_tracker)
         self._errno_that_trigger_speculation = {12, 13}
 
@@ -397,13 +375,11 @@ class X86Meltdown(_FaultSpeculator):
         self._checkpoint(self._get_rollback_address())
 
         # remove protection
-        self._model.set_faulty_area_rw(
-            self._model.state.current_actor.get_id(), True, True
-        )
+        self._model.set_faulty_area_rw(self._model.state.current_actor.get_id(), True, True)
         return self._curr_instruction_addr
 
 
-class X86NonCanonicalAddress(_FaultSpeculator):
+class X86NonCanonicalAddress(FaultSpeculator):
     """
     Load from non-canonical address
     """
@@ -412,12 +388,8 @@ class X86NonCanonicalAddress(_FaultSpeculator):
     address_register: int = -1
     register_value: int = -1
 
-    def __init__(
-        self,
-        target_desc: TargetDesc,
-        model: UnicornModel,
-        taint_tracker: UnicornTaintTracker,
-    ) -> None:
+    def __init__(self, target_desc: TargetDesc, model: UnicornModel,
+                 taint_tracker: UnicornTaintTracker) -> None:
         super().__init__(target_desc, model, taint_tracker)
         self._errno_that_trigger_speculation = {6, 7}
 
@@ -453,8 +425,7 @@ class X86NonCanonicalAddress(_FaultSpeculator):
             uc_reg = self._target_desc.uc_target_desc.reg_str_to_constant[registers[0]]
             load_address: int = model.emulator.reg_read(uc_reg)  # type: ignore
             is_canonical: bool = (
-                load_address > 0xFFFF800000000000 or load_address < 0x00007FFFFFFFFFFF
-            )
+                load_address > 0xFFFF800000000000 or load_address < 0x00007FFFFFFFFFFF)
             if not is_canonical:
                 self.address_register = uc_reg
                 self.register_value = load_address
