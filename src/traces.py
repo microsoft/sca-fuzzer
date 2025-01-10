@@ -325,7 +325,7 @@ class HTrace:
         00000001        [16]   | [8]
         00000002        [16]   | [24]
         """
-        mask = 0xFFFFFFFFFFFFFF
+        mask = np.uint64(0xFFFFFFFFFFFFFF)
         c1 = Counter(self.get_raw_traces())
         c2 = Counter(other.get_raw_traces())
         keys = set(c1.keys()) | set(c2.keys())

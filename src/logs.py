@@ -7,7 +7,7 @@ SPDX-License-Identifier: MIT
 from __future__ import annotations
 import sys
 from datetime import datetime
-from typing import TYPE_CHECKING, NoReturn, Dict, List, Optional, Set, Any, Final
+from typing import TYPE_CHECKING, NoReturn, Dict, List, Optional, Set, Any, Final, Tuple
 from pprint import pformat
 from traceback import print_stack
 
@@ -333,6 +333,7 @@ class FuzzLogger:
         self._conf.dbg_model = False
         for i, _ in enumerate(inputs):
             print(f"- Input {i}:")
+            colors: Tuple[str, ...]
             if self._conf.dbg_dump_ctraces:
                 colors = (M_COL, PC_COL, VAL_COL, COL_RESET) if CONF.color else ()
                 ctrace_str = ctraces[i].full_str(*colors)

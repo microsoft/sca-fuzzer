@@ -884,7 +884,7 @@
   {"name": "bts", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -893,7 +893,7 @@
   {"name": "lock bts", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -902,7 +902,7 @@
   {"name": "lock bts", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}

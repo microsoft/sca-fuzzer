@@ -18,6 +18,8 @@ from src.model_unicorn.speculator_abc import UnicornSpeculator
 from src.model_unicorn.interpreter import X86ExtraInterpreter
 from src.model_unicorn.speculators_basic import SeqSpeculator, X86CondSpeculator, \
     StoreBpasSpeculator
+from src.model_unicorn.speculators_fault import X86UnicornNull, X86UnicornNullAssist, \
+    X86Meltdown, X86UnicornDEH
 
 from src.tc_components.test_case_code import TestCaseProgram
 from src.tc_components.test_case_data import InputData
@@ -390,134 +392,133 @@ class X86ModelTest(unittest.TestCase):  # pylint: disable=too-many-public-method
 
         self.assertEqual(ctraces[0].get_untyped(), expected_trace)
 
-    # def test_fault_handling(self) -> None:
-    #     """ Test the fault handling mechanism """
-    #     model = self._init_model(SeqSpeculator, uc_tracer.CTTracer)
-    #     model._handled_faults.update([12, 13])
-    #     instructions = ASM_FAULTY_ACCESS
-    #     input_ = self._get_default_input()
-    #     ctraces = self._get_traces(model, instructions, [input_], pte_mask=PF_MASK)
-    #     expected_trace = self._get_default_ct_trace()
+    def test_fault_handling(self) -> None:
+        """ Test the fault handling mechanism """
+        model = self._init_model(SeqSpeculator, uc_tracer.CTTracer)
+        model._handled_faults.update([12, 13])
+        instructions = ASM_FAULTY_ACCESS
+        input_ = self._get_default_input()
+        ctraces = self._get_traces(model, instructions, [input_], pte_mask=PF_MASK)
+        expected_trace = self._get_default_ct_trace()
 
-    #     expected_trace.append(instructions[0].pc_offset)
-    #     expected_trace.append(instructions[0].mem_address)
-    #     expected_trace.append(RSP_DEFAULT_VALUE)
+        expected_trace.append(instructions[0].pc_offset)
+        expected_trace.append(instructions[0].mem_address)
+        expected_trace.append(RSP_DEFAULT_VALUE)
 
-    #     self.assertEqual(ctraces[0].get_untyped(), expected_trace)
+        self.assertEqual(ctraces[0].get_untyped(), expected_trace)
 
-    # def test_ct_deh(self) -> None:
-    #     """ Test X86UnicornDEH with CTTracer """
-    #     model = self._init_model(model.X86UnicornDEH, uc_tracer.CTTracer)
-    #     model._handled_faults.update([12, 13])
-    #     instructions = ASM_FAULTY_ACCESS
-    #     input_ = self._get_default_input()
-    #     ctraces = self._get_traces(model, instructions, [input_], pte_mask=PF_MASK)
-    #     expected_trace = self._get_default_ct_trace()
+    def test_ct_deh(self) -> None:
+        """ Test X86UnicornDEH with CTTracer """
+        model = self._init_model(X86UnicornDEH, uc_tracer.CTTracer)
+        model._handled_faults.update([12, 13])
+        instructions = ASM_FAULTY_ACCESS
+        input_ = self._get_default_input()
+        ctraces = self._get_traces(model, instructions, [input_], pte_mask=PF_MASK)
+        expected_trace = self._get_default_ct_trace()
 
-    #     expected_trace.append(instructions[0].pc_offset)
-    #     expected_trace.append(instructions[0].mem_address)
-    #     expected_trace.append(RSP_DEFAULT_VALUE)
-    #     expected_trace.append(instructions[1].pc_offset)
-    #     expected_trace.append(instructions[2].pc_offset)
-    #     expected_trace.append(instructions[2].mem_address)
-    #     expected_trace.append(instructions[3].pc_offset)
+        expected_trace.append(instructions[0].pc_offset)
+        expected_trace.append(instructions[0].mem_address)
+        expected_trace.append(RSP_DEFAULT_VALUE)
+        expected_trace.append(instructions[2].pc_offset)
+        expected_trace.append(instructions[2].mem_address)
+        expected_trace.append(instructions[3].pc_offset)
 
-    #     self.assertEqual(ctraces[0].get_untyped(), expected_trace)
+        self.assertEqual(ctraces[0].get_untyped(), expected_trace)
 
-    # def test_ct_nullinj_assist(self) -> None:
-    #     """ Test X86UnicornNullAssist with CTTracer """
-    #     model = self._init_model(model.X86UnicornNullAssist, uc_tracer.CTTracer)
-    #     model._handled_faults.update([12, 13])
-    #     instructions = ASM_FAULTY_ACCESS
-    #     input_ = self._get_default_input()
-    #     ctraces = self._get_traces(model, instructions, [input_], pte_mask=PF_MASK)
-    #     expected_trace = self._get_default_ct_trace()
+    def test_ct_nullinj_assist(self) -> None:
+        """ Test X86UnicornNullAssist with CTTracer """
+        model = self._init_model(X86UnicornNullAssist, uc_tracer.CTTracer)
+        model._handled_faults.update([12, 13])
+        instructions = ASM_FAULTY_ACCESS
+        input_ = self._get_default_input()
+        ctraces = self._get_traces(model, instructions, [input_], pte_mask=PF_MASK)
+        expected_trace = self._get_default_ct_trace()
 
-    #     # fault
-    #     expected_trace.append(instructions[0].pc_offset)
-    #     expected_trace.append(instructions[0].mem_address)
-    #     expected_trace.append(RSP_DEFAULT_VALUE)
+        # fault
+        expected_trace.append(instructions[0].pc_offset)
+        expected_trace.append(instructions[0].mem_address)
+        expected_trace.append(RSP_DEFAULT_VALUE)
 
-    #     # re-execute with changed permissions and inject zero into rax
-    #     expected_trace.append(instructions[0].pc_offset)
-    #     expected_trace.append(instructions[0].mem_address)
-    #     rax = 0
+        # re-execute with changed permissions and inject zero into rax
+        expected_trace.append(instructions[0].pc_offset)
+        expected_trace.append(instructions[0].mem_address)
+        rax = 0
 
-    #     # execute with speculative rax
-    #     expected_trace.append(instructions[1].pc_offset)  # traced twice due to a quirk in Unicorn
-    #     expected_trace.append(instructions[1].pc_offset)
-    #     expected_trace.append(MAIN_OFFSET + rax)
-    #     expected_trace.append(instructions[2].pc_offset)
-    #     expected_trace.append(instructions[2].mem_address)
-    #     expected_trace.append(instructions[3].pc_offset)
+        # execute with speculative rax
+        expected_trace.append(instructions[1].pc_offset)  # traced twice due to a quirk in Unicorn
+        expected_trace.append(instructions[1].pc_offset)
+        expected_trace.append(MAIN_OFFSET + rax)
+        expected_trace.append(instructions[2].pc_offset)
+        expected_trace.append(instructions[2].mem_address)
+        expected_trace.append(instructions[3].pc_offset)
 
-    #     # rollback and re-execute without a fault
-    #     expected_trace.append(instructions[0].pc_offset)
-    #     expected_trace.append(instructions[0].mem_address)
-    #     expected_trace.append(instructions[1].pc_offset)
-    #     expected_trace.append(instructions[1].mem_address)
-    #     expected_trace.append(instructions[2].pc_offset)
-    #     expected_trace.append(instructions[2].mem_address)
-    #     expected_trace.append(instructions[3].pc_offset)
+        # rollback and re-execute without a fault
+        expected_trace.append(instructions[0].pc_offset)
+        expected_trace.append(instructions[0].mem_address)
+        expected_trace.append(instructions[1].pc_offset)
+        expected_trace.append(instructions[1].mem_address)
+        expected_trace.append(instructions[2].pc_offset)
+        expected_trace.append(instructions[2].mem_address)
+        expected_trace.append(instructions[3].pc_offset)
 
-    #     self.assertEqual(ctraces[0].get_untyped(), expected_trace)
+        self.assertEqual(ctraces[0].get_untyped(), expected_trace)
 
-    # def test_ct_nullinj_term(self) -> None:
-    #     """ Test X86UnicornNull with CTTracer """
-    #     model = self._init_model(model.X86UnicornNull, uc_tracer.CTTracer)
-    #     model._handled_faults.update([12, 13])
-    #     instructions = ASM_FAULTY_ACCESS
-    #     input_ = self._get_default_input()
-    #     ctraces = self._get_traces(model, instructions, [input_], pte_mask=PF_MASK)
-    #     expected_trace = self._get_default_ct_trace()
+    def test_ct_nullinj_term(self) -> None:
+        """ Test X86UnicornNull with CTTracer """
+        model = self._init_model(X86UnicornNull, uc_tracer.CTTracer)
+        model._handled_faults.update([12, 13])
+        instructions = ASM_FAULTY_ACCESS
+        input_ = self._get_default_input()
+        ctraces = self._get_traces(model, instructions, [input_], pte_mask=PF_MASK)
+        expected_trace = self._get_default_ct_trace()
 
-    #     # fault
-    #     expected_trace.append(instructions[0].pc_offset)
-    #     expected_trace.append(instructions[0].mem_address)
-    #     expected_trace.append(RSP_DEFAULT_VALUE)
+        # fault
+        expected_trace.append(instructions[0].pc_offset)
+        expected_trace.append(instructions[0].mem_address)
+        expected_trace.append(RSP_DEFAULT_VALUE)
 
-    #     # re-execute with changed permissions and inject zero into rax
-    #     expected_trace.append(instructions[0].pc_offset)
-    #     expected_trace.append(instructions[0].mem_address)
-    #     rax = 0
+        # re-execute with changed permissions and inject zero into rax
+        expected_trace.append(instructions[0].pc_offset)
+        expected_trace.append(instructions[0].mem_address)
+        rax = 0
 
-    #     # execute with speculative rax
-    #     expected_trace.append(instructions[1].pc_offset)  # traced twice due to a quirk in Unicorn
-    #     expected_trace.append(instructions[1].pc_offset)
-    #     expected_trace.append(MAIN_OFFSET + rax)
-    #     expected_trace.append(instructions[2].pc_offset)
-    #     expected_trace.append(instructions[2].mem_address)
-    #     expected_trace.append(instructions[3].pc_offset)
+        # execute with speculative rax
+        expected_trace.append(instructions[1].pc_offset)  # traced twice due to a quirk in Unicorn
+        expected_trace.append(instructions[1].pc_offset)
+        expected_trace.append(MAIN_OFFSET + rax)
+        expected_trace.append(instructions[2].pc_offset)
+        expected_trace.append(instructions[2].mem_address)
+        expected_trace.append(instructions[3].pc_offset)
 
-    #     self.assertEqual(ctraces[0].get_untyped(), expected_trace)
+        self.assertEqual(ctraces[0].get_untyped(), expected_trace)
 
-    # def test_ct_meltdown(self) -> None:
-    #     """ Test X86Meltdown with CTTracer """
-    #     model = self._init_model(model.X86Meltdown, uc_tracer.CTTracer)
-    #     model._handled_faults.update([12, 13])
-    #     instructions = ASM_FAULTY_ACCESS
-    #     input_ = self._get_default_input()
-    #     ctraces = self._get_traces(model, instructions, [input_], pte_mask=PF_MASK)
-    #     expected_trace = self._get_default_ct_trace()
+    def test_ct_meltdown(self) -> None:
+        """ Test X86Meltdown with CTTracer """
+        model = self._init_model(X86Meltdown, uc_tracer.CTTracer)
+        model._handled_faults.update([12, 13])
+        instructions = ASM_FAULTY_ACCESS
+        input_ = self._get_default_input()
+        ctraces = self._get_traces(model, instructions, [input_], pte_mask=PF_MASK)
+        expected_trace = self._get_default_ct_trace()
 
-    #     # fault
-    #     expected_trace.append(instructions[0].pc_offset)
-    #     expected_trace.append(instructions[0].mem_address)
-    #     expected_trace.append(RSP_DEFAULT_VALUE)
+        # fault
+        expected_trace.append(instructions[0].pc_offset)
+        expected_trace.append(instructions[0].mem_address)
+        expected_trace.append(RSP_DEFAULT_VALUE)
 
-    #     # re-execute with changed permissions and inject zero into rax
-    #     expected_trace.append(instructions[0].pc_offset)
-    #     expected_trace.append(instructions[0].mem_address)
-    #     rax = MEM_FAULTY_DEFAULT_VALUE
+        # re-execute with changed permissions and inject zero into rax
+        expected_trace.append(instructions[0].pc_offset)
+        expected_trace.append(instructions[0].mem_address)
+        rax = MEM_FAULTY_DEFAULT_VALUE
 
-    #     # execute with speculative rax
-    #     expected_trace.append(instructions[1].pc_offset)
-    #     expected_trace.append(MAIN_OFFSET + rax)
-    #     expected_trace.append(instructions[2].pc_offset)
-    #     expected_trace.append(instructions[2].mem_address)
-    #     expected_trace.append(instructions[3].pc_offset)
+        # execute with speculative rax
+        expected_trace.append(instructions[1].pc_offset)
+        expected_trace.append(MAIN_OFFSET + rax)
+        expected_trace.append(instructions[2].pc_offset)
+        expected_trace.append(instructions[2].mem_address)
+        expected_trace.append(instructions[3].pc_offset)
 
-    #     self.assertEqual(ctraces[0].get_untyped(), expected_trace)
+        self.assertEqual(ctraces[0].get_untyped(), expected_trace)
 
     @unittest.skip("No longer maintained")
     def test_ct_vsops(self) -> None:

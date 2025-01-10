@@ -37,7 +37,7 @@ _ACTOR_DATA_SIZE = _ActorInput['main'].itemsize + _ActorInput['faulty'].itemsize
 # ==================================================================================================
 # Full input data
 # ==================================================================================================
-UINT_NDARRAY = np.ndarray[Tuple[int], np.dtype[np.uint64]]
+UINT_NDARRAY = np.ndarray[Tuple[int, ...], np.dtype[np.uint64]]
 
 
 class InputData(UINT_NDARRAY):
@@ -86,7 +86,7 @@ class InputData(UINT_NDARRAY):
         obj = super().__new__(cls, (n_actors,), _ActorInput, None, 0, None, None)
         return obj
 
-    def __array_finalize__(self, obj: Optional[UINT_NDARRAY]) -> None:
+    def __array_finalize__(self, obj: Optional[UINT_NDARRAY]) -> None:  # type: ignore
         # if obj is None:
         #     return
         pass
@@ -167,7 +167,7 @@ class InputData(UINT_NDARRAY):
                 actor_end = actor_start + self.itemsize // 8
                 self.linear_view(actor_id)[:] = contents[actor_start:actor_end]
 
-    def linear_view(self, actor_id: 'ActorID') -> UINT_NDARRAY:
+    def linear_view(self, actor_id: ActorID) -> UINT_NDARRAY:
         """
         Get a linear view of the input for a single actor;
         that is, a 1D array of 64-bit integers.
@@ -210,7 +210,7 @@ class InputTaint(BOOL_NDARRAY):
         obj.fill(False)
         return obj
 
-    def __array_finalize__(self, obj: Optional[UINT_NDARRAY]) -> None:
+    def __array_finalize__(self, obj: Optional[UINT_NDARRAY]) -> None:  # type: ignore
         # if obj is None:
         #     return
         pass

@@ -276,10 +276,10 @@ class Instruction:
     """ implicit_operands: List of implicit operands, which are not explicitly specified in the
     instruction but are used by the instruction. For example, flags operand in x86 instructions """
 
-    _line_num: int = -1
-    _section_id: int = -1
-    _section_offset: int = -1
-    _size: int = -1
+    _line_num: int = -1  # line number in the source asm; access via line_num()
+    _section_id: int = -1  # section ID in the object file; access via section_id()
+    _section_offset: int = -1  # instruction offset in the section; access via section_offset()
+    _size: int = -1  # size of the instruction in bytes; access via size()
     _inst_brief: str = ""  # cached brief representation of the instruction
 
     # ----------------------------------------------------------------------------------------------
@@ -554,6 +554,11 @@ class Instruction:
         """ Get the section offset of the instruction in the object file. """
         assert self._section_offset != -1, "Instruction properties are not assigned"
         return self._section_offset
+
+    def size(self) -> int:
+        """ Get the size of the instruction in bytes. """
+        assert self._size != -1, "Instruction properties are not assigned"
+        return self._size
 
 
 def copy_inst_with_modification(instruction: Instruction,

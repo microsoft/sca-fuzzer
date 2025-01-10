@@ -474,6 +474,7 @@ class _X86UserspaceInterpreter(_X86VMInterpreter):
 # Private: Fault Handling and Permissions
 # ==================================================================================================
 
+
 class _X86FaultInterpreter:
     """ Class that handles page faults and permissions in the emulator """
     _model: UnicornModel
@@ -481,9 +482,9 @@ class _X86FaultInterpreter:
     _uc_target_desc: UnicornTargetDesc
     _test_case: Optional[TestCaseProgram] = None
 
-    fault_masks: Dict[str, int]
-    rw_forbidden: Dict[int, bool]
-    w_forbidden: Dict[int, bool]
+    _fault_masks: Dict[str, int]
+    _rw_forbidden: Dict[int, bool]
+    _w_forbidden: Dict[int, bool]
 
     def __init__(self, model: UnicornModel, target_desc: TargetDesc):
         self._model = model
@@ -494,37 +495,43 @@ class _X86FaultInterpreter:
     def load_test_case(self, test_case: TestCaseProgram) -> None:
         """ Load the test case into the interpreter """
         self._test_case = test_case
-        self.rw_forbidden = {}
-        self.w_forbidden = {}
+        self._rw_forbidden = {}
+        self._w_forbidden = {}
         for actor in test_case.get_actors(sorted_=True):
             aid = actor.get_id()
 
             pte: int = actor.data_properties
             inverse_pte = 0xffffffffffffffff ^ pte
-            self.rw_forbidden[aid] = bool(self.fault_masks["pt_rw_must_set"] & inverse_pte) | \
-                bool(self.fault_masks["pt_rw_must_clear"] & pte)
-            self.w_forbidden[aid] = bool(self.fault_masks["pt_w_must_set"] & inverse_pte)
+            self._rw_forbidden[aid] = bool(self._fault_masks["pt_rw_must_set"] & inverse_pte) | \
+                bool(self._fault_masks["pt_rw_must_clear"] & pte)
+            self._w_forbidden[aid] = bool(self._fault_masks["pt_w_must_set"] & inverse_pte)
 
             if actor.mode == ActorMode.GUEST:
                 epte: int = actor.data_ept_properties
                 inverse_epte = 0xffffffffffffffff ^ epte
-                self.rw_forbidden[aid] |= \
-                    bool(self.fault_masks["ept_rw_must_set"] & inverse_epte) | \
-                    bool(self.fault_masks["ept_rw_must_clear"] & epte)
-                self.w_forbidden[aid] |= bool(self.fault_masks["ept_w_must_set"] & inverse_epte)
+                self._rw_forbidden[aid] |= \
+                    bool(self._fault_masks["ept_rw_must_set"] & inverse_epte) | \
+                    bool(self._fault_masks["ept_rw_must_clear"] & epte)
+                self._w_forbidden[aid] |= bool(self._fault_masks["ept_w_must_set"] & inverse_epte)
+
+        # make the permissions available to other components of the model
+        self._model.state.page_permissions = {}
+        for actor_id in range(test_case.n_actors()):
+            self._model.state.page_permissions[actor_id] = (self._rw_forbidden[actor_id],
+                                                            self._w_forbidden[actor_id])
 
     def load_input(self, _: InputData) -> None:
         """ Load the input into the interpreter """
         assert self._test_case is not None
         # Set memory permissions
         for actor_id in range(self._test_case.n_actors()):
-            if self.rw_forbidden[actor_id]:
+            if self._rw_forbidden[actor_id]:
                 self._model.set_faulty_area_rw(actor_id, False, False)
-            elif self.w_forbidden[actor_id]:
+            elif self._w_forbidden[actor_id]:
                 self._model.set_faulty_area_rw(actor_id, True, False)
 
     def _create_fault_masks(self) -> None:
-        self.fault_masks = {
+        self._fault_masks = {
             "pt_rw_must_set": 0,
             "pt_rw_must_clear": 0,
             "pt_w_must_set": 0,
@@ -542,10 +549,10 @@ class _X86FaultInterpreter:
             "ept_w_must_set": ["writable", "dirty"],
         }
 
-        for key in self.fault_masks:
+        for key in self._fault_masks:
             if key.startswith("pt"):
                 for bit in bit_desc[key]:
-                    self.fault_masks[key] |= 1 << self._target_desc.pte_bits[bit][0]
+                    self._fault_masks[key] |= 1 << self._target_desc.pte_bits[bit][0]
             else:
                 for bit in bit_desc[key]:
-                    self.fault_masks[key] |= 1 << self._target_desc.epte_bits[bit][0]
+                    self._fault_masks[key] |= 1 << self._target_desc.epte_bits[bit][0]

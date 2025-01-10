@@ -5,16 +5,20 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 from __future__ import annotations
-from typing import TYPE_CHECKING, Final, Optional
+from typing import TYPE_CHECKING, Final, Optional, Dict, Tuple
 
 from unicorn import Uc
 from ..sandbox import SandboxLayout, CodeArea
+from ..tc_components.actor import ActorID
 
 if TYPE_CHECKING:
     from ..tc_components.test_case_code import TestCaseProgram
     from ..tc_components.instruction import Instruction
     from ..tc_components.actor import Actor
     from ..target_desc import TargetDesc
+
+PAGE_PERMISSION_MAP = Dict[ActorID, Tuple[bool, bool]]
+""" Data type for storing page permissions for actors """
 
 
 class ModelExecutionState:
@@ -45,6 +49,10 @@ class ModelExecutionState:
 
     had_arch_fault: bool = False
     """ Indicates whether the model has already had a non-speculative fault in the current run """
+
+    page_permissions: Optional[PAGE_PERMISSION_MAP] = None
+    """ Dictionary of the page permissions for each actor at the start of execution.
+    Only containts permissions on the faulty area, as all other areas are always RW."""
 
     _test_case: Final[TestCaseProgram]  # The test case being currently executed by the model
     _layout: Final[SandboxLayout]  # The layout of the sandbox

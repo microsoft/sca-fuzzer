@@ -9,7 +9,7 @@ from typing import Dict, Type, List, TYPE_CHECKING, Any, Optional
 
 from . import input_generator, analyser, executor, fuzzer, model
 from .model_unicorn import tracer, speculator_abc, speculators_basic, \
-    interpreter, model as uc_model
+    speculators_fault, interpreter, model as uc_model
 from .postprocessing.minimizer import Minimizer
 
 from .x86 import x86_executor, x86_fuzzer, x86_generator, x86_asm_parser, \
@@ -108,13 +108,13 @@ _SPECULATORS: Dict[str, Type[speculator_abc.UnicornSpeculator]] = {
     "conditional_br_misprediction": speculators_basic.X86CondSpeculator,
     "bpas": speculators_basic.StoreBpasSpeculator,
     "cond-bpas": speculators_basic.X86CondBpasSpeculator,
+    "seq-assist": speculators_fault.SequentialAssistSpeculator,
+    "nullinj-fault": speculators_fault.X86UnicornNull,
+    "nullinj-assist": speculators_fault.X86UnicornNullAssist,
+    "delayed-exception-handling": speculators_fault.X86UnicornDEH,
+    "meltdown": speculators_fault.X86Meltdown,
+    "noncanonical": speculators_fault.X86NonCanonicalAddress,
 
-    # "seq-assist": x86_unicorn_model.X86SequentialAssist,
-    # "nullinj-fault": x86_unicorn_model.X86UnicornNull,
-    # "nullinj-assist": x86_unicorn_model.X86UnicornNullAssist,
-    # "delayed-exception-handling": x86_unicorn_model.X86UnicornDEH,
-    # "meltdown": x86_unicorn_model.X86Meltdown,
-    # "noncanonical": x86_unicorn_model.X86NonCanonicalAddress,
     # "vspec-ops-div": x86_unicorn_model.x86UnicornVspecOpsDIV,
     # "vspec-ops-memory-faults": x86_unicorn_model.x86UnicornVspecOpsMemoryFaults,
     # "vspec-ops-memory-assists": x86_unicorn_model.x86UnicornVspecOpsMemoryAssists,

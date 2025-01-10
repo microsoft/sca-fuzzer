@@ -92,8 +92,8 @@ class _Dispatcher:
         """ Call instruction-related callbacks in service classes """
         # NOTE: the order of the following calls is important
         self._taint_tracker.track_instruction(state.current_instruction)
-        self._tracer.observe_instruction(address, size)
         self._speculator.handle_instruction(address, size)
+        self._tracer.observe_instruction(address, size)
         self._interpreter.interpret_instruction(address, state)
         self.coverage.add_instruction(state.current_instruction)
 
@@ -101,8 +101,8 @@ class _Dispatcher:
         """ Call memory access-related callbacks in service classes """
         # NOTE: the order of the following calls is important
         self._taint_tracker.track_memory_access(address, size, access == UC_MEM_WRITE)
-        self._tracer.observe_mem_access(access, address, size, value)
         self._speculator.handle_mem_access(access, address, size, value)
+        self._tracer.observe_mem_access(access, address, size, value)
         self._interpreter.interpret_mem_access(address)
 
 
