@@ -51,5 +51,5 @@ nav:
     - Architecture Overview: architecture.md
     - Executor-related Topics:
       - Register Allocation: registers.md
-      - Memory Layout: sandbox.md
+      - Test Case Sandbox: sandbox.md
   # - Trophies: trophies.md

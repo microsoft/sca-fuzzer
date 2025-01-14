@@ -1,37 +1,7 @@
 """
 File: Constants defining the memory layout for the data and code sandboxes,
-which should be identical between the executor and the model.
-
-The sandboxes have the following layouts:
-    # Data Layout
-    |-----|--------------------| macro_stack, data_start
-    | A   | MACRO_STACK_SIZE   |
-    | C   |--------------------| underflow_pad
-    | T   | UNDERFLOW_PAD_SIZE|
-    | O   |--------------------| main
-    | R   | MAIN_AREA_SIZE     |
-    |     |--------------------| faulty
-    | 1   | FAULTY_AREA_SIZE   |
-    |     |--------------------| reg_init, gpr
-    |     | GPR_AREA_SIZE      |
-    |     |--------------------| simd
-    |     | SIMD_AREA_SIZE     |
-    |     |--------------------| overflow_pad
-    |     | OVERFLOW_PAD_SIZE  |
-    |-----|--------------------|
-    | ... (repeat for n_actors)
-
-    # Ordering of registers:
-    GPR_AREA: [RAX, RBX, RCX, RDX, RSI, RDI, FLAGS, RSP, unused]
-    SIMD_AREA: [YMM0, YMM1, ..., YMM7]
-
-    # Code Layout
-    |-----|--------------------| main
-    | A   | _CODE_AREA_SIZE    |
-    | 1   |--------------------| macro
-    |     | _MACRO_AREA_SIZE   |
-    |-----|--------------------|
-    | ... (repeat for n_actors)
+      which should be identical between the executor and the model.
+      See docs/sandbox.md for more information.
 
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT

@@ -1,6 +1,6 @@
 # Register Allocation
 
-The test cases are executed in a sandboxed environment, some of the registers are reserved for internal use, and some are available for use in the test cases.
+The test cases are executed in a sandboxed environment, where some of the registers are reserved for internal use, and some are available for use in the test cases.
 Below is a list of registers and their purpose.
 
 ## `R15`

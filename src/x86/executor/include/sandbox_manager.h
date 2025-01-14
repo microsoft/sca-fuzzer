@@ -1,4 +1,5 @@
 /// File: Header for sandbox management
+///       See docs/sandbox.md for the description of the sandboxing mechanism.
 ///
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
