@@ -53,8 +53,11 @@ REG_SIZE = {
     'tr': 16,
     'msrs': 64,
     'x87control': 16,
+    'x87pop': 16,
+    'x87status': 16,
     'tsc': 64,
     "tscaux": 64,
+    "bnd0": 128,
 }
 
 # A list of instructions that have RIP as an operand but should
@@ -332,12 +335,12 @@ class XMLSpecParser:
 
     @staticmethod
     def _parse_imm_operand(op: ET.Element) -> _XMLOperandSpec:
-        assert op.text is not None
         assert op.attrib is not None
 
         spec = _XMLOperandSpec()
         spec.type_ = "IMM"
         if op.attrib.get('implicit', '0') == '1':
+            assert op.text is not None
             spec.values = [op.text]
         else:
             spec.values = []
@@ -461,11 +464,14 @@ class Downloader:
         if "ALL_SUPPORTED" in extensions:
             extensions.extend(SAFE_EXTENSIONS)
             extensions = list(set(extensions))
+            extensions.remove("ALL_SUPPORTED")
         elif "ALL_AND_UNSAFE" in extensions:
             extensions.extend(ALL_EXTENSIONS)
             extensions = list(set(extensions))
+            extensions.remove("ALL_AND_UNSAFE")
         self.extensions = extensions
         self.out_file = out_file
+        self._transformer = XMLSpecParser(self.extensions)
 
     def run(self) -> None:
         """ Downloads the XML file and converts it to JSON """
@@ -479,10 +485,9 @@ class Downloader:
 
         print("\n> Filtering and transforming the instruction spec...")
         try:
-            transformer = XMLSpecParser(self.extensions)
-            transformer.parse_file("x86_instructions.xml")
-            transformer.add_missing()
-            print(f"Produced base.json with {len(transformer)} instructions")
-            transformer.save_as_json(self.out_file)
+            self._transformer.parse_file("x86_instructions.xml")
+            self._transformer.add_missing()
+            print(f"Produced base.json with {len(self._transformer)} instructions")
+            self._transformer.save_as_json(self.out_file)
         finally:
             subprocess.run("rm x86_instructions.xml", shell=True, check=True)
