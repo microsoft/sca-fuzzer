@@ -534,7 +534,8 @@ class InputDataTest(unittest.TestCase):
 
         # Set the actor data with a valid shape
         size = input_data.itemsize // 8
-        data = np.array([42 for _ in range(size)], dtype=np.uint64)
+        data = np.ndarray((size,), dtype=np.uint64)
+        data.fill(42)
         input_data.set_actor_data(0, data)
         self.assertEqual(input_data[0]["main"][0], 42)
 

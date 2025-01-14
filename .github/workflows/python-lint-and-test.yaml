@@ -24,7 +24,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.10", "3.11"]
+        python-version: ["3.9", "3.12"]
 
     steps:
     - uses: actions/checkout@v4
@@ -35,24 +35,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install flake8 mypy
+        python -m pip install flake8 mypy pylint
         python -m pip install .
-    - name: Lint with flake8
+    - name: Run
       run: |
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --max-line-length 100 --ignore E402,W503 --count --show-source --statistics
-    - name: Type check with mypy
-      run: |
-        MYPYPATH=src/ mypy src/*.py src/x86/*.py --exclude src/tests/unit_isa_loader.py \
-          --exclude src/x86/tests/unit_model.py --exclude src/x86/tests/unit_executor.py \
-          --exclude src/x86/tests/unit_generators.py
-    - name: Common unit tests
-      run: |
-        python -m unittest discover tests -p "unit_*.py" -v
-    - name: x86 unit tests
-      run: |
-        # Note: we intentionally do not use the 'discover' option because
-        # it causes cross-contamination of config options between unit tests
-        python3 -m unittest tests.x86_tests.unit_generators -v
-        python3 -m unittest tests.x86_tests.unit_isa_loader -v
-        python3 -m unittest tests.x86_tests.unit_model -v
+        ./tests/runtests.sh --skip-km-tests
