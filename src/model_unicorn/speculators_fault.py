@@ -286,10 +286,14 @@ class X86UnicornNull(FaultSpeculator):
         self._errno_that_trigger_speculation = {12, 13}
 
     def reset(self) -> None:
+        if not getattr(self._model, "state", None):
+            super().reset()
+            return
+
         # This contract handles REP instructions incorrectly (it's a known bug)
         # Explicitly fail if a REP instruction is detected
-        for bb in self._model.state.current_test_case.iter_basic_blocks():
-            for instr in bb.instructions:
+        for bb in self._model.state.current_test_case().iter_basic_blocks():
+            for instr in bb:
                 if "rep" in instr.name:
                     raise ValueError(
                         "REP instructions are not supported by this contract\n"

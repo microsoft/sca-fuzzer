@@ -12,7 +12,7 @@ from src.instruction_spec import OT, InstructionSpec
 
 basic = """
 [
-{"name": "test", "category": "CATEGORY", "control_flow": true,
+{"name": "test", "category": "CATEGORY", "is_control_flow": true,
   "operands": [
     {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
     {"type_": "REG", "values": ["ax"], "src": true, "dest": false, "width": 16}
@@ -22,7 +22,7 @@ basic = """
      "src": false, "dest": false, "width": 0}
   ]
 },
-{"name": "test2", "category": "CATEGORY", "control_flow": false,
+{"name": "test2", "category": "CATEGORY", "is_control_flow": false,
   "operands": [
     {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16}
   ],
@@ -33,13 +33,13 @@ basic = """
 
 duplicate = """
 [
-{"name": "test", "category": "CATEGORY", "control_flow": false,
+{"name": "test", "category": "CATEGORY", "is_control_flow": false,
   "operands": [
     {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16}
   ],
   "implicit_operands": []
 },
-{"name": "test", "category": "CATEGORY", "control_flow": false,
+{"name": "test", "category": "CATEGORY", "is_control_flow": false,
   "operands": [
     {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16}
   ],
