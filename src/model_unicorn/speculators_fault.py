@@ -285,6 +285,17 @@ class X86UnicornNull(FaultSpeculator):
         super().__init__(target_desc, model, taint_tracker)
         self._errno_that_trigger_speculation = {12, 13}
 
+    def reset(self) -> None:
+        # This contract handles REP instructions incorrectly (it's a known bug)
+        # Explicitly fail if a REP instruction is detected
+        for bb in self._model.state.current_test_case.iter_basic_blocks():
+            for instr in bb.instructions:
+                if "rep" in instr.name:
+                    raise ValueError(
+                        "REP instructions are not supported by this contract\n"
+                        "Exclude all REP instructions from the instruction set, or change contract")
+        super().reset()
+
     def rollback(self) -> int:
         actor_id = self._model.state.current_actor.get_id()
         self._model.set_faulty_area_rw(actor_id, True, True)
