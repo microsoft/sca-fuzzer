@@ -61,7 +61,7 @@ class ModelExecutionState:
         self._test_case = test_case
         self._layout = layout
 
-        self._set_exit_addr()
+        self.exit_addr = self._layout.get_exit_addr(test_case)
         self._set_fault_handler_addr(target_desc.macro_specs["fault_handler"].type_)
         self.full_reset()
 
@@ -98,12 +98,6 @@ class ModelExecutionState:
     def current_test_case(self) -> TestCaseProgram:
         """ Return the current test case being executed """
         return self._test_case
-
-    def _set_exit_addr(self) -> None:
-        code_start = self._layout.code_start
-        main_section = self._test_case.find_section(name="main")
-        main_size = main_section.get_elf_data()["size"]
-        self.exit_addr = code_start + main_size - 1
 
     def _set_fault_handler_addr(self, fh_id: int) -> None:
         test_case_obj = self._test_case.get_obj()

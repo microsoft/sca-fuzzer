@@ -6,10 +6,14 @@ File: Constants defining the memory layout for the data and code sandboxes,
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
+from __future__ import annotations
 from enum import Enum
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, TYPE_CHECKING
 
 import numpy as np
+
+if TYPE_CHECKING:
+    from .tc_components.test_case_code import TestCaseProgram
 
 PAGE_SIZE = 4096
 
@@ -198,6 +202,17 @@ class SandboxLayout:
         """
         actor_code_start = self.code_start + actor_id * self.code_size_per_actor()
         return actor_code_start + self.code_area_offset(area)
+
+    def get_exit_addr(self, test_case: TestCaseProgram) -> CodeAddr:
+        """
+        Get the address of the exit instruction in the code sandbox for a given test case.
+        :param test_case: The test case to get the exit address for.
+        :return: The exit address
+        """
+        main_section = test_case.find_section(name="main")
+        main_size = main_section.get_elf_data()["size"]
+        exit_offset = self.code_start + main_size - 1
+        return exit_offset
 
     def is_data_addr(self, addr: DataAddr) -> bool:
         """
