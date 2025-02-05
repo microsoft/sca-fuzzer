@@ -120,9 +120,6 @@ class CodeGenerator(ABC):
             asm_file = 'generated.asm'
         test_case = TestCaseProgram(asm_file, seed=self._state)
 
-        # set seeds
-        self._update_seed()
-
         # create actors and their corresponding sections
         actors_config: ActorsConf = CONF.get_actors_conf()
         if len(actors_config) != 1:
@@ -154,6 +151,8 @@ class CodeGenerator(ABC):
         test_case.assign_obj(asm_file[:-4] + ".o")
         assemble(test_case)
         self._elf_parser.populate_elf_data(test_case.get_obj(), test_case)
+
+        self._update_state()
         return test_case
 
     def create_test_case_from_template(self, template_file: str) -> TestCaseProgram:
@@ -166,24 +165,29 @@ class CodeGenerator(ABC):
         :raises FileNotFoundError: if the template file does not exist
         :raises CalledProcessError: if the assembler fails to assemble the test case
         """
-        self._update_seed()
-
+        # create a TestCaseProgram object from the template file
         if self._cached_template:
             test_case = deepcopy(self._cached_template)
+            test_case.generator_seed = self._state
         else:
             test_case = self._asm_parser.parse_file(
                 template_file, self, self._elf_parser, is_template=True)
+            test_case.generator_seed = self._state
             self._cached_template = deepcopy(test_case)
 
+        # Label all instructions from the template as such
         for func in test_case.iter_functions():
             for bb in func:
                 for instr in bb:
                     instr.is_from_template = True
 
+        # Expand the template
+        self._set_seed(self._state)  # reset the seed in case it was updated by other modules
         self._expand_template(test_case, CONF.get_actors_conf())
         for p in self._passes:
             p.run_on_test_case(test_case)
 
+        # Print into assembly and assemble into an object file
         asm_file = 'generated.asm'
         test_case.reassign_asm_file(asm_file)
         self._printer.print(test_case)
@@ -191,6 +195,8 @@ class CodeGenerator(ABC):
         test_case.assign_obj(asm_file[:-4] + ".o")
         assemble(test_case)
         self._elf_parser.populate_elf_data(test_case.get_obj(), test_case)
+
+        self._update_state()
         return test_case
 
     def generate_actors_with_sections(self, test_case: TestCaseProgram,
@@ -237,14 +243,15 @@ class CodeGenerator(ABC):
         Set the seed value used to generate test programs
         :param seed: The seed value
         """
-        self._state = seed
-
-    def _update_seed(self) -> None:
-        if self._state == 0:
+        if seed == 0:
             self._state = random.randint(1, 1000000)
             inform("prog_gen", f"Setting program_generator_seed to random value: {self._state}")
+        self._state = seed
         random.seed(self._state)
+
+    def _update_state(self) -> None:
         self._state += 1
+        random.seed(self._state)
 
     # ----------------------------------------------------------------------------------------------
     # Private: Misc.

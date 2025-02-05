@@ -390,7 +390,7 @@ TC_EXIT_LABEL = ".test_case_exit"
 class TestCaseProgram:
     """ A class representing a test case program """
 
-    generator_seed: Final[int]
+    generator_seed: int
     """ Seed used to generate the test case program """
 
     _asm_path: str  # Path to the assembly file containing the test case program
