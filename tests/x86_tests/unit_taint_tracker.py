@@ -64,7 +64,7 @@ TD = X86TargetDesc()
 class X86TaintTrackerTest(unittest.TestCase):
 
     def test_dependency_tracking_basic(self) -> None:
-        """ Basic dependency tracking: reg to reg, reg to mem, mem to reg, and mem to mem """
+        # Basic dependency tracking: reg to reg, reg to mem, mem to reg, and mem to mem
         tracker = taint_tracker.UnicornTaintTracker((0, 0), TD)
 
         # reg <- reg
@@ -102,7 +102,7 @@ class X86TaintTrackerTest(unittest.TestCase):
         self.assertCountEqual(tracker._dependencies.reg['DI'], ['SI', '0x1200'])
 
     def test_dependency_tracking_split_access(self) -> None:
-        """ Memory accesses that split 8-byte boundaries must taint both parts """
+        # Memory accesses that split 8-byte boundaries must taint both parts
         tracker = taint_tracker.UnicornTaintTracker((0, 0), TD)
 
         inst = Instruction("MOV").add_op(get_r64_dest("RAX")).add_op(get_m64_src("RCX"))
@@ -112,7 +112,7 @@ class X86TaintTrackerTest(unittest.TestCase):
         self.assertCountEqual(tracker._dependencies.reg['A'], ['0x1100', '0x1108'])
 
     def test_dependency_xmm(self) -> None:
-        """ Test dependency tracking for XMM registers """
+        # Test dependency tracking for XMM registers
         tracker = taint_tracker.UnicornTaintTracker((0, 0), TD)
 
         inst = Instruction("MOVAPS").add_op(RegisterOp("XMM0", 128, False, True)).add_op(
@@ -150,7 +150,7 @@ class X86TaintTrackerTest(unittest.TestCase):
         self.assertCountEqual(tracker._dependencies.reg['A'], ['B', 'C', 'A'])
 
     def test_dependency_override_partial(self) -> None:
-        """ Test that partial update instructions (e.g., MOVHPS) do NOT override dependencies """
+        # Test that partial update instructions (e.g., MOVHPS) do NOT override dependencies
         tracker = taint_tracker.UnicornTaintTracker((0, 0), TD)
 
         inst = Instruction("MOVHPS").add_op(RegisterOp("XMM1", 128, False,
@@ -161,7 +161,7 @@ class X86TaintTrackerTest(unittest.TestCase):
         self.assertCountEqual(tracker._dependencies.reg['XMM1'], ['XMM1', '0x1100'])
 
     def test_dependency_lea(self) -> None:
-        """ Test that LEA instructions are handled correctly """
+        # Test that LEA instructions are handled correctly
         tracker = taint_tracker.UnicornTaintTracker((0, 0), TD)
 
         inst = Instruction("LEA").add_op(get_r64_dest("RAX")).add_op(AgenOp("RDX + RBX", 8))
@@ -170,7 +170,7 @@ class X86TaintTrackerTest(unittest.TestCase):
         self.assertCountEqual(tracker._dependencies.reg['A'], ['B', 'D'])
 
     def test_tainting_memory_access(self) -> None:
-        """ Test that memory accesses are tainted correctly """
+        # Test that memory accesses are tainted correctly
         tracker = taint_tracker.UnicornTaintTracker((0, 0), TD)
 
         # Initial dependency
@@ -190,7 +190,7 @@ class X86TaintTrackerTest(unittest.TestCase):
         self.assertEqual(taint[0]['gpr'][1], True)  # RBX is tainted
 
     def test_tainting_pc(self) -> None:
-        """ Test that the program counter is tainted correctly """
+        # Test that the program counter is tainted correctly
         tracker = taint_tracker.UnicornTaintTracker((0, 0), TD)
 
         # Initial dependency

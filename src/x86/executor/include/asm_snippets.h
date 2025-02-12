@@ -180,7 +180,7 @@
     "popq rsi \n" \
     "popq rdi \n" \
     "popfq \n" \
-    "popq rsp \n" \
+    "lea rsp, [r14 + "xstr(LOCAL_RSP_OFFSET)"]\n" \
     "mov rbp, rsp \n" \
     "bndmk bnd0, [r14 + 0x1000]\n" \
     "bndmk bnd1, [r14 + 0x1000]\n" \
@@ -199,7 +199,7 @@
     "popq rsi \n" \
     "popq rdi \n" \
     "popfq \n" \
-    "popq rsp \n" \
+    "lea rsp, [r14 + "xstr(LOCAL_RSP_OFFSET)"]\n" \
     "mov rbp, rsp \n" \
     ".att_syntax noprefix");
 #endif

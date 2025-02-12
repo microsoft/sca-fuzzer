@@ -95,8 +95,15 @@ function intel_only() {
     assert_no_violation "$fuzz_opt -t $ASM_DIR/model_flags_match.asm -c $CONF_DIR/arch.yaml -i 20"
 }
 
-@test "Architectural Test: 100 Random Test Cases" {
+@test "Architectural Test/Unicorn: 100 Random Test Cases" {
     assert_no_violation "$fuzz_opt -c $CONF_DIR/arch.yaml -n 100 -i 10"
+}
+
+@test "Architectural Test/DR: 100 Random Test Cases" {
+    if ! ~/.local/dynamorio/drrun -c ~/.local/dynamorio/libdr_model.so -- ls /dev/null; then
+        skip "DynamoRIO is not installed"
+    fi
+    assert_no_violation "$fuzz_opt -c $CONF_DIR/arch-dr.yaml -n 100 -i 10"
 }
 
 @test "ArchDiff Test: 10 Random Test Cases" {

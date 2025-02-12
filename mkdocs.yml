@@ -2,7 +2,7 @@
 site_name: Revizor
 site_url: https://github.com/microsoft/sca-fuzzer
 site_author: Microsoft
-site_description: A security-oriented tool for detecting microarchitectural leaks in CPUs, such as Spectre and Meltdown.
+site_description: A security-oriented tool for testing CPUs and detecting microarchitectural leaks like Spectre and Meltdown
 copyright: 'Copyright &copy; 2024 Microsoft'
 
 repo_name: microsoft/sca-fuzzer
@@ -46,10 +46,14 @@ nav:
     - Minimization Passes: user/minimization.md
     - Violation Root-Causing: user/fuzzing-guide.md
   - Developer Documentation:
-    - Developer Guide: development.md
-    - How Revizor Works: how-revizor-works.md
-    - Architecture Overview: architecture.md
-    - Executor-related Topics:
-      - Register Allocation: registers.md
-      - Test Case Sandbox: sandbox.md
+    - Development Guidelines: devel/development.md
+    - How Revizor Works: devel/how-revizor-works.md
+    - Architecture Overview: devel/architecture.md
+    - Advanced Topics:
+      - Register Allocation: devel/registers.md
+      - Test Case Sandbox: devel/sandbox.md
+      - Macros: devel/macros.md
+      - DynamoRIO backend: devel/dr-model.md
+      - Binary Formats: devel/binary-formats.md
+      - Test Case Code Generation: devel/code-generation.md
   # - Trophies: trophies.md

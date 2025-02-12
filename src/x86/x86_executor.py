@@ -17,10 +17,10 @@ import numpy.typing as npt
 
 from ..executor import Executor
 from ..traces import HTrace, RawHTraceSample, HTraceType
-from ..tc_components.test_case_data import InputData
+from ..tc_components.test_case_data import InputData, save_input_sequence_as_rdbf
 from ..tc_components.test_case_code import TestCaseProgram
 from ..config import CONF, ConfigException
-from ..logs import ExecutorLogger, warning, error
+from ..logs import ExecutorLogger, warning
 from ..stats import FuzzingStats
 from ..sandbox import BaseAddrTuple
 from ..target_desc import Vendor
@@ -95,10 +95,9 @@ def _configure_kernel_module() -> None:
               "/sys/x86_executor/enable_hpa_gpa_collisions")
 
 
-def _read_trace(
-        n_reps: int,
-        n_inputs: int,
-        arch_mode: bool = False) -> Generator[Tuple[int, int, KMOutputLine], None, None]:
+def _read_trace(n_reps: int,
+                n_inputs: int,
+                arch_mode: bool = False) -> Generator[Tuple[int, int, KMOutputLine], None, None]:
     """
     ProgramGenerator function that reads and parses the output of the kernel module.
     The generator handles the batched output of the kernel module and yields the traces one by one.
@@ -202,8 +201,8 @@ class X86Executor(Executor):
     measurements.
 
     The high-level workflow is as follows:
-    1. Load a test case into the kernel module (see __write_test_case).
-    2. Load a set of inputs into the kernel module (see __write_inputs).
+    1. Load the test case code into the kernel module.
+    2. Load the test case data (i.e., input sequence) into the kernel module.
     3. Run the measurements by calling the kernel module (see _get_raw_measurements). Each
        measurement is repeated `n_reps` times.
     4. Aggregate the measurements into sets of traces (see _aggregate_measurements).
@@ -261,7 +260,7 @@ class X86Executor(Executor):
                   "/sys/x86_executor/enable_dbg_gpr_mode")
 
         # write the test case to the kernel module
-        self._write_test_case(test_case)
+        test_case.get_obj().save_rcbf('/sys/x86_executor/test_case')
         self._curr_test_case = test_case
 
         # reset the ignore list; as we are testing a new program now, the old ignore list is not
@@ -295,7 +294,12 @@ class X86Executor(Executor):
         # TODO: that's a quick-and-dirty optimization to reduce the number of KM calls;
         # it should be rewritten
         input_sequence = inputs if n_reps % 5 != 0 or n_inputs >= 1000 else inputs * 5
-        self._write_inputs(input_sequence)
+        save_input_sequence_as_rdbf(input_sequence, '/sys/x86_executor/inputs')
+
+        # Check that the transfer was successful
+        with open('/sys/x86_executor/inputs', 'r') as f:
+            if f.readline() != '1\n':
+                raise IOError("Error writing inputs to the kernel module")
 
         # Call the kernel module and read traces
         all_readings: ReadingsArray = np.ndarray(shape=(n_inputs, n_reps), dtype=RawHTraceSample)
@@ -357,97 +361,6 @@ class X86Executor(Executor):
 
     # ----------------------------------------------------------------------------------------------
     # Private Methods
-    def _write_test_case(self, test_case: TestCaseProgram) -> None:
-        """ Transfer the test case code to the kernel module """
-        # Format: must match with `executor/test_case_parser.c`
-        # - header: number of actors, number of symbols
-        # - actor metadata: actor id, mode, privilege level, data properties, data ept properties
-        # - symbol table
-        # - section metadata table: section id, section size, reserved 8 bytes
-        # - section code (for each actor)
-
-        actors = test_case.get_actors(sorted_=True)
-        test_case_obj = test_case.get_obj()
-        symbol_table = test_case_obj.symbol_table()
-
-        # sanity check
-        if any(symbol.type_ < 0 for symbol in symbol_table):
-            error("attempt to use template as a test case")
-
-        with open('/sys/x86_executor/test_case', 'wb') as f:
-            # header
-            f.write((len(actors)).to_bytes(8, byteorder='little'))  # n_actors
-            f.write((len(symbol_table)).to_bytes(8, byteorder='little'))  # n_symbols
-
-            # actor metadata
-            for actor in actors:
-                f.write((actor.get_id()).to_bytes(8, byteorder='little'))
-                f.write((actor.mode.value).to_bytes(8, byteorder='little'))
-                f.write((actor.privilege_level.value).to_bytes(8, byteorder='little'))
-                f.write((actor.data_properties).to_bytes(8, byteorder='little'))
-                f.write((actor.data_ept_properties).to_bytes(8, byteorder='little'))
-                f.write((0).to_bytes(8, byteorder='little'))  # unused
-
-            # symbol table (first functions sorted by argument, then macros sorted by actor+offset)
-            function_symbols = [s for s in symbol_table if s[2] == 0]
-            macro_symbols = [s for s in symbol_table if s[2] != 0]
-            for aid, s_offset, s_id, arg in sorted(function_symbols, key=lambda s: s.arg):
-                # print("function", s_id, aid, s_offset, arg)
-                f.write((aid).to_bytes(8, byteorder='little'))
-                f.write((s_offset).to_bytes(8, byteorder='little'))
-                f.write((s_id).to_bytes(8, byteorder='little'))
-                f.write((arg).to_bytes(8, byteorder='little'))
-            for aid, s_offset, s_id, arg in sorted(macro_symbols, key=lambda s: (s.sid, s.offset)):
-                # print("macro", aid, s_offset, s_id, arg)
-                f.write((aid).to_bytes(8, byteorder='little'))
-                f.write((s_offset).to_bytes(8, byteorder='little'))
-                f.write((s_id).to_bytes(8, byteorder='little'))
-                f.write((arg).to_bytes(8, byteorder='little'))
-
-            # section metadata
-            for actor in actors:
-                section_data = actor.code_section().get_elf_data()
-                # print("section\n")
-                f.write((section_data["id"]).to_bytes(8, byteorder='little'))
-                f.write((section_data["size"]).to_bytes(8, byteorder='little'))
-                f.write((0).to_bytes(8, byteorder='little'))
-
-            # code
-            with open(test_case_obj.obj_path, 'rb') as bin_file:
-                for actor in actors:
-                    section_data = actor.code_section().get_elf_data()
-                    bin_file.seek(section_data["offset"])  # type: ignore
-                    # print(code, section.size)
-                    f.write(bin_file.read(section_data["size"]))
-
-            # print(test_case.obj_path, f.tell())
-
-    def _write_inputs(self, inputs: List[InputData]) -> None:
-        """ Transfer the inputs to the kernel module """
-        # Format: must match with `executor/input_parser.c`
-        # - header: number of actors, number of inputs
-        # - metadata: size of data per actor for each input + reserved 8 bytes
-        # - data: data for each input
-        with open('/sys/x86_executor/inputs', 'wb') as f:
-            # header
-            f.write((len(inputs[0])).to_bytes(8, byteorder='little'))  # number of actors
-            f.write((len(inputs)).to_bytes(8, byteorder='little'))  # number of inputs
-
-            # metadata
-            data_size_per_actor_bytes = InputData.data_size_per_actor()
-            for _ in range(len(inputs[0])):
-                f.write((data_size_per_actor_bytes).to_bytes(8, byteorder='little'))  # size
-                f.write((0).to_bytes(8, byteorder='little'))  # reserved
-
-            # data
-            for input_ in inputs:
-                f.write(input_.tobytes())
-
-        # Check that the transfer was successful
-        with open('/sys/x86_executor/inputs', 'r') as f:
-            if f.readline() != '1\n':
-                raise IOError("Error writing inputs to the kernel module")
-
     def _identify_trace_type(self) -> HTraceType:
         """ Identify the type of the traces based on the configuration """
         if self._enable_mismatch_check_mode:

@@ -17,9 +17,11 @@ class X86TargetDesc(TargetDesc):
     """ Target description for x86 architecture. """
 
     register_sizes = {
+        "mm0": 64, "mm1": 64, "mm2": 64, "mm3": 64, "mm4": 64, "mm5": 64, "mm6": 64, "mm7": 64,
         "xmm0": 128, "xmm1": 128, "xmm2": 128, "xmm3": 128, "xmm4": 128, "xmm5": 128, "xmm6": 128,
-        "xmm7": 128, "xmm8": 128, "xmm9": 128, "xmm10": 128, "xmm11": 128, "xmm12": 128,
-        "xmm13": 128, "xmm14": 128, "xmm15": 128,
+        "xmm7": 128,
+        "ymm0": 256, "ymm1": 256, "ymm2": 256, "ymm3": 256, "ymm4": 256, "ymm5": 256, "ymm6": 256,
+        "ymm7": 256,
 
         "rax": 64, "rbx": 64, "rcx": 64, "rdx": 64, "rsi": 64, "rdi": 64, "rsp": 64, "rbp": 64,
         "r8": 64, "r9": 64, "r10": 64, "r11": 64, "r12": 64, "r13": 64, "r14": 64, "r15": 64,
@@ -43,10 +45,10 @@ class X86TargetDesc(TargetDesc):
         32: ["eax", "ebx", "ecx", "edx", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d",
              "r13d", "r14d", "r15d"],
         64: ["rax", "rbx", "rcx", "rdx", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13",
-             "r14", "r15", "rsp", "rbp"],
+             "r14", "r15", "rsp", "rbp", "mm0", "mm1", "mm2", "mm3", "mm4", "mm5", "mm6", "mm7"],
         128: ["bnd0", "bnd1", "bnd2", "bnd3",
-              "xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5",
-              "xmm6", "xmm7", "xmm8", "xmm9", "xmm10", "xmm11", "xmm12", "xmm13", "xmm14", "xmm15"]
+              "xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5", "xmm6", "xmm7"],
+        256: ["ymm0", "ymm1", "ymm2", "ymm3", "ymm4", "ymm5", "ymm6", "ymm7"],
     }  # yapf: disable
 
     reg_normalized = {
@@ -70,6 +72,14 @@ class X86TargetDesc(TargetDesc):
         "CF": "CF", "PF": "PF", "AF": "AF", "ZF": "ZF", "SF": "SF", "TF": "TF", "IF": "IF",
         "DF": "DF", "OF": "OF", "AC": "AC",
         "bnd0": "BND0", "bnd1": "BND1", "bnd2": "BND2", "bnd3": "BND3",
+        "mm0": "MM0",
+        "mm1": "MM1",
+        "mm2": "MM2",
+        "mm3": "MM3",
+        "mm4": "MM4",
+        "mm5": "MM5",
+        "mm6": "MM6",
+        "mm7": "MM7",
         "xmm0": "XMM0",
         "xmm1": "XMM1",
         "xmm2": "XMM2",
@@ -78,14 +88,14 @@ class X86TargetDesc(TargetDesc):
         "xmm5": "XMM5",
         "xmm6": "XMM6",
         "xmm7": "XMM7",
-        "xmm8": "XMM8",
-        "xmm9": "XMM9",
-        "xmm10": "XMM10",
-        "xmm11": "XMM11",
-        "xmm12": "XMM12",
-        "xmm13": "XMM13",
-        "xmm14": "XMM14",
-        "xmm15": "XMM15",
+        "ymm0": "YMM0",
+        "ymm1": "YMM1",
+        "ymm2": "YMM2",
+        "ymm3": "YMM3",
+        "ymm4": "YMM4",
+        "ymm5": "YMM5",
+        "ymm6": "YMM6",
+        "ymm7": "YMM7",
         "cr0": "CR0",
         "cr2": "CR2",
         "cr3": "CR3",
@@ -133,6 +143,14 @@ class X86TargetDesc(TargetDesc):
         "15": {64: "r15", 32: "r15d", 16: "r15w", 8: "r15b"},
         "RIP": {64: "rip", 32: "rip", 16: "rip", 8: "rip"},
         "RSP": {64: "rsp", 32: "rsp", 16: "rsp", 8: "rsp"},
+        "MM0": {64: "mm0"},
+        "MM1": {64: "mm1"},
+        "MM2": {64: "mm2"},
+        "MM3": {64: "mm3"},
+        "MM4": {64: "mm4"},
+        "MM5": {64: "mm5"},
+        "MM6": {64: "mm6"},
+        "MM7": {64: "mm7"},
         "XMM0": {128: "xmm0"},
         "XMM1": {128: "xmm1"},
         "XMM2": {128: "xmm2"},
@@ -141,15 +159,17 @@ class X86TargetDesc(TargetDesc):
         "XMM5": {128: "xmm5"},
         "XMM6": {128: "xmm6"},
         "XMM7": {128: "xmm7"},
-        "XMM8": {128: "xmm8"},
-        "XMM9": {128: "xmm9"},
-        "XMM10": {128: "xmm10"},
-        "XMM11": {128: "xmm11"},
-        "XMM12": {128: "xmm12"},
-        "XMM13": {128: "xmm13"},
-        "XMM14": {128: "xmm14"},
-        "XMM15": {128: "xmm15"}
+        "YMM0": {256: "ymm0"},
+        "YMM1": {256: "ymm1"},
+        "YMM2": {256: "ymm2"},
+        "YMM3": {256: "ymm3"},
+        "YMM4": {256: "ymm4"},
+        "YMM5": {256: "ymm5"},
+        "YMM6": {256: "ymm6"},
+        "YMM7": {256: "ymm7"}
     }  # yapf: disable
+
+    mem_index_registers = ["rax", "rbx", "rcx", "rdx", "rsi", "rdi"]
 
     pte_bits = {
         # NAME: (position, default value)
@@ -318,9 +338,7 @@ class X86UnicornTargetDesc(UnicornTargetDesc):  # pylint: disable=too-few-public
 
     usable_simd128_registers: List[int] = [
         ucc.UC_X86_REG_XMM0, ucc.UC_X86_REG_XMM1, ucc.UC_X86_REG_XMM2, ucc.UC_X86_REG_XMM3,
-        ucc.UC_X86_REG_XMM4, ucc.UC_X86_REG_XMM5, ucc.UC_X86_REG_XMM6, ucc.UC_X86_REG_XMM7,
-        ucc.UC_X86_REG_XMM8, ucc.UC_X86_REG_XMM9, ucc.UC_X86_REG_XMM10, ucc.UC_X86_REG_XMM11,
-        ucc.UC_X86_REG_XMM12, ucc.UC_X86_REG_XMM13, ucc.UC_X86_REG_XMM14, ucc.UC_X86_REG_XMM15
+        ucc.UC_X86_REG_XMM4, ucc.UC_X86_REG_XMM5, ucc.UC_X86_REG_XMM6, ucc.UC_X86_REG_XMM7
     ]
 
     reg_str_to_constant = {
@@ -367,14 +385,7 @@ class X86UnicornTargetDesc(UnicornTargetDesc):  # pylint: disable=too-few-public
         "xmm4": ucc.UC_X86_REG_XMM4,
         "xmm5": ucc.UC_X86_REG_XMM5,
         "xmm6": ucc.UC_X86_REG_XMM6,
-        "xmm7": ucc.UC_X86_REG_XMM7,
-        "xmm8": ucc.UC_X86_REG_XMM8,
-        "xmm9": ucc.UC_X86_REG_XMM9,
-        "xmm10": ucc.UC_X86_REG_XMM10,
-        "xmm11": ucc.UC_X86_REG_XMM11,
-        "xmm12": ucc.UC_X86_REG_XMM12,
-        "xmm14": ucc.UC_X86_REG_XMM14,
-        "xmm15": ucc.UC_X86_REG_XMM15,
+        "xmm7": ucc.UC_X86_REG_XMM7
     }
 
     reg_norm_to_constant = {

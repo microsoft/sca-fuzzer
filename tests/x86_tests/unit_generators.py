@@ -22,6 +22,7 @@ from src.tc_components.test_case_code import TestCaseProgram, Function, BasicBlo
 from src.tc_components.test_case_binary import SymbolTableEntry
 from src.generator import assemble
 from src.config import CONF
+from src.logs import update_logging_after_config_change
 
 CONF.instruction_set = "x86-64"
 test_path = Path(__file__).resolve()
@@ -36,6 +37,11 @@ ASM_OPCODE = """
 
 
 class X86GeneratorTest(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        CONF.logging_modes = []
+        update_logging_after_config_change()
 
     @staticmethod
     def load_tc(asm_str: str) -> TestCaseProgram:

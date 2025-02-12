@@ -105,7 +105,7 @@ If you need to use a different type, please discuss it with a maintainer.
 
 We practice the [git workflow](https://git-scm.com/docs/gitworkflows), with a few modifications.
 
-![branching workflow](assets/branches.png)
+![branching workflow](../assets/branches.png)
 
 We use the following branches for graduation:
 

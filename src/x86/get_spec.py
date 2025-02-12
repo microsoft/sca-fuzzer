@@ -20,15 +20,21 @@ REG_SIZE = {
     "rcx": 64,
     "rdx": 64,
     "r11": 64,
+    "rip": 64,
+    "rsp": 64,
+    "rbp": 64,
     "eax": 32,
     "ebx": 32,
     "ecx": 32,
     "edx": 32,
     "ax": 16,
     "dx": 16,
+    "bp": 16,
+    "sp": 16,
     "al": 8,
     "ah": 8,
     "cl": 8,
+    "spl": 8,
     "tmm0": 0,
     "mxcsr": 32,
     'es': 16,
@@ -59,6 +65,10 @@ REG_SIZE = {
     "tscaux": 64,
     "bnd0": 128,
 }
+REG_SIZE.update({f"mm{i}": 64 for i in range(8)})
+REG_SIZE.update({f"xmm{i}": 128 for i in range(16)})
+REG_SIZE.update({f"ymm{i}": 256 for i in range(16)})
+# REG_SIZE.update({f"zmm{i}": 512 for i in range(32)})
 
 # A list of instructions that have RIP as an operand but should
 # not be considered as control-flow instructions by the generator
@@ -69,6 +79,7 @@ NON_CONTROL_FLOW_INST = ["int", "int1", "int3", "into"]
 # ==================================================================================================
 
 # Instructions that can be tested without any repercussions
+# This list for our default model backend (Unicorn)
 SAFE_EXTENSIONS = [
     "BASE",
     "SSE",
@@ -82,6 +93,60 @@ SAFE_EXTENSIONS = [
     "SSE",
     "RDTSCP",
     "LONGMODE",
+]
+
+# Instructions that can be tested without any repercussions
+# on the new (experimental) backend, DynamoRIO
+SAFE_EXTENSIONS_DR = [
+    "3DNOW_PREFETCH",
+    "3DNOW",
+    "ADOX_ADCX",
+    "AES",
+    "AVX_VNNI",
+    "AVX",
+    "AVX2",
+    "AVX2GATHER",
+    "AVX512EVEX",
+    "AVX512VEX",
+    "AVXAES",
+    "BASE",
+    "BMI1",
+    "BMI2",
+    "CLFLUSHOPT",
+    "CLFSH",
+    "FMA",
+    "FMA4",
+    "GFNI",
+    "LONGMODE",
+    "LZCNT",
+    "MCOMMIT",
+    "MMX",
+    "MOVBE",
+    "MOVDIR",
+    "PCLMULQDQ",
+    "PCONFIG",
+    "PKU",
+    "PREFETCHWT1",
+    "PTWRITE",
+    "RDPID",
+    "RDPRU",
+    "RDRAND",
+    "RDSEED",
+    "RDWRFSGS",
+    "SERIALIZE",
+    "SHA",
+    "SMAP",
+    "SSE",
+    "SSE2",
+    "SSE3",
+    "SSE4",
+    "SSE4a",
+    "SSSE3",
+    "TBM",
+    "UINTR",
+    "VAES",
+    "VPCLMULQDQ",
+    "XOP",
 ]
 
 # Instructions that can potentially crash the system if the fuzzer is misconfigured
@@ -121,6 +186,7 @@ class _XMLOperandSpec:
     """
     values: List[str]
     type_: OP_TYPE
+    xtype: str
     width: int
     is_signed: bool = True
     comment: str
@@ -180,6 +246,7 @@ class _ParseFailed(Exception):
 
 class XMLSpecParser:
     """ A class that parses the XML file and converts it to JSON """
+    n_instructions_in_xml: int = 0
     _tree: ET.Element
     _instructions: List[_XMLInstructionSpec]
     _current_spec: _XMLInstructionSpec
@@ -201,6 +268,7 @@ class XMLSpecParser:
             print("No input. Exiting")
             sys.exit(1)
         self._tree = tree
+        self.n_instructions_in_xml = len(list(self._tree.iter('instruction')))
 
         # Check if the requested extensions are available
         self._check_extension_list()
@@ -286,18 +354,24 @@ class XMLSpecParser:
             node.attrib.get('zeroing', '') == '1'
 
     def _parse_reg_operand(self, op: ET.Element) -> _XMLOperandSpec:
+        assert op.text is not None
+
         spec = _XMLOperandSpec()
         spec.type_ = "REG"
-        assert op.text is not None
+        if op.attrib.get('xtype', '') != '':
+            spec.xtype = op.attrib.get('xtype', '')
+
         spec.values = op.text.lower().split(',')
+        if spec.values[0] not in REG_SIZE:
+            raise _ParseFailed(f"Unsupported register operand {spec.values[0]}")
+
         spec.src = op.attrib.get('r', "0") == "1"
         spec.dest = op.attrib.get('w', "0") == "1"
+
         spec.width = int(op.attrib.get('width', 0))
         if spec.width == 0:
-            if spec.values[0] in REG_SIZE:
-                spec.width = REG_SIZE[spec.values[0]]
-            else:
-                raise _ParseFailed(f"Unsupported register operand {spec.values[0]}")
+            spec.width = REG_SIZE[spec.values[0]]
+
         return spec
 
     @staticmethod
@@ -465,6 +539,10 @@ class Downloader:
             extensions.extend(SAFE_EXTENSIONS)
             extensions = list(set(extensions))
             extensions.remove("ALL_SUPPORTED")
+        elif "ALL_SUPPORTED_DR" in extensions:
+            extensions.extend(SAFE_EXTENSIONS_DR)
+            extensions = list(set(extensions))
+            extensions.remove("ALL_SUPPORTED_DR")
         elif "ALL_AND_UNSAFE" in extensions:
             extensions.extend(ALL_EXTENSIONS)
             extensions = list(set(extensions))
@@ -487,7 +565,49 @@ class Downloader:
         try:
             self._transformer.parse_file("x86_instructions.xml")
             self._transformer.add_missing()
-            print(f"Produced base.json with {len(self._transformer)} instructions")
             self._transformer.save_as_json(self.out_file)
         finally:
             subprocess.run("rm x86_instructions.xml", shell=True, check=True)
+
+        n_parsed = len(self._transformer)
+        n_all = self._transformer.n_instructions_in_xml
+        print(f"Produced base.json with {n_parsed} instructions (out of {n_all} possible)")
+
+
+# NOTE: for reference, the complete list of all categories available in the XML file is:
+# "3DNOW-3DNOW", "ADOX_ADCX-ADOX_ADCX", "AES-AES", "AVXAES-AES", "AMX_BF16-AMX_TILE",
+# "AMX_INT8-AMX_TILE", "AMX_TILE-AMX_TILE", "AVX2-AVX2", "AVX2GATHER-AVX2GATHER",
+# "AVX512EVEX-AVX512_4FMAPS", "AVX512EVEX-AVX512_4VNNIW", "AVX512EVEX-AVX512_BITALG",
+# "AVX512EVEX-AVX512", "AVX512EVEX-AVX512_VBMI", "AVX512EVEX-AVX512_VP2INTERSECT", "AVX-AVX",
+# "BASE-BINARY", "BASE-BITBYTE", "SSE4a-BITBYTE", "AVX512EVEX-BLEND", "BMI1-BMI1", "BMI2-BMI2",
+# "AVX-BROADCAST", "AVX2-BROADCAST", "AVX512EVEX-BROADCAST", "BASE-CALL", "CET-CET",
+# "CLDEMOTE-CLDEMOTE", "CLFLUSHOPT-CLFLUSHOPT", "CLWB-CLWB", "CLZERO-CLZERO", "BASE-CMOV",
+# "AVX512EVEX-COMPRESS", "BASE-COND_BR", "RTM-COND_BR", "AVX512EVEX-CONFLICT", "AVX-CONVERT",
+# "AVX512EVEX-CONVERT", "BASE-CONVERT", "F16C-CONVERT", "LONGMODE-CONVERT", "SSE-CONVERT",
+# "SSE2-CONVERT", "AVX-DATAXFER", "AVX2-DATAXFER", "AVX512EVEX-DATAXFER", "BASE-DATAXFER",
+# "LONGMODE-DATAXFER", "MMX-DATAXFER", "MOVBE-DATAXFER", "SSE-DATAXFER", "SSE2-DATAXFER",
+# "SSE3-DATAXFER", "SSE4a-DATAXFER", "ENQCMD-ENQCMD", "AVX512EVEX-EXPAND", "X87-FCMOV",
+# "BASE-FLAGOP", "FMA4-FMA4", "AVX512EVEX-FP16", "AVX512EVEX-GATHER", "AVX512EVEX-GFNI",
+# "GFNI-GFNI", "HRESET-HRESET", "AVX512EVEX-IFMA", "BASE-INTERRUPT", "BASE-IO",
+# "BASE-IOSTRINGOP", "KEYLOCKER-KEYLOCKER", "KEYLOCKER_WIDE-KEYLOCKER_WIDE",
+# "AVX512VEX-KMASK", "TDX-LEGACY", "AVX-LOGICAL", "AVX2-LOGICAL", "AVX512EVEX-LOGICAL",
+# "BASE-LOGICAL", "MMX-LOGICAL", "RTM-LOGICAL", "SSE2-LOGICAL", "SSE4-LOGICAL",
+# "AVX-LOGICAL_FP", "AVX512EVEX-LOGICAL_FP", "SSE-LOGICAL_FP", "SSE2-LOGICAL_FP",
+# "LZCNT-LZCNT", "BASE-MISC", "CLFSH-MISC", "INVPCID-MISC", "MCOMMIT-MISC", "MONITOR-MISC",
+# "MONITORX-MISC", "PAUSE-MISC", "SSE-MISC", "SSE2-MISC", "3DNOW-MMX", "MMX-MMX",
+# "SSE2-MMX", "SSSE3-MMX", "MOVDIR-MOVDIR", "MPX-MPX", "BASE-NOP", "PCLMULQDQ-PCLMULQDQ",
+# "PCONFIG-PCONFIG", "PKU-PKU", "BASE-POP", "LONGMODE-POP", "3DNOW_PREFETCH-PREFETCH",
+# "SSE-PREFETCH", "PREFETCHWT1-PREFETCHWT1", "PTWRITE-PTWRITE", "BASE-PUSH", "LONGMODE-PUSH",
+# "RDPID-RDPID", "RDPRU-RDPRU", "RDRAND-RDRAND", "RDSEED-RDSEED", "RDWRFSGS-RDWRFSGS",
+# "BASE-RET", "LONGMODE-RET", "BASE-ROTATE", "AVX512EVEX-SCATTER", "BASE-SEGOP", "BASE-SEMAPHORE",
+# "LONGMODE-SEMAPHORE", "SERIALIZE-SERIALIZE", "BASE-SETCC", "SGX-SGX", "SHA-SHA",
+# "BASE-SHIFT", "SMAP-SMAP", "SSE-SSE", "SSE2-SSE", "SSE3-SSE", "SSE4-SSE", "SSSE3-SSE",
+# "BASE-STRINGOP", "LONGMODE-STRINGOP", "AVX-STTNI", "BASE-SYSCALL", "LONGMODE-SYSCALL",
+# "BASE-SYSRET", "LONGMODE-SYSRET", "AMD_INVLPGB-SYSTEM", "BASE-SYSTEM", "LONGMODE-SYSTEM",
+# "RDTSCP-SYSTEM", "SMX-SYSTEM", "SNP-SYSTEM", "SVM-SYSTEM", "WBNOINVD-SYSTEM", "TBM-TBM",
+# "TSX_LDTRK-TSX_LDTRK", "UINTR-UINTR", "BASE-UNCOND_BR", "RTM-UNCOND_BR", "AVX512EVEX-VAES",
+# "VAES-VAES", "AVX512EVEX-VBMI2", "AVX_VNNI-VEX", "AVX512EVEX-VFMA", "FMA-VFMA",
+# "VIA_PADLOCK_AES-VIA_PADLOCK", "VIA_PADLOCK_RNG-VIA_PADLOCK", "VIA_PADLOCK_SHA-VIA_PADLOCK",
+# "AVX512EVEX-VPCLMULQDQ", "VPCLMULQDQ-VPCLMULQDQ", "VMFUNC-VTX", "VTX-VTX", "WAITPKG-WAITPKG",
+# "BASE-WIDENOP", "SSE3-X87_ALU", "X87-X87_ALU", "XOP-XOP", "XSAVE-XSAVE", "XSAVEC-XSAVE",
+# "XSAVES-XSAVE", "XSAVEOPT-XSAVEOPT"

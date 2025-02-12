@@ -37,11 +37,11 @@ Each actor in the test case has its own sub-area for its data and code, and the 
 The data area is divided into the following regions:
 * **Main and Faulty Areas**: These are the two regions of memory that are accessible by the test case code.
   This is enforced by the test case generator, which instruments all memory accesses to ensure that they fall within these regions (see [code-generation](code-generation.md) for more details).
-  Both areas are initialized with the input data from the [RBDF](devel/binary-formats.md).
+  Both areas are initialized with the input data from the [RBDF](binary-formats.md).
   The main area always has default permissions (RW), while the faulty area has permissions can be configured to cause a fault when accessed.
-  This configuration originates from the [config file](user/config.md).
+  This configuration originates from the [config file](../user/config.md).
 * **GPR and SIMD Areas**: These regions store the values that will be used by the modules to initialize the general-purpose registers (GPR) and SIMD registers before executing the test case and when switching between actors.
-  Both areas are initialized with the input data from the [RBDF](devel/binary-formats.md).
+  Both areas are initialized with the input data from the [RBDF](binary-formats.md).
 * **Over- and Underflow Pads**: These two zero-initialized regions surround the actors' data areas, and their purpose is to determinize the hardware traces on the executor.
   Namely, they are needed for the cases when the CPU speculatively bypasses the sandboxing instrumentation inserted by the test case generator, and the bypass leads to an out-of-bounds memory access.
   As the pads are zero-initialized, the bypassed memory accesses will produce deterministic results.
@@ -60,15 +60,15 @@ The data area is divided into the following regions:
 
 The code area is divided into two regions:
 * **Main Code Area**: This region contains the binary of the actor's code.
-  The code comes from the [RCDF](devel/binary-formats.md) file.
+  The code comes from the [RCDF](binary-formats.md) file.
   The first instruction in the code area of actor 0 is the entry point of the test case, and the last instruction of actor 0 is the exit point of the test case.
 * **Macro Code Area**: This region contains code of the expanded macros for each actor.
   (see [macros](macros.md) for more details on the macro expansion process.)
 
 ### References
 
-* Executor: [src/x86/executor/include/sandbox_manager.h](src/x86/executor/include/sandbox_manager.h)
-* Unicorn backend: [src/sandbox.py](src/sandbox.py)
+* Executor: [src/x86/executor/include/sandbox_manager.h](https://github.com/microsoft/sca-fuzzer/tree/main/src/x86/executor/include/sandbox_manager.h)
+* Unicorn backend: [src/sandbox.py](https://github.com/microsoft/sca-fuzzer/tree/main/src/sandbox.py)
 
 ## Sandbox Initialization
 

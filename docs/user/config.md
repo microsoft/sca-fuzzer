@@ -127,7 +127,7 @@ The instruction set under test. Currently, only x86-64 is supported.
 ```yaml
 Name: instruction_categories
 Default: ['BASE-BINARY', 'BASE-BITBYTE', 'BASE-COND_BR']
-Options: 'BASE-BINARY' | 'BASE-BITBYTE' | 'BASE-CMOV' | 'BASE-COND_BR' | 'BASE-CONVERT' | 'BASE-DATAXFER' | 'BASE-FLAGOP' | 'BASE-LOGICAL' | 'BASE-MISC' | 'BASE-NOP' | 'BASE-POP' | 'BASE-PUSH' | 'BASE-SEMAPHORE' | 'BASE-SETCC' | 'BASE-STRINGOP' | 'BASE-WIDENOP' | 'BASE-INTERRUPT' | 'BASE-SYSTEM' | 'LONGMODE-CONVERT' | 'LONGMODE-DATAXFER' | 'LONGMODE-SEMAPHORE' | 'LONGMODE-SYSCALL' | 'LONGMODE-SYSRET' | 'SSE-SSE' | 'SSE-DATAXFER' | 'SSE-MISC' | 'SSE-LOGICAL_FP' | 'SSE2-SSE' | 'SSE2-DATAXFER' | 'SSE2-MISC' | 'SSE2-LOGICAL_FP' | 'SSE2-LOGICAL' | 'SSE3-SSE' | 'SSE3-DATAXFER' | 'SSE4-LOGICAL' | 'SSE4a-BITBYTE' | 'SSE4a-DATAXFER' | 'CLFLUSHOPT-CLFLUSHOPT' | 'CLFSH-MISC' | 'MPX-MPX' | 'SMX-SYSTEM' | 'VTX-VTX' | 'XSAVE-XSAVE'
+Options: (depends on model backend; see <isa>_config.py for details)
 ```
 
 Select a list of instruction categories to be used when generating programs.
@@ -136,7 +136,7 @@ passed via the command line (`-s`).
 
 ```yaml
 Name: instruction_blocklist
-Default: ['enterw', 'enter', 'leavew', 'leave', 'int', 'encls', 'vmxon', 'stgi', 'skinit', 'ldmxcsr', 'stmxcsr', 'lfence', 'mfence', 'sfence', 'clflush', 'clflushopt', 'divps', 'divss', 'divpd', 'divsd', 'mulss', 'mulps', 'mulpd', 'mulsd', 'rsqrtps', 'rsqrtss', 'sqrtps', 'sqrtss', 'sqrtpd', 'sqrtsd', 'addps', 'addss', 'addpd', 'addsd', 'subps', 'subss', 'subpd', 'subsd', 'addsubpd', 'addsubps', 'haddpd', 'haddps', 'hsubpd', 'hsubps', 'sti', 'cli', 'xlat', 'xlatb', 'cmpxchg8b', 'lock cmpxchg8b', 'cmpxchg16b', 'lock cmpxchg16b', 'cpuid', 'cmpps', 'cmpss', 'cmppd', 'cmpsd', 'movq2dq', 'movdq2q', 'rcpps', 'rcpss', 'maskmovdqu']
+Default: ['enterw', 'enter', 'leavew', 'leave', 'int', 'encls', 'vmxon', 'stgi', 'skinit', 'ldmxcsr', 'stmxcsr', 'lfence', 'mfence', 'sfence', 'clflush', 'clflushopt', 'divps', 'divss', 'divpd', 'divsd', 'mulss', 'mulps', 'mulpd', 'mulsd', 'rsqrtps', 'rsqrtss', 'sqrtps', 'sqrtss', 'sqrtpd', 'sqrtsd', 'addps', 'addss', 'addpd', 'addsd', 'subps', 'subss', 'subpd', 'subsd', 'addsubpd', 'addsubps', 'haddpd', 'haddps', 'hsubpd', 'hsubps', 'sti', 'cli', 'xlat', 'xlatb', 'cmpxchg8b', 'lock cmpxchg8b', 'cmpxchg16b', 'lock cmpxchg16b', 'cpuid', 'cmpps', 'cmpss', 'cmppd', 'cmpsd', 'movq2dq', 'movdq2q', 'rcpps', 'rcpss', 'pcmpestriq', 'pcmpestrmq', 'vpcmpestriq', 'vpcmpestrmq', 'maskmovdqu', 'maskmovq', 'vmaskmovdqu', 'vmaskmovq']
 Options: (any instruction names)
 ```
 
@@ -479,6 +479,17 @@ For single-actor experiments, the following options are available:
 In multi-actor context, only one option is available:
 
 * `ct-ni` - when executing actors with `observer: false`, the model observes the same data as as with `ct`. When executing actors with `observer: true`, the model observes complete memory of the actor as well as their register values.
+
+```yaml
+Name: model_backend
+Default: 'unicorn'
+Options: 'dummy' | 'unicorn' | 'dynamorio'
+```
+
+The backend used to implement the contract model. The available options are:
+* `unicorn` - use the Unicorn emulator. This is the default option and it is recommended for most cases.
+* `dynamorio` - use the DynamoRIO dynamic binary instrumentation framework. This option is newly added and experimental. Avoid using it unless you are doing development work on Revizor.
+* `dummy` - use a dummy model. This model always returns the same (empty) contract trace, and as such will not produce meaningful results. This option is useful, however, when root-causing violations, because it allows to collect hardware traces without running the model, hence allowing to trace instructions that are not supported by any of the backends.
 
 ```yaml
 Name: model_min_nesting

@@ -20,9 +20,8 @@ class DocumentationTest(unittest.TestCase):
     longMessage = False
 
     def test_conf_docs(self) -> None:
-        """
-        Test if the documentation contains all the config options.
-        """
+        # Test if the documentation contains all the config options.
+
         # get the text of the config documentation
         with open(DOC_DIR / "user/config.md", "r") as f:
             doc_text = f.read()
@@ -39,9 +38,8 @@ class DocumentationTest(unittest.TestCase):
             self.assertTrue(option in doc_text, msg=f"{option} not found in documentation")
 
     def test_conf_options_docs(self) -> None:
-        """
-        Test if the documentation contains all possible values for the config options.
-        """
+        # Test if the documentation contains all possible values for the config options.
+
         # get the text of the config documentation
         with open(DOC_DIR / "user/config.md", "r") as f:
             doc_text = f.readlines()

@@ -15,7 +15,7 @@ from ..traces import Violation
 from ..tc_components.test_case_code import TestCaseProgram
 from ..tc_components.test_case_data import InputData
 from ..config import CONF
-from ..logs import warning, error
+from ..logs import warning, error, update_logging_after_config_change
 from ..fuzzer import Fuzzer
 
 from .instruction_passes import BaseInstructionMinimizationPass, InstructionRemovalPass, \
@@ -59,10 +59,6 @@ class Minimizer:
         self._progress = ProgressPrinter()
         self.instruction_set_spec = instruction_set_spec
         self.ignore_list = []
-
-        # Make sure that fuzzing progress is not printed
-        if "info" in CONF.logging_modes:
-            CONF.logging_modes.remove("info")
 
         # manage tmp directory
         if not os.path.exists(TMP_DIR):
@@ -184,6 +180,11 @@ class Minimizer:
 
         # Adjust the sample size to reduce non-reproducibility
         CONF.executor_sample_sizes = [CONF.executor_sample_sizes[-1]]
+
+        # Make sure that fuzzing progress is not printed
+        if "info" in CONF.logging_modes:
+            CONF.logging_modes.remove("info")
+            update_logging_after_config_change()
 
     def _reproduce_org_violation(self, test_case: TestCaseProgram,
                                  inputs: List[InputData]) -> Optional[Violation]:

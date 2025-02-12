@@ -71,3 +71,34 @@ class Model(ABC):
         Report the coverage of the fuzzing campaign w.r.t. the model, and store the report
         in the given file path.
         """
+
+
+class DummyModel(Model):
+    """
+    Dummy implementation of the Model interface that does nothing. All traces produced by
+    this model are empty, and thus all inputs form the same equivalence class.
+
+    This model is useful for testing purposes or for cases where it's necessary to
+    run the fuzzer without a model (e.g., for standalone hardware tracing).
+    """
+
+    def __init__(self,
+                 bases: BaseAddrTuple,
+                 *args: Any,
+                 enable_mismatch_check_mode: bool = False) -> None:
+        pass
+
+    def load_test_case(self, test_case: TestCaseProgram) -> None:
+        pass
+
+    def trace_test_case(self, inputs: List[InputData], nesting: int) -> List[CTrace]:
+        return [CTrace.empty_trace() for _ in inputs]
+
+    def trace_test_case_with_taints(self, inputs: List[InputData],
+                                    nesting: int) -> Tuple[List[CTrace], List[InputTaint]]:
+        taints = [InputTaint() for _ in inputs]
+        traces = [CTrace.empty_trace() for _ in inputs]
+        return traces, taints
+
+    def report_coverage(self, path: str) -> None:
+        pass

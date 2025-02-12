@@ -178,6 +178,32 @@ class InputData(UINT_NDARRAY):
         return view
 
 
+def save_input_sequence_as_rdbf(inputs: List[InputData], path: str) -> None:
+    """
+    Save the input sequences into an RDBF-formatted file.
+    (see docs/devel/binary-formats.md for details on RDBF format).
+
+    :param inputs: The input sequence
+    :param path: The path to save the RDBF file to
+    :return: None
+    """
+    n_actors = len(inputs[0]) if len(inputs) > 0 else 1
+    with open(path, 'wb') as f:
+        # header
+        f.write((n_actors).to_bytes(8, byteorder='little'))  # number of actors
+        f.write((len(inputs)).to_bytes(8, byteorder='little'))  # number of inputs
+
+        # metadata
+        data_size_per_actor_bytes = InputData.data_size_per_actor()
+        for _ in range(n_actors):
+            f.write((data_size_per_actor_bytes).to_bytes(8, byteorder='little'))  # size
+            f.write((0).to_bytes(8, byteorder='little'))  # reserved
+
+        # data
+        for input_ in inputs:
+            f.write(input_.tobytes())
+
+
 # ==================================================================================================
 # Input taint
 # ==================================================================================================

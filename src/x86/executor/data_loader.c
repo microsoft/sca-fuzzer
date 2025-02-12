@@ -60,33 +60,31 @@ int load_sandbox_data(int input_id)
         // - Ensure that the flags are valid
         reg_dest[6] = (reg_src[6] & 2263) | 2;
 
-        // - RSP and RBP are do not take a value from the input,
-        //   and are rather set to the stack base
-
-        // stack pointer for actor 0
-        reg_dest[7] = (uint64_t)sandbox->data[0].main_area + LOCAL_RSP_OFFSET;
+        // Note: RSP and RBP are do not take a value from the input,
+        //       and are rather set to the stack base
     }
 
     // - Initialize SIMD registers
     // Note: GPRs will be initialized directly by the test case template; see code_loader.c
     uint64_t *simd_src = (uint64_t *)&get_input_fragment_unsafe(input_id, 0)->reg_init_region[64];
     asm volatile(""
-                 "movdqa 0x00(%0), %%xmm0\n"
-                 "movdqa 0x10(%0), %%xmm1\n"
-                 "movdqa 0x20(%0), %%xmm2\n"
-                 "movdqa 0x30(%0), %%xmm3\n"
-                 "movdqa 0x40(%0), %%xmm4\n"
-                 "movdqa 0x50(%0), %%xmm5\n"
-                 "movdqa 0x60(%0), %%xmm6\n"
-                 "movdqa 0x70(%0), %%xmm7\n"
-                 "movdqa 0x80(%0), %%xmm8\n"
-                 "movdqa 0x90(%0), %%xmm9\n"
-                 "movdqa 0xa0(%0), %%xmm10\n"
-                 "movdqa 0xb0(%0), %%xmm11\n"
-                 "movdqa 0xc0(%0), %%xmm12\n"
-                 "movdqa 0xd0(%0), %%xmm13\n"
-                 "movdqa 0xe0(%0), %%xmm14\n"
-                 "movdqa 0xf0(%0), %%xmm15\n" ::"r"(&simd_src[0]));
+                 "movq 0x00(%0), %%mm0\n"
+                 "movq 0x08(%0), %%mm1\n"
+                 "movq 0x10(%0), %%mm2\n"
+                 "movq 0x18(%0), %%mm3\n"
+                 "movq 0x20(%0), %%mm4\n"
+                 "movq 0x28(%0), %%mm5\n"
+                 "movq 0x30(%0), %%mm6\n"
+                 "movq 0x38(%0), %%mm7\n"
+                 // Note: overlap between YMM and MMX init values is intentional
+                 "vmovdqa 0x00(%0), %%ymm0\n"
+                 "vmovdqa 0x20(%0), %%ymm1\n"
+                 "vmovdqa 0x40(%0), %%ymm2\n"
+                 "vmovdqa 0x60(%0), %%ymm3\n"
+                 "vmovdqa 0x80(%0), %%ymm4\n"
+                 "vmovdqa 0xa0(%0), %%ymm5\n"
+                 "vmovdqa 0xc0(%0), %%ymm6\n"
+                 "vmovdqa 0xe0(%0), %%ymm7\n" ::"r"(&simd_src[0]));
 
     return 0;
 }

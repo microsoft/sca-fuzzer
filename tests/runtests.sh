@@ -92,6 +92,8 @@ python3 -m unittest tests.x86_tests.unit_isa_loader -v
 echo "-------------"
 python3 -m unittest tests.x86_tests.unit_model_unicorn -v
 echo "-------------"
+python3 -m unittest tests.x86_tests.unit_model_dr -v
+echo "-------------"
 python3 -m unittest tests.x86_tests.unit_taint_tracker -v
 echo "-------------"
 cd - >/dev/null || exit

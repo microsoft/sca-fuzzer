@@ -6,10 +6,11 @@ SPDX-License-Identifier: MIT
 """
 from __future__ import annotations
 import json
-from typing import Dict, List, Optional, Any
 from copy import deepcopy
+from typing import Dict, List, Optional, Any
+from typing_extensions import get_args
 
-from .instruction_spec import OT, OperandSpec, InstructionSpec
+from .instruction_spec import OT, XOT, OperandSpec, InstructionSpec
 from .config import CONF
 
 _OT_STR_TO_ENUM = {
@@ -21,6 +22,8 @@ _OT_STR_TO_ENUM = {
     "FLAGS": OT.FLAGS,
     "COND": OT.COND,
 }
+
+FP_XOT = ["f64", "f32"]
 
 
 class InstructionSet:
@@ -105,7 +108,9 @@ def _parse_json_operand(op: Dict[str, Any], parent: InstructionSpec) -> OperandS
         src=op["src"],
         dest=op["dest"],
         width=op["width"],
-        is_signed=op.get("signed", True))
+        is_signed=op.get("is_signed", True),
+        xtype=op.get("xtype", None),
+    )
 
     if op_type == OT.MEM:
         parent.has_mem_operand = True
@@ -139,6 +144,14 @@ def _reduce(isa: InstructionSet, include_categories: Optional[List[str]]) -> Non
         for operand in spec.operands:
             if operand.type == OT.MEM and operand.values \
                     and operand.values[0] in register_blocklist:
+                return False
+
+        # FP SIMD is not supported
+        for operand in spec.operands:
+            if operand.type != OT.REG or operand.xtype is None:
+                continue
+            assert operand.xtype in get_args(XOT), f"Unknown xtype value: {operand.xtype}"
+            if operand.xtype in FP_XOT:
                 return False
 
         for implicit_operand in spec.implicit_operands:
@@ -188,7 +201,7 @@ def _reduce(isa: InstructionSet, include_categories: Optional[List[str]]) -> Non
 
             # otherwise, update the operand
             s.operands[op_id] = OperandSpec(op_values, op.type, op.src, op.dest, op.width,
-                                            op.is_signed, op.has_magic_value)
+                                            op.is_signed, op.has_magic_value, op.xtype)
     for s in skip_list:
         isa.instructions.remove(s)
 

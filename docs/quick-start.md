@@ -48,7 +48,26 @@ make
 make install
 ```
 
-### 4. Download ISA spec
+### 4. (Optional) DynamoRIO Backend
+
+If you want to use the DynamoRIO-based model, it has to be installed separately:
+
+```bash
+# install dependencies
+sudo apt-get install cmake g++ g++-multilib doxygen git zlib1g-dev libunwind-dev libsnappy-dev liblz4-dev
+
+# install DynamoRIO and the model
+make -C src/model_dynamorio
+
+# check installation
+~/.local/dynamorio/drrun -c ~/.local/dynamorio/libdr_model.so --list-obs-clauses -- ls
+# expected output:
+#   ct
+#   ...
+#   /dev/null
+```
+
+### 5. Download ISA spec
 
 ```bash
 rvzr download_spec -a x86-64 --extensions ALL_SUPPORTED --outfile base.json
@@ -58,7 +77,7 @@ rvzr download_spec -a x86-64 --extensions ALL_SUPPORTED --outfile base.json
 # rvzr download_spec -a x86-64 --extensions ALL_AND_UNSAFE --outfile base.json
 ```
 
-### 5. Test the Installation
+### 6. Test the Installation
 
 To make sure that the installation was successful, run the following command:
 
@@ -74,7 +93,7 @@ If you see any other output, check if the previous steps were executed correctly
 If you still have issues, please [open an issue](https://github.com/microsoft/sca-fuzzer/issues).
 
 
-### 6. (Optional) System Configuration
+### 7. (Optional) System Configuration
 
 External processes can interfere with Revizor's measurements.
 To minimize this interference, we recommend the following system configuration:

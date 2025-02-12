@@ -1,41 +1,9 @@
 /// File:
-///   - Parsing of test cases
+///   - Parsing of test cases in RCBF format (see docs/devel/binary-formats.md)
 ///   - Management of TC-related data structures
 ///
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
-
-/// Test case serialization format:
-///     |-------------------------------------|
-///     | n_actors (uint64_t)                 | HEADER
-///     | n_symbols (uint64_t)                |
-///     |-------------------------------------|
-///     | actor_metadata_t:                   | ACTOR TABLE
-///     |   - id (actor_id_t)                 |
-///     |   - mode (actor_mode_t)             |
-///     |   - pl (actor_pl_t)                 |
-///     |   - data_permissions (uint64_t)     |
-///     |   - data_ept_permissions (uint64_t) |
-///     |   - uint64_t (code_permissions)     |
-///     | x n_actors                          |
-///     |-------------------------------------|
-///     | tc_symbol_entry_t:                  | SYMBOL TABLE
-///     |   - owner (uint64_t)                |
-///     |   - offset (uint64_t)               |
-///     |   - id (uint64_t)                   |
-///     |   - args (uint64_t)                 |
-///     | x n_symbols                         |
-///     |-------------------------------------|
-///     | tc_section_metadata_entry_t:        | METADATA
-///     |   - owner (uint64_t)                |
-///     |   - size (uint64_t)                 |
-///     |   - reserved (uint64_t)             |
-///     | x n_actors                          |
-///     |-------------------------------------|
-///     | tc_section_t:                       | DATA
-///     |   - code (char *)                   |
-///     | x n_actors                          |
-///     |-------------------------------------|
 
 #include "test_case_parser.h"
 #include "macro_loader.h"
@@ -210,7 +178,8 @@ static int __batch_tc_parsing_end(void)
     return 0;
 }
 
-/// Parse the test case sent via sysfs, according to the following format:
+/// Parse the test case sent via sysfs in the RCBF format
+/// (see docs/devel/binary-formats.md for details)
 ///
 ssize_t parse_test_case_buffer(const char *buf, size_t count, bool *finished)
 {

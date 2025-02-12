@@ -1,0 +1,119 @@
+///
+/// File: Header for the Tracer abstract base class
+///
+// Copyright (C) Microsoft Corporation
+// SPDX-License-Identifier: MIT
+
+#pragma once
+
+#include <cstdint>
+#include <string>
+#include <vector>
+
+#include <dr_api.h> // NOLINT
+#include <dr_defines.h>
+#include <dr_events.h>
+#include <drvector.h>
+
+using std::uint64_t;
+
+// =================================================================================================
+// Constants and Types
+// =================================================================================================
+enum trace_entry_type_t {
+    ENTRY_EOT = 0, // end of trace
+    ENTRY_PC = 1,
+    ENTRY_READ = 2,
+    ENTRY_WRITE = 3,
+    ENTRY_REG_DUMP = 4
+};
+
+struct trace_entry_t {
+    uint64_t type; // see trace_entry_type_t
+    uint64_t addr; // pc for instructions; address for memory accesses
+    uint64_t size; // instruction size for instructions; memory access size for memory accesses
+};
+
+struct dbg_trace_entry_t {
+    uint64_t type; // always ENTRY_REG_DUMP
+    uint64_t xax;
+    uint64_t xbx;
+    uint64_t xcx;
+    uint64_t xdx;
+    uint64_t xsi;
+    uint64_t xdi;
+    uint64_t pc;
+};
+
+// =================================================================================================
+// Class Definition
+// =================================================================================================
+
+/// @brief Abstract base class for all tracers
+class TracerABC
+{
+  public:
+    TracerABC(bool enable_dbg_trace_, bool enable_bin_output_);
+    virtual ~TracerABC();
+    TracerABC(const TracerABC &) = delete;
+    TracerABC &operator=(const TracerABC &) = delete;
+    TracerABC(TracerABC &&) = delete;
+    TracerABC &operator=(TracerABC &&) = delete;
+
+    /// @param Buffer containing collected trace entries
+    std::vector<trace_entry_t> trace;
+
+    /// @param Buffer containing collected debug trace entries
+    std::vector<dbg_trace_entry_t> dbg_trace;
+
+    // ---------------------------------------------------------------------------------------------
+    // Public Methods
+
+    /// @brief Starts the tracing process for a wrapped functions
+    /// @param wrapcxt The machine context of the wrapped function
+    /// @param user_data Unused
+    /// @return void
+    virtual void tracing_start(void *, OUT void **);
+
+    /// @brief Finalizes the tracing process for a wrapped function
+    /// @param wrapcxt The machine context of the wrapped function
+    /// @param user_data Unused
+    /// @return void
+    virtual void tracing_finalize(void *, OUT void *);
+
+    /// @brief Record per-instruction information on the trace (e.g., its address) as defined
+    ///        by the target contract.
+    ///        Note: some subclasses may not record any information as the corresponding
+    ///        contract may not require it. For such subclasses, this method should be a no-op.
+    /// @param opcode The opcode of the instruction
+    /// @param pc The program counter (address) of the instruction
+    /// @param mc The machine context of the instruction
+    /// @return void
+    virtual void observe_instruction(uint64_t opcode, uint64_t pc, dr_mcontext_t *mc);
+
+    /// @brief Record per-memory access information on the trace (e.g., its address and value)
+    ///        as defined by the target contract.
+    ///        Note: some subclasses may not record any information as the corresponding
+    ///        contract may not require it. For such subclasses, this method should be a no-op.
+    /// @param type The type of the memory access (read or write)
+    /// @param address The address of the memory access
+    /// @param size The size of the memory access
+    /// @return void
+    virtual void observe_mem_access(bool is_write, void *address, uint64_t size);
+
+  protected:
+    // ---------------------------------------------------------------------------------------------
+    // Protected Fields
+
+    /// @param If true, outputs the trace entries in raw binary format
+    bool enable_bin_output = false;
+
+    /// @param If true, the tracer will collect data for Revizor's model debug mode
+    bool enable_dbg_trace = false;
+
+    /// @param If true, the tracer will instrument the instructions in the traced function
+    bool tracing_on = false;
+
+    /// @param If true, tracing has been finalized; no more tracing is allowed
+    bool tracing_finalized = false;
+};

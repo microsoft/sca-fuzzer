@@ -10,6 +10,7 @@ from typing import Dict, Type, List, TYPE_CHECKING, Any, Optional
 from . import input_generator, analyser, executor, fuzzer, model
 from .model_unicorn import tracer, speculator_abc, speculators_basic, \
     speculators_fault, speculators_vs, interpreter, model as uc_model
+from .model_dynamorio import model as dr_model
 from .postprocessing.minimizer import Minimizer
 
 from .x86 import x86_executor, x86_fuzzer, x86_generator, x86_asm_parser, \
@@ -140,19 +141,53 @@ def _get_exec_clause_name() -> str:
     return clause_name
 
 
+def _get_unicorn_model(bases: BaseAddrTuple, obs_clause_name: str, exec_clause_name: str,
+                       enable_mismatch_check_mode: bool) -> model.Model:
+    target_desc = _TARGET_DESC[CONF.instruction_set]()
+    tracer_cls = _TRACERS[obs_clause_name]
+    speculator_cls = _SPECULATORS[exec_clause_name]
+    interpreter_cls = interpreter.X86ExtraInterpreter
+    model_ = uc_model.X86UnicornModel(bases, target_desc, speculator_cls, tracer_cls,
+                                      interpreter_cls, enable_mismatch_check_mode)
+    return model_
+
+
+def _get_dr_model(bases: BaseAddrTuple, obs_clause_name: str, exec_clause_name: str,
+                  enable_mismatch_check_mode: bool) -> model.Model:
+    # DR backend is not implemented in python, so we have to call its API
+    # to check if the contract is supported
+    obs_clauses = dr_model.DynamoRIOModel.get_supported_obs_clauses()
+    exec_clauses = dr_model.DynamoRIOModel.get_supported_exec_clauses()
+
+    if obs_clause_name not in obs_clauses:
+        raise ConfigException(f"ERROR: unsupported observation clause `{obs_clause_name}`.\n"
+                              f"  Available options are:\n  - " + "\n  - ".join(obs_clauses))
+    if exec_clause_name not in exec_clauses:
+        raise ConfigException(f"ERROR: unsupported execution clause `{exec_clause_name}`.\n"
+                              f"  Available options are:\n  - " + "\n  - ".join(exec_clauses))
+    model_ = dr_model.DynamoRIOModel(bases, enable_mismatch_check_mode=enable_mismatch_check_mode)
+    model_.configure_clauses(obs_clause_name, exec_clause_name)
+    return model_
+
+
 def get_model(bases: BaseAddrTuple, enable_mismatch_check_mode: bool = False) -> model.Model:
     """ Construct a model based on the configuration options in the CONF object. """
 
     if CONF.instruction_set != "x86-64":
         raise ConfigException("ERROR: unknown value of `instruction_set` configuration option")
 
-    target_desc = _TARGET_DESC[CONF.instruction_set]()
-    tracer_cls = _TRACERS[CONF.contract_observation_clause]
-    speculator_cls = _SPECULATORS[_get_exec_clause_name()]
-    interpreter_cls = interpreter.X86ExtraInterpreter
-    model_ = uc_model.X86UnicornModel(bases, target_desc, speculator_cls, tracer_cls,
-                                      interpreter_cls, enable_mismatch_check_mode)
-    return model_
+    obs_clause_name = CONF.contract_observation_clause
+    exec_clause_name = _get_exec_clause_name()
+
+    if CONF.model_backend == "unicorn":
+        return _get_unicorn_model(bases, obs_clause_name, exec_clause_name,
+                                  enable_mismatch_check_mode)
+    if CONF.model_backend == "dynamorio":
+        return _get_dr_model(bases, obs_clause_name, exec_clause_name, enable_mismatch_check_mode)
+    if CONF.model_backend == "dummy":
+        return model.DummyModel(bases, enable_mismatch_check_mode)
+
+    raise ConfigException("ERROR: unknown value of `model_backend` configuration option")
 
 
 # ==================================================================================================

@@ -7,7 +7,7 @@ SPDX-License-Identifier: MIT
 """
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Final, Tuple
+from typing import List, Final, Tuple, Literal, Optional
 
 
 class OT(Enum):
@@ -26,6 +26,11 @@ class OT(Enum):
         return str(self._name_)  # pylint: disable=no-member  # This is an intended private use
 
 
+XOT = Literal["f64", "f32", "int", "i64", "i32", "i16", "i8", "u256", "u128", "u64", "u32", "u16",
+              "u8"]
+""" Extended Operand Type (XOT) describes the type of packed data in a SIMD register. """
+
+
 @dataclass
 class OperandSpec:
     """
@@ -38,6 +43,9 @@ class OperandSpec:
 
     type: Final[OT]
     """ Type of the operand (e.g., register, memory, immediate). """
+
+    xtype: Final[Optional[XOT]]
+    """ Extended type of a SIMD register operand (e.g., packed double-precision FP is f64) """
 
     width: Final[int]
     """ Width of the operand in bits, if applicable (e.g., 64 for 64-bit register). """
@@ -63,7 +71,8 @@ class OperandSpec:
                  dest: bool,
                  width: int = 0,
                  is_signed: bool = True,
-                 has_magic_value: bool = False):
+                 has_magic_value: bool = False,
+                 xtype: Optional[XOT] = None):
         self.values = tuple(values)
         self.type = type_
         self.src = src
@@ -71,6 +80,7 @@ class OperandSpec:
         self.width = width
         self.is_signed = is_signed
         self.has_magic_value = has_magic_value
+        self.xtype = xtype
 
     def __str__(self) -> str:
         return "(" + ", ".join(self.values) + ")"

@@ -103,7 +103,7 @@ To find contract violations, we use the following approach, which we call Model-
 
 The next figure show the main components of MRT:
 
-![MRT](assets/arch.png)
+![MRT](../assets/arch.png)
 
 **Test case and input generation**.
 We sample the search space of programs, inputs and microarchitectural states to find counterexamples.

@@ -26,7 +26,6 @@ class BaseInstructionMinimizationPass(BaseMinimizationPass):
     Base class for a minimization pass that operates on instructions.
     """
     name: str = ""
-    ignore_list: List[int]
 
     # ------------------------------------------------
     # Abstract interface
@@ -73,6 +72,7 @@ class BaseInstructionMinimizationPass(BaseMinimizationPass):
             is_skipped |= ('.' == line[0])  # labels
             is_skipped |= ('noremove' in line)  # explicitly marked as non-removable
             is_skipped |= (skip_instrumentation_lines and 'instrumentation' in line)
+            is_skipped |= (", r14" in line)  # removing sandbox-relative operations causes FPs
             return is_skipped
 
         # get all lines of the test case
@@ -147,7 +147,7 @@ class InstructionRemovalPass(BaseInstructionMinimizationPass):
         return instructions[:cursor] + instructions[cursor + 1:]
 
     def verify_modification(self, test_case: TestCaseProgram, inputs: List[InputData]) -> bool:
-        return self._check_for_violation(test_case, inputs, self.ignore_list)
+        return self._check_for_violation(test_case, inputs, self._ignore_list)
 
 
 class InstructionSimplificationPass(BaseInstructionMinimizationPass):
@@ -242,7 +242,7 @@ class InstructionSimplificationPass(BaseInstructionMinimizationPass):
         return tmp
 
     def verify_modification(self, test_case: TestCaseProgram, inputs: List[InputData]) -> bool:
-        return self._check_for_violation(test_case, inputs, self.ignore_list)
+        return self._check_for_violation(test_case, inputs, self._ignore_list)
 
 
 class ConstantSimplificationPass(BaseInstructionMinimizationPass):
@@ -277,7 +277,7 @@ class ConstantSimplificationPass(BaseInstructionMinimizationPass):
         return []
 
     def verify_modification(self, test_case: TestCaseProgram, inputs: List[InputData]) -> bool:
-        return self._check_for_violation(test_case, inputs, self.ignore_list)
+        return self._check_for_violation(test_case, inputs, self._ignore_list)
 
 
 class MaskSimplificationPass(BaseInstructionMinimizationPass):
@@ -333,7 +333,7 @@ class MaskSimplificationPass(BaseInstructionMinimizationPass):
         return []
 
     def verify_modification(self, test_case: TestCaseProgram, inputs: List[InputData]) -> bool:
-        return self._check_for_violation(test_case, inputs, self.ignore_list)
+        return self._check_for_violation(test_case, inputs, self._ignore_list)
 
 
 class NopReplacementPass(BaseInstructionMinimizationPass):
@@ -414,7 +414,7 @@ class NopReplacementPass(BaseInstructionMinimizationPass):
         return tmp
 
     def verify_modification(self, test_case: TestCaseProgram, inputs: List[InputData]) -> bool:
-        return self._check_for_violation(test_case, inputs, self.ignore_list)
+        return self._check_for_violation(test_case, inputs, self._ignore_list)
 
 
 class LabelRemovalPass(BaseInstructionMinimizationPass):
@@ -493,4 +493,4 @@ class FenceInsertionPass(BaseInstructionMinimizationPass):
         return instructions[:cursor] + ["lfence\n"] + instructions[cursor:]
 
     def verify_modification(self, test_case: TestCaseProgram, inputs: List[InputData]) -> bool:
-        return self._check_for_violation(test_case, inputs, self.ignore_list)
+        return self._check_for_violation(test_case, inputs, self._ignore_list)

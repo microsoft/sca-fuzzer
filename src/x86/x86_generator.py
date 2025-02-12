@@ -55,7 +55,7 @@ class _X86Printer(Printer):
     prologue_template = [".intel_syntax noprefix\n"]
     epilogue_template = [
         ".section .data.main\n",
-        ".test_case_exit:\n",
+        ".test_case_exit:nop\n",
     ]
 
     def __init__(self, target_desc: X86TargetDesc) -> None:
@@ -338,8 +338,8 @@ class _X86SandboxPass(Pass):
         self.target_desc = target_desc
         self.faults = faults
 
-        size_of_directly_accessible_memory = SandboxLayout.data_area_size(
-            DataArea.MAIN) + SandboxLayout.data_area_size(DataArea.FAULTY)
+        size_of_directly_accessible_memory = SandboxLayout.data_area_size(DataArea.MAIN) \
+            + SandboxLayout.data_area_size(DataArea.FAULTY)
         mask_width = int(math.log(size_of_directly_accessible_memory, 2))
         self.sandbox_address_mask = "0b" + "1" * mask_width
 
@@ -392,11 +392,11 @@ class _X86SandboxPass(Pass):
         mem_operands = instr.get_mem_operands(True)
         implicit_mem_operands = instr.get_mem_operands(
             include_explicit=False, include_implicit=True)
+
         mask = self.sandbox_address_mask
-        if "SSE" in instr.category \
-           and "movup" not in instr.name \
-           and "movdqu" not in instr.name \
-           and "lddqu" not in instr.name:
+        if any(op.width >= 256 for op in mem_operands):
+            mask = mask[:-5] + "0" * 5
+        elif any(op.width >= 128 for op in mem_operands):
             mask = mask[:-4] + "0" * 4
 
         # FIXME: broken type

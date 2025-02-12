@@ -564,10 +564,10 @@ class X86UnicornModel(UnicornModel):
             write_area(DataArea.FAULTY, actor_id, input_fragment['faulty'].tobytes())
 
             # - GPRs
-            # Note: Executor uses the GPR area to initialize registers, so we need to patch them
+            # Note: Executor uses the GPR area to initialize EFLAGS, so we need to patch them
             #      before writing them to the emulator to ensure consistency.
             input_fragment['gpr'][6] = patch_flags(input_fragment['gpr'][6])
-            input_fragment['gpr'][7] = np.uint64(self.layout.get_data_addr(DataArea.RSP_INIT, 0))
+            # input_fragment['gpr'][7] = np.uint64(self.layout.get_data_addr(DataArea.RSP_INIT, 0))
             write_area(DataArea.GPR, actor_id, input_fragment['gpr'].tobytes())
 
             # - SIMD
@@ -590,10 +590,13 @@ class X86UnicornModel(UnicornModel):
         # - initialize SIMD
         simd_values: List[int] = []
         for i, val in enumerate(input_fragment['simd']):
-            if i % 2 == 0:
+            if i % 4 == 0:
                 simd_values.append(int(val))
-            else:
+            elif i % 4 == 1:
                 simd_values[-1] |= int(val) << 64
+            else:
+                # Unicorn doesn't properly support YMM, so the upper 128 bits are ignored
+                continue
         for i, simd_value in enumerate(simd_values):
             em.reg_write(self._uc_target_desc.usable_simd128_registers[i], simd_value)
 

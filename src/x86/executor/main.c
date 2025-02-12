@@ -556,7 +556,13 @@ static int __init executor_init(void)
 
     // Check CPU vendor
     if (cpuinfo->x86_vendor != X86_VENDOR_INTEL && cpuinfo->x86_vendor != X86_VENDOR_AMD) {
-        printk(KERN_ERR "ERROR: x86_executor:  This CPU vendor is not supported\n");
+        printk(KERN_ERR "ERROR: x86_executor: This CPU vendor is not supported\n");
+        return -1;
+    }
+
+    // Check that the CPU supports the required features
+    if (!cpu_has(cpuinfo, X86_FEATURE_AVX) || !cpu_has(cpuinfo, X86_FEATURE_MMX)) {
+        printk(KERN_ERR "ERROR: x86_executor: Executor KM requires AVX\n");
         return -1;
     }
 

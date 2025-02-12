@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 # Custom Types
 # ==================================================================================================
 Vendor = Literal["Intel", "AMD", "Unknown"]
-RegSize = Literal[8, 16, 32, 64, 128]
+RegSize = Literal[8, 16, 32, 64, 128, 256]
 RegName = str
 RegNormalizedName = str
 RegUnicornID = int
@@ -117,6 +117,9 @@ class TargetDesc(ABC):
 
     branch_conditions: Dict[str, List[str]]
     """ Dictionary mapping branch instructions to their condition codes. """
+
+    mem_index_registers: List[RegName]
+    """ List of register that can be used as memory index registers. """
 
     @staticmethod
     @abstractmethod

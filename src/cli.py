@@ -448,7 +448,6 @@ def main() -> int:  # pylint: disable=r0911,r0912,r0915  # this function is nece
             enable_fence_pass=args.enable_fence_pass,
             enable_input_seq_pass=args.enable_input_seq_pass,
             enable_input_diff_pass=args.enable_input_diff_pass,
-            enable_source_analysis=args.enable_source_analysis,
             enable_comment_pass=args.enable_comment_pass,
         )
         return 0

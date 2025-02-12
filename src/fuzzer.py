@@ -135,6 +135,7 @@ class _RoundManager:
     def execute_stage(self, stage: RoundStage) -> None:
         """ Run a given stage of the fuzzing round """
         # pylint: disable=too-many-return-statements
+        # pylint: disable=too-many-branches
         # NOTE: This a selector function, so the large number of returns is justified
 
         if stage == "fast":
@@ -215,8 +216,18 @@ class _RoundManager:
             self._update_ignore_list()
 
     def _boost_inputs(self) -> None:
-        """ Trace the test case with the original inputs, collect taints, and use them to
-        generate boosted inputs """
+        """
+        Trace the test case with the original inputs, collect taints, and use them to
+        generate boosted inputs
+        """
+        # no need to taint track if we aren't going to boost
+        if CONF.inputs_per_class == 1:
+            self._non_boosted_ctraces = \
+                self.fuzzer.model.trace_test_case(self.org_inputs, self.conf.model_nesting)
+            self.boosted_inputs = self.org_inputs
+            return
+
+        # Normal case - boost the inputs
         self._non_boosted_ctraces, taints = \
             self.fuzzer.model.trace_test_case_with_taints(self.org_inputs, self.conf.model_nesting)
         self.boosted_inputs = self.fuzzer.input_gen.generate_boosted(self.org_inputs, taints,
@@ -363,6 +374,11 @@ class _RoundManager:
         self.fuzzer.arch_model.load_test_case(self.test_case)
         self.fuzzer.arch_executor.load_test_case(self.test_case)
 
+        # This function may be called standalone (see ArchitecturalFuzzer),
+        # in which case boosted_inputs are not yet set
+        if not self.boosted_inputs:
+            self.boosted_inputs = self.org_inputs
+
         # Collect architectural hardware traces
         try:
             htraces = self.fuzzer.arch_executor.trace_test_case(self.boosted_inputs, n_reps=1)
@@ -380,7 +396,7 @@ class _RoundManager:
         ctraces = self.fuzzer.arch_model.trace_test_case(self.boosted_inputs,
                                                          CONF.model_max_nesting)
         for ctrace in ctraces:
-            model_regs.append([v % (2**64 - 1) for v in ctrace.get_untyped()[:6]])
+            model_regs.append([v % (2**64) for v in ctrace.get_untyped()[:6]])
 
         # Debug outputs
         self.fuzzer.log.dbg_dump_architectural_traces(hardware_regs, model_regs)

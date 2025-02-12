@@ -194,8 +194,8 @@ class Conf:
 
     # ==============================================================================================
     # Contract Model
-    model: str = 'x86-unicorn'
-    """ model: """
+    model_backend: str = 'unicorn'
+    """ model_backend: The backend used to collect contract traces on generated test cases """
     contract_execution_clause: List[str] = ["seq"]
     """ contract_execution_clause: """
     contract_observation_clause: str = 'ct'
@@ -278,7 +278,7 @@ class Conf:
         "generator": ["random"],
         "instruction_set": ["x86-64"],
         "input_generator": ["random"],
-        "model": ["x86-unicorn"],
+        "model_backend": ["dummy", "unicorn", "dynamorio"],
         "contract_execution_clause": [
             "seq", "no_speculation", "seq-assist", "cond", "conditional_br_misprediction", "bpas",
             "nullinj-fault", "nullinj-assist", "delayed-exception-handling", "div-zero",
@@ -369,10 +369,19 @@ class Conf:
             if var == "actors":
                 self.set_actor_properties(value)
                 continue
+            if var == "instruction_categories":
+                backend = config_update.get("model_backend", self.model_backend)
+                if backend == "unicorn":
+                    options_name = "unicorn_instruction_categories"
+                elif backend == "dynamorio":
+                    options_name = "dr_instruction_categories"
+                else:
+                    options_name = "dr_instruction_categories"
+                self.safe_set(var, value, options_name)
 
             self.safe_set(var, value)
 
-    def safe_set(self, name: str, value: Any) -> None:
+    def safe_set(self, name: str, value: Any, options_name: str = "") -> None:
         assert name not in ["instruction_set"]
 
         # sanity checks
@@ -385,7 +394,10 @@ class Conf:
             raise ConfigException(f"Wrong type of the configuration variable {name}.\n"
                                   f"It's likely a typo in the configuration file.")
 
-        self._check_options(name, value)
+        if options_name:
+            self._check_options(options_name, value)
+        else:
+            self._check_options(name, value)
         setattr(self, name, value)
 
     def _check_options(self, name: str, value: Any) -> None:

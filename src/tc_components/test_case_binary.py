@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Dict, List, NamedTuple, Final, Optional
 
 from .instruction import Instruction
+from ..logs import error
 
 if TYPE_CHECKING:
     from .test_case_code import TestCaseProgram
@@ -131,3 +132,66 @@ class TestCaseBinary:
         """ Return the instruction map of the test case program """
         assert self._instruction_map is not None, "Instruction map has not been populated"
         return self._instruction_map
+
+    def save_rcbf(self, path: str) -> None:
+        """
+        Save the test case binary in the RCBF format
+        (see docs/devel/binary-formats.md for details).
+        :param path: The path to save the RCBF file to
+        """
+        assert self._obj_is_assembled, "Attempting to save an un-assembled object file"
+        actors = self._parent.get_actors(sorted_=True)
+        symbol_table = self.symbol_table()
+
+        # sanity check
+        if any(symbol.type_ < 0 for symbol in symbol_table):
+            error("attempt to use template as a test case")
+
+        # write the RCBF file
+        with open(path, 'wb') as f:
+            # header
+            f.write((len(actors)).to_bytes(8, byteorder='little'))  # n_actors
+            f.write((len(symbol_table)).to_bytes(8, byteorder='little'))  # n_symbols
+
+            # actor metadata
+            for actor in actors:
+                f.write((actor.get_id()).to_bytes(8, byteorder='little'))
+                f.write((actor.mode.value).to_bytes(8, byteorder='little'))
+                f.write((actor.privilege_level.value).to_bytes(8, byteorder='little'))
+                f.write((actor.data_properties).to_bytes(8, byteorder='little'))
+                f.write((actor.data_ept_properties).to_bytes(8, byteorder='little'))
+                f.write((0).to_bytes(8, byteorder='little'))  # unused
+
+            # symbol table (first functions sorted by argument, then macros sorted by actor+offset)
+            function_symbols = [s for s in symbol_table if s[2] == 0]
+            macro_symbols = [s for s in symbol_table if s[2] != 0]
+            for aid, s_offset, s_id, arg in sorted(function_symbols, key=lambda s: s.arg):
+                # print("function", s_id, aid, s_offset, arg)
+                f.write((aid).to_bytes(8, byteorder='little'))
+                f.write((s_offset).to_bytes(8, byteorder='little'))
+                f.write((s_id).to_bytes(8, byteorder='little'))
+                f.write((arg).to_bytes(8, byteorder='little'))
+            for aid, s_offset, s_id, arg in sorted(macro_symbols, key=lambda s: (s.sid, s.offset)):
+                # print("macro", aid, s_offset, s_id, arg)
+                f.write((aid).to_bytes(8, byteorder='little'))
+                f.write((s_offset).to_bytes(8, byteorder='little'))
+                f.write((s_id).to_bytes(8, byteorder='little'))
+                f.write((arg).to_bytes(8, byteorder='little'))
+
+            # section metadata
+            for actor in actors:
+                section_data = actor.code_section().get_elf_data()
+                # print("section\n")
+                f.write((section_data["id"]).to_bytes(8, byteorder='little'))
+                f.write((section_data["size"]).to_bytes(8, byteorder='little'))
+                f.write((0).to_bytes(8, byteorder='little'))
+
+            # code
+            with open(self.obj_path, 'rb') as bin_file:
+                for actor in actors:
+                    section_data = actor.code_section().get_elf_data()
+                    bin_file.seek(section_data["offset"])  # type: ignore
+                    # print(code, section.size)
+                    f.write(bin_file.read(section_data["size"]))
+
+            # print(self.obj_path, f.tell())

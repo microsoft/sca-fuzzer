@@ -84,26 +84,8 @@ static int __batch_input_parsing_start(const char *buf)
     return ret;
 }
 
-/// Parse the inputs sent via sysfs, according to the following format:
-///
-///     |-------------------------------------|
-///     | n_actors (uint64_t)                 | HEADER
-///     | n_inputs (uint64_t)                 |
-///     |-------------------------------------|
-///     | input_fragment_metadata_entry_t:    | METADATA
-///     |   - fragment_size (uint64_t)        |
-///     |   - permissions (uint64_t)          |
-///     |   - reserved (uint64_t)             |
-///     | x (n_actors * n_inputs)             |
-///     |-------------------------------------|
-///     | input:                              | DATA
-///     |   input_fragment_t:                 |
-///     |     - main_area (char *)            |
-///     |     - faulty_area (char *)          |
-///     |     - reg_init_region (char *)      |
-///     |   x n_actors                        |
-///     | x n_inputs                          |
-///     |-------------------------------------|
+/// Parse the inputs sent via sysfs in RDBF format
+/// (see docs/devel/binary-formats.md for the format description)
 ///
 ssize_t parse_input_buffer(const char *buf, size_t count, bool *finished)
 {

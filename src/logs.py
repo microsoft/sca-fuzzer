@@ -81,6 +81,12 @@ class _LoggingConfig:  # pylint: disable=too-few-public-methods  # because this 
 
     dbg_model_print_id: bool = True
 
+    _all_modes: List[str] = [
+        "info", "stat", "dbg_timestamp", "dbg_violation", "dbg_dump_htraces",
+        "dbg_dump_ctraces", "dbg_dump_traces_unlimited", "dbg_executor_raw", "dbg_model",
+        "dbg_coverage", "dbg_generator", "dbg_priming"
+    ]
+
     def __init__(self) -> None:
         self.__dict__ = self._borg_shared_state
         if not self._borg_shared_state:
@@ -92,16 +98,23 @@ class _LoggingConfig:  # pylint: disable=too-few-public-methods  # because this 
         """
         Function that adjust the logging configuration after
         a change has been made to the CONF object """
-
+        # Check that all entries in the config a valid
         for mode in CONF.logging_modes:
-            if not mode:
+            if not mode:  # skip empty values
                 continue
-            if getattr(self, mode, None) is None:
+            if mode not in self._all_modes:
                 error(f"Unknown value '{mode}' of config variable 'logging_modes'")
-            setattr(self, mode, True)
-            if "dbg" in mode:  # enable debug mode if any debug mode is enabled
-                self.debug = True
 
+        # Set the logging modes
+        self.debug = False
+        for mode in self._all_modes:
+            val = mode in CONF.logging_modes
+            setattr(self, mode, val)
+            if "dbg" in mode:
+                self.debug |= val
+
+        # Check if Python is not running in optimized mode if debugging is required
+        # (otherwise, the debug messages won't be printed)
         if not __debug__:
             dbg_required = any([
                 self.dbg_timestamp, self.dbg_model, self.dbg_coverage, self.dbg_dump_htraces,
@@ -313,7 +326,6 @@ class FuzzLogger:
             return
         if not self._conf.dbg_dump_htraces and not self._conf.dbg_dump_ctraces:
             return
-        print("dbg_dump_traces")
         if not htraces:  # might be empty due to tracing errors
             return
 
@@ -341,7 +353,7 @@ class FuzzLogger:
             if self._conf.dbg_dump_htraces:
                 colors = (HTRACE_R1_COL, HTRACE_R2_COL, COL_RESET) if CONF.color else ()
                 htrace_str = htraces[i].full_str('    ', *colors)
-                print(f"  HTr: {htrace_str}")
+                print(f"  HTr:\n{htrace_str}")
             if CONF.color and htraces[i].get_max_pfc()[0] > htraces[i].get_max_pfc()[1]:
                 print(f"  Feedback: {YELLOW}{htraces[i].get_max_pfc()}{COL_RESET}")
             else:
@@ -352,6 +364,8 @@ class FuzzLogger:
                                       model_regs: List[List[int]]) -> None:
         """ Print the architectural traces """
         if not __debug__:
+            return
+        if CONF.fuzzer != "architectural":
             return
         if not self._conf.dbg_dump_htraces and not self._conf.dbg_dump_ctraces:
             return
@@ -561,8 +575,9 @@ class GeneratorLogger:
         instructions_by_category: Dict[str, Set[str]] = {i.category: set() for i in instructions}
         for i in instructions:
             instructions_by_category[i.category].add(i.name)
+        n_instructions = sum(len(v) for v in instructions_by_category.values())
 
-        dbg("generator", "Instructions under test:")
+        dbg("generator", f"Instructions under test {n_instructions}:")
         for k, instruction_list in instructions_by_category.items():
             print("  - " + k + ": " + pformat(sorted(instruction_list), indent=4, compact=True))
         print("")

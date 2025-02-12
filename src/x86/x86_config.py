@@ -79,7 +79,7 @@ _option_values = {
         'reserved_bit',
         'randomized',
     ],
-    'instruction_categories': [
+    'unicorn_instruction_categories': [
         # Base x86 - user instructions
         "BASE-BINARY",
         "BASE-BITBYTE",
@@ -146,6 +146,106 @@ _option_values = {
         "VTX-VTX",
         "XSAVE-XSAVE",
     ],
+    "dr_instruction_categories": [
+        # Base x86 - user instructions
+        "BASE-BINARY",
+        "BASE-BITBYTE",
+        "BASE-CMOV",
+        "BASE-COND_BR",
+        "BASE-CONVERT",
+        "BASE-DATAXFER",
+        "BASE-FLAGOP",
+        "BASE-LOGICAL",
+        "BASE-MISC",
+        "BASE-NOP",
+        "BASE-POP",
+        "BASE-PUSH",
+        "BASE-SEMAPHORE",
+        "BASE-SETCC",
+        "BASE-STRINGOP",
+        "BASE-WIDENOP",
+
+        # Base x86 - system instructions
+        "BASE-INTERRUPT",
+        "BASE-ROTATE",
+        "BASE-SHIFT",
+        # "BASE-UNCOND_BR",   # Not supported: Complex control flow
+        # "BASE-CALL",        # Not supported: Complex control flow
+        # "BASE-RET",         # Not supported: Complex control flow
+        # "BASE-SEGOP",       # Not supported: System instructions
+        # "BASE-IO",          # Not supported: System instructions
+        # "BASE-IOSTRINGOP",  # Not supported: System instructions
+        # "BASE-SYSCALL",     # Not supported: System instructions
+        # "BASE-SYSRET",      # Not supported: System instructions
+        "BASE-SYSTEM",
+        "LONGMODE-CONVERT",
+        "LONGMODE-DATAXFER",
+        "LONGMODE-SEMAPHORE",
+        "LONGMODE-SYSCALL",
+        "LONGMODE-SYSRET",
+
+        "3DNOW_PREFETCH-PREFETCH",
+        "ADOX_ADCX-ADOX_ADCX",
+        "BASE-BINARY",
+        "BASE-BITBYTE",
+        "BASE-CMOV",
+        "BASE-COND_BR",
+        "BASE-CONVERT",
+        "BASE-DATAXFER",
+        "BASE-FLAGOP",
+        "BASE-LOGICAL",
+        "BASE-MISC",
+        "BASE-NOP",
+        "BASE-POP",
+        "BASE-PUSH",
+        "BASE-ROTATE",
+        "BASE-SEMAPHORE",
+        "BASE-SETCC",
+        "BASE-SHIFT",
+        "BASE-WIDENOP",
+        "LONGMODE-CONVERT",
+        "LONGMODE-DATAXFER",
+        "LONGMODE-POP",
+        "LONGMODE-PUSH",
+        "LONGMODE-SEMAPHORE",
+        "MMX-MMX",
+        "MMX-LOGICAL",
+        "MMX-DATAXFER",
+        "SSE2-MMX",
+        "SSE3-MMX",
+        "SSSE3-MMX",
+        "SSE-CONVERT",
+        "SSE-DATAXFER",
+        "SSE-MISC",
+        "SSE-PREFETCH",
+        "SSE-SSE",
+        "SSE2-CONVERT",
+        "SSE2-DATAXFER",
+        "SSE2-LOGICAL",
+        "SSE2-MISC",
+        "SSE2-SSE",
+        "SSE3-DATAXFER",
+        "SSE3-SSE",
+        "SSSE3-SSE",
+        "SSE4-LOGICAL",
+        "SSE4-SSE",
+        "AVX-AVX",
+        "AVX-BROADCAST",
+        "AVX-DATAXFER",
+        "AVX-LOGICAL",
+        "AVX-STTNI",
+        "AVX2-AVX2",
+        "AVX2-BROADCAST",
+        "AVX2-DATAXFER",
+        "AVX2-LOGICAL",
+        "AES-AES",
+        "AVXAES-AES",
+        "BMI1-BMI1",
+        "BMI2-BMI2",
+        "MOVBE-DATAXFER",
+        "LZCNT-LZCNT",
+        "PCLMULQDQ-PCLMULQDQ",
+    ],
 }
 
 # by default, we always handle page faults
@@ -184,11 +284,20 @@ _buggy_instructions: List[str] = [
     "cmpss",  # causes crash
     'cmppd',  # causes crash
     'cmpsd',  # causes crash
-    "movq2dq",  # requires MMX
-    'movdq2q',  # requires MMX
-    "rcpps",  # incorrect emulation
-    "rcpss",  # incorrect emulation
-    "maskmovdqu",  # incorrect emulation
+    'movq2dq',
+    'movdq2q',
+    'rcpps',  # incorrect emulation
+    'rcpss',  # incorrect emulation
+    #
+    'pcmpestriq',  # conflicting operand size modifiers
+    'pcmpestrmq',  # conflicting operand size modifiers
+    'vpcmpestriq',  # conflicting operand size modifiers
+    'vpcmpestrmq',  # conflicting operand size modifiers
+    #
+    'maskmovdqu',  # non-temp
+    'maskmovq',  # non-temp
+    'vmaskmovdqu',  # non-temp
+    'vmaskmovq',  # non-temp
 ]
 
 instruction_blocklist: List[str] = [
@@ -227,9 +336,11 @@ register_blocklist: List[str] = [
     'cr0', 'cr2', 'cr3', 'cr4', 'cr8',
     'dr0', 'dr1', 'dr2', 'dr3', 'dr4', 'dr5', 'dr6', 'dr7',
     "xcr0", "gdtr", "ldtr", "idtr", "tr", "fsbase", "gsbase", "msrs", "x87control", "tsc", "tscaux",
+    "mxcsr",
 
     # XMM8-15 are somehow broken in Unicorn
     "xmm8", "xmm9", "xmm10", "xmm11", "xmm12", "xmm13", "xmm14", "xmm15",
+    "ymm8", "ymm9", "ymm10", "ymm11", "ymm12", "ymm13", "ymm14", "ymm15",
 ]  # yapf: disable
 
 

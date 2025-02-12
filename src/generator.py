@@ -599,10 +599,10 @@ class _OperandGenerator:
         if spec.values:
             address_reg = random.choice(spec.values)
         else:
-            address_reg = random.choice(self.target_desc.registers_by_size[64])
+            address_reg = random.choice(self.target_desc.mem_index_registers)
         return MemoryOp(address_reg, spec.width, spec.src, spec.dest)
 
-    def _generate_imm_operand(self, spec: OperandSpec, _: Instruction) -> ImmediateOp:
+    def _generate_imm_operand(self, spec: OperandSpec, inst: Instruction) -> ImmediateOp:
         # generate bitmask
         if spec.values and spec.values[0] == "bitmask":
             # FIXME: this implementation always returns the same bitmask
@@ -610,16 +610,25 @@ class _OperandGenerator:
             value = str(pow(2, spec.width) - 2)
             return ImmediateOp(value, spec.width)
 
+        # generate from a predefined list
+        if spec.values and "[" not in spec.values[0]:
+            try:
+                options = [int(v) for v in spec.values]
+            except ValueError as e:
+                raise ValueError(f"Invalid IMM spec for instruction: {inst}") from e
+            value = str(random.choice(options))
+            return ImmediateOp(value, spec.width)
+
         # generate from a predefined range
         if spec.values:
-            assert "[" in spec.values[0], spec.values
+            assert "[" in spec.values[0], f"Invalid IMM spec for instruction: {inst}"
             range_ = spec.values[0][1:-1].split("-")
             if range_[0] == "":
                 range_ = range_[1:]
                 range_[0] = "-" + range_[0]
             assert len(range_) == 2
             value = str(random.randint(int(range_[0]), int(range_[1])))
-            ImmediateOp(value, spec.width)
+            return ImmediateOp(value, spec.width)
 
         # generate from width
         if spec.is_signed:
@@ -636,11 +645,11 @@ class _OperandGenerator:
 
     def _generate_agen_operand(self, spec: OperandSpec, __: Instruction) -> AgenOp:
         n_operands = random.randint(1, 3)
-        reg1 = random.choice(self.target_desc.registers_by_size[64])
+        reg1 = random.choice(self.target_desc.mem_index_registers)
         if n_operands == 1:
             return AgenOp(reg1, spec.width)
 
-        reg2 = random.choice(self.target_desc.registers_by_size[64])
+        reg2 = random.choice(self.target_desc.mem_index_registers)
         if n_operands == 2:
             return AgenOp(reg1 + " + " + reg2, spec.width)
 
