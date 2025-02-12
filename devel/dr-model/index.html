@@ -6,34 +6,34 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A security-oriented tool for detecting microarchitectural leaks in CPUs, such as Spectre and Meltdown.">
+        <meta name="description" content="A security-oriented tool for testing CPUs and detecting microarchitectural leaks like Spectre and Meltdown">
       
       
         <meta name="author" content="Microsoft">
       
       
-        <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/development/">
+        <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/devel/dr-model/">
       
       
-        <link rel="prev" href="../user/fuzzing-guide/">
+        <link rel="prev" href="../macros/">
       
       
-        <link rel="next" href="../how-revizor-works/">
+        <link rel="next" href="../binary-formats/">
       
       
-      <link rel="icon" href="../assets/ms_icon.png">
+      <link rel="icon" href="../../assets/ms_icon.png">
       <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.30">
     
     
       
-        <title>Developer Guide - Revizor</title>
+        <title>DynamoRIO backend - Revizor</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.3cba04c6.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.3cba04c6.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
       
       
 
@@ -52,7 +52,7 @@
       
     
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#development" class="md-skip">
+        <a href="#dynamorio-based-model-backend" class="md-skip">
           Skip to content
         </a>
       
@@ -90,9 +90,9 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="Revizor" class="md-header__button md-logo" aria-label="Revizor" data-md-component="logo">
+    <a href="../.." title="Revizor" class="md-header__button md-logo" aria-label="Revizor" data-md-component="logo">
       
-  <img src="../assets/ms_icon.png" alt="logo">
+  <img src="../../assets/ms_icon.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -109,7 +109,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Developer Guide
+              DynamoRIO backend
             
           </span>
         </div>
@@ -195,7 +195,7 @@
   
   
     <li class="md-tabs__item">
-      <a href=".." class="md-tabs__link">
+      <a href="../.." class="md-tabs__link">
         
   
     
@@ -212,7 +212,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../quick-start/" class="md-tabs__link">
+      <a href="../../quick-start/" class="md-tabs__link">
         
   
     
@@ -231,7 +231,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../user/cli/" class="md-tabs__link">
+        <a href="../../user/cli/" class="md-tabs__link">
           
   
   User Documentation
@@ -251,7 +251,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="./" class="md-tabs__link">
+        <a href="../development/" class="md-tabs__link">
           
   
   Developer Documentation
@@ -284,9 +284,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="Revizor" class="md-nav__button md-logo" aria-label="Revizor" data-md-component="logo">
+    <a href="../.." title="Revizor" class="md-nav__button md-logo" aria-label="Revizor" data-md-component="logo">
       
-  <img src="../assets/ms_icon.png" alt="logo">
+  <img src="../../assets/ms_icon.png" alt="logo">
 
     </a>
     Revizor
@@ -313,7 +313,7 @@
   
   
     <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -333,7 +333,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../quick-start/" class="md-nav__link">
+      <a href="../../quick-start/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -391,7 +391,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user/cli/" class="md-nav__link">
+      <a href="../../user/cli/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -412,7 +412,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user/modes/" class="md-nav__link">
+      <a href="../../user/modes/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -433,7 +433,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user/config/" class="md-nav__link">
+      <a href="../../user/config/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -454,7 +454,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user/minimization/" class="md-nav__link">
+      <a href="../../user/minimization/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -475,7 +475,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user/fuzzing-guide/" class="md-nav__link">
+      <a href="../../user/fuzzing-guide/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -543,118 +543,18 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    Developer Guide
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../development/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Developer Guide
+    Development Guidelines
   </span>
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#tests" class="md-nav__link">
-    <span class="md-ellipsis">
-      Tests
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#code-style" class="md-nav__link">
-    <span class="md-ellipsis">
-      Code Style
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#git-messages" class="md-nav__link">
-    <span class="md-ellipsis">
-      Git Messages
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Git Messages">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#scopes" class="md-nav__link">
-    <span class="md-ellipsis">
-      Scopes
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#types" class="md-nav__link">
-    <span class="md-ellipsis">
-      Types
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#git-branches" class="md-nav__link">
-    <span class="md-ellipsis">
-      Git Branches
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -706,6 +606,8 @@
                 
   
   
+    
+  
   
   
     
@@ -715,28 +617,28 @@
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_4" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_4" checked>
         
           
           <label class="md-nav__link" for="__nav_4_4" id="__nav_4_4_label" tabindex="0">
             
   
   <span class="md-ellipsis">
-    Executor-related Topics
+    Advanced Topics
   </span>
   
 
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_4_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_4_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_4_4">
             <span class="md-nav__icon md-icon"></span>
-            Executor-related Topics
+            Advanced Topics
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -772,7 +674,191 @@
         
   
   <span class="md-ellipsis">
-    Memory Layout
+    Test Case Sandbox
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../macros/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Macros
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    DynamoRIO backend
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    DynamoRIO backend
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#design-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Design Overview
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#python-adapter" class="md-nav__link">
+    <span class="md-ellipsis">
+      Python Adapter
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#test-case-loader" class="md-nav__link">
+    <span class="md-ellipsis">
+      Test Case Loader
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Test Case Loader">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dynamorio-tool" class="md-nav__link">
+    <span class="md-ellipsis">
+      DynamoRIO Tool
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#instrumentation-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      Instrumentation Components
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#execution-time-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      Execution-Time Components
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../binary-formats/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Binary Formats
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../code-generation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Test Case Code Generation
   </span>
   
 
@@ -824,46 +910,55 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#tests" class="md-nav__link">
+  <a href="#design-overview" class="md-nav__link">
     <span class="md-ellipsis">
-      Tests
+      Design Overview
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#code-style" class="md-nav__link">
+  <a href="#python-adapter" class="md-nav__link">
     <span class="md-ellipsis">
-      Code Style
+      Python Adapter
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#git-messages" class="md-nav__link">
+  <a href="#test-case-loader" class="md-nav__link">
     <span class="md-ellipsis">
-      Git Messages
+      Test Case Loader
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Git Messages">
+    <nav class="md-nav" aria-label="Test Case Loader">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#scopes" class="md-nav__link">
+  <a href="#dynamorio-tool" class="md-nav__link">
     <span class="md-ellipsis">
-      Scopes
+      DynamoRIO Tool
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#types" class="md-nav__link">
+  <a href="#instrumentation-components" class="md-nav__link">
     <span class="md-ellipsis">
-      Types
+      Instrumentation Components
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#execution-time-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      Execution-Time Components
     </span>
   </a>
   
@@ -871,15 +966,6 @@
         
       </ul>
     </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#git-branches" class="md-nav__link">
-    <span class="md-ellipsis">
-      Git Branches
-    </span>
-  </a>
   
 </li>
       
@@ -901,180 +987,62 @@
   
 
 
-<h1 id="development">Development</h1>
-<p>This page contains various bits of information helpful when developing and expanding Revizor.</p>
-<h2 id="tests">Tests</h2>
-<p>To run automated tests you will need to install a few more dependencies:</p>
-<ul>
-<li><a href="https://bats-core.readthedocs.io/en/latest/index.html">Bash Automated Testing System</a></li>
-<li><a href="https://mypy.readthedocs.io/en/latest/getting_started.html#installing-and-running-mypy">mypy</a></li>
-<li><a href="https://flake8.pycqa.org/en/latest/index.html">flake8</a></li>
-</ul>
-<p>With the dependencies installed, you can run the tests with:</p>
-<div class="highlight"><pre><span></span><code>./tests/runtests.sh
+<h1 id="dynamorio-based-model-backend">DynamoRIO-based Model Backend</h1>
+<p>This document describes the DynamoRIO-based model.
+As any other model, this backend is responsible for collecting contract traces for generated test cases.</p>
+<h2 id="design-overview">Design Overview</h2>
+<p>This backend is composed of several parts:
+The Python adapter (<code>src/model_dynamorio/model.py</code>) is responsible for receiving a test case from Revizor, transforming it into a format that can be executed by the backend, triggering the backend to execute the test case, and returning the collected contract traces to Revizor.
+The Test Case Loader (<code>src/model_dynamorio/adapter.c</code>) is a C program that loads a test case program and a single input into its memory, and simply executes its.
+The DynamoRIO components (<code>src/model_dynamorio/backend</code>) are executed together with the test case loader, and they instrument the loader binary to collect contract traces.
+These components can be roughly divided into the instrumentation-time components that are responsible for modifying the binary, and execution-time components that implement the model logic (i.e., the contract).</p>
+<p><a href="../../assets/dr-model.png"><img alt="DynamoRIO-based Model Backend" src="../../assets/dr-model.png" /></a></p>
+<h2 id="python-adapter">Python Adapter</h2>
+<p>Revizor communicates with the backend through a Python adapter (<code>src/model_dynamorio/model.py:DynamoRIOModel</code>).</p>
+<p>At the beginning of the fuzzing process, Revizor configures the backend by calling <code>configure_clauses</code> method.
+This configuration will be later passed down to the backend when the test case is executed.</p>
+<p>During the fuzzing process, Revizor sends test cases to the backend by calling <code>load_test_case</code> method, and then triggers the backend to execute the test case by calling <code>trace_test_case</code> method.
+Internally, <code>trace_test_case</code> will call the backend to execute the test case and collect the contract traces.
+The adapter will then parse the traces and return them back to the caller.</p>
+<p>The <code>trace_test_case</code> method implements the following algorithm:
+- Convert test case program and inputs into RCBF and RDBF files, respectively
+- For each input, call the test case loader with the RCBF and RDBF files. Attach the DynamoRIO backend to the call so that the binary instrumentation is performed:
+<div class="highlight"><pre><span></span><code>~/.local/dynamorio/drrun<span class="w"> </span>-c<span class="w"> </span>~/.local/dynamorio/libdr_model.so<span class="w"> </span>--tracer<span class="w"> </span>&lt;observation-clause&gt;<span class="w"> </span>--<span class="w"> </span>~/.local/dynamorio/adapter<span class="w"> </span>&lt;rcbf&gt;<span class="w"> </span>&lt;rdbf&gt;
 </code></pre></div>
-<p>Note that some of the acceptance tests are microarchitecture-dependent.
-These tests are labeled "Detection" (e.g., "Detection [spectre-type] Spectre V1; load variant"), and they may fail if the CPU under test does not have a given vulnerability.
-Generally, if a few of these tests fail, it is not a problem, but if all of them (or a significant portion) fail, it indicates an issue with the fuzzer.</p>
-<h2 id="code-style">Code Style</h2>
-<p>Please follow these coding standards when writing code for inclusion in Revizor.</p>
-<p>Python:</p>
-<ul>
-<li>Unless otherwise specified, follow PEP 8. But remember that PEP 8 is only a guide, so respect the style of the surrounding code as a primary goal.</li>
-<li>An exception to PEP 8 is our rules on line lengths. Don’t limit lines of code to 79 characters if it means the code looks significantly uglier or is harder to read. We allow up to 100 characters.</li>
-<li>All files should be formatted using the <code>flake8</code> auto-formatter. Use all default settings except for the line width (<code>--max-line-length 100</code>)</li>
-<li>The Python and C files use 4 spaces for indentation, and YAML uses 2 spaces.</li>
-<li>The project repository includes an .editorconfig file. We recommend using a text editor with EditorConfig support to avoid indentation and whitespace issues.</li>
-<li>Use underscores, not camelCase, for variable, function and method names (i.e. poll.get_unique_voters(), not poll.getUniqueVoters()).</li>
-<li>Use InitialCaps for class names (or for factory functions that return classes).</li>
-<li>In docstrings, follow PEP 257.</li>
-</ul>
-<p>C:</p>
-<ul>
-<li>All files should be formatted using the <code>clang-format</code>. The settings are included into the <code>.clang-format</code> files in the directories with C files. Just run the formatter with: <code>clang-format -i *.c</code></li>
-</ul>
-<p>Misc:</p>
-<ul>
-<li>Remove import statements that are no longer used when you change code. flake8 will identify these imports for you. If an unused import needs to remain for backwards-compatibility, mark the end of with # NOQA to silence the flake8 warning.</li>
-<li>Systematically remove all trailing whitespaces from your code as those add unnecessary bytes, add visual clutter to the patches and can also occasionally cause unnecessary merge conflicts. Some IDE’s can be configured to automatically remove them and most VCS tools can be set to highlight them in diff outputs.</li>
-</ul>
-<h2 id="git-messages">Git Messages</h2>
-<p>We practice the following conventions for commit messages:</p>
-<div class="highlight"><pre><span></span><code>&lt;scope&gt;: [&lt;type&gt;] &lt;subject&gt;
-</code></pre></div>
-<p>Where:</p>
-<ul>
-<li><code>&lt;scope&gt;</code>: The scope of the change.</li>
-<li><code>&lt;type&gt;</code>: The type of the change.</li>
-<li><code>&lt;subject&gt;</code>: A short description of the change.</li>
-</ul>
-<h3 id="scopes">Scopes</h3>
-<p>The following scopes are typical:</p>
-<table>
-<thead>
-<tr>
-<th>Scope</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>all</code></td>
-<td>Changes that affect the entire project (e.g., major refactoring)</td>
-</tr>
-<tr>
-<td><code>root</code></td>
-<td>Root directory changes (e.g., readme, git, author list)</td>
-</tr>
-<tr>
-<td><code>fuzz</code></td>
-<td>Changes to the core fuzzer algorithm.</td>
-</tr>
-<tr>
-<td><code>cli</code></td>
-<td>Changes to the command-line interface.</td>
-</tr>
-<tr>
-<td><code>exec</code></td>
-<td>Changes to the executor.</td>
-</tr>
-<tr>
-<td><code>model</code></td>
-<td>Changes to the model.</td>
-</tr>
-<tr>
-<td><code>analyser</code></td>
-<td>Changes to the analyser.</td>
-</tr>
-<tr>
-<td><code>mini</code></td>
-<td>Changes to the postprocessor (i.e., minimizer).</td>
-</tr>
-<tr>
-<td><code>gen</code></td>
-<td>Changes to the program generator</td>
-</tr>
-<tr>
-<td><code>input_gen</code></td>
-<td>Changes to the input generator</td>
-</tr>
-<tr>
-<td><code>tests</code></td>
-<td>Changes to the tests</td>
-</tr>
-<tr>
-<td><code>isa</code></td>
-<td>Changes to the ISA loader or to <code>get_spec</code> files</td>
-</tr>
-</tbody>
-</table>
-<p>If a commit covers several scopes, use the most relevant one.</p>
-<p>If a commit targets a specific architecture (e.g., x86), add the architecture to the scope (e.g., <code>fuzz/x86</code>).</p>
-<h3 id="types">Types</h3>
-<p>Use one of the following types:</p>
-<table>
-<thead>
-<tr>
-<th>Type</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>feat</code></td>
-<td>A new feature.</td>
-</tr>
-<tr>
-<td><code>fix</code></td>
-<td>A bug fix.</td>
-</tr>
-<tr>
-<td><code>docs</code></td>
-<td>Documentation changes.</td>
-</tr>
-<tr>
-<td><code>chore</code></td>
-<td>Changes to the build process or auxiliary tools.</td>
-</tr>
-<tr>
-<td><code>ft</code></td>
-<td>Fault tolerance changes (e.g., adding error handling or recovery mechanisms).</td>
-</tr>
-<tr>
-<td><code>refact</code></td>
-<td>Refactoring of the codebase. This includes code style change.</td>
-</tr>
-<tr>
-<td><code>perf</code></td>
-<td>Performance improvements.</td>
-</tr>
-<tr>
-<td><code>revert</code></td>
-<td>Reverts a previous commit.</td>
-</tr>
-</tbody>
-</table>
-<p>If possible, try to use only these types.
-If you need to use a different type, please discuss it with a maintainer.</p>
-<h2 id="git-branches">Git Branches</h2>
-<p>We practice the <a href="https://git-scm.com/docs/gitworkflows">git workflow</a>, with a few modifications.</p>
-<p>We use the following branches for graduation:</p>
-<ul>
-<li><code>main</code>: The latest release. This branch should always be stable, and it is the last branch to receive changes.</li>
-<li><code>main-fixes</code>: Commits that go in the next maintenance release. This branch is created from the last release branch.</li>
-<li><code>pre-release</code>: Stable commits that go in the next release.</li>
-<li><code>dev</code>: The development branch. This branch is the first to receive changes.</li>
-</ul>
-<p>Commits should be merged upwards:</p>
-<ul>
-<li><code>dev</code> -&gt; <code>pre-release</code> -&gt; <code>main</code></li>
-<li>In case of hot fixes, <code>main-fixes</code> -&gt; <code>main</code> AND <code>main-fixes</code> -&gt; <code>pre-release</code></li>
-</ul>
-<p>For working on unstable code (e.g., progress on features or bug fixes), use either forks or feature branches.
-Use forks if you are the only one working on the feature, and use a pull request to merge the changes back into the main repository.
-Use a feature branch if multiple people are working on the feature, in which case name the branch <code>feature-&lt;name&gt;</code> or <code>bugfix-&lt;name&gt;</code>, and make sure to branch from the <code>dev</code> branch.</p>
-<p>The only exception is the <code>gh-pages</code> branch, which is used for the project's website.
-This branch is used by automated tools and should never be used for development.</p>
+- Receive contract traces from the backend and convert them into <code>CTrace</code> objects
+- Return the list of collected <code>CTrace</code> objects to the caller (usually, <code>fuzzer.py</code>)</p>
+<h2 id="test-case-loader">Test Case Loader</h2>
+<p>Since the test cases produced by Revizor are raw binaries, they cannot be directly executed (e.g., they don't have <code>libc</code> linked).
+The test case loader (<code>src/model_dynamorio/adapter.c</code>) is a simple C program that fixes this issue by providing a wrapper around the test case binary.</p>
+<p>The loader implements the following algorithm:
+- Receive the test case binary and an input from the Python adapter via CLI arguments
+- Load the test case binary and the input into dedicated memory regions
+- Print the addresses of the test case and input memory regions (for trace normalization)
+- Initialize registers based on the input
+- Jump to the test case binary entry point
+- Return</p>
+<h3 id="dynamorio-tool">DynamoRIO Tool</h3>
+<p>The DynamoRIO tool (<code>src/model_dynamorio/backend</code>) is responsible for instrumenting the test case loader binary and collecting contract traces.</p>
+<h3 id="instrumentation-components">Instrumentation Components</h3>
+<p>The instrumentation components modify the binary of the test case loader by adding a call to the function <code>dispatch_callback</code> before every instruction in the binary (or more specifically, every instruction in the <code>test_case_entry</code> function of the loader).</p>
+<p>The tool interacts with DynamoRIO through the <code>model.cpp</code> module.
+This module registers an event for entering the <code>test_case_entry</code>, which triggers the start of instrumentation.
+The module also registers an event for every instruction in the <code>test_case_entry</code>, and the event in turn calls the <code>Dispatch::instrument_instruction()</code>.</p>
+<p>The <code>Dispatch</code> class implements the actual instrumentation logic.
+When the <code>instrument_instruction()</code> method is called, it inserts a clean call to the <code>dispatch_callback</code> function before the instruction.
+The call receives the PC and opcode of the instruction as arguments.
+DynamoRIO also automatically saves the complete register state before the call, thus making it available to <code>dispatch_callback</code>.</p>
+<h3 id="execution-time-components">Execution-Time Components</h3>
+<p>The execution-time components are responsible for implementing the contract logic, and are triggered by the <code>dispatch_callback</code> function.
+At the current state of the backend, the dispatch callback invokes only two classes, Tracer and Speculator, that implement the observation and execution clauses, respectively.</p>
+<p>Subclasses of <code>TracerABC</code> record contract-relevant information via <code>observe_instruction</code> and <code>observe_mem_access</code> methods.
+E.g., <code>TracerCT</code> implements <code>CT</code> observation clause by recording the PC of instructions upon <code>observe_instruction</code> and the address of memory accesses upon <code>observe_mem_access</code>.</p>
+<p>Subclasses of <code>SpeculatorABC</code> implement the contract speculation logic.
+E.g., <code>SpeculatorCond</code> implements <code>speculate_instruction</code>.
+When this method is called with a branch instruction, the class takes a checkpoint of the process state, flips the branch condition (i.e., modified <code>FLAGS</code> register), and continues the execution.
+During the simulated speculation, each call to <code>speculate_instruction</code> counts the number of executed instructions, and when the number reaches the limit (e.g., 256), the class restores the checkpoint and continues the execution from the original state. (Actually, the algorithm is more complex, but this is the general idea.)</p>
+<p>When the instrumentation ends (according to <code>model.cpp</code>), the tracer's <code>tracing_finalized</code> method is called, and the tracer prints the collected traces to <code>stdout</code> in a compressed binary format.
+The Python adapter picks up this output, decodes, and returns it to Revizor.</p>
 
 
 
@@ -1125,10 +1093,10 @@ This branch is used by automated tools and should never be used for development.
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.instant", "navigation.tabs", "search.share"], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.instant", "navigation.tabs", "search.share"], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.fe8b6f2b.min.js"></script>
+      <script src="../../assets/javascripts/bundle.fe8b6f2b.min.js"></script>
       
     
   </body>

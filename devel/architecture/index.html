@@ -12,13 +12,13 @@
         <meta name="author" content="Microsoft">
       
       
-        <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/user/cli/">
+        <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/devel/architecture/">
       
       
-        <link rel="prev" href="../../quick-start/">
+        <link rel="prev" href="../how-revizor-works/">
       
       
-        <link rel="next" href="../modes/">
+        <link rel="next" href="../registers/">
       
       
       <link rel="icon" href="../../assets/ms_icon.png">
@@ -26,7 +26,7 @@
     
     
       
-        <title>Command Line Interface - Revizor</title>
+        <title>Architecture Overview - Revizor</title>
       
     
     
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#command-line-interface" class="md-skip">
+        <a href="#revizor-architecture" class="md-skip">
           Skip to content
         </a>
       
@@ -109,7 +109,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Command Line Interface
+              Architecture Overview
             
           </span>
         </div>
@@ -227,13 +227,11 @@
         
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="./" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../user/cli/" class="md-tabs__link">
           
   
   User Documentation
@@ -247,11 +245,13 @@
         
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../../devel/development/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../development/" class="md-tabs__link">
           
   
   Developer Documentation
@@ -350,28 +350,23 @@
       
   
   
-    
   
   
-  
     
     
     
       
-        
-        
-      
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
             
   
   <span class="md-ellipsis">
@@ -382,7 +377,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             User Documentation
@@ -393,30 +388,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    Command Line Interface
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../user/cli/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -425,98 +400,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#modes" class="md-nav__link">
-    <span class="md-ellipsis">
-      Modes
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#fuzzing-mode" class="md-nav__link">
-    <span class="md-ellipsis">
-      Fuzzing Mode
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#template-fuzzing-mode" class="md-nav__link">
-    <span class="md-ellipsis">
-      Template Fuzzing Mode
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#reproduce-mode" class="md-nav__link">
-    <span class="md-ellipsis">
-      Reproduce Mode
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#minimize-mode" class="md-nav__link">
-    <span class="md-ellipsis">
-      Minimize Mode
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#stand-alone-trace-analysis-mode" class="md-nav__link">
-    <span class="md-ellipsis">
-      Stand-alone Trace Analysis Mode
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#stand-alone-generation-mode" class="md-nav__link">
-    <span class="md-ellipsis">
-      Stand-alone Generation Mode
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#download-instruction-set-specification" class="md-nav__link">
-    <span class="md-ellipsis">
-      Download Instruction Set Specification
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -529,7 +412,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../modes/" class="md-nav__link">
+      <a href="../../user/modes/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -550,7 +433,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../config/" class="md-nav__link">
+      <a href="../../user/config/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -571,7 +454,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../minimization/" class="md-nav__link">
+      <a href="../../user/minimization/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -592,7 +475,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../fuzzing-guide/" class="md-nav__link">
+      <a href="../../user/fuzzing-guide/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -617,23 +500,28 @@
       
   
   
+    
   
   
+  
     
     
     
-      
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
             
   
   <span class="md-ellipsis">
@@ -644,7 +532,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             Developer Documentation
@@ -658,7 +546,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../devel/development/" class="md-nav__link">
+      <a href="../development/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -679,7 +567,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../devel/how-revizor-works/" class="md-nav__link">
+      <a href="../how-revizor-works/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -697,10 +585,30 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../devel/architecture/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Architecture Overview
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -709,6 +617,173 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#test-case-program-generator" class="md-nav__link">
+    <span class="md-ellipsis">
+      Test Case (Program) Generator
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#input-generator" class="md-nav__link">
+    <span class="md-ellipsis">
+      Input Generator
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#model" class="md-nav__link">
+    <span class="md-ellipsis">
+      Model
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#executor" class="md-nav__link">
+    <span class="md-ellipsis">
+      Executor
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#analyser" class="md-nav__link">
+    <span class="md-ellipsis">
+      Analyser
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#revizor-modules-and-interfaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      Revizor Modules and Interfaces
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Revizor Modules and Interfaces">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#architecture-specific-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Architecture-specific Implementation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#abstract-test-case" class="md-nav__link">
+    <span class="md-ellipsis">
+      Abstract Test Case
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Abstract Test Case">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#operandspec" class="md-nav__link">
+    <span class="md-ellipsis">
+      OperandSpec
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#instructionspec" class="md-nav__link">
+    <span class="md-ellipsis">
+      InstructionSpec
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#operand" class="md-nav__link">
+    <span class="md-ellipsis">
+      Operand
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#instruction" class="md-nav__link">
+    <span class="md-ellipsis">
+      Instruction
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#basicblock" class="md-nav__link">
+    <span class="md-ellipsis">
+      BasicBlock
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#function" class="md-nav__link">
+    <span class="md-ellipsis">
+      Function
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#testcasedag" class="md-nav__link">
+    <span class="md-ellipsis">
+      TestCaseDAG
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -759,7 +834,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../devel/registers/" class="md-nav__link">
+      <a href="../registers/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -780,7 +855,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../devel/sandbox/" class="md-nav__link">
+      <a href="../sandbox/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -801,7 +876,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../devel/macros/" class="md-nav__link">
+      <a href="../macros/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -822,7 +897,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../devel/dr-model/" class="md-nav__link">
+      <a href="../dr-model/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -843,7 +918,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../devel/binary-formats/" class="md-nav__link">
+      <a href="../binary-formats/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -864,7 +939,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../devel/code-generation/" class="md-nav__link">
+      <a href="../code-generation/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -920,74 +995,149 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#modes" class="md-nav__link">
+  <a href="#test-case-program-generator" class="md-nav__link">
     <span class="md-ellipsis">
-      Modes
+      Test Case (Program) Generator
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#fuzzing-mode" class="md-nav__link">
+  <a href="#input-generator" class="md-nav__link">
     <span class="md-ellipsis">
-      Fuzzing Mode
+      Input Generator
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#template-fuzzing-mode" class="md-nav__link">
+  <a href="#model" class="md-nav__link">
     <span class="md-ellipsis">
-      Template Fuzzing Mode
+      Model
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#reproduce-mode" class="md-nav__link">
+  <a href="#executor" class="md-nav__link">
     <span class="md-ellipsis">
-      Reproduce Mode
+      Executor
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#minimize-mode" class="md-nav__link">
+  <a href="#analyser" class="md-nav__link">
     <span class="md-ellipsis">
-      Minimize Mode
+      Analyser
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#stand-alone-trace-analysis-mode" class="md-nav__link">
+  <a href="#revizor-modules-and-interfaces" class="md-nav__link">
     <span class="md-ellipsis">
-      Stand-alone Trace Analysis Mode
+      Revizor Modules and Interfaces
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Revizor Modules and Interfaces">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#architecture-specific-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Architecture-specific Implementation
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#stand-alone-generation-mode" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#abstract-test-case" class="md-nav__link">
     <span class="md-ellipsis">
-      Stand-alone Generation Mode
+      Abstract Test Case
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Abstract Test Case">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#operandspec" class="md-nav__link">
+    <span class="md-ellipsis">
+      OperandSpec
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#download-instruction-set-specification" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#instructionspec" class="md-nav__link">
     <span class="md-ellipsis">
-      Download Instruction Set Specification
+      InstructionSpec
     </span>
   </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#operand" class="md-nav__link">
+    <span class="md-ellipsis">
+      Operand
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#instruction" class="md-nav__link">
+    <span class="md-ellipsis">
+      Instruction
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#basicblock" class="md-nav__link">
+    <span class="md-ellipsis">
+      BasicBlock
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#function" class="md-nav__link">
+    <span class="md-ellipsis">
+      Function
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#testcasedag" class="md-nav__link">
+    <span class="md-ellipsis">
+      TestCaseDAG
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1009,147 +1159,158 @@
   
 
 
-<h1 id="command-line-interface">Command-Line Interface</h1>
-<p>Revizor is controlled via two interfaces: command line and configuration file.
-Command line arguments specify the mode of operation and set high-level parameters (e.g., file paths, number of fuzzing rounds).
-Configuration files specify details of the fuzzing campaign (e.g., the target contract, generation parameters, etc).</p>
-<p>This document describes the command-line interface.
-For information on configuration files, see the <a href="../config/">configuration documentation</a>.</p>
-<h2 id="modes">Modes</h2>
-<p>The command line options depend on the selected mode of operation (see <a href="../modes/">modes page</a> for their descriptions).
-To select a mode on the command-line, begin your command with:</p>
-<div class="highlight"><pre><span></span><code>rvzr<span class="w"> </span>MODE<span class="w"> </span><span class="c1"># ... arguments go here</span>
-
-<span class="c1"># Where MODE can be:</span>
-<span class="c1">#   fuzz            fuzzing mode</span>
-<span class="c1">#   tfuzz           template fuzzing mode</span>
-<span class="c1">#   reproduce       reproduce mode</span>
-<span class="c1">#   minimize        test case minimization mode</span>
-<span class="c1">#   analyse         stand-alone trace analysis mode</span>
-<span class="c1">#   generate        stand-alone generation mode</span>
-<span class="c1">#   download_spec   call the script that downloads the instruction set specification</span>
-</code></pre></div>
-<h2 id="fuzzing-mode">Fuzzing Mode</h2>
-<p>The following command-line arguments are supported in <code>fuzz</code> mode:</p>
-<div class="highlight"><pre><span></span><code>  -h, --help            show this help message and exit
-  -c CONFIG, --config CONFIG
-                        Path to the configuration file (YAML) that will be used during fuzzing.
-  -I INCLUDE_DIR, --include-dir INCLUDE_DIR
-                        Path to the directory containing configuration files that included by the main configuration file (received via --config).
-  -s INSTRUCTION_SET, --instruction-set INSTRUCTION_SET
-                        Path to the instruction set specification (JSON) file.
-  -n NUM_TEST_CASES, --num-test-cases NUM_TEST_CASES
-                        Number of test cases.
-  -i NUM_INPUTS, --num-inputs NUM_INPUTS
-                        Number of inputs per test case.
-  -w WORKING_DIRECTORY, --working-directory WORKING_DIRECTORY
-  -t TESTCASE, --testcase TESTCASE
-                        Use an existing test case [DEPRECATED - see reproduce]
-  --timeout TIMEOUT     Run fuzzing with a time limit [seconds]. No timeout when set to zero.
-  --nonstop             Don&#39;t stop after detecting an unexpected result
-  --save-violations SAVE_VIOLATIONS
-                        If set, store all detected violations in working directory.
-</code></pre></div>
-<h2 id="template-fuzzing-mode">Template Fuzzing Mode</h2>
-<p>The following command-line arguments are supported in <code>analyse</code> mode:</p>
-<div class="highlight"><pre><span></span><code>  -h, --help            show this help message and exit
-  -c CONFIG, --config CONFIG
-                        Path to the configuration file (YAML) that will be used during fuzzing.
-  -I INCLUDE_DIR, --include-dir INCLUDE_DIR
-                        Path to the directory containing configuration files that included by the main configuration file (received
-                        via --config).
-  -s INSTRUCTION_SET, --instruction-set INSTRUCTION_SET
-                        Path to the instruction set specification (JSON) file.
-  -n NUM_TEST_CASES, --num-test-cases NUM_TEST_CASES
-                        Number of test cases.
-  -i NUM_INPUTS, --num-inputs NUM_INPUTS
-                        Number of inputs per test case.
-  -w WORKING_DIRECTORY, --working-directory WORKING_DIRECTORY
-  -t TEMPLATE, --template TEMPLATE
-                        The template to use for generating test cases
-  --timeout TIMEOUT     Run fuzzing with a time limit [seconds]. No timeout when set to zero.
-  --nonstop             Don&#39;t stop after detecting an unexpected result
-  --save-violations SAVE_VIOLATIONS
-                        If set, store all detected violations in working directory.
-</code></pre></div>
-<h2 id="reproduce-mode">Reproduce Mode</h2>
-<p>The following command-line arguments are supported in <code>reproduce</code> mode:</p>
-<div class="highlight"><pre><span></span><code>  -h, --help            show this help message and exit
-  -c CONFIG, --config CONFIG
-                        Path to the configuration file (YAML) that will be used during fuzzing.
-  -I INCLUDE_DIR, --include-dir INCLUDE_DIR
-                        Path to the directory containing configuration files that included by the main configuration file (received
-                        via --config).
-  -s INSTRUCTION_SET, --instruction-set INSTRUCTION_SET
-                        Path to the instruction set specification (JSON) file.
-  -t TESTCASE, --testcase TESTCASE
-                        Path to the test case
-  -i [INPUTS ...], --inputs [INPUTS ...]
-                        Path to the directory with inputs
-  -n NUM_INPUTS, --num-inputs NUM_INPUTS
-                        Number of inputs per test case. [IGNORED if --input-dir is set]
-</code></pre></div>
-<h2 id="minimize-mode">Minimize Mode</h2>
-<p>The following command-line arguments are supported in <code>minimize</code> mode.
-See also the <a href="../minimization/">minimization documentation</a> for a list of available minimization passes.</p>
-<div class="highlight"><pre><span></span><code>  -h, --help            show this help message and exit
-  -c CONFIG, --config CONFIG
-                        Path to the configuration file (YAML) that will be used during fuzzing.
-  -I INCLUDE_DIR, --include-dir INCLUDE_DIR
-                        Path to the directory containing configuration files that included by the main configuration file (received
-                        via --config).
-  -s INSTRUCTION_SET, --instruction-set INSTRUCTION_SET
-                        Path to the instruction set specification (JSON) file.
-  --testcase TESTCASE, -t TESTCASE
-                        Path to the test case program that needs to be minimized.
-  -i NUM_INPUTS, --num-inputs NUM_INPUTS
-                        Number of inputs to the program that will be used during minimization.
-  --testcase-outfile TESTCASE_OUTFILE, -o TESTCASE_OUTFILE
-                        Output path for the minimized test case program.
-  --input-outdir INPUT_OUTDIR
-                        Output directory for storing minimized inputs.
-  --num-attempts NUM_ATTEMPTS
-                        Number of attempts to minimize the test case.
-  --enable-&lt;pass&gt;       Enable a specific pass during minimization.
-</code></pre></div>
-<h2 id="stand-alone-trace-analysis-mode">Stand-alone Trace Analysis Mode</h2>
-<p>The following command-line arguments are supported in <code>analyse</code> mode:</p>
-<div class="highlight"><pre><span></span><code>  -h, --help            show this help message and exit
-  -c CONFIG, --config CONFIG
-                        Path to the configuration file (YAML) that will be used during fuzzing.
-  -I INCLUDE_DIR, --include-dir INCLUDE_DIR
-                        Path to the directory containing configuration files that included by the main configuration file (received
-                        via --config).
-  -s INSTRUCTION_SET, --instruction-set INSTRUCTION_SET
-                        Path to the instruction set specification (JSON) file.
-  --ctraces CTRACES
-  --htraces HTRACES
-</code></pre></div>
-<h2 id="stand-alone-generation-mode">Stand-alone Generation Mode</h2>
-<p>The following command-line arguments are supported in <code>generate</code> mode:</p>
-<div class="highlight"><pre><span></span><code>  -h, --help            show this help message and exit
-  -c CONFIG, --config CONFIG
-                        Path to the configuration file (YAML) that will be used during fuzzing.
-  -I INCLUDE_DIR, --include-dir INCLUDE_DIR
-                        Path to the directory containing configuration files that included by the main configuration file (received
-                        via --config).
-  -s INSTRUCTION_SET, --instruction-set INSTRUCTION_SET
-                        Path to the instruction set specification (JSON) file.
-  -r SEED, --seed SEED  Add seed to generate test case.
-  -n NUM_TEST_CASES, --num-test-cases NUM_TEST_CASES
-                        Number of test cases.
-  -i NUM_INPUTS, --num-inputs NUM_INPUTS
-                        Number of inputs per test case.
-  -w WORKING_DIRECTORY, --working-directory WORKING_DIRECTORY
-  --permit-overwrite    Permit overwriting existing files.
-</code></pre></div>
-<h2 id="download-instruction-set-specification">Download Instruction Set Specification</h2>
-<p>The following command-line arguments are supported in <code>download_spec</code> mode:</p>
-<div class="highlight"><pre><span></span><code>  -h, --help            show this help message and exit
-  -a ARCHITECTURE, --architecture ARCHITECTURE   The ISA to download the specification for (e.g., x86-64)
-  --outfile OUTFILE, -o OUTFILE   The destination file to save the downloaded specification.
-  --extensions [EXTENSIONS ...]   List of ISA extensions to include in the specification (e.g., SSE, VTX)
-</code></pre></div>
+<h1 id="revizor-architecture">Revizor Architecture</h1>
+<p>Below is a high-level overview of Revizor's architecture and its key modules.</p>
+<p>[THE FOLLOWING IS A WORK IN PROGRESS]</p>
+<p><img alt="architecture" src="../../assets/arch.png" /></p>
+<p>Revizor has <strong>five</strong> chief components:</p>
+<ol>
+<li>Test Case Generator</li>
+<li>Input Generator</li>
+<li>Model</li>
+<li>Executor</li>
+<li>Analyser</li>
+</ol>
+<p>The <strong>Test Case Generator</strong> and <strong>Input Generator</strong> are responsible for
+generating random test cases to be run through the <strong>Model</strong> and <strong>Executor</strong>.
+The results are examined by the <strong>Analyser</strong> for contract violations.</p>
+<h3 id="test-case-program-generator">Test Case (Program) Generator</h3>
+<p>The TCG is responsible for generating random assembly test cases. It takes an
+Instruction Set Specification as input in order for it to understand the
+instructions and syntax it can use for generation.</p>
+<h3 id="input-generator">Input Generator</h3>
+<p>The IG is responsible for generating the <em>inputs</em> that are passed into a test
+case created by the TCG. Largely, this means <strong>register</strong> and <strong>memory</strong> values
+that the microarchitecture will be primed with before executing the test case.
+In this way, a single test case program can be run across several different
+inputs, allowing for multiple contract traces (and later, hardware traces) to be
+collected for analysis.</p>
+<h3 id="model">Model</h3>
+<p>The Model's job is to accept test cases and inputs from the TCG &amp; IG and
+<em>emulate</em> the test case to collect <strong>contract traces</strong>. A single test case seeded
+with several inputs (<code>N</code> inputs) will create several contract traces (<code>N</code>
+contract traces) as the model's output. These are passed to the Analyser to
+determine <strong>input classes</strong>.</p>
+<h3 id="executor">Executor</h3>
+<p>The Executor, on the other side from the Model, is responsible for running the
+<em>same</em> test cases (with the <em>same</em> inputs) on physical hardware to collect
+<strong>hardware traces</strong>. Hardware traces from the same input class are collected and
+studied by the Analyser to detect <strong>contract violations</strong>.</p>
+<h3 id="analyser">Analyser</h3>
+<p>The Analyser receives contract traces from the Model and hardware traces from
+the Executor to accomplish two primary goals:</p>
+<ol>
+<li>Compare contract traces to set up <strong>input classes</strong>.</li>
+<li>Compare hardware traces to detect <strong>contract violations</strong>.</li>
+</ol>
+<h2 id="revizor-modules-and-interfaces">Revizor Modules and Interfaces</h2>
+<p>Revizor's implementation and <a href="./">architecture</a> is separated into
+multiple Python files:</p>
+<ul>
+<li><code>cli.py</code> - implements the command-line interface of revizor.</li>
+<li><code>config.py</code> - implements parsing and managing of revizor's YAML configuration
+  file.</li>
+<li><code>generator.py</code> - implements the <strong>Test Case Generator</strong> portion of
+  <a href="./">revizor's architecture</a>.</li>
+<li><code>input_generator.py</code> - implements the <strong>Input Generator</strong> portion of
+  <a href="./">revizor's architecture</a>.</li>
+<li><code>model.py</code> - implements the Unicorn-based <strong>Model</strong> portion of
+  <a href="./">revizor's architecture</a>.</li>
+<li><code>executor.py</code> - implements the <strong>Executor</strong> portion of
+  <a href="./">revizor's architecture</a>.</li>
+<li><code>analyser.py</code> - implements the <strong>Analyser</strong> portion of
+  <a href="./">revizor's architecture</a>.</li>
+<li><code>postprocessor.py</code> - defines the <code>MinimizerViolation</code> class, used during
+  <code>minimize</code> mode to reduce a violation-inducing test case down to a smaller
+  size while still maintaining the violation-inducing behavior.</li>
+<li><code>fuzzer.py</code> - implements <code>fuzz</code> mode that utilizes all main components to
+  perform end-to-end hardware fuzzing.</li>
+<li><code>factory.py</code> - used to configure revizor accordingly to the user provided
+  YAML configuration. Implements a simplified version of the Factory pattern:
+  Defines a series of dictionaries that allows revizor to choose
+  between various contract, generation techniques, executors, analysers, etc.
+  In future, it be also used to implement  multiple-ISA support.</li>
+<li><code>interfaces.py</code> - defines abstract classes (i.e., interfaces) of all main
+  components of revizor (e.g., abstract  <code>Executor</code>, <code>Model</code>, <code>TestCase</code>,
+   <code>Input</code>, etc)</li>
+<li><code>isa\_loader.py</code> - defines the <code>InstructionSet</code> class, used to load an
+  ISA's specifications from a JSON file provided via the
+  <a href="../../user/cli/">command-line interface</a>.</li>
+<li><code>service.py</code> - defines logging, statistical, and other services to all other
+  modules within revizor.</li>
+</ul>
+<h3 id="architecture-specific-implementation">Architecture-specific Implementation</h3>
+<p>The modules above are ISA-independent. The architecture-specific implementations
+are located in the subdirectories. For example, the implementation of the modules
+for the x86-64 architecture is located in <code>src/x86/</code>. It's structure largely
+mirrors the main modules of revizor (e.g., <code>x86_model.py</code> contains x86-specific
+parts of the <strong>Model</strong> module). The only unique parts are:</p>
+<ul>
+<li><code>*_target_desc.py</code> - defines constants describing the ISA (e.g., a list of
+  available registers) and some helper functions.</li>
+<li><code>get_spec.py</code> - a script for transforming the ISA description provided
+  by the CPU vendor (different for every vendor) into a unified JSON format</li>
+<li><code>executor/</code> - contains a low-level implementation of the executor. The
+  implementation will be different for each architecture. For black-box x86 CPUs,
+  it is a Linux kernel module.</li>
+</ul>
+<h3 id="abstract-test-case">Abstract Test Case</h3>
+<p>This describes a number of Python classes within revizor that define parts of an
+assembly test case. Revizor's TCG uses them to generate syntactically-valid
+assembly.</p>
+<h4 id="operandspec"><code>OperandSpec</code></h4>
+<p>The <code>OperandSpec</code> class defines a set of valid operands for any given assembly
+instruction. Each <code>InstructionSpec</code> object (described below) contains a list of
+these operand specifications. It contains properties such as:</p>
+<ul>
+<li>The <code>type</code> of operand</li>
+<li>The <code>width</code> of the operand</li>
+<li>Whether or not the operand is a <code>src</code> or <code>dest</code> operand</li>
+</ul>
+<h4 id="instructionspec"><code>InstructionSpec</code></h4>
+<p>This class represents a single instruction specification. It contains a name
+(i.e. the actual instruction mnemonic, such as <code>ADD</code>) and a list of
+<code>OperandSpec</code>s, defining valid operands for the instruction. It also has a
+number of boolean flags that indicate unique attributes about the instruction,
+such as:</p>
+<ul>
+<li>If the instruction contains a memory write</li>
+<li>If the instruction is a control-flow instruction</li>
+</ul>
+<h4 id="operand"><code>Operand</code></h4>
+<p>The <code>Operand</code> class defines an actual operand to be used in an instruction
+placed into the TCG's generated test case (not to be confused with
+<code>OperandSpec</code>, which is a set of rules used to define possible operand choices
+for an instruction). This is an <strong>abstract base class</strong> that provides a number
+of sub-classes:</p>
+<ul>
+<li><code>RegisterOperand</code></li>
+<li><code>MemoryOperand</code></li>
+<li><code>ImmediateOperand</code></li>
+<li><code>LabelOperand</code></li>
+<li><code>AgenOperand</code></li>
+<li><code>FlagsOperand</code></li>
+</ul>
+<h4 id="instruction"><code>Instruction</code></h4>
+<p>Similar to the relationship between <code>OperandSpec</code> and <code>Operand</code>, the
+<code>Instruction</code> class defines an actual instruction, constrained by an
+<code>InstructionSpec</code>, that is used during test case generation. It contains a list
+of <code>Operand</code>s and is linked to its neighboring instructions via object
+references.</p>
+<h4 id="basicblock"><code>BasicBlock</code></h4>
+<p>Thisi class represents a single basic block within the generated test case (a
+<strong>basic block</strong> is a straight-line sequence of assembly instructions that has a
+single entry and exit point). It contains a list of all instructions contained
+within, references to its successor basic block(s), and a list of "terminator"
+instructions (instructions that exit the basic block, such as a branch).</p>
+<h4 id="function"><code>Function</code></h4>
+<p>This object represents a collection of basic blocks that form a function. It has
+an "entry" basic block and an "exit" basic block, along with a list of all basic
+blocks that comprise the function.</p>
+<h4 id="testcasedag"><code>TestCaseDAG</code></h4>
+<p><strong>DAG</strong> is short for <strong>Directed Acyclic Graph</strong>. This object represents the
+<em>entire</em> test case's control flow. It contains a list of functions that, within,
+define all instructions to be written out to the test case's assembly file.</p>
 
 
 

@@ -6,34 +6,34 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A security-oriented tool for detecting microarchitectural leaks in CPUs, such as Spectre and Meltdown.">
+        <meta name="description" content="A security-oriented tool for testing CPUs and detecting microarchitectural leaks like Spectre and Meltdown">
       
       
         <meta name="author" content="Microsoft">
       
       
-        <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/architecture/">
+        <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/devel/how-revizor-works/">
       
       
-        <link rel="prev" href="../how-revizor-works/">
+        <link rel="prev" href="../development/">
       
       
-        <link rel="next" href="../registers/">
+        <link rel="next" href="../architecture/">
       
       
-      <link rel="icon" href="../assets/ms_icon.png">
+      <link rel="icon" href="../../assets/ms_icon.png">
       <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.30">
     
     
       
-        <title>Architecture Overview - Revizor</title>
+        <title>How Revizor Works - Revizor</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.3cba04c6.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.3cba04c6.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
       
       
 
@@ -52,7 +52,7 @@
       
     
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#revizor-architecture" class="md-skip">
+        <a href="#how-revizor-works" class="md-skip">
           Skip to content
         </a>
       
@@ -90,9 +90,9 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="Revizor" class="md-header__button md-logo" aria-label="Revizor" data-md-component="logo">
+    <a href="../.." title="Revizor" class="md-header__button md-logo" aria-label="Revizor" data-md-component="logo">
       
-  <img src="../assets/ms_icon.png" alt="logo">
+  <img src="../../assets/ms_icon.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -109,7 +109,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Architecture Overview
+              How Revizor Works
             
           </span>
         </div>
@@ -195,7 +195,7 @@
   
   
     <li class="md-tabs__item">
-      <a href=".." class="md-tabs__link">
+      <a href="../.." class="md-tabs__link">
         
   
     
@@ -212,7 +212,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../quick-start/" class="md-tabs__link">
+      <a href="../../quick-start/" class="md-tabs__link">
         
   
     
@@ -231,7 +231,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../user/cli/" class="md-tabs__link">
+        <a href="../../user/cli/" class="md-tabs__link">
           
   
   User Documentation
@@ -284,9 +284,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="Revizor" class="md-nav__button md-logo" aria-label="Revizor" data-md-component="logo">
+    <a href="../.." title="Revizor" class="md-nav__button md-logo" aria-label="Revizor" data-md-component="logo">
       
-  <img src="../assets/ms_icon.png" alt="logo">
+  <img src="../../assets/ms_icon.png" alt="logo">
 
     </a>
     Revizor
@@ -313,7 +313,7 @@
   
   
     <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -333,7 +333,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../quick-start/" class="md-nav__link">
+      <a href="../../quick-start/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -391,7 +391,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user/cli/" class="md-nav__link">
+      <a href="../../user/cli/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -412,7 +412,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user/modes/" class="md-nav__link">
+      <a href="../../user/modes/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -433,7 +433,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user/config/" class="md-nav__link">
+      <a href="../../user/config/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -454,7 +454,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user/minimization/" class="md-nav__link">
+      <a href="../../user/minimization/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -475,7 +475,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user/fuzzing-guide/" class="md-nav__link">
+      <a href="../../user/fuzzing-guide/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -550,28 +550,7 @@
         
   
   <span class="md-ellipsis">
-    Developer Guide
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../how-revizor-works/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    How Revizor Works
+    Development Guidelines
   </span>
   
 
@@ -601,7 +580,7 @@
           
   
   <span class="md-ellipsis">
-    Architecture Overview
+    How Revizor Works
   </span>
   
 
@@ -612,7 +591,7 @@
         
   
   <span class="md-ellipsis">
-    Architecture Overview
+    How Revizor Works
   </span>
   
 
@@ -634,137 +613,37 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#test-case-program-generator" class="md-nav__link">
+  <a href="#revizor-in-a-nutshell" class="md-nav__link">
     <span class="md-ellipsis">
-      Test Case (Program) Generator
+      Revizor in a nutshell
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#input-generator" class="md-nav__link">
+  <a href="#speculation-contracts" class="md-nav__link">
     <span class="md-ellipsis">
-      Input Generator
+      Speculation Contracts
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#model" class="md-nav__link">
-    <span class="md-ellipsis">
-      Model
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#executor" class="md-nav__link">
-    <span class="md-ellipsis">
-      Executor
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#analyser" class="md-nav__link">
-    <span class="md-ellipsis">
-      Analyser
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#revizor-modules-and-interfaces" class="md-nav__link">
-    <span class="md-ellipsis">
-      Revizor Modules and Interfaces
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Revizor Modules and Interfaces">
+    <nav class="md-nav" aria-label="Speculation Contracts">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#architecture-specific-implementation" class="md-nav__link">
+  <a href="#microarchitectural-leakage-and-hardware-traces" class="md-nav__link">
     <span class="md-ellipsis">
-      Architecture-specific Implementation
+      Microarchitectural Leakage and Hardware Traces
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#abstract-test-case" class="md-nav__link">
+  <a href="#whats-a-speculation-contract" class="md-nav__link">
     <span class="md-ellipsis">
-      Abstract Test Case
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Abstract Test Case">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#operandspec" class="md-nav__link">
-    <span class="md-ellipsis">
-      OperandSpec
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#instructionspec" class="md-nav__link">
-    <span class="md-ellipsis">
-      InstructionSpec
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#operand" class="md-nav__link">
-    <span class="md-ellipsis">
-      Operand
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#instruction" class="md-nav__link">
-    <span class="md-ellipsis">
-      Instruction
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#basicblock" class="md-nav__link">
-    <span class="md-ellipsis">
-      BasicBlock
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#function" class="md-nav__link">
-    <span class="md-ellipsis">
-      Function
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#testcasedag" class="md-nav__link">
-    <span class="md-ellipsis">
-      TestCaseDAG
+      What's a Speculation Contract?
     </span>
   </a>
   
@@ -774,9 +653,22 @@
     </nav>
   
 </li>
-        
-      </ul>
-    </nav>
+      
+        <li class="md-nav__item">
+  <a href="#model-based-relational-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Model-based Relational Testing
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#revizor" class="md-nav__link">
+    <span class="md-ellipsis">
+      Revizor
+    </span>
+  </a>
   
 </li>
       
@@ -784,6 +676,27 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Architecture Overview
+  </span>
+  
+
+      </a>
     </li>
   
 
@@ -813,7 +726,7 @@
             
   
   <span class="md-ellipsis">
-    Executor-related Topics
+    Advanced Topics
   </span>
   
 
@@ -823,7 +736,7 @@
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_4_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_4_4">
             <span class="md-nav__icon md-icon"></span>
-            Executor-related Topics
+            Advanced Topics
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -859,7 +772,91 @@
         
   
   <span class="md-ellipsis">
-    Memory Layout
+    Test Case Sandbox
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../macros/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Macros
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dr-model/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    DynamoRIO backend
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../binary-formats/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Binary Formats
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../code-generation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Test Case Code Generation
   </span>
   
 
@@ -911,137 +908,37 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#test-case-program-generator" class="md-nav__link">
+  <a href="#revizor-in-a-nutshell" class="md-nav__link">
     <span class="md-ellipsis">
-      Test Case (Program) Generator
+      Revizor in a nutshell
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#input-generator" class="md-nav__link">
+  <a href="#speculation-contracts" class="md-nav__link">
     <span class="md-ellipsis">
-      Input Generator
+      Speculation Contracts
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#model" class="md-nav__link">
-    <span class="md-ellipsis">
-      Model
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#executor" class="md-nav__link">
-    <span class="md-ellipsis">
-      Executor
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#analyser" class="md-nav__link">
-    <span class="md-ellipsis">
-      Analyser
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#revizor-modules-and-interfaces" class="md-nav__link">
-    <span class="md-ellipsis">
-      Revizor Modules and Interfaces
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Revizor Modules and Interfaces">
+    <nav class="md-nav" aria-label="Speculation Contracts">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#architecture-specific-implementation" class="md-nav__link">
+  <a href="#microarchitectural-leakage-and-hardware-traces" class="md-nav__link">
     <span class="md-ellipsis">
-      Architecture-specific Implementation
+      Microarchitectural Leakage and Hardware Traces
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#abstract-test-case" class="md-nav__link">
+  <a href="#whats-a-speculation-contract" class="md-nav__link">
     <span class="md-ellipsis">
-      Abstract Test Case
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Abstract Test Case">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#operandspec" class="md-nav__link">
-    <span class="md-ellipsis">
-      OperandSpec
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#instructionspec" class="md-nav__link">
-    <span class="md-ellipsis">
-      InstructionSpec
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#operand" class="md-nav__link">
-    <span class="md-ellipsis">
-      Operand
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#instruction" class="md-nav__link">
-    <span class="md-ellipsis">
-      Instruction
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#basicblock" class="md-nav__link">
-    <span class="md-ellipsis">
-      BasicBlock
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#function" class="md-nav__link">
-    <span class="md-ellipsis">
-      Function
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#testcasedag" class="md-nav__link">
-    <span class="md-ellipsis">
-      TestCaseDAG
+      What's a Speculation Contract?
     </span>
   </a>
   
@@ -1051,9 +948,22 @@
     </nav>
   
 </li>
-        
-      </ul>
-    </nav>
+      
+        <li class="md-nav__item">
+  <a href="#model-based-relational-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Model-based Relational Testing
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#revizor" class="md-nav__link">
+    <span class="md-ellipsis">
+      Revizor
+    </span>
+  </a>
   
 </li>
       
@@ -1075,158 +985,133 @@
   
 
 
-<h1 id="revizor-architecture">Revizor Architecture</h1>
-<p>Below is a high-level overview of Revizor's architecture and its key modules.</p>
-<p>[THE FOLLOWING IS A WORK IN PROGRESS]</p>
-<p><img alt="architecture" src="../assets/arch.png" /></p>
-<p>Revizor has <strong>five</strong> chief components:</p>
-<ol>
-<li>Test Case Generator</li>
-<li>Input Generator</li>
-<li>Model</li>
-<li>Executor</li>
-<li>Analyser</li>
-</ol>
-<p>The <strong>Test Case Generator</strong> and <strong>Input Generator</strong> are responsible for
-generating random test cases to be run through the <strong>Model</strong> and <strong>Executor</strong>.
-The results are examined by the <strong>Analyser</strong> for contract violations.</p>
-<h3 id="test-case-program-generator">Test Case (Program) Generator</h3>
-<p>The TCG is responsible for generating random assembly test cases. It takes an
-Instruction Set Specification as input in order for it to understand the
-instructions and syntax it can use for generation.</p>
-<h3 id="input-generator">Input Generator</h3>
-<p>The IG is responsible for generating the <em>inputs</em> that are passed into a test
-case created by the TCG. Largely, this means <strong>register</strong> and <strong>memory</strong> values
-that the microarchitecture will be primed with before executing the test case.
-In this way, a single test case program can be run across several different
-inputs, allowing for multiple contract traces (and later, hardware traces) to be
-collected for analysis.</p>
-<h3 id="model">Model</h3>
-<p>The Model's job is to accept test cases and inputs from the TCG &amp; IG and
-<em>emulate</em> the test case to collect <strong>contract traces</strong>. A single test case seeded
-with several inputs (<code>N</code> inputs) will create several contract traces (<code>N</code>
-contract traces) as the model's output. These are passed to the Analyser to
-determine <strong>input classes</strong>.</p>
-<h3 id="executor">Executor</h3>
-<p>The Executor, on the other side from the Model, is responsible for running the
-<em>same</em> test cases (with the <em>same</em> inputs) on physical hardware to collect
-<strong>hardware traces</strong>. Hardware traces from the same input class are collected and
-studied by the Analyser to detect <strong>contract violations</strong>.</p>
-<h3 id="analyser">Analyser</h3>
-<p>The Analyser receives contract traces from the Model and hardware traces from
-the Executor to accomplish two primary goals:</p>
-<ol>
-<li>Compare contract traces to set up <strong>input classes</strong>.</li>
-<li>Compare hardware traces to detect <strong>contract violations</strong>.</li>
-</ol>
-<h2 id="revizor-modules-and-interfaces">Revizor Modules and Interfaces</h2>
-<p>Revizor's implementation and <a href="./">architecture</a> is separated into
-multiple Python files:</p>
-<ul>
-<li><code>cli.py</code> - implements the command-line interface of revizor.</li>
-<li><code>config.py</code> - implements parsing and managing of revizor's YAML configuration
-  file.</li>
-<li><code>generator.py</code> - implements the <strong>Test Case Generator</strong> portion of
-  <a href="./">revizor's architecture</a>.</li>
-<li><code>input_generator.py</code> - implements the <strong>Input Generator</strong> portion of
-  <a href="./">revizor's architecture</a>.</li>
-<li><code>model.py</code> - implements the Unicorn-based <strong>Model</strong> portion of
-  <a href="./">revizor's architecture</a>.</li>
-<li><code>executor.py</code> - implements the <strong>Executor</strong> portion of
-  <a href="./">revizor's architecture</a>.</li>
-<li><code>analyser.py</code> - implements the <strong>Analyser</strong> portion of
-  <a href="./">revizor's architecture</a>.</li>
-<li><code>postprocessor.py</code> - defines the <code>MinimizerViolation</code> class, used during
-  <code>minimize</code> mode to reduce a violation-inducing test case down to a smaller
-  size while still maintaining the violation-inducing behavior.</li>
-<li><code>fuzzer.py</code> - implements <code>fuzz</code> mode that utilizes all main components to
-  perform end-to-end hardware fuzzing.</li>
-<li><code>factory.py</code> - used to configure revizor accordingly to the user provided
-  YAML configuration. Implements a simplified version of the Factory pattern:
-  Defines a series of dictionaries that allows revizor to choose
-  between various contract, generation techniques, executors, analysers, etc.
-  In future, it be also used to implement  multiple-ISA support.</li>
-<li><code>interfaces.py</code> - defines abstract classes (i.e., interfaces) of all main
-  components of revizor (e.g., abstract  <code>Executor</code>, <code>Model</code>, <code>TestCase</code>,
-   <code>Input</code>, etc)</li>
-<li><code>isa\_loader.py</code> - defines the <code>InstructionSet</code> class, used to load an
-  ISA's specifications from a JSON file provided via the
-  <a href="../user/cli/">command-line interface</a>.</li>
-<li><code>service.py</code> - defines logging, statistical, and other services to all other
-  modules within revizor.</li>
-</ul>
-<h3 id="architecture-specific-implementation">Architecture-specific Implementation</h3>
-<p>The modules above are ISA-independent. The architecture-specific implementations
-are located in the subdirectories. For example, the implementation of the modules
-for the x86-64 architecture is located in <code>src/x86/</code>. It's structure largely
-mirrors the main modules of revizor (e.g., <code>x86_model.py</code> contains x86-specific
-parts of the <strong>Model</strong> module). The only unique parts are:</p>
-<ul>
-<li><code>*_target_desc.py</code> - defines constants describing the ISA (e.g., a list of
-  available registers) and some helper functions.</li>
-<li><code>get_spec.py</code> - a script for transforming the ISA description provided
-  by the CPU vendor (different for every vendor) into a unified JSON format</li>
-<li><code>executor/</code> - contains a low-level implementation of the executor. The
-  implementation will be different for each architecture. For black-box x86 CPUs,
-  it is a Linux kernel module.</li>
-</ul>
-<h3 id="abstract-test-case">Abstract Test Case</h3>
-<p>This describes a number of Python classes within revizor that define parts of an
-assembly test case. Revizor's TCG uses them to generate syntactically-valid
-assembly. The classes are defined in <code>interfaces.py</code>.</p>
-<h4 id="operandspec"><code>OperandSpec</code></h4>
-<p>The <code>OperandSpec</code> class defines a set of valid operands for any given assembly
-instruction. Each <code>InstructionSpec</code> object (described below) contains a list of
-these operand specifications. It contains properties such as:</p>
-<ul>
-<li>The <code>type</code> of operand</li>
-<li>The <code>width</code> of the operand</li>
-<li>Whether or not the operand is a <code>src</code> or <code>dest</code> operand</li>
-</ul>
-<h4 id="instructionspec"><code>InstructionSpec</code></h4>
-<p>This class represents a single instruction specification. It contains a name
-(i.e. the actual instruction mnemonic, such as <code>ADD</code>) and a list of
-<code>OperandSpec</code>s, defining valid operands for the instruction. It also has a
-number of boolean flags that indicate unique attributes about the instruction,
-such as:</p>
-<ul>
-<li>If the instruction contains a memory write</li>
-<li>If the instruction is a control-flow instruction</li>
-</ul>
-<h4 id="operand"><code>Operand</code></h4>
-<p>The <code>Operand</code> class defines an actual operand to be used in an instruction
-placed into the TCG's generated test case (not to be confused with
-<code>OperandSpec</code>, which is a set of rules used to define possible operand choices
-for an instruction). This is an <strong>abstract base class</strong> that provides a number
-of sub-classes:</p>
-<ul>
-<li><code>RegisterOperand</code></li>
-<li><code>MemoryOperand</code></li>
-<li><code>ImmediateOperand</code></li>
-<li><code>LabelOperand</code></li>
-<li><code>AgenOperand</code></li>
-<li><code>FlagsOperand</code></li>
-</ul>
-<h4 id="instruction"><code>Instruction</code></h4>
-<p>Similar to the relationship between <code>OperandSpec</code> and <code>Operand</code>, the
-<code>Instruction</code> class defines an actual instruction, constrained by an
-<code>InstructionSpec</code>, that is used during test case generation. It contains a list
-of <code>Operand</code>s and is linked to its neighboring instructions via object
-references.</p>
-<h4 id="basicblock"><code>BasicBlock</code></h4>
-<p>Thisi class represents a single basic block within the generated test case (a
-<strong>basic block</strong> is a straight-line sequence of assembly instructions that has a
-single entry and exit point). It contains a list of all instructions contained
-within, references to its successor basic block(s), and a list of "terminator"
-instructions (instructions that exit the basic block, such as a branch).</p>
-<h4 id="function"><code>Function</code></h4>
-<p>This object represents a collection of basic blocks that form a function. It has
-an "entry" basic block and an "exit" basic block, along with a list of all basic
-blocks that comprise the function.</p>
-<h4 id="testcasedag"><code>TestCaseDAG</code></h4>
-<p><strong>DAG</strong> is short for <strong>Directed Acyclic Graph</strong>. This object represents the
-<em>entire</em> test case's control flow. It contains a list of functions that, within,
-define all instructions to be written out to the test case's assembly file.</p>
+<h1 id="how-revizor-works">How Revizor works</h1>
+<!-- Table of Contents:
+- [How Revizor works](#how-revizor-works)
+  - [Revizor in a nutshell](#revizor-in-a-nutshell)
+  - [Speculation Contracts](#speculation-contracts)
+    - [Microarchitectural Leakage and Hardware Traces](#microarchitectural-leakage-and-hardware-traces)
+    - [What's a Speculation Contract?](#whats-a-speculation-contract)
+  - [Model-based Relational Testing](#model-based-relational-testing)
+  - [Revizor](#revizor) -->
+
+<h2 id="revizor-in-a-nutshell">Revizor in a nutshell</h2>
+<p>Revizor is a tool for detecting unexpected microarchitectural leakage in CPUs.
+Microarchitectural leakage means the information that an attacker could learn by launching a microarchitectural side-channel attack (e.g., <a href="https://meltdownattack.com/">Spectre or Meltdown</a>).
+The <em>expected</em> microarchitectural leakage is the leakage that we already know about (i.e., known microarchitectural vulnerabilities).
+We describe the expected leakage in a form of a Speculation Contract (see below).
+Accordingly, the <em>unexpected</em> leakage is any leakage not described pby a contract - we call it a <em>contract violation</em>.
+Revizor's task is to find such violations.</p>
+<h2 id="speculation-contracts">Speculation Contracts</h2>
+<p>Below is a brief intro to Contracts. You can find a more detailed description in the <a href="https://arxiv.org/abs/2006.03841">original paper</a> and in the Background section of the <a href="https://arxiv.org/pdf/2105.06872.pdf">Revizor paper</a>.</p>
+<h3 id="microarchitectural-leakage-and-hardware-traces">Microarchitectural Leakage and Hardware Traces</h3>
+<p>Consider two programs, an attacker and a victim.
+The attacker launches a microarchitectural side-channel attack (e.g., a cache side channel) to spy on the victim and learn some of its data.
+A <em>hardware trace</em> is a sequence of all the observations made through this side-channel after each instruction during the victim's execution.
+In other words, hardware trace is the result for a side-channel attack.</p>
+<p>We abstractly represent the hardware trace as the output of a function</p>
+<p>𝐻𝑇𝑟𝑎𝑐𝑒 = 𝐴𝑡𝑡𝑎𝑐𝑘(𝑃𝑟𝑜𝑔,𝐷𝑎𝑡𝑎,𝐶𝑡𝑥)</p>
+<p>that takes three input parameters:
+(1) the victim program 𝑃𝑟𝑜𝑔;
+(2) the input 𝐷𝑎𝑡𝑎 processed by the victim’s program (i.e., the architectural state including registers and main memory);
+(3) the microarchitectural context 𝐶𝑡𝑥 in which it executes.
+The information exposed by a hardware trace depends on the assumed side-channel and threat model.</p>
+<p>Example: If the threat model includes attacks on a data cache, 𝐻𝑇𝑟𝑎𝑐𝑒 is composed of the cache set indexes used by 𝑃𝑟𝑜𝑔’s loads and stores.
+If it includes attacks on an instruction cache, 𝐻𝑇𝑟𝑎𝑐𝑒 contains the addresses of executed instructions.</p>
+<p>A program <em>leaks</em> information via side-channels when its hardware traces depend on the inputs (𝐷𝑎𝑡𝑎):
+We assume the attacker knows 𝑃𝑟𝑜𝑔 and can manipulate 𝐶𝑡𝑥, hence any difference between the hardware traces implies difference in 𝐷𝑎𝑡𝑎, which effectively exposes information to the attacker.</p>
+<h3 id="whats-a-speculation-contract">What's a Speculation Contract?</h3>
+<p>A speculation contract specifies the information that can be exposed by a CPU during a program execution under a given threat model.
+For each instruction in the CPU ISA (or a subset thereof), a contract describes the information exposed by the instruction’s (observation clause) and the externally-observable speculation that the instruction may trigger (execution clause).
+When a contract covers a subset of ISA, the leakage of unspecified instructions is undefined.</p>
+<p>Example: consider the contract summarized in the next table:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Observation Clause</th>
+<th>Execution Clause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Load</td>
+<td>Expose Address</td>
+<td>-</td>
+</tr>
+<tr>
+<td>Store</td>
+<td>Expose Address</td>
+<td>-</td>
+</tr>
+<tr>
+<td>Cond. Jump</td>
+<td>-</td>
+<td>Mispredict Target</td>
+</tr>
+<tr>
+<td>Other</td>
+<td>-</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<p>We call this contract MEM-COND.
+Through the observation clauses of loads and stores, the contract prescribes that addresses of all memory access may be exposed (hence MEM).
+The execution clause of conditional branches describes their misprediction, thus the contract prescribes that branch targets may be mispredicted (hence COND).
+This way, the contract models a data cache side channel on a CPU with branch prediction.</p>
+<p>A contract trace 𝐶𝑇𝑟𝑎𝑐𝑒 contains the sequence of all the observations the contract allows to be exposed after each instruction during a program execution, including the instructions executed speculatively.
+Conversely, the information that is not exposed via 𝐶𝑇𝑟𝑎𝑐𝑒 is supposed to be kept secret.</p>
+<p>We abstractly represent a contract as a function 𝐶𝑜𝑛𝑡𝑟𝑎𝑐𝑡 that maps the program 𝑃𝑟𝑜𝑔 and its input 𝐷𝑎𝑡𝑎 to a contract trace 𝐶𝑇𝑟𝑎𝑐𝑒:</p>
+<p>𝐶𝑇𝑟𝑎𝑐𝑒 = 𝐶𝑜𝑛𝑡𝑟𝑎𝑐𝑡(𝑃𝑟𝑜𝑔,𝐷𝑎𝑡𝑎)</p>
+<p>Example: Consider the following program:</p>
+<p><div class="highlight"><pre><span></span><code><span class="n">z</span> <span class="o">=</span> <span class="n">array1</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="c1"># base of array1 is 0x100</span>
+<span class="k">if</span> <span class="n">y</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">:</span>
+    <span class="n">z</span> <span class="o">=</span> <span class="n">array2</span><span class="p">[</span><span class="n">y</span><span class="p">]</span> <span class="c1"># base of array2 is 0x200</span>
+</code></pre></div>
+It is executed with an input <code>data={x=10,y=20}</code>.
+The MEM-COND contract trace is <code>ctrace=[0x110,0x220]</code>, representing that the load at line 1 exposes the accessed address during normal execution, and the load at line 3 exposes its address during speculative execution triggered by the branch at line 2.</p>
+<p>A CPU complies with a contract when its hardware traces (collected on the actual CPU) leak at most as much information as the contract traces.
+Formally, we require that whenever any two executions of any program have the same contract trace (implying the difference between inputs is not exposed), the respective hardware traces should also match.</p>
+<p>A CPU complies with a 𝐶𝑜𝑛𝑡𝑟𝑎𝑐𝑡 if, for all programs 𝑃𝑟𝑜𝑔, all input pairs (𝐷𝑎𝑡𝑎,𝐷𝑎𝑡𝑎′), and all initial microarchitectural states 𝐶𝑡𝑥:</p>
+<p>𝐶𝑜𝑛𝑡𝑟𝑎𝑐𝑡(𝑃𝑟𝑜𝑔,𝐷𝑎𝑡𝑎) = 𝐶𝑜𝑛𝑡𝑟𝑎𝑐𝑡(𝑃𝑟𝑜𝑔,𝐷𝑎𝑡𝑎′)
+-&gt; 𝐴𝑡𝑡𝑎𝑐𝑘(𝑃𝑟𝑜𝑔,𝐷𝑎𝑡𝑎,𝐶𝑡𝑥) = 𝐴𝑡𝑡𝑎𝑐𝑘(𝑃𝑟𝑜𝑔,𝐷𝑎𝑡𝑎′,𝐶𝑡𝑥)</p>
+<p>Conversely, a CPU violates a contract if there exists a program 𝑃𝑟𝑜𝑔, a microarchitectural state Ctx, and two inputs 𝐷𝑎𝑡𝑎,𝐷𝑎𝑡𝑎′ that agree on their contract traces but disagree on the hardware traces.
+We call the tuple (𝑃𝑟𝑜𝑔,𝐶𝑡𝑥,𝐷𝑎𝑡𝑎,𝐷𝑎𝑡𝑎′) a contract counterexample.
+The counterexample witnesses that an adversary can learn more information from hardware traces than what the contract specifies.
+A counterexample indicates a potential microarchitectural vulnerability that was not accounted for by the contract.</p>
+<h2 id="model-based-relational-testing">Model-based Relational Testing</h2>
+<p>To find contract violations, we use the following approach, which we call Model-based Relational Testing (MRT).</p>
+<p>The next figure show the main components of MRT:</p>
+<p><img alt="MRT" src="../../assets/arch.png" /></p>
+<p><strong>Test case and input generation</strong>.
+We sample the search space of programs, inputs and microarchitectural states to find counterexamples.
+The generated instruction sequences (test cases) are comprised of the ISA subset described by the contract.
+The test cases and respective inputs to them are generated to achieve high diversity and to increase speculation or leakage potential.</p>
+<p><strong>Collecting contract traces.</strong>
+We implement an executable Model of the contract to allow automatic collection of contract traces for standard binaries.
+For this, we modify a functional CPU emulator to implement speculative control flow based on a contract’s execution
+clause, and to record traces based on its observation clause.</p>
+<p><strong>Collecting hardware traces.</strong>
+We collect hardware traces by executing the test case on the CPU under test and measuring the observable microarchitectural state changes during the execution according to the threat model.
+The executor employs several methods to achieve consistent and repeatable measurements.</p>
+<p><strong>Relational Analysis.</strong>
+Based on the collected contract and hardware traces, we identify contract violations.
+Namely, we search for pairs of inputs that match the following:</p>
+<div class="highlight"><pre><span></span><code>ContractTrace1 == ContractTrace2
+               and
+HardwareTrace1 != HardwareTrace2
+</code></pre></div>
+<p>This requires relational reasoning:
+* We partition inputs into groups, which we call input classes.
+All inputs within a class have the same contract trace.
+Thus, input classes correspond to the equivalence classes of equality on contract traces.
+Classes with a single (ineffective) input are discarded.
+* For each class, we check if all inputs within a class have the same hardware trace.</p>
+<p>If the check fails on any of the classes, we found a counterexample that witnesses contract violation.</p>
+<h2 id="revizor">Revizor</h2>
+<p>Revizor implements the MRT approach for black-box CPUs.
+The implementation details are described in <a href="../architecture/">Revizor Architecture</a>.</p>
 
 
 
@@ -1277,10 +1162,10 @@ define all instructions to be written out to the test case's assembly file.</p>
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.instant", "navigation.tabs", "search.share"], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.instant", "navigation.tabs", "search.share"], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.fe8b6f2b.min.js"></script>
+      <script src="../../assets/javascripts/bundle.fe8b6f2b.min.js"></script>
       
     
   </body>

@@ -6,32 +6,34 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A security-oriented tool for detecting microarchitectural leaks in CPUs, such as Spectre and Meltdown.">
+        <meta name="description" content="A security-oriented tool for testing CPUs and detecting microarchitectural leaks like Spectre and Meltdown">
       
       
         <meta name="author" content="Microsoft">
       
       
-        <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/sandbox/">
+        <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/devel/binary-formats/">
       
       
-        <link rel="prev" href="../registers/">
+        <link rel="prev" href="../dr-model/">
       
       
+        <link rel="next" href="../code-generation/">
       
-      <link rel="icon" href="../assets/ms_icon.png">
+      
+      <link rel="icon" href="../../assets/ms_icon.png">
       <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.30">
     
     
       
-        <title>Memory Layout - Revizor</title>
+        <title>Binary Formats - Revizor</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.3cba04c6.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.3cba04c6.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
       
       
 
@@ -50,7 +52,7 @@
       
     
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -73,6 +75,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#binary-formats-in-revizor" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -83,9 +90,9 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="Revizor" class="md-header__button md-logo" aria-label="Revizor" data-md-component="logo">
+    <a href="../.." title="Revizor" class="md-header__button md-logo" aria-label="Revizor" data-md-component="logo">
       
-  <img src="../assets/ms_icon.png" alt="logo">
+  <img src="../../assets/ms_icon.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -102,7 +109,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Memory Layout
+              Binary Formats
             
           </span>
         </div>
@@ -188,7 +195,7 @@
   
   
     <li class="md-tabs__item">
-      <a href=".." class="md-tabs__link">
+      <a href="../.." class="md-tabs__link">
         
   
     
@@ -205,7 +212,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../quick-start/" class="md-tabs__link">
+      <a href="../../quick-start/" class="md-tabs__link">
         
   
     
@@ -224,7 +231,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../user/cli/" class="md-tabs__link">
+        <a href="../../user/cli/" class="md-tabs__link">
           
   
   User Documentation
@@ -277,9 +284,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="Revizor" class="md-nav__button md-logo" aria-label="Revizor" data-md-component="logo">
+    <a href="../.." title="Revizor" class="md-nav__button md-logo" aria-label="Revizor" data-md-component="logo">
       
-  <img src="../assets/ms_icon.png" alt="logo">
+  <img src="../../assets/ms_icon.png" alt="logo">
 
     </a>
     Revizor
@@ -306,7 +313,7 @@
   
   
     <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -326,7 +333,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../quick-start/" class="md-nav__link">
+      <a href="../../quick-start/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -384,7 +391,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user/cli/" class="md-nav__link">
+      <a href="../../user/cli/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -405,7 +412,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user/modes/" class="md-nav__link">
+      <a href="../../user/modes/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -426,7 +433,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user/config/" class="md-nav__link">
+      <a href="../../user/config/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -447,7 +454,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user/minimization/" class="md-nav__link">
+      <a href="../../user/minimization/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -468,7 +475,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user/fuzzing-guide/" class="md-nav__link">
+      <a href="../../user/fuzzing-guide/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -543,7 +550,7 @@
         
   
   <span class="md-ellipsis">
-    Developer Guide
+    Development Guidelines
   </span>
   
 
@@ -621,7 +628,7 @@
             
   
   <span class="md-ellipsis">
-    Executor-related Topics
+    Advanced Topics
   </span>
   
 
@@ -631,7 +638,7 @@
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_4_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_4_4">
             <span class="md-nav__icon md-icon"></span>
-            Executor-related Topics
+            Advanced Topics
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -660,6 +667,69 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../sandbox/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Test Case Sandbox
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../macros/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Macros
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dr-model/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    DynamoRIO backend
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -669,17 +739,88 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Binary Formats
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
       
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
-    Memory Layout
+    Binary Formats
   </span>
   
 
       </a>
       
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#revizor-code-binary-format-rcbf" class="md-nav__link">
+    <span class="md-ellipsis">
+      Revizor Code Binary Format (RCBF)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#revizor-data-binary-format-rdbf" class="md-nav__link">
+    <span class="md-ellipsis">
+      Revizor Data Binary Format (RDBF)
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../code-generation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Test Case Code Generation
+  </span>
+  
+
+      </a>
     </li>
   
 
@@ -717,6 +858,34 @@
   
   
   
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#revizor-code-binary-format-rcbf" class="md-nav__link">
+    <span class="md-ellipsis">
+      Revizor Code Binary Format (RCBF)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#revizor-data-binary-format-rdbf" class="md-nav__link">
+    <span class="md-ellipsis">
+      Revizor Data Binary Format (RDBF)
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -734,9 +903,81 @@
   
 
 
-  <h1>Memory Layout</h1>
-
-<p>UNDER CONSTRUCTION</p>
+<h1 id="binary-formats-in-revizor">Binary Formats in Revizor</h1>
+<p>This document describes the structure of the custom binary formats used by Revizor to transfer
+test cases and their data between different components. For example, these formats are used
+to pass generated test cases from the executor (python) class to the executor kernel module.</p>
+<p>Such custom formats are necessary because the components are implemented in different programming languages and different technologies, so passing objects directly is not possible. Using one of the standard formats (e.g., ELF) is also not an option because test cases in Revizor have special structure (e.g., multiple actors in different execution modes, some instructions are macros, etc.) and this structure is not supported by the standard formats.</p>
+<p>The formats are designed to as simple as possible to minimize the overhead of serialization and deserialization.</p>
+<h2 id="revizor-code-binary-format-rcbf">Revizor Code Binary Format (RCBF)</h2>
+<p>RCBF is a structured representation of the complete test case binary, together with its metadata.
+The structure is as follows:</p>
+<div class="highlight"><pre><span></span><code>|---------------------------------------|
+| n_actors (8 bytes)                    | HEADER       |
+| n_symbols (8 bytes)                   |
+| ------------------------------------- |
+| actor metadata:                       | ACTOR TABLE  |
+| - id (8 bytes)                        |
+| - mode (8 bytes)                      |
+| - pl (8 bytes)                        |
+| - data_permissions (8 bytes)          |
+| - data_ept_permissions (8 bytes)      |
+| - code_permissions (8 bytes)          |
+| x n_actors                            |
+| ------------------------------------- |
+| symbol entry:                         | SYMBOL TABLE |
+| - owner (8 bytes)                     |
+| - offset (8 bytes)                    |
+| - id (8 bytes)                        |
+| - args (8 bytes)                      |
+| x n_symbols                           |
+| ------------------------------------- |
+| section metadata entry:               | METADATA     |
+| - owner (8 bytes)                     |
+| - size (8 bytes)                      |
+| - reserved (8 bytes)                  |
+| x n_actors                            |
+| ------------------------------------- |
+| code section:                         | DATA         |
+| - code (char *)                       |
+| x n_actors                            |
+| ------------------------------------- |
+</code></pre></div>
+<p>The file begins with a header containing the number of actors (it is also the number of sections) and the number of symbols in the test case.
+The term "symbol" in this context refers to any location in the test case that can be referenced.
+Two common types of symbols are functions (specifically, function entry points) and macros.</p>
+<p>Next, the file contains the actor table, which is an array of actor metadata entries, one for each actor in the test case.
+The actor metadata entry contains the actor's ID, execution mode, protection level, data permissions, EPT data permissions, and code permissions.</p>
+<p>After the actor table, the file contains the symbol table, which is an array of symbol entries, one for each symbol in the test case.
+The symbol entry contains the ID the section to which the symbol belongs, the offset of the symbol within the section, the symbol's ID, and the number of arguments the symbol takes (if it is a macro).</p>
+<p>The file continues with the table of metadata for each section in the test case.
+Each metadata entry contains the ID of the actor that owns the section and the size of the section.</p>
+<p>Finally, the file contains a sequence of code sections, one for each actor in the test case.
+These sections contain the actual assembled binary for each of the sections in the test case.</p>
+<h2 id="revizor-data-binary-format-rdbf">Revizor Data Binary Format (RDBF)</h2>
+<p>RDBF is a structured representation of the data used to initialize sandbox memory and registers before executing the test case.</p>
+<p>Note that this format combines multiple inputs into a single file. This is done because typically, a single test case program is executed multiple times with different inputs, and so it is more efficient to send a batch of inputs at once.</p>
+<div class="highlight"><pre><span></span><code>|---------------------------------------|
+| n_actors (8 bytes)                    | HEADER
+| n_inputs (8 bytes)                    |
+| ------------------------------------- |
+| section metadata entry:               | METADATA |
+| - section_size (8 bytes)              |
+| - reserved (8 bytes)                  |
+| x (n_actors * n_inputs)               |
+| ------------------------------------- |
+| input:                                | DATA     |
+| - data section:                       |
+| -- main_area (4096 bytes)             |
+| -- faulty_area (4096 bytes)           |
+| -- reg_init_region (4096 bytes)       |
+| - x n_actors                          |
+| x n_inputs                            |
+| ------------------------------------- |
+</code></pre></div>
+<p>The file begins with a section containing the number of actors (equal to the number of sections) and the number of inputs in the batch.</p>
+<p>Next, the file contains the table of metadata for each data section, which only contains the size of the section.</p>
+<p>Finally, the file contains a sequence of data sections, one for each actor in the test case and each input in the batch. The data sections are arranged to mirror the data layout in the sandbox memory (see the <a href="../sandbox/">sandbox memory layout</a> document for more information).</p>
 
 
 
@@ -787,10 +1028,10 @@
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.instant", "navigation.tabs", "search.share"], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.instant", "navigation.tabs", "search.share"], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.fe8b6f2b.min.js"></script>
+      <script src="../../assets/javascripts/bundle.fe8b6f2b.min.js"></script>
       
     
   </body>

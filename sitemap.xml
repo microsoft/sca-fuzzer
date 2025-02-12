@@ -2,72 +2,87 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/</loc>
-         <lastmod>2024-12-10</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
-         <loc>https://github.com/microsoft/sca-fuzzer/architecture/</loc>
-         <lastmod>2024-12-10</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
-         <loc>https://github.com/microsoft/sca-fuzzer/development/</loc>
-         <lastmod>2024-12-10</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
-         <loc>https://github.com/microsoft/sca-fuzzer/dr-model/</loc>
-         <lastmod>2024-12-10</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
-         <loc>https://github.com/microsoft/sca-fuzzer/how-revizor-works/</loc>
-         <lastmod>2024-12-10</lastmod>
+         <lastmod>2025-02-12</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/quick-start/</loc>
-         <lastmod>2024-12-10</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
-         <loc>https://github.com/microsoft/sca-fuzzer/registers/</loc>
-         <lastmod>2024-12-10</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
-         <loc>https://github.com/microsoft/sca-fuzzer/sandbox/</loc>
-         <lastmod>2024-12-10</lastmod>
+         <lastmod>2025-02-12</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/trophies/</loc>
-         <lastmod>2024-12-10</lastmod>
+         <lastmod>2025-02-12</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://github.com/microsoft/sca-fuzzer/devel/architecture/</loc>
+         <lastmod>2025-02-12</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://github.com/microsoft/sca-fuzzer/devel/binary-formats/</loc>
+         <lastmod>2025-02-12</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://github.com/microsoft/sca-fuzzer/devel/code-generation/</loc>
+         <lastmod>2025-02-12</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://github.com/microsoft/sca-fuzzer/devel/development/</loc>
+         <lastmod>2025-02-12</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://github.com/microsoft/sca-fuzzer/devel/dr-model/</loc>
+         <lastmod>2025-02-12</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://github.com/microsoft/sca-fuzzer/devel/how-revizor-works/</loc>
+         <lastmod>2025-02-12</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://github.com/microsoft/sca-fuzzer/devel/macros/</loc>
+         <lastmod>2025-02-12</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://github.com/microsoft/sca-fuzzer/devel/registers/</loc>
+         <lastmod>2025-02-12</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://github.com/microsoft/sca-fuzzer/devel/sandbox/</loc>
+         <lastmod>2025-02-12</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/user/cli/</loc>
-         <lastmod>2024-12-10</lastmod>
+         <lastmod>2025-02-12</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/user/config/</loc>
-         <lastmod>2024-12-10</lastmod>
+         <lastmod>2025-02-12</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/user/fuzzing-guide/</loc>
-         <lastmod>2024-12-10</lastmod>
+         <lastmod>2025-02-12</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/user/minimization/</loc>
-         <lastmod>2024-12-10</lastmod>
+         <lastmod>2025-02-12</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/user/modes/</loc>
-         <lastmod>2024-12-10</lastmod>
+         <lastmod>2025-02-12</lastmod>
          <changefreq>daily</changefreq>
     </url>
 </urlset>

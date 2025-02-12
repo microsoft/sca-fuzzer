@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A security-oriented tool for detecting microarchitectural leaks in CPUs, such as Spectre and Meltdown.">
+        <meta name="description" content="A security-oriented tool for testing CPUs and detecting microarchitectural leaks like Spectre and Meltdown">
       
       
         <meta name="author" content="Microsoft">
@@ -251,7 +251,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../development/" class="md-tabs__link">
+        <a href="../devel/development/" class="md-tabs__link">
           
   
   Developer Documentation
@@ -412,27 +412,36 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#4-download-isa-spec" class="md-nav__link">
+  <a href="#4-optional-dynamorio-backend" class="md-nav__link">
     <span class="md-ellipsis">
-      4. Download ISA spec
+      4. (Optional) DynamoRIO Backend
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#5-test-the-installation" class="md-nav__link">
+  <a href="#5-download-isa-spec" class="md-nav__link">
     <span class="md-ellipsis">
-      5. Test the Installation
+      5. Download ISA spec
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#6-optional-system-configuration" class="md-nav__link">
+  <a href="#6-test-the-installation" class="md-nav__link">
     <span class="md-ellipsis">
-      6. (Optional) System Configuration
+      6. Test the Installation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-optional-system-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      7. (Optional) System Configuration
     </span>
   </a>
   
@@ -715,11 +724,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../development/" class="md-nav__link">
+      <a href="../devel/development/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Developer Guide
+    Development Guidelines
   </span>
   
 
@@ -736,7 +745,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../how-revizor-works/" class="md-nav__link">
+      <a href="../devel/how-revizor-works/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -757,7 +766,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../architecture/" class="md-nav__link">
+      <a href="../devel/architecture/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -795,7 +804,7 @@
             
   
   <span class="md-ellipsis">
-    Executor-related Topics
+    Advanced Topics
   </span>
   
 
@@ -805,7 +814,7 @@
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_4_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_4_4">
             <span class="md-nav__icon md-icon"></span>
-            Executor-related Topics
+            Advanced Topics
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -816,7 +825,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../registers/" class="md-nav__link">
+      <a href="../devel/registers/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -837,11 +846,95 @@
   
   
     <li class="md-nav__item">
-      <a href="../sandbox/" class="md-nav__link">
+      <a href="../devel/sandbox/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Memory Layout
+    Test Case Sandbox
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../devel/macros/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Macros
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../devel/dr-model/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    DynamoRIO backend
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../devel/binary-formats/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Binary Formats
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../devel/code-generation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Test Case Code Generation
   </span>
   
 
@@ -928,27 +1021,36 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#4-download-isa-spec" class="md-nav__link">
+  <a href="#4-optional-dynamorio-backend" class="md-nav__link">
     <span class="md-ellipsis">
-      4. Download ISA spec
+      4. (Optional) DynamoRIO Backend
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#5-test-the-installation" class="md-nav__link">
+  <a href="#5-download-isa-spec" class="md-nav__link">
     <span class="md-ellipsis">
-      5. Test the Installation
+      5. Download ISA spec
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#6-optional-system-configuration" class="md-nav__link">
+  <a href="#6-test-the-installation" class="md-nav__link">
     <span class="md-ellipsis">
-      6. (Optional) System Configuration
+      6. Test the Installation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-optional-system-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      7. (Optional) System Configuration
     </span>
   </a>
   
@@ -1091,14 +1193,29 @@ make<span class="w"> </span>clean
 make
 make<span class="w"> </span>install
 </code></pre></div>
-<h3 id="4-download-isa-spec">4. Download ISA spec</h3>
+<h3 id="4-optional-dynamorio-backend">4. (Optional) DynamoRIO Backend</h3>
+<p>If you want to use the DynamoRIO-based model, it has to be installed separately:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># install dependencies</span>
+sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>cmake<span class="w"> </span>g++<span class="w"> </span>g++-multilib<span class="w"> </span>doxygen<span class="w"> </span>git<span class="w"> </span>zlib1g-dev<span class="w"> </span>libunwind-dev<span class="w"> </span>libsnappy-dev<span class="w"> </span>liblz4-dev
+
+<span class="c1"># install DynamoRIO and the model</span>
+make<span class="w"> </span>-C<span class="w"> </span>src/model_dynamorio
+
+<span class="c1"># check installation</span>
+~/.local/dynamorio/drrun<span class="w"> </span>-c<span class="w"> </span>~/.local/dynamorio/libdr_model.so<span class="w"> </span>--list-obs-clauses<span class="w"> </span>--<span class="w"> </span>ls
+<span class="c1"># expected output:</span>
+<span class="c1">#   ct</span>
+<span class="c1">#   ...</span>
+<span class="c1">#   /dev/null</span>
+</code></pre></div>
+<h3 id="5-download-isa-spec">5. Download ISA spec</h3>
 <div class="highlight"><pre><span></span><code>rvzr<span class="w"> </span>download_spec<span class="w"> </span>-a<span class="w"> </span>x86-64<span class="w"> </span>--extensions<span class="w"> </span>ALL_SUPPORTED<span class="w"> </span>--outfile<span class="w"> </span>base.json
 
 <span class="c1"># Alternatively, use the following command to include system instructions;</span>
 <span class="c1"># however, mind that testing these instructions may crash the system if misconfigured!</span>
 <span class="c1"># rvzr download_spec -a x86-64 --extensions ALL_AND_UNSAFE --outfile base.json</span>
 </code></pre></div>
-<h3 id="5-test-the-installation">5. Test the Installation</h3>
+<h3 id="6-test-the-installation">6. Test the Installation</h3>
 <p>To make sure that the installation was successful, run the following command:</p>
 <div class="highlight"><pre><span></span><code>./tests/quick-test.sh
 
@@ -1108,7 +1225,7 @@ Filtering:<span class="w"> </span>OK
 </code></pre></div>
 <p>If you see any other output, check if the previous steps were executed correctly.
 If you still have issues, please <a href="https://github.com/microsoft/sca-fuzzer/issues">open an issue</a>.</p>
-<h3 id="6-optional-system-configuration">6. (Optional) System Configuration</h3>
+<h3 id="7-optional-system-configuration">7. (Optional) System Configuration</h3>
 <p>External processes can interfere with Revizor's measurements.
 To minimize this interference, we recommend the following system configuration:</p>
 <ul>

@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A security-oriented tool for detecting microarchitectural leaks in CPUs, such as Spectre and Meltdown.">
+        <meta name="description" content="A security-oriented tool for testing CPUs and detecting microarchitectural leaks like Spectre and Meltdown">
       
       
         <meta name="author" content="Microsoft">
@@ -251,7 +251,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../development/" class="md-tabs__link">
+        <a href="../../devel/development/" class="md-tabs__link">
           
   
   Developer Documentation
@@ -658,11 +658,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../../development/" class="md-nav__link">
+      <a href="../../devel/development/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Developer Guide
+    Development Guidelines
   </span>
   
 
@@ -679,7 +679,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../how-revizor-works/" class="md-nav__link">
+      <a href="../../devel/how-revizor-works/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -700,7 +700,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../architecture/" class="md-nav__link">
+      <a href="../../devel/architecture/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -738,7 +738,7 @@
             
   
   <span class="md-ellipsis">
-    Executor-related Topics
+    Advanced Topics
   </span>
   
 
@@ -748,7 +748,7 @@
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_4_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_4_4">
             <span class="md-nav__icon md-icon"></span>
-            Executor-related Topics
+            Advanced Topics
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -759,7 +759,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../registers/" class="md-nav__link">
+      <a href="../../devel/registers/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -780,11 +780,95 @@
   
   
     <li class="md-nav__item">
-      <a href="../../sandbox/" class="md-nav__link">
+      <a href="../../devel/sandbox/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Memory Layout
+    Test Case Sandbox
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../devel/macros/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Macros
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../devel/dr-model/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    DynamoRIO backend
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../devel/binary-formats/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Binary Formats
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../devel/code-generation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Test Case Code Generation
   </span>
   
 
@@ -1019,13 +1103,13 @@ Otherwise, the fuzzing progress will be continuously overwriting the same line (
 <p>The instruction set under test. Currently, only x86-64 is supported.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">Name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">instruction_categories</span>
 <span class="nt">Default</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&#39;BASE-BINARY&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;BASE-BITBYTE&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;BASE-COND_BR&#39;</span><span class="p p-Indicator">]</span>
-<span class="nt">Options</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;BASE-BINARY&#39;</span><span class="w"> </span><span class="p p-Indicator">|</span><span class="err"> &#39;BASE-BITBYTE&#39; | &#39;BASE-CMOV&#39; | &#39;BASE-COND_BR&#39; | &#39;BASE-CONVERT&#39; | &#39;BASE-DATAXFER&#39; | &#39;BASE-FLAGOP&#39; | &#39;BASE-LOGICAL&#39; | &#39;BASE-MISC&#39; | &#39;BASE-NOP&#39; | &#39;BASE-POP&#39; | &#39;BASE-PUSH&#39; | &#39;BASE-SEMAPHORE&#39; | &#39;BASE-SETCC&#39; | &#39;BASE-STRINGOP&#39; | &#39;BASE-WIDENOP&#39; | &#39;BASE-INTERRUPT&#39; | &#39;BASE-SYSTEM&#39; | &#39;LONGMODE-CONVERT&#39; | &#39;LONGMODE-DATAXFER&#39; | &#39;LONGMODE-SEMAPHORE&#39; | &#39;LONGMODE-SYSCALL&#39; | &#39;LONGMODE-SYSRET&#39; | &#39;SSE-SSE&#39; | &#39;SSE-DATAXFER&#39; | &#39;SSE-MISC&#39; | &#39;SSE-LOGICAL_FP&#39; | &#39;SSE2-SSE&#39; | &#39;SSE2-DATAXFER&#39; | &#39;SSE2-MISC&#39; | &#39;SSE2-LOGICAL_FP&#39; | &#39;SSE2-LOGICAL&#39; | &#39;SSE3-SSE&#39; | &#39;SSE3-DATAXFER&#39; | &#39;SSE4-LOGICAL&#39; | &#39;SSE4a-BITBYTE&#39; | &#39;SSE4a-DATAXFER&#39; | &#39;CLFLUSHOPT-CLFLUSHOPT&#39; | &#39;CLFSH-MISC&#39; | &#39;MPX-MPX&#39; | &#39;SMX-SYSTEM&#39; | &#39;VTX-VTX&#39; | &#39;XSAVE-XSAVE&#39;</span>
+<span class="nt">Options</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">(depends on model backend; see &lt;isa&gt;_config.py for details)</span>
 </code></pre></div>
 <p>Select a list of instruction categories to be used when generating programs.
 This list effectively filters out instructions from the ISA descriptor file (e.g., <code>base.json</code>)
 passed via the command line (<code>-s</code>).</p>
 <div class="highlight"><pre><span></span><code><span class="nt">Name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">instruction_blocklist</span>
-<span class="nt">Default</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&#39;enterw&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;enter&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;leavew&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;leave&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;int&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;encls&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;vmxon&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;stgi&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;skinit&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;ldmxcsr&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;stmxcsr&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;lfence&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;mfence&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;sfence&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;clflush&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;clflushopt&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;divps&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;divss&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;divpd&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;divsd&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;mulss&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;mulps&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;mulpd&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;mulsd&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;rsqrtps&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;rsqrtss&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;sqrtps&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;sqrtss&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;sqrtpd&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;sqrtsd&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;addps&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;addss&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;addpd&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;addsd&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;subps&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;subss&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;subpd&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;subsd&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;addsubpd&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;addsubps&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;haddpd&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;haddps&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;hsubpd&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;hsubps&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;sti&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;cli&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;xlat&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;xlatb&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;cmpxchg8b&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;lock</span><span class="nv"> </span><span class="s">cmpxchg8b&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;cmpxchg16b&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;lock</span><span class="nv"> </span><span class="s">cmpxchg16b&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;cpuid&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;cmpps&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;cmpss&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;cmppd&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;cmpsd&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;movq2dq&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;movdq2q&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;rcpps&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;rcpss&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;maskmovdqu&#39;</span><span class="p p-Indicator">]</span>
+<span class="nt">Default</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&#39;enterw&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;enter&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;leavew&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;leave&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;int&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;encls&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;vmxon&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;stgi&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;skinit&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;ldmxcsr&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;stmxcsr&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;lfence&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;mfence&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;sfence&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;clflush&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;clflushopt&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;divps&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;divss&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;divpd&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;divsd&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;mulss&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;mulps&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;mulpd&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;mulsd&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;rsqrtps&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;rsqrtss&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;sqrtps&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;sqrtss&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;sqrtpd&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;sqrtsd&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;addps&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;addss&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;addpd&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;addsd&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;subps&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;subss&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;subpd&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;subsd&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;addsubpd&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;addsubps&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;haddpd&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;haddps&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;hsubpd&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;hsubps&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;sti&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;cli&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;xlat&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;xlatb&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;cmpxchg8b&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;lock</span><span class="nv"> </span><span class="s">cmpxchg8b&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;cmpxchg16b&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;lock</span><span class="nv"> </span><span class="s">cmpxchg16b&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;cpuid&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;cmpps&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;cmpss&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;cmppd&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;cmpsd&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;movq2dq&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;movdq2q&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;rcpps&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;rcpss&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;pcmpestriq&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;pcmpestrmq&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;vpcmpestriq&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;vpcmpestrmq&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;maskmovdqu&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;maskmovq&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;vmaskmovdqu&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;vmaskmovq&#39;</span><span class="p p-Indicator">]</span>
 <span class="nt">Options</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">(any instruction names)</span>
 </code></pre></div>
 <p>A list of instructions that will NOT be used for generating programs.
@@ -1231,10 +1315,9 @@ For the explanation of the input classes and the generation algorithm, see (this
 <h2 id="contract-configuration">Contract Configuration</h2>
 <div class="highlight"><pre><span></span><code><span class="nt">Name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">contract_execution_clause</span>
 <span class="nt">Default</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&#39;seq&#39;</span><span class="p p-Indicator">]</span>
-<span class="nt">Options</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;seq&#39;</span><span class="w"> </span><span class="p p-Indicator">|</span><span class="err"> &#39;no_speculation&#39; | &#39;seq-assist&#39; | &#39;cond&#39; | &#39;conditional_br_misprediction&#39; | &#39;bpas&#39; | &#39;nullinj-fault&#39; | &#39;nullinj-assist&#39; | &#39;delayed-exception-handling&#39; | &#39;div-zero&#39; | &#39;div-overflow&#39; | &#39;meltdown&#39; | &#39;fault-skip&#39; | &#39;noncanonical&#39; | &#39;vspec-ops-div&#39; | &#39;vspec-ops-memory-faults&#39; | &#39;vspec-ops-memory-assists&#39; | &#39;vspec-ops-gp&#39; | &#39;vspec-all-div&#39; | &#39;vspec-all-memory-faults&#39; | &#39;vspec-all-memory-assists&#39; | &#39;noninterference&#39;</span>
+<span class="nt">Options</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;seq&#39;</span><span class="w"> </span><span class="p p-Indicator">|</span><span class="err"> &#39;no_speculation&#39; | &#39;seq-assist&#39; | &#39;cond&#39; | &#39;conditional_br_misprediction&#39; | &#39;bpas&#39; | &#39;nullinj-fault&#39; | &#39;nullinj-assist&#39; | &#39;delayed-exception-handling&#39; | &#39;div-zero&#39; | &#39;div-overflow&#39; | &#39;meltdown&#39; | &#39;fault-skip&#39; | &#39;noncanonical&#39; | &#39;vspec-ops-div&#39; | &#39;vspec-ops-memory-faults&#39; | &#39;vspec-ops-memory-assists&#39; | &#39;vspec-ops-gp&#39; | &#39;vspec-all-div&#39; | &#39;vspec-all-memory-faults&#39; | &#39;vspec-all-memory-assists&#39;</span>
 </code></pre></div>
 <p>The execution clause of the contract.</p>
-<p>For single-actor experiments, the following options are available:</p>
 <ul>
 <li><code>seq</code> - sequential execution.</li>
 <li><code>no_speculation</code> - sequential execution. Synonym for <code>seq</code>.</li>
@@ -1252,14 +1335,12 @@ For the explanation of the input classes and the generation algorithm, see (this
 <li><code>div-zero</code> - experimental contract; do not use.</li>
 <li><code>div-overflow</code> - experimental contract; do not use.</li>
 </ul>
-<p>In multi-actor context, only one option is available:
-* <code>noninterference</code> - the observer actor is permitted to leak its own data and the addresses of memory accesses of the other actors. No other data is allowed to be leak.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">Name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">contract_observation_clause</span>
 <span class="nt">Default</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;ct&#39;</span>
-<span class="nt">Options</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;none&#39;</span><span class="w"> </span><span class="p p-Indicator">|</span><span class="err"> &#39;l1d&#39; | &#39;memory&#39; | &#39;pc&#39; | &#39;ct&#39; | &#39;loads+stores+pc&#39; | &#39;ct-nonspecstore&#39; | &#39;ctr&#39; | &#39;arch&#39; | &#39;tct&#39; | &#39;tcto&#39;</span>
+<span class="nt">Options</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;none&#39;</span><span class="w"> </span><span class="p p-Indicator">|</span><span class="err"> &#39;l1d&#39; | &#39;memory&#39; | &#39;pc&#39; | &#39;ct&#39; | &#39;loads+stores+pc&#39; | &#39;ct-nonspecstore&#39; | &#39;ctr&#39; | &#39;arch&#39; | &#39;tct&#39; | &#39;tcto&#39; | &#39;ct-ni&#39;</span>
 </code></pre></div>
 <p>The observation clause of the contract. In most cases, the default value should be used.</p>
-<p>The available options are:</p>
+<p>For single-actor experiments, the following options are available:</p>
 <ul>
 <li><code>none</code> - the model observes nothing. Useful for testing the fuzzer.</li>
 <li><code>l1d</code> - the model observes the addresses of data accesses, adjusted to imitate the L1D cache trace.
@@ -1274,6 +1355,18 @@ For the explanation of the input classes and the generation algorithm, see (this
 <li><code>tct</code> (truncated constant time tracer) - the model observes address of the memory access and of the program counter at cache line granularity.</li>
 <li><code>tcto</code> (truncated constant time tracer with overflows) - the model address of the memory access and of the program counter at cache line granularity + observe cache line overflows.</li>
 </ul>
+<p>In multi-actor context, only one option is available:</p>
+<ul>
+<li><code>ct-ni</code> - when executing actors with <code>observer: false</code>, the model observes the same data as as with <code>ct</code>. When executing actors with <code>observer: true</code>, the model observes complete memory of the actor as well as their register values.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="nt">Name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">model_backend</span>
+<span class="nt">Default</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;unicorn&#39;</span>
+<span class="nt">Options</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;dummy&#39;</span><span class="w"> </span><span class="p p-Indicator">|</span><span class="err"> &#39;unicorn&#39; | &#39;dynamorio&#39;</span>
+</code></pre></div>
+<p>The backend used to implement the contract model. The available options are:
+* <code>unicorn</code> - use the Unicorn emulator. This is the default option and it is recommended for most cases.
+* <code>dynamorio</code> - use the DynamoRIO dynamic binary instrumentation framework. This option is newly added and experimental. Avoid using it unless you are doing development work on Revizor.
+* <code>dummy</code> - use a dummy model. This model always returns the same (empty) contract trace, and as such will not produce meaningful results. This option is useful, however, when root-causing violations, because it allows to collect hardware traces without running the model, hence allowing to trace instructions that are not supported by any of the backends.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">Name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">model_min_nesting</span>
 <span class="nt">Default</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
 </code></pre></div>
