@@ -24,6 +24,7 @@ dependencies = [
     "xxhash",
     "scipy",
     "mypy",
+    "pylint",
     "flake8",
     "setuptools"
 ]
