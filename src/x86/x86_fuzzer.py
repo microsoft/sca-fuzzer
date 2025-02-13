@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from ..isa_spec import InstructionSet
     from ..asm_parser import AsmParser
     from ..elf_parser import ELFParser
-    from ..generator import CodeGenerator
+    from ..code_generator import CodeGenerator
 
 STAT = FuzzingStats()
 
@@ -125,7 +125,7 @@ class X86Fuzzer(Fuzzer):
         with tempfile.NamedTemporaryFile(delete=False) as fenced:
             fenced_name = fenced.name
         fenced_test_case = _create_fenced_test_case(test_case, fenced_name, self.asm_parser,
-                                                    self.generator, self.elf_parser)
+                                                    self.code_gen, self.elf_parser)
         try:
             self.executor.load_test_case(fenced_test_case)
             fenced_htraces = self.executor.trace_test_case(inputs, reps)
@@ -205,7 +205,7 @@ class X86ArchDiffFuzzer(Fuzzer):
             with tempfile.NamedTemporaryFile(delete=False) as fenced:
                 fenced_name = fenced.name
             fenced_test_case = _create_fenced_test_case(test_case, fenced_name, self.asm_parser,
-                                                        self.generator, self.elf_parser)
+                                                        self.code_gen, self.elf_parser)
             self.arch_executor.load_test_case(fenced_test_case)
             fenced_reg_values: List[List[int]] = []
             try:

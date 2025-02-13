@@ -16,14 +16,14 @@ import re
 from .tc_components.test_case_code import TestCaseProgram, Function, BasicBlock, TC_EXIT_LABEL
 from .tc_components.instruction import Instruction, LabelOp
 from .tc_components.actor import ActorPL, ActorMode
-from .generator import assemble
+from .code_generator import assemble
 from .config import CONF
 
 if TYPE_CHECKING:
     from .target_desc import TargetDesc
     from .isa_spec import InstructionSet
     from .elf_parser import ELFParser
-    from .generator import CodeGenerator
+    from .code_generator import CodeGenerator
 
 RE_REDUNDANT_SPACES = re.compile(r"(?<![a-zA-Z0-9]) +")
 TC_EXIT_LINE = TC_EXIT_LABEL + ":"

@@ -114,9 +114,9 @@ class Minimizer:
         self._reset(enabled_passes)
 
         # Parse the test case and inputs
-        test_case = self._fuzzer.asm_parser.parse_file(test_case_asm, self._fuzzer.generator,
+        test_case = self._fuzzer.asm_parser.parse_file(test_case_asm, self._fuzzer.code_gen,
                                                        self._fuzzer.elf_parser)
-        inputs = self._fuzzer.input_gen.generate(n_inputs, n_actors=test_case.n_actors())
+        inputs = self._fuzzer.data_gen.generate(n_inputs, n_actors=test_case.n_actors())
 
         # Check if the violation can be reproduced
         violation = self._reproduce_org_violation(test_case, inputs)

@@ -16,7 +16,7 @@ x86_executor_enable_ssbp_patch: false
 # fuzzing configuration
 enable_speculation_filter: true
 enable_observation_filter: true
-input_gen_entropy_bits: 16
+data_generator_entropy_bits: 16
 min_bb_per_function: 1
 max_bb_per_function: 1
 program_size: 20

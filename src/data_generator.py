@@ -21,14 +21,14 @@ from .logs import inform
 POW32 = pow(2, 32)
 
 
-class InputGenerator:
+class DataGenerator:
     """ Class responsible for generating random inputs for test cases. """
 
     _state: int = 0
     _boosting_state: int = 0
 
     def __init__(self, seed: int):
-        self.max_input_value = pow(2, CONF.input_gen_entropy_bits)
+        self.max_input_value = pow(2, CONF.data_generator_entropy_bits)
         self._state = seed
 
     def get_state(self) -> int:
@@ -51,7 +51,7 @@ class InputGenerator:
         # if it's the first invocation and the seed is zero - use random seed
         if self._state == 0:
             self._state = random.randint(0, pow(2, 32) - 1)
-            inform("input_gen", f"Setting input seed to: {self._state}")
+            inform("data_gen", f"Setting input seed to: {self._state}")
 
         generated_inputs = []
         for _ in range(count):
@@ -115,7 +115,7 @@ class InputGenerator:
         # fuzzing
         if self._state == 0:
             self._state = random.randint(0, pow(2, 32) - 1)
-            inform("input_gen", f"Setting input seed to: {self._state}")
+            inform("data_gen", f"Setting input seed to: {self._state}")
 
         inputs = []
         n_actors = len(CONF.get_actors_conf())

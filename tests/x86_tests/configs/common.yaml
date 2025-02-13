@@ -1,4 +1,4 @@
-input_gen_seed: 1234567
+data_generator_seed: 1234567
 program_generator_seed: 1234567
 
 # Acceptance tests do not require a large sample size

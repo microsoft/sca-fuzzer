@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from typing import List, Dict, Set, TYPE_CHECKING, TextIO, Union, Final, Tuple, Callable, Literal
 from typing_extensions import assert_never
 
-from ..generator import CodeGenerator, Pass, Printer
+from ..code_generator import CodeGenerator, Pass, Printer
 from ..config import CONF
 from ..sandbox import SandboxLayout, DataArea, PAGE_SIZE
 from ..instruction_spec import OT, InstructionSpec

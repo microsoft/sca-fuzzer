@@ -4,8 +4,8 @@
 from .isa_spec import *
 from .executor import *
 from .analyser import *
-from .input_generator import *
-from .generator import *
+from .data_generator import *
+from .code_generator import *
 from .cli import *
 from .logs import *
 

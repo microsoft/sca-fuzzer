@@ -20,7 +20,7 @@ from src.isa_spec import InstructionSet
 from src.tc_components.actor import ActorMode
 from src.tc_components.test_case_code import TestCaseProgram, Function, BasicBlock
 from src.tc_components.test_case_binary import SymbolTableEntry
-from src.generator import assemble
+from src.code_generator import assemble
 from src.config import CONF
 from src.logs import update_logging_after_config_change
 

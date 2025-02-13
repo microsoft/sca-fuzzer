@@ -182,13 +182,13 @@ class Conf:
      will also be configured to handle these exceptions gracefully """
 
     # ==============================================================================================
-    # Input Generator
-    input_generator: str = 'random'
-    """ input_generator: type of the input generator """
-    input_gen_seed: int = 10
-    """ input_gen_seed: input generation seed; will use a random seed if set to zero """
-    input_gen_entropy_bits: int = 16
-    """ input_gen_entropy_bits: entropy of the random values created by the input generator """
+    # Input Data Generator
+    data_generator: str = 'random'
+    """ data_generator: type of the input generator """
+    data_generator_seed: int = 10
+    """ data_generator_seed: input generation seed; will use a random seed if set to zero """
+    data_generator_entropy_bits: int = 16
+    """ data_generator_entropy_bits: entropy of the random values created by the input generator """
     inputs_per_class: int = 2
     """ inputs_per_class: number of inputs per input class """
 
@@ -277,7 +277,7 @@ class Conf:
         "fuzzer": ["basic", "architectural", "archdiff"],
         "generator": ["random"],
         "instruction_set": ["x86-64"],
-        "input_generator": ["random"],
+        "data_generator": ["random"],
         "model_backend": ["dummy", "unicorn", "dynamorio"],
         "contract_execution_clause": [
             "seq", "no_speculation", "seq-assist", "cond", "conditional_br_misprediction", "bpas",
@@ -432,8 +432,8 @@ class Conf:
         """
         Check if the configuration values make sense
         """
-        if self.input_gen_entropy_bits > 32:
-            raise ConfigException("input_gen_entropy_bits must be less or equal to 32 bits")
+        if self.data_generator_entropy_bits > 32:
+            raise ConfigException("data_generator_entropy_bits must be less or equal to 32 bits")
         if self.min_successors_per_bb > self.max_successors_per_bb:
             raise ConfigException("min_successors_per_bb is larger than max_successors_per_bb")
 

@@ -29,8 +29,8 @@ from .stats import FuzzingStats
 from .logs import FuzzLogger, warning, update_logging_after_config_change
 
 if TYPE_CHECKING:
-    from .generator import CodeGenerator
-    from .input_generator import InputGenerator
+    from .code_generator import CodeGenerator
+    from .data_generator import DataGenerator
     from .asm_parser import AsmParser
     from .elf_parser import ELFParser
     from .model import Model
@@ -230,8 +230,8 @@ class _RoundManager:
         # Normal case - boost the inputs
         self._non_boosted_ctraces, taints = \
             self.fuzzer.model.trace_test_case_with_taints(self.org_inputs, self.conf.model_nesting)
-        self.boosted_inputs = self.fuzzer.input_gen.generate_boosted(self.org_inputs, taints,
-                                                                     CONF.inputs_per_class)
+        self.boosted_inputs = self.fuzzer.data_gen.generate_boosted(self.org_inputs, taints,
+                                                                    CONF.inputs_per_class)
 
     def _collect_ctraces(self) -> None:
         """ Collect contract traces for the boosted inputs """
@@ -433,8 +433,8 @@ class Fuzzer:
     model: Model
     executor: Executor
     asm_parser: AsmParser
-    generator: CodeGenerator
-    input_gen: InputGenerator
+    code_gen: CodeGenerator
+    data_gen: DataGenerator
     analyser: Analyser
     elf_parser: ELFParser
 
@@ -462,8 +462,8 @@ class Fuzzer:
         # Create all main modules
         self.log = FuzzLogger()
         self._isa_spec = InstructionSet(instruction_set_spec, CONF.instruction_categories)
-        self.generator = factory.get_program_generator(CONF.program_generator_seed, self._isa_spec)
-        self.input_gen = factory.get_input_generator(CONF.input_gen_seed)
+        self.code_gen = factory.get_program_generator(CONF.program_generator_seed, self._isa_spec)
+        self.data_gen = factory.get_data_generator(CONF.data_generator_seed)
         self.executor = factory.get_executor()
         self.model = factory.get_model(self.executor.read_base_addresses())
         self.analyser = factory.get_analyser()
@@ -506,9 +506,9 @@ class Fuzzer:
             # Prepare inputs
             inputs: List[InputData]
             if self._input_paths:
-                inputs = self.input_gen.load(self._input_paths)
+                inputs = self.data_gen.load(self._input_paths)
             else:
-                inputs = self.input_gen.generate(num_inputs, n_actors=test_case.n_actors())
+                inputs = self.data_gen.generate(num_inputs, n_actors=test_case.n_actors())
             STAT.num_inputs += len(inputs) * CONF.inputs_per_class
 
             # Check if the test case is useful
@@ -652,7 +652,7 @@ class Fuzzer:
         STAT.test_cases = num_test_cases
         CONF.program_generator_seed = program_generator_seed
         program_gen = factory.get_program_generator(CONF.program_generator_seed, self._isa_spec)
-        input_gen = factory.get_input_generator(CONF.input_gen_seed)
+        data_gen = factory.get_data_generator(CONF.data_generator_seed)
 
         # generate test cases
         Path(self._work_dir).mkdir(exist_ok=True)
@@ -665,7 +665,7 @@ class Fuzzer:
                                       "       Use --permit-overwrite to overwrite the test case")
 
             program_gen.create_test_case(test_case_dir + "/" + "program.asm", True)
-            inputs = input_gen.generate(num_inputs, n_actors=1)
+            inputs = data_gen.generate(num_inputs, n_actors=1)
             for j, input_ in enumerate(inputs):
                 input_.save(f"{test_case_dir}/input{j}.bin")
 
@@ -696,7 +696,7 @@ class Fuzzer:
         assert len(ctraces) == len(htraces), \
             "The number of hardware traces does not match the number of contract traces"
 
-        dummy_inputs = factory.get_input_generator(0).generate(len(ctraces), n_actors=1)
+        dummy_inputs = factory.get_data_generator(0).generate(len(ctraces), n_actors=1)
         dummy_tc = TestCaseProgram("generated.asm", 0)
 
         # check for violations
@@ -714,9 +714,9 @@ class Fuzzer:
     def _set_generation_function(self, type_: FuzzingMode) -> None:
         """ Set the generation function based on the fuzzing mode """
         if type_ == "random":
-            self._generation_function = self.generator.create_test_case
+            self._generation_function = self.code_gen.create_test_case
         elif type_ == "template":
-            self._generation_function = self.generator.create_test_case_from_template
+            self._generation_function = self.code_gen.create_test_case_from_template
         elif type_ == "asm":
             self._generation_function = self._asm_parser_adapter
         else:
@@ -764,12 +764,12 @@ class Fuzzer:
         shutil.copy2(f"{violation_dir}/org-config.yaml", f"{violation_dir}/reproduce.yaml")
         with open(f"{violation_dir}/reproduce.yaml", "a") as f:
             f.write("\n# Overwrite some of the configuration options to reproduce the violation\n")
-            f.write(f"input_gen_seed: {violation.input_sequence[0].seed}\n")
+            f.write(f"data_generator_seed: {violation.input_sequence[0].seed}\n")
             f.write("inputs_per_class: 1\n")
         shutil.copy2(f"{violation_dir}/org-config.yaml", f"{violation_dir}/minimize.yaml")
         with open(f"{violation_dir}/minimize.yaml", "a") as f:
             f.write("\n# Overwrite some of the configuration options to reproduce the violation\n")
-            f.write(f"input_gen_seed: {violation.input_sequence[0].seed}\n")
+            f.write(f"data_generator_seed: {violation.input_sequence[0].seed}\n")
 
         # we're about to store stats into a file - disable colors
         color_on = CONF.color
@@ -789,7 +789,7 @@ class Fuzzer:
             f.write(f"* Program seed: {test_case.generator_seed}\n")
             f.write(f"* Input seed: {violation.input_sequence[0].seed}\n")
             f.write("* Faulty page properties:\n")
-            target_desc = self.generator._target_desc
+            target_desc = self.code_gen._target_desc
             for actor in test_case.get_actors(sorted_=True):
                 actor_id = actor.get_id()
                 f.write(f"  - Actor {actor_id}:\n")
@@ -853,7 +853,7 @@ class Fuzzer:
 
     def _asm_parser_adapter(self, asm: str) -> TestCaseProgram:
         # FIXME: this is a hack to fit the interface; refactor this
-        return self.asm_parser.parse_file(asm, self.generator, self.elf_parser)
+        return self.asm_parser.parse_file(asm, self.code_gen, self.elf_parser)
 
 
 class ArchitecturalFuzzer(Fuzzer):

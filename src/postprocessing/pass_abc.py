@@ -58,7 +58,7 @@ class BaseMinimizationPass(abc.ABC):
         with open(path, "w+") as f:
             for line in instructions:
                 f.write(line)
-        tc = self._fuzzer.asm_parser.parse_file(path, self._fuzzer.generator,
+        tc = self._fuzzer.asm_parser.parse_file(path, self._fuzzer.code_gen,
                                                 self._fuzzer.elf_parser)
         return tc
 

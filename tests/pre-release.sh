@@ -194,7 +194,7 @@ function reproduce() {
     violation_dir="$conf_dir/$name"
     config="$conf_dir/${name}-repro.yaml"
     cp "$conf_dir/${name}.yaml" $config
-    awk "/Input seed:/{print \"input_gen_seed:\", \$4}" $violation_dir/violation-*/report.txt >>$config
+    awk "/Input seed:/{print \"data_generator_seed:\", \$4}" $violation_dir/violation-*/report.txt >>$config
     python ${revizor} reproduce -s $instructions -c $config -n $NUM_INPUTS -t $violation_dir/violation-*/program.asm -i $(ls $violation_dir/violation-*/input*.bin | sort -t _ -k2 -n) &>>"$conf_dir/$name-log.txt"
     exit_code=$?
     set -e
@@ -220,7 +220,7 @@ function verify() {
     set +e
     violation_dir="$conf_dir/$name"
     config="$conf_dir/${name}-verify.yaml"
-    awk "/Input seed:/{print \"input_gen_seed:\", \$4}" $violation_dir/violation-*/report.txt >>$config
+    awk "/Input seed:/{print \"data_generator_seed:\", \$4}" $violation_dir/violation-*/report.txt >>$config
     python ${revizor} reproduce -s $instructions -c $config -n $NUM_INPUTS -t $violation_dir/violation-*/program.asm -i $(ls $violation_dir/violation-*/input*.bin | sort -t _ -k2 -n) &>>"$conf_dir/$name-log.txt"
     exit_code=$?
     set -e

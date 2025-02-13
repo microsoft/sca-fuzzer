@@ -104,7 +104,7 @@ class X86ModelTest(unittest.TestCase):  # pylint: disable=too-many-public-method
         cls.prev_conf = deepcopy(CONF)
         CONF.instruction_set = "x86-64"
         CONF.model_backend = 'unicorn'
-        CONF.input_gen_seed = 10  # default
+        CONF.data_generator_seed = 10  # default
         CONF._no_generation = True  # pylint: disable=protected-access
         CONF.logging_modes = []
         update_logging_after_config_change()

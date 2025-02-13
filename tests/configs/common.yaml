@@ -1,4 +1,4 @@
-input_gen_entropy_bits: 24
+data_generator_entropy_bits: 24
 inputs_per_class: 2
 
 enable_speculation_filter: true
@@ -35,4 +35,4 @@ contract_execution_clause:
     - no_speculation
 
 program_generator_seed: 100
-input_gen_seed: 100
+data_generator_seed: 100

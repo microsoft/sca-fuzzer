@@ -50,7 +50,7 @@ instruction_categories:
   - SSE-SSE
 
 # Input generator
-input_gen_entropy_bits: 24
+data_generator_entropy_bits: 24
 inputs_per_class: 2
 
 # Fuzzer

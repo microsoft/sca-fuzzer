@@ -7,7 +7,7 @@ SPDX-License-Identifier: MIT
 from __future__ import annotations
 from typing import Dict, Type, List, TYPE_CHECKING, Any, Optional
 
-from . import input_generator, analyser, executor, fuzzer, model
+from . import data_generator, analyser, executor, fuzzer, model
 from .model_unicorn import tracer, speculator_abc, speculators_basic, \
     speculators_fault, speculators_vs, interpreter, model as uc_model
 from .model_dynamorio import model as dr_model
@@ -20,7 +20,7 @@ from .config import CONF, ConfigException
 if TYPE_CHECKING:
     from .isa_spec import InstructionSet
     from .target_desc import TargetDesc
-    from .generator import CodeGenerator
+    from .code_generator import CodeGenerator
     from .asm_parser import AsmParser
     from .elf_parser import ELFParser
     from .sandbox import BaseAddrTuple
@@ -235,19 +235,19 @@ def get_elf_parser() -> ELFParser:
 
 
 # ==================================================================================================
-# Input Generator Construction
+# Input Data Generator Construction
 # ==================================================================================================
-_INPUT_GENERATORS: Dict[str, Type[input_generator.InputGenerator]] = {
-    'random': input_generator.InputGenerator,
+_DATA_GENERATORS: Dict[str, Type[data_generator.DataGenerator]] = {
+    'random': data_generator.DataGenerator,
 }
 
 
-def get_input_generator(seed: int) -> input_generator.InputGenerator:
-    """ Produce an InputGenerator object based on the configuration options in the CONF object. """
-    key: str = CONF.input_generator
-    if key not in _INPUT_GENERATORS:
-        raise FactoryException(_INPUT_GENERATORS, key, "input_generator")
-    return _INPUT_GENERATORS[key](seed)
+def get_data_generator(seed: int) -> data_generator.DataGenerator:
+    """ Produce an DataGenerator object based on the configuration options in the CONF object. """
+    key: str = CONF.data_generator
+    if key not in _DATA_GENERATORS:
+        raise FactoryException(_DATA_GENERATORS, key, "data_generator")
+    return _DATA_GENERATORS[key](seed)
 
 
 # ==================================================================================================

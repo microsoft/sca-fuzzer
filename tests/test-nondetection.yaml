@@ -19,6 +19,6 @@ program_size: 16
 min_bb_per_function: 5
 max_bb_per_function: 5
 avg_mem_accesses: 4
-input_gen_entropy_bits: 3
+data_generator_entropy_bits: 3
 
 x86_executor_enable_ssbp_patch: true
