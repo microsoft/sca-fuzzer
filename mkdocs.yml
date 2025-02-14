@@ -39,6 +39,7 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Quick Start: quick-start.md
+  - Introduction To Speculation Contracts: contracts.md
   - User Documentation:
     - Command Line Interface: user/cli.md
     - Modes of Operation: user/modes.md
@@ -46,9 +47,8 @@ nav:
     - Minimization Passes: user/minimization.md
     - Violation Root-Causing: user/fuzzing-guide.md
   - Developer Documentation:
+    - Architecture Overview: devel/overview.md
     - Development Guidelines: devel/development.md
-    - How Revizor Works: devel/how-revizor-works.md
-    - Architecture Overview: devel/architecture.md
     - Advanced Topics:
       - Register Allocation: devel/registers.md
       - Test Case Sandbox: devel/sandbox.md

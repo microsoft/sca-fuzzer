@@ -1,4 +1,6 @@
-# Macros
+# Test Case Code Representation
+
+This document describes the internal representation of test case code in Revizor.
 
 UNDER CONSTRUCTION
 

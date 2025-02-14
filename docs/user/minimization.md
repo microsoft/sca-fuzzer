@@ -7,7 +7,7 @@ The goal is to produce a minimal artifact that would be easier to understand and
 ## Usage
 
 To run the minimization mode, you need a program that violates the contract (e.g., `program.asm`), a configuration file that was used to detect the violation (e.g., `config.yaml`), a specification of the instruction set (e.g., `base.json`).
-The config file must set the input generation seed (`input_gen_seed`) to the value that matches the seed used in the `fuzz` mode to generate the violating inputs.
+The config file must set the input generation seed (`data_generator_seed`) to the value that matches the seed used in the `fuzz` mode to generate the violating inputs.
 
 The syntax of the command is as follows:
 

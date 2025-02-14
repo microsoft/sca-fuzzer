@@ -3,14 +3,14 @@
 This document describes the DynamoRIO-based model.
 As any other model, this backend is responsible for collecting contract traces for generated test cases.
 
-
-
 ## Design Overview
 
 This backend is composed of several parts:
-The Python adapter (`src/model_dynamorio/model.py`) is responsible for receiving a test case from Revizor, transforming it into a format that can be executed by the backend, triggering the backend to execute the test case, and returning the collected contract traces to Revizor.
-The Test Case Loader (`src/model_dynamorio/adapter.c`) is a C program that loads a test case program and a single input into its memory, and simply executes its.
-The DynamoRIO components (`src/model_dynamorio/backend`) are executed together with the test case loader, and they instrument the loader binary to collect contract traces.
+
+* The Python adapter (`src/model_dynamorio/model.py`) is responsible for receiving a test case from Revizor, transforming it into a format that can be executed by the backend, triggering the backend to execute the test case, and returning the collected contract traces to Revizor.
+* The Test Case Loader (`src/model_dynamorio/adapter.c`) is a C program that loads a test case program and a batch of inputs into its memory, and executes the test case program with each input in a sequence.
+* The DynamoRIO components (`src/model_dynamorio/backend`) are executed together with the test case loader, and they instrument the loader binary to collect contract traces.
+
 These components can be roughly divided into the instrumentation-time components that are responsible for modifying the binary, and execution-time components that implement the model logic (i.e., the contract).
 
 [![DynamoRIO-based Model Backend](../assets/dr-model.png)](../assets/dr-model.png)
@@ -27,6 +27,7 @@ Internally, `trace_test_case` will call the backend to execute the test case and
 The adapter will then parse the traces and return them back to the caller.
 
 The `trace_test_case` method implements the following algorithm:
+
 - Convert test case program and inputs into RCBF and RDBF files, respectively
 - For each input, call the test case loader with the RCBF and RDBF files. Attach the DynamoRIO backend to the call so that the binary instrumentation is performed:
 ```shell
@@ -41,6 +42,7 @@ Since the test cases produced by Revizor are raw binaries, they cannot be direct
 The test case loader (`src/model_dynamorio/adapter.c`) is a simple C program that fixes this issue by providing a wrapper around the test case binary.
 
 The loader implements the following algorithm:
+
 - Receive the test case binary and an input from the Python adapter via CLI arguments
 - Load the test case binary and the input into dedicated memory regions
 - Print the addresses of the test case and input memory regions (for trace normalization)

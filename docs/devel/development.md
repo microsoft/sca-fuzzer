@@ -74,8 +74,8 @@ The following scopes are typical:
 | `model`     | Changes to the model.                                            |
 | `analyser`  | Changes to the analyser.                                         |
 | `mini`      | Changes to the postprocessor (i.e., minimizer).                  |
-| `gen`       | Changes to the program generator                                 |
-| `input_gen` | Changes to the input generator                                   |
+| `code_gen`  | Changes to the program generator                                 |
+| `data_gen`  | Changes to the input generator                                   |
 | `tests`     | Changes to the tests                                             |
 | `isa`       | Changes to the ISA loader or to `get_spec` files                 |
 

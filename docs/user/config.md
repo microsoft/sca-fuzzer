@@ -398,7 +398,7 @@ Actor-specific fault blocklist. This list has priority over the global `generato
 ## Input Generator Configuration
 
 ```yaml
-Name: input_generator
+Name: data_generator
 Default: 'random'
 Options: 'random'
 ```
@@ -406,14 +406,14 @@ Options: 'random'
 The input generator type. Currently, only random input generation is supported.
 
 ```yaml
-Name: input_gen_seed
+Name: data_generator_seed
 Default: 10
 ```
 
 Seed of the input generator. If set to zero, a random seed will be used for each run.
 
 ```yaml
-Name: input_gen_entropy_bits
+Name: data_generator_entropy_bits
 Default: 16
 ```
 

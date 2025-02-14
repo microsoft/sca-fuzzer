@@ -8,6 +8,15 @@ Such custom formats are necessary because the components are implemented in diff
 
 The formats are designed to as simple as possible to minimize the overhead of serialization and deserialization.
 
+Table of Contents
+=================
+- [Binary Formats in Revizor](#binary-formats-in-revizor)
+- [Table of Contents](#table-of-contents)
+  - [Revizor Code Binary Format (RCBF)](#revizor-code-binary-format-rcbf)
+  - [Revizor Data Binary Format (RDBF)](#revizor-data-binary-format-rdbf)
+
+
+
 ## Revizor Code Binary Format (RCBF)
 
 RCBF is a structured representation of the complete test case binary, together with its metadata.
