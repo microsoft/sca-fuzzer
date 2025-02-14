@@ -227,6 +227,23 @@
         
   
   
+  
+    <li class="md-tabs__item">
+      <a href="../../contracts/" class="md-tabs__link">
+        
+  
+    
+  
+  Introduction To Speculation Contracts
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
     
   
   
@@ -251,7 +268,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../devel/development/" class="md-tabs__link">
+        <a href="../../devel/overview/" class="md-tabs__link">
           
   
   Developer Documentation
@@ -350,6 +367,26 @@
       
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contracts/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Introduction To Speculation Contracts
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
     
   
   
@@ -368,10 +405,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
             
   
   <span class="md-ellipsis">
@@ -382,8 +419,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_3">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             User Documentation
           </label>
@@ -651,10 +688,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
             
   
   <span class="md-ellipsis">
@@ -665,12 +702,33 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             Developer Documentation
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../devel/overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Architecture Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -699,48 +757,6 @@
   
   
   
-    <li class="md-nav__item">
-      <a href="../../devel/how-revizor-works/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    How Revizor Works
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../devel/architecture/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Architecture Overview
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
     
     
     
@@ -752,10 +768,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_4" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3" >
         
           
-          <label class="md-nav__link" for="__nav_4_4" id="__nav_4_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5_3" id="__nav_5_3_label" tabindex="0">
             
   
   <span class="md-ellipsis">
@@ -766,8 +782,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4_4">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_3">
             <span class="md-nav__icon md-icon"></span>
             Advanced Topics
           </label>
@@ -1057,7 +1073,7 @@ This mode takes a violating program and its sequence of inputs, and it performs 
 The goal is to produce a minimal artifact that would be easier to understand and analyze by a human.</p>
 <h2 id="usage">Usage</h2>
 <p>To run the minimization mode, you need a program that violates the contract (e.g., <code>program.asm</code>), a configuration file that was used to detect the violation (e.g., <code>config.yaml</code>), a specification of the instruction set (e.g., <code>base.json</code>).
-The config file must set the input generation seed (<code>input_gen_seed</code>) to the value that matches the seed used in the <code>fuzz</code> mode to generate the violating inputs.</p>
+The config file must set the input generation seed (<code>data_generator_seed</code>) to the value that matches the seed used in the <code>fuzz</code> mode to generate the violating inputs.</p>
 <p>The syntax of the command is as follows:</p>
 <div class="highlight"><pre><span></span><code>rvzr<span class="w"> </span>minimize<span class="w"> </span>-s<span class="w"> </span>&lt;spec_file&gt;<span class="w"> </span>-c<span class="w"> </span>&lt;config_file&gt;<span class="w"> </span>-t<span class="w"> </span>&lt;program_file&gt;<span class="w"> </span>-o<span class="w"> </span>&lt;output_file&gt;<span class="w"> </span>-i<span class="w"> </span>&lt;num_inputs&gt;<span class="w"> </span>--input-outdir<span class="w"> </span>&lt;input_outdir&gt;<span class="w"> </span>--num-attempts<span class="w"> </span>&lt;num_attempts&gt;<span class="w"> </span>&lt;pass_list&gt;
 </code></pre></div>

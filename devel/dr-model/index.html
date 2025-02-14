@@ -228,6 +228,23 @@
   
   
   
+    <li class="md-tabs__item">
+      <a href="../../contracts/" class="md-tabs__link">
+        
+  
+    
+  
+  Introduction To Speculation Contracts
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
     
     
       <li class="md-tabs__item">
@@ -251,7 +268,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="../development/" class="md-tabs__link">
+        <a href="../overview/" class="md-tabs__link">
           
   
   Developer Documentation
@@ -352,6 +369,26 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../contracts/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Introduction To Speculation Contracts
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     
     
     
@@ -363,10 +400,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
             
   
   <span class="md-ellipsis">
@@ -377,8 +414,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             User Documentation
           </label>
@@ -518,10 +555,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
             
   
   <span class="md-ellipsis">
@@ -532,12 +569,33 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_4">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             Developer Documentation
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Architecture Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -551,48 +609,6 @@
   
   <span class="md-ellipsis">
     Development Guidelines
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../how-revizor-works/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    How Revizor Works
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../architecture/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Architecture Overview
   </span>
   
 
@@ -621,10 +637,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_4" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_4_4" id="__nav_4_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5_3" id="__nav_5_3_label" tabindex="0">
             
   
   <span class="md-ellipsis">
@@ -635,8 +651,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_4_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_4_4">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5_3">
             <span class="md-nav__icon md-icon"></span>
             Advanced Topics
           </label>
@@ -991,11 +1007,13 @@
 <p>This document describes the DynamoRIO-based model.
 As any other model, this backend is responsible for collecting contract traces for generated test cases.</p>
 <h2 id="design-overview">Design Overview</h2>
-<p>This backend is composed of several parts:
-The Python adapter (<code>src/model_dynamorio/model.py</code>) is responsible for receiving a test case from Revizor, transforming it into a format that can be executed by the backend, triggering the backend to execute the test case, and returning the collected contract traces to Revizor.
-The Test Case Loader (<code>src/model_dynamorio/adapter.c</code>) is a C program that loads a test case program and a single input into its memory, and simply executes its.
-The DynamoRIO components (<code>src/model_dynamorio/backend</code>) are executed together with the test case loader, and they instrument the loader binary to collect contract traces.
-These components can be roughly divided into the instrumentation-time components that are responsible for modifying the binary, and execution-time components that implement the model logic (i.e., the contract).</p>
+<p>This backend is composed of several parts:</p>
+<ul>
+<li>The Python adapter (<code>src/model_dynamorio/model.py</code>) is responsible for receiving a test case from Revizor, transforming it into a format that can be executed by the backend, triggering the backend to execute the test case, and returning the collected contract traces to Revizor.</li>
+<li>The Test Case Loader (<code>src/model_dynamorio/adapter.c</code>) is a C program that loads a test case program and a batch of inputs into its memory, and executes the test case program with each input in a sequence.</li>
+<li>The DynamoRIO components (<code>src/model_dynamorio/backend</code>) are executed together with the test case loader, and they instrument the loader binary to collect contract traces.</li>
+</ul>
+<p>These components can be roughly divided into the instrumentation-time components that are responsible for modifying the binary, and execution-time components that implement the model logic (i.e., the contract).</p>
 <p><a href="../../assets/dr-model.png"><img alt="DynamoRIO-based Model Backend" src="../../assets/dr-model.png" /></a></p>
 <h2 id="python-adapter">Python Adapter</h2>
 <p>Revizor communicates with the backend through a Python adapter (<code>src/model_dynamorio/model.py:DynamoRIOModel</code>).</p>
@@ -1004,23 +1022,27 @@ This configuration will be later passed down to the backend when the test case i
 <p>During the fuzzing process, Revizor sends test cases to the backend by calling <code>load_test_case</code> method, and then triggers the backend to execute the test case by calling <code>trace_test_case</code> method.
 Internally, <code>trace_test_case</code> will call the backend to execute the test case and collect the contract traces.
 The adapter will then parse the traces and return them back to the caller.</p>
-<p>The <code>trace_test_case</code> method implements the following algorithm:
-- Convert test case program and inputs into RCBF and RDBF files, respectively
-- For each input, call the test case loader with the RCBF and RDBF files. Attach the DynamoRIO backend to the call so that the binary instrumentation is performed:
+<p>The <code>trace_test_case</code> method implements the following algorithm:</p>
+<ul>
+<li>Convert test case program and inputs into RCBF and RDBF files, respectively</li>
+<li>For each input, call the test case loader with the RCBF and RDBF files. Attach the DynamoRIO backend to the call so that the binary instrumentation is performed:
 <div class="highlight"><pre><span></span><code>~/.local/dynamorio/drrun<span class="w"> </span>-c<span class="w"> </span>~/.local/dynamorio/libdr_model.so<span class="w"> </span>--tracer<span class="w"> </span>&lt;observation-clause&gt;<span class="w"> </span>--<span class="w"> </span>~/.local/dynamorio/adapter<span class="w"> </span>&lt;rcbf&gt;<span class="w"> </span>&lt;rdbf&gt;
-</code></pre></div>
-- Receive contract traces from the backend and convert them into <code>CTrace</code> objects
-- Return the list of collected <code>CTrace</code> objects to the caller (usually, <code>fuzzer.py</code>)</p>
+</code></pre></div></li>
+<li>Receive contract traces from the backend and convert them into <code>CTrace</code> objects</li>
+<li>Return the list of collected <code>CTrace</code> objects to the caller (usually, <code>fuzzer.py</code>)</li>
+</ul>
 <h2 id="test-case-loader">Test Case Loader</h2>
 <p>Since the test cases produced by Revizor are raw binaries, they cannot be directly executed (e.g., they don't have <code>libc</code> linked).
 The test case loader (<code>src/model_dynamorio/adapter.c</code>) is a simple C program that fixes this issue by providing a wrapper around the test case binary.</p>
-<p>The loader implements the following algorithm:
-- Receive the test case binary and an input from the Python adapter via CLI arguments
-- Load the test case binary and the input into dedicated memory regions
-- Print the addresses of the test case and input memory regions (for trace normalization)
-- Initialize registers based on the input
-- Jump to the test case binary entry point
-- Return</p>
+<p>The loader implements the following algorithm:</p>
+<ul>
+<li>Receive the test case binary and an input from the Python adapter via CLI arguments</li>
+<li>Load the test case binary and the input into dedicated memory regions</li>
+<li>Print the addresses of the test case and input memory regions (for trace normalization)</li>
+<li>Initialize registers based on the input</li>
+<li>Jump to the test case binary entry point</li>
+<li>Return</li>
+</ul>
 <h3 id="dynamorio-tool">DynamoRIO Tool</h3>
 <p>The DynamoRIO tool (<code>src/model_dynamorio/backend</code>) is responsible for instrumenting the test case loader binary and collecting contract traces.</p>
 <h3 id="instrumentation-components">Instrumentation Components</h3>

@@ -12,13 +12,9 @@
         <meta name="author" content="Microsoft">
       
       
-        <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/devel/sandbox/">
+        <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/devel/tc-representation/">
       
       
-        <link rel="prev" href="../registers/">
-      
-      
-        <link rel="next" href="../macros/">
       
       
       <link rel="icon" href="../../assets/ms_icon.png">
@@ -26,7 +22,7 @@
     
     
       
-        <title>Test Case Sandbox - Revizor</title>
+        <title>Test Case Code Representation - Revizor</title>
       
     
     
@@ -76,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#test-case-sandbox" class="md-skip">
+        <a href="#test-case-code-representation" class="md-skip">
           Skip to content
         </a>
       
@@ -109,7 +105,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Test Case Sandbox
+              Test Case Code Representation
             
           </span>
         </div>
@@ -262,12 +258,10 @@
         
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
+      <li class="md-tabs__item">
         <a href="../overview/" class="md-tabs__link">
           
   
@@ -537,28 +531,23 @@
       
   
   
-    
   
   
-  
     
     
     
       
-        
-        
-      
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
         
           
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
             
   
   <span class="md-ellipsis">
@@ -569,7 +558,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             Developer Documentation
@@ -622,8 +611,6 @@
                 
   
   
-    
-  
   
   
     
@@ -633,11 +620,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3" >
         
           
           <label class="md-nav__link" for="__nav_5_3" id="__nav_5_3_label" tabindex="0">
@@ -651,7 +638,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_5_3">
             <span class="md-nav__icon md-icon"></span>
             Advanced Topics
@@ -683,30 +670,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    Test Case Sandbox
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../sandbox/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -715,86 +682,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#memory-layout" class="md-nav__link">
-    <span class="md-ellipsis">
-      Memory Layout
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Memory Layout">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#data-layout" class="md-nav__link">
-    <span class="md-ellipsis">
-      Data Layout
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#code-layout" class="md-nav__link">
-    <span class="md-ellipsis">
-      Code Layout
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
-    <span class="md-ellipsis">
-      References
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#sandbox-initialization" class="md-nav__link">
-    <span class="md-ellipsis">
-      Sandbox Initialization
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#fault-isolation" class="md-nav__link">
-    <span class="md-ellipsis">
-      Fault Isolation
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -919,74 +806,6 @@
     
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#memory-layout" class="md-nav__link">
-    <span class="md-ellipsis">
-      Memory Layout
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Memory Layout">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#data-layout" class="md-nav__link">
-    <span class="md-ellipsis">
-      Data Layout
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#code-layout" class="md-nav__link">
-    <span class="md-ellipsis">
-      Code Layout
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#references" class="md-nav__link">
-    <span class="md-ellipsis">
-      References
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#sandbox-initialization" class="md-nav__link">
-    <span class="md-ellipsis">
-      Sandbox Initialization
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#fault-isolation" class="md-nav__link">
-    <span class="md-ellipsis">
-      Fault Isolation
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -1003,89 +822,10 @@
   
 
 
-<h1 id="test-case-sandbox">Test Case Sandbox</h1>
-<p>This document describes the isolated environment for executing test cases, which is referred to as the <em>sandbox</em>. The sandbox contains the test case code and data, and the test case code is confined to access memory only within the sandbox.</p>
-<p>The sandbox is implemented by all modules that execute test cases, including the executor (kernel module) and all model backends (Unicorn, DynamoRIO).
-To ensure that the executions are consistent across all modules, the sandbox is structured in the same way in all the modules.</p>
-<p>This document describes the memory layout of the sandbox, the initialization of the sandbox memory, and the fault isolation mechanism.</p>
-<h2 id="memory-layout">Memory Layout</h2>
-<p>The sandbox memory is divided into two main areas: the data sandbox and the code sandbox.
-Each actor in the test case has its own sub-area for its data and code, and the layout of these areas is the same for all actors.</p>
-<h3 id="data-layout">Data Layout</h3>
-<div class="highlight"><pre><span></span><code>|----------|--------------------|
-| ACTOR 0  | MACRO STACK        | 64 B
-|          |--------------------|
-|          | UNDERFLOW PAD      | 4032 B
-|          |--------------------|
-|          | MAIN AREA          | 4096 B
-|          |--------------------|
-|          | FAULTY AREA        | 4096 B
-|          |--------------------|
-|          | GPR AREA           | 64 B
-|          |--------------------|
-|          | SIMD AREA          | 256 B
-|          |--------------------|
-|          | OVERFLOW PAD       | 3776 B
-|----------|--------------------|
-| ... (repeat for all actors in the test case)
-</code></pre></div>
-<p>The data area is divided into the following regions:
-* <strong>Main and Faulty Areas</strong>: These are the two regions of memory that are accessible by the test case code.
-  This is enforced by the test case generator, which instruments all memory accesses to ensure that they fall within these regions (see <a href="../code-generation/">code-generation</a> for more details).
-  Both areas are initialized with the input data from the <a href="../binary-formats/">RBDF</a>.
-  The main area always has default permissions (RW), while the faulty area has permissions can be configured to cause a fault when accessed.
-  This configuration originates from the <a href="../../user/config/">config file</a>.
-* <strong>GPR and SIMD Areas</strong>: These regions store the values that will be used by the modules to initialize the general-purpose registers (GPR) and SIMD registers before executing the test case and when switching between actors.
-  Both areas are initialized with the input data from the <a href="../binary-formats/">RBDF</a>.
-* <strong>Over- and Underflow Pads</strong>: These two zero-initialized regions surround the actors' data areas, and their purpose is to determinize the hardware traces on the executor.
-  Namely, they are needed for the cases when the CPU speculatively bypasses the sandboxing instrumentation inserted by the test case generator, and the bypass leads to an out-of-bounds memory access.
-  As the pads are zero-initialized, the bypassed memory accesses will produce deterministic results.
-* <strong>Macro stack</strong>: This region is used to implement complex macros (e.g., VMENTER) that need to save and restore data on the stack with a guarantee that this data won't be corrupted by the following (randomly-generated) instructions (see <a href="../macros/">macros</a> for more details.)</p>
-<h3 id="code-layout">Code Layout</h3>
-<div class="highlight"><pre><span></span><code>|----------|--------------------|
-| ACTOR 0  | MAIN CODE AREA     | 8192 B
-|          |--------------------|
-|          | MACRO CODE AREA    | 4096 B
-|----------|--------------------|
-| ... (repeat for all actors in the test case)
-</code></pre></div>
-<p>The code area is divided into two regions:
-* <strong>Main Code Area</strong>: This region contains the binary of the actor's code.
-  The code comes from the <a href="../binary-formats/">RCDF</a> file.
-  The first instruction in the code area of actor 0 is the entry point of the test case, and the last instruction of actor 0 is the exit point of the test case.
-* <strong>Macro Code Area</strong>: This region contains code of the expanded macros for each actor.
-  (see <a href="../macros/">macros</a> for more details on the macro expansion process.)</p>
-<h3 id="references">References</h3>
-<ul>
-<li>Executor: <a href="https://github.com/microsoft/sca-fuzzer/tree/main/src/x86/executor/include/sandbox_manager.h">src/x86/executor/include/sandbox_manager.h</a></li>
-<li>Unicorn backend: <a href="https://github.com/microsoft/sca-fuzzer/tree/main/src/sandbox.py">src/sandbox.py</a></li>
-</ul>
-<h2 id="sandbox-initialization">Sandbox Initialization</h2>
-<p>The sandbox is initialized based on the test case code (normally in RCBD format) and the input data (normally in RDBF format).
-The following diagram shows the mapping between the RCBF/RDBF files and the sandbox memory layout:</p>
-<div class="highlight"><pre><span></span><code>                                        |--------------------|
-                   zero initialized -&gt;  | MACRO STACK        |
-                                        |--------------------|
-                   zero initialized -&gt;  | UNDERFLOW PAD      |
-                                        |--------------------|
-      RDBF.data[actor_id].main_area -&gt;  | MAIN AREA          |
-                                        |--------------------|
-    RDBF.data[actor_id].faulty_area -&gt;  | FAULTY AREA        |
-                                        |--------------------|
-RDBF.data[actor_id].reg_init_region -&gt;  | GPR AREA           |
-                                        |--------------------|
-RDBF.data[actor_id].reg_init_region -&gt;  | SIMD AREA          |
-                                        |--------------------|
-                   zero initialized -&gt;  | OVERFLOW PAD       |
-                                        |--------------------|
-
-
-     RCBF.tc_section[actor_id].code -&gt;  | MAIN CODE AREA     |
-                                        |--------------------|
-     expanded macro code (executor) -&gt;  | MACRO CODE AREA    |
-</code></pre></div>
-<h2 id="fault-isolation">Fault Isolation</h2>
+<h1 id="test-case-code-representation">Test Case Code Representation</h1>
+<p>This document describes the internal representation of test case code in Revizor.</p>
 <p>UNDER CONSTRUCTION</p>
+<p>If you are interested in this topic, please contact us by opening an issue on GitHub, and we will prioritize this document.</p>
 
 
 
