@@ -107,7 +107,7 @@ Dispatcher::~Dispatcher()
 // =================================================================================================
 // Public Methods
 // =================================================================================================
-void Dispatcher::start(void *wrapcxt, OUT void **user_data)
+void Dispatcher::start(void *wrapcxt, DR_PARAM_OUT void **user_data)
 {
     instrumentation_on = true;
 
@@ -115,7 +115,7 @@ void Dispatcher::start(void *wrapcxt, OUT void **user_data)
     module_bundle->tracer->tracing_start(wrapcxt, user_data);
 }
 
-void Dispatcher::finalize(void *wrapcxt, OUT void *user_data)
+void Dispatcher::finalize(void *wrapcxt, DR_PARAM_OUT void *user_data)
 {
     // Turn service modules off
     module_bundle->tracer->tracing_finalize(wrapcxt, user_data);

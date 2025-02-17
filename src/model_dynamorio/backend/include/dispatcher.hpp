@@ -41,13 +41,13 @@ class Dispatcher
     /// @param wrapcxt The machine context of the wrapped function
     /// @param user_data Unused
     /// @return void
-    void start(void *, OUT void **);
+    void start(void *, DR_PARAM_OUT void **);
 
     /// @brief Finalizes the instrumentation process for a wrapped function
     /// @param wrapcxt The machine context of the wrapped function
     /// @param user_data Unused
     /// @return void
-    void finalize(void *, OUT void *);
+    void finalize(void *, DR_PARAM_OUT void *);
 
     /// @brief Instruments the instruction \p instr with calls to callback functions of the
     /// corresponding type

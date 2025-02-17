@@ -17,7 +17,7 @@
 #include "include/util.hpp"
 
 void reserve_register_checked(void *drcontext, instrlist_t *ilist, instr_t *where,
-                              drvector_t *permitted, OUT reg_id_t *reg)
+                              drvector_t *permitted, DR_PARAM_OUT reg_id_t *reg)
 {
     if (drreg_reserve_register(drcontext, ilist, where, permitted, reg) != DRREG_SUCCESS) {
         dr_printf("ERROR: failed to reserve a register\n");

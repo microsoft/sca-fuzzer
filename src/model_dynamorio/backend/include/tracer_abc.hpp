@@ -73,13 +73,13 @@ class TracerABC
     /// @param wrapcxt The machine context of the wrapped function
     /// @param user_data Unused
     /// @return void
-    virtual void tracing_start(void *, OUT void **);
+    virtual void tracing_start(void *, DR_PARAM_OUT void **);
 
     /// @brief Finalizes the tracing process for a wrapped function
     /// @param wrapcxt The machine context of the wrapped function
     /// @param user_data Unused
     /// @return void
-    virtual void tracing_finalize(void *, OUT void *);
+    virtual void tracing_finalize(void *, DR_PARAM_OUT void *);
 
     /// @brief Record per-instruction information on the trace (e.g., its address) as defined
     ///        by the target contract.

@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <dr_defines.h> // OUT
+#include <dr_defines.h> // DR_PARAM_OUT
 #include <string>
 
 struct cli_args_t {
@@ -25,4 +25,4 @@ struct cli_args_t {
 /// @param parsed_args Output structure with the parsed arguments
 /// @return void
 /// @exception dr_abort() if the arguments cannot be parsed
-void parse_cli(int argc, const char **argv, OUT cli_args_t &parsed_args);
+void parse_cli(int argc, const char **argv, DR_PARAM_OUT cli_args_t &parsed_args);

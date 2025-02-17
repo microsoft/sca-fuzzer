@@ -24,7 +24,7 @@
 /// @param [out] reg The reserved register
 /// @return void
 void reserve_register_checked(void *drcontext, instrlist_t *ilist, instr_t *where,
-                              drvector_t *permitted, OUT reg_id_t *reg);
+                              drvector_t *permitted, DR_PARAM_OUT reg_id_t *reg);
 
 /// @brief A wrapper around drreg_reserve_register that aborts on failure
 /// @param drcontext The drcontext of the current thread

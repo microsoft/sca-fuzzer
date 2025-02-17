@@ -38,7 +38,7 @@ std::unique_ptr<Dispatcher> dispatcher = nullptr; // NOLINT
 /// @brief Name of the function to instrument
 std::string instrumented_func_name;  // NOLINT
 
-void event_instrumentation_start(void *wrapcxt, OUT void **user_data);
+void event_instrumentation_start(void *wrapcxt, DR_PARAM_OUT void **user_data);
 void event_instrumentation_end(void *wrapcxt, void *user_data);
 void dr_model_del() noexcept;
 
@@ -113,7 +113,7 @@ dr_emit_flags_t event_bb_instrumentation(void *drcontext, [[maybe_unused]] void 
 /// @param wrapcxt The wrap context
 /// @param user_data
 /// @return void
-void event_instrumentation_start(void *wrapcxt, OUT void **user_data)
+void event_instrumentation_start(void *wrapcxt, DR_PARAM_OUT void **user_data)
 {
     dispatcher->start(wrapcxt, user_data);
 }

@@ -110,13 +110,13 @@ TracerABC::~TracerABC() {}
 // =================================================================================================
 // Public Methods
 // =================================================================================================
-void TracerABC::tracing_start(void *, OUT void **)
+void TracerABC::tracing_start(void *, DR_PARAM_OUT void **)
 {
     tracing_on = true;
     tracing_finalized = false;
 }
 
-void TracerABC::tracing_finalize(void *, OUT void *)
+void TracerABC::tracing_finalize(void *, DR_PARAM_OUT void *)
 {
     if (tracing_finalized) {
         return;

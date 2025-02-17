@@ -57,7 +57,7 @@ const droption_t<bool> op_list_exec_clauses(DROPTION_SCOPE_CLIENT, "list-exec-cl
 // =================================================================================================
 // CLI parser
 // =================================================================================================
-void parse_cli(int argc, const char **argv, OUT cli_args_t &parsed_args)
+void parse_cli(int argc, const char **argv, DR_PARAM_OUT cli_args_t &parsed_args)
 {
     // Parse the arguments using DynamoRIO's droption parser
     string err_msg;
