@@ -14,7 +14,7 @@
 #include <dr_ir_utils.h>
 #include <drutil.h>
 
-#include "tracer_ct.hpp"
+#include "tracers/tracer_ct.hpp"
 #include "util.hpp"
 
 void TracerCT::observe_instruction(uint64_t opcode, uint64_t pc, dr_mcontext_t *mc)

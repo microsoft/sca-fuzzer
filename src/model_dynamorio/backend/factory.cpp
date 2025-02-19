@@ -13,7 +13,8 @@
 
 #include "factory.hpp"
 #include "tracer_abc.hpp"
-#include "tracer_ct.hpp"
+#include "tracers/tracer_ct.hpp"
+#include "tracers/tracer_pc.hpp"
 
 using std::function;
 using std::string;
@@ -24,11 +25,15 @@ namespace
 {
 
 const std::unordered_map<string, function<unique_ptr<TracerABC>(bool, bool)>> tracer_factories = {
-    {"ct",
-     [](bool enable_dbg_trace, bool enable_bin_output) {
-         return std::make_unique<TracerCT>(enable_dbg_trace, enable_bin_output);
-     }},
-};
+    {
+        "ct",
+        [](bool enable_dbg_trace, bool enable_bin_output) {
+            return std::make_unique<TracerCT>(enable_dbg_trace, enable_bin_output);
+        },
+    },
+    {"pc", [](bool enable_dbg_trace, bool enable_bin_output) {
+         return std::make_unique<TracerPC>(enable_dbg_trace, enable_bin_output);
+     }}};
 
 } // namespace
 

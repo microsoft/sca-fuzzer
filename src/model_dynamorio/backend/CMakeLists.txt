@@ -3,8 +3,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
 # add all C++ files in the current directory
-file(GLOB SOURCES "*.cpp")
-add_library(dr_model SHARED ${SOURCES})
+file(GLOB MAIN_SOURCES "*.cpp")
+file(GLOB TRACERS "tracers/*.cpp")
+add_library(dr_model SHARED ${MAIN_SOURCES} ${TRACERS})
 
 # add `include` directory to the include path
 target_include_directories(dr_model PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
