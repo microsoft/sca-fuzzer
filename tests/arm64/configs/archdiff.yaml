@@ -1,0 +1,14 @@
+file: !include common.yaml
+file: !include base-and-simd-categories.yaml
+
+fuzzer: archdiff
+enable_priming: false
+inputs_per_class: 1
+logging_modes:
+ - info
+#  - dbg_violation
+
+program_size: 100
+avg_mem_accesses: 50
+max_bb_per_function: 3
+min_bb_per_function: 3

@@ -9,11 +9,11 @@ from typing import List
 import numpy as np
 import numpy.typing as npt
 
-from src.analyser import MergedBitmapAnalyser, SetAnalyser, ChiSquaredAnalyser
-from src.tc_components.test_case_data import InputData
-from src.tc_components.test_case_code import TestCaseProgram
-from src.traces import CTrace, HTrace, RawHTraceSample, CTraceEntry
-from src.config import CONF
+from rvzr.analyser import MergedBitmapAnalyser, SetAnalyser, ChiSquaredAnalyser
+from rvzr.tc_components.test_case_data import InputData
+from rvzr.tc_components.test_case_code import TestCaseProgram
+from rvzr.traces import CTrace, HTrace, RawHTraceSample, CTraceEntry
+from rvzr.config import CONF
 
 
 def _htrace_from_trace(trace_list: List[int]) -> HTrace:

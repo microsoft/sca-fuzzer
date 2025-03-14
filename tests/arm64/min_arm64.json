@@ -1,0 +1,281 @@
+[
+  {"name": "csel", "category": "general", "is_control_flow": false,
+    "operands": [
+      {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"]},
+      {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"]},
+      {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"]},
+      {"dest": false, "src": false, "comment": "standard condition (field \"cond\")", "type_": "COND", "values": [], "width": 0}
+    ],
+    "implicit_operands": []
+  },
+  {"name": "mov", "category": "general", "is_control_flow": false,
+    "operands": [
+      {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"]},
+      {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"]}
+    ],
+    "implicit_operands": []
+  },
+  {"name": "mov", "category": "general", "is_control_flow": false,
+    "operands": [
+      {"dest": true, "src": false, "comment": "64-bit general-purpose register to be transferred (field \"rt\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"]},
+      {"dest": false, "src": true, "comment": "signed immediate byte offset [-256-255] (field \"imm9\")", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+    ],
+    "implicit_operands": []
+  },
+  {"name": "mrs", "category": "system", "is_control_flow": false,
+    "operands": [
+      {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"]},
+      {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["nzcv"]}
+    ],
+    "implicit_operands": []
+  },
+  {"name": "mrs", "category": "system", "is_control_flow": false,
+    "operands": [
+      {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"]},
+      {"dest": false, "src": true, "type_": "REG", "width": 64, "values": ["pmevcntr0_el0", "pmevcntr1_el0", "pmevcntr2_el0", "pmevcntr3_el0"]}
+    ],
+    "implicit_operands": []
+  },
+  {"name": "ldr", "category": "general", "is_control_flow": false,
+    "operands": [
+      {"dest": true, "src": false, "comment": "64-bit general-purpose register to be transferred (field \"rt\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"]},
+      {"dest": false, "src": true, "comment": "64-bit general-purpose base register or sp (field \"rn\")", "type_": "MEM", "width": 64},
+      {"dest": false, "src": true, "comment": "signed immediate byte offset [-256-255] (field \"imm9\")", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+    ],
+    "implicit_operands": []
+  },
+  {"name": "ldr", "category": "general", "is_control_flow": false,
+    "operands": [
+      {"dest": true, "src": false, "comment": "64-bit general-purpose register to be transferred (field \"rt\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"]},
+      {"dest": false, "src": true, "comment": "64-bit general-purpose base register or sp (field \"rn\")", "type_": "MEM", "width": 64}
+    ],
+    "implicit_operands": []
+  },
+  {"name": "str", "category": "general", "is_control_flow": false,
+    "operands": [
+      {"dest": false, "src": true, "comment": "32-bit general-purpose register to be transferred (field \"rt\")", "type_": "REG", "width": 32, "values": ["w0", "w1", "w2", "w3", "w4", "w5", "w6", "w7", "w8", "w9", "w10", "w11", "w12", "w13", "w14", "w15", "w16", "w17", "w18", "w19", "w20", "w21", "w22", "w23", "w24", "w25", "w26", "w27", "w28", "w29", "w30", "w31", "w8", "w9", "w10", "w11", "w12", "w13", "w14", "w15", "w16", "w17", "w18", "w19", "w20", "w21", "w22", "w23", "w24", "w25", "w26", "w27", "w28", "w29", "w30", "w31"]},
+      {"dest": true, "src": false, "comment": "64-bit general-purpose base register or sp (field \"rn\")", "type_": "MEM", "width": 64},
+      {"dest": false, "src": true, "comment": "signed immediate byte offset [-256-255] (field \"imm9\")", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+    ],
+    "implicit_operands": []
+  },
+  {"name": "str", "category": "general", "is_control_flow": false,
+    "operands": [
+      {"dest": false, "src": true, "comment": "64-bit general-purpose register to be transferred (field \"rt\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"]},
+      {"dest": true, "src": false, "comment": "64-bit general-purpose base register or sp (field \"rn\")", "type_": "MEM", "width": 64},
+      {"dest": false, "src": true, "comment": "signed immediate byte offset [-256-255] (field \"imm9\")", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+    ],
+    "implicit_operands": []
+  },
+  {"name": "sub", "category": "general", "is_control_flow": false,
+    "operands": [
+      {"dest": true, "src": false, "comment": "64-bit destination general-purpose register or sp (field \"rd\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31", "sp"]},
+      {"dest": false, "src": true, "comment": "64-bit source general-purpose register or sp (field \"rn\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31", "sp"]},
+      {"dest": false, "src": true, "comment": "unsigned immediate [0-4095] (field \"imm12\")", "type_": "IMM", "values": ["[0-4095]"], "width": 0}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+    ]
+  },
+  {"name": "add", "category": "general", "is_control_flow": false,
+    "operands": [
+      {"dest": true, "src": false, "comment": "32-bit destination general-purpose register or wsp (field \"rd\")", "type_": "REG", "width": 32, "values": ["w0", "w1", "w2", "w3", "w4", "w5", "w6", "w7", "w8", "w9", "w10", "w11", "w12", "w13", "w14", "w15", "w16", "w17", "w18", "w19", "w20", "w21", "w22", "w23", "w24", "w25", "w26", "w27", "w28", "w29", "w30", "w31", "sp"]},
+      {"dest": false, "src": true, "comment": "32-bit source general-purpose register or wsp (field \"rn\")", "type_": "REG", "width": 32, "values": ["w0", "w1", "w2", "w3", "w4", "w5", "w6", "w7", "w8", "w9", "w10", "w11", "w12", "w13", "w14", "w15", "w16", "w17", "w18", "w19", "w20", "w21", "w22", "w23", "w24", "w25", "w26", "w27", "w28", "w29", "w30", "w31", "sp"]},
+      {"dest": false, "src": true, "comment": "unsigned immediate [0-4095] (field \"imm12\")", "type_": "IMM", "values": ["[0-4095]"], "width": 0}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+    ]
+  },
+  {"name": "add", "category": "general", "is_control_flow": false,
+    "operands": [
+      {"dest": true, "src": false, "comment": "64-bit destination general-purpose register or sp (field \"rd\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31", "sp"]},
+      {"dest": false, "src": true, "comment": "64-bit source general-purpose register or sp (field \"rn\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31", "sp"]},
+      {"dest": false, "src": true, "comment": "unsigned immediate [0-4095] (field \"imm12\")", "type_": "IMM", "values": ["[0-4095]"], "width": 0}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+    ]
+  },
+  {"name": "add", "category": "general", "is_control_flow": false,
+    "operands": [
+      {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["w0", "w1", "w2", "w3", "w4", "w5", "w6", "w7", "w8", "w9", "w10", "w11", "w12", "w13", "w14", "w15", "w16", "w17", "w18", "w19", "w20", "w21", "w22", "w23", "w24", "w25", "w26", "w27", "w28", "w29", "w30", "w31"]},
+      {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["w0", "w1", "w2", "w3", "w4", "w5", "w6", "w7", "w8", "w9", "w10", "w11", "w12", "w13", "w14", "w15", "w16", "w17", "w18", "w19", "w20", "w21", "w22", "w23", "w24", "w25", "w26", "w27", "w28", "w29", "w30", "w31"]},
+      {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["w0", "w1", "w2", "w3", "w4", "w5", "w6", "w7", "w8", "w9", "w10", "w11", "w12", "w13", "w14", "w15", "w16", "w17", "w18", "w19", "w20", "w21", "w22", "w23", "w24", "w25", "w26", "w27", "w28", "w29", "w30", "w31"]}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+    ]
+  },
+  {"name": "add", "category": "general", "is_control_flow": false,
+    "operands": [
+      {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"]},
+      {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"]},
+      {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"]}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+    ]
+  },
+  {"name": "adc", "category": "general", "is_control_flow": false,
+    "operands": [
+      {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["w0", "w1", "w2", "w3", "w4", "w5", "w6", "w7", "w8", "w9", "w10", "w11", "w12", "w13", "w14", "w15", "w16", "w17", "w18", "w19", "w20", "w21", "w22", "w23", "w24", "w25", "w26", "w27", "w28", "w29", "w30", "w31"]},
+      {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["w0", "w1", "w2", "w3", "w4", "w5", "w6", "w7", "w8", "w9", "w10", "w11", "w12", "w13", "w14", "w15", "w16", "w17", "w18", "w19", "w20", "w21", "w22", "w23", "w24", "w25", "w26", "w27", "w28", "w29", "w30", "w31"]},
+      {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["w0", "w1", "w2", "w3", "w4", "w5", "w6", "w7", "w8", "w9", "w10", "w11", "w12", "w13", "w14", "w15", "w16", "w17", "w18", "w19", "w20", "w21", "w22", "w23", "w24", "w25", "w26", "w27", "w28", "w29", "w30", "w31"]}
+    ],
+    "implicit_operands": []
+  },
+  {"name": "adc", "category": "general", "is_control_flow": false,
+    "operands": [
+      {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"]},
+      {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"]},
+      {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"]}
+    ],
+    "implicit_operands": []
+  },
+  {"name": "and", "category": "general", "is_control_flow": false,
+    "operands": [
+      {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["w0", "w1", "w2", "w3", "w4", "w5", "w6", "w7", "w8", "w9", "w10", "w11", "w12", "w13", "w14", "w15", "w16", "w17", "w18", "w19", "w20", "w21", "w22", "w23", "w24", "w25", "w26", "w27", "w28", "w29", "w30", "w31"]},
+      {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["w0", "w1", "w2", "w3", "w4", "w5", "w6", "w7", "w8", "w9", "w10", "w11", "w12", "w13", "w14", "w15", "w16", "w17", "w18", "w19", "w20", "w21", "w22", "w23", "w24", "w25", "w26", "w27", "w28", "w29", "w30", "w31"]},
+      {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["w0", "w1", "w2", "w3", "w4", "w5", "w6", "w7", "w8", "w9", "w10", "w11", "w12", "w13", "w14", "w15", "w16", "w17", "w18", "w19", "w20", "w21", "w22", "w23", "w24", "w25", "w26", "w27", "w28", "w29", "w30", "w31"]}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+    ]
+  },
+  {"name": "and", "category": "general", "is_control_flow": false,
+    "operands": [
+      {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"]},
+      {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"]},
+      {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"]}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+    ]
+  },
+  {"name": "and", "category": "general", "is_control_flow": false,
+    "operands": [
+      {"dest": true, "src": false, "comment": "32-bit destination general-purpose register or wsp (field \"rd\")", "type_": "REG", "width": 32, "values": ["w0", "w1", "w2", "w3", "w4", "w5", "w6", "w7", "w8", "w9", "w10", "w11", "w12", "w13", "w14", "w15", "w16", "w17", "w18", "w19", "w20", "w21", "w22", "w23", "w24", "w25", "w26", "w27", "w28", "w29", "w30", "w31", "sp"]},
+      {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["w0", "w1", "w2", "w3", "w4", "w5", "w6", "w7", "w8", "w9", "w10", "w11", "w12", "w13", "w14", "w15", "w16", "w17", "w18", "w19", "w20", "w21", "w22", "w23", "w24", "w25", "w26", "w27", "w28", "w29", "w30", "w31"]},
+      {"dest": false, "src": true, "comment": "bitmask immediate (field \"imms:immr\")", "type_": "IMM", "values": ["bitmask"], "width": 32}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+    ]
+  },
+  {"name": "and", "category": "general", "is_control_flow": false,
+    "operands": [
+      {"dest": true, "src": false, "comment": "64-bit destination general-purpose register or sp (field \"rd\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31", "sp"]},
+      {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"]},
+      {"dest": false, "src": true, "comment": "bitmask immediate (field \"n:imms:immr\")", "type_": "IMM", "values": ["bitmask"], "width": 64}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+    ]
+  },
+  {"name": "eor", "category": "general", "is_control_flow": false,
+    "operands": [
+      {"dest": true, "src": false, "comment": "32-bit destination general-purpose register or wsp (field \"rd\")", "type_": "REG", "width": 32, "values": ["w0", "w1", "w2", "w3", "w4", "w5", "w6", "w7", "w8", "w9", "w10", "w11", "w12", "w13", "w14", "w15", "w16", "w17", "w18", "w19", "w20", "w21", "w22", "w23", "w24", "w25", "w26", "w27", "w28", "w29", "w30", "w31", "sp"]},
+      {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["w0", "w1", "w2", "w3", "w4", "w5", "w6", "w7", "w8", "w9", "w10", "w11", "w12", "w13", "w14", "w15", "w16", "w17", "w18", "w19", "w20", "w21", "w22", "w23", "w24", "w25", "w26", "w27", "w28", "w29", "w30", "w31"]},
+      {"dest": false, "src": true, "comment": "bitmask immediate (field \"imms:immr\")", "type_": "IMM", "values": ["bitmask"], "width": 32}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+    ]
+  },
+  {"name": "eor", "category": "general", "is_control_flow": false,
+    "operands": [
+      {"dest": true, "src": false, "comment": "64-bit destination general-purpose register or sp (field \"rd\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31", "sp"]},
+      {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"]},
+      {"dest": false, "src": true, "comment": "bitmask immediate (field \"n:imms:immr\")", "type_": "IMM", "values": ["bitmask"], "width": 64}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+    ]
+  },
+  {"name": "eor", "category": "general", "is_control_flow": false,
+    "operands": [
+      {"dest": true, "src": false, "comment": "32-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 32, "values": ["w0", "w1", "w2", "w3", "w4", "w5", "w6", "w7", "w8", "w9", "w10", "w11", "w12", "w13", "w14", "w15", "w16", "w17", "w18", "w19", "w20", "w21", "w22", "w23", "w24", "w25", "w26", "w27", "w28", "w29", "w30", "w31"]},
+      {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 32, "values": ["w0", "w1", "w2", "w3", "w4", "w5", "w6", "w7", "w8", "w9", "w10", "w11", "w12", "w13", "w14", "w15", "w16", "w17", "w18", "w19", "w20", "w21", "w22", "w23", "w24", "w25", "w26", "w27", "w28", "w29", "w30", "w31"]},
+      {"dest": false, "src": true, "comment": "32-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 32, "values": ["w0", "w1", "w2", "w3", "w4", "w5", "w6", "w7", "w8", "w9", "w10", "w11", "w12", "w13", "w14", "w15", "w16", "w17", "w18", "w19", "w20", "w21", "w22", "w23", "w24", "w25", "w26", "w27", "w28", "w29", "w30", "w31"]}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+    ]
+  },
+  {"name": "eor", "category": "general", "is_control_flow": false,
+    "operands": [
+      {"dest": true, "src": false, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"]},
+      {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"]},
+      {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rm\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"]}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+    ]
+  },
+  {"name": "b.", "category": "general", "is_control_flow": true,
+    "operands": [
+      {"dest": false, "src": false, "comment": "standard condition (field \"cond\")", "type_": "COND", "values": [], "width": 0},
+      {"dest": false, "src": true, "comment": "label to be conditionally branched to (field imm19)", "type_": "LABEL", "values": [], "width": 0}
+    ],
+    "implicit_operands": [
+      {"values": ["pc"], "type_": "REG", "width": 64, "src": true, "dest": false}
+    ]
+  },
+  {"name": "b", "category": "general", "is_control_flow": true,
+    "operands": [
+      {"dest": false, "src": true, "comment": "label to be conditionally branched to (field imm19)", "type_": "LABEL", "values": [], "width": 0}
+    ],
+    "implicit_operands": [
+      {"values": ["pc"], "type_": "REG", "width": 64, "src": true, "dest": false}
+    ]
+  },
+  {"name": "cmp", "category": "general", "is_control_flow": false,
+    "operands": [
+      {"dest": false, "src": true, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"]},
+      {"dest": false, "src": true, "comment": "64-bit general-purpose source register (field \"rn\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"]}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "width": 0, "src": false, "dest": true, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+    ]
+  },
+  {"name": "cmp", "category": "general", "is_control_flow": false,
+    "operands": [
+      {"dest": false, "src": true, "comment": "64-bit general-purpose destination register (field \"rd\")", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"]},
+      {"dest": false, "src": true, "type_": "IMM", "values": ["[0-4095]"], "width": 0}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "width": 0, "src": false, "dest": true, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+    ]
+  },
+  {"name": "dsb", "category": "general", "is_control_flow": false,
+    "operands": [
+      {"dest": false, "src": false, "comment": "", "type_": "IMM", "values": ["sy"], "width": 1}
+    ],
+    "implicit_operands": []
+  },
+  {"name": "isb", "category": "general", "is_control_flow": false,
+    "operands": [],
+    "implicit_operands": []
+  },
+  {"name": "nop", "category": "general", "is_control_flow": false,
+    "operands": [],
+    "implicit_operands": []
+  },
+  {"name": "ldrh", "category": "general", "is_control_flow": false,
+    "operands": [
+      {"dest": true, "src": false, "comment": "32-bit general-purpose register to be transferred (field \"rt\")", "type_": "REG", "width": 32, "values": ["w0", "w1", "w2", "w3", "w4", "w5", "w6", "w7", "w8", "w9", "w10", "w11", "w12", "w13", "w14", "w15", "w16", "w17", "w18", "w19", "w20", "w21", "w22", "w23", "w24", "w25", "w26", "w27", "w28", "w29", "w30", "w31"]},
+      {"dest": false, "src": true, "comment": "64-bit general-purpose base register or sp (field \"rn\")", "type_": "MEM", "width": 64},
+      {"dest": false, "src": true, "comment": "signed immediate byte offset [-256-255] (field \"imm9\")", "type_": "IMM", "values": ["[-256-255]"], "width": 0}
+    ],
+    "implicit_operands": []
+  },
+  {"name": "brk", "category": "system", "is_control_flow": false,
+    "operands": [
+      {"dest": false, "src": true, "type_": "IMM", "values": ["[0-65535]"], "width": 0}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["w", "", "", "w", "w", "", "", "", "w"]}
+    ]
+  }
+]

@@ -41,7 +41,7 @@ sudo apt-get install linux-headers-$(uname -r) linux-headers-generic
 git clone https://github.com/microsoft/sca-fuzzer.git
 
 # build executor
-cd sca-fuzzer/src/x86/executor
+cd sca-fuzzer/rvzr/executor_km
 make uninstall  # the command will give an error message, but it's ok!
 make clean
 make
@@ -57,7 +57,7 @@ If you want to use the DynamoRIO-based model, it has to be installed separately:
 sudo apt-get install cmake g++ g++-multilib doxygen git zlib1g-dev libunwind-dev libsnappy-dev liblz4-dev
 
 # install DynamoRIO and the model
-make -C src/model_dynamorio
+make -C rvzr/model_dynamorio
 
 # check installation
 ~/.local/dynamorio/drrun -c ~/.local/dynamorio/libdr_model.so --list-obs-clauses -- ls

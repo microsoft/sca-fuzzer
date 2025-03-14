@@ -5,8 +5,8 @@ SPDX-License-Identifier: MIT
 import unittest
 from pathlib import Path
 
-from src.isa_spec import InstructionSet
-from src.config import CONF
+from rvzr.isa_spec import InstructionSet
+from rvzr.config import CONF
 
 test_path = Path(__file__).resolve()
 test_dir = test_path.parent

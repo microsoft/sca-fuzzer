@@ -39,7 +39,7 @@ lea rbx, qword ptr [rbx + rcx + 1]
 lea rbx, qword ptr [rbx + rcx - 1]
 
 # reduce the entropy in rbx
-and rbx, 0b1
+and rbx, 0b1000000
 
 cmp rbx, 0
 je .l1  # misprediction

@@ -25,84 +25,174 @@ function parse_args() {
     done
 }
 
-parse_args $@
+function type_check() {
+    local enable_strict=$1
 
-if [ "$IGNORE_ERRORS" != "true" ]; then
+    echo ""
+    echo "===== MyPy ====="
+    cd $SCRIPT_DIR/.. || exit
+    MYPYPATH=rvzr/ python3 -m mypy --strict $ALL_PY --no-warn-unused-ignores --untyped-calls-exclude=elftools
+    cd - >/dev/null || exit
+
+    if [ "$enable_strict" = true ]; then
+        echo ""
+        cd $SCRIPT_DIR/.. || exit
+        echo "===== STRICT CHECK: MyPy (Unit Tests) ====="
+        MYPYPATH=rvzr/ python3 -m mypy --strict tests/unit_*.py --no-warn-unused-ignores --untyped-calls-exclude=elftools
+        MYPYPATH=rvzr/ python3 -m mypy --strict tests/x86_tests/unit_*.py --no-warn-unused-ignores --untyped-calls-exclude=elftools
+        MYPYPATH=rvzr/ python3 -m mypy --strict tests/arm64/unit_*.py --no-warn-unused-ignores --untyped-calls-exclude=elftools
+        cd - >/dev/null || exit
+    fi
+
+}
+
+function code_style_check() {
+    local enable_strict=$1
+
+    echo ""
+    echo "===== Code Style Checking with flake8 ====="
+    cd $SCRIPT_DIR/.. || exit
+    python3 -m flake8 --max-line-length 100 --ignore E402,W503 . --count --show-source --statistics
+    cd - >/dev/null || exit
+
+    if [ "$enable_strict" = true ]; then
+        echo ""
+        cd $SCRIPT_DIR/.. || exit
+        echo "===== STRICT CHECK: PyLint ====="
+        python3 -m pylint --rcfile=.pylintrc $ALL_PY
+        cd - >/dev/null || exit
+    fi
+
+}
+
+function core_unit_tests() {
+    echo ""
+    echo "===== Core Unit Tests ====="
+    cd $SCRIPT_DIR/.. || exit
+    python3 -m unittest tests.unit_analyser -v
+    echo "-------------"
+    python3 -m unittest tests.unit_docs -v
+    echo "-------------"
+    python3 -m unittest tests.unit_isa_loader
+    echo "-------------"
+    python3 -m unittest tests.unit_stats
+    echo "-------------"
+    python3 -m unittest tests.unit_tc_components
+    cd - >/dev/null || exit
+}
+
+function package_install_test() {
+    echo ""
+    echo "===== Package installation ====="
+
+    # skip if no internet connection
+    if ! ping -c 1 8.8.8.8 &>/dev/null; then
+        echo "No internet connection, skipping package installation test"
+        return
+    fi
+
+    cd $SCRIPT_DIR/.. || exit
+    python3 -m pip uninstall revizor-fuzzer -y
+    python3 -m build
+    python3 -m pip install dist/*.whl
+    cd - >/dev/null || exit
+    cd $SCRIPT_DIR/ || exit
+    set +e
+    out=$(python3 -c "import rvzr; rvzr.cli.main()" 2>&1)
     set -e
-fi
-
-if [ "$STRICT" = true ]; then
-    echo "Including optional tests"
-fi
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
-ALL_PY=$(find src/ -name "*.py" | grep -v "config" | grep -v "fuzzer")
-
-echo ""
-echo "===== MyPy ====="
-cd $SCRIPT_DIR/.. || exit
-MYPYPATH=src/ python3 -m mypy --strict $ALL_PY --no-warn-unused-ignores --untyped-calls-exclude=elftools
-cd - >/dev/null || exit
-
-if [ "$STRICT" = true ]; then
-    echo ""
-    cd $SCRIPT_DIR/.. || exit
-    echo "===== STRICT CHECK: MyPy (Unit Tests) ====="
-    MYPYPATH=src/ python3 -m mypy --strict tests/unit_*.py --no-warn-unused-ignores --untyped-calls-exclude=elftools
-    MYPYPATH=src/ python3 -m mypy --strict tests/x86_tests/unit_*.py --no-warn-unused-ignores --untyped-calls-exclude=elftools
+    if [[ "$out" != *"usage: "* ]]; then
+        echo "> ERROR: Package installation test failed"
+        exit 1
+    else
+        echo "> Package installation test passed"
+    fi
     cd - >/dev/null || exit
+}
 
-    echo ""
-    cd $SCRIPT_DIR/.. || exit
-    echo "===== STRICT CHECK: PyLint ====="
-    python3 -m pylint --rcfile=.pylintrc $ALL_PY
-    cd - >/dev/null || exit
-fi
-# exit
+function km_tests() {
+    if [ "$SKIP_KM_TESTS" != true ]; then
+        echo ""
+        echo "===== Executor kernel module ====="
+        cd $SCRIPT_DIR || exit
+        ./kernel_module.bats
+        cd - >/dev/null || exit
+    fi
+}
 
-echo ""
-echo "===== Code Style Checking with flake8 ====="
-cd $SCRIPT_DIR/.. || exit
-python3 -m flake8 --max-line-length 100 --ignore E402,W503 . --count --show-source --statistics
-cd - >/dev/null || exit
+function arch_unit_tests() {
+    # Note: we intentionally do not use the 'discover' option because it causes cross-contamination
+    # of config options between unit tests
 
-echo ""
-echo "===== Core Unit Tests ====="
-cd $SCRIPT_DIR/.. || exit
-python3 -m unittest discover tests -p "unit_*.py" -v
-cd - >/dev/null || exit
-# exit
+    if [ "$ARCH" == "x86_64" ]; then
+        echo ""
+        echo "===== x86 unit tests ====="
+        cd $SCRIPT_DIR/.. || exit
+        python3 -m unittest tests.x86_tests.unit_isa_loader -v
+        echo "-------------"
+        python3 -m unittest tests.x86_tests.unit_generators -v
+        echo "-------------"
+        python3 -m unittest tests.x86_tests.unit_model_unicorn -v
+        echo "-------------"
+        python3 -m unittest tests.x86_tests.unit_taint_tracker -v
+        echo "-------------"
+        python3 -m unittest tests.x86_tests.unit_model_dr -v
+        echo "-------------"
+        cd - >/dev/null || exit
+        # exit
+    else
+        echo ""
+        echo "===== arm64 unit tests ====="
+        cd $SCRIPT_DIR/.. || exit
+        cd $SCRIPT_DIR/.. || exit
+        python3 -m unittest tests.arm64.unit_isa_loader -v
+        echo "-------------"
+        python3 -m unittest tests.arm64.unit_generators -v
+        echo "-------------"
+        # python3 -m unittest tests.arm64.unit_model_unicorn -v
+        # echo "-------------"
+        # python3 -m unittest tests.arm64.unit_taint_tracker -v
+        # echo "-------------"
+        # python3 -m unittest tests.arm64.unit_model_dr -v
+        # echo "-------------"
+        cd - >/dev/null || exit
+        # exit
+    fi
+}
 
-if [ "$SKIP_KM_TESTS" != true ]; then
-    echo ""
-    echo "===== x86 kernel module ====="
-    cd $SCRIPT_DIR || exit
-    ./x86_tests/kernel_module.bats
-    cd - >/dev/null || exit
-fi
+function acceptance_tests() {
+    if [ "$SKIP_KM_TESTS" != true ]; then
+        echo ""
+        echo "===== Acceptance tests ====="
+        cd $SCRIPT_DIR || exit
+        ./acceptance.bats
+        cd - >/dev/null || exit
+    fi
+}
 
-echo ""
-echo "===== x86 unit tests ====="
-cd $SCRIPT_DIR/.. || exit
-# Note: we intentionally do not use the 'discover' option because it causes cross-contamination
-# of config options between unit tests
-python3 -m unittest tests.x86_tests.unit_generators -v
-echo "-------------"
-python3 -m unittest tests.x86_tests.unit_isa_loader -v
-echo "-------------"
-python3 -m unittest tests.x86_tests.unit_model_unicorn -v
-echo "-------------"
-python3 -m unittest tests.x86_tests.unit_model_dr -v
-echo "-------------"
-python3 -m unittest tests.x86_tests.unit_taint_tracker -v
-echo "-------------"
-cd - >/dev/null || exit
-# exit
+function main() {
+    parse_args $@
 
-if [ "$SKIP_KM_TESTS" != true ]; then
-    echo ""
-    echo "===== x86 acceptance tests ====="
-    cd $SCRIPT_DIR || exit
-    ./x86_tests//acceptance.bats
-    cd - >/dev/null || exit
-fi
+    if [ "$IGNORE_ERRORS" != "true" ]; then
+        set -e
+    fi
+
+    if [ "$STRICT" = true ]; then
+        echo "Including optional tests"
+    fi
+
+    VENDOR="$(lscpu | grep Vendor | awk '{print $3}')"
+    ARCH="$(lscpu | grep Architecture | awk '{print $2}')"
+
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+    ALL_PY=$(find rvzr/ -name "*.py" | grep -v "config" | grep -v "fuzzer")
+
+    type_check $STRICT
+    code_style_check $STRICT
+    package_install_test
+    core_unit_tests
+    km_tests
+    arch_unit_tests
+    acceptance_tests
+}
+
+main $@

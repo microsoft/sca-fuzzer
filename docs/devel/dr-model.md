@@ -7,9 +7,9 @@ As any other model, this backend is responsible for collecting contract traces f
 
 This backend is composed of several parts:
 
-* The Python adapter (`src/model_dynamorio/model.py`) is responsible for receiving a test case from Revizor, transforming it into a format that can be executed by the backend, triggering the backend to execute the test case, and returning the collected contract traces to Revizor.
-* The Test Case Loader (`src/model_dynamorio/adapter.c`) is a C program that loads a test case program and a batch of inputs into its memory, and executes the test case program with each input in a sequence.
-* The DynamoRIO components (`src/model_dynamorio/backend`) are executed together with the test case loader, and they instrument the loader binary to collect contract traces.
+* The Python adapter (`rvzr/model_dynamorio/model.py`) is responsible for receiving a test case from Revizor, transforming it into a format that can be executed by the backend, triggering the backend to execute the test case, and returning the collected contract traces to Revizor.
+* The Test Case Loader (`rvzr/model_dynamorio/adapter.c`) is a C program that loads a test case program and a batch of inputs into its memory, and executes the test case program with each input in a sequence.
+* The DynamoRIO components (`rvzr/model_dynamorio/backend`) are executed together with the test case loader, and they instrument the loader binary to collect contract traces.
 
 These components can be roughly divided into the instrumentation-time components that are responsible for modifying the binary, and execution-time components that implement the model logic (i.e., the contract).
 
@@ -17,7 +17,7 @@ These components can be roughly divided into the instrumentation-time components
 
 ## Python Adapter
 
-Revizor communicates with the backend through a Python adapter (`src/model_dynamorio/model.py:DynamoRIOModel`).
+Revizor communicates with the backend through a Python adapter (`rvzr/model_dynamorio/model.py:DynamoRIOModel`).
 
 At the beginning of the fuzzing process, Revizor configures the backend by calling `configure_clauses` method.
 This configuration will be later passed down to the backend when the test case is executed.
@@ -39,7 +39,7 @@ The `trace_test_case` method implements the following algorithm:
 ## Test Case Loader
 
 Since the test cases produced by Revizor are raw binaries, they cannot be directly executed (e.g., they don't have `libc` linked).
-The test case loader (`src/model_dynamorio/adapter.c`) is a simple C program that fixes this issue by providing a wrapper around the test case binary.
+The test case loader (`rvzr/model_dynamorio/adapter.c`) is a simple C program that fixes this issue by providing a wrapper around the test case binary.
 
 The loader implements the following algorithm:
 
@@ -52,7 +52,7 @@ The loader implements the following algorithm:
 
 ### DynamoRIO Tool
 
-The DynamoRIO tool (`src/model_dynamorio/backend`) is responsible for instrumenting the test case loader binary and collecting contract traces.
+The DynamoRIO tool (`rvzr/model_dynamorio/backend`) is responsible for instrumenting the test case loader binary and collecting contract traces.
 
 ### Instrumentation Components
 

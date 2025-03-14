@@ -12,17 +12,17 @@ import os
 from pathlib import Path
 from copy import deepcopy
 
-from src.x86.x86_generator import X86Generator, _X86Printer, _X86PatchUndefinedFlagsPass
-from src.x86.x86_target_desc import X86TargetDesc
-from src.x86.x86_elf_parser import X86ELFParser
-from src.factory import get_program_generator, get_asm_parser
-from src.isa_spec import InstructionSet
-from src.tc_components.actor import ActorMode
-from src.tc_components.test_case_code import TestCaseProgram, Function, BasicBlock
-from src.tc_components.test_case_binary import SymbolTableEntry
-from src.code_generator import assemble
-from src.config import CONF
-from src.logs import update_logging_after_config_change
+from rvzr.arch.x86.generator import X86Generator, _X86Printer, _X86PatchUndefinedFlagsPass
+from rvzr.arch.x86.target_desc import X86TargetDesc
+from rvzr.elf_parser import ELFParser
+from rvzr.factory import get_program_generator, get_asm_parser
+from rvzr.isa_spec import InstructionSet
+from rvzr.tc_components.actor import ActorMode
+from rvzr.tc_components.test_case_code import TestCaseProgram, Function, BasicBlock
+from rvzr.tc_components.test_case_binary import SymbolTableEntry
+from rvzr.code_generator import assemble
+from rvzr.config import CONF
+from rvzr.logs import update_logging_after_config_change
 
 CONF.instruction_set = "x86-64"
 test_path = Path(__file__).resolve()
@@ -49,7 +49,7 @@ class X86GeneratorTest(unittest.TestCase):
         instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix())
         generator = get_program_generator(CONF.program_generator_seed, instruction_set)
         asm_parser = get_asm_parser(instruction_set)
-        elf_parser = X86ELFParser(X86TargetDesc())
+        elf_parser = ELFParser(X86TargetDesc())
 
         asm_file = tempfile.NamedTemporaryFile(delete=False)
         with open(asm_file.name, "w") as f:
@@ -119,7 +119,7 @@ class X86GeneratorTest(unittest.TestCase):
         instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix())
         generator = get_program_generator(CONF.program_generator_seed, instruction_set)
         asm_parser = get_asm_parser(instruction_set)
-        elf_parser = X86ELFParser(X86TargetDesc())
+        elf_parser = ELFParser(X86TargetDesc())
 
         asm_name = (test_dir / "asm/asm_basic.asm").absolute().as_posix()
         tc: TestCaseProgram = asm_parser.parse_file(asm_name, generator, elf_parser)
@@ -163,7 +163,7 @@ class X86GeneratorTest(unittest.TestCase):
         instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix())
         generator = get_program_generator(CONF.program_generator_seed, instruction_set)
         asm_parser = get_asm_parser(instruction_set)
-        elf_parser = X86ELFParser(X86TargetDesc())
+        elf_parser = ELFParser(X86TargetDesc())
         name = (test_dir / "asm/asm_multiactor.asm").absolute().as_posix()
         tc: TestCaseProgram = asm_parser.parse_file(name, generator, elf_parser)
 
@@ -210,7 +210,7 @@ class X86GeneratorTest(unittest.TestCase):
 
         generator = get_program_generator(CONF.program_generator_seed, instruction_set)
         asm_parser = get_asm_parser(instruction_set)
-        elf_parser = X86ELFParser(X86TargetDesc())
+        elf_parser = ELFParser(X86TargetDesc())
         name = (test_dir / "asm/asm_symbol.asm").absolute().as_posix()
         tc: TestCaseProgram = asm_parser.parse_file(name, generator, elf_parser)
         obj = tc.get_obj()

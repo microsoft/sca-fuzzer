@@ -7,7 +7,7 @@ from typing import Dict, List, Union
 import unittest
 import inspect
 import pathlib
-from src.config import CONF
+from rvzr.config import CONF
 
 FILE_DIR = pathlib.Path(__file__).parent.resolve()
 DOC_DIR = FILE_DIR.parent / "docs"

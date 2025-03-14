@@ -9,7 +9,7 @@ SPDX-License-Identifier: MIT
 
 import unittest
 
-from src.stats import FuzzingStats
+from rvzr.stats import FuzzingStats
 
 
 class StatsTest(unittest.TestCase):

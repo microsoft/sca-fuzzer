@@ -9,20 +9,20 @@ import unittest
 from typing import List, Optional, Type
 from copy import deepcopy
 
-from src.model_unicorn import model as uc_model
-from src.model_unicorn import tracer as uc_tracer
-from src.model_unicorn.speculator_abc import UnicornSpeculator
-from src.model_unicorn.interpreter import X86ExtraInterpreter
-from src.model_unicorn.speculators_basic import SeqSpeculator, X86CondSpeculator, \
+from rvzr.model_unicorn import model as uc_model
+from rvzr.model_unicorn import tracer as uc_tracer
+from rvzr.model_unicorn.speculator_abc import UnicornSpeculator
+from rvzr.model_unicorn.interpreter import X86ExtraInterpreter
+from rvzr.model_unicorn.speculators_basic import SeqSpeculator, X86CondSpeculator, \
     StoreBpasSpeculator
-from src.model_unicorn.speculators_fault import X86UnicornNull, X86UnicornNullAssist, \
+from rvzr.model_unicorn.speculators_fault import X86UnicornNull, X86UnicornNullAssist, \
     X86Meltdown, X86UnicornDEH
 
-from src.tc_components.test_case_data import InputData
-from src.traces import CTrace
-from src.x86.x86_target_desc import X86TargetDesc
-from src.config import CONF, Conf
-from src.logs import update_logging_after_config_change
+from rvzr.tc_components.test_case_data import InputData
+from rvzr.traces import CTrace
+from rvzr.arch.x86.target_desc import X86TargetDesc
+from rvzr.config import CONF, Conf
+from rvzr.logs import update_logging_after_config_change
 
 from .model_common import Inst, InstList, get_default_input, \
     MAIN_OFFSET, FAULTY_OFFSET, MEM_DEFAULT_VALUE, \

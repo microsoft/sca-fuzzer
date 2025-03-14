@@ -11,14 +11,14 @@ import os
 import tempfile
 from pathlib import Path
 
-from src.tc_components.test_case_code import TestCaseProgram
-from src.tc_components.test_case_data import InputData
-from src.isa_spec import InstructionSet
-from src.x86.x86_target_desc import X86TargetDesc
-from src.x86.x86_asm_parser import X86AsmParser
-from src.x86.x86_elf_parser import X86ELFParser
-from src.x86.x86_generator import X86Generator
-from src.config import CONF
+from rvzr.tc_components.test_case_code import TestCaseProgram
+from rvzr.tc_components.test_case_data import InputData
+from rvzr.isa_spec import InstructionSet
+from rvzr.elf_parser import ELFParser
+from rvzr.arch.x86.target_desc import X86TargetDesc
+from rvzr.arch.x86.asm_parser import X86AsmParser
+from rvzr.arch.x86.generator import X86Generator
+from rvzr.config import CONF
 
 test_path = Path(__file__).resolve()
 test_dir = test_path.parent
@@ -93,7 +93,7 @@ class InstList:
 
         instruction_set = InstructionSet(min_x86_path.absolute().as_posix())
         target_desc = X86TargetDesc()
-        elf_parser = X86ELFParser(target_desc)
+        elf_parser = ELFParser(target_desc)
         asm_parser = X86AsmParser(instruction_set, target_desc)
         generator = X86Generator(CONF.program_generator_seed, instruction_set, target_desc,
                                  asm_parser, elf_parser)

@@ -7,8 +7,8 @@ import unittest
 import os
 import tempfile
 
-from src.isa_spec import InstructionSet
-from src.instruction_spec import OT, InstructionSpec
+from rvzr.isa_spec import InstructionSet
+from rvzr.instruction_spec import OT, InstructionSpec
 
 basic = """
 [

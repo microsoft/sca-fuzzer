@@ -67,8 +67,8 @@ The code area is divided into two regions:
 
 ### References
 
-* Executor: [src/x86/executor/include/sandbox_manager.h](https://github.com/microsoft/sca-fuzzer/tree/main/src/x86/executor/include/sandbox_manager.h)
-* Unicorn backend: [src/sandbox.py](https://github.com/microsoft/sca-fuzzer/tree/main/src/sandbox.py)
+* Executor: [rvzr/executor_km/include/sandbox_manager.h](https://github.com/microsoft/sca-fuzzer/tree/main/rvzr/executor_km/include/sandbox_manager.h)
+* Unicorn backend: [rvzr/sandbox.py](https://github.com/microsoft/sca-fuzzer/tree/main/rvzr/sandbox.py)
 
 ## Sandbox Initialization
 

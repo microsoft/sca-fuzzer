@@ -8,12 +8,12 @@ SPDX-License-Identifier: MIT
 
 import unittest
 
-from src.model_unicorn import taint_tracker
-from src.x86.x86_target_desc import X86TargetDesc
+from rvzr.model_unicorn import taint_tracker
+from rvzr.arch.x86.target_desc import X86TargetDesc
 
-from src.tc_components.instruction import Instruction, RegisterOp, MemoryOp, LabelOp, \
+from rvzr.tc_components.instruction import Instruction, RegisterOp, MemoryOp, LabelOp, \
     FlagsOp, AgenOp
-from src.tc_components.test_case_data import InputTaint
+from rvzr.tc_components.test_case_data import InputTaint
 
 
 # ==================================================================================================

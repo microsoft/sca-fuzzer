@@ -71,8 +71,8 @@ fi
 if [ ! -f "$revizor_dir/revizor.py" ]; then
     echo "ERROR: Could not find '$revizor_dir/revizor.py'"
 fi
-if [ ! -f "$revizor_dir/src/x86/base.json" ]; then
-    echo "ERROR: Could not find '$revizor_dir/src/x86/base.json'"
+if [ ! -f "$revizor_dir/rvzr/arch/x86/base.json" ]; then
+    echo "ERROR: Could not find '$revizor_dir/rvzr/arch/x86/base.json'"
 fi
 
 work_dir=$(realpath $work_dir)
@@ -86,7 +86,7 @@ TIMEOUT=7200         # seconds
 
 # Globals
 revizor="$revizor_dir/revizor.py"
-instructions="$revizor_dir/src/x86/base.json"
+instructions="$revizor_dir/rvzr/arch/x86/base.json"
 conf_dir="$SCRIPT_DIR/configs/"
 
 # ==================================================================================================

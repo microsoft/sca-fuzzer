@@ -1,7 +1,7 @@
 # Configuration File
 
 Below is a list of the available configuration options for Revizor, which are passed down to Revizor via a config file.
-For an example of how to write the config file, see [src/tests/big-fuzz.yaml](https://github.com/microsoft/sca-fuzzer/tree/main/src/tests/big-fuzz.yaml).
+For an example of how to write the config file, see [rvzr/tests/big-fuzz.yaml](https://github.com/microsoft/sca-fuzzer/tree/main/rvzr/tests/big-fuzz.yaml).
 
 ## Fuzzing Configuration
 
@@ -118,15 +118,15 @@ Otherwise, the fuzzing progress will be continuously overwriting the same line (
 
 ```yaml
 Name: instruction_set
-Default: 'x86-64'
-Options: 'x86-64'
+Default: (architecture-dependent)
+Options: 'x86-64' | 'arm64'
 ```
 
 The instruction set under test. Currently, only x86-64 is supported.
 
 ```yaml
 Name: instruction_categories
-Default: ['BASE-BINARY', 'BASE-BITBYTE', 'BASE-COND_BR']
+Default: (architecture-dependent; see rvzr/arch/<isa>/config.py for details)
 Options: (depends on model backend; see <isa>_config.py for details)
 ```
 
@@ -136,7 +136,7 @@ passed via the command line (`-s`).
 
 ```yaml
 Name: instruction_blocklist
-Default: ['enterw', 'enter', 'leavew', 'leave', 'int', 'encls', 'vmxon', 'stgi', 'skinit', 'ldmxcsr', 'stmxcsr', 'lfence', 'mfence', 'sfence', 'clflush', 'clflushopt', 'divps', 'divss', 'divpd', 'divsd', 'mulss', 'mulps', 'mulpd', 'mulsd', 'rsqrtps', 'rsqrtss', 'sqrtps', 'sqrtss', 'sqrtpd', 'sqrtsd', 'addps', 'addss', 'addpd', 'addsd', 'subps', 'subss', 'subpd', 'subsd', 'addsubpd', 'addsubps', 'haddpd', 'haddps', 'hsubpd', 'hsubps', 'sti', 'cli', 'xlat', 'xlatb', 'cmpxchg8b', 'lock cmpxchg8b', 'cmpxchg16b', 'lock cmpxchg16b', 'cpuid', 'cmpps', 'cmpss', 'cmppd', 'cmpsd', 'movq2dq', 'movdq2q', 'rcpps', 'rcpss', 'pcmpestriq', 'pcmpestrmq', 'vpcmpestriq', 'vpcmpestrmq', 'maskmovdqu', 'maskmovq', 'vmaskmovdqu', 'vmaskmovq']
+Default: (architecture-dependent; see rvzr/arch/<isa>/config.py for details)
 Options: (any instruction names)
 ```
 
@@ -520,7 +520,7 @@ Size of the speculation window in the model.
 ```yaml
 Name: executor
 Default: (auto-detected)
-Options: 'x86-64-intel' | 'x86-64-amd'
+Options: 'x86-64-intel' | 'x86-64-amd' | 'arm64'
 ```
 
 The executor type. The default value is auto-detected based on the `cpuinfo`.

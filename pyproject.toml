@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "revizor-fuzzer"
-version = "1.3.2"
+version = "1.3.3"
 description = "A fuzzer to search for microarchitectural leaks in CPUs"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -36,15 +36,12 @@ maintainers = [{name = "Oleksii Oleksenko", email = ""}]
 "Bug Tracker" = "https://github.com/microsoft/sca-fuzzer/issues"
 "Changelog" = "https://github.com/microsoft/sca-fuzzer/releases"
 
-[tool.hatch.build.sources]
-"src" = "revizor"
-
 [tool.hatch.build]
 exclude = [
   "demo/",
   "docs/",
   "mkdocs-overrides/",
-  "src/x86/executor/",
+  "rvzr/executor_km/",
   "tests/",
   "tests/x86_tests/",
   "tests/x86_tests/",
@@ -55,7 +52,7 @@ exclude = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["revizor"]
+packages = ["rvzr"]
 
 [project.scripts]
-rvzr = "revizor.cli:main"
+rvzr = "rvzr.cli:main"

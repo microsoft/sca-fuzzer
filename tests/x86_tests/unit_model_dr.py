@@ -15,12 +15,12 @@ from typing import List, Optional
 # from unittest.mock import MagicMock
 from pathlib import Path
 
-from src.model_dynamorio.model import DynamoRIOModel
+from rvzr.model_dynamorio.model import DynamoRIOModel
 
-from src.tc_components.test_case_data import InputData
-from src.factory import get_model
-from src.config import CONF, ConfigException
-from src.logs import update_logging_after_config_change
+from rvzr.tc_components.test_case_data import InputData
+from rvzr.factory import get_model
+from rvzr.config import CONF, ConfigException
+from rvzr.logs import update_logging_after_config_change
 
 from .model_common import Inst, InstList, get_default_input
 

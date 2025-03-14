@@ -60,7 +60,7 @@ The main interface to the executor is the `Executor` class, with its `load_test_
 `trace_test_case` takes a list of `InputData` objects, loads their data into the executor's memory one at a time and executes the loaded program with each.
 The resulting hardware traces are returned as a list of `HTrace` objects (defined in `traces.py`).
 
-The architecture of Revizor can potentially support many types of executors, but currently, we support only one. It is implemented as a kernel module (`x86/executor`), to which the `Executor` class acts as an adapter.
+The architecture of Revizor can potentially support many types of executors, but currently, we support only one. It is implemented as a kernel module (`executor_km/`), to which the `Executor` class acts as an adapter.
 
 ### 6. Trace Analysis
 

@@ -15,16 +15,16 @@ from unittest.mock import MagicMock
 import tempfile
 import numpy as np
 
-from src.tc_components.actor import Actor, ActorMode, ActorPL
-from src.tc_components.test_case_code import CodeSection, TestCaseProgram, BasicBlock, Function
-from src.tc_components.test_case_binary import TestCaseBinary, SymbolTableEntry
-from src.tc_components.test_case_data import InputData, _ACTOR_DATA_SIZE
-from src.instruction_spec import InstructionSpec, OperandSpec, OT
-from src.tc_components.instruction import Instruction, Operand, \
+from rvzr.tc_components.actor import Actor, ActorMode, ActorPL
+from rvzr.tc_components.test_case_code import CodeSection, TestCaseProgram, BasicBlock, Function
+from rvzr.tc_components.test_case_binary import TestCaseBinary, SymbolTableEntry
+from rvzr.tc_components.test_case_data import InputData, _ACTOR_DATA_SIZE
+from rvzr.instruction_spec import InstructionSpec, OperandSpec, OT
+from rvzr.tc_components.instruction import Instruction, Operand, \
     copy_op_with_flow_modification, copy_op_with_value_modification, copy_inst_with_modification, \
     RegisterOp, MemoryOp, ImmediateOp, LabelOp, AgenOp, CondOp, \
     FlagsOp
-from src.config import ActorConf
+from rvzr.config import ActorConf
 
 
 def _get_dummy_actor_dict() -> ActorConf:
@@ -191,7 +191,7 @@ class OperandTest(unittest.TestCase):
             src = True if type_ != OT.FLAGS else False  # pylint: disable=simplifiable-if-expression
 
             # Create an OperandSpec object
-            operand_spec = OperandSpec(values=values, type_=type_, src=src, dest=False)
+            operand_spec = OperandSpec(values=values, type_=type_, src=src, dest=False, width=8)
 
             # Create an Operand object from the OperandSpec object
             operand = Operand.from_fixed_spec(operand_spec)
