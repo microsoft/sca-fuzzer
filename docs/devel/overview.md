@@ -5,7 +5,7 @@ This document provides an overview of Revizor's architecture and its key compone
 ## How Revizor works
 
 Revizor detects contract violations via a method called Model-based Relational Testing (MRT).
-This method relies on a [leakage model](../contracts.md#speculative-leakage-models) that encodes known microarchitectural vulnerabilities to predict the information leaked when executing some code, which
+This method relies on a [leakage model](../contracts.md) that encodes known microarchitectural vulnerabilities to predict the information leaked when executing some code, which
  allows it to distinguish between expected and unexpected  leaks. The approach generates random code that is executed both in the CPU-under-test and in the model. It then measures the microarchitectural state changes caused by the code and compares it to the leakage predicted by the model. If the observed leakage matches the model’s prediction, this indicates that the CPU is behaving as expected, and
  the test case is discarded. Otherwise, if the random code exposed unexpected information, this indicates a potential security vulnerability, and the generated code can be used as a starting point for further (manual) analysis of the new leak.
 
@@ -40,7 +40,7 @@ The generated data is returned as a list of `InputData` objects (defined in `tc_
 ### 4. Model Execution
 
 The model takes the generated program and executes it with each of the generated inputs.
-The model records the data that we expect to be leaked on the given CPU, and to emulate the expected speculative behavior. For mode details on leakage models, see [Speculation Contracts](../contracts.md#speculative-leakage-models).
+The model records the data that we expect to be leaked on the given CPU, and to emulate the expected speculative behavior. For mode details on leakage models, see [Speculation Contracts](../contracts.md).
 
 **Details**: The model is implemented by the `model.py` module.
 The main interface to the model is the `Model` class, with its `load_test_case` and `trace_test_case` methods being the main entry points.
@@ -52,7 +52,7 @@ Note that Revizor supports multiple modelling backends, which are implemented as
 
 ### 5. Hardware Execution
 
-The executor takes a program, executes it on the target CPU with each of the inputs, and collects the [hardware traces](../contracts.md#microarchitectural-leakage-and-hardware-traces) for each execution. The traces are typically (though not strictly necessarily) collected via a side-channel attack, such as Prime+Probe, in which case a trace is a set of cache lines evicted by the program. In addition to collecting traces, the executor also ensures a low-noise and reproducible execution environment, for example, by disabling interrupts and flushing caches before starting a measurement.
+The executor takes a program, executes it on the target CPU with each of the inputs, and collects hardware traces for each execution. The traces are typically (though not strictly necessarily) collected via a side-channel attack, such as Prime+Probe, in which case a trace is a set of cache lines evicted by the program. In addition to collecting traces, the executor also ensures a low-noise and reproducible execution environment, for example, by disabling interrupts and flushing caches before starting a measurement.
 
 **Details**: The executor is implemented by the `executor.py` module.
 The main interface to the executor is the `Executor` class, with its `load_test_case` and `trace_test_case` methods being the main entry points.
@@ -64,7 +64,7 @@ The architecture of Revizor can potentially support many types of executors, but
 
 ### 6. Trace Analysis
 
-The trace analyzer uses the leakage predicted by the model to filter out instances of expected leaks from the set of collected hardware traces, thus leaving only the unexpected leaks. The analyzer performs the filtering by [checking the noninterference property w.r.t. the model](../contracts.md#contract-violation).
+The trace analyzer uses the leakage predicted by the model to filter out instances of expected leaks from the set of collected hardware traces, thus leaving only the unexpected leaks. The analyzer performs the filtering by [checking the noninterference property w.r.t. the model](../contracts.md).
 
 The key aspect of this approach is that MRT never directly compares the hardware traces to the model’s prediction; instead, it compares the exposed information. This allows a complex modern CPU to be tested against a simple model, and still effectively filter out expected leaks while detecting unexpected leaks.
 
