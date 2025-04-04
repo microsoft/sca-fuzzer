@@ -39,7 +39,7 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Quick Start: quick-start.md
-  - Introduction To Speculation Contracts: contracts.md
+  - Theoretical Foundations: contracts.md
   - User Documentation:
     - Command Line Interface: user/cli.md
     - Modes of Operation: user/modes.md
