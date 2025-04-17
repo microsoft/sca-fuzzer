@@ -17,8 +17,8 @@
 rcbf_t *parse_rcbf(const char *filename)
 {
     // Open the file in binary mode
-    FILE *fp = fopen(filename, "rb");
-    if (fp == NULL) {
+    FILE *rdbf_fp = fopen(filename, "rb");
+    if (rdbf_fp == NULL) {
         perror("fopen:parse_rcbf");
         exit(EXIT_FAILURE);
     }
@@ -31,7 +31,7 @@ rcbf_t *parse_rcbf(const char *filename)
     }
 
     // Read the header
-    if (fread(&rcbf->header, sizeof(rcbf_header_t), 1, fp) != 1) {
+    if (fread(&rcbf->header, sizeof(rcbf_header_t), 1, rdbf_fp) != 1) {
         perror("fread:rcbf->header");
         exit(EXIT_FAILURE);
     }
@@ -52,7 +52,7 @@ rcbf_t *parse_rcbf(const char *filename)
         perror("malloc:rcbf->actor_table");
         exit(EXIT_FAILURE);
     }
-    if (fread(rcbf->actor_table, sizeof(actor_metadata_t), n_actors, fp) != n_actors) {
+    if (fread(rcbf->actor_table, sizeof(actor_metadata_t), n_actors, rdbf_fp) != n_actors) {
         perror("fread:rcbf->actor_table");
         exit(EXIT_FAILURE);
     }
@@ -63,7 +63,7 @@ rcbf_t *parse_rcbf(const char *filename)
         perror("malloc:rcbf->symbol_table");
         exit(EXIT_FAILURE);
     }
-    if (fread(rcbf->symbol_table, sizeof(symbol_entry_t), n_symbols, fp) != n_symbols) {
+    if (fread(rcbf->symbol_table, sizeof(symbol_entry_t), n_symbols, rdbf_fp) != n_symbols) {
         perror("fread:rcbf->symbol_table");
         exit(EXIT_FAILURE);
     }
@@ -75,7 +75,7 @@ rcbf_t *parse_rcbf(const char *filename)
         perror("malloc:rcbf->section_metadata");
         exit(EXIT_FAILURE);
     }
-    if (fread(rcbf->section_metadata, sizeof(code_section_metadata_t), n_actors, fp) != n_actors) {
+    if (fread(rcbf->section_metadata, sizeof(code_section_metadata_t), n_actors, rdbf_fp) != n_actors) {
         perror("fread:rcbf->section_metadata");
         exit(EXIT_FAILURE);
     }
@@ -87,7 +87,7 @@ rcbf_t *parse_rcbf(const char *filename)
         exit(EXIT_FAILURE);
     }
     for (uint64_t i = 0; i < n_actors; i++) {
-        if (fread(rcbf->sections[i].code, 1, rcbf->section_metadata[i].size, fp) !=
+        if (fread(rcbf->sections[i].code, 1, rcbf->section_metadata[i].size, rdbf_fp) !=
             rcbf->section_metadata[i].size) {
             perror("fread:rcbf->sections");
             exit(EXIT_FAILURE);
@@ -95,7 +95,7 @@ rcbf_t *parse_rcbf(const char *filename)
     }
 
     // Close the file
-    fclose(fp);
+    fclose(rdbf_fp);
 
     return rcbf;
 }
@@ -117,8 +117,8 @@ void free_rcbf(rcbf_t *rcbf)
 rdbf_t *parse_rdbf(const char *filename)
 {
     // Open the file in binary mode
-    FILE *fp = fopen(filename, "rb");
-    if (fp == NULL) {
+    FILE *rdbf_fp = fopen(filename, "rb");
+    if (rdbf_fp == NULL) {
         perror("fopen:parse_rdbf");
         exit(EXIT_FAILURE);
     }
@@ -131,7 +131,7 @@ rdbf_t *parse_rdbf(const char *filename)
     }
 
     // Read the header
-    if (fread(&rdbf->header, sizeof(rdbf_header_t), 1, fp) != 1) {
+    if (fread(&rdbf->header, sizeof(rdbf_header_t), 1, rdbf_fp) != 1) {
         perror("fread:rdbf->header");
         exit(EXIT_FAILURE);
     }
@@ -144,7 +144,7 @@ rdbf_t *parse_rdbf(const char *filename)
         perror("malloc:rdbf->metadata");
         exit(EXIT_FAILURE);
     }
-    if (fread(rdbf->metadata, sizeof(data_section_metadata_t), n_actors, fp) != n_actors) {
+    if (fread(rdbf->metadata, sizeof(data_section_metadata_t), n_actors, rdbf_fp) != n_actors) {
         perror("fread:rdbf->metadata");
         exit(EXIT_FAILURE);
     }
@@ -156,19 +156,19 @@ rdbf_t *parse_rdbf(const char *filename)
         perror("malloc:rdbf->data");
         exit(EXIT_FAILURE);
     }
-    if (fread(rdbf->data, 1, data_size, fp) != data_size) {
+    if (fread(rdbf->data, 1, data_size, rdbf_fp) != data_size) {
         perror("fread:rdbf->data");
         exit(EXIT_FAILURE);
     }
 
     // By this point the whole file should be read
-    if (fgetc(fp) != EOF) {
+    if (fgetc(rdbf_fp) != EOF) {
         fprintf(stderr, "ERROR: unexpected file format of the RDBF file\n");
         exit(EXIT_FAILURE);
     }
 
     // Close the file
-    fclose(fp);
+    fclose(rdbf_fp);
 
     return rdbf;
 }

@@ -14,12 +14,12 @@
 #include <dr_ir_utils.h>
 #include <drutil.h>
 
-#include "tracers/tracer_ct.hpp"
+#include "tracers/ct.hpp"
 #include "util.hpp"
 
-void TracerCT::observe_instruction(uint64_t opcode, uint64_t pc, dr_mcontext_t *mc)
+void TracerCT::observe_instruction(instr_obs_t instr, dr_mcontext_t *mc)
 {
-    TracerABC::observe_instruction(opcode, pc, mc);
+    TracerABC::observe_instruction(instr, mc);
 
     // Nothing to do if tracing is off
     if (not tracing_on) {
@@ -29,7 +29,7 @@ void TracerCT::observe_instruction(uint64_t opcode, uint64_t pc, dr_mcontext_t *
     // Create an new entry and push it on the trace buffer
     const trace_entry_t entry = {
         .type = ENTRY_PC,
-        .addr = pc,
+        .addr = instr.pc,
         .size = 0,
     };
     trace.push_back(entry);

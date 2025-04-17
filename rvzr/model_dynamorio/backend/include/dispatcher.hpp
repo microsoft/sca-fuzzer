@@ -13,11 +13,13 @@
 
 #include <dr_api.h> // NOLINT
 
+#include "cli.hpp"
+#include "speculator_abc.hpp"
 #include "tracer_abc.hpp"
 
 struct module_bundle_t {
     std::unique_ptr<TracerABC> tracer = nullptr;
-    // std::unique_ptr<SpeculatorABC> speculator = nullptr;
+    std::unique_ptr<SpeculatorABC> speculator = nullptr;
 };
 
 /// @brief Dispatcher class responsible for adding instrumentation to instructions
@@ -26,8 +28,7 @@ struct module_bundle_t {
 class Dispatcher
 {
   public:
-    Dispatcher(bool enable_dbg_trace_, bool enable_bin_output_, const std::string &tracer_type,
-               const std::string &speculator_type);
+    Dispatcher(cli_args_t *cli_args);
     virtual ~Dispatcher();
     Dispatcher(const Dispatcher &) = delete;
     Dispatcher &operator=(const Dispatcher &) = delete;
@@ -38,13 +39,13 @@ class Dispatcher
     // Public Methods
 
     /// @brief Starts the instrumentation process for a wrapped functions
-    /// @param wrapcxt The machine context of the wrapped function
+    /// @param wrapctx The machine context of the wrapped function
     /// @param user_data Unused
     /// @return void
     void start(void *, DR_PARAM_OUT void **);
 
     /// @brief Finalizes the instrumentation process for a wrapped function
-    /// @param wrapcxt The machine context of the wrapped function
+    /// @param wrapctx The machine context of the wrapped function
     /// @param user_data Unused
     /// @return void
     void finalize(void *, DR_PARAM_OUT void *);
@@ -55,7 +56,13 @@ class Dispatcher
     /// @param bb The basic block to be instrumented
     /// @param instr The instruction to instrument
     /// @return Flags to be consumed by DynamoRIO instrumentation callbacks
-    dr_emit_flags_t instrument_instruction(void *drcontext, instrlist_t *bb, instr_t *instr);
+    dr_emit_flags_t instrument_instruction(void *drcontext, instrlist_t *bb, instr_t *instr) const;
+
+    /// @brief Passes the exception down to service modules for handling
+    /// @param drcontext The drcontext of the current thread
+    /// @param excpt Pointer to the exception data
+    /// @return void
+    void handle_exception(void *drcontext, dr_siginfo_t *siginfo);
 
   protected:
     // ---------------------------------------------------------------------------------------------

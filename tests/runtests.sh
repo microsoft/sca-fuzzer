@@ -63,6 +63,20 @@ function code_style_check() {
         cd - >/dev/null || exit
     fi
 
+    echo ""
+    echo "===== [DR] Code Style & Linting with clang-tidy ====="
+    cd $SCRIPT_DIR/../rvzr/model_dynamorio || exit
+    if [ -d "adapter/build" ]; then
+        find . -name "*.c" | grep -v "CMakeFiles"  | xargs clang-tidy --quiet --p adapter/build/ --config-file=adapter/.clang-tidy
+    else
+        echo "[DR] No build directory for DR adapter found; skipping clang-tidy check"
+    fi
+    if [ -d "backend/build" ]; then
+        find . -name "*.cpp" | grep -v "CMakeFiles" | xargs clang-tidy --quiet --config-file=backend/.clang-tidy -p backend/build
+    else
+        echo "[DR] No build directory for DR backend found; skipping clang-tidy check"
+    fi
+    cd - >/dev/null || exit
 }
 
 function core_unit_tests() {

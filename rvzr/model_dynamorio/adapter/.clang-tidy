@@ -1,0 +1,17 @@
+Checks: >
+    -*,
+    bugprone-*,
+    cert-*,
+    clang-analyzer-*,
+    llvm-*,
+    misc-*,
+    modernize-*,
+    performance-*,
+    portability-*,
+    readability-*,
+    -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
+    -misc-include-cleaner,
+    -cert-err33-c,
+
+# Turn all the warnings from the checks above into errors.
+WarningsAsErrors: "*"

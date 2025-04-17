@@ -15,6 +15,8 @@
 #include <dr_events.h>
 #include <drvector.h>
 
+#include "observables.hpp"
+
 using std::uint64_t;
 
 // =================================================================================================
@@ -30,7 +32,7 @@ enum trace_entry_type_t {
 
 struct trace_entry_t {
     uint64_t type; // see trace_entry_type_t
-    uint64_t addr; // pc for instructions; address for memory accesses
+    pc_t addr;     // pc for instructions; address for memory accesses
     uint64_t size; // instruction size for instructions; memory access size for memory accesses
 };
 
@@ -42,7 +44,7 @@ struct dbg_trace_entry_t {
     uint64_t xdx;
     uint64_t xsi;
     uint64_t xdi;
-    uint64_t pc;
+    pc_t pc;
 };
 
 // =================================================================================================
@@ -54,7 +56,7 @@ class TracerABC
 {
   public:
     TracerABC(bool enable_dbg_trace_, bool enable_bin_output_);
-    virtual ~TracerABC();
+    virtual ~TracerABC() = default;
     TracerABC(const TracerABC &) = delete;
     TracerABC &operator=(const TracerABC &) = delete;
     TracerABC(TracerABC &&) = delete;
@@ -70,13 +72,13 @@ class TracerABC
     // Public Methods
 
     /// @brief Starts the tracing process for a wrapped functions
-    /// @param wrapcxt The machine context of the wrapped function
+    /// @param wrapctx The machine context of the wrapped function
     /// @param user_data Unused
     /// @return void
     virtual void tracing_start(void *, DR_PARAM_OUT void **);
 
     /// @brief Finalizes the tracing process for a wrapped function
-    /// @param wrapcxt The machine context of the wrapped function
+    /// @param wrapctx The machine context of the wrapped function
     /// @param user_data Unused
     /// @return void
     virtual void tracing_finalize(void *, DR_PARAM_OUT void *);
@@ -89,7 +91,7 @@ class TracerABC
     /// @param pc The program counter (address) of the instruction
     /// @param mc The machine context of the instruction
     /// @return void
-    virtual void observe_instruction(uint64_t opcode, uint64_t pc, dr_mcontext_t *mc);
+    virtual void observe_instruction(instr_obs_t instr, dr_mcontext_t *mc);
 
     /// @brief Record per-memory access information on the trace (e.g., its address and value)
     ///        as defined by the target contract.

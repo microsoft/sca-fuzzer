@@ -15,6 +15,7 @@ from ..model import Model
 from ..sandbox import BaseAddrTuple, SandboxLayout
 from ..traces import CTrace, CTraceEntry
 from ..tc_components.test_case_data import save_input_sequence_as_rdbf
+from ..config import CONF
 
 if TYPE_CHECKING:
     from ..tc_components.test_case_code import TestCaseProgram
@@ -175,7 +176,7 @@ class DynamoRIOModel(Model):
         """
         if check_installation:
             cls._check_if_installed()
-        cmd = _DRRUN_CMD.format(flags="--list-obs-clauses", binary="echo", args="''")
+        cmd = _DRRUN_CMD.format(flags="--list-tracers", binary="echo", args="''")
         output = check_output(cmd, shell=True).decode("utf-8")
         return output.split("\n")[:-1]
 
@@ -188,7 +189,7 @@ class DynamoRIOModel(Model):
         """
         if check_installation:
             cls._check_if_installed()
-        cmd = _DRRUN_CMD.format(flags="--list-exec-clauses", binary="echo", args="''")
+        cmd = _DRRUN_CMD.format(flags="--list-speculators", binary="echo", args="''")
         output = check_output(cmd, shell=True).decode("utf-8")
         return output.split("\n")[:-1]
 
@@ -217,7 +218,11 @@ class DynamoRIOModel(Model):
         """ Construct the command to call the DynamoRIO backend
         with the given test case and input sequence.
         """
-        flags = _DRRUN_TRACING_FLAGS + f" --tracer {self._obs_clause_name}"
+        flags = _DRRUN_TRACING_FLAGS + \
+            f" --tracer {self._obs_clause_name}" + \
+            f" --speculator {self._exec_clause_name}" + \
+            f" --max-nesting {CONF.model_max_nesting}" + \
+            f" --max-spec-window {CONF.model_max_spec_window}"
         if self._enable_mismatch_check_mode:
             flags += " --enable-debug-trace"
         binary = _ADAPTER_PATH
@@ -370,25 +375,34 @@ class _TraceReader:
         exit_addr = self._layout.get_exit_addr(self._test_case)
         exit_offset = self._layout.code_addr_to_offset(exit_addr)
 
-        # remove the irrelevant entries
+        # filter out entries where the pc is not in the range of the test case
+        # (i.e. before the entry or after the exit)
         new_traces = []
         for trace in traces:
-            # find the ID of the exit instruction in the trace
-            # (note that it may be different in each trace due to different control flow path taken)
-            enter_id: Optional[int] = None
-            exit_id: Optional[int] = None
-            for i, entry in enumerate(trace.get_typed()):
+            new_entries = []
+            in_range = False
+            for entry in trace.get_typed():
+                # relevant entries are those that appear after the entry instruction and
+                # before the exit instruction;
+                # NOTE: it does not imply enter_offset < pc < exit_offset, because we may have
+                # code beyond exit_offset when we have multiple actors (i.e., sections)
                 if entry.type_ == "pc" and entry.value == enter_offset:
-                    enter_id = i
+                    in_range = True
                     continue
                 if entry.type_ == "pc" and entry.value == exit_offset:
-                    exit_id = i
-                    break
-            assert enter_id is not None, "Enter instruction not found in the trace"
-            assert exit_id is not None, "Exit instruction not found in the trace"
+                    in_range = False
+                    continue
 
-            # Create a new trace that contains only the relevant entries
-            new_entries = trace.get_typed()[enter_id + 1:exit_id]
+                # correct for re-entries due to rollbacks after speculative execution.
+                # the rollback address in such cases is always within the first section,
+                # so a simple range check actually suffices here
+                if not in_range and entry.type_ == "pc" \
+                   and enter_offset < entry.value < exit_offset:
+                    in_range = True
+
+                if in_range:
+                    new_entries.append(entry)
+
             new_traces.append(CTrace(new_entries))
 
         return new_traces

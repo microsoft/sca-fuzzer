@@ -24,10 +24,10 @@
 #include <drreg.h>
 #include <drvector.h>
 
+#include "observables.hpp"
 #include "tracer_abc.hpp"
 #include "util.hpp"
 
-using std::bad_alloc;
 using std::string;
 using std::vector;
 
@@ -86,10 +86,11 @@ void print_dbg_traces(vector<dbg_trace_entry_t> *dbg_trace, bool enable_bin_outp
 
     // Print the end of trace marker
     trace_entry_t eot = {ENTRY_EOT, 0, 0};
-    if (enable_bin_output)
+    if (enable_bin_output) {
         fwrite(&eot, sizeof(trace_entry_t), 1, stdout);
-    else
+    } else {
         fprintf(stdout, "%lx %lx %lx\n", eot.type, eot.addr, eot.size);
+    }
 }
 
 } // namespace
@@ -105,18 +106,16 @@ TracerABC::TracerABC(bool enable_dbg_trace_, bool enable_bin_output_)
     dbg_trace = std::vector<dbg_trace_entry_t>();
 }
 
-TracerABC::~TracerABC() {}
-
 // =================================================================================================
 // Public Methods
 // =================================================================================================
-void TracerABC::tracing_start(void *, DR_PARAM_OUT void **)
+void TracerABC::tracing_start(void * /*wrapctx*/, DR_PARAM_OUT void ** /*user_data*/)
 {
     tracing_on = true;
     tracing_finalized = false;
 }
 
-void TracerABC::tracing_finalize(void *, DR_PARAM_OUT void *)
+void TracerABC::tracing_finalize(void * /*wrapctx*/, DR_PARAM_OUT void * /*user_data*/)
 {
     if (tracing_finalized) {
         return;
@@ -137,7 +136,7 @@ void TracerABC::tracing_finalize(void *, DR_PARAM_OUT void *)
     tracing_finalized = true;
 }
 
-void TracerABC::observe_instruction(uint64_t opcode, uint64_t pc, dr_mcontext_t *mc)
+void TracerABC::observe_instruction(instr_obs_t instr, dr_mcontext_t *mc)
 {
     // Nothing to do if tracing is off
     if (not tracing_on) {
@@ -154,13 +153,12 @@ void TracerABC::observe_instruction(uint64_t opcode, uint64_t pc, dr_mcontext_t 
             .xdx = mc->xdx,
             .xsi = mc->xsi,
             .xdi = mc->xdi,
-            .pc = pc,
+            .pc = instr.pc,
         };
         dbg_trace.push_back(entry);
     }
 
     // The rest of the functionality - if any - is implemented by subclasses
-    return;
 }
 
 void TracerABC::observe_mem_access(bool is_write, void *address, uint64_t size) {}

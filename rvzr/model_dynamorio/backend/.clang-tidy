@@ -1,0 +1,41 @@
+# Reasoning behind excluding some checks:
+# - `misc-include-cleaner`: This is incompatible with the DR headers, where dr_api.h is
+#   expected to be included in all source files.
+# - `modernize-use-trailing-return-type`: This style diverges from the rest of the code base
+#   (e.g., the source of `executor_km`), so it is excluded for uniformity.
+# - `readability-braces-around-statements`: This style diverges from the rest of the code base
+#   (e.g., the source of `executor_km`), so it is excluded for uniformity.
+# - `cppcoreguidelines-pro-type-vararg`: Incompatible with the DR API, such as dr_printf
+# - `cppcoreguidelines-pro-type-union-access`: Incompatible with dr_mcontext_t
+# - `cppcoreguidelines-pro-type-cstyle-cast`: C-style casts are necessary for DR API
+Checks: >
+    -*,
+    bugprone-*,
+    cppcoreguidelines-*,
+    llvm-*,
+    misc-*,
+    modernize-*,
+    performance-*,
+    readability-*,
+    -misc-include-cleaner,
+    -misc-use-anonymous-namespace,
+    -modernize-use-trailing-return-type,
+    -readability-braces-around-statements,
+    -cppcoreguidelines-pro-type-vararg,
+    -cppcoreguidelines-pro-type-union-access,
+    -cppcoreguidelines-pro-type-reinterpret-cast,
+    -cppcoreguidelines-pro-type-cstyle-cast,
+    -performance-no-int-to-ptr,
+
+# Turn all the warnings from the checks above into errors.
+WarningsAsErrors: "*"
+
+HeaderFilterRegex: "^backend/include/.*$"
+
+CheckOptions:
+    - key: readability-identifier-length.IgnoredVariableNames
+      value: "pc|mc|bb|dc|it"
+    - key: readability-identifier-length.IgnoredParameterNames
+      value: "pc|mc|bb|dc|it"
+    - key: bugprone-easily-swappable-parameters.IgnoredParameterNames
+      value: '"";drcontext;wrapctx;;user_data;xflags'

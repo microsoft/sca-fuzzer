@@ -23,6 +23,8 @@
 #include "cli.hpp"
 #include "dispatcher.hpp"
 #include "factory.hpp"
+#include "speculator_abc.hpp"
+#include "tracer_abc.hpp"
 
 using std::size_t;
 using std::string;
@@ -36,10 +38,10 @@ namespace dr_model
 std::unique_ptr<Dispatcher> dispatcher = nullptr; // NOLINT
 
 /// @brief Name of the function to instrument
-std::string instrumented_func_name;  // NOLINT
+std::string instrumented_func_name; // NOLINT
 
-void event_instrumentation_start(void *wrapcxt, DR_PARAM_OUT void **user_data);
-void event_instrumentation_end(void *wrapcxt, void *user_data);
+void event_instrumentation_start(void *wrapctx, DR_PARAM_OUT void **user_data);
+void event_instrumentation_end(void *wrapctx, void *user_data);
 void dr_model_del() noexcept;
 
 // =================================================================================================
@@ -53,8 +55,7 @@ void dr_model_del() noexcept;
 /// @param module_ Pointer to the module data
 /// @param unused
 /// @return void
-void event_module_load([[maybe_unused]] void *drcontext, const module_data_t *module_,
-                       [[maybe_unused]] bool loaded)
+void event_module_load(void * /*drcontext*/, const module_data_t *module_, bool /*loaded*/)
 {
     size_t offset = 0;
     const drsym_error_t sym_res = drsym_lookup_symbol(
@@ -75,8 +76,8 @@ void event_module_load([[maybe_unused]] void *drcontext, const module_data_t *mo
 /// @param unused
 /// @param unused
 /// @return BB emitted state (dr_emit_flags_t)
-dr_emit_flags_t event_bb_app2app(void *drcontext, [[maybe_unused]] void *tag, instrlist_t *bb,
-                                 [[maybe_unused]] bool for_trace, [[maybe_unused]] bool translating)
+dr_emit_flags_t event_bb_app2app(void *drcontext, void * /*tag*/, instrlist_t *bb,
+                                 bool /*for_trace*/, bool /*translating*/)
 {
     bool err = false;
     err |= !drutil_expand_rep_string(drcontext, bb);
@@ -99,32 +100,44 @@ dr_emit_flags_t event_bb_app2app(void *drcontext, [[maybe_unused]] void *tag, in
 /// @param unused
 /// @param unused
 /// @return BB emitted state (dr_emit_flags_t)
-dr_emit_flags_t event_bb_instrumentation(void *drcontext, [[maybe_unused]] void *tag,
-                                         instrlist_t *bb, instr_t *instr,
-                                         [[maybe_unused]] bool for_trace,
-                                         [[maybe_unused]] bool translating,
-                                         [[maybe_unused]] void *user_data)
+dr_emit_flags_t event_bb_instrumentation(void *drcontext, void * /*tag*/, instrlist_t *bb,
+                                         instr_t *instr, bool /*for_trace*/, bool /*translating*/,
+                                         void * /*user_data*/)
 {
     const dr_emit_flags_t emit_flags = dispatcher->instrument_instruction(drcontext, bb, instr);
     return emit_flags;
 }
 
 /// @brief Callback executed before calling the `instrumented_func_name` function.
-/// @param wrapcxt The wrap context
+/// @param wrapctx The wrap context
 /// @param user_data
 /// @return void
-void event_instrumentation_start(void *wrapcxt, DR_PARAM_OUT void **user_data)
+void event_instrumentation_start(void *wrapctx, DR_PARAM_OUT void **user_data)
 {
-    dispatcher->start(wrapcxt, user_data);
+    dispatcher->start(wrapctx, user_data);
 }
 
 /// @brief Callback executed after returning from the `instrumented_func_name` function.
-/// @param wrapcxt The wrap context
+/// @param wrapctx The wrap context
 /// @param user_data
 /// @return void
-void event_instrumentation_end(void *wrapcxt, void *user_data)
+void event_instrumentation_end(void *wrapctx, void *user_data)
 {
-    dispatcher->finalize(wrapcxt, user_data);
+    dispatcher->finalize(wrapctx, user_data);
+}
+
+/// @brief Callback executed upon exceptions
+/// @param drcontext The drcontext of the current thread
+/// @param excpt Pointer to the exception data
+/// @return if the exception is handled, this function does not return
+/// (dr_redirect_execution is called by handlers); otherwise, it returns true so that DR will
+/// continue with the default exception handling
+dr_signal_action_t event_exception(void *drcontext, dr_siginfo_t *siginfo)
+{
+    dispatcher->handle_exception(drcontext, siginfo);
+
+    // Continue with the default exception handling if no redirection happened
+    return DR_SIGNAL_DELIVER;
 }
 
 /// @brief Callback executed before exiting the application.
@@ -174,6 +187,8 @@ void dr_model_init()
         throw std::runtime_error("ERROR: failed to register a callback\n");
     if (!drmgr_register_bb_instrumentation_event(nullptr, event_bb_instrumentation, nullptr))
         throw std::runtime_error("ERROR: failed to register a callback\n");
+
+    drmgr_register_signal_event(event_exception);
     dr_register_exit_event(event_exit);
 }
 
@@ -213,22 +228,21 @@ DR_EXPORT void dr_client_main(client_id_t _, int argc, const char **argv) // NOL
     parse_cli(argc, argv, parsed_args);
 
     // Special cases:
-    if (parsed_args.list_obs_clauses) {
+    if (parsed_args.list_tracers) {
         for (const auto &tracer_name : get_tracer_list()) {
             dr_printf("%s\n", tracer_name.c_str());
         }
         return;
     }
-    if (parsed_args.list_exec_clauses) {
-        // FIXME: hardcoded for now because we have only one execution clause supported
-        dr_printf("seq\n");
+    if (parsed_args.list_speculators) {
+        for (const auto &speculator_name : get_speculator_list()) {
+            dr_printf("%s\n", speculator_name.c_str());
+        }
         return;
     }
 
     // Create a dispatcher instance
-    dr_model::dispatcher =
-        std::make_unique<Dispatcher>(parsed_args.enable_debug_trace, parsed_args.enable_bin_output,
-                                     parsed_args.tracer_type, parsed_args.speculator_type);
+    dr_model::dispatcher = std::make_unique<Dispatcher>(&parsed_args);
 
     // Set the target function
     dr_model::instrumented_func_name = parsed_args.instrumented_func;

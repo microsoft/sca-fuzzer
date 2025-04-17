@@ -39,10 +39,32 @@ ASM_NOP = InstList([
 
 ASM_BRANCH_AND_LOAD = InstList([
     Inst("xor rax, rax", 3, 0, 0),
-    Inst("jnz .l1", 2, 0, 0),
+    Inst("jz .l1", 2, 0, 0),
     Inst(".l0:", 0, 0, 0),
     Inst("mov rax, qword ptr [r14]", 3, MAIN_OFFSET + 0, 1),
     Inst(".l1:", 0, 0, 0),
+])
+
+ASM_BRANCH_AND_STORE = InstList([
+    Inst("xor rax, rax", 3, 0, 0),
+    Inst("jz .l1", 2, 0, 0),
+    Inst(".l0:", 0, 0, 0),
+    Inst("mov qword ptr [r14], 1", 7, MAIN_OFFSET + 0, 1),
+    Inst(".l1:", 0, 0, 0),
+    Inst("mov rax, qword ptr [r14]", 3, MAIN_OFFSET + 0, 1),
+])
+
+ASM_BRANCH_NESTED = InstList([
+    Inst("xor rax, rax", 3, 0, 0),
+    Inst("jz .l2", 2, 0, 0),
+    Inst(".l0:", 0, 0, 0),
+    Inst("mov qword ptr [r14], 1", 7, MAIN_OFFSET + 0, 1),
+    Inst("jz .l2", 2, 0, 0),
+    Inst(".l1:", 0, 0, 0),
+    Inst("mov qword ptr [r14], 2", 7, MAIN_OFFSET + 0, 1),
+    Inst("mov rbx, 1", 7, 0, 0),
+    Inst(".l2:", 0, 0, 0),
+    Inst("mov rax, qword ptr [r14]", 3, MAIN_OFFSET + 0, 1),
 ])
 
 
@@ -147,9 +169,9 @@ class X86DRModelTest(unittest.TestCase):
         self._set_clauses("ct", ["seq"])
 
         model = get_model((DATA_BASE, CODE_BASE))
+        assert isinstance(model, DynamoRIOModel)
         tc = ASM_NOP.to_test_case()
         model.load_test_case(tc)
-        assert isinstance(model, DynamoRIOModel)
         _ = model.trace_test_case([InputData()], 0)
 
         # RDBF
@@ -211,10 +233,10 @@ class X86DRModelTest(unittest.TestCase):
         self._set_clauses("ct", ["seq"])
 
         model = get_model((DATA_BASE, CODE_BASE))
+        assert isinstance(model, DynamoRIOModel)
         instructions = ASM_BRANCH_AND_LOAD
         tc = instructions.to_test_case()
         model.load_test_case(tc)
-        assert isinstance(model, DynamoRIOModel)
 
         input_ = get_default_input()
         ctraces = model.trace_test_case([input_], 0)
@@ -224,8 +246,6 @@ class X86DRModelTest(unittest.TestCase):
 
         expected_trace.append(instructions[0].pc_offset)
         expected_trace.append(instructions[1].pc_offset)
-        expected_trace.append(instructions[3].pc_offset)
-        expected_trace.append(instructions[3].mem_address)
         expected_trace.append(instructions[5].pc_offset)
 
         self.assertEqual(ctraces[0].get_untyped(), expected_trace)
@@ -256,3 +276,101 @@ class X86DRModelTest(unittest.TestCase):
         self.assertEqual(reg_values[4], 5)
 
         self._restore_conf()
+
+    def test_checkpoint_rollback_registers(self) -> None:
+        self._skip_if_not_installed()
+        self._save_conf()
+        self._set_clauses("ct", ["cond"])
+
+        model = get_model((DATA_BASE, CODE_BASE), enable_mismatch_check_mode=True)
+        assert isinstance(model, DynamoRIOModel)
+        instructions = ASM_BRANCH_AND_LOAD
+        tc = instructions.to_test_case()
+        model.load_test_case(tc)
+
+        input_ = InputData()
+        traces = model.trace_test_case([input_], 0)
+        reg_values = traces[0].get_untyped()
+        self.assertEqual(len(reg_values), 6)
+        self.assertEqual(reg_values[0], 0)
+
+        self._restore_conf()
+
+    def test_checkpoint_rollback_memory(self) -> None:
+        self._skip_if_not_installed()
+        self._save_conf()
+        self._set_clauses("ct", ["cond"])
+
+        model = get_model((DATA_BASE, CODE_BASE), enable_mismatch_check_mode=True)
+        assert isinstance(model, DynamoRIOModel)
+        instructions = ASM_BRANCH_AND_STORE
+        tc = instructions.to_test_case()
+        model.load_test_case(tc)
+
+        input_ = InputData()
+        input_[0]['main'][0] = 0x42
+        traces = model.trace_test_case([input_], 0)
+        reg_values = traces[0].get_untyped()
+        self.assertEqual(len(reg_values), 6)
+        self.assertEqual(reg_values[0], 0x42)
+
+        self._restore_conf()
+
+    def test_checkpoint_rollback_nested(self) -> None:
+        self._skip_if_not_installed()
+        self._save_conf()
+        self._set_clauses("ct", ["cond"])
+
+        model = get_model((DATA_BASE, CODE_BASE), enable_mismatch_check_mode=True)
+        assert isinstance(model, DynamoRIOModel)
+        instructions = ASM_BRANCH_NESTED
+        tc = instructions.to_test_case()
+        model.load_test_case(tc)
+
+        input_ = InputData()
+        input_[0]['main'][0] = 0x42
+        input_[0]['gpr'][1] = 0x1
+        traces = model.trace_test_case([input_], 0)
+        reg_values = traces[0].get_untyped()
+        self.assertEqual(len(reg_values), 6)
+        self.assertEqual(reg_values[0], 0x42)
+        self.assertEqual(reg_values[1], 1)
+
+        self._restore_conf()
+
+    def test_ct_cond(self) -> None:
+        self._skip_if_not_installed()
+        self._save_conf()
+        self._set_clauses("ct", ["cond"])
+
+        model = get_model((DATA_BASE, CODE_BASE))
+        assert isinstance(model, DynamoRIOModel)
+        instructions = ASM_BRANCH_NESTED
+        tc = instructions.to_test_case()
+        model.load_test_case(tc)
+
+        input_ = get_default_input()
+        ctraces = model.trace_test_case([input_], 0)
+        self.assertEqual(len(ctraces), 1)
+
+        expected_trace: List[int] = []
+
+        expected_trace.append(instructions[0].pc_offset)
+        expected_trace.append(instructions[1].pc_offset)
+        expected_trace.append(instructions[3].pc_offset)  # first misprediction
+        expected_trace.append(instructions[3].mem_address)
+        expected_trace.append(instructions[4].pc_offset)
+        expected_trace.append(instructions[6].pc_offset)  # second misprediction
+        expected_trace.append(instructions[6].mem_address)
+        expected_trace.append(instructions[7].pc_offset)
+        expected_trace.append(instructions[9].pc_offset)
+        expected_trace.append(instructions[9].mem_address)
+        expected_trace.append(instructions[10].pc_offset)  # first rollback
+        expected_trace.append(instructions[9].pc_offset)
+        expected_trace.append(instructions[9].mem_address)
+        expected_trace.append(instructions[10].pc_offset)  # second rollback
+        expected_trace.append(instructions[9].pc_offset)
+        expected_trace.append(instructions[9].mem_address)
+        expected_trace.append(instructions[10].pc_offset)
+
+        self.assertEqual(ctraces[0].get_untyped(), expected_trace)

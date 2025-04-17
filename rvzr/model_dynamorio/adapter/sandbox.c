@@ -13,7 +13,11 @@
 
 static sandbox_t *sandbox;
 static const int nop_opcode = 0x90;
+static const int lfence_opcode[] = {0x0f, 0xae, 0xe8};
 static const int ret_opcode = 0xc3;
+
+static const int eflags_must_clear_mask = 2263;
+static const int eflags_must_set_mask = 2;
 
 /// @brief Load a test case code into the sandbox
 /// @param rcbf_data Parsed RCBF data
@@ -27,8 +31,15 @@ int load_code_in_sandbox(rcbf_t *rcbf_data)
         int code_size = (int)rcbf_data->section_metadata[section_id].size;
         memcpy(code_section->code, rcbf_data->sections[section_id].code, code_size);
 
-        // Insert a RETQ instruction at the end of the main area of the first section
+        // The end of the code section in the main area is the test case exit point;
+        // We insert an LFENCE there (to ensure the model doesn't exit the test case speculatively)
+        // and a RETQ instruction to return to the caller
         if (section_id == 0) {
+            code_section->code[code_size] = lfence_opcode[0];
+            code_section->code[code_size + 1] = lfence_opcode[1];
+            code_section->code[code_size + 2] = lfence_opcode[2];
+            code_size += 3;
+
             code_section->code[code_size] = ret_opcode;
             code_size++;
         }
@@ -46,10 +57,10 @@ int load_code_in_sandbox(rcbf_t *rcbf_data)
 /// @param rdbf_data Parsed RDBF data
 /// @param input_id Index of the input to load from the RDBF data
 /// @return 0 on success, -1 on failure
-int load_data_in_sandbox(rdbf_t *input_sequence, int input_id)
+int load_data_in_sandbox(rdbf_t *rdbf_data, int input_id)
 {
-    rdbf_data_section_t *data = &input_sequence->data[input_id];
-    for (uint64_t section_id = 0; section_id < input_sequence->header.n_actors; section_id++) {
+    rdbf_data_section_t *data = &rdbf_data->data[input_id];
+    for (uint64_t section_id = 0; section_id < rdbf_data->header.n_actors; section_id++) {
         data_section_t *data_section = &sandbox->data[section_id];
 
         // Zero out underflow and overflow pads
@@ -64,7 +75,7 @@ int load_data_in_sandbox(rdbf_t *input_sequence, int input_id)
 
         // Fixup the EFLAGS init value to ensure we don't set invalid flags
         uint64_t eflags_value = ((uint64_t *)data_section->reg_init_area)[EFLAGS_INIT_ID];
-        eflags_value = (eflags_value & 2263) | 2;
+        eflags_value = (eflags_value & eflags_must_clear_mask) | eflags_must_set_mask;
         ((uint64_t *)data_section->reg_init_area)[EFLAGS_INIT_ID] = eflags_value;
     }
 
