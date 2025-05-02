@@ -88,13 +88,17 @@ def create_fenced_test_case(test_case: TestCase, fenced_name: str, asm_parser) -
             for line in f:
                 fenced_asm.write(line + '\n')
                 line = line.strip().lower()
-                if line == '.test_case_enter:':
+                if line == '.test_case_enter:':  
                     started = True
                     continue
                 if not started:
                     continue
-                if line and line[0] not in ["#", ".", "j"] \
+                # end of test case
+                if line == '.test_case_exit:':
+                    break
+                if line and line[0] not in ["#", "j"] \
                         and "loop" not in line \
+                        and "section" not in line \
                         and "macro" not in line:
                     fenced_asm.write('lfence\n')
     fenced_test_case = asm_parser.parse_file(fenced_name)
