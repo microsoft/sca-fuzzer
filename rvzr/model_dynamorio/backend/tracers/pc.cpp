@@ -28,7 +28,7 @@ void TracerPC::observe_instruction(instr_obs_t instr, dr_mcontext_t *mc)
 
     // Create an new entry and push it on the trace buffer
     const trace_entry_t entry = {
-        .type = ENTRY_PC,
+        .type = trace_entry_type_t::ENTRY_PC,
         .addr = instr.pc,
         .size = 0,
     };

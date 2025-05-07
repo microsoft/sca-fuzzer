@@ -58,8 +58,8 @@ class SpeculatorABC
     // ---------------------------------------------------------------------------------------------
     // Public Methods
 
-    void enable(void);
-    void disable(void);
+    void enable();
+    void disable();
 
     /// @brief Rollback to the last checkpoint, thus undoing all speculative changes to the process
     ///        state.
@@ -78,7 +78,7 @@ class SpeculatorABC
     ///        nesting, speculation window, or other conditions).
     /// @param void
     /// @return true if speculation should be skipped, false otherwise
-    bool skip_speculation(void) const;
+    [[nodiscard]] bool skip_speculation() const;
 
     /// @brief Emulates speculation for the given instruction according to the target contract.
     ///        Each subclass implements a different contract, hence the implementation

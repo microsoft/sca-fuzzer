@@ -8,6 +8,10 @@
 # - `cppcoreguidelines-pro-type-vararg`: Incompatible with the DR API, such as dr_printf
 # - `cppcoreguidelines-pro-type-union-access`: Incompatible with dr_mcontext_t
 # - `cppcoreguidelines-pro-type-cstyle-cast`: C-style casts are necessary for DR API
+# - `coreguidelines-non-private-member-variables-in-classes`: Accessors make code unreasonably verbose
+# - `cppcoreguidelines-non-private-member-variables-in-classes`: Alias of the above
+# - `llvm-header-guard`: Checks for "LLVM-style" include guards, we want to use #pragma once instead
+# - `modernize-use-using`: This style diverges from the rest of the code base
 Checks: >
     -*,
     bugprone-*,
@@ -26,6 +30,10 @@ Checks: >
     -cppcoreguidelines-pro-type-reinterpret-cast,
     -cppcoreguidelines-pro-type-cstyle-cast,
     -performance-no-int-to-ptr,
+    -misc-non-private-member-variables-in-classes,
+    -cppcoreguidelines-non-private-member-variables-in-classes,
+    -llvm-header-guard,
+    -modernize-use-using,
 
 # Turn all the warnings from the checks above into errors.
 WarningsAsErrors: "*"
@@ -38,4 +46,4 @@ CheckOptions:
     - key: readability-identifier-length.IgnoredParameterNames
       value: "pc|mc|bb|dc|it"
     - key: bugprone-easily-swappable-parameters.IgnoredParameterNames
-      value: '"";drcontext;wrapctx;;user_data;xflags'
+      value: '"";drcontext;wrapctx;;user_data;xflags;max_nesting_'

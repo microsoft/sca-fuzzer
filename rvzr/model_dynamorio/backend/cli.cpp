@@ -20,8 +20,8 @@ using std::string;
 using dynamorio::droption::DROPTION_SCOPE_CLIENT;
 using dynamorio::droption::droption_t;
 
-bool validate_tracer(cli_args_t *parsed_args);
-bool validate_speculator(cli_args_t *parsed_args);
+static bool validate_tracer(cli_args_t *parsed_args);
+static bool validate_speculator(cli_args_t *parsed_args);
 
 static const int max_reasonable_nesting = 100;
 static const int max_reasonable_spec_window = 1000;

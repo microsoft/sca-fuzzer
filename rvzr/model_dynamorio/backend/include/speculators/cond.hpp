@@ -29,5 +29,5 @@ class SpeculatorCond : public SpeculatorABC
     /// @param dc The current DR context
     /// @return 0 if no speculation was triggered or no redirection is needed;
     ///         otherwise, the PC of the instruction to which the execution should be redirected
-    virtual pc_t handle_instruction(instr_obs_t instr, dr_mcontext_t *mc, void *dc);
+    pc_t handle_instruction(instr_obs_t instr, dr_mcontext_t *mc, void *dc) override;
 };
