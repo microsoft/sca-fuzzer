@@ -6,7 +6,7 @@ model_path := $(HOME)/.local/dynamorio/model/
 
 release := 11.2.0
 
-.PHONY: all download_dr backend adapter
+.PHONY: all download_dr backend adapter clean-backend clean-adapter clean
 
 all: download_dr backend adapter
 
@@ -24,7 +24,7 @@ $(dr_path)/drrun:
 
 backend:
 	mkdir -p $(current_dir)/backend/build
-	cd $(current_dir)/backend/build && cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DDynamoRIO_DIR=$(dr_path)/DynamoRIO-Linux-$(release)/cmake --config Debug  $(current_dir)/backend
+	cd $(current_dir)/backend/build && cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DDynamoRIO_DIR=$(dr_path)/DynamoRIO-Linux-$(release)/cmake -D CMAKE_BUILD_TYPE=Debug  $(current_dir)/backend
 	make -C $(current_dir)/backend/build
 	cp $(current_dir)/backend/build/libdr_model.so $(dr_path)
 
@@ -34,8 +34,13 @@ adapter:
 	make -C $(current_dir)/adapter/build
 	make -C $(current_dir)/adapter/build install
 
+clean-backend:
+	rm -rf $(current_dir)/backend/build
 
+clean-adapter:
+	rm -rf $(current_dir)/adapter/build
 
+clean:  clean-backend clean-adapter
 
 # * build dr_model
 
