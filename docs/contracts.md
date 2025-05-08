@@ -47,9 +47,8 @@ output = PublicOut(Sec, Pub)
 ```
 
 Noninterference essentially demands that for any two secrets `Sec1` and `Sec2` and any public input `Pub`, the program’s behavior from an attacker’s perspective is identical when run on `(Sec1, Pub)` versus `(Sec2, Pub)`:
-
 <center>
-&nbsp;&nbsp;&nbsp;**Definition 1 (Noninterference)**: A program `P` is noninterferent if, for all public inputs `Pub` and all secret inputs `Sec1`, `Sec2`, if `Sec1 = Sec2`, then `PublicOut(P, Sec1, Pub) = PublicOut(P, Sec2, Pub)`.
+&nbsp;&nbsp;&nbsp;**Definition 1 (Noninterference)**: A program `P` is noninterferent if, for all<br>public inputs `Pub` and all pairs of secret inputs `Sec1`, `Sec2` it holds that <br>`PublicOut(P, Sec1, Pub) = PublicOut(P, Sec2, Pub)`.
 </center>
 
 Here are some examples to illustrate this principle:
@@ -117,12 +116,12 @@ For example, a trace might be the execution time of the program or its cache acc
 Noninterference then requires that the traces of two runs with different secrets - `(Sec1, Pub)` versus `(Sec2, Pub)` - are indistinguishable to an attacker. This is a stronger requirement than just looking at the functional outputs.
 
 <center>
-&nbsp;&nbsp;&nbsp;**Definition 2 (Side-Channel Noninterference)**: Given a side channel that produces a trace `Trace`, a program `P` is noninterferent with respect to this side channel if, for all public inputs&nbsp;`Pub` and all secret inputs `Sec1`, `Sec2`, if `Sec1 = Sec2`,<br>then `Trace(P, Sec1, Pub) = Trace(P, Sec2, Pub)`.
+&nbsp;&nbsp;&nbsp;**Definition 2 (Side-Channel Noninterference)**: Given a side channel that produces a trace `Trace`, a program `P` is noninterferent with respect to this side channel if, for all public inputs&nbsp;`Pub` and all pairs of secret inputs `Sec1`, `Sec2` it holds that <br>`Trace(P, Sec1, Pub) = Trace(P, Sec2, Pub)`.
 </center>
 
 Here are some examples of side channels and how they can violate noninterference:
 
-> **Example 5 (Timing side channel)**
+> **Example 5A (Timing side channel)**
 
 > Consider a program that reads a compares a password with a user’s input:
 
@@ -139,17 +138,40 @@ bool check_password(const char *attempt, const char *pswd) {
 
 > If the attacker can measure how long the function takes to reject a guess, they can infer the password one character at a time. This leakage surfaces as a violation of the noninterference property with respect to timing observations.
 
-> A counterexample to Definition 2 could be as follows: Let's say we have two inputs with the same secret value but different public values:
+> A counterexample to Definition 2 could be as follows: Let's say we use the same input on two different secrets:
 
-> - `input1={attempt="abc", pswd="aaa"}`
-> - `input2={attempt="aab", pswd="aaa"}`
+> - `input1={attempt="aaa", pswd="abc"}`
+> - `input2={attempt="aaa", pswd="aab"}`
 
 > The traces of these inputs will be:
 
 > - `trace1 = Trace(check_password, input1) = 1`
 > - `trace2 = Trace(check_password, input2) = 2`
 
-> These inputs constitute a violation of Definition 2, as `trace1 != trace2` even though the two inputs have the same secret value.
+> These inputs constitute a violation of Definition 2, as `trace1 != trace2` even though the two inputs have the same public values.
+
+---
+
+> **Example 5B (Timing side channel - Password lenght)**
+
+> Noninterference is able to model different kinds of secret-dependent leaks. Let's take for example a patched version of the previous program:
+
+```c
+bool check_password(const char *attempt, const char *pswd) {
+    int len = min(length(attempt), length(pswd));
+    bool same = true;
+    for (int i = 0; i < len; i++) {
+        same = same && (attempt[i] == pswd[i]); // all the loop is executed
+    }
+    return same;
+}
+```
+> In this version there is no early-exit condition, yet the attacker is still able to infer the _length_ of the password through a side-channel. This is captured by the following counterexample:
+
+> - `input1={attempt="aaaaaa", pswd="b"}`, `trace1 = 1`
+> - `input2={attempt="aaaaaa", pswd="bbb"}`, `trace2 = 3`
+
+> Which shows that the program still violates Definition 2.
 
 ---
 
@@ -209,7 +231,7 @@ The contract trace is a sequence of all data that is exposed when a program is e
 Accordingly, the noninterference property is redefined in terms of the contract trace:
 
 <center>
-&nbsp;&nbsp;&nbsp;**Definition 3 (Contract Noninterference)**: Given a contract that produces a contract trace&nbsp;`ContractTrace`, a program `P` is noninterferent with respect to this contract if,<br>for all public inputs&nbsp;`Pub` and all secret inputs `Sec1`, `Sec2`, if `Sec1 = Sec2`,<br>then `ContractTrace(P, Sec1, Pub) = ContractTrace(P, Sec2, Pub)`.
+&nbsp;&nbsp;&nbsp;**Definition 3 (Contract Noninterference)**: Given a contract that produces a contract trace&nbsp;`ContractTrace`, a program `P` is noninterferent with respect to this contract if,<br>for all public inputs&nbsp;`Pub` and all secret inputs `Sec1`, `Sec2`, it holds that <br>`ContractTrace(P, Sec1, Pub) = ContractTrace(P, Sec2, Pub)`.
 </center>
 
 The following examples illustrate how a contract can be used to model side-channel leaks on a CPU.
