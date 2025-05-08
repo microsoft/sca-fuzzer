@@ -356,7 +356,7 @@ class _TraceReader:
 
     def _decode_next_entry_type(self, bin_traces: bytes, cursor: int) -> _TRACE_TYPE:
         """ Decode the entry type and return the type and the number of bytes consumed """
-        type_id = int.from_bytes(bin_traces[cursor:cursor + 8], byteorder="little")
+        type_id = int.from_bytes(bin_traces[cursor:cursor + 1], byteorder="little")
         if type_id not in _TRACE_ID_TO_NAME:
             raise ValueError(f"Unknown trace type ID: {type_id}")
         type_ = _TRACE_ID_TO_NAME[type_id]

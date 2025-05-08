@@ -11,7 +11,6 @@
 typedef uint64_t opcode_t;
 typedef uint64_t pc_t;
 
-
 /// @brief Structure describing observable information of an instruction
 typedef struct {
     uint64_t opcode;

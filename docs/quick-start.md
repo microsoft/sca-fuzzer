@@ -60,7 +60,7 @@ sudo apt-get install cmake g++ g++-multilib doxygen git zlib1g-dev libunwind-dev
 make -C rvzr/model_dynamorio
 
 # check installation
-~/.local/dynamorio/drrun -c ~/.local/dynamorio/libdr_model.so --list-obs-clauses -- ls
+~/.local/dynamorio/drrun -c ~/.local/dynamorio/libdr_model.so --list-tracers -- ls
 # expected output:
 #   ct
 #   ...

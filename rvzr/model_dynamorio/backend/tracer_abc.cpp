@@ -54,16 +54,17 @@ void print_traces(vector<trace_entry_t> *trace, bool enable_bin_output = false)
         if (enable_bin_output) {
             fwrite(&entry, sizeof(trace_entry_t), 1, stdout);
         } else {
-            fprintf(stdout, "%lx %lx %lx\n", entry.type, entry.addr, entry.size);
+            fprintf(stdout, "%lx %lx %lx\n", static_cast<uint64_t>(entry.type), entry.addr,
+                    entry.size);
         }
     }
 
     // Print a marker to indicate the end of the trace (EOT)
-    trace_entry_t eot = {ENTRY_EOT, 0, 0};
+    trace_entry_t eot = {trace_entry_type_t::ENTRY_EOT, 0, 0};
     if (enable_bin_output) {
         fwrite(&eot, sizeof(trace_entry_t), 1, stdout);
     } else {
-        fprintf(stdout, "%lx %lx %lx\n", eot.type, eot.addr, eot.size);
+        fprintf(stdout, "%lx %lx %lx\n", static_cast<uint64_t>(eot.type), eot.addr, eot.size);
     }
 }
 
@@ -85,11 +86,11 @@ void print_dbg_traces(vector<dbg_trace_entry_t> *dbg_trace, bool enable_bin_outp
     }
 
     // Print the end of trace marker
-    trace_entry_t eot = {ENTRY_EOT, 0, 0};
+    trace_entry_t eot = {trace_entry_type_t::ENTRY_EOT, 0, 0};
     if (enable_bin_output) {
         fwrite(&eot, sizeof(trace_entry_t), 1, stdout);
     } else {
-        fprintf(stdout, "%lx %lx %lx\n", eot.type, eot.addr, eot.size);
+        fprintf(stdout, "%lx %lx %lx\n", static_cast<uint64_t>(eot.type), eot.addr, eot.size);
     }
 }
 
@@ -146,7 +147,7 @@ void TracerABC::observe_instruction(instr_obs_t instr, dr_mcontext_t *mc)
     // In debug mode, store the register values and PC on the debug trace buffer
     if (enable_dbg_trace) {
         const dbg_trace_entry_t entry = {
-            .type = ENTRY_REG_DUMP,
+            .type = trace_entry_type_t::ENTRY_REG_DUMP,
             .xax = mc->xax,
             .xbx = mc->xbx,
             .xcx = mc->xcx,

@@ -33,4 +33,3 @@ void reserve_register_checked(void *drcontext, instrlist_t *ilist, instr_t *wher
 /// @param reg The register to unreserve
 /// @return void
 void unreserve_register_checked(void *drcontext, instrlist_t *ilist, instr_t *where, reg_id_t reg);
-

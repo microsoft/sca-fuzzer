@@ -22,7 +22,7 @@ using std::uint64_t;
 // =================================================================================================
 // Constants and Types
 // =================================================================================================
-enum trace_entry_type_t {
+enum class trace_entry_type_t : uint8_t {
     ENTRY_EOT = 0, // end of trace
     ENTRY_PC = 1,
     ENTRY_READ = 2,
@@ -31,13 +31,13 @@ enum trace_entry_type_t {
 };
 
 struct trace_entry_t {
-    uint64_t type; // see trace_entry_type_t
-    pc_t addr;     // pc for instructions; address for memory accesses
+    trace_entry_type_t type; // see trace_entry_type_t
+    pc_t addr;               // pc for instructions; address for memory accesses
     uint64_t size; // instruction size for instructions; memory access size for memory accesses
 };
 
 struct dbg_trace_entry_t {
-    uint64_t type; // always ENTRY_REG_DUMP
+    trace_entry_type_t type; // always ENTRY_REG_DUMP
     uint64_t xax;
     uint64_t xbx;
     uint64_t xcx;

@@ -12,6 +12,7 @@ Checks: >
     -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
     -misc-include-cleaner,
     -cert-err33-c,
+    -llvm-header-guard, # Use pragma once instead of LLVM-style guards
 
 # Turn all the warnings from the checks above into errors.
 WarningsAsErrors: "*"
