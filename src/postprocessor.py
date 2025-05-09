@@ -674,7 +674,7 @@ class FindSpecSourcePass(BaseInstructionMinimizationPass):
         return instructions[:i] + instructions[i + 1:]
 
     def verify_modification(self, test_case: TestCase, inputs: List[Input]) -> bool:
-        global CONF
+        global CONF  # noqa
         sf = CONF.enable_speculation_filter
         of = CONF.enable_observation_filter
         CONF.enable_speculation_filter = True
