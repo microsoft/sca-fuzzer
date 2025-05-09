@@ -1203,7 +1203,7 @@ sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w
 git<span class="w"> </span>clone<span class="w"> </span>https://github.com/microsoft/sca-fuzzer.git
 
 <span class="c1"># build executor</span>
-<span class="nb">cd</span><span class="w"> </span>sca-fuzzer/src/x86/executor
+<span class="nb">cd</span><span class="w"> </span>sca-fuzzer/rvzr/executor_km
 make<span class="w"> </span>uninstall<span class="w">  </span><span class="c1"># the command will give an error message, but it&#39;s ok!</span>
 make<span class="w"> </span>clean
 make
@@ -1215,10 +1215,10 @@ make<span class="w"> </span>install
 sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>cmake<span class="w"> </span>g++<span class="w"> </span>g++-multilib<span class="w"> </span>doxygen<span class="w"> </span>git<span class="w"> </span>zlib1g-dev<span class="w"> </span>libunwind-dev<span class="w"> </span>libsnappy-dev<span class="w"> </span>liblz4-dev
 
 <span class="c1"># install DynamoRIO and the model</span>
-make<span class="w"> </span>-C<span class="w"> </span>src/model_dynamorio
+make<span class="w"> </span>-C<span class="w"> </span>rvzr/model_dynamorio
 
 <span class="c1"># check installation</span>
-~/.local/dynamorio/drrun<span class="w"> </span>-c<span class="w"> </span>~/.local/dynamorio/libdr_model.so<span class="w"> </span>--list-obs-clauses<span class="w"> </span>--<span class="w"> </span>ls
+~/.local/dynamorio/drrun<span class="w"> </span>-c<span class="w"> </span>~/.local/dynamorio/libdr_model.so<span class="w"> </span>--list-tracers<span class="w"> </span>--<span class="w"> </span>ls
 <span class="c1"># expected output:</span>
 <span class="c1">#   ct</span>
 <span class="c1">#   ...</span>

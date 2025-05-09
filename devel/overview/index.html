@@ -1094,7 +1094,7 @@ The main interface to the executor is the <code>Executor</code> class, with its 
 <code>load_test_case</code> takes a <code>TestCaseProgram</code> object and loads its binary into the executor.
 <code>trace_test_case</code> takes a list of <code>InputData</code> objects, loads their data into the executor's memory one at a time and executes the loaded program with each.
 The resulting hardware traces are returned as a list of <code>HTrace</code> objects (defined in <code>traces.py</code>).</p>
-<p>The architecture of Revizor can potentially support many types of executors, but currently, we support only one. It is implemented as a kernel module (<code>x86/executor</code>), to which the <code>Executor</code> class acts as an adapter.</p>
+<p>The architecture of Revizor can potentially support many types of executors, but currently, we support only one. It is implemented as a kernel module (<code>executor_km/</code>), to which the <code>Executor</code> class acts as an adapter.</p>
 <h3 id="6-trace-analysis">6. Trace Analysis</h3>
 <p>The trace analyzer uses the leakage predicted by the model to filter out instances of expected leaks from the set of collected hardware traces, thus leaving only the unexpected leaks. The analyzer performs the filtering by <a href="../../contracts/">checking the noninterference property w.r.t. the model</a>.</p>
 <p>The key aspect of this approach is that MRT never directly compares the hardware traces to the model’s prediction; instead, it compares the exposed information. This allows a complex modern CPU to be tested against a simple model, and still effectively filter out expected leaks while detecting unexpected leaks.</p>

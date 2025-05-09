@@ -1009,14 +1009,14 @@ As any other model, this backend is responsible for collecting contract traces f
 <h2 id="design-overview">Design Overview</h2>
 <p>This backend is composed of several parts:</p>
 <ul>
-<li>The Python adapter (<code>src/model_dynamorio/model.py</code>) is responsible for receiving a test case from Revizor, transforming it into a format that can be executed by the backend, triggering the backend to execute the test case, and returning the collected contract traces to Revizor.</li>
-<li>The Test Case Loader (<code>src/model_dynamorio/adapter.c</code>) is a C program that loads a test case program and a batch of inputs into its memory, and executes the test case program with each input in a sequence.</li>
-<li>The DynamoRIO components (<code>src/model_dynamorio/backend</code>) are executed together with the test case loader, and they instrument the loader binary to collect contract traces.</li>
+<li>The Python adapter (<code>rvzr/model_dynamorio/model.py</code>) is responsible for receiving a test case from Revizor, transforming it into a format that can be executed by the backend, triggering the backend to execute the test case, and returning the collected contract traces to Revizor.</li>
+<li>The Test Case Loader (<code>rvzr/model_dynamorio/adapter.c</code>) is a C program that loads a test case program and a batch of inputs into its memory, and executes the test case program with each input in a sequence.</li>
+<li>The DynamoRIO components (<code>rvzr/model_dynamorio/backend</code>) are executed together with the test case loader, and they instrument the loader binary to collect contract traces.</li>
 </ul>
 <p>These components can be roughly divided into the instrumentation-time components that are responsible for modifying the binary, and execution-time components that implement the model logic (i.e., the contract).</p>
 <p><a href="../../assets/dr-model.png"><img alt="DynamoRIO-based Model Backend" src="../../assets/dr-model.png" /></a></p>
 <h2 id="python-adapter">Python Adapter</h2>
-<p>Revizor communicates with the backend through a Python adapter (<code>src/model_dynamorio/model.py:DynamoRIOModel</code>).</p>
+<p>Revizor communicates with the backend through a Python adapter (<code>rvzr/model_dynamorio/model.py:DynamoRIOModel</code>).</p>
 <p>At the beginning of the fuzzing process, Revizor configures the backend by calling <code>configure_clauses</code> method.
 This configuration will be later passed down to the backend when the test case is executed.</p>
 <p>During the fuzzing process, Revizor sends test cases to the backend by calling <code>load_test_case</code> method, and then triggers the backend to execute the test case by calling <code>trace_test_case</code> method.
@@ -1033,7 +1033,7 @@ The adapter will then parse the traces and return them back to the caller.</p>
 </ul>
 <h2 id="test-case-loader">Test Case Loader</h2>
 <p>Since the test cases produced by Revizor are raw binaries, they cannot be directly executed (e.g., they don't have <code>libc</code> linked).
-The test case loader (<code>src/model_dynamorio/adapter.c</code>) is a simple C program that fixes this issue by providing a wrapper around the test case binary.</p>
+The test case loader (<code>rvzr/model_dynamorio/adapter.c</code>) is a simple C program that fixes this issue by providing a wrapper around the test case binary.</p>
 <p>The loader implements the following algorithm:</p>
 <ul>
 <li>Receive the test case binary and an input from the Python adapter via CLI arguments</li>
@@ -1044,7 +1044,7 @@ The test case loader (<code>src/model_dynamorio/adapter.c</code>) is a simple C 
 <li>Return</li>
 </ul>
 <h3 id="dynamorio-tool">DynamoRIO Tool</h3>
-<p>The DynamoRIO tool (<code>src/model_dynamorio/backend</code>) is responsible for instrumenting the test case loader binary and collecting contract traces.</p>
+<p>The DynamoRIO tool (<code>rvzr/model_dynamorio/backend</code>) is responsible for instrumenting the test case loader binary and collecting contract traces.</p>
 <h3 id="instrumentation-components">Instrumentation Components</h3>
 <p>The instrumentation components modify the binary of the test case loader by adding a call to the function <code>dispatch_callback</code> before every instruction in the binary (or more specifically, every instruction in the <code>test_case_entry</code> function of the loader).</p>
 <p>The tool interacts with DynamoRIO through the <code>model.cpp</code> module.
