@@ -273,6 +273,7 @@ function x86_only() {
 }
 
 @test "Feature: VM test case" {
+    skip  # see https://github.com/microsoft/sca-fuzzer/issues/122
     x86_only
     if cat /proc/cpuinfo | grep -e "vmx" -e "svm" >/dev/null; then
         echo "1" >/sys/rvzr_executor/enable_hpa_gpa_collisions
