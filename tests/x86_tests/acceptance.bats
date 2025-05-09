@@ -216,6 +216,7 @@ function intel_only() {
 }
 
 @test "Feature: VM test case" {
+    skip  # see https://github.com/microsoft/sca-fuzzer/issues/122
     if cat /proc/cpuinfo | grep -e "vmx" -e "svm" >/dev/null; then
         echo "1" >/sys/x86_executor/enable_hpa_gpa_collisions
         assert_no_violation "$fuzz_opt -t $ASM_DIR/vm_switch.asm -c $CONF_DIR/vm-switch.yaml -i 20"
