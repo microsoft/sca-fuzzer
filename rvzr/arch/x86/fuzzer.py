@@ -264,9 +264,25 @@ def _create_fenced_test_case(test_case: TestCaseProgram, fenced_name: str, asm_p
             for line in f:
                 fenced_asm.write(line)
                 line = line.strip().lower()
-                if line and line[0] not in ["#", ".", "j"] \
-                        and "loop" not in line \
-                        and "macro" not in line:
-                    fenced_asm.write('lfence\n')
+
+                # no need to add fences after empty lines and comments
+                if not line or line[0] == "#":
+                    continue
+
+                # adding a fence after a jump instruction breaks assumptions of our asm parser;
+                # this is an issue in the parser, and this check is a workaround
+                if line[0] == "j" or "loop" not in line:
+                    continue
+
+                # don't add fences after assembler directives
+                if "section" in line \
+                   or "syntax" in line \
+                   or "function" in line \
+                   or "macro" in line:
+                    continue
+
+                # add fences after all other instructions
+                fenced_asm.write('lfence\n')
+
     fenced_test_case = asm_parser.parse_file(fenced_name, generator, elf_parser)
     return fenced_test_case
