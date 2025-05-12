@@ -26,7 +26,7 @@
       {"type_": "FLAGS", "values": ["r/w", "w", "w", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} adc", "category": "BASE-BINARY", "is_control_flow": false,
+  {"name": "adc", "category": "BASE-BINARY", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["al", "cl", "dl", "bl", "spl", "bpl", "sil", "dil", "r8b", "r9b", "r10b", "r11b", "r12b", "r13b", "r14b", "r15b"], "src": true, "dest": true, "width": 8},
       {"type_": "REG", "values": ["al", "cl", "dl", "bl", "spl", "bpl", "sil", "dil", "r8b", "r9b", "r10b", "r11b", "r12b", "r13b", "r14b", "r15b"], "src": true, "dest": false, "width": 8}
@@ -35,7 +35,7 @@
       {"type_": "FLAGS", "values": ["r/w", "w", "w", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} adc", "category": "BASE-BINARY", "is_control_flow": false,
+  {"name": "adc", "category": "BASE-BINARY", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": true, "width": 8},
       {"type_": "REG", "values": ["al", "cl", "dl", "bl"], "src": true, "dest": false, "width": 8}
@@ -44,7 +44,7 @@
       {"type_": "FLAGS", "values": ["r/w", "w", "w", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} adc", "category": "BASE-BINARY", "is_control_flow": false,
+  {"name": "adc", "category": "BASE-BINARY", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["al", "cl", "dl", "bl"], "src": true, "dest": true, "width": 8},
       {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": false, "width": 8}
@@ -53,7 +53,7 @@
       {"type_": "FLAGS", "values": ["r/w", "w", "w", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} adc", "category": "BASE-BINARY", "is_control_flow": false,
+  {"name": "adc", "category": "BASE-BINARY", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": true, "width": 8},
       {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": false, "width": 8}
@@ -89,7 +89,7 @@
       {"type_": "FLAGS", "values": ["r/w", "w", "w", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} adc", "category": "BASE-BINARY", "is_control_flow": false,
+  {"name": "adc", "category": "BASE-BINARY", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": true, "width": 16},
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16}
@@ -98,7 +98,7 @@
       {"type_": "FLAGS", "values": ["r/w", "w", "w", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} adc", "category": "BASE-BINARY", "is_control_flow": false,
+  {"name": "adc", "category": "BASE-BINARY", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": true, "width": 32},
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32}
@@ -107,7 +107,7 @@
       {"type_": "FLAGS", "values": ["r/w", "w", "w", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} adc", "category": "BASE-BINARY", "is_control_flow": false,
+  {"name": "adc", "category": "BASE-BINARY", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": true, "width": 64},
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64}
@@ -314,7 +314,7 @@
       {"type_": "FLAGS", "values": ["w", "w", "w", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} add", "category": "BASE-BINARY", "is_control_flow": false,
+  {"name": "add", "category": "BASE-BINARY", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": true, "width": 32},
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32}
@@ -1384,7 +1384,7 @@
       {"type_": "FLAGS", "values": ["w", "w", "w", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} cmp", "category": "BASE-BINARY", "is_control_flow": false,
+  {"name": "cmp", "category": "BASE-BINARY", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["al", "cl", "dl", "bl", "spl", "bpl", "sil", "dil", "r8b", "r9b", "r10b", "r11b", "r12b", "r13b", "r14b", "r15b"], "src": true, "dest": false, "width": 8},
       {"type_": "REG", "values": ["al", "cl", "dl", "bl", "spl", "bpl", "sil", "dil", "r8b", "r9b", "r10b", "r11b", "r12b", "r13b", "r14b", "r15b"], "src": true, "dest": false, "width": 8}
@@ -1393,7 +1393,7 @@
       {"type_": "FLAGS", "values": ["w", "w", "w", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} cmp", "category": "BASE-BINARY", "is_control_flow": false,
+  {"name": "cmp", "category": "BASE-BINARY", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": false, "width": 8},
       {"type_": "REG", "values": ["al", "cl", "dl", "bl"], "src": true, "dest": false, "width": 8}
@@ -1402,7 +1402,7 @@
       {"type_": "FLAGS", "values": ["w", "w", "w", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} cmp", "category": "BASE-BINARY", "is_control_flow": false,
+  {"name": "cmp", "category": "BASE-BINARY", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["al", "cl", "dl", "bl"], "src": true, "dest": false, "width": 8},
       {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": false, "width": 8}
@@ -1411,7 +1411,7 @@
       {"type_": "FLAGS", "values": ["w", "w", "w", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} cmp", "category": "BASE-BINARY", "is_control_flow": false,
+  {"name": "cmp", "category": "BASE-BINARY", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": false, "width": 8},
       {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": false, "width": 8}
@@ -1447,7 +1447,7 @@
       {"type_": "FLAGS", "values": ["w", "w", "w", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} cmp", "category": "BASE-BINARY", "is_control_flow": false,
+  {"name": "cmp", "category": "BASE-BINARY", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16},
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16}
@@ -1456,7 +1456,7 @@
       {"type_": "FLAGS", "values": ["w", "w", "w", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} cmp", "category": "BASE-BINARY", "is_control_flow": false,
+  {"name": "cmp", "category": "BASE-BINARY", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32},
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32}
@@ -1465,7 +1465,7 @@
       {"type_": "FLAGS", "values": ["w", "w", "w", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} cmp", "category": "BASE-BINARY", "is_control_flow": false,
+  {"name": "cmp", "category": "BASE-BINARY", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64},
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64}
@@ -2192,7 +2192,7 @@
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "undef", "undef", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} imul", "category": "BASE-BINARY", "is_control_flow": false,
+  {"name": "imul", "category": "BASE-BINARY", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": false, "dest": true, "width": 16},
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16},
@@ -2202,7 +2202,7 @@
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "undef", "undef", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} imul", "category": "BASE-BINARY", "is_control_flow": false,
+  {"name": "imul", "category": "BASE-BINARY", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": false, "dest": true, "width": 32},
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32},
@@ -2212,7 +2212,7 @@
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "undef", "undef", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} imul", "category": "BASE-BINARY", "is_control_flow": false,
+  {"name": "imul", "category": "BASE-BINARY", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": false, "dest": true, "width": 64},
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64},
@@ -3601,28 +3601,28 @@
     ],
     "implicit_operands": []
   },
-  {"name": "{store} mov", "category": "BASE-DATAXFER", "is_control_flow": false,
+  {"name": "mov", "category": "BASE-DATAXFER", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["al", "cl", "dl", "bl", "spl", "bpl", "sil", "dil", "r8b", "r9b", "r10b", "r11b", "r12b", "r13b", "r14b", "r15b"], "src": false, "dest": true, "width": 8},
       {"type_": "REG", "values": ["al", "cl", "dl", "bl", "spl", "bpl", "sil", "dil", "r8b", "r9b", "r10b", "r11b", "r12b", "r13b", "r14b", "r15b"], "src": true, "dest": false, "width": 8}
     ],
     "implicit_operands": []
   },
-  {"name": "{store} mov", "category": "BASE-DATAXFER", "is_control_flow": false,
+  {"name": "mov", "category": "BASE-DATAXFER", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": false, "dest": true, "width": 8},
       {"type_": "REG", "values": ["al", "cl", "dl", "bl"], "src": true, "dest": false, "width": 8}
     ],
     "implicit_operands": []
   },
-  {"name": "{store} mov", "category": "BASE-DATAXFER", "is_control_flow": false,
+  {"name": "mov", "category": "BASE-DATAXFER", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["al", "cl", "dl", "bl"], "src": false, "dest": true, "width": 8},
       {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": false, "width": 8}
     ],
     "implicit_operands": []
   },
-  {"name": "{store} mov", "category": "BASE-DATAXFER", "is_control_flow": false,
+  {"name": "mov", "category": "BASE-DATAXFER", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": false, "dest": true, "width": 8},
       {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": false, "width": 8}
@@ -3650,21 +3650,21 @@
     ],
     "implicit_operands": []
   },
-  {"name": "{store} mov", "category": "BASE-DATAXFER", "is_control_flow": false,
+  {"name": "mov", "category": "BASE-DATAXFER", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": false, "dest": true, "width": 16},
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16}
     ],
     "implicit_operands": []
   },
-  {"name": "{store} mov", "category": "BASE-DATAXFER", "is_control_flow": false,
+  {"name": "mov", "category": "BASE-DATAXFER", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": false, "dest": true, "width": 32},
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32}
     ],
     "implicit_operands": []
   },
-  {"name": "{store} mov", "category": "BASE-DATAXFER", "is_control_flow": false,
+  {"name": "mov", "category": "BASE-DATAXFER", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": false, "dest": true, "width": 64},
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64}
@@ -4718,7 +4718,7 @@
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} or", "category": "BASE-LOGICAL", "is_control_flow": false,
+  {"name": "or", "category": "BASE-LOGICAL", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["al", "cl", "dl", "bl", "spl", "bpl", "sil", "dil", "r8b", "r9b", "r10b", "r11b", "r12b", "r13b", "r14b", "r15b"], "src": true, "dest": true, "width": 8},
       {"type_": "REG", "values": ["al", "cl", "dl", "bl", "spl", "bpl", "sil", "dil", "r8b", "r9b", "r10b", "r11b", "r12b", "r13b", "r14b", "r15b"], "src": true, "dest": false, "width": 8}
@@ -4727,7 +4727,7 @@
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} or", "category": "BASE-LOGICAL", "is_control_flow": false,
+  {"name": "or", "category": "BASE-LOGICAL", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": true, "width": 8},
       {"type_": "REG", "values": ["al", "cl", "dl", "bl"], "src": true, "dest": false, "width": 8}
@@ -4736,7 +4736,7 @@
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} or", "category": "BASE-LOGICAL", "is_control_flow": false,
+  {"name": "or", "category": "BASE-LOGICAL", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["al", "cl", "dl", "bl"], "src": true, "dest": true, "width": 8},
       {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": false, "width": 8}
@@ -4745,7 +4745,7 @@
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} or", "category": "BASE-LOGICAL", "is_control_flow": false,
+  {"name": "or", "category": "BASE-LOGICAL", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": true, "width": 8},
       {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": false, "width": 8}
@@ -4781,7 +4781,7 @@
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} or", "category": "BASE-LOGICAL", "is_control_flow": false,
+  {"name": "or", "category": "BASE-LOGICAL", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": true, "width": 16},
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16}
@@ -4790,7 +4790,7 @@
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} or", "category": "BASE-LOGICAL", "is_control_flow": false,
+  {"name": "or", "category": "BASE-LOGICAL", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": true, "width": 32},
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32}
@@ -4799,7 +4799,7 @@
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} or", "category": "BASE-LOGICAL", "is_control_flow": false,
+  {"name": "or", "category": "BASE-LOGICAL", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": true, "width": 64},
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64}
@@ -7235,7 +7235,7 @@
       {"type_": "FLAGS", "values": ["r/w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} sbb", "category": "BASE-BINARY", "is_control_flow": false,
+  {"name": "sbb", "category": "BASE-BINARY", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["al", "cl", "dl", "bl", "spl", "bpl", "sil", "dil", "r8b", "r9b", "r10b", "r11b", "r12b", "r13b", "r14b", "r15b"], "src": true, "dest": true, "width": 8},
       {"type_": "REG", "values": ["al", "cl", "dl", "bl", "spl", "bpl", "sil", "dil", "r8b", "r9b", "r10b", "r11b", "r12b", "r13b", "r14b", "r15b"], "src": true, "dest": false, "width": 8}
@@ -7244,7 +7244,7 @@
       {"type_": "FLAGS", "values": ["r/w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} sbb", "category": "BASE-BINARY", "is_control_flow": false,
+  {"name": "sbb", "category": "BASE-BINARY", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": true, "width": 8},
       {"type_": "REG", "values": ["al", "cl", "dl", "bl"], "src": true, "dest": false, "width": 8}
@@ -7253,7 +7253,7 @@
       {"type_": "FLAGS", "values": ["r/w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} sbb", "category": "BASE-BINARY", "is_control_flow": false,
+  {"name": "sbb", "category": "BASE-BINARY", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["al", "cl", "dl", "bl"], "src": true, "dest": true, "width": 8},
       {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": false, "width": 8}
@@ -7262,7 +7262,7 @@
       {"type_": "FLAGS", "values": ["r/w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} sbb", "category": "BASE-BINARY", "is_control_flow": false,
+  {"name": "sbb", "category": "BASE-BINARY", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": true, "width": 8},
       {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": false, "width": 8}
@@ -7289,7 +7289,7 @@
       {"type_": "FLAGS", "values": ["r/w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} sbb", "category": "BASE-BINARY", "is_control_flow": false,
+  {"name": "sbb", "category": "BASE-BINARY", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": true, "width": 16},
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16}
@@ -7298,7 +7298,7 @@
       {"type_": "FLAGS", "values": ["r/w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} sbb", "category": "BASE-BINARY", "is_control_flow": false,
+  {"name": "sbb", "category": "BASE-BINARY", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": true, "width": 32},
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32}
@@ -7307,7 +7307,7 @@
       {"type_": "FLAGS", "values": ["r/w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} sbb", "category": "BASE-BINARY", "is_control_flow": false,
+  {"name": "sbb", "category": "BASE-BINARY", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": true, "width": 64},
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64}
@@ -8250,7 +8250,7 @@
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} shld", "category": "BASE-SHIFT", "is_control_flow": false,
+  {"name": "shld", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": true, "width": 16},
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16},
@@ -8258,7 +8258,7 @@
     ],
     "implicit_operands": []
   },
-  {"name": "{store} shld", "category": "BASE-SHIFT", "is_control_flow": false,
+  {"name": "shld", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": true, "width": 16},
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16},
@@ -8268,7 +8268,7 @@
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} shld", "category": "BASE-SHIFT", "is_control_flow": false,
+  {"name": "shld", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": true, "width": 32},
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32},
@@ -8276,7 +8276,7 @@
     ],
     "implicit_operands": []
   },
-  {"name": "{store} shld", "category": "BASE-SHIFT", "is_control_flow": false,
+  {"name": "shld", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": true, "width": 32},
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32},
@@ -8286,7 +8286,7 @@
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} shld", "category": "BASE-SHIFT", "is_control_flow": false,
+  {"name": "shld", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": true, "width": 64},
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64},
@@ -8294,7 +8294,7 @@
     ],
     "implicit_operands": []
   },
-  {"name": "{store} shld", "category": "BASE-SHIFT", "is_control_flow": false,
+  {"name": "shld", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": true, "width": 64},
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64},
@@ -8608,7 +8608,7 @@
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} shrd", "category": "BASE-SHIFT", "is_control_flow": false,
+  {"name": "shrd", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": true, "width": 16},
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16},
@@ -8616,7 +8616,7 @@
     ],
     "implicit_operands": []
   },
-  {"name": "{store} shrd", "category": "BASE-SHIFT", "is_control_flow": false,
+  {"name": "shrd", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": true, "width": 16},
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16},
@@ -8626,7 +8626,7 @@
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} shrd", "category": "BASE-SHIFT", "is_control_flow": false,
+  {"name": "shrd", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": true, "width": 32},
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32},
@@ -8634,7 +8634,7 @@
     ],
     "implicit_operands": []
   },
-  {"name": "{store} shrd", "category": "BASE-SHIFT", "is_control_flow": false,
+  {"name": "shrd", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": true, "width": 32},
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32},
@@ -8644,7 +8644,7 @@
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} shrd", "category": "BASE-SHIFT", "is_control_flow": false,
+  {"name": "shrd", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": true, "width": 64},
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64},
@@ -8652,7 +8652,7 @@
     ],
     "implicit_operands": []
   },
-  {"name": "{store} shrd", "category": "BASE-SHIFT", "is_control_flow": false,
+  {"name": "shrd", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": true, "width": 64},
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64},
@@ -9058,7 +9058,7 @@
       {"type_": "FLAGS", "values": ["w", "w", "w", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} sub", "category": "BASE-BINARY", "is_control_flow": false,
+  {"name": "sub", "category": "BASE-BINARY", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["al", "cl", "dl", "bl", "spl", "bpl", "sil", "dil", "r8b", "r9b", "r10b", "r11b", "r12b", "r13b", "r14b", "r15b"], "src": true, "dest": true, "width": 8},
       {"type_": "REG", "values": ["al", "cl", "dl", "bl", "spl", "bpl", "sil", "dil", "r8b", "r9b", "r10b", "r11b", "r12b", "r13b", "r14b", "r15b"], "src": true, "dest": false, "width": 8}
@@ -9067,7 +9067,7 @@
       {"type_": "FLAGS", "values": ["w", "w", "w", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} sub", "category": "BASE-BINARY", "is_control_flow": false,
+  {"name": "sub", "category": "BASE-BINARY", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": true, "width": 8},
       {"type_": "REG", "values": ["al", "cl", "dl", "bl"], "src": true, "dest": false, "width": 8}
@@ -9076,7 +9076,7 @@
       {"type_": "FLAGS", "values": ["w", "w", "w", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} sub", "category": "BASE-BINARY", "is_control_flow": false,
+  {"name": "sub", "category": "BASE-BINARY", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["al", "cl", "dl", "bl"], "src": true, "dest": true, "width": 8},
       {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": false, "width": 8}
@@ -9085,7 +9085,7 @@
       {"type_": "FLAGS", "values": ["w", "w", "w", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} sub", "category": "BASE-BINARY", "is_control_flow": false,
+  {"name": "sub", "category": "BASE-BINARY", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": true, "width": 8},
       {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": false, "width": 8}
@@ -9112,7 +9112,7 @@
       {"type_": "FLAGS", "values": ["w", "w", "w", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} sub", "category": "BASE-BINARY", "is_control_flow": false,
+  {"name": "sub", "category": "BASE-BINARY", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": true, "width": 16},
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16}
@@ -9121,7 +9121,7 @@
       {"type_": "FLAGS", "values": ["w", "w", "w", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} sub", "category": "BASE-BINARY", "is_control_flow": false,
+  {"name": "sub", "category": "BASE-BINARY", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": true, "width": 32},
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32}
@@ -9130,7 +9130,7 @@
       {"type_": "FLAGS", "values": ["w", "w", "w", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
-  {"name": "{store} sub", "category": "BASE-BINARY", "is_control_flow": false,
+  {"name": "sub", "category": "BASE-BINARY", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": true, "width": 64},
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64}

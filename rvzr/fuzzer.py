@@ -911,8 +911,9 @@ class ArchDiffFuzzer(Fuzzer):
         # collect fenced traces
         with tempfile.NamedTemporaryFile(delete=False) as fenced:
             fenced_name = fenced.name
-        fenced_test_case = self._create_fenced_test_case(test_case, fenced_name, self.asm_parser,
-                                                         self.code_gen, self.elf_parser)
+        fenced_test_case = self._create_fenced_test_case(test_case.asm_path(), fenced_name,
+                                                         self.asm_parser, self.code_gen,
+                                                         self.elf_parser)
         self.arch_executor.load_test_case(fenced_test_case)
         fenced_reg_values: List[List[int]] = []
         try:
@@ -940,8 +941,8 @@ class ArchDiffFuzzer(Fuzzer):
         return None
 
     @staticmethod
-    def _create_fenced_test_case(test_case: TestCaseProgram, fenced_name: str,
-                                 asm_parser: AsmParser, generator: CodeGenerator,
+    def _create_fenced_test_case(original_asm: str, fenced_asm: str, asm_parser: AsmParser,
+                                 generator: CodeGenerator,
                                  elf_parser: ELFParser) -> TestCaseProgram:
         """
         Hook function to create a test case with speculation fences."

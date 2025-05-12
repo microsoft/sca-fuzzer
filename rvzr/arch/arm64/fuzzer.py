@@ -89,8 +89,8 @@ class ARM64Fuzzer(Fuzzer):
 
         with tempfile.NamedTemporaryFile(delete=False) as fenced:
             fenced_name = fenced.name
-        fenced_test_case = _create_fenced_test_case(test_case, fenced_name, self.asm_parser,
-                                                    self.code_gen, self.elf_parser)
+        fenced_test_case = _create_fenced_test_case(test_case.asm_path(), fenced_name,
+                                                    self.asm_parser, self.code_gen, self.elf_parser)
         try:
             self.executor.load_test_case(fenced_test_case)
             fenced_htraces = self.executor.trace_test_case(inputs, reps)
@@ -126,10 +126,10 @@ class ARM64ArchDiffFuzzer(ArchDiffFuzzer):
     """
 
     @staticmethod
-    def _create_fenced_test_case(test_case: TestCaseProgram, fenced_name: str,
-                                 asm_parser: AsmParser, generator: CodeGenerator,
+    def _create_fenced_test_case(original_asm: str, fenced_asm: str, asm_parser: AsmParser,
+                                 generator: CodeGenerator,
                                  elf_parser: ELFParser) -> TestCaseProgram:
-        return _create_fenced_test_case(test_case, fenced_name, asm_parser, generator, elf_parser)
+        return _create_fenced_test_case(original_asm, fenced_asm, asm_parser, generator, elf_parser)
 
 
 # ==================================================================================================
@@ -147,16 +147,16 @@ def _quick_and_dirty_mode(executor: Executor) -> Generator[None, None, None]:
         executor.set_quick_and_dirty(False)
 
 
-def _create_fenced_test_case(test_case: TestCaseProgram, fenced_name: str, asm_parser: AsmParser,
+def _create_fenced_test_case(original_asm: str, fenced_asm: str, asm_parser: AsmParser,
                              generator: CodeGenerator, elf_parser: ELFParser) -> TestCaseProgram:
     """ Add fences to all instructions in the test case """
-    with open(test_case.asm_path(), 'r') as f:
-        with open(fenced_name, 'w') as fenced_asm:
+    with open(original_asm, 'r') as f:
+        with open(fenced_asm, 'w') as fenced_file:
             for line in f:
-                fenced_asm.write(line)
+                fenced_file.write(line)
                 line = line.strip().lower()
                 if line and line[0] not in ["/", ".", "b"] \
                         and "macro" not in line:
-                    fenced_asm.write('dsb SY\n isb\n')
-    fenced_test_case = asm_parser.parse_file(fenced_name, generator, elf_parser)
+                    fenced_file.write('dsb SY\n isb\n')
+    fenced_test_case = asm_parser.parse_file(fenced_asm, generator, elf_parser)
     return fenced_test_case

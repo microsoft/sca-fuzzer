@@ -124,8 +124,8 @@ class X86Fuzzer(Fuzzer):
 
         with tempfile.NamedTemporaryFile(delete=False) as fenced:
             fenced_name = fenced.name
-        fenced_test_case = _create_fenced_test_case(test_case, fenced_name, self.asm_parser,
-                                                    self.code_gen, self.elf_parser)
+        fenced_test_case = _create_fenced_test_case(test_case.asm_path(), fenced_name,
+                                                    self.asm_parser, self.code_gen, self.elf_parser)
         try:
             self.executor.load_test_case(fenced_test_case)
             fenced_htraces = self.executor.trace_test_case(inputs, reps)
@@ -189,10 +189,10 @@ class X86ArchDiffFuzzer(ArchDiffFuzzer):
         return super().start(num_test_cases, num_inputs, timeout, nonstop, save_violations, type_)
 
     @staticmethod
-    def _create_fenced_test_case(test_case: TestCaseProgram, fenced_name: str,
-                                 asm_parser: AsmParser, generator: CodeGenerator,
+    def _create_fenced_test_case(original_asm: str, fenced_asm: str, asm_parser: AsmParser,
+                                 generator: CodeGenerator,
                                  elf_parser: ELFParser) -> TestCaseProgram:
-        return _create_fenced_test_case(test_case, fenced_name, asm_parser, generator, elf_parser)
+        return _create_fenced_test_case(original_asm, fenced_asm, asm_parser, generator, elf_parser)
 
 
 # ==================================================================================================
@@ -256,13 +256,13 @@ def _quick_and_dirty_mode(executor: Executor) -> Generator[None, None, None]:
         executor.set_quick_and_dirty(False)
 
 
-def _create_fenced_test_case(test_case: TestCaseProgram, fenced_name: str, asm_parser: AsmParser,
+def _create_fenced_test_case(original_asm: str, fenced_asm: str, asm_parser: AsmParser,
                              generator: CodeGenerator, elf_parser: ELFParser) -> TestCaseProgram:
     """ Add fences to all instructions in the test case """
-    with open(test_case.asm_path(), 'r') as f:
-        with open(fenced_name, 'w') as fenced_asm:
+    with open(original_asm, 'r') as f:
+        with open(fenced_asm, 'w') as fenced_file:
             for line in f:
-                fenced_asm.write(line)
+                fenced_file.write(line)
                 line = line.strip().lower()
 
                 # no need to add fences after empty lines and comments
@@ -271,7 +271,7 @@ def _create_fenced_test_case(test_case: TestCaseProgram, fenced_name: str, asm_p
 
                 # adding a fence after a jump instruction breaks assumptions of our asm parser;
                 # this is an issue in the parser, and this check is a workaround
-                if line[0] == "j" or "loop" not in line:
+                if line[0] == "j" or "loop" in line:
                     continue
 
                 # don't add fences after assembler directives
@@ -281,8 +281,12 @@ def _create_fenced_test_case(test_case: TestCaseProgram, fenced_name: str, asm_p
                    or "macro" in line:
                     continue
 
-                # add fences after all other instructions
-                fenced_asm.write('lfence\n')
+                # stop adding fences after the test case exit
+                if "test_case_exit" in line:
+                    break
 
-    fenced_test_case = asm_parser.parse_file(fenced_name, generator, elf_parser)
+                # add fences after all other instructions
+                fenced_file.write('lfence\n')
+
+    fenced_test_case = asm_parser.parse_file(fenced_asm, generator, elf_parser)
     return fenced_test_case
