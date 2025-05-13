@@ -724,6 +724,14 @@ class Fuzzer:
         else:
             assert_never(f"Unknown fuzzing mode: {type_}")
 
+    @staticmethod
+    def _create_timestamped_dir(path: str) -> str:
+        timestamp = datetime.today().strftime('%y%m%d-%H%M%S')
+        violation_dir = f"{path}/violation-{timestamp}"
+        Path(path).mkdir(exist_ok=True)
+        Path(violation_dir).mkdir()
+        return violation_dir
+
     def _store_violation_artifact(self, violation: Violation, path: str) -> None:
         """
         Store a violation artifact into the given directory.
@@ -744,10 +752,7 @@ class Fuzzer:
             path = "."
 
         # create a subdirectory for the violation artifact
-        timestamp = datetime.today().strftime('%y%m%d-%H%M%S')
-        violation_dir = f"{path}/violation-{timestamp}"
-        Path(path).mkdir(exist_ok=True)
-        Path(violation_dir).mkdir()
+        violation_dir = self._create_timestamped_dir(path)
 
         # store violation
         test_case = violation.test_case_code
@@ -828,7 +833,13 @@ class Fuzzer:
         warning("fuzzer", "Fast path contract traces do not match the full traces")
         if self._work_dir and CONF.is_generation_enabled():
             warning("fuzzer", f"Storing the bug into {self._work_dir}/bugs/")
-            self._store_violation_artifact(round_manager.violations[0], f"{self._work_dir}/bugs/")
+
+            # note that we don't use _store_violation_artifact here because there is no actual
+            # violation - we just want to store the test case and inputs
+            violation_dir = self._create_timestamped_dir(f"{self._work_dir}/bugs/")
+            round_manager.test_case.save(f"{violation_dir}/program.asm")
+            for i, input_ in enumerate(round_manager.org_inputs):
+                input_.save(f"{violation_dir}/input_{i:04}.bin")
 
     def _report_bug_arch(self, round_manager: _RoundManager) -> None:
         if self._work_dir and CONF.is_generation_enabled():
