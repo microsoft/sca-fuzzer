@@ -289,6 +289,7 @@ class UnicornModel(Model, ABC):
         :return: list of collected contract traces and the taints, one of each per input
         """
         self._taint_tracker.set_enable_tracking(True)
+        self.speculator.set_max_nesting(nesting)
         ctraces, taints = self._execute_test_case_with_inputs(inputs)
         return ctraces, taints
 
