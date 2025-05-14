@@ -272,8 +272,8 @@ class UnicornTaintTracker:
 
         taint = InputTaint(n_actors)
         tainted_positions = []
-        register_start = SandboxLayout.data_area_offset(DataArea.GPR) // 8
-        simd_start = SandboxLayout.data_area_offset(DataArea.SIMD) // 8
+        register_start = SandboxLayout.data_area_offset(DataArea.GPR) // 8 - 0x1000 // 8
+        simd_start = SandboxLayout.data_area_offset(DataArea.SIMD) // 8 - 0x1000 // 8
 
         for label in self._tainted_labels:
             # Memory address
@@ -301,8 +301,8 @@ class UnicornTaintTracker:
         tainted_positions.sort()
 
         for actor_id in range(0, n_actors):
-            actor_offset = actor_id * 0x4000 // 8 + 0x1000 // 8
-            actor_end = (actor_id + 1) * 0x4000 // 8
+            actor_offset = actor_id * 0x3000 // 8
+            actor_end = (actor_id + 1) * 0x3000 // 8
             actor_taints = [
                 pos - actor_offset for pos in tainted_positions if actor_offset <= pos < actor_end
             ]
@@ -425,12 +425,13 @@ class _Dependencies:
                 self.mem[mem] = copy.copy(src_dependencies)
                 self.mem[mem].add(mem)
 
-        # print(self.dest_regs, self.src_regs)
-        # print(self.dest_flags, self.src_flags)
-        # print(self.dest_mems, self.src_mems)
-        # print(self.reg_deps)
-        # print(self.flag_deps)
-        # print(self.mem_deps)
+        # print(f"reg: dest={tracked_inst.dest_regs}, src={tracked_inst.src_regs}")
+        # print(f"flag: dst={tracked_inst.dest_flags}, src={tracked_inst.src_flags}")
+        # print(f"mem: dest={tracked_inst.dest_mems}, src={tracked_inst.src_mems}")
+        # print(f"all reg={self.reg}")
+        # print(f"all flg={self.flag}")
+        # print(f"all mem={self.mem}")
+        # print("----------------------")
 
     def remove_overwritten_dependencies(self, tracked_inst: _TrackedInstruction,
                                         target_desc: TargetDesc) -> None:
