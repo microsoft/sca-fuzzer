@@ -569,7 +569,7 @@
   {"name": "bt", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": false, "width": 32},
-      {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32}
+      {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -578,7 +578,7 @@
   {"name": "bt", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": false, "width": 64},
-      {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64}
+      {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -587,7 +587,7 @@
   {"name": "btc", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
-      {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16}
+      {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -596,7 +596,7 @@
   {"name": "btc", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 32},
-      {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32}
+      {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -605,7 +605,7 @@
   {"name": "btc", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 64},
-      {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64}
+      {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -614,7 +614,7 @@
   {"name": "btc", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": true, "width": 16},
-      {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16}
+      {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -623,7 +623,7 @@
   {"name": "btc", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": true, "width": 32},
-      {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32}
+      {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -632,7 +632,7 @@
   {"name": "btc", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": true, "width": 64},
-      {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64}
+      {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -641,7 +641,52 @@
   {"name": "lock btc", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "signed": false}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0, "signed": false}
+    ]
+  },
+  {"name": "lock btc", "category": "BASE-BITBYTE", "control_flow": false,
+    "operands": [
+      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "signed": false}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
+    ]
+  },
+  {"name": "lock btc", "category": "BASE-BITBYTE", "control_flow": false,
+    "operands": [
+      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 32},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "signed": false}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
+    ]
+  },
+  {"name": "lock btc", "category": "BASE-BITBYTE", "control_flow": false,
+    "operands": [
+      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 32},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "signed": false}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
+    ]
+  },
+  {"name": "lock btc", "category": "BASE-BITBYTE", "control_flow": false,
+    "operands": [
+      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 64},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "signed": false}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
+    ]
+  },
+  {"name": "lock btc", "category": "BASE-BITBYTE", "control_flow": false,
+    "operands": [
+      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 64},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -650,7 +695,7 @@
   {"name": "lock btc", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -659,16 +704,7 @@
   {"name": "lock btc", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": [
-      {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
-    ]
-  },
-  {"name": "lock btc", "category": "BASE-BITBYTE", "control_flow": false,
-    "operands": [
-      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -677,43 +713,7 @@
   {"name": "lock btc", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": [
-      {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
-    ]
-  },
-  {"name": "lock btc", "category": "BASE-BITBYTE", "control_flow": false,
-    "operands": [
-      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": [
-      {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
-    ]
-  },
-  {"name": "lock btc", "category": "BASE-BITBYTE", "control_flow": false,
-    "operands": [
-      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
-      {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16}
-    ],
-    "implicit_operands": [
-      {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
-    ]
-  },
-  {"name": "lock btc", "category": "BASE-BITBYTE", "control_flow": false,
-    "operands": [
-      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 32},
-      {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32}
-    ],
-    "implicit_operands": [
-      {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
-    ]
-  },
-  {"name": "lock btc", "category": "BASE-BITBYTE", "control_flow": false,
-    "operands": [
-      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 64},
-      {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64}
+      {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -722,7 +722,7 @@
   {"name": "btr", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -731,7 +731,7 @@
   {"name": "btr", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -740,7 +740,7 @@
   {"name": "btr", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -749,7 +749,7 @@
   {"name": "btr", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -758,7 +758,7 @@
   {"name": "btr", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -767,7 +767,7 @@
   {"name": "btr", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -776,7 +776,7 @@
   {"name": "btr", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -785,7 +785,7 @@
   {"name": "btr", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -794,7 +794,7 @@
   {"name": "btr", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": true, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -803,7 +803,7 @@
   {"name": "btr", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": true, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -812,7 +812,7 @@
   {"name": "btr", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": true, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -821,7 +821,7 @@
   {"name": "btr", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": true, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -830,7 +830,7 @@
   {"name": "btr", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
-      {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16}
+      {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -839,7 +839,7 @@
   {"name": "btr", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 32},
-      {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32}
+      {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -848,7 +848,7 @@
   {"name": "btr", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 64},
-      {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64}
+      {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -857,7 +857,7 @@
   {"name": "btr", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": true, "width": 16},
-      {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16}
+      {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -866,7 +866,7 @@
   {"name": "btr", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": true, "width": 32},
-      {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32}
+      {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -875,7 +875,7 @@
   {"name": "btr", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": true, "width": 64},
-      {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64}
+      {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -884,7 +884,7 @@
   {"name": "bts", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -893,7 +893,7 @@
   {"name": "lock bts", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -902,7 +902,7 @@
   {"name": "lock bts", "category": "BASE-BITBYTE", "control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "undef", "undef", "", "undef", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
