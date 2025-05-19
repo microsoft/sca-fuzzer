@@ -177,7 +177,7 @@ dr_emit_flags_t Dispatcher::instrument_instruction(void *drcontext, instrlist_t 
     const opnd_t opcode = OPND_CREATE_INT64(instr_get_opcode(org_instr));
     const opnd_t pc = OPND_CREATE_INTPTR(instr_get_app_pc(org_instr));
     const opnd_t has_mem_ref =
-        OPND_CREATE_INT64(instr_reads_memory(instr) or instr_writes_memory(instr));
+        OPND_CREATE_INT64(instr_reads_memory(org_instr) or instr_writes_memory(org_instr));
 
     // Add a clean call to the dispatch callback, which will forward the call to the service modules
     dr_insert_clean_call(drcontext, bb, instr, (void *)dispatch_callback, false, 3, opcode, pc,
