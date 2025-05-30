@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+AVAILABLE_STAGES=("type_check" "code_style_check" "core_unit_tests" "package_install_test"
+    "km_tests" "arch_unit_tests" "acceptance_tests")
+
 function parse_args() {
     POSITIONAL_ARGS=()
 
@@ -17,14 +20,28 @@ function parse_args() {
             SKIP_KM_TESTS=true
             shift
             ;;
+        --stage)
+            STAGE="$2"
+            shift 2
+            ;;
         -* | --*)
             echo "Unknown option $1"
             exit 1
             ;;
         esac
     done
+
+    if [[ -n "$STAGE" && ! " ${AVAILABLE_STAGES[@]} " =~ " ${STAGE} " ]]; then
+        echo "Invalid stage: $STAGE"
+        echo "Available stages: ${AVAILABLE_STAGES[*]}"
+        exit 1
+    fi
+
 }
 
+# ==================================================================================================
+# Testing Stages
+# ==================================================================================================
 function type_check() {
     local enable_strict=$1
 
@@ -67,7 +84,7 @@ function code_style_check() {
     echo "===== [DR] Code Style & Linting with clang-tidy ====="
     cd $SCRIPT_DIR/../rvzr/model_dynamorio || exit
     if [ -d "adapter/build" ]; then
-        find . -name "*.c" -or -name "*.h" | grep -v "CMakeFiles"  | xargs clang-tidy --quiet --p adapter/build/ --config-file=adapter/.clang-tidy
+        find . -name "*.c" -or -name "*.h" | grep -v "CMakeFiles" | xargs clang-tidy --quiet --p adapter/build/ --config-file=adapter/.clang-tidy
     else
         echo "[DR] No build directory for DR adapter found; skipping clang-tidy check"
     fi
@@ -183,6 +200,41 @@ function acceptance_tests() {
     fi
 }
 
+# ==================================================================================================
+# Runners
+# ==================================================================================================
+function run_one_stage() {
+    local stage=$1
+
+    case $stage in
+    type_check)
+        type_check $STRICT
+        ;;
+    code_style_check)
+        code_style_check $STRICT
+        ;;
+    core_unit_tests)
+        core_unit_tests
+        ;;
+    package_install_test)
+        package_install_test
+        ;;
+    km_tests)
+        km_tests
+        ;;
+    arch_unit_tests)
+        arch_unit_tests
+        ;;
+    acceptance_tests)
+        acceptance_tests
+        ;;
+    *)
+        echo "Unknown stage: $stage"
+        exit 1
+        ;;
+    esac
+}
+
 function main() {
     parse_args $@
 
@@ -199,6 +251,12 @@ function main() {
 
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
     ALL_PY=$(find rvzr/ -name "*.py" | grep -v "config" | grep -v "fuzzer")
+
+    # if STAGE is set, run only that stage
+    if [[ -n "$STAGE" ]]; then
+        run_one_stage "$STAGE"
+        exit 0
+    fi
 
     type_check $STRICT
     code_style_check $STRICT
