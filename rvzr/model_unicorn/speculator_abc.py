@@ -108,7 +108,7 @@ class UnicornSpeculator(ABC):
         mem_changes = self._store_logs.pop()
         while mem_changes:
             addr, val = mem_changes.pop()
-            self._emulator.mem_write(addr, bytes(val))
+            self._emulator.mem_write(addr, val)
 
         # restore the flags last, to avoid corruption by other operations
         self._emulator.reg_write(self._uc_target_desc.flags_register, flags)
@@ -154,7 +154,8 @@ class UnicornSpeculator(ABC):
         """
         # when in speculation, log all changes to memory
         if access == UC_MEM_WRITE and self._store_logs:
-            self._store_logs[-1].append((address, self._emulator.mem_read(address, 8)))
+            prev_value = bytes(self._emulator.mem_read(address, 8))
+            self._store_logs[-1].append((address, prev_value))
 
         self._speculate_mem_access(access, address, size, value)
 
