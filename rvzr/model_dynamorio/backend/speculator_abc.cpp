@@ -105,8 +105,9 @@ pc_t SpeculatorABC::rollback(dr_mcontext_t *mc)
         if (store.nesting_level < nesting)
             break;
 
-        // NOTE: same as in handle_mem_access, we should use dr_safe_write here
-        *(uint64_t *)it->addr = it->val;
+        // Try restoring the previous value in memory.
+        size_t w_size = 0;
+        bool success = dr_safe_write((byte *)store.addr, store.size, &store.val, &w_size);
         store_log.pop_back();
     }
 
@@ -146,17 +147,44 @@ pc_t SpeculatorABC::handle_instruction(instr_obs_t instr, dr_mcontext_t *mc, voi
     return 0;
 }
 
-void SpeculatorABC::handle_mem_access(bool is_write, void *address, uint64_t /*size*/)
+bool SpeculatorABC::handle_mem_access(bool is_write, void *address, uint64_t size)
 {
     if (not in_speculation)
         return;
 
     // record changes made to the memory
     if (is_write) {
-        // NOTE: it would be more correct to use dr_safe_read here to avoid faults;
-        // However, this code is on the hot path, and dr_safe_read is slow,
-        // so we just accept that horrible things may happen. Oh well.
-        const uint64_t val = *(uint64_t *)address;
-        store_log.push_back({.addr = (uint64_t)address, .val = val, .nesting_level = nesting});
+        auto cur_address = (uint64_t)address;
+        size_t remaining_size = size;
+
+        // The store might be bigger than 64 bits (e.g. vector ops): save 64 bits at a time
+        while (remaining_size > 0) {
+            const uint64_t cur_size = std::min(remaining_size, sizeof(uint64_t));
+            // NOTE: on speculative paths, safe reads are the only way to load from memory, since
+            // pointers might be invalid.
+            size_t r_size = 0;
+            uint64_t val = 0;
+            const bool success = dr_safe_read((byte *)cur_address, cur_size, (byte *)&val, &r_size);
+
+            if (not success) {
+                // If the memory access is illegal, the store is bound to fail: let the exception
+                // handler take care of that.
+                return;
+            }
+
+            // Save the previous memory value to be restored after speculation
+            store_log.push_back({
+                .addr = cur_address,
+                .val = val,
+                .size = cur_size,
+                .nesting_level = nesting,
+            });
+            // dr_printf("[STORELOG] Pushing *%lx = %lx (nest: %d, sz: %d) \n", (uint64_t)address,
+            //           store_log.back().val, nesting, qword_size);
+
+            // Advance until all relevant memory has been saved
+            cur_address += cur_size;
+            remaining_size -= cur_size;
+        }
     }
 }
