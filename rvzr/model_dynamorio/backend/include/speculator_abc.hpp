@@ -11,6 +11,7 @@
 
 #include <dr_api.h> // NOLINT
 
+#include "dr_events.h"
 #include "observables.hpp"
 
 using std::uint64_t;
@@ -31,6 +32,53 @@ typedef struct {
     size_t size;
     unsigned int nesting_level;
 } store_log_entry_t;
+
+/// @brief The StoreLog is a wrapper around an std::vector of store_log_entries that keeps track of
+/// which entries have been committed and which entries are in-flight. This is needed since we
+/// populate the store_log before actually executing the instruction, which might fail.
+class StoreLog
+{
+  public:
+    StoreLog() = default;
+    ~StoreLog() = default;
+    StoreLog(const StoreLog &) = delete;
+    StoreLog(StoreLog &&) = delete;
+    StoreLog &operator=(const StoreLog &) = delete;
+    StoreLog &operator=(StoreLog &&) = delete;
+
+    /// @brief Implement std::vector::back
+    [[nodiscard]] const store_log_entry_t &back() const { return entries.back(); }
+    /// @brief Implement std::vector::pop_back. This will also update the committed state.
+    void pop_back()
+    {
+        const bool was_committed_entry = (entries.size() == last_committed);
+        entries.pop_back();
+
+        if (was_committed_entry)
+            last_committed -= 1;
+    }
+    /// @brief Implement std::vector::push_back
+    void push_back(const store_log_entry_t &entry) { entries.push_back(entry); }
+    /// @brief Implement std::vector::size
+    [[nodiscard]] size_t size() const { return entries.size(); }
+    /// @brief Implement std::vector::empty
+    [[nodiscard]] bool empty() const { return entries.empty(); }
+
+    /// @brief The last instruction actually committed: mark all entries as committed.
+    void update_committed() { last_committed = entries.size(); }
+    /// @brief Check if the instruction has any in-flight entries.
+    [[nodiscard]] bool has_uncommitted() const { return entries.size() > last_committed; }
+    /// @brief Remove all uncommitted entries from the store_log.
+    void flush_uncommitted()
+    {
+        while (has_uncommitted())
+            pop_back();
+    }
+
+  private:
+    std::vector<store_log_entry_t> entries;
+    size_t last_committed = 0;
+};
 
 // =================================================================================================
 // Class Definition
@@ -98,8 +146,11 @@ class SpeculatorABC
     /// @param type The type of the memory access (read or write)
     /// @param address The address of the memory access
     /// @param size The size of the memory access
-    /// @return void
-    virtual void handle_mem_access(bool is_write, void *address, uint64_t size);
+    /// @return false if the memory access is invalid and is going to produce an exception
+    virtual bool handle_mem_access(bool is_write, void *address, uint64_t size);
+
+    /// @brief Notifies the speculator of an exception, needed to possibly reset internal state.
+    virtual void handle_exception(dr_siginfo_t *siginfo);
 
   protected:
     // ---------------------------------------------------------------------------------------------
@@ -113,7 +164,7 @@ class SpeculatorABC
 
     /// @param Log of store operations performed during speculation; used to undo the operations
     ///        during rollback
-    std::vector<store_log_entry_t> store_log;
+    StoreLog store_log;
 
     /// @param Maximum number of nested speculations
     unsigned int max_nesting = 0;
