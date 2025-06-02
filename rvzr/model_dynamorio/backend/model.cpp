@@ -44,6 +44,19 @@ void event_instrumentation_start(void *wrapctx, DR_PARAM_OUT void **user_data);
 void event_instrumentation_end(void *wrapctx, void *user_data);
 void dr_model_del() noexcept;
 
+/// @brief Flush dynamorio's basic-block cache. This is needed when transitioning from
+/// non-instrumented code to instrumented code, as any shared code (e.g. libc) might be cached and
+/// therefore inaccessible for instrumentation.
+static void flush_bb_cache()
+{
+    const uint64_t flush_begin = 0;
+    const size_t flush_size = -1;
+
+    // NOTE: This is very conservative, but avoids any potentially expensive analysis of
+    // the target function
+    dr_delay_flush_region((byte *)flush_begin, flush_size, /*flush_id*/ 0, /*callback*/ nullptr);
+}
+
 // =================================================================================================
 // Event callbacks
 // =================================================================================================
@@ -114,6 +127,7 @@ dr_emit_flags_t event_bb_instrumentation(void *drcontext, void * /*tag*/, instrl
 /// @return void
 void event_instrumentation_start(void *wrapctx, DR_PARAM_OUT void **user_data)
 {
+    flush_bb_cache();
     dispatcher->start(wrapctx, user_data);
 }
 
@@ -124,6 +138,7 @@ void event_instrumentation_start(void *wrapctx, DR_PARAM_OUT void **user_data)
 void event_instrumentation_end(void *wrapctx, void *user_data)
 {
     dispatcher->finalize(wrapctx, user_data);
+    flush_bb_cache();
 }
 
 /// @brief Callback executed upon exceptions
