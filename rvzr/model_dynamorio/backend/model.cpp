@@ -40,9 +40,9 @@ std::unique_ptr<Dispatcher> dispatcher = nullptr; // NOLINT
 /// @brief Name of the function to instrument
 std::string instrumented_func_name; // NOLINT
 
-void event_instrumentation_start(void *wrapctx, DR_PARAM_OUT void **user_data);
-void event_instrumentation_end(void *wrapctx, void *user_data);
-void dr_model_del() noexcept;
+static void event_instrumentation_start(void *wrapctx, DR_PARAM_OUT void **user_data);
+static void event_instrumentation_end(void *wrapctx, void *user_data);
+static void dr_model_del() noexcept;
 
 /// @brief Flush dynamorio's basic-block cache. This is needed when transitioning from
 /// non-instrumented code to instrumented code, as any shared code (e.g. libc) might be cached and
@@ -68,7 +68,7 @@ static void flush_bb_cache()
 /// @param module_ Pointer to the module data
 /// @param unused
 /// @return void
-void event_module_load(void * /*drcontext*/, const module_data_t *module_, bool /*loaded*/)
+static void event_module_load(void * /*drcontext*/, const module_data_t *module_, bool /*loaded*/)
 {
     size_t offset = 0;
     const drsym_error_t sym_res = drsym_lookup_symbol(
@@ -89,8 +89,8 @@ void event_module_load(void * /*drcontext*/, const module_data_t *module_, bool 
 /// @param unused
 /// @param unused
 /// @return BB emitted state (dr_emit_flags_t)
-dr_emit_flags_t event_bb_app2app(void *drcontext, void * /*tag*/, instrlist_t *bb,
-                                 bool /*for_trace*/, bool /*translating*/)
+static dr_emit_flags_t event_bb_app2app(void *drcontext, void * /*tag*/, instrlist_t *bb,
+                                        bool /*for_trace*/, bool /*translating*/)
 {
     bool err = false;
     err |= !drutil_expand_rep_string(drcontext, bb);
@@ -113,9 +113,9 @@ dr_emit_flags_t event_bb_app2app(void *drcontext, void * /*tag*/, instrlist_t *b
 /// @param unused
 /// @param unused
 /// @return BB emitted state (dr_emit_flags_t)
-dr_emit_flags_t event_bb_instrumentation(void *drcontext, void * /*tag*/, instrlist_t *bb,
-                                         instr_t *instr, bool /*for_trace*/, bool /*translating*/,
-                                         void * /*user_data*/)
+static dr_emit_flags_t event_bb_instrumentation(void *drcontext, void * /*tag*/, instrlist_t *bb,
+                                                instr_t *instr, bool /*for_trace*/,
+                                                bool /*translating*/, void * /*user_data*/)
 {
     const dr_emit_flags_t emit_flags = dispatcher->instrument_instruction(drcontext, bb, instr);
     return emit_flags;
@@ -125,7 +125,7 @@ dr_emit_flags_t event_bb_instrumentation(void *drcontext, void * /*tag*/, instrl
 /// @param wrapctx The wrap context
 /// @param user_data
 /// @return void
-void event_instrumentation_start(void *wrapctx, DR_PARAM_OUT void **user_data)
+static void event_instrumentation_start(void *wrapctx, DR_PARAM_OUT void **user_data)
 {
     flush_bb_cache();
     dispatcher->start(wrapctx, user_data);
@@ -135,7 +135,7 @@ void event_instrumentation_start(void *wrapctx, DR_PARAM_OUT void **user_data)
 /// @param wrapctx The wrap context
 /// @param user_data
 /// @return void
-void event_instrumentation_end(void *wrapctx, void *user_data)
+static void event_instrumentation_end(void *wrapctx, void *user_data)
 {
     dispatcher->finalize(wrapctx, user_data);
     flush_bb_cache();
@@ -147,7 +147,7 @@ void event_instrumentation_end(void *wrapctx, void *user_data)
 /// @return if the exception is handled, this function does not return
 /// (dr_redirect_execution is called by handlers); otherwise, it returns true so that DR will
 /// continue with the default exception handling
-dr_signal_action_t event_exception(void *drcontext, dr_siginfo_t *siginfo)
+static dr_signal_action_t event_signal(void *drcontext, dr_siginfo_t *siginfo)
 {
     if (dispatcher->handle_exception(drcontext, siginfo)) {
         return DR_SIGNAL_REDIRECT;
@@ -159,7 +159,7 @@ dr_signal_action_t event_exception(void *drcontext, dr_siginfo_t *siginfo)
 
 /// @brief Callback executed before exiting the application.
 /// @return void
-void event_exit()
+static void event_exit()
 {
     // There is a possibility that the tracing process has not been finalized
     // because the traced function has not been called
@@ -183,7 +183,7 @@ void event_exit()
 ///        The function initializes the DR extensions and registers callbacks.
 /// @return void
 /// @throw std::runtime_error if any of the DR extensions fails to start
-void dr_model_init()
+static void dr_model_init()
 {
     // Start DR extensions
     if (!drmgr_init())
@@ -205,7 +205,7 @@ void dr_model_init()
     if (!drmgr_register_bb_instrumentation_event(nullptr, event_bb_instrumentation, nullptr))
         throw std::runtime_error("ERROR: failed to register a callback\n");
 
-    drmgr_register_signal_event(event_exception);
+    drmgr_register_signal_event(event_signal);
     dr_register_exit_event(event_exit);
 }
 
