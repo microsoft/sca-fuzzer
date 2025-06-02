@@ -75,6 +75,10 @@ class TracerABC
     /// @return void
     virtual void observe_mem_access(bool is_write, void *address, uint64_t size);
 
+    /// @brief Record an architectural exception with a special marker in the trace.
+    /// @param siginfo Information about the exception coming from DynamoRIO.
+    void observe_exception(dr_siginfo_t *siginfo);
+
   protected:
     // ---------------------------------------------------------------------------------------------
     // Protected Fields

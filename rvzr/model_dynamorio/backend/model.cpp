@@ -144,9 +144,7 @@ static void event_instrumentation_end(void *wrapctx, void *user_data)
 /// @brief Callback executed upon exceptions
 /// @param drcontext The drcontext of the current thread
 /// @param excpt Pointer to the exception data
-/// @return if the exception is handled, this function does not return
-/// (dr_redirect_execution is called by handlers); otherwise, it returns true so that DR will
-/// continue with the default exception handling
+/// @return whether the signal should be redirected or delivered to the application
 static dr_signal_action_t event_signal(void *drcontext, dr_siginfo_t *siginfo)
 {
     if (dispatcher->handle_exception(drcontext, siginfo)) {

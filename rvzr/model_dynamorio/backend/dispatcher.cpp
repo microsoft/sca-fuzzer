@@ -137,7 +137,10 @@ static void dispatch_callback(uint64_t opcode, uint64_t pc, uint64_t has_mem_ref
 bool Dispatcher::handle_exception(void * /*drcontext*/, dr_siginfo_t *siginfo)
 {
     module_bundle->logger->log_exception(siginfo);
+    // Architectural exceptions are redirected to the program
     if (!module_bundle->speculator->in_speculation) {
+        dr_printf("[XCPT] Dispatcher::handle_exception: exception on a non-speculative path\n");
+        module_bundle->tracer->observe_exception(siginfo);
         return false;
     }
 
