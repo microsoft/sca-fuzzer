@@ -82,3 +82,14 @@ void TracerABC::observe_mem_access(bool /*is_write*/, void * /*address*/, uint64
 {
     // The rest of the functionality - if any - is implemented by subclasses
 }
+
+void TracerABC::observe_exception(dr_siginfo_t *siginfo)
+{
+    if (not tracing_on) {
+        return;
+    }
+
+    trace.push_back({.addr = (pc_t)siginfo->access_address,
+                     .size = (uint32_t)siginfo->sig,
+                     .type = trace_entry_type_t::ENTRY_EXCEPTION});
+}
