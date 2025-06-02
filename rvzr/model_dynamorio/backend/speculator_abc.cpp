@@ -93,16 +93,21 @@ pc_t SpeculatorABC::rollback(dr_mcontext_t *mc)
         dr_abort();
     }
     const checkpoint_t checkpoint = checkpoints.back();
+    checkpoints.pop_back();
     *mc = checkpoint.mc;
     spec_window = checkpoint.spec_window;
 
     // undo all store operations performed during speculation
-    for (auto it = store_log.rbegin(); it != store_log.rend(); ++it) {
-        if (it->nesting_level < nesting)
+    while (not store_log.empty()) {
+        const auto store = store_log.back();
+
+        // Rollback only entries of the last (nested) speculative window
+        if (store.nesting_level < nesting)
             break;
 
         // NOTE: same as in handle_mem_access, we should use dr_safe_write here
         *(uint64_t *)it->addr = it->val;
+        store_log.pop_back();
     }
 
     // update the state machine that tracks the speculation process
@@ -110,6 +115,12 @@ pc_t SpeculatorABC::rollback(dr_mcontext_t *mc)
     if (nesting <= 0) {
         nesting = 0;
         in_speculation = false;
+        if (not checkpoints.empty() or not store_log.empty()) {
+            dr_printf("[ERROR] Speculation ended but there are still %d checkpoints and %d "
+                      "store logs to consume\n",
+                      checkpoints.size(), store_log.size());
+            dr_abort();
+        }
     }
 
     // dr_printf("[INFO] SpeculatorABC::rollback: %llx\n", (long long)checkpoint.rollback_pc);
