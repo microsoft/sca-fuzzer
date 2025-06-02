@@ -18,6 +18,7 @@
 #include <dr_ir_opnd.h>
 #include <dr_os_utils.h>
 
+#include "dr_events.h"
 #include "observables.hpp"
 #include "speculator_abc.hpp"
 #include "util.hpp"
@@ -86,7 +87,6 @@ void SpeculatorABC::checkpoint(dr_mcontext_t *mc, pc_t pc)
 
 pc_t SpeculatorABC::rollback(dr_mcontext_t *mc)
 {
-
     // restore the last checkpoint
     if (checkpoints.empty()) {
         dr_printf("[ERROR] SpeculatorABC::rollback: no checkpoints to rollback");
@@ -107,7 +107,27 @@ pc_t SpeculatorABC::rollback(dr_mcontext_t *mc)
 
         // Try restoring the previous value in memory.
         size_t w_size = 0;
-        bool success = dr_safe_write((byte *)store.addr, store.size, &store.val, &w_size);
+        const bool success = dr_safe_write((byte *)store.addr, store.size, &store.val, &w_size);
+
+        // The rollback should always be successful.
+        // NOTE: The following cases are already handled elsewhere:
+        //       1. Rollback of an invalid store.
+        //            - stores to non-valid memory are handled by handle_mem_access()
+        //            - stores to non-writable memory cause an exception, and their
+        //            corresponding entires are flushed by handle_exception()
+        //       2. Rollback after faulty indirect call/ret.
+        //            - should never be executed, handled by handle_instruction()
+        if (not success) {
+            // If ignoring permissions does not work, we cannot recover.
+            dr_printf("[ERROR] Failed to rollback store -- addr: %lx  val: %lx  sx: %d\n",
+                      store.addr, store.val, store.size);
+            // Read page protections
+            uint prot = -1;
+            dr_query_memory((byte *)store.addr, nullptr, nullptr, &prot);
+            dr_printf("[ERROR] Page prot 0x%x\n", prot);
+            dr_abort();
+            return 0; // unreachable
+        }
         store_log.pop_back();
     }
 
@@ -128,9 +148,12 @@ pc_t SpeculatorABC::rollback(dr_mcontext_t *mc)
     return checkpoint.rollback_pc;
 }
 
-pc_t SpeculatorABC::handle_instruction(instr_obs_t instr, dr_mcontext_t *mc, void * /*dc*/)
+pc_t SpeculatorABC::handle_instruction(instr_obs_t instr, dr_mcontext_t *mc, void *dc)
 {
     // dr_printf("[INFO] handling %lx\n", (long)instr.pc);
+    // the last instruction committed: all entries in the store_log are valid
+    store_log.update_committed();
+
     if (not in_speculation)
         return 0;
 
@@ -141,8 +164,14 @@ pc_t SpeculatorABC::handle_instruction(instr_obs_t instr, dr_mcontext_t *mc, voi
 
     // rollback if we hit a speculation window limit
     spec_window += 1;
-    if (spec_window >= max_spec_window)
+    if (spec_window >= max_spec_window) {
         return rollback(mc);
+    }
+
+    // rollback if we're about to jump/ret to an illegal address
+    if (is_illegal_jump(instr, mc, dc)) {
+        return rollback(mc);
+    }
 
     return 0;
 }
@@ -150,41 +179,51 @@ pc_t SpeculatorABC::handle_instruction(instr_obs_t instr, dr_mcontext_t *mc, voi
 bool SpeculatorABC::handle_mem_access(bool is_write, void *address, uint64_t size)
 {
     if (not in_speculation)
-        return;
+        return true;
+
+    if (not is_write)
+        return true;
 
     // record changes made to the memory
-    if (is_write) {
-        auto cur_address = (uint64_t)address;
-        size_t remaining_size = size;
+    auto cur_address = (uint64_t)address;
+    size_t remaining_size = size;
 
-        // The store might be bigger than 64 bits (e.g. vector ops): save 64 bits at a time
-        while (remaining_size > 0) {
-            const uint64_t cur_size = std::min(remaining_size, sizeof(uint64_t));
-            // NOTE: on speculative paths, safe reads are the only way to load from memory, since
-            // pointers might be invalid.
-            size_t r_size = 0;
-            uint64_t val = 0;
-            const bool success = dr_safe_read((byte *)cur_address, cur_size, (byte *)&val, &r_size);
+    // The store might be bigger than 64 bits (e.g. vector ops): save 64 bits at a time
+    while (remaining_size > 0) {
+        const uint64_t cur_size = std::min(remaining_size, sizeof(uint64_t));
+        // NOTE: on speculative paths, safe reads are the only way to load from memory, since
+        // pointers might be invalid.
+        size_t r_size = 0;
+        uint64_t val = 0;
+        const bool success = dr_safe_read((byte *)cur_address, cur_size, (byte *)&val, &r_size);
 
-            if (not success) {
-                // If the memory access is illegal, the store is bound to fail: let the exception
-                // handler take care of that.
-                return;
-            }
-
-            // Save the previous memory value to be restored after speculation
-            store_log.push_back({
-                .addr = cur_address,
-                .val = val,
-                .size = cur_size,
-                .nesting_level = nesting,
-            });
-            // dr_printf("[STORELOG] Pushing *%lx = %lx (nest: %d, sz: %d) \n", (uint64_t)address,
-            //           store_log.back().val, nesting, qword_size);
-
-            // Advance until all relevant memory has been saved
-            cur_address += cur_size;
-            remaining_size -= cur_size;
+        if (not success) {
+            // If the memory access is illegal, the store is bound to fail: rollback.
+            return false;
         }
+
+        // Save the previous memory value to be restored after speculation
+        store_log.push_back({
+            .addr = cur_address,
+            .val = val,
+            .size = cur_size,
+            .nesting_level = nesting,
+        });
+
+        // Advance until all relevant memory has been saved
+        cur_address += cur_size;
+        remaining_size -= cur_size;
     }
+
+    return true;
+}
+
+void SpeculatorABC::handle_exception(dr_siginfo_t *siginfo)
+{
+    // Flush stores that are in-flight (i.e. were performed by the failing instruction)
+    store_log.flush_uncommitted();
+    // Perform rollback
+    dr_mcontext_t *mc = siginfo->mcontext;
+    const pc_t next_pc = rollback(mc);
+    mc->pc = (byte *)next_pc;
 }

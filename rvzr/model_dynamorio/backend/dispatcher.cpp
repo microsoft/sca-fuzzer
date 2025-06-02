@@ -47,7 +47,9 @@ static pc_t instruction_dispatch(dr_mcontext_t *mc, void *dc, const module_bundl
 /// @param mc
 /// @param bundle
 /// @param pc
-static void mem_access_dispatch(void *dc, dr_mcontext_t *mc, const module_bundle_t *bundle, pc_t pc)
+/// @return The PC of the next instruction to be executed (if redirection is necessary);
+///         otherwise, 0 (zero)
+static pc_t mem_access_dispatch(void *dc, dr_mcontext_t *mc, const module_bundle_t *bundle, pc_t pc)
 {
     // decode the instruction to extract its memory references
     instr_noalloc_t noalloc;
@@ -57,7 +59,7 @@ static void mem_access_dispatch(void *dc, dr_mcontext_t *mc, const module_bundle
     if (next_pc == nullptr) {
         dr_printf("[ERROR] mem_access_dispatch: Failed to decode instruction\n");
         dr_abort();
-        return;
+        return 0;
     }
 
     // Identify the size of the memory reference
@@ -70,9 +72,14 @@ static void mem_access_dispatch(void *dc, dr_mcontext_t *mc, const module_bundle
     app_pc addr = nullptr;
     while (instr_compute_address_ex(instr, mc, index, &addr, &is_write)) {
         bundle->tracer->observe_mem_access(is_write, addr, size);
-        bundle->speculator->handle_mem_access(is_write, (void *)addr, size);
+        if (not bundle->speculator->handle_mem_access(is_write, (void *)addr, size)) {
+            return bundle->speculator->rollback(mc);
+        }
+
         index++;
     }
+
+    return 0;
 }
 
 /// @brief Callback function called for every instruction in the instrumented function
@@ -102,7 +109,7 @@ static void dispatch_callback(uint64_t opcode, uint64_t pc, uint64_t has_mem_ref
     };
 
     // pass down to instruction dispatch functions and redirect execution if needed
-    const pc_t next_pc = instruction_dispatch(&mc, drcontext, bundle, instr);
+    pc_t next_pc = instruction_dispatch(&mc, drcontext, bundle, instr);
     if (next_pc != 0) {
         mc.pc = (byte *)next_pc;
         dr_redirect_execution(&mc);
@@ -114,7 +121,12 @@ static void dispatch_callback(uint64_t opcode, uint64_t pc, uint64_t has_mem_ref
     }
 
     // pass down to memory access dispatch functions and redirect execution if needed
-    mem_access_dispatch(drcontext, &mc, bundle, instr.pc);
+    next_pc = mem_access_dispatch(drcontext, &mc, bundle, instr.pc);
+    if (next_pc != 0) {
+        mc.pc = (byte *)next_pc;
+        dr_redirect_execution(&mc);
+        return; // unreachable
+    }
     dr_set_mcontext(drcontext, &mc);
 }
 
@@ -129,10 +141,8 @@ bool Dispatcher::handle_exception(void * /*drcontext*/, dr_siginfo_t *siginfo)
     }
     // dr_printf("[INFO] Dispatcher::handle_exception: is speculative\n");
 
-    // Exceptions on speculative paths cause speculation to be aborted
-    dr_mcontext_t *mc = siginfo->mcontext;
-    const pc_t next_pc = module_bundle->speculator->rollback(mc);
-    mc->pc = (byte *)next_pc;
+    // Abort speculation on speculative exceptions
+    module_bundle->speculator->handle_exception(siginfo);
     return true;
 }
 
