@@ -327,7 +327,8 @@ class X86UnicornNull(FaultSpeculator):
         address, size = self._curr_load
         if address != 0:
             # log old value before injecting zero value
-            self._store_logs[-1].append((address, self._emulator.mem_read(address, 8)))
+            prev_value = bytes(self._emulator.mem_read(address, 8))
+            self._store_logs[-1].append((address, prev_value))
 
             # inject zeros
             self._emulator.mem_write(address, bytes([0 for _ in range(size)]))
