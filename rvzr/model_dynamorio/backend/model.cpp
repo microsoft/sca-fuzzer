@@ -149,7 +149,9 @@ void event_instrumentation_end(void *wrapctx, void *user_data)
 /// continue with the default exception handling
 dr_signal_action_t event_exception(void *drcontext, dr_siginfo_t *siginfo)
 {
-    dispatcher->handle_exception(drcontext, siginfo);
+    if (dispatcher->handle_exception(drcontext, siginfo)) {
+        return DR_SIGNAL_REDIRECT;
+    }
 
     // Continue with the default exception handling if no redirection happened
     return DR_SIGNAL_DELIVER;

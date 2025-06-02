@@ -118,24 +118,22 @@ static void dispatch_callback(uint64_t opcode, uint64_t pc, uint64_t has_mem_ref
     dr_set_mcontext(drcontext, &mc);
 }
 
-void Dispatcher::handle_exception(void *drcontext, dr_siginfo_t * /* siginfo */)
+bool Dispatcher::handle_exception(void * /*drcontext*/, dr_siginfo_t *siginfo)
 {
     // dr_printf("[INFO] Dispatcher::handle_exception: exception %d\n", siginfo->sig);
     if (!module_bundle->speculator->in_speculation) {
         // dr_printf("[ERROR] Dispatcher::handle_exception: exception %d on a non-speculative
         // path\n",
         //   siginfo->sig);
-        return;
+        return false;
     }
     // dr_printf("[INFO] Dispatcher::handle_exception: is speculative\n");
 
     // Exceptions on speculative paths cause speculation to be aborted
-    dr_mcontext_t mc = {sizeof(mc), DR_MC_ALL};
-    dr_get_mcontext(drcontext, &mc);
-    const pc_t next_pc = module_bundle->speculator->rollback(&mc);
-    mc.pc = (byte *)next_pc;
-    // dr_printf("[INFO] Dispatcher::handle_exception: redirecting to %llx\n", (uint64_t)next_pc);
-    dr_redirect_execution(&mc);
+    dr_mcontext_t *mc = siginfo->mcontext;
+    const pc_t next_pc = module_bundle->speculator->rollback(mc);
+    mc->pc = (byte *)next_pc;
+    return true;
 }
 
 // =================================================================================================
