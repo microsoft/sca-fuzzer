@@ -28,6 +28,7 @@ typedef struct {
 typedef struct {
     uint64_t addr;
     uint64_t val;
+    size_t size;
     unsigned int nesting_level;
 } store_log_entry_t;
 
