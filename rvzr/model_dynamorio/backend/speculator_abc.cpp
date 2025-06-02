@@ -9,7 +9,14 @@
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include <algorithm>
+#include <array>
+#include <cstdint>
+
 #include <dr_api.h>
+#include <dr_ir_opcodes_x86.h>
+#include <dr_ir_opnd.h>
+#include <dr_os_utils.h>
 
 #include "observables.hpp"
 #include "speculator_abc.hpp"
@@ -18,9 +25,33 @@
 // =================================================================================================
 // Local helper functions
 // =================================================================================================
-static bool is_speculation_barrier(opcode_t opcode)
+
+// See Intel Manual https://cdrdv2.intel.com/v1/dl/getContent/671200
+// chapter 10.3 - Serializing Instructions.
+static constexpr const std::array<uint64_t, 35> serializing_opcodes = {
+    // Non-privileged memory-ordering instructions
+    OP_lfence, OP_mfence, OP_sfence,
+    // Privileged serializing instructions
+    // TODO: add MOV CR (except CR8)
+    OP_invd, OP_invept, OP_invlpg, OP_invvpid, OP_lgdt, OP_lidt, OP_lldt, OP_ltr, OP_wbinvd,
+    OP_wrmsr,
+    // Non-privileged serializing instructions
+    OP_cpuid, OP_iret, OP_rsm, OP_serialize,
+    // TSX/RTM instructions (not tracked by DynamoRIO).
+    OP_xbegin, OP_xabort, OP_xend, OP_xtest,
+    // XSAVE/XRESTORE instructions (not tracked by DynamoRIO).
+    OP_xsave32, OP_xsave64, OP_xsavec32, OP_xsavec64, OP_xsaves32, OP_xsaves64, OP_xsaveopt32,
+    OP_xsaveopt64, OP_xrstor32, OP_xrstor64, OP_xrstors32, OP_xrstors64,
+    // Other special instructions
+    OP_hlt,
+    // NOTE: syscalls are not instrumented by Dynamorio, this makes sure that speculation is aborted
+    // on speculative syscall instructions.
+    OP_syscall};
+
+static bool is_speculation_barrier(const uint64_t opcode)
 {
-    return opcode == OP_lfence || opcode == OP_mfence || opcode == OP_sfence;
+    return std::any_of(serializing_opcodes.begin(), serializing_opcodes.end(),
+                       [&opcode](const uint64_t barrier) { return opcode == barrier; });
 }
 
 // =================================================================================================
@@ -55,6 +86,7 @@ void SpeculatorABC::checkpoint(dr_mcontext_t *mc, pc_t pc)
 
 pc_t SpeculatorABC::rollback(dr_mcontext_t *mc)
 {
+
     // restore the last checkpoint
     if (checkpoints.empty()) {
         dr_printf("[ERROR] SpeculatorABC::rollback: no checkpoints to rollback");
