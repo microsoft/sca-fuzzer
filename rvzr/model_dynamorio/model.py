@@ -28,9 +28,16 @@ _ADAPTER_PATH: Final[str] = "~/.local/dynamorio/adapter"
 _DRRUN_CMD: Final[str] = "~/.local/dynamorio/drrun " \
     "-c ~/.local/dynamorio/libdr_model.so {flags} -- {binary} {args}"
 
-_TRACE_TYPE = Literal["eot", "pc", "mem", "reg"]
-_TRACE_ID_TO_NAME: Final[Dict[int, _TRACE_TYPE]] = {0: "eot", 1: "pc", 2: "mem", 3: "mem", 4: "reg"}
+_TraceType = Literal["eot", "pc", "mem"]
+_DbgTraceType = Literal["eot", "pc", "mem", "reg"]
 
+_TRACE_ENTRY_SIZE: Final[int] = 16
+_TRACE_ID_TO_NAME: Final[Dict[int, _TraceType]] = {0: "eot", 1: "pc", 2: "mem", 3: "mem"}
+_NORMAL_TRACE_MARKER: Final[str] = "T"
+
+_DBG_TRACE_ENTRY_SIZE: Final[int] = 64
+_DBG_TRACE_ID_TO_NAME: Final[Dict[int, _DbgTraceType]] = {0: "eot", 1: "reg", 2: "mem", 3: "mem"}
+_DEBUG_TRACE_MARKER: Final[str] = "D"
 
 class DynamoRIOModel(Model):
     """
@@ -255,21 +262,22 @@ class _TraceReader:
         # iterate over the binary and parse the entries
         i = 0
         while i < len(dr_output):
-            type_ = self._decode_next_entry_type(dr_output, i)
+            trace_type = dr_output[i:i+1].decode("utf-8")
+            i += 1
 
-            if type_ in ("mem", "pc"):
+            if trace_type == _NORMAL_TRACE_MARKER:
                 trace, increment = self._decode_trace(dr_output[i:])
                 traces.append(trace)
                 i += increment
-                continue
 
-            if type_ == "reg":
+            elif trace_type == _DEBUG_TRACE_MARKER:
+                # In addition to the debug trace, there might also be a debug trace
                 trace, increment = self._decode_dbg_trace(dr_output[i:])
                 dbg_traces.append(trace)
                 i += increment
-                continue
 
-            raise ValueError(f"Unexpected entry type at the beginning of a trace: {type_}")
+            else:
+                raise ValueError(f"Unexpected trace type found: {trace_type}")
 
         traces = self._trim_traces(traces)
         if dbg_traces:
@@ -287,28 +295,28 @@ class _TraceReader:
         :return: decoded trace + the number of bytes consumed
         """
         trace: List[CTraceEntry] = []
-        type_: _TRACE_TYPE
+        type_: _TraceType
         i = 0
         while i < len(bin_traces):
             type_ = self._decode_next_entry_type(bin_traces, i)
+
             if type_ == "eot":
-                i += 24
+                i += _TRACE_ENTRY_SIZE
                 break
 
-            val = int.from_bytes(bin_traces[i + 8:i + 16], byteorder="little")
-            # NOTE: size (bytes 16-24) is unused
+            val = int.from_bytes(bin_traces[i:i + 8], byteorder="little")
+            # NOTE: size is unused
 
             if type_ == "mem":
                 val = self._layout.data_addr_to_offset(val)
                 trace.append(CTraceEntry(type_=type_, value=val))
-                i += 24
+                i += _TRACE_ENTRY_SIZE
                 continue
             if type_ == "pc":
                 val = self._layout.code_addr_to_offset(val)
                 trace.append(CTraceEntry(type_=type_, value=val))
-                i += 24
+                i += _TRACE_ENTRY_SIZE
                 continue
-            raise ValueError(f"Unexpected entry type in contract trace: {type_}")
 
         assert type_ == "eot", "Reached the end of the binary without finding the EOT"
         return CTrace(trace), i
@@ -323,12 +331,15 @@ class _TraceReader:
         :return: decoded debug trace + the number of bytes consumed
         """
         trace: List[CTraceEntry] = []
-        type_: _TRACE_TYPE
+        type_: _DbgTraceType
         i = 0
         while i < len(bin_traces):
-            type_ = self._decode_next_entry_type(bin_traces, i)
+            type_ = self._decode_next_dbg_entry_type(bin_traces, i)
+            if type_ not in _DBG_TRACE_ID_TO_NAME.values():
+                raise ValueError(f"Unexpected entry type in debug trace: {type_}")
+
             if type_ == "eot":
-                i += 24
+                i += _DBG_TRACE_ENTRY_SIZE
                 break
 
             if type_ == "reg":
@@ -347,19 +358,29 @@ class _TraceReader:
                 trace.append(CTraceEntry(type_=type_, value=val))
                 val = int.from_bytes(bin_traces[i + 48:i + 56], byteorder="little")
                 trace.append(CTraceEntry(type_=type_, value=val))
-                i += 64
+                i += _DBG_TRACE_ENTRY_SIZE
                 continue
-            raise ValueError(f"Unexpected entry type in debug trace: {type_}")
+
+            i += _DBG_TRACE_ENTRY_SIZE
 
         assert type_ == "eot", "Reached the end of the binary without finding the EOT"
         return CTrace(trace), i
 
-    def _decode_next_entry_type(self, bin_traces: bytes, cursor: int) -> _TRACE_TYPE:
+    def _decode_next_entry_type(self, bin_traces: bytes, cursor: int) -> _TraceType:
         """ Decode the entry type and return the type and the number of bytes consumed """
-        type_id = int.from_bytes(bin_traces[cursor:cursor + 1], byteorder="little")
+        type_id = int.from_bytes(bin_traces[cursor + 12:cursor + 13], byteorder="little")
         if type_id not in _TRACE_ID_TO_NAME:
             raise ValueError(f"Unknown trace type ID: {type_id}")
         type_ = _TRACE_ID_TO_NAME[type_id]
+        # print(type_)
+        return type_
+
+    def _decode_next_dbg_entry_type(self, bin_traces: bytes, cursor: int) -> _TraceType:
+        """ Decode the entry type and return the type and the number of bytes consumed """
+        type_id = int.from_bytes(bin_traces[cursor:cursor + 1], byteorder="little")
+        if type_id not in _DBG_TRACE_ID_TO_NAME:
+            raise ValueError(f"Unknown trace type ID: {type_id}")
+        type_ = _DBG_TRACE_ID_TO_NAME[type_id]
         # print(type_)
         return type_
 

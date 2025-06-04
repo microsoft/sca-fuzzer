@@ -16,36 +16,10 @@
 #include <drvector.h>
 
 #include "observables.hpp"
+#include "types/debug_trace.hpp"
+#include "types/trace.hpp"
 
 using std::uint64_t;
-
-// =================================================================================================
-// Constants and Types
-// =================================================================================================
-enum class trace_entry_type_t : uint8_t {
-    ENTRY_EOT = 0, // end of trace
-    ENTRY_PC = 1,
-    ENTRY_READ = 2,
-    ENTRY_WRITE = 3,
-    ENTRY_REG_DUMP = 4
-};
-
-struct trace_entry_t {
-    trace_entry_type_t type; // see trace_entry_type_t
-    pc_t addr;               // pc for instructions; address for memory accesses
-    uint64_t size; // instruction size for instructions; memory access size for memory accesses
-};
-
-struct dbg_trace_entry_t {
-    trace_entry_type_t type; // always ENTRY_REG_DUMP
-    uint64_t xax;
-    uint64_t xbx;
-    uint64_t xcx;
-    uint64_t xdx;
-    uint64_t xsi;
-    uint64_t xdi;
-    pc_t pc;
-};
 
 // =================================================================================================
 // Class Definition
@@ -66,7 +40,7 @@ class TracerABC
     std::vector<trace_entry_t> trace;
 
     /// @param Buffer containing collected debug trace entries
-    std::vector<dbg_trace_entry_t> dbg_trace;
+    std::vector<debug_trace_entry_t> dbg_trace;
 
     // ---------------------------------------------------------------------------------------------
     // Public Methods
