@@ -43,14 +43,28 @@ const droption_t<string> op_instrumented_func(DROPTION_SCOPE_CLIENT,
                         "instrumented-func", "__libc_start_main",
                         "Name of the function to instrument.",
                         "Name of the function to instrument.");
+const droption_t<string> op_trace_output(DROPTION_SCOPE_CLIENT,
+                        "trace-output", "rvzr_trace.dat",
+                        "Where to save the trace (in binary format).",
+                        "Where to save the trace (in binary format).");
+const droption_t<bool>  op_print_trace(DROPTION_SCOPE_CLIENT,
+                        "print-trace", false,
+                        "Dump trace entries to STDOUT while they are being produced.",
+                        "Dump trace entries to STDOUT while they are being produced.");
+
+// Debug trace options
 const droption_t<bool>   op_debug_trace(DROPTION_SCOPE_CLIENT,
                         "enable-debug-trace", false,
                         "Collect detailed trace for debugging with Revizor",
                         "Collect detailed trace for debugging with Revizor");
-const droption_t<bool>   op_bin_output(DROPTION_SCOPE_CLIENT,
-                        "enable-bin-output", false,
-                        "Print results in raw binary format.",
-                        "Print results in raw binary format.");
+const droption_t<string> op_debug_output(DROPTION_SCOPE_CLIENT,
+                        "debug-trace-output", "rvzr_dbg_trace.dat",
+                        "Where to save the debug log (in binary format).",
+                        "Where to save the debug log (in binary format).");
+const droption_t<bool>   op_print_dbg_trace(DROPTION_SCOPE_CLIENT,
+                        "print-debug-trace", false,
+                        "Dump log entries to STDOUT while they are being produced.",
+                        "Dump log entries to STDOUT while they are being produced.");
 
 // Speculator Configuration
 const droption_t<string> op_speculator_name(DROPTION_SCOPE_CLIENT,
@@ -100,8 +114,11 @@ void parse_cli(int argc, const char **argv, DR_PARAM_OUT cli_args_t &parsed_args
     // Set the parsed arguments
     parsed_args.tracer_type = op_tracer_name.get_value();
     parsed_args.instrumented_func = op_instrumented_func.get_value();
-    parsed_args.enable_debug_trace = op_debug_trace.get_value();
-    parsed_args.enable_bin_output = op_bin_output.get_value();
+    parsed_args.trace_output = op_trace_output.get_value();
+    parsed_args.print_trace = op_print_trace.get_value();
+    parsed_args.enable_debug_output = op_debug_trace.get_value();
+    parsed_args.debug_output = op_debug_output.get_value();
+    parsed_args.print_dbg_trace = op_print_dbg_trace.get_value();
     parsed_args.speculator_type = op_speculator_name.get_value();
     parsed_args.max_nesting = op_max_nesting.get_value();
     parsed_args.max_spec_window = op_max_spec_window.get_value();

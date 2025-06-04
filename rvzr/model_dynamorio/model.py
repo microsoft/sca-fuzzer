@@ -22,11 +22,15 @@ if TYPE_CHECKING:
     from ..tc_components.test_case_data import InputData, InputTaint
 
 
-_DRRUN_TRACING_FLAGS: Final[str] = " --enable-bin-output" + \
-    " --instrumented-func test_case_entry"
+with tempfile.NamedTemporaryFile("rb", delete=False) as f:
+    _TRACE_FILE = f.name
+with tempfile.NamedTemporaryFile("rb", delete=False) as f:
+    _DBG_TRACE_FILE = f.name
+
+_DRRUN_TRACING_FLAGS: Final[str] = f" --instrumented-func test_case_entry "
 _ADAPTER_PATH: Final[str] = "~/.local/dynamorio/adapter"
-_DRRUN_CMD: Final[str] = "~/.local/dynamorio/drrun " \
-    "-c ~/.local/dynamorio/libdr_model.so {flags} -- {binary} {args}"
+_DRRUN_CMD: Final[str] = f"~/.local/dynamorio/drrun " \
+    "-c ~/.local/dynamorio/libdr_model.so --trace-output " + _TRACE_FILE + " {flags} -- {binary} {args}"
 
 _TraceType = Literal["eot", "pc", "mem"]
 _DbgTraceType = Literal["eot", "pc", "mem", "reg"]
@@ -110,6 +114,7 @@ class DynamoRIOModel(Model):
         save_input_sequence_as_rdbf(inputs, self._rdbf_file)
 
         # call the backend
+        self._clean_trace_files()
         cmd = self._construct_drrun_cmd()
         output = check_output(cmd, shell=True)
         assert len(output) >= 16, "No traces were generated"
@@ -119,10 +124,11 @@ class DynamoRIOModel(Model):
         data_base_addr = int.from_bytes(output[8:16], byteorder="little")
         self.layout = SandboxLayout((data_base_addr, code_base_addr), self._test_case.n_actors())
 
-        # the remainder of the output is raw traces; parse it and remove irrelevant entries
+        # read traces from the trace files
         reader = _TraceReader(self.layout, self._test_case)
-        traces, dbg_traces = reader.decode_traces(output[16:])
+        traces, dbg_traces = reader.decode_traces(_TRACE_FILE, _DBG_TRACE_FILE)
         assert len(traces) == len(inputs), "Mismatch between the number of inputs and traces"
+        self._clean_trace_files()
 
         if self._enable_mismatch_check_mode:
             # In this mode, the contract trace is the register values at the end of the test case
@@ -231,12 +237,17 @@ class DynamoRIOModel(Model):
             f" --max-nesting {CONF.model_max_nesting}" + \
             f" --max-spec-window {CONF.model_max_spec_window}"
         if self._enable_mismatch_check_mode:
-            flags += " --enable-debug-trace"
+            flags += f" --enable-debug-trace --debug-trace-output {_DBG_TRACE_FILE}"
         binary = _ADAPTER_PATH
         args = f"{self._rcbf_file} {self._rdbf_file}"
         cmd = _DRRUN_CMD.format(flags=flags, binary=binary, args=args)
         # print(cmd)
         return cmd
+
+    def _clean_trace_files(self) -> str:
+        # Truncate trace files if they exist, or create new if they don't
+        open(_TRACE_FILE, 'wb').close()
+        open(_DBG_TRACE_FILE, 'wb').close()
 
 
 class _TraceReader:
@@ -250,7 +261,7 @@ class _TraceReader:
         self._layout = layout
         self._test_case = test_case
 
-    def decode_traces(self, dr_output: bytes) -> Tuple[List[CTrace], List[CTrace]]:
+    def decode_traces(self, trace_path: str, dbg_trace_path: str) -> Tuple[List[CTrace], List[CTrace]]:
         """
         Read the traces produced by the DynamoRIO backend and return them in the format
         that is expected by the contract model.
@@ -260,24 +271,33 @@ class _TraceReader:
         dbg_traces: List[CTrace] = []
 
         # iterate over the binary and parse the entries
-        i = 0
-        while i < len(dr_output):
-            trace_type = dr_output[i:i+1].decode("utf-8")
-            i += 1
+        with open(trace_path, "rb") as f:
+            binary_trace = f.read()
+            i = 0
+            while i < len(binary_trace):
+                # Check the first character (marker)
+                trace_type = binary_trace[i:i+1].decode("utf-8")
+                assert trace_type == _NORMAL_TRACE_MARKER
+                i += 1
 
-            if trace_type == _NORMAL_TRACE_MARKER:
-                trace, increment = self._decode_trace(dr_output[i:])
+                # Decode until EOT
+                trace, increment = self._decode_trace(binary_trace[i:])
                 traces.append(trace)
                 i += increment
 
-            elif trace_type == _DEBUG_TRACE_MARKER:
-                # In addition to the debug trace, there might also be a debug trace
-                trace, increment = self._decode_dbg_trace(dr_output[i:])
+        with open(dbg_trace_path, "rb") as f:
+            binary_trace = f.read()
+            i = 0
+            while i < len(binary_trace):
+                # Check the first character (marker)
+                trace_type = binary_trace[i:i+1].decode("utf-8")
+                assert trace_type == _DEBUG_TRACE_MARKER
+                i += 1
+
+                # Decode until EOT
+                trace, increment = self._decode_dbg_trace(binary_trace[i:])
                 dbg_traces.append(trace)
                 i += increment
-
-            else:
-                raise ValueError(f"Unexpected trace type found: {trace_type}")
 
         traces = self._trim_traces(traces)
         if dbg_traces:
