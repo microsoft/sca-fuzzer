@@ -6,6 +6,8 @@
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -37,6 +39,7 @@ static module_bundle_t *glob_module_bundle = nullptr; // NOLINT
 static pc_t instruction_dispatch(dr_mcontext_t *mc, void *dc, const module_bundle_t *bundle,
                                  instr_obs_t instr)
 {
+    bundle->logger->log_instruction(instr, mc);
     bundle->tracer->observe_instruction(instr, mc);
     const pc_t next_pc = bundle->speculator->handle_instruction(instr, mc, dc);
     return next_pc;
@@ -71,6 +74,7 @@ static pc_t mem_access_dispatch(void *dc, dr_mcontext_t *mc, const module_bundle
     bool is_write = false;
     app_pc addr = nullptr;
     while (instr_compute_address_ex(instr, mc, index, &addr, &is_write)) {
+        bundle->logger->log_mem_access(is_write, addr, size);
         bundle->tracer->observe_mem_access(is_write, addr, size);
         if (not bundle->speculator->handle_mem_access(is_write, (void *)addr, size)) {
             return bundle->speculator->rollback(mc);
@@ -132,14 +136,10 @@ static void dispatch_callback(uint64_t opcode, uint64_t pc, uint64_t has_mem_ref
 
 bool Dispatcher::handle_exception(void * /*drcontext*/, dr_siginfo_t *siginfo)
 {
-    // dr_printf("[INFO] Dispatcher::handle_exception: exception %d\n", siginfo->sig);
+    module_bundle->logger->log_exception(siginfo);
     if (!module_bundle->speculator->in_speculation) {
-        // dr_printf("[ERROR] Dispatcher::handle_exception: exception %d on a non-speculative
-        // path\n",
-        //   siginfo->sig);
         return false;
     }
-    // dr_printf("[INFO] Dispatcher::handle_exception: is speculative\n");
 
     // Abort speculation on speculative exceptions
     module_bundle->speculator->handle_exception(siginfo);
@@ -201,11 +201,13 @@ Dispatcher::Dispatcher(cli_args_t *cli_args)
 {
     // Create service modules
     module_bundle = std::make_unique<module_bundle_t>();
+    module_bundle->logger =
+        create_logger(cli_args->debug_output, cli_args->log_level, cli_args->print_dbg_trace);
     module_bundle->tracer = create_tracer(cli_args->tracer_type, cli_args->trace_output,
-                                          cli_args->print_trace, cli_args->enable_debug_output,
-                                          cli_args->debug_output, cli_args->print_dbg_trace);
-    module_bundle->speculator = create_speculator(cli_args->speculator_type, cli_args->max_nesting,
-                                                  cli_args->max_spec_window);
+                                          *module_bundle->logger, cli_args->print_trace);
+    module_bundle->speculator =
+        create_speculator(cli_args->speculator_type, cli_args->max_nesting,
+                          cli_args->max_spec_window, *module_bundle->logger);
 
     // Make the bundle available to the dispatch callback
     glob_module_bundle = module_bundle.get();

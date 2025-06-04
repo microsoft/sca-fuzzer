@@ -52,11 +52,11 @@ const droption_t<bool>  op_print_trace(DROPTION_SCOPE_CLIENT,
                         "Dump trace entries to STDOUT while they are being produced.",
                         "Dump trace entries to STDOUT while they are being produced.");
 
-// Debug trace options
-const droption_t<bool>   op_debug_trace(DROPTION_SCOPE_CLIENT,
-                        "enable-debug-trace", false,
-                        "Collect detailed trace for debugging with Revizor",
-                        "Collect detailed trace for debugging with Revizor");
+// Debugging
+const droption_t<int>    op_log_level(DROPTION_SCOPE_CLIENT,
+                        "log-level", 0,
+                        "Verbosity level of the debug logger (0 = disabled).",
+                        "Verbosity level of the debug logger (0 = disabled).");
 const droption_t<string> op_debug_output(DROPTION_SCOPE_CLIENT,
                         "debug-trace-output", "rvzr_dbg_trace.dat",
                         "Where to save the debug log (in binary format).",
@@ -116,7 +116,7 @@ void parse_cli(int argc, const char **argv, DR_PARAM_OUT cli_args_t &parsed_args
     parsed_args.instrumented_func = op_instrumented_func.get_value();
     parsed_args.trace_output = op_trace_output.get_value();
     parsed_args.print_trace = op_print_trace.get_value();
-    parsed_args.enable_debug_output = op_debug_trace.get_value();
+    parsed_args.log_level = op_log_level.get_value();
     parsed_args.debug_output = op_debug_output.get_value();
     parsed_args.print_dbg_trace = op_print_dbg_trace.get_value();
     parsed_args.speculator_type = op_speculator_name.get_value();

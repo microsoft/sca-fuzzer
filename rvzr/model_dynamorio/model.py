@@ -28,14 +28,13 @@ _DRRUN_CMD: Final[str] = "~/.local/dynamorio/drrun " \
     "-c ~/.local/dynamorio/libdr_model.so {flags} -- {binary} {args}"
 
 _TraceType = Literal["eot", "pc", "mem"]
-_DbgTraceType = Literal["eot", "pc", "mem", "reg"]
-
 _TRACE_ENTRY_SIZE: Final[int] = 16
 _TRACE_ID_TO_NAME: Final[Dict[int, _TraceType]] = {0: "eot", 1: "pc", 2: "mem", 3: "mem"}
 _NORMAL_TRACE_MARKER: Final[str] = "T"
 
+_DbgTraceType = Literal["eot", "pc", "mem", "reg", "other"]
 _DBG_TRACE_ENTRY_SIZE: Final[int] = 64
-_DBG_TRACE_ID_TO_NAME: Final[Dict[int, _DbgTraceType]] = {0: "eot", 1: "reg", 2: "mem", 3: "mem"}
+_DBG_TRACE_ID_TO_NAME: Final[Dict[int, _DbgTraceType]] = {0: "eot", 1: "reg", 2: "mem", 3: "mem", 4: "other", 5: "other", 6: "other", 7: "other", 8: "other"}
 _DEBUG_TRACE_MARKER: Final[str] = "D"
 
 class DynamoRIOModel(Model):
@@ -241,7 +240,7 @@ class DynamoRIOModel(Model):
             f" --max-spec-window {CONF.model_max_spec_window}" \
             f" --trace-output {self._trace_file}"
         if self._enable_mismatch_check_mode:
-            flags += f" --enable-debug-trace --debug-trace-output {self._dbg_trace_file}"
+            flags += f" --log-level 1 --debug-trace-output {self._dbg_trace_file}"
         binary = _ADAPTER_PATH
         args = f"{self._rcbf_file} {self._rdbf_file}"
         cmd = _DRRUN_CMD.format(flags=flags, binary=binary, args=args)
