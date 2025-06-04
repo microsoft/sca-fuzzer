@@ -23,8 +23,7 @@ class SpeculatorCond : public SpeculatorABC
     ///        by jumping to the opposite branch target (e.g., will take the branch if it
     ///        was supposed to fall though).
     ///
-    /// @param opcode The opcode of the instruction
-    /// @param pc The program counter (address) of the instruction
+    /// @param instr The current instruction
     /// @param mc The machine context of the instruction
     /// @param dc The current DR context
     /// @return 0 if no speculation was triggered or no redirection is needed;

@@ -61,8 +61,8 @@ class Dispatcher
     /// @brief Passes the exception down to service modules for handling
     /// @param drcontext The drcontext of the current thread
     /// @param excpt Pointer to the exception data
-    /// @return void
-    void handle_exception(void *drcontext, dr_siginfo_t *siginfo);
+    /// @return True if the exception has been handled (control-flow should be redirected)
+    bool handle_exception(void *drcontext, dr_siginfo_t *siginfo);
 
   protected:
     // ---------------------------------------------------------------------------------------------
