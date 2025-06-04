@@ -45,6 +45,16 @@ static std::pair<std::string, size_t> get_module(uint64_t pc)
     return {"Unknown Module", 0};
 }
 
+/// @brief convert an integer of src_type into a smaller dst_type, saturating the value if needed.
+template <typename dst_type, typename src_type>
+static constexpr dst_type saturate_cast(const src_type &val)
+{
+    if (val > std::numeric_limits<dst_type>::max())
+        return std::numeric_limits<dst_type>::max();
+
+    return (dst_type)val;
+}
+
 // =================================================================================================
 // Constructors and Destructors
 // =================================================================================================
@@ -70,10 +80,11 @@ void Logger::close() { log.clear(); }
 // Logging methods
 // =================================================================================================
 
-void Logger::log_instruction(instr_obs_t instr, dr_mcontext_t *mc)
+void Logger::log_instruction(instr_obs_t instr, dr_mcontext_t *mc, unsigned int nesting_level)
 {
     if (is_enabled()) {
         log.push_back({.type = debug_trace_entry_type_t::ENTRY_REG_DUMP,
+                       .nesting_level = saturate_cast<uint8_t>(nesting_level),
                        .regs{
                            .xax = mc->xax,
                            .xbx = mc->xbx,

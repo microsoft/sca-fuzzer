@@ -110,6 +110,7 @@ class SpeculatorABC
 
     void enable();
     void disable();
+    [[nodiscard]] unsigned int get_nesting_level() const { return nesting; }
 
     /// @brief Rollback to the last checkpoint, thus undoing all speculative changes to the process
     ///        state.
