@@ -14,7 +14,7 @@ struct cli_args_t {
     std::string instrumented_func;
     std::string trace_output;
     bool print_trace;
-    bool enable_debug_output;
+    int log_level;
     std::string debug_output;
     bool print_dbg_trace;
     std::string speculator_type;

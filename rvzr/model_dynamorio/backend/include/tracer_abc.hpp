@@ -8,15 +8,14 @@
 
 #include <cstdint>
 #include <string>
-#include <vector>
 
 #include <dr_api.h> // NOLINT
 #include <dr_defines.h>
 #include <dr_events.h>
 #include <drvector.h>
 
+#include "logger.hpp"
 #include "observables.hpp"
-#include "types/debug_trace.hpp"
 #include "types/file_buffer.hpp"
 #include "types/trace.hpp"
 
@@ -30,8 +29,7 @@ using std::uint64_t;
 class TracerABC
 {
   public:
-    TracerABC(const std::string &out_path, bool print_trace_, bool enable_dbg_trace_,
-              const std::string &dbg_out_path, bool print_dbg_trace_);
+    TracerABC(const std::string &out_path, Logger &logger, bool print);
     virtual ~TracerABC() = default;
     TracerABC(const TracerABC &) = delete;
     TracerABC &operator=(const TracerABC &) = delete;
@@ -41,8 +39,6 @@ class TracerABC
     static constexpr const unsigned buf_sz = 8 * 1024;
     /// @param  Buffer containing collected trace entries
     FileBackedBuf<trace_entry_t, buf_sz> trace;
-    /// @param Buffer containing collected debug trace entries
-    FileBackedBuf<debug_trace_entry_t, buf_sz> dbg_trace;
 
     // ---------------------------------------------------------------------------------------------
     // Public Methods
@@ -82,13 +78,12 @@ class TracerABC
   protected:
     // ---------------------------------------------------------------------------------------------
     // Protected Fields
-
-    /// @param If true, the tracer will collect data for Revizor's model debug mode
-    bool enable_dbg_trace = false;
-
     /// @param If true, the tracer will instrument the instructions in the traced function
     bool tracing_on = false;
 
     /// @param If true, tracing has been finalized; no more tracing is allowed
     bool tracing_finalized = false;
+
+    /// @param Where to log events for debugging
+    Logger &logger;
 };
