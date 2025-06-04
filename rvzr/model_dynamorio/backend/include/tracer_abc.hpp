@@ -17,6 +17,7 @@
 
 #include "observables.hpp"
 #include "types/debug_trace.hpp"
+#include "types/file_buffer.hpp"
 #include "types/trace.hpp"
 
 using std::uint64_t;
@@ -29,18 +30,19 @@ using std::uint64_t;
 class TracerABC
 {
   public:
-    TracerABC(bool enable_dbg_trace_, bool enable_bin_output_);
+    TracerABC(const std::string &out_path, bool print_trace_, bool enable_dbg_trace_,
+              const std::string &dbg_out_path, bool print_dbg_trace_);
     virtual ~TracerABC() = default;
     TracerABC(const TracerABC &) = delete;
     TracerABC &operator=(const TracerABC &) = delete;
     TracerABC(TracerABC &&) = delete;
     TracerABC &operator=(TracerABC &&) = delete;
 
-    /// @param Buffer containing collected trace entries
-    std::vector<trace_entry_t> trace;
-
+    static constexpr const unsigned buf_sz = 8 * 1024;
+    /// @param  Buffer containing collected trace entries
+    FileBackedBuf<trace_entry_t, buf_sz> trace;
     /// @param Buffer containing collected debug trace entries
-    std::vector<debug_trace_entry_t> dbg_trace;
+    FileBackedBuf<debug_trace_entry_t, buf_sz> dbg_trace;
 
     // ---------------------------------------------------------------------------------------------
     // Public Methods
@@ -80,9 +82,6 @@ class TracerABC
   protected:
     // ---------------------------------------------------------------------------------------------
     // Protected Fields
-
-    /// @param If true, outputs the trace entries in raw binary format
-    bool enable_bin_output = false;
 
     /// @param If true, the tracer will collect data for Revizor's model debug mode
     bool enable_dbg_trace = false;
