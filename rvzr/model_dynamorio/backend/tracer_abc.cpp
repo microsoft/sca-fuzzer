@@ -7,9 +7,8 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
-#include <new>
+#include <iostream>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include <dr_api.h> // NOLINT
@@ -26,7 +25,8 @@
 
 #include "observables.hpp"
 #include "tracer_abc.hpp"
-#include "util.hpp"
+#include "types/debug_trace.hpp"
+#include "types/trace.hpp"
 
 using std::string;
 using std::vector;
@@ -49,22 +49,29 @@ constexpr int N_RESERVED_REGS = 5;
 /// @return void
 void print_traces(vector<trace_entry_t> *trace, bool enable_bin_output = false)
 {
+    // Print trace marker
+    const char marker = trace_entry_t::marker;
+    if (enable_bin_output) {
+        fwrite(&marker, sizeof(trace_entry_t::marker), 1, stdout);
+    } else {
+        fprintf(stdout, "%c\n", marker);
+    }
+
     // Print all trace entries
     for (const auto &entry : *trace) {
         if (enable_bin_output) {
             fwrite(&entry, sizeof(trace_entry_t), 1, stdout);
         } else {
-            fprintf(stdout, "%lx %lx %lx\n", static_cast<uint64_t>(entry.type), entry.addr,
-                    entry.size);
+            entry.dump(std::cout);
         }
     }
 
     // Print a marker to indicate the end of the trace (EOT)
-    trace_entry_t eot = {trace_entry_type_t::ENTRY_EOT, 0, 0};
+    trace_entry_t eot = {0, 0, trace_entry_type_t::ENTRY_EOT};
     if (enable_bin_output) {
         fwrite(&eot, sizeof(trace_entry_t), 1, stdout);
     } else {
-        fprintf(stdout, "%lx %lx %lx\n", static_cast<uint64_t>(eot.type), eot.addr, eot.size);
+        eot.dump(std::cout);
     }
 }
 
@@ -73,24 +80,31 @@ void print_traces(vector<trace_entry_t> *trace, bool enable_bin_output = false)
 /// @param enable_bin_output If true, the debug trace will be printed in binary format
 ///                          Otherwise, it will be printed in human-readable format
 /// @return void
-void print_dbg_traces(vector<dbg_trace_entry_t> *dbg_trace, bool enable_bin_output = false)
+void print_dbg_traces(vector<debug_trace_entry_t> *dbg_trace, bool enable_bin_output = false)
 {
+    // Print trace marker
+    const char marker = debug_trace_entry_t::marker;
+    if (enable_bin_output) {
+        fwrite(&marker, sizeof(debug_trace_entry_t::marker), 1, stdout);
+    } else {
+        fprintf(stdout, "%c\n", marker);
+    }
+
     // Print the debug trace buffer
     for (const auto &entry : *dbg_trace) {
         if (enable_bin_output) {
-            fwrite(&entry, sizeof(dbg_trace_entry_t), 1, stdout);
+            fwrite(&entry, sizeof(debug_trace_entry_t), 1, stdout);
         } else {
-            fprintf(stdout, "%lx %lx %lx %lx %lx %lx %lx\n", entry.xax, entry.xbx, entry.xcx,
-                    entry.xdx, entry.xsi, entry.xdi, entry.pc);
+            entry.dump(std::cout);
         }
     }
 
     // Print the end of trace marker
-    trace_entry_t eot = {trace_entry_type_t::ENTRY_EOT, 0, 0};
+    debug_trace_entry_t eot{.type = debug_trace_entry_type_t::ENTRY_EOT};
     if (enable_bin_output) {
         fwrite(&eot, sizeof(trace_entry_t), 1, stdout);
     } else {
-        fprintf(stdout, "%lx %lx %lx\n", static_cast<uint64_t>(eot.type), eot.addr, eot.size);
+        eot.dump(std::cout);
     }
 }
 
@@ -104,7 +118,7 @@ TracerABC::TracerABC(bool enable_dbg_trace_, bool enable_bin_output_)
 {
     // Initialize trace buffers
     trace = std::vector<trace_entry_t>();
-    dbg_trace = std::vector<dbg_trace_entry_t>();
+    dbg_trace = std::vector<debug_trace_entry_t>();
 }
 
 // =================================================================================================
@@ -144,22 +158,43 @@ void TracerABC::observe_instruction(instr_obs_t instr, dr_mcontext_t *mc)
         return;
     }
 
-    // In debug mode, store the register values and PC on the debug trace buffer
+    // In debug mode, print all registers at every instruction
     if (enable_dbg_trace) {
-        const dbg_trace_entry_t entry = {
-            .type = trace_entry_type_t::ENTRY_REG_DUMP,
-            .xax = mc->xax,
-            .xbx = mc->xbx,
-            .xcx = mc->xcx,
-            .xdx = mc->xdx,
-            .xsi = mc->xsi,
-            .xdi = mc->xdi,
-            .pc = instr.pc,
-        };
-        dbg_trace.push_back(entry);
+        dbg_trace.push_back({.type = debug_trace_entry_type_t::ENTRY_REG_DUMP,
+                             .regs{
+                                 .xax = mc->xax,
+                                 .xbx = mc->xbx,
+                                 .xcx = mc->xcx,
+                                 .xdx = mc->xdx,
+                                 .xsi = mc->xsi,
+                                 .xdi = mc->xdi,
+                                 .pc = instr.pc,
+                             }});
     }
 
     // The rest of the functionality - if any - is implemented by subclasses
 }
 
-void TracerABC::observe_mem_access(bool is_write, void *address, uint64_t size) {}
+void TracerABC::observe_mem_access(bool is_write, void *address, uint64_t size)
+{
+    // Nothing to do if tracing is off
+    if (not tracing_on) {
+        return;
+    }
+
+    // In debug mode, record all stores and loads (and the corresponding value as well)
+    if (enable_dbg_trace) {
+        size_t r_size = 0;
+        uint64_t val = 0;
+        dr_safe_read(address, size, &val, &r_size);
+
+        dbg_trace.push_back({.type = is_write ? debug_trace_entry_type_t::ENTRY_WRITE
+                                              : debug_trace_entry_type_t::ENTRY_READ,
+                             .mem{
+                                 .address = (uint64_t)address,
+                                 .value = val,
+                                 .size = r_size,
+                             }});
+    }
+    // The rest of the functionality - if any - is implemented by subclasses
+}
