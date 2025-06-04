@@ -44,12 +44,22 @@ static std::pair<std::string, size_t> get_module(uint64_t pc)
     return {module_name, offset};
 }
 
+/// @brief convert an integer of src_type into a smaller dst_type, saturating the value if needed.
+template <typename dst_type, typename src_type>
+static constexpr dst_type saturate_cast(const src_type &val)
+{
+    if (val > std::numeric_limits<dst_type>::max())
+        return std::numeric_limits<dst_type>::max();
+
+    return (dst_type)val;
+}
+
 // =================================================================================================
 // Constructors and Destructors
 // =================================================================================================
 
 Logger::Logger(const std::string &logs_path, log_level_t log_level, bool print)
-    : log_level(log_level), log(print)
+    : log_level(log_level), log(print), cur_nesting_level(0)
 {
     if (is_enabled())
         log.open(logs_path);
@@ -69,12 +79,16 @@ void Logger::close() { log.clear(); }
 // Logging methods
 // =================================================================================================
 
-void Logger::log_instruction(instr_obs_t instr, dr_mcontext_t *mc)
+void Logger::log_instruction(instr_obs_t instr, dr_mcontext_t *mc, unsigned int nesting_level)
 {
     if (not is_enabled())
         return;
 
+    // Set the nesting level for all the entries until the next instruction
+    cur_nesting_level = saturate_cast<uint8_t>(nesting_level);
+    // Log PC and registers
     log.push_back({.type = debug_trace_entry_type_t::ENTRY_REG_DUMP,
+                   .nesting_level = cur_nesting_level,
                    .regs{
                        .xax = mc->xax,
                        .xbx = mc->xbx,
@@ -86,6 +100,7 @@ void Logger::log_instruction(instr_obs_t instr, dr_mcontext_t *mc)
                    }});
     // Log more registers
     log.push_back({.type = debug_trace_entry_type_t::ENTRY_REG_DUMP_EXTENDED,
+                   .nesting_level = cur_nesting_level,
                    .regs_2{
                        .rsp = mc->rsp,
                        .rbp = mc->rbp,
@@ -102,6 +117,7 @@ void Logger::log_instruction(instr_obs_t instr, dr_mcontext_t *mc)
         assert(module_name.size() <= sizeof(debug_trace_entry_t::loc.module_name));
 
         debug_trace_entry_t loc_entry = {.type = debug_trace_entry_type_t::ENTRY_LOC,
+                                         .nesting_level = cur_nesting_level,
                                          .loc{
                                              .offset = offset,
                                              .module_name = {'\0'},
@@ -134,6 +150,7 @@ void Logger::log_mem_access(bool is_write, void *address, uint64_t size)
 
         log.push_back({.type = is_write ? debug_trace_entry_type_t::ENTRY_WRITE
                                         : debug_trace_entry_type_t::ENTRY_READ,
+                       .nesting_level = cur_nesting_level,
                        .mem{
                            .address = cur_address,
                            .value = val,
@@ -151,6 +168,7 @@ void Logger::log_exception(dr_siginfo_t *siginfo)
         return;
 
     log.push_back({.type = debug_trace_entry_type_t::ENTRY_EXCEPTION,
+                   .nesting_level = cur_nesting_level,
                    .xcpt{
                        .signal = siginfo->sig,
                        .address = (uint64_t)siginfo->access_address,
@@ -163,6 +181,7 @@ void Logger::log_checkpoint(pc_t rollback_pc, uint64_t cur_window_size, size_t c
         return;
 
     log.push_back({.type = debug_trace_entry_type_t::ENTRY_CHECKPOINT,
+                   .nesting_level = cur_nesting_level,
                    .checkpoint{
                        .rollback_pc = rollback_pc,
                        .cur_window_size = cur_window_size,
@@ -176,6 +195,7 @@ void Logger::log_rollback(unsigned nesting, pc_t rollback_pc)
         return;
 
     log.push_back({.type = debug_trace_entry_type_t::ENTRY_ROLLBACK,
+                   .nesting_level = cur_nesting_level,
                    .rollback{
                        .nesting = nesting,
                        .rollback_pc = rollback_pc,
@@ -188,6 +208,7 @@ void Logger::log_rollback_store(uint64_t addr, uint64_t val, size_t size, uint64
         return;
 
     log.push_back({.type = debug_trace_entry_type_t::ENTRY_ROLLBACK_STORE,
+                   .nesting_level = cur_nesting_level,
                    .rollback_store{
                        .addr = addr,
                        .val = val,

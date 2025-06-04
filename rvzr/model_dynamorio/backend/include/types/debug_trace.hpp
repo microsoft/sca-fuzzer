@@ -56,8 +56,10 @@ static constexpr const char *to_string(const debug_trace_entry_type_t &type)
 struct debug_trace_entry_t {
     // What does this entry contain
     debug_trace_entry_type_t type;
+    // Nested speculation (0 is architectural)
+    uint8_t nesting_level;
     // Unused for now
-    uint8_t padding[7]; // NOLINT
+    uint8_t padding[6]; // NOLINT
 
     // Union of all possible entry types
     union {
@@ -123,8 +125,15 @@ struct debug_trace_entry_t {
     /// @brief Pretty-printer for debug_trace_entry_t
     void dump(std::ostream &out) const
     {
+        // Arch or spec
+        if (nesting_level == 0)
+            out << "[ARCH] ";
+        else
+            out << "[SPEC_" << std::dec << (uint)nesting_level << "] ";
+        // Print entry type
         out << "[" << to_string(type) << "] ";
 
+        // Print content
         switch (type) {
         case debug_trace_entry_type_t::ENTRY_REG_DUMP:
             out << " pc: " << std::hex << regs.pc;

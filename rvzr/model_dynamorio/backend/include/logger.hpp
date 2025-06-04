@@ -51,7 +51,7 @@ class Logger
 
     /// @brief log the PC and registers of the current instruction, and whether it is speculative or
     /// biot
-    void log_instruction(instr_obs_t instr, dr_mcontext_t *mc);
+    void log_instruction(instr_obs_t instr, dr_mcontext_t *mc, unsigned int nesting_level);
     /// @brief log a memory operation, including the value that is currently stored at the address
     void log_mem_access(bool is_write, void *address, uint64_t size);
     /// @brief log an exception
@@ -71,4 +71,6 @@ class Logger
     FileBackedBuf<debug_trace_entry_t, buf_sz> log;
     /// @param verbosity level of the logger
     const log_level_t log_level;
+    /// @param current nesting level of speculation
+    uint8_t cur_nesting_level;
 };
