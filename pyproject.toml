@@ -26,7 +26,9 @@ dependencies = [
     "mypy",
     "pylint",
     "flake8",
-    "setuptools"
+    "setuptools",
+    "cffi",
+    "types-cffi",
 ]
 maintainers = [{name = "Oleksii Oleksenko", email = ""}]
 

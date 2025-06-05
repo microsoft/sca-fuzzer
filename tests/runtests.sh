@@ -167,6 +167,7 @@ function arch_unit_tests() {
         python3 -m unittest tests.x86_tests.unit_taint_tracker -v
         echo "-------------"
         python3 -m unittest tests.x86_tests.unit_model_dr -v
+        python3 -m unittest tests.x86_tests.unit_dr_decoder -v
         echo "-------------"
         cd - >/dev/null || exit
         # exit
