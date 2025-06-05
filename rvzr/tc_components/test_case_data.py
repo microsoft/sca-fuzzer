@@ -231,6 +231,9 @@ class InputTaint(BOOL_NDARRAY):
     The array is used to indicate which input elements influence contract traces.
     """
 
+    per_actor_taint_size: int = _ActorInputTaint.itemsize
+    """ per_actor_taint_size: The size of the taint area for a single actor """
+
     def __new__(cls, n_actors: int = 1) -> InputTaint:
         obj = super().__new__(cls, (n_actors,), _ActorInputTaint, None, 0, None, None)
         obj.fill(False)
@@ -262,3 +265,21 @@ class InputTaint(BOOL_NDARRAY):
         actor_view = self.linear_view(actor_id)
         for offset in offsets:
             actor_view[offset] = True
+
+    @classmethod
+    def taint_offset_from_sandbox_address(cls, sb_address: int) -> int:
+        """
+        This function exists to cover the mismatch between the sandbox layout (sandbox.py) and
+        the InputTaint layout (this class).
+
+        The function computes the offset in the InputTaint structure from a given sandbox address
+        by subtracting the missing padding.
+
+        :param sb_address: The sandbox address
+        :return: The offset in the InputTaint structure
+        """
+        per_actor_sandbox_size = SandboxLayout.data_size_per_actor()
+        actor_id = sb_address // per_actor_sandbox_size
+        sandbox_offset = sb_address % per_actor_sandbox_size
+        taint_offset = sandbox_offset - SandboxLayout.data_area_size(DataArea.MAIN)
+        return taint_offset // 8 + (actor_id * cls.per_actor_taint_size)

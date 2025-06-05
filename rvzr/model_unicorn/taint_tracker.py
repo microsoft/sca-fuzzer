@@ -263,6 +263,9 @@ class UnicornTaintTracker:
         :param n_actors: the number of actors in the test case
         :return: an InputTaint object
         """
+        # pylint: disable=too-many-locals
+        # NOTE: justified, because we have many variable that define area boundaries
+
         if not self._enable_tracking:
             self._tracking_in_progress = False
             return InputTaint(n_actors)
@@ -271,40 +274,46 @@ class UnicornTaintTracker:
             self._finalize_instruction()
 
         taint = InputTaint(n_actors)
-        tainted_positions = []
-        register_start = SandboxLayout.data_area_offset(DataArea.GPR) // 8 - 0x1000 // 8
-        simd_start = SandboxLayout.data_area_offset(DataArea.SIMD) // 8 - 0x1000 // 8
+        tainted_sandbox_addresses: List[int] = []
+        register_start = SandboxLayout.data_area_offset(DataArea.GPR)
+        simd_start = SandboxLayout.data_area_offset(DataArea.SIMD)
 
         for label in self._tainted_labels:
             # Memory address
             if label.startswith('0x'):
-                # we taint the 64-bits block that contains the address
-                input_offset = (int(label, 16)) // 8
-                tainted_positions.append(input_offset)
+                sandbox_address = int(label, 16)
+                tainted_sandbox_addresses.append(sandbox_address)
                 continue
 
             # Register
-            registers = self._uc_target_desc.usable_registers
-            simd_registers = self._uc_target_desc.usable_simd128_registers
             reg = self._uc_target_desc.reg_norm_to_constant[label]
+            registers = self._uc_target_desc.usable_registers
             if reg in registers:
-                input_offset = register_start + registers.index(reg)
-                tainted_positions.append(input_offset)
-            elif reg in simd_registers:
-                input_offset = simd_start + simd_registers.index(reg) * 2
-                tainted_positions.append(input_offset)
-                tainted_positions.append(input_offset + 1)
+                sandbox_address = register_start + registers.index(reg) * 8
+                tainted_sandbox_addresses.append(sandbox_address)
+                continue
+
+            # SIMD register
+            simd_registers = self._uc_target_desc.usable_simd128_registers
+            if reg in simd_registers:
+                sandbox_address = simd_start + simd_registers.index(reg) * 16
+                tainted_sandbox_addresses.append(sandbox_address)
+                tainted_sandbox_addresses.append(sandbox_address + 1)
             # else:
             # print(f"Register {label} is not tracked")
 
-        tainted_positions = list(dict.fromkeys(tainted_positions))
-        tainted_positions.sort()
+        tainted_sandbox_addresses.sort()
+        taint_offsets = [
+            InputTaint.taint_offset_from_sandbox_address(pos) for pos in tainted_sandbox_addresses
+        ]
 
         for actor_id in range(0, n_actors):
-            actor_offset = actor_id * 0x3000 // 8
-            actor_end = (actor_id + 1) * 0x3000 // 8
+            actor_area_start = actor_id * InputTaint.per_actor_taint_size
+            actor_area_end = (actor_id + 1) * InputTaint.per_actor_taint_size
             actor_taints = [
-                pos - actor_offset for pos in tainted_positions if actor_offset <= pos < actor_end
+                pos - actor_area_start
+                for pos in taint_offsets
+                if actor_area_start <= pos < actor_area_end
             ]
             taint.taint_actor_offsets(actor_id, actor_taints)
 
