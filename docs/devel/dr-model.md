@@ -33,7 +33,7 @@ The `trace_test_case` method implements the following algorithm:
 ```shell
 ~/.local/dynamorio/drrun -c ~/.local/dynamorio/libdr_model.so --tracer <observation-clause> -- ~/.local/dynamorio/adapter <rcbf> <rdbf>
 ```
-- Receive contract traces from the backend and convert them into `CTrace` objects
+- Parse contract traces from the backend and convert them into `CTrace` objects
 - Return the list of collected `CTrace` objects to the caller (usually, `fuzzer.py`)
 
 ## Test Case Loader
@@ -50,7 +50,7 @@ The loader implements the following algorithm:
 - Jump to the test case binary entry point
 - Return
 
-### DynamoRIO Tool
+## DynamoRIO Tool
 
 The DynamoRIO tool (`rvzr/model_dynamorio/backend`) is responsible for instrumenting the test case loader binary and collecting contract traces.
 
@@ -59,8 +59,8 @@ The DynamoRIO tool (`rvzr/model_dynamorio/backend`) is responsible for instrumen
 The instrumentation components modify the binary of the test case loader by adding a call to the function `dispatch_callback` before every instruction in the binary (or more specifically, every instruction in the `test_case_entry` function of the loader).
 
 The tool interacts with DynamoRIO through the `model.cpp` module.
-This module registers an event for entering the `test_case_entry`, which triggers the start of instrumentation.
-The module also registers an event for every instruction in the `test_case_entry`, and the event in turn calls the `Dispatch::instrument_instruction()`.
+This module registers an event for entering the `test_case_entry`, which triggers the flush of the internal DynamoRIO code fragment cache and the start of instrumentation.
+The module also registers an event for every instruction in the `test_case_entry`, and the event in turn calls the `Dispatch::instrument_instruction()`. Finally, exceptions are hooked and passed to the dispatcher through `Dispatch::handle_exception()`, which can decide to either handle the signal (e.g. on speculative paths) or forward it to the test case (e.g. architectural exceptions).
 
 The `Dispatch` class implements the actual instrumentation logic.
 When the `instrument_instruction()` method is called, it inserts a clean call to the `dispatch_callback` function before the instruction.
@@ -70,15 +70,61 @@ DynamoRIO also automatically saves the complete register state before the call, 
 ### Execution-Time Components
 
 The execution-time components are responsible for implementing the contract logic, and are triggered by the `dispatch_callback` function.
-At the current state of the backend, the dispatch callback invokes only two classes, Tracer and Speculator, that implement the observation and execution clauses, respectively.
+At the current state of the backend, the dispatch callback invokes only two classes, Tracer and Speculator, that implement the observation and execution clauses, respectively. Optionally, each component can log additional events, e.g.
+speculation rollbacks or the current register state, through a shared `Logger` component.
 
 Subclasses of `TracerABC` record contract-relevant information via `observe_instruction` and `observe_mem_access` methods.
-E.g., `TracerCT` implements `CT` observation clause by recording the PC of instructions upon `observe_instruction` and the address of memory accesses upon `observe_mem_access`.
+E.g., `TracerCT` implements `CT` observation clause by recording the PC of instructions upon `observe_instruction` and the address of memory accesses upon `observe_mem_access`. Currently, `observe_exception` simply adds a special entry to the trace to indicate that the program ended due to an (architectural) exception.
 
 Subclasses of `SpeculatorABC` implement the contract speculation logic.
 E.g., `SpeculatorCond` implements `speculate_instruction`.
 When this method is called with a branch instruction, the class takes a checkpoint of the process state, flips the branch condition (i.e., modified `FLAGS` register), and continues the execution.
 During the simulated speculation, each call to `speculate_instruction` counts the number of executed instructions, and when the number reaches the limit (e.g., 256), the class restores the checkpoint and continues the execution from the original state. (Actually, the algorithm is more complex, but this is the general idea.)
 
-When the instrumentation ends (according to `model.cpp`), the tracer's `tracing_finalized` method is called, and the tracer prints the collected traces to `stdout` in a compressed binary format.
-The Python adapter picks up this output, decodes, and returns it to Revizor.
+When the instrumentation ends (according to `model.cpp`), the tracer's `tracing_finalized` method is called, during which any remaining traces are flushed into the trace file, together with an "End Of Trace" entry.
+The Python adapter will then read the trace file, decode it, and return the corresponding CTrace to Revizor.
+
+### Standalone Usage
+
+The DR tool can be used as a standalone tool to collect the runtime trace of any program, independently from the rest of Revizor's infrastructure.
+
+A typical usage is for example:
+
+```shell
+~/.local/dynamorio/drrun -c ~/.local/dynamorio/libdr_model.so --tracer <observation-clause> --speculator <speculation-clause> -- ls /dev/null
+```
+
+By default, this will instrument `ls` starting from `__libc_start_main` until the end of the program, run it with `/dev/null` as an argument, and generate a binary file called `rvzr_trace.dat` that contains the collected trace. Other flags can be printed using `~/.local/dynamorio/drrun -c ~/.local/dynamorio/libdr_model.so -h`
+
+The trace file location can be changed by adding `--trace-output <PATH>`. Additionally, the tool can also dump the trace in human-readable format to STDOUT using the `--print-trace` flag.
+
+To decode and analyze the trace file, downstream tools should always use the `TraceDecoder` class provided by `trace_decoder.py`. For internal usage, this module also provides a simple entrypoint for trace printing:
+
+```bash
+python3 trace_decoder.py rzvr_trace.dat
+```
+
+#### Debugging
+
+Attaching a debugger like GDB to the DR tool might not always be the best debugging option, as the program has three separate states:
+
+1. the state of the program being instrumented (e.g. `ls`)
+2. the state of the DR client (`libdr_model.so`) instrumentation
+3. the state of DynamoRIO itself (`drrun`)
+
+More information about debugging DR clients can be found [here](https://dynamorio.org/page_debugging.html).
+
+For our instrumentation, other (possibly simpler) options are available:
+
+1. **Inspecting Debug Traces**: the DR tool can optionally log extra information, e.g. the complete state of the register file before each instruction, each value being read and written to memory, and speculation events like checkpoints are rollbacks, in a separate debug trace:
+    - This option can be enabled using `--log-level <N>`
+    - By default, the tool will dump debug entries to `rzvr_dbg_trace.dat` in binary format; to change the path of the debug trace file use `--debug-output <PATH>`
+    - `--print-debug-trace` can be used to pretty-print debug entries to STDOUT during execution
+    - `trace_decoder.py` also provides a decoder for debug entries
+    - **WARNING:** debug traces can become very big, especially for nested speculation
+2. **Running DynamoRIO with logging**: DynamoRIO can also produce logs (see DR documentation):
+
+```
+~/.local/dynamorio/drrun -debug -loglevel 3 -c ~/.local/dynamorio/libdr_model.so --tracer <observation-clause> --speculator <speculation-clause> -- ls /dev/null
+```
+
