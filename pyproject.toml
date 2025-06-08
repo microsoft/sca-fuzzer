@@ -29,6 +29,8 @@ dependencies = [
     "setuptools",
     "cffi",
     "types-cffi",
+    "tqdm",
+    "types-tqdm"
 ]
 maintainers = [{name = "Oleksii Oleksenko", email = ""}]
 
