@@ -8,8 +8,6 @@
 #pragma once
 
 #include <memory>
-#include <string>
-#include <vector>
 
 #include <dr_api.h> // NOLINT
 
@@ -17,12 +15,6 @@
 #include "logger.hpp"
 #include "speculator_abc.hpp"
 #include "tracer_abc.hpp"
-
-struct module_bundle_t {
-    std::unique_ptr<Logger> logger = nullptr;
-    std::unique_ptr<TracerABC> tracer = nullptr;
-    std::unique_ptr<SpeculatorABC> speculator = nullptr;
-};
 
 /// @brief Dispatcher class responsible for adding instrumentation to instructions
 ///        in the target application and calling the appropriate
@@ -40,17 +32,18 @@ class Dispatcher
     // ---------------------------------------------------------------------------------------------
     // Public Methods
 
-    /// @brief Starts the instrumentation process for a wrapped functions
+    /// @brief Starts the instrumentation process for a wrapped function
     /// @param wrapctx The machine context of the wrapped function
     /// @param user_data Unused
     /// @return void
-    void start(void *, DR_PARAM_OUT void **);
+    void start(void *wrapctx, void **user_data);
 
-    /// @brief Finalizes the instrumentation process for a wrapped function
-    /// @param wrapctx The machine context of the wrapped function
-    /// @param user_data Unused
+    /// @brief Finalizes the instrumentation process
     /// @return void
-    void finalize(void *, DR_PARAM_OUT void *);
+    void finalize();
+
+    /// @brief Check if the instrumentation has started and is not finalized.
+    [[nodiscard]] bool is_instrumentation_on() const { return instrumentation_on; };
 
     /// @brief Instruments the instruction \p instr with calls to callback functions of the
     /// corresponding type
@@ -60,23 +53,26 @@ class Dispatcher
     /// @return Flags to be consumed by DynamoRIO instrumentation callbacks
     dr_emit_flags_t instrument_instruction(void *drcontext, instrlist_t *bb, instr_t *instr) const;
 
+    /// @brief Instruments the exit instruction with the finalization callback
+    /// @param drcontext The drcontext of the current thread
+    /// @param bb The basic block to be instrumented
+    /// @param instr The instruction to instrument
+    /// @return Flags to be consumed by DynamoRIO instrumentation callbacks
+    dr_emit_flags_t instrument_exit(void *drcontext, instrlist_t *bb, instr_t *instr) const;
+
     /// @brief Passes the exception down to service modules for handling
     /// @param drcontext The drcontext of the current thread
     /// @param excpt Pointer to the exception data
     /// @return True if the exception has been handled (control-flow should be redirected)
-    bool handle_exception(void *drcontext, dr_siginfo_t *siginfo);
+    bool handle_exception(void *drcontext, dr_siginfo_t *siginfo) const;
 
-  protected:
-    // ---------------------------------------------------------------------------------------------
-    // Protected Fields
-
-    /// @param instrumentation_on: If true, the dispatcher will apply instrumentation to the target
-    bool instrumentation_on = false;
-
-    /// @param module_bundle: A bundle of service modules to call from the instrumentation
-    std::unique_ptr<module_bundle_t> module_bundle = nullptr;
+    /// @param logger: shared logger for event tracing
+    std::unique_ptr<Logger> logger = nullptr;
+    /// @param tracer: implements observation clause
+    std::unique_ptr<TracerABC> tracer = nullptr;
+    /// @param speculator: implements execution clause
+    std::unique_ptr<SpeculatorABC> speculator = nullptr;
 
   private:
-    /// @param The name of the function to instrument
-    std::string instrumented_func;
+    bool instrumentation_on;
 };

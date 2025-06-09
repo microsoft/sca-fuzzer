@@ -44,16 +44,12 @@ class TracerABC
     // Public Methods
 
     /// @brief Starts the tracing process for a wrapped functions
-    /// @param wrapctx The machine context of the wrapped function
-    /// @param user_data Unused
     /// @return void
-    virtual void tracing_start(void *, DR_PARAM_OUT void **);
+    virtual void tracing_start();
 
     /// @brief Finalizes the tracing process for a wrapped function
-    /// @param wrapctx The machine context of the wrapped function
-    /// @param user_data Unused
     /// @return void
-    virtual void tracing_finalize(void *, DR_PARAM_OUT void *);
+    virtual void tracing_finalize();
 
     /// @brief Record per-instruction information on the trace (e.g., its address) as defined
     ///        by the target contract.

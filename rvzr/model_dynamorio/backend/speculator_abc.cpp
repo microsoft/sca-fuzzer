@@ -217,12 +217,8 @@ bool SpeculatorABC::handle_mem_access(bool is_write, void *address, uint64_t siz
     return true;
 }
 
-void SpeculatorABC::handle_exception(dr_siginfo_t *siginfo)
+void SpeculatorABC::handle_exception(dr_siginfo_t * /*siginfo*/)
 {
     // Flush stores that are in-flight (i.e. were performed by the failing instruction)
     store_log.flush_uncommitted();
-    // Perform rollback
-    dr_mcontext_t *mc = siginfo->mcontext;
-    const pc_t next_pc = rollback(mc);
-    mc->pc = (byte *)next_pc;
 }

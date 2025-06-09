@@ -23,39 +23,36 @@
 #include "cli.hpp"
 #include "dispatcher.hpp"
 #include "factory.hpp"
-#include "speculator_abc.hpp"
-#include "tracer_abc.hpp"
+#include "util.hpp"
 
 using std::size_t;
 using std::string;
 
+/// @brief Pointer to the dispatcher instance;
+/// @note We have to use a global pointer to share state (tracer, speculator, state of the
+///       instrumentation) with the callbacks
+std::unique_ptr<Dispatcher> glob_dispatcher = nullptr; // NOLINT
+
 namespace dr_model
 {
 
-/// @brief Pointer to the dispatcher instance;
-/// @note We have to use a local pointer because DynamoRIO API relies on callback functions,
-///       and there is no other way to pass the tracer instance to the callbacks;
-std::unique_ptr<Dispatcher> dispatcher = nullptr; // NOLINT
-
-/// @brief Name of the function to instrument
-std::string instrumented_func_name; // NOLINT
+/// @brief Struct holding information about the function to instrument.
+struct instrumented_func_info_t {
+    /// @brief Name of the function to instrument
+    std::string name;
+    /// @brief First pc executed after the instrumented function. This is populated dynamically once
+    /// we reach a call to the instrumented function
+    app_pc exit_pc = nullptr;
+    /// @brief Whether the function to instrument has been found at least once.
+    /// @note Currently we assume that the instrumented func is always executed only once.
+    bool found = false;
+    /// @brief Whether the function to instrument has returned.
+    /// @note Currently we assume that the instrumented func is always executed only once.
+    bool returned = false;
+} instrumented_func; // NOLINT
 
 static void event_instrumentation_start(void *wrapctx, DR_PARAM_OUT void **user_data);
-static void event_instrumentation_end(void *wrapctx, void *user_data);
 static void dr_model_del() noexcept;
-
-/// @brief Flush dynamorio's basic-block cache. This is needed when transitioning from
-/// non-instrumented code to instrumented code, as any shared code (e.g. libc) might be cached and
-/// therefore inaccessible for instrumentation.
-static void flush_bb_cache()
-{
-    const uint64_t flush_begin = 0;
-    const size_t flush_size = -1;
-
-    // NOTE: This is very conservative, but avoids any potentially expensive analysis of
-    // the target function
-    dr_delay_flush_region((byte *)flush_begin, flush_size, /*flush_id*/ 0, /*callback*/ nullptr);
-}
 
 // =================================================================================================
 // Event callbacks
@@ -63,7 +60,7 @@ static void flush_bb_cache()
 
 /// @brief Callback executed before loading a module.
 ///        The implementation wraps a function called `instrumented_func_name`
-///        with calls to `event_instrumentation_start` and `event_instrumentation_end`
+///        with a call to `event_instrumentation_start`.
 /// @param unused
 /// @param module_ Pointer to the module data
 /// @param unused
@@ -72,11 +69,36 @@ static void event_module_load(void * /*drcontext*/, const module_data_t *module_
 {
     size_t offset = 0;
     const drsym_error_t sym_res = drsym_lookup_symbol(
-        module_->full_path, instrumented_func_name.c_str(), &offset, DRSYM_DEMANGLE);
+        module_->full_path, instrumented_func.name.c_str(), &offset, DRSYM_DEMANGLE);
     if (sym_res == DRSYM_SUCCESS) {
         app_pc to_wrap = module_->start + offset;
-        drwrap_wrap(to_wrap, event_instrumentation_start, event_instrumentation_end);
+        // We only insert a pre-hook for the start of the instrumentation.
+        // End of instrumentation is handled dynamically in the callbacks.
+        // NOTE: This is needed to deal with speculative exits: by default, DynamoRIO's will ignore
+        // consecutive post-hook without a matching pre-hook call. In our case, we can reach the
+        // post-hook multiple times (speculatively) in the same call, but we only really care about
+        // the architectural exit.
+        drwrap_wrap(to_wrap, event_instrumentation_start, nullptr);
     }
+}
+
+/// @brief Callback executed before calling the `instrumented_func_name` function.
+/// @param wrapctx The wrap context
+/// @param user_data
+/// @return void
+static void event_instrumentation_start(void *wrapctx, DR_PARAM_OUT void **user_data)
+{
+    DR_ASSERT_MSG(not instrumented_func.found,
+                  "[ERROR] Instrumented function should be called only once\n");
+
+    // Set return address for later instrumentation
+    instrumented_func.exit_pc = drwrap_get_retaddr(wrapctx);
+    instrumented_func.found = true;
+    // Flush all code cache: we might want to instrument basic blocks that have already been
+    // translated (e.g. libc)
+    flush_bb_cache();
+    // Notify the dispatcher
+    glob_dispatcher->start(wrapctx, user_data);
 }
 
 /// @brief Callback executed at the first instrumentation stage:
@@ -117,28 +139,16 @@ static dr_emit_flags_t event_bb_instrumentation(void *drcontext, void * /*tag*/,
                                                 instr_t *instr, bool /*for_trace*/,
                                                 bool /*translating*/, void * /*user_data*/)
 {
-    const dr_emit_flags_t emit_flags = dispatcher->instrument_instruction(drcontext, bb, instr);
-    return emit_flags;
-}
+    // disassemble_with_info(drcontext, instr_get_app_pc(org_instr), STDOUT, true, true);
 
-/// @brief Callback executed before calling the `instrumented_func_name` function.
-/// @param wrapctx The wrap context
-/// @param user_data
-/// @return void
-static void event_instrumentation_start(void *wrapctx, DR_PARAM_OUT void **user_data)
-{
-    flush_bb_cache();
-    dispatcher->start(wrapctx, user_data);
-}
+    if (instrumented_func.found and instr_get_app_pc(instr) == instrumented_func.exit_pc) {
+        // We found the end pc: add the corresponding callback
+        return glob_dispatcher->instrument_exit(drcontext, bb, instr);
+    }
 
-/// @brief Callback executed after returning from the `instrumented_func_name` function.
-/// @param wrapctx The wrap context
-/// @param user_data
-/// @return void
-static void event_instrumentation_end(void *wrapctx, void *user_data)
-{
-    dispatcher->finalize(wrapctx, user_data);
-    flush_bb_cache();
+    // Add a clean call to the dispatch callback, which will forward the call to the service
+    // modules
+    return glob_dispatcher->instrument_instruction(drcontext, bb, instr);
 }
 
 /// @brief Callback executed upon exceptions
@@ -147,7 +157,7 @@ static void event_instrumentation_end(void *wrapctx, void *user_data)
 /// @return whether the signal should be redirected or delivered to the application
 static dr_signal_action_t event_signal(void *drcontext, dr_siginfo_t *siginfo)
 {
-    if (dispatcher->handle_exception(drcontext, siginfo)) {
+    if (glob_dispatcher->handle_exception(drcontext, siginfo)) {
         return DR_SIGNAL_REDIRECT;
     }
 
@@ -161,13 +171,13 @@ static void event_exit()
 {
     // There is a possibility that the tracing process has not been finalized
     // because the traced function has not been called
-    dispatcher->finalize(nullptr, nullptr);
+    glob_dispatcher->finalize();
 
     // Make sure we've sent all the collected data
     fflush(stdout);
 
     // Delete the dispatcher
-    dispatcher.reset();
+    glob_dispatcher.reset();
 
     // Close the DR extensions
     dr_model_del();
@@ -257,10 +267,15 @@ DR_EXPORT void dr_client_main(client_id_t _, int argc, const char **argv) // NOL
     }
 
     // Create a dispatcher instance
-    dr_model::dispatcher = std::make_unique<Dispatcher>(&parsed_args);
+    glob_dispatcher = std::make_unique<Dispatcher>(&parsed_args);
 
     // Set the target function
-    dr_model::instrumented_func_name = parsed_args.instrumented_func;
+    dr_model::instrumented_func = {
+        .name = parsed_args.instrumented_func,
+        .exit_pc = nullptr,
+        .found = false,
+        .returned = false,
+    };
 
     // Initialize the DR model
     dr_model::dr_model_init();
