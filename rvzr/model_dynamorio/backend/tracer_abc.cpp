@@ -40,13 +40,13 @@ TracerABC::TracerABC(const std::string &out_path, Logger &logger, bool print)
 // =================================================================================================
 // Public Methods
 // =================================================================================================
-void TracerABC::tracing_start(void * /*wrapctx*/, DR_PARAM_OUT void ** /*user_data*/)
+void TracerABC::tracing_start()
 {
     tracing_on = true;
     tracing_finalized = false;
 }
 
-void TracerABC::tracing_finalize(void * /*wrapctx*/, DR_PARAM_OUT void * /*user_data*/)
+void TracerABC::tracing_finalize()
 {
     if (tracing_finalized) {
         return;
