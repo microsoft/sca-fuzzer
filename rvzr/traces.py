@@ -415,12 +415,12 @@ class HTrace:
     def get_max_pfc(self) -> PFCTuple:
         """ Get the maximum values of performance counters in the HTrace object """
         if self._max_pfc is None:
-            self._max_pfc = (0, 0, 0, 0, 0)
+            new_max_pfc = (0, 0, 0, 0, 0)
             for sample in self._raw:
-                if sample['pfc0'] > self._max_pfc[0]:
-                    self._max_pfc = tuple(sample[['pfc0', 'pfc1', 'pfc2', 'pfc3', 'pfc4']])
-            self._max_pfc = (int(self._max_pfc[0]), int(self._max_pfc[1]), int(self._max_pfc[2]),
-                             int(self._max_pfc[3]), int(self._max_pfc[4]))
+                if sample['pfc0'] > new_max_pfc[0]:
+                    new_max_pfc = (int(sample['pfc0']), int(sample['pfc1']), int(sample['pfc2']),
+                                   int(sample['pfc3']), int(sample['pfc4']))
+            self._max_pfc = new_max_pfc
         return self._max_pfc
 
 
