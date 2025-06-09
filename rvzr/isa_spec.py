@@ -23,7 +23,8 @@ _OT_STR_TO_ENUM = {
     "COND": OT.COND,
 }
 
-FP_XOT = ["f64", "f32"]
+_FP_XOT = ["f64", "f32", "f16", "2f16"]
+_BFP_XOT = ["bf16"]
 
 
 class InstructionSet:
@@ -159,7 +160,7 @@ def _reduce(isa: InstructionSet, include_categories: Optional[List[str]]) -> Non
             if operand.type != OT.REG or operand.xtype is None:
                 continue
             assert operand.xtype in get_args(XOT), f"Unknown xtype value: {operand.xtype}"
-            if operand.xtype in FP_XOT:
+            if operand.xtype in _FP_XOT or operand.xtype in _BFP_XOT:
                 return False
 
         for implicit_operand in spec.implicit_operands:

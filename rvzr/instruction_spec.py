@@ -26,9 +26,9 @@ class OT(Enum):
         return str(self._name_)  # pylint: disable=no-member  # This is an intended private use
 
 
-XOT = Literal["f64", "f32", "int", "i64", "i32", "i16", "i8", "u256", "u128", "u64", "u32", "u16",
-              "u8"]
-""" Extended Operand Type (XOT) describes the type of packed data in a SIMD register. """
+XOT = Literal["f64", "f32", "f16", "2f16", "bf16", "int", "i64", "i32", "i16", "i8", "u256", "u128",
+              "u64", "u32", "u16", "u8"]
+""" Extended Operand Type (XOT) provides extra information (sign, type) about the operand. """
 
 
 @dataclass

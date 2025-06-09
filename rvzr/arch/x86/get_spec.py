@@ -557,7 +557,7 @@ class Downloader:
         print("> Downloading complete instruction spec...")
         subprocess.run(
             "curl -L -o x86_instructions.xml "
-            "https://github.com/microsoft/sca-fuzzer/releases/download/v1.2.4/x86_instructions.xml",
+            "https://github.com/microsoft/sca-fuzzer/releases/download/v1.3.0/x86_instructions.xml",
             shell=True,
             check=True)
 
