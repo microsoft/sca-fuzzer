@@ -5218,14 +5218,14 @@
   {"name": "rcl", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "rcl", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["r/w", "", "", "", "", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -5234,14 +5234,14 @@
   {"name": "rcl", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["al", "cl", "dl", "bl", "r8b", "r9b", "r10b", "r11b"], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "rcl", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["al", "cl", "dl", "bl", "r8b", "r9b", "r10b", "r11b"], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["r/w", "", "", "", "", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -5250,14 +5250,14 @@
   {"name": "rcl", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["spl", "bpl", "sil", "dil", "r12b", "r13b", "r14b", "r15b"], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "rcl", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["spl", "bpl", "sil", "dil", "r12b", "r13b", "r14b", "r15b"], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["r/w", "", "", "", "", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -5266,14 +5266,14 @@
   {"name": "rcl", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "rcl", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["r/w", "", "", "", "", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -5282,14 +5282,14 @@
   {"name": "rcl", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "rcl", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["r/w", "", "", "", "", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -5298,14 +5298,14 @@
   {"name": "rcl", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "rcl", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["r/w", "", "", "", "", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -5314,14 +5314,14 @@
   {"name": "rcl", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "rcl", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["r/w", "", "", "", "", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -5330,14 +5330,14 @@
   {"name": "rcl", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "rcl", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["r/w", "", "", "", "", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -5346,14 +5346,14 @@
   {"name": "rcl", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": true, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "rcl", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": true, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["r/w", "", "", "", "", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -5362,14 +5362,14 @@
   {"name": "rcl", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": true, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "rcl", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": true, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["r/w", "", "", "", "", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -5468,14 +5468,14 @@
   {"name": "rcr", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "rcr", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["r/w", "", "", "", "", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -5484,14 +5484,14 @@
   {"name": "rcr", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["al", "cl", "dl", "bl", "r8b", "r9b", "r10b", "r11b"], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "rcr", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["al", "cl", "dl", "bl", "r8b", "r9b", "r10b", "r11b"], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["r/w", "", "", "", "", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -5500,14 +5500,14 @@
   {"name": "rcr", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["spl", "bpl", "sil", "dil", "r12b", "r13b", "r14b", "r15b"], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "rcr", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["spl", "bpl", "sil", "dil", "r12b", "r13b", "r14b", "r15b"], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["r/w", "", "", "", "", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -5516,14 +5516,14 @@
   {"name": "rcr", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "rcr", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["r/w", "", "", "", "", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -5532,14 +5532,14 @@
   {"name": "rcr", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "rcr", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["r/w", "", "", "", "", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -5548,14 +5548,14 @@
   {"name": "rcr", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "rcr", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["r/w", "", "", "", "", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -5564,14 +5564,14 @@
   {"name": "rcr", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "rcr", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["r/w", "", "", "", "", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -5580,14 +5580,14 @@
   {"name": "rcr", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "rcr", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["r/w", "", "", "", "", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -5596,14 +5596,14 @@
   {"name": "rcr", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": true, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "rcr", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": true, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["r/w", "", "", "", "", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -5612,14 +5612,14 @@
   {"name": "rcr", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": true, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "rcr", "category": "BASE-ROTATE", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": true, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["r/w", "", "", "", "", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -6646,14 +6646,14 @@
   {"name": "sar", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "sar", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -6694,14 +6694,14 @@
   {"name": "sar", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "sar", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -6710,14 +6710,14 @@
   {"name": "sar", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "sar", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -6726,14 +6726,14 @@
   {"name": "sar", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "sar", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -6742,14 +6742,14 @@
   {"name": "sar", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "sar", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -6758,14 +6758,14 @@
   {"name": "sar", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "sar", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -6774,14 +6774,14 @@
   {"name": "sar", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": true, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "sar", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": true, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -6790,14 +6790,14 @@
   {"name": "sar", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": true, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "sar", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": true, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -7949,14 +7949,14 @@
   {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -7965,14 +7965,14 @@
   {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["al", "cl", "dl", "bl", "r8b", "r9b", "r10b", "r11b"], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["al", "cl", "dl", "bl", "r8b", "r9b", "r10b", "r11b"], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -7981,14 +7981,14 @@
   {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["spl", "bpl", "sil", "dil", "r12b", "r13b", "r14b", "r15b"], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["spl", "bpl", "sil", "dil", "r12b", "r13b", "r14b", "r15b"], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -7997,14 +7997,14 @@
   {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -8013,14 +8013,14 @@
   {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -8029,14 +8029,14 @@
   {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -8045,14 +8045,14 @@
   {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -8061,14 +8061,14 @@
   {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -8077,14 +8077,14 @@
   {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": true, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": true, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -8093,378 +8093,20 @@
   {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": true, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
   {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": true, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
     ]
   },
   {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": ["1"], "src": true, "dest": false, "width": 8, "magic": true}
-    ],
-    "implicit_operands": [
-      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
-    ]
-  },
-  {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "REG", "values": ["al", "cl", "dl", "bl", "r8b", "r9b", "r10b", "r11b"], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": ["1"], "src": true, "dest": false, "width": 8, "magic": true}
-    ],
-    "implicit_operands": [
-      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
-    ]
-  },
-  {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "REG", "values": ["spl", "bpl", "sil", "dil", "r12b", "r13b", "r14b", "r15b"], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": ["1"], "src": true, "dest": false, "width": 8, "magic": true}
-    ],
-    "implicit_operands": [
-      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
-    ]
-  },
-  {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": ["1"], "src": true, "dest": false, "width": 8, "magic": true}
-    ],
-    "implicit_operands": [
-      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
-    ]
-  },
-  {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": ["1"], "src": true, "dest": false, "width": 8, "magic": true}
-    ],
-    "implicit_operands": [
-      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
-    ]
-  },
-  {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 32},
-      {"type_": "IMM", "values": ["1"], "src": true, "dest": false, "width": 8, "magic": true}
-    ],
-    "implicit_operands": [
-      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
-    ]
-  },
-  {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 64},
-      {"type_": "IMM", "values": ["1"], "src": true, "dest": false, "width": 8, "magic": true}
-    ],
-    "implicit_operands": [
-      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
-    ]
-  },
-  {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": ["1"], "src": true, "dest": false, "width": 8, "magic": true}
-    ],
-    "implicit_operands": [
-      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
-    ]
-  },
-  {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": true, "width": 32},
-      {"type_": "IMM", "values": ["1"], "src": true, "dest": false, "width": 8, "magic": true}
-    ],
-    "implicit_operands": [
-      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
-    ]
-  },
-  {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": true, "width": 64},
-      {"type_": "IMM", "values": ["1"], "src": true, "dest": false, "width": 8, "magic": true}
-    ],
-    "implicit_operands": [
-      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
-    ]
-  },
-  {"name": "shld", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
-      {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": []
-  },
-  {"name": "shld", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
-      {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": [
-      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
-    ]
-  },
-  {"name": "shld", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 32},
-      {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": []
-  },
-  {"name": "shld", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 32},
-      {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": [
-      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
-    ]
-  },
-  {"name": "shld", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 64},
-      {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": []
-  },
-  {"name": "shld", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 64},
-      {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": [
-      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
-    ]
-  },
-  {"name": "shld", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": true, "width": 16},
-      {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": []
-  },
-  {"name": "shld", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": true, "width": 16},
-      {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": [
-      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
-    ]
-  },
-  {"name": "shld", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": true, "width": 32},
-      {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": []
-  },
-  {"name": "shld", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": true, "width": 32},
-      {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": [
-      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
-    ]
-  },
-  {"name": "shld", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": true, "width": 64},
-      {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": []
-  },
-  {"name": "shld", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": true, "width": 64},
-      {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": [
-      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
-    ]
-  },
-  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": []
-  },
-  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": [
-      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
-    ]
-  },
-  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "REG", "values": ["al", "cl", "dl", "bl", "r8b", "r9b", "r10b", "r11b"], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": []
-  },
-  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "REG", "values": ["al", "cl", "dl", "bl", "r8b", "r9b", "r10b", "r11b"], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": [
-      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
-    ]
-  },
-  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "REG", "values": ["spl", "bpl", "sil", "dil", "r12b", "r13b", "r14b", "r15b"], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": []
-  },
-  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "REG", "values": ["spl", "bpl", "sil", "dil", "r12b", "r13b", "r14b", "r15b"], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": [
-      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
-    ]
-  },
-  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": []
-  },
-  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": true, "width": 8},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": [
-      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
-    ]
-  },
-  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": []
-  },
-  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": [
-      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
-    ]
-  },
-  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": []
-  },
-  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": [
-      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
-    ]
-  },
-  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": []
-  },
-  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": [
-      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
-    ]
-  },
-  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": []
-  },
-  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": true, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": [
-      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
-    ]
-  },
-  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": true, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": []
-  },
-  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": true, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": [
-      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
-    ]
-  },
-  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": true, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": []
-  },
-  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
-    "operands": [
-      {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": true, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
-    ],
-    "implicit_operands": [
-      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
-    ]
-  },
-  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 8},
       {"type_": "IMM", "values": ["1"], "src": true, "dest": false, "width": 8, "magic": true}
@@ -8473,6 +8115,364 @@
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
     ]
   },
+  {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "REG", "values": ["al", "cl", "dl", "bl", "r8b", "r9b", "r10b", "r11b"], "src": true, "dest": true, "width": 8},
+      {"type_": "IMM", "values": ["1"], "src": true, "dest": false, "width": 8, "magic": true}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
+    ]
+  },
+  {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "REG", "values": ["spl", "bpl", "sil", "dil", "r12b", "r13b", "r14b", "r15b"], "src": true, "dest": true, "width": 8},
+      {"type_": "IMM", "values": ["1"], "src": true, "dest": false, "width": 8, "magic": true}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
+    ]
+  },
+  {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": true, "width": 8},
+      {"type_": "IMM", "values": ["1"], "src": true, "dest": false, "width": 8, "magic": true}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
+    ]
+  },
+  {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
+      {"type_": "IMM", "values": ["1"], "src": true, "dest": false, "width": 8, "magic": true}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
+    ]
+  },
+  {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 32},
+      {"type_": "IMM", "values": ["1"], "src": true, "dest": false, "width": 8, "magic": true}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
+    ]
+  },
+  {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 64},
+      {"type_": "IMM", "values": ["1"], "src": true, "dest": false, "width": 8, "magic": true}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
+    ]
+  },
+  {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": true, "width": 16},
+      {"type_": "IMM", "values": ["1"], "src": true, "dest": false, "width": 8, "magic": true}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
+    ]
+  },
+  {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": true, "width": 32},
+      {"type_": "IMM", "values": ["1"], "src": true, "dest": false, "width": 8, "magic": true}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
+    ]
+  },
+  {"name": "shl", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": true, "width": 64},
+      {"type_": "IMM", "values": ["1"], "src": true, "dest": false, "width": 8, "magic": true}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
+    ]
+  },
+  {"name": "shld", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
+      {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
+    ],
+    "implicit_operands": []
+  },
+  {"name": "shld", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
+      {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
+    ]
+  },
+  {"name": "shld", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 32},
+      {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
+    ],
+    "implicit_operands": []
+  },
+  {"name": "shld", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 32},
+      {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
+    ]
+  },
+  {"name": "shld", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 64},
+      {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
+    ],
+    "implicit_operands": []
+  },
+  {"name": "shld", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 64},
+      {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
+    ]
+  },
+  {"name": "shld", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": true, "width": 16},
+      {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
+    ],
+    "implicit_operands": []
+  },
+  {"name": "shld", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": true, "width": 16},
+      {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
+    ]
+  },
+  {"name": "shld", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": true, "width": 32},
+      {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
+    ],
+    "implicit_operands": []
+  },
+  {"name": "shld", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": true, "width": 32},
+      {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
+    ]
+  },
+  {"name": "shld", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": true, "width": 64},
+      {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
+    ],
+    "implicit_operands": []
+  },
+  {"name": "shld", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": true, "width": 64},
+      {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
+    ]
+  },
+  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 8},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
+    ],
+    "implicit_operands": []
+  },
+  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 8},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
+    ]
+  },
+  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "REG", "values": ["al", "cl", "dl", "bl", "r8b", "r9b", "r10b", "r11b"], "src": true, "dest": true, "width": 8},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
+    ],
+    "implicit_operands": []
+  },
+  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "REG", "values": ["al", "cl", "dl", "bl", "r8b", "r9b", "r10b", "r11b"], "src": true, "dest": true, "width": 8},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
+    ]
+  },
+  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "REG", "values": ["spl", "bpl", "sil", "dil", "r12b", "r13b", "r14b", "r15b"], "src": true, "dest": true, "width": 8},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
+    ],
+    "implicit_operands": []
+  },
+  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "REG", "values": ["spl", "bpl", "sil", "dil", "r12b", "r13b", "r14b", "r15b"], "src": true, "dest": true, "width": 8},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
+    ]
+  },
+  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": true, "width": 8},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
+    ],
+    "implicit_operands": []
+  },
+  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "REG", "values": ["ah", "ch", "dh", "bh"], "src": true, "dest": true, "width": 8},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
+    ]
+  },
+  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
+    ],
+    "implicit_operands": []
+  },
+  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
+    ]
+  },
+  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 32},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
+    ],
+    "implicit_operands": []
+  },
+  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 32},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
+    ]
+  },
+  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 64},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
+    ],
+    "implicit_operands": []
+  },
+  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 64},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
+    ]
+  },
+  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": true, "width": 16},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
+    ],
+    "implicit_operands": []
+  },
+  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": true, "width": 16},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
+    ]
+  },
+  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": true, "width": 32},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
+    ],
+    "implicit_operands": []
+  },
+  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": true, "width": 32},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
+    ]
+  },
+  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": true, "width": 64},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
+    ],
+    "implicit_operands": []
+  },
+  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": true, "width": 64},
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
+    ]
+  },
+  {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
+    "operands": [
+      {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 8},
+      {"type_": "IMM", "values": ["1"], "src": true, "dest": false, "width": 8, "magic": true}
+    ],
+    "implicit_operands": [
+      {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "w"], "src": false, "dest": false, "width": 0}
+    ]
+  },
   {"name": "shr", "category": "BASE-SHIFT", "is_control_flow": false,
     "operands": [
       {"type_": "REG", "values": ["al", "cl", "dl", "bl", "r8b", "r9b", "r10b", "r11b"], "src": true, "dest": true, "width": 8},
@@ -8558,7 +8558,7 @@
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
@@ -8566,7 +8566,7 @@
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 16},
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -8576,7 +8576,7 @@
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 32},
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
@@ -8584,7 +8584,7 @@
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 32},
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -8594,7 +8594,7 @@
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 64},
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
@@ -8602,7 +8602,7 @@
     "operands": [
       {"type_": "MEM", "values": [], "src": true, "dest": true, "width": 64},
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -8612,7 +8612,7 @@
     "operands": [
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": true, "width": 16},
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
@@ -8620,7 +8620,7 @@
     "operands": [
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": true, "width": 16},
       {"type_": "REG", "values": ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"], "src": true, "dest": false, "width": 16},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -8630,7 +8630,7 @@
     "operands": [
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": true, "width": 32},
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
@@ -8638,7 +8638,7 @@
     "operands": [
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": true, "width": 32},
       {"type_": "REG", "values": ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"], "src": true, "dest": false, "width": 32},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}
@@ -8648,7 +8648,7 @@
     "operands": [
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": true, "width": 64},
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": []
   },
@@ -8656,7 +8656,7 @@
     "operands": [
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": true, "width": 64},
       {"type_": "REG", "values": ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"], "src": true, "dest": false, "width": 64},
-      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8}
+      {"type_": "IMM", "values": [], "src": true, "dest": false, "width": 8, "is_signed": false}
     ],
     "implicit_operands": [
       {"type_": "FLAGS", "values": ["w", "w", "undef", "w", "w", "", "", "", "undef"], "src": false, "dest": false, "width": 0}

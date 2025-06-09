@@ -35,6 +35,34 @@ ASM_OPCODE = """
 .test_case_exit:
 """
 
+_ALL_CATEGORIES = [
+    "3DNOW_PREFETCH-PREFETCH", "ADOX_ADCX-ADOX_ADCX", "BASE-BINARY", "BASE-BITBYTE", "BASE-CMOV",
+    "BASE-COND_BR", "BASE-CONVERT", "BASE-DATAXFER", "BASE-FLAGOP", "BASE-LOGICAL", "BASE-MISC",
+    "BASE-NOP", "BASE-POP", "BASE-PUSH", "BASE-ROTATE", "BASE-SEMAPHORE", "BASE-SETCC",
+    "BASE-SHIFT", "BASE-WIDENOP", "LONGMODE-CONVERT", "LONGMODE-DATAXFER", "LONGMODE-POP",
+    "LONGMODE-PUSH", "LONGMODE-SEMAPHORE", "MMX-MMX", "MMX-LOGICAL", "MMX-DATAXFER", "SSE2-MMX",
+    "SSE3-MMX", "SSSE3-MMX", "SSE-CONVERT", "SSE-DATAXFER", "SSE-MISC", "SSE-PREFETCH", "SSE-SSE",
+    "SSE2-CONVERT", "SSE2-DATAXFER", "SSE2-LOGICAL", "SSE2-MISC", "SSE2-SSE", "SSE3-DATAXFER",
+    "SSE3-SSE", "SSSE3-SSE", "SSE4-LOGICAL", "SSE4-SSE", "AVX-AVX", "AVX-BROADCAST", "AVX-DATAXFER",
+    "AVX-LOGICAL", "AVX-STTNI", "AVX2-AVX2", "AVX2-BROADCAST", "AVX2-DATAXFER", "AVX2-LOGICAL",
+    "AES-AES", "AVXAES-AES", "BMI1-BMI1", "BMI2-BMI2", "MOVBE-DATAXFER", "LZCNT-LZCNT",
+    "PCLMULQDQ-PCLMULQDQ", "VAES-VAES", "3DNOW-3DNOW", "VPCLMULQDQ-VPCLMULQDQ", "SHA-SHA",
+    "SSE4a-BITBYTE", "FMA-VFMA", "MOVDIR-MOVDIR", "GFNI-GFNI", "FMA4-FMA4", "AVX_VNNI-VEX",
+    "3DNOW-MMX", "LONGMODE-RET", "BASE-RET", "BASE-CALL", "BASE-UNCOND_BR", "SSE-LOGICAL_FP",
+    "AVX-LOGICAL_FP", "SSE2-LOGICAL_FP", "AVX2GATHER-AVX2GATHER", "BASE-STRINGOP",
+    "LONGMODE-STRINGOP", "CLDEMOTE-CLDEMOTE", "CLFLUSHOPT-CLFLUSHOPT", "CLFSH-MISC", "CLWB-CLWB",
+    "CLZERO-CLZERO", "PREFETCHWT1-PREFETCHWT1", "SERIALIZE-SERIALIZE", "BASE-SYSTEM",
+    "BASE-SYSCALL", "BASE-SYSRET", "BASE-SEGOP", "BASE-INTERRUPT", "LONGMODE-SYSTEM",
+    "LONGMODE-SYSRET", "PKU-PKU", "PCONFIG-PCONFIG", "BASE-IO", "BASE-IOSTRINGOP",
+    "LONGMODE-SYSCALL", "RDPRU-RDPRU", "RDPID-RDPID", "SMAP-SMAP", "UINTR-UINTR, MCOMMIT-MISC",
+    "PTWRITE-PTWRITE", "TBM-TBM", "AVX512EVEX-LOGICAL", "AVX512EVEX-GFNI", "AVX512EVEX-EXPAND",
+    "AVX512EVEX-DATAXFER", "AVX512EVEX-VFMA", "AVX512EVEX-LOGICAL_FP", "AVX512EVEX-VBMI2",
+    "AVX512EVEX-IFMA", "AVX512EVEX-FP16", "AVX512EVEX-BROADCAST", "AVX512EVEX-COMPRESS",
+    "AVX512EVEX-AVX512_VBMI", "AVX512EVEX-CONFLICT", "AVX512EVEX-VAES", "AVX512EVEX-VPCLMULQDQ",
+    "AVX512EVEX-AVX512", "AVX512EVEX-BLEND", "AVX512EVEX-CONVERT", "AVX512EVEX-AVX512_4FMAPS",
+    "RDRAND-RDRAND", "RDSEED-RDSEED"
+]
+
 
 class X86GeneratorTest(unittest.TestCase):
 
@@ -66,7 +94,7 @@ class X86GeneratorTest(unittest.TestCase):
         gen = get_program_generator(CONF.program_generator_seed, instruction_set)
         self.assertEqual(gen.__class__, X86Generator)
 
-    def test_x86_all_instructions(self) -> None:
+    def _test_all_instructions(self, instruction_set: InstructionSet) -> None:
         # pylint: disable=protected-access
         # Note: This function tests internals of the generator, which is why we
         # have to disable the protected-access warning.
@@ -74,8 +102,6 @@ class X86GeneratorTest(unittest.TestCase):
         asm_file = tempfile.NamedTemporaryFile("w", delete=False)
         obj_file = tempfile.NamedTemporaryFile("w", delete=False)
 
-        instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix(),
-                                         CONF.instruction_categories)
         generator = get_program_generator(CONF.program_generator_seed, instruction_set)
         function_generator = generator._function_generator
         tc = TestCaseProgram(asm_file.name)
@@ -114,6 +140,19 @@ class X86GeneratorTest(unittest.TestCase):
 
         if assembly_failed:
             self.fail("Generated invalid instruction(s)")
+
+    def test_x86_all_instructions_reduced(self) -> None:
+        instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix(),
+                                         _ALL_CATEGORIES)
+        self._test_all_instructions(instruction_set)
+
+    def test_x86_all_instructions_full(self) -> None:
+        if not (test_dir / "../../base.json").exists():
+
+            self.skipTest("base.json not available; skipping test.")
+        instruction_set = InstructionSet((test_dir / "../../base.json").absolute().as_posix(),
+                                         _ALL_CATEGORIES)
+        self._test_all_instructions(instruction_set)
 
     def test_x86_asm_parsing_basic(self) -> None:
         instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix())
