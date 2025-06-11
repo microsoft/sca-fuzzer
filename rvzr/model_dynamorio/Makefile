@@ -19,7 +19,7 @@ $(dr_path)/drrun:
 	tar xf $(dr_path)/DynamoRIO-Linux-$(release).tar.gz -C $(dr_path)
 	rm $(dr_path)/DynamoRIO-Linux-$(release).tar.gz
 	echo "#!/usr/bin/env bash" > $(dr_path)/drrun
-	echo '$(dr_path)/DynamoRIO-Linux-$(release)/bin64/drrun $$@' >> $(dr_path)/drrun
+	echo '$(dr_path)/DynamoRIO-Linux-$(release)/bin64/drrun -disable_traces	$$@' >> $(dr_path)/drrun
 	chmod +x $(dr_path)/drrun
 
 backend:
