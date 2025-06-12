@@ -198,7 +198,7 @@ function x86_only() {
 @test "Detection [meltdown-type]: #PF-present speculation" {
     intel_only
     if [ $CPU_MODEL -ge 140 ]; then
-        skip
+        skip "Meltdown is patched on Intel CPU models >= 140"
     fi
     assert_violation "$fuzz_opt -t $ASM_DIR/fault_load.asm -c $CONF_DIR/l1tf-p.yaml -i 5"
     assert_no_violation "$fuzz_opt -t $ASM_DIR/fault_load.asm -c $CONF_DIR/l1tf-p-verif.yaml -i 5"
@@ -207,7 +207,7 @@ function x86_only() {
 @test "Detection [meltdown-type]: #PF-writable speculation" {
     intel_only
     if [ $CPU_MODEL -ge 140 ]; then
-        skip
+        skip "Meltdown is patched on Intel CPU models >= 140"
     fi
     assert_violation "$fuzz_opt -t $ASM_DIR/fault_rmw.asm -c $CONF_DIR/l1tf-p.yaml -i 5"
     assert_no_violation "$fuzz_opt -t $ASM_DIR/fault_rmw.asm -c $CONF_DIR/l1tf-p-verif.yaml -i 5"
@@ -227,6 +227,9 @@ function x86_only() {
     x86_only
     if ! grep "mpx" /proc/cpuinfo >/dev/null; then
         skip
+    fi
+    if ! grep "bndcu" $ISA; then
+        skip "MPX instructions not found in $ISA"
     fi
     # Note: an arch. violation is expected here if MPX is disabled in the kernel
     assert_violation_or_arch_fail "$fuzz_opt -t $ASM_DIR/fault_BR.asm -c $CONF_DIR/mpx.yaml -i 2"
