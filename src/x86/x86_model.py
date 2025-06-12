@@ -712,7 +712,7 @@ class X86UnicornCond(X86UnicornSpec):
         target, will_jump, is_loop = calculate_target(code, flags, rcx)
         if len(target) == 1:
             return target[0], will_jump, is_loop
-        return int.from_bytes(target, byteorder='little'), will_jump, is_loop
+        return int.from_bytes(target, byteorder='little', signed=True), will_jump, is_loop
 
 
 class X86UnicornBpas(X86UnicornSpec):
