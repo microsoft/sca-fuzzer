@@ -264,12 +264,18 @@ class TraceDecoder:
         """
         Check if a trace ends with an EOT or EXCEPTION entry.
         """
+        # Handle empty and non-existing traces as corrupted
+        if not os.path.exists(trace_path) or os.stat(trace_path).st_size == 0:
+            return True
+
         with open(trace_path, "rb") as f:
             # Read marker
             marker = f.read(1).decode('utf-8')
             # Decode based on the marker
             if marker == _TRACE_MARKER:
                 entry_sz = self._ffi.sizeof(_TRACE_ENTRY_T)
+                if (os.stat(trace_path).st_size < entry_sz):
+                    return True
                 # Decode last entry
                 f.seek(-entry_sz, os.SEEK_END)
                 last_entry = self.decode_trace_entry(f.read(entry_sz))
@@ -280,6 +286,8 @@ class TraceDecoder:
 
             if marker == _DEBUG_TRACE_MARKER:
                 entry_sz = self._ffi.sizeof(_DEBUG_TRACE_ENTRY_T)
+                if (os.stat(trace_path).st_size < entry_sz):
+                    return True
                 # Decode last entry
                 f.seek(-entry_sz, os.SEEK_END)
                 last_dbg_entry = self.decode_debug_trace_entry(f.read(entry_sz))
