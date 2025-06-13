@@ -9,26 +9,27 @@
 #include <cstdint>
 #include <memory>
 #include <string>
-#include <vector>
 
 #include <dr_api.h> // NOLINT
+#include <dr_defines.h>
 #include <dr_tools.h>
 #include <drmgr.h>
+#include <drwrap.h>
 
 #include "cli.hpp"
 #include "dispatcher.hpp"
 #include "factory.hpp"
 #include "observables.hpp"
+#include "util.hpp"
 
 using std::string;
+
+/// Defined by model.cpp
+extern std::unique_ptr<Dispatcher> glob_dispatcher; // NOLINT
 
 // =================================================================================================
 // Runtime functions
 // =================================================================================================
-
-/// glob_module_bundle: Callback functions do not have access to the class instance,
-/// so we pass the module bundle as a static variable.
-static module_bundle_t *glob_module_bundle = nullptr; // NOLINT
 
 /// @brief Dispatch function that calls the per-instruction functions in the service modules
 /// @param mc Machine context of the current instruction
@@ -36,12 +37,12 @@ static module_bundle_t *glob_module_bundle = nullptr; // NOLINT
 /// @param instr Observables of the current instruction
 /// @return The PC of the next instruction to be executed (if redirection is necessary);
 ///         otherwise, 0 (zero)
-static pc_t instruction_dispatch(dr_mcontext_t *mc, void *dc, const module_bundle_t *bundle,
+static pc_t instruction_dispatch(dr_mcontext_t *mc, void *dc, const Dispatcher *dispatcher,
                                  instr_obs_t instr)
 {
-    bundle->logger->log_instruction(instr, mc, bundle->speculator->get_nesting_level());
-    bundle->tracer->observe_instruction(instr, mc);
-    const pc_t next_pc = bundle->speculator->handle_instruction(instr, mc, dc);
+    dispatcher->logger->log_instruction(instr, mc, dispatcher->speculator->get_nesting_level());
+    dispatcher->tracer->observe_instruction(instr, mc);
+    const pc_t next_pc = dispatcher->speculator->handle_instruction(instr, mc, dc);
     return next_pc;
 }
 
@@ -52,18 +53,16 @@ static pc_t instruction_dispatch(dr_mcontext_t *mc, void *dc, const module_bundl
 /// @param pc
 /// @return The PC of the next instruction to be executed (if redirection is necessary);
 ///         otherwise, 0 (zero)
-static pc_t mem_access_dispatch(void *dc, dr_mcontext_t *mc, const module_bundle_t *bundle, pc_t pc)
+static pc_t mem_access_dispatch(void *dc, dr_mcontext_t *mc, const Dispatcher *dispatcher, pc_t pc)
 {
     // decode the instruction to extract its memory references
     instr_noalloc_t noalloc;
     instr_noalloc_init(dc, &noalloc);
     instr_t *instr = instr_from_noalloc(&noalloc);
     byte *next_pc = decode(dc, (byte *)pc, instr);
-    if (next_pc == nullptr) {
-        dr_printf("[ERROR] mem_access_dispatch: Failed to decode instruction\n");
-        dr_abort();
-        return 0;
-    }
+
+    DR_ASSERT_MSG(next_pc != nullptr,
+                  "[ERROR] mem_access_dispatch: Failed to decode instruction\n");
 
     // Identify the size of the memory reference
     // (assumed that all memory references for the instruction are of the same size)
@@ -74,10 +73,10 @@ static pc_t mem_access_dispatch(void *dc, dr_mcontext_t *mc, const module_bundle
     bool is_write = false;
     app_pc addr = nullptr;
     while (instr_compute_address_ex(instr, mc, index, &addr, &is_write)) {
-        bundle->logger->log_mem_access(is_write, addr, size);
-        bundle->tracer->observe_mem_access(is_write, addr, size);
-        if (not bundle->speculator->handle_mem_access(is_write, (void *)addr, size)) {
-            return bundle->speculator->rollback(mc);
+        dispatcher->logger->log_mem_access(is_write, addr, size);
+        dispatcher->tracer->observe_mem_access(is_write, addr, size);
+        if (not dispatcher->speculator->handle_mem_access(is_write, (void *)addr, size)) {
+            return dispatcher->speculator->rollback(mc);
         }
 
         index++;
@@ -93,11 +92,13 @@ static pc_t mem_access_dispatch(void *dc, dr_mcontext_t *mc, const module_bundle
 /// @param has_mem_ref Flag indicating whether the instruction has a memory reference
 static void dispatch_callback(uint64_t opcode, uint64_t pc, uint64_t has_mem_ref)
 {
-    const module_bundle_t *bundle = glob_module_bundle;
-    if (bundle == nullptr) {
-        dr_printf("[ERROR] dispatch_callback: module bundle is null\n");
-        dr_abort();
-        return; // unreachable
+    // Get the global dispatcher
+    const Dispatcher *dispatcher = glob_dispatcher.get();
+    DR_ASSERT_MSG(dispatcher != nullptr, "[ERROR] glob_dispatcher is null\n");
+
+    // Nothing to do if we're outside of the instrumented function
+    if (not dispatcher->is_instrumentation_on()) {
+        return;
     }
 
     // get current context
@@ -113,7 +114,7 @@ static void dispatch_callback(uint64_t opcode, uint64_t pc, uint64_t has_mem_ref
     };
 
     // pass down to instruction dispatch functions and redirect execution if needed
-    pc_t next_pc = instruction_dispatch(&mc, drcontext, bundle, instr);
+    pc_t next_pc = instruction_dispatch(&mc, drcontext, dispatcher, instr);
     if (next_pc != 0) {
         mc.pc = (byte *)next_pc;
         dr_redirect_execution(&mc);
@@ -125,7 +126,7 @@ static void dispatch_callback(uint64_t opcode, uint64_t pc, uint64_t has_mem_ref
     }
 
     // pass down to memory access dispatch functions and redirect execution if needed
-    next_pc = mem_access_dispatch(drcontext, &mc, bundle, instr.pc);
+    next_pc = mem_access_dispatch(drcontext, &mc, dispatcher, instr.pc);
     if (next_pc != 0) {
         mc.pc = (byte *)next_pc;
         dr_redirect_execution(&mc);
@@ -134,38 +135,77 @@ static void dispatch_callback(uint64_t opcode, uint64_t pc, uint64_t has_mem_ref
     dr_set_mcontext(drcontext, &mc);
 }
 
-bool Dispatcher::handle_exception(void * /*drcontext*/, dr_siginfo_t *siginfo)
+/// @brief Callback function called upon return from the instrumented function
+static void exit_callback()
 {
-    module_bundle->logger->log_exception(siginfo);
-    // Architectural exceptions are redirected to the program
-    if (!module_bundle->speculator->in_speculation) {
-        dr_printf("[XCPT] Dispatcher::handle_exception: exception on a non-speculative path\n");
-        module_bundle->tracer->observe_exception(siginfo);
-        return false;
+    // Get the global dispatcher
+    Dispatcher *dispatcher = glob_dispatcher.get();
+    DR_ASSERT_MSG(dispatcher != nullptr, "[ERROR] glob_dispatcher is null\n");
+    DR_ASSERT_MSG(dispatcher->is_instrumentation_on(),
+                  "[ERROR] Instrumentation disabled when exiting instrumented function");
+
+    // get current context
+    void *drcontext = dr_get_current_drcontext();
+    dr_mcontext_t mc = {sizeof(mc), DR_MC_ALL};
+    dr_get_mcontext(drcontext, &mc);
+
+    // Rollback speculation if we're speculatively exiting the target function
+    if (dispatcher->speculator->in_speculation) {
+        // Perform rollback
+        const pc_t newpc = dispatcher->speculator->rollback(&mc);
+        mc.pc = (byte *)newpc;
+        dr_redirect_execution(&mc);
+        return; // unreachable
     }
 
-    // Abort speculation on speculative exceptions
-    module_bundle->speculator->handle_exception(siginfo);
-    return true;
+    // Architectural exit: stop the instrumentation
+    flush_bb_cache();
+    dispatcher->finalize();
+    dr_set_mcontext(drcontext, &mc);
+}
+
+bool Dispatcher::handle_exception(void * /*drcontext*/, dr_siginfo_t *siginfo) const
+{
+    logger->log_exception(siginfo);
+    if (speculator->in_speculation) {
+        // Abort speculation on speculative exceptions
+        speculator->handle_exception(siginfo);
+        // Perform rollback
+        dr_mcontext_t *mc = siginfo->mcontext;
+        const pc_t newpc = speculator->rollback(mc);
+        mc->pc = (byte *)newpc;
+        return true;
+    }
+
+    // Architectural exceptions are redirected to the program
+    dr_printf("[XCPT] Dispatcher::handle_exception: exception on a non-speculative path\n");
+    tracer->observe_exception(siginfo);
+    return false;
 }
 
 // =================================================================================================
 // Instrumentation-time Methods
 // =================================================================================================
-void Dispatcher::start(void *wrapctx, DR_PARAM_OUT void **user_data)
+void Dispatcher::start(void * /*wrapctx*/, void ** /*user_data*/)
 {
+    DR_ASSERT_MSG(not instrumentation_on,
+                  "[ERROR] Starting instrumentation multiple times is not supported.");
+
     instrumentation_on = true;
 
     // Turn service modules on
-    module_bundle->tracer->tracing_start(wrapctx, user_data);
-    module_bundle->speculator->enable();
+    tracer->tracing_start();
+    speculator->enable();
 }
 
-void Dispatcher::finalize(void *wrapctx, DR_PARAM_OUT void *user_data)
+void Dispatcher::finalize()
 {
+    if (not instrumentation_on)
+        return;
+
     // Turn service modules off
-    module_bundle->tracer->tracing_finalize(wrapctx, user_data);
-    module_bundle->speculator->disable();
+    tracer->tracing_finalize();
+    speculator->disable();
 
     instrumentation_on = false;
 }
@@ -173,7 +213,7 @@ void Dispatcher::finalize(void *wrapctx, DR_PARAM_OUT void *user_data)
 dr_emit_flags_t Dispatcher::instrument_instruction(void *drcontext, instrlist_t *bb,
                                                    instr_t *instr) const
 {
-    // Nothing to do if we're outside of the instrumentation function
+    // Nothing to do if we're outside of the instrumented function
     if (not instrumentation_on) {
         return DR_EMIT_DEFAULT;
     }
@@ -186,39 +226,41 @@ dr_emit_flags_t Dispatcher::instrument_instruction(void *drcontext, instrlist_t 
 
     // Get instruction parameters
     const opnd_t opcode = OPND_CREATE_INT64(instr_get_opcode(org_instr));
-    const opnd_t pc = OPND_CREATE_INTPTR(instr_get_app_pc(org_instr));
+    const opnd_t pc_op = OPND_CREATE_INTPTR(instr_get_app_pc(org_instr));
     const opnd_t has_mem_ref =
         OPND_CREATE_INT64(instr_reads_memory(org_instr) or instr_writes_memory(org_instr));
 
-    // Add a clean call to the dispatch callback, which will forward the call to the service modules
-    dr_insert_clean_call(drcontext, bb, instr, (void *)dispatch_callback, false, 3, opcode, pc,
+    // Add a clean call to the dispatch callback, which will forward the call to the service
+    // modules
+    dr_insert_clean_call(drcontext, bb, instr, (void *)dispatch_callback, false, 3, opcode, pc_op,
                          has_mem_ref);
 
+    return DR_EMIT_DEFAULT;
+}
+
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+dr_emit_flags_t Dispatcher::instrument_exit(void *drcontext, instrlist_t *bb, instr_t *instr) const
+{
+    dr_insert_clean_call(drcontext, bb, instr, (void *)exit_callback, false, 0);
     return DR_EMIT_DEFAULT;
 }
 
 // =================================================================================================
 // Constructors and Destructors
 // =================================================================================================
-Dispatcher::Dispatcher(cli_args_t *cli_args)
+Dispatcher::Dispatcher(cli_args_t *cli_args) : instrumentation_on(false)
 {
     // Create service modules
-    module_bundle = std::make_unique<module_bundle_t>();
-    module_bundle->logger =
-        create_logger(cli_args->debug_output, cli_args->log_level, cli_args->print_dbg_trace);
-    module_bundle->tracer = create_tracer(cli_args->tracer_type, cli_args->trace_output,
-                                          *module_bundle->logger, cli_args->print_trace);
-    module_bundle->speculator =
-        create_speculator(cli_args->speculator_type, cli_args->max_nesting,
-                          cli_args->max_spec_window, *module_bundle->logger);
-
-    // Make the bundle available to the dispatch callback
-    glob_module_bundle = module_bundle.get();
+    logger = create_logger(cli_args->debug_output, cli_args->log_level, cli_args->print_dbg_trace);
+    tracer = create_tracer(cli_args->tracer_type, cli_args->trace_output, *logger,
+                           cli_args->print_trace);
+    speculator = create_speculator(cli_args->speculator_type, cli_args->max_nesting,
+                                   cli_args->max_spec_window, *logger);
 }
 
 Dispatcher::~Dispatcher()
 {
-    module_bundle->tracer.reset();
-    module_bundle->speculator.reset();
-    module_bundle.reset();
+    logger.reset();
+    tracer.reset();
+    speculator.reset();
 }

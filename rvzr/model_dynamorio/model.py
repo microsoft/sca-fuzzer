@@ -210,7 +210,7 @@ class DynamoRIOModel(Model):
         :raises: FileNotFoundError if the DynamoRIO backend is not installed
         """
         if not cls._installation_checked:  # check only once
-            cmd = _DRRUN_CMD.format(flags="", binary="ls", args="/dev/null")
+            cmd = _DRRUN_CMD.format(flags="--trace-output /dev/null", binary="ls", args="/dev/null")
             try:
                 output = check_output(cmd, shell=True, stderr=STDOUT).decode("utf-8")
             except (FileNotFoundError, CalledProcessError):
