@@ -8,44 +8,18 @@
 
 #include <cstdint>
 #include <string>
-#include <vector>
 
 #include <dr_api.h> // NOLINT
 #include <dr_defines.h>
 #include <dr_events.h>
 #include <drvector.h>
 
+#include "logger.hpp"
 #include "observables.hpp"
+#include "types/file_buffer.hpp"
+#include "types/trace.hpp"
 
 using std::uint64_t;
-
-// =================================================================================================
-// Constants and Types
-// =================================================================================================
-enum class trace_entry_type_t : uint8_t {
-    ENTRY_EOT = 0, // end of trace
-    ENTRY_PC = 1,
-    ENTRY_READ = 2,
-    ENTRY_WRITE = 3,
-    ENTRY_REG_DUMP = 4
-};
-
-struct trace_entry_t {
-    trace_entry_type_t type; // see trace_entry_type_t
-    pc_t addr;               // pc for instructions; address for memory accesses
-    uint64_t size; // instruction size for instructions; memory access size for memory accesses
-};
-
-struct dbg_trace_entry_t {
-    trace_entry_type_t type; // always ENTRY_REG_DUMP
-    uint64_t xax;
-    uint64_t xbx;
-    uint64_t xcx;
-    uint64_t xdx;
-    uint64_t xsi;
-    uint64_t xdi;
-    pc_t pc;
-};
 
 // =================================================================================================
 // Class Definition
@@ -55,18 +29,16 @@ struct dbg_trace_entry_t {
 class TracerABC
 {
   public:
-    TracerABC(bool enable_dbg_trace_, bool enable_bin_output_);
+    TracerABC(const std::string &out_path, Logger &logger, bool print);
     virtual ~TracerABC() = default;
     TracerABC(const TracerABC &) = delete;
     TracerABC &operator=(const TracerABC &) = delete;
     TracerABC(TracerABC &&) = delete;
     TracerABC &operator=(TracerABC &&) = delete;
 
-    /// @param Buffer containing collected trace entries
-    std::vector<trace_entry_t> trace;
-
-    /// @param Buffer containing collected debug trace entries
-    std::vector<dbg_trace_entry_t> dbg_trace;
+    static constexpr const unsigned buf_sz = 8 * 1024;
+    /// @param  Buffer containing collected trace entries
+    FileBackedBuf<trace_entry_t, buf_sz> trace;
 
     // ---------------------------------------------------------------------------------------------
     // Public Methods
@@ -103,19 +75,19 @@ class TracerABC
     /// @return void
     virtual void observe_mem_access(bool is_write, void *address, uint64_t size);
 
+    /// @brief Record an architectural exception with a special marker in the trace.
+    /// @param siginfo Information about the exception coming from DynamoRIO.
+    void observe_exception(dr_siginfo_t *siginfo);
+
   protected:
     // ---------------------------------------------------------------------------------------------
     // Protected Fields
-
-    /// @param If true, outputs the trace entries in raw binary format
-    bool enable_bin_output = false;
-
-    /// @param If true, the tracer will collect data for Revizor's model debug mode
-    bool enable_dbg_trace = false;
-
     /// @param If true, the tracer will instrument the instructions in the traced function
     bool tracing_on = false;
 
     /// @param If true, tracing has been finalized; no more tracing is allowed
     bool tracing_finalized = false;
+
+    /// @param Where to log events for debugging
+    Logger &logger;
 };

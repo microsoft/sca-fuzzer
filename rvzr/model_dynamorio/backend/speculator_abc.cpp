@@ -75,10 +75,9 @@ bool SpeculatorABC::skip_speculation() const
 
 void SpeculatorABC::checkpoint(dr_mcontext_t *mc, pc_t pc)
 {
-    // dr_printf("[INFO] SpeculatorABC::checkpoint: checkpointing at %llx\n", (long long)pc);
-
     // store the register state and the rollback address
     checkpoints.push_back({.rollback_pc = pc, .spec_window = spec_window, .mc = *mc});
+    logger.log_checkpoint(pc, spec_window, store_log.size());
 
     // update the state machine that tracks the speculation proces
     in_speculation = true;
@@ -108,6 +107,7 @@ pc_t SpeculatorABC::rollback(dr_mcontext_t *mc)
         // Try restoring the previous value in memory.
         size_t w_size = 0;
         const bool success = dr_safe_write((byte *)store.addr, store.size, &store.val, &w_size);
+        logger.log_rollback_store(store.addr, store.val, w_size, store.nesting_level);
 
         // The rollback should always be successful.
         // NOTE: The following cases are already handled elsewhere:
@@ -144,13 +144,12 @@ pc_t SpeculatorABC::rollback(dr_mcontext_t *mc)
         }
     }
 
-    // dr_printf("[INFO] SpeculatorABC::rollback: %llx\n", (long long)checkpoint.rollback_pc);
+    logger.log_rollback(nesting, checkpoint.rollback_pc);
     return checkpoint.rollback_pc;
 }
 
 pc_t SpeculatorABC::handle_instruction(instr_obs_t instr, dr_mcontext_t *mc, void *dc)
 {
-    // dr_printf("[INFO] handling %lx\n", (long)instr.pc);
     // the last instruction committed: all entries in the store_log are valid
     store_log.update_committed();
 

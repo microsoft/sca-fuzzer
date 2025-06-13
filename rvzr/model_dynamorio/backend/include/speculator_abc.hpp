@@ -6,12 +6,13 @@
 
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 
 #include <dr_api.h> // NOLINT
 
-#include "dr_events.h"
+#include "logger.hpp"
 #include "observables.hpp"
 
 using std::uint64_t;
@@ -88,8 +89,8 @@ class StoreLog
 class SpeculatorABC
 {
   public:
-    SpeculatorABC(int max_nesting_, int max_spec_window_)
-        : max_nesting(max_nesting_), max_spec_window(max_spec_window_)
+    SpeculatorABC(int max_nesting_, int max_spec_window_, Logger &logger)
+        : max_nesting(max_nesting_), max_spec_window(max_spec_window_), logger(logger)
     {
     }
     virtual ~SpeculatorABC() = default;
@@ -109,6 +110,7 @@ class SpeculatorABC
 
     void enable();
     void disable();
+    [[nodiscard]] unsigned int get_nesting_level() const { return nesting; }
 
     /// @brief Rollback to the last checkpoint, thus undoing all speculative changes to the process
     ///        state.
@@ -177,6 +179,9 @@ class SpeculatorABC
 
     /// @param Current speculation window
     unsigned int spec_window = 0;
+
+    /// @param Used to log checkpoint and rollback events
+    Logger &logger;
 
     // ---------------------------------------------------------------------------------------------
     // Protected Methods

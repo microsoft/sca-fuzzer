@@ -9,7 +9,9 @@ from __future__ import annotations
 import os
 import tempfile
 from subprocess import check_output, CalledProcessError, STDOUT
-from typing import List, Tuple, Optional, TYPE_CHECKING, Final, Any, Dict, Literal
+from typing import List, Tuple, Optional, TYPE_CHECKING, Final, Any
+
+from .trace_decoder import TraceDecoder, TraceEntryType, DebugTraceEntryType
 
 from ..model import Model
 from ..sandbox import BaseAddrTuple, SandboxLayout
@@ -21,15 +23,10 @@ if TYPE_CHECKING:
     from ..tc_components.test_case_code import TestCaseProgram
     from ..tc_components.test_case_data import InputData, InputTaint
 
-
-_DRRUN_TRACING_FLAGS: Final[str] = " --enable-bin-output" + \
-    " --instrumented-func test_case_entry"
+_DRRUN_TRACING_FLAGS: Final[str] = " --instrumented-func test_case_entry "
 _ADAPTER_PATH: Final[str] = "~/.local/dynamorio/adapter"
-_DRRUN_CMD: Final[str] = "~/.local/dynamorio/drrun " \
-    "-c ~/.local/dynamorio/libdr_model.so {flags} -- {binary} {args}"
-
-_TRACE_TYPE = Literal["eot", "pc", "mem", "reg"]
-_TRACE_ID_TO_NAME: Final[Dict[int, _TRACE_TYPE]] = {0: "eot", 1: "pc", 2: "mem", 3: "mem", 4: "reg"}
+_DRRUN_CMD: Final[str] = "~/.local/dynamorio/drrun -c ~/.local/dynamorio/libdr_model.so " \
+    " {flags} -- {binary} {args}"
 
 
 class DynamoRIOModel(Model):
@@ -45,6 +42,9 @@ class DynamoRIOModel(Model):
     _rcbf_file: Optional[str] = None  # tmp file storing the current test case in RCBF format
     _rdbf_file: Optional[str] = None  # tmp file storing the current input sequence in RDBF format
 
+    _trace_file: str = ""
+    _dbg_trace_file: str = ""
+
     # ----------------------------------------------------------------------------------------------
     # Constructor/Destructor
     def __init__(self,
@@ -55,6 +55,11 @@ class DynamoRIOModel(Model):
         #       for customization of the memory layout
         self._enable_mismatch_check_mode = enable_mismatch_check_mode
         self.is_speculative = True  # may be changed by configure_clauses
+
+        with tempfile.NamedTemporaryFile("wb", delete=False) as trace_f:
+            self._trace_file = trace_f.name
+        with tempfile.NamedTemporaryFile("wb", delete=False) as dbg_trace_f:
+            self._dbg_trace_file = dbg_trace_f.name
 
     def __del__(self) -> None:
         if self._rcbf_file is not None and os.path.exists(self._rcbf_file):
@@ -103,6 +108,7 @@ class DynamoRIOModel(Model):
         save_input_sequence_as_rdbf(inputs, self._rdbf_file)
 
         # call the backend
+        self._clean_trace_files()
         cmd = self._construct_drrun_cmd()
         output = check_output(cmd, shell=True)
         assert len(output) >= 16, "No traces were generated"
@@ -112,10 +118,11 @@ class DynamoRIOModel(Model):
         data_base_addr = int.from_bytes(output[8:16], byteorder="little")
         self.layout = SandboxLayout((data_base_addr, code_base_addr), self._test_case.n_actors())
 
-        # the remainder of the output is raw traces; parse it and remove irrelevant entries
+        # read traces from the trace files
         reader = _TraceReader(self.layout, self._test_case)
-        traces, dbg_traces = reader.decode_traces(output[16:])
+        traces, dbg_traces = reader.decode_traces(self._trace_file, self._dbg_trace_file)
         assert len(traces) == len(inputs), "Mismatch between the number of inputs and traces"
+        self._clean_trace_files()
 
         if self._enable_mismatch_check_mode:
             # In this mode, the contract trace is the register values at the end of the test case
@@ -222,14 +229,22 @@ class DynamoRIOModel(Model):
             f" --tracer {self._obs_clause_name}" + \
             f" --speculator {self._exec_clause_name}" + \
             f" --max-nesting {CONF.model_max_nesting}" + \
-            f" --max-spec-window {CONF.model_max_spec_window}"
+            f" --max-spec-window {CONF.model_max_spec_window}" \
+            f" --trace-output {self._trace_file}"
         if self._enable_mismatch_check_mode:
-            flags += " --enable-debug-trace"
+            flags += f" --log-level 1 --debug-trace-output {self._dbg_trace_file}"
         binary = _ADAPTER_PATH
         args = f"{self._rcbf_file} {self._rdbf_file}"
         cmd = _DRRUN_CMD.format(flags=flags, binary=binary, args=args)
         # print(cmd)
         return cmd
+
+    def _clean_trace_files(self) -> None:
+        # Truncate trace files if they exist, or create new if they don't
+        with open(self._trace_file, 'wb') as tf:
+            tf.truncate()
+        with open(self._dbg_trace_file, 'wb') as dbg_tf:
+            dbg_tf.truncate()
 
 
 class _TraceReader:
@@ -242,8 +257,9 @@ class _TraceReader:
     def __init__(self, layout: SandboxLayout, test_case: TestCaseProgram) -> None:
         self._layout = layout
         self._test_case = test_case
+        self._decoder = TraceDecoder()
 
-    def decode_traces(self, dr_output: bytes) -> Tuple[List[CTrace], List[CTrace]]:
+    def decode_traces(self, trace_path: str, dbg_path: str) -> Tuple[List[CTrace], List[CTrace]]:
         """
         Read the traces produced by the DynamoRIO backend and return them in the format
         that is expected by the contract model.
@@ -252,116 +268,59 @@ class _TraceReader:
         traces: List[CTrace] = []
         dbg_traces: List[CTrace] = []
 
-        # iterate over the binary and parse the entries
-        i = 0
-        while i < len(dr_output):
-            type_ = self._decode_next_entry_type(dr_output, i)
+        # iterate over the binary trace and parse the entries
+        raw_traces, _ = self._decoder.decode_trace_file(trace_path)
+        assert len(_) == 0
+        for raw_trace in raw_traces:
+            converted = self._raw_to_ctrace(raw_trace)
+            if converted:
+                traces.append(converted)
 
-            if type_ in ("mem", "pc"):
-                trace, increment = self._decode_trace(dr_output[i:])
-                traces.append(trace)
-                i += increment
-                continue
+        # do the same for debug traces
+        _, raw_dbg_traces = self._decoder.decode_trace_file(dbg_path)
+        assert len(_) == 0
+        for raw_dbg_trace in raw_dbg_traces:
+            converted = self._raw_dbg_to_ctrace(raw_dbg_trace)
+            if converted:
+                dbg_traces.append(converted)
 
-            if type_ == "reg":
-                trace, increment = self._decode_dbg_trace(dr_output[i:])
-                dbg_traces.append(trace)
-                i += increment
-                continue
-
-            raise ValueError(f"Unexpected entry type at the beginning of a trace: {type_}")
-
+        # trim non relevant entries
         traces = self._trim_traces(traces)
         if dbg_traces:
             dbg_traces = self._trim_dbg_traces(traces, dbg_traces)
 
         return traces, dbg_traces
 
-    def _decode_trace(self, bin_traces: bytes) -> Tuple[CTrace, int]:
-        """
-        Decode the next trace in the binary, according to this format:
-            - entry: <type: uint64_t> <addr: uint64_t> <size: uint64_t>
-            ... (repeated for N entries)
-            - exit: <EOT: uint64_t> <0: uint64_t> <0: uint64_t>
-        :param bin_traces: the compressed output of the DynamoRIO backend
-        :return: decoded trace + the number of bytes consumed
-        """
+    def _raw_to_ctrace(self, raw_trace: list[Any]) -> CTrace:
         trace: List[CTraceEntry] = []
-        type_: _TRACE_TYPE
-        i = 0
-        while i < len(bin_traces):
-            type_ = self._decode_next_entry_type(bin_traces, i)
-            if type_ == "eot":
-                i += 24
-                break
 
-            val = int.from_bytes(bin_traces[i + 8:i + 16], byteorder="little")
-            # NOTE: size (bytes 16-24) is unused
-
-            if type_ == "mem":
-                val = self._layout.data_addr_to_offset(val)
-                trace.append(CTraceEntry(type_=type_, value=val))
-                i += 24
-                continue
-            if type_ == "pc":
-                val = self._layout.code_addr_to_offset(val)
-                trace.append(CTraceEntry(type_=type_, value=val))
-                i += 24
-                continue
-            raise ValueError(f"Unexpected entry type in contract trace: {type_}")
-
-        assert type_ == "eot", "Reached the end of the binary without finding the EOT"
-        return CTrace(trace), i
-
-    def _decode_dbg_trace(self, bin_traces: bytes) -> Tuple[CTrace, int]:
-        """ Decode the first debug trace in the binary, according to this format:
-            - dbg_entry: <type: uint64_t> <xax: uint64_t> <xbx: uint64_t> <xcx: uint64_t>
-                        <xdx: uint64_t> <xsi: uint64_t> <xdi: uint64_t> <pc: uint64_t>
-            ... (repeated for N entries)
-            - dbg_exit: <EOT: uint64_t> <0: uint64_t> <0: uint64_t>
-        :param bin_traces: the compressed output of the DynamoRIO backend
-        :return: decoded debug trace + the number of bytes consumed
-        """
-        trace: List[CTraceEntry] = []
-        type_: _TRACE_TYPE
-        i = 0
-        while i < len(bin_traces):
-            type_ = self._decode_next_entry_type(bin_traces, i)
-            if type_ == "eot":
-                i += 24
-                break
-
-            if type_ == "reg":
-                val = int.from_bytes(bin_traces[i + 56:i + 64], byteorder="little")
-                val = self._layout.code_addr_to_offset(val)
+        for entry in raw_trace:
+            type_ = TraceEntryType(entry.type)
+            if type_ in (TraceEntryType.ENTRY_READ, TraceEntryType.ENTRY_WRITE):
+                val = self._layout.data_addr_to_offset(entry.addr)
+                trace.append(CTraceEntry(type_="mem", value=val))
+            elif type_ == TraceEntryType.ENTRY_PC:
+                val = self._layout.code_addr_to_offset(entry.addr)
                 trace.append(CTraceEntry(type_="pc", value=val))
-                val = int.from_bytes(bin_traces[i + 8:i + 16], byteorder="little")
-                trace.append(CTraceEntry(type_=type_, value=val))
-                val = int.from_bytes(bin_traces[i + 16:i + 24], byteorder="little")
-                trace.append(CTraceEntry(type_=type_, value=val))
-                val = int.from_bytes(bin_traces[i + 24:i + 32], byteorder="little")
-                trace.append(CTraceEntry(type_=type_, value=val))
-                val = int.from_bytes(bin_traces[i + 32:i + 40], byteorder="little")
-                trace.append(CTraceEntry(type_=type_, value=val))
-                val = int.from_bytes(bin_traces[i + 40:i + 48], byteorder="little")
-                trace.append(CTraceEntry(type_=type_, value=val))
-                val = int.from_bytes(bin_traces[i + 48:i + 56], byteorder="little")
-                trace.append(CTraceEntry(type_=type_, value=val))
-                i += 64
-                continue
-            raise ValueError(f"Unexpected entry type in debug trace: {type_}")
 
-        assert type_ == "eot", "Reached the end of the binary without finding the EOT"
-        return CTrace(trace), i
+        return CTrace(trace)
 
-    def _decode_next_entry_type(self, bin_traces: bytes, cursor: int) -> _TRACE_TYPE:
-        """ Decode the entry type and return the type and the number of bytes consumed """
-        type_id = int.from_bytes(bin_traces[cursor:cursor + 1], byteorder="little")
-        if type_id not in _TRACE_ID_TO_NAME:
-            raise ValueError(f"Unknown trace type ID: {type_id}")
-        type_ = _TRACE_ID_TO_NAME[type_id]
-        # print(type_)
-        return type_
+    def _raw_dbg_to_ctrace(self, raw_dbg_trace: list[Any]) -> CTrace:
+        trace: List[CTraceEntry] = []
+
+        for entry in raw_dbg_trace:
+            type_ = DebugTraceEntryType(entry.type)
+            if type_ == DebugTraceEntryType.ENTRY_REG_DUMP:
+                val = self._layout.code_addr_to_offset(entry.regs.pc)
+                trace.append(CTraceEntry(type_="pc", value=val))
+                trace.append(CTraceEntry(type_="reg", value=entry.regs.xax))
+                trace.append(CTraceEntry(type_="reg", value=entry.regs.xbx))
+                trace.append(CTraceEntry(type_="reg", value=entry.regs.xcx))
+                trace.append(CTraceEntry(type_="reg", value=entry.regs.xdx))
+                trace.append(CTraceEntry(type_="reg", value=entry.regs.xsi))
+                trace.append(CTraceEntry(type_="reg", value=entry.regs.xdi))
+
+        return CTrace(trace)
 
     def _trim_traces(self, traces: List[CTrace]) -> List[CTrace]:
         """

@@ -14,10 +14,12 @@
 #include <dr_api.h> // NOLINT
 
 #include "cli.hpp"
+#include "logger.hpp"
 #include "speculator_abc.hpp"
 #include "tracer_abc.hpp"
 
 struct module_bundle_t {
+    std::unique_ptr<Logger> logger = nullptr;
     std::unique_ptr<TracerABC> tracer = nullptr;
     std::unique_ptr<SpeculatorABC> speculator = nullptr;
 };
