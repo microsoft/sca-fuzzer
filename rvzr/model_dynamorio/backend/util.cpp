@@ -108,3 +108,13 @@ bool is_illegal_jump(instr_obs_t instr, dr_mcontext_t *mc, void *dc)
     const bool target_is_valid = target_exists and target_is_executable;
     return not target_is_valid;
 }
+
+void flush_bb_cache()
+{
+    const uint64_t flush_begin = 0;
+    const size_t flush_size = -1;
+
+    // NOTE: This is very conservative, but avoids any potentially expensive analysis of
+    // the target function
+    dr_delay_flush_region((byte *)flush_begin, flush_size, /*flush_id*/ 0, /*callback*/ nullptr);
+}
