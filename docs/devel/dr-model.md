@@ -54,6 +54,36 @@ The loader implements the following algorithm:
 
 The DynamoRIO tool (`rvzr/model_dynamorio/backend`) is responsible for instrumenting the test case loader binary and collecting contract traces.
 
+### Implementation Overview
+
+All instrumentation logic is implemented as a DynamoRIO client. In particular,
+`model.cpp` contains the event callbacks that are executed at instrumentation time,
+while `dispatcher.cpp` contains the body of the callbacks that are inserted
+by the DR client and are executed before every instruction at runtime. Finally, the `Dispatcher` object holds the state that is
+shared between instrumentation-time callbacks and execution-time callbacks.
+
+The following figure provides an overview of the implementation.
+
+[![DynamoRIO Instrumentation Overview](../assets/dr-instrumentation.png)](../assets/dr-instrumentation.png)
+
+1. `dr_client_main()` is responsible of installing the initial instrumentation callbacks to hook all relevant DR events (`module_load`, `bb_translation`, exceptions and the `exit` event)
+2. `dr_client_main()` also sets the name of the function to instrument (passed by `cli.cpp`)
+3. on `module_load`, the instrumentation checks for the presence of the target function in the loaded module. If found, the callback adds a `drwarp` callback (`event_instrumentation_start`) which will be executed at the start of the target function
+4. once a call to the target function is found, the `event_instrumentation_start` will save the return address in a global object (`instrumented_func`) and call `start()` on the dispatcher
+5. from that moment on, every translated basic block is instrumented by our client, in particular:
+    - a `dispatch_callback()` is inserted before every instruction
+    - at the function exit point (i.e. the previously saved return addres) an `exit_callback` is inserted
+6. these callbacks are executed at runtime with the following effects:
+    - the `dispatch_callback()` implements the observation and execution clauses (see next section)
+    - the `exit_callback()` checks the current speculation state before exiting:
+        - speculative exits cause a rollback
+        - architectural exit causes the instrumentation to stop
+
+Finally, exceptions and the `exit` event are also forwarded to the Dispatcher:
+
+- Speculative **exceptions** will cause a rollback, while architectural ones are forwarded to the target program
+- The **exit** event stops instrumentation and flushes all logs (in case the exit callback has not been executed architecturally)
+
 ### Instrumentation Components
 
 The instrumentation components modify the binary of the test case loader by adding a call to the function `dispatch_callback` before every instruction in the binary (or more specifically, every instruction in the `test_case_entry` function of the loader).
