@@ -14,13 +14,14 @@ import os
 from cffi import FFI
 
 
-# -----------------------------------------------------------------------------
+# ==================================================================================================
 # Trace types
+# ==================================================================================================
 # TODO: autogenerate from trace.hpp
 # NOTE: cffi cannot parse CPP constructs (e.g. enum classes, sdt::array) so we
 #       need to manually adjust some of the fields.
-# -----------------------------------------------------------------------------
-class TraceEntryType (Enum):
+
+class TraceEntryType(Enum):
     """
     Enum used for the trace entry type, copied from trace.hpp
     TODO: Cffi cannot parse enum classes, find a way to autogenerate from the header file
@@ -49,13 +50,14 @@ struct trace_entry_t {
 _TRACE_MARKER: Final[str] = "T"
 
 
-# -----------------------------------------------------------------------------
+# ==================================================================================================
 # Debug Trace types
+# ==================================================================================================
 # TODO: autogenerate from debug_trace.hpp
 # NOTE: cffi cannot parse CPP constructs (e.g. enum classes, sdt::array) so we
 #       need to manually adjust some of the fields.
-# -----------------------------------------------------------------------------
-class DebugTraceEntryType (Enum):
+
+class DebugTraceEntryType(Enum):
     """
     Enum used for the debug trace entry type, copied from debug_trace.hpp
     TODO: Cffi cannot parse enum classes, find a way to autogenerate from the header file
@@ -145,9 +147,9 @@ struct debug_trace_entry_t {
 _DEBUG_TRACE_MARKER: Final[str] = "D"
 
 
-# -----------------------------------------------------------------------------
+# ==================================================================================================
 # Decoder
-# -----------------------------------------------------------------------------
+# ==================================================================================================
 class TraceDecoder:
     """
     This clas provides a unified API for decoding trace entries
@@ -271,14 +273,17 @@ class TraceDecoder:
         with open(trace_path, "rb") as f:
             # Read marker
             marker = f.read(1).decode('utf-8')
+
             # Decode based on the marker
             if marker == _TRACE_MARKER:
                 entry_sz = self._ffi.sizeof(_TRACE_ENTRY_T)
-                if (os.stat(trace_path).st_size < entry_sz):
+                if os.stat(trace_path).st_size < entry_sz:
                     return True
+
                 # Decode last entry
                 f.seek(-entry_sz, os.SEEK_END)
                 last_entry = self.decode_trace_entry(f.read(entry_sz))
+
                 # Check its type
                 last_entry_type = TraceEntryType(last_entry.type)
                 expected = (TraceEntryType.ENTRY_EOT, TraceEntryType.ENTRY_EXCEPTION)
@@ -286,11 +291,13 @@ class TraceDecoder:
 
             if marker == _DEBUG_TRACE_MARKER:
                 entry_sz = self._ffi.sizeof(_DEBUG_TRACE_ENTRY_T)
-                if (os.stat(trace_path).st_size < entry_sz):
+                if os.stat(trace_path).st_size < entry_sz:
                     return True
+
                 # Decode last entry
                 f.seek(-entry_sz, os.SEEK_END)
                 last_dbg_entry = self.decode_debug_trace_entry(f.read(entry_sz))
+
                 # Check its type
                 last_dbg_entry_type = DebugTraceEntryType(last_dbg_entry.type)
                 expected_dbg = (DebugTraceEntryType.ENTRY_EOT, DebugTraceEntryType.ENTRY_EXCEPTION)
