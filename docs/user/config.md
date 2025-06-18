@@ -420,6 +420,14 @@ Default: 16
 Entropy of the random values created by the input generator. The maximum value is 31.
 
 ```yaml
+Name: input_gen_probability_of_special_value
+Default: 0.05
+```
+
+If non-zero, the input generator will generate not only random values for the input data, but also, with a given probability,
+special values, such as zero or the maximum integer value (MAX INT). This is used to test fast paths in the microarchitecture.
+
+```yaml
 Name: inputs_per_class
 Default: 2
 ```

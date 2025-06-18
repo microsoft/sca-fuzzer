@@ -7,8 +7,8 @@ SPDX-License-Identifier: MIT
 import os
 import random
 import numpy as np
-from typing import List, Tuple
-from .interfaces import Input, InputTaint, InputGenerator, InputFragment
+from typing import List, Tuple, Final
+from .interfaces import Input, InputTaint, InputGenerator, InputFragment, GPR_SUBREGION_SIZE
 from .config import CONF
 from .util import Logger
 
@@ -21,11 +21,17 @@ class NumpyRandomInputGenerator(InputGenerator):
     _state: int = 0
     _boosting_state: int = 0
     n_actors = 1
+    max_gpr_value: Final[int] = pow(2, 64) - 1
 
     def __init__(self, seed: int):
         super().__init__(seed)
         self.LOG = Logger()
-        self.max_input_value = pow(2, CONF.input_gen_entropy_bits)
+
+        self.max_input_value = pow(2, CONF.input_gen_entropy_bits) - 1
+        self._probability_of_zero = CONF.input_gen_probability_of_special_value
+        self._probability_of_max = CONF.input_gen_probability_of_special_value * 2
+        assert self._probability_of_max < 1, \
+            "The sum of probabilities of special values must be less than 1."
 
     def _generate_one(self, state: int) -> Tuple[Input, int]:
         input_ = Input(self.n_actors)
@@ -46,6 +52,17 @@ class NumpyRandomInputGenerator(InputGenerator):
 
             # zero-fill the unused parts of the input
             input_[i]['padding'] = 0
+
+            # for each of the registers and with a probability of 0.01
+            # set the register to zero or to max value
+            if self._probability_of_zero <= 0:
+                continue
+            for reg_id in range(GPR_SUBREGION_SIZE // 8):
+                roll = rng.random()
+                if roll < self._probability_of_zero:
+                    input_[i]['gpr'][reg_id] = 0
+                elif roll < self._probability_of_max:
+                    input_[i]['gpr'][reg_id] = self.max_gpr_value
 
         return input_, state + 1
 

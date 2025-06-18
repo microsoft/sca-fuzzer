@@ -158,6 +158,10 @@ class Conf:
     """ input_gen_entropy_bits: entropy of the random values created by the input generator """
     inputs_per_class: int = 2
     """ inputs_per_class: number of inputs per input class """
+    input_gen_probability_of_special_value: float = 0.05
+    """ input_gen_probability_of_special_value: probability of generating a special value
+    (zero or maximum value) when setting a register value in the input generator. This is used
+    to test fast paths in the microarchitecture """
 
     # ==============================================================================================
     # Contract Model
