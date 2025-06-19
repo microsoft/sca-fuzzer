@@ -18,6 +18,8 @@
 
 #include "cli.hpp"
 #include "dispatcher.hpp"
+#include "dr_ir_instr.h"
+#include "dr_ir_opnd.h"
 #include "factory.hpp"
 #include "observables.hpp"
 #include "util.hpp"
@@ -40,7 +42,7 @@ extern std::unique_ptr<Dispatcher> glob_dispatcher; // NOLINT
 static pc_t instruction_dispatch(dr_mcontext_t *mc, void *dc, const Dispatcher *dispatcher,
                                  instr_obs_t instr)
 {
-    dispatcher->logger->log_instruction(instr, mc, dispatcher->speculator->get_nesting_level());
+    dispatcher->logger->log_instruction(instr, mc, dc, dispatcher->speculator->get_nesting_level());
     dispatcher->tracer->observe_instruction(instr, mc, dc);
     const pc_t next_pc = dispatcher->speculator->handle_instruction(instr, mc, dc);
     return next_pc;

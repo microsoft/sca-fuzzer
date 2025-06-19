@@ -22,6 +22,7 @@ enum class debug_trace_entry_type_t : uint8_t {
     ENTRY_ROLLBACK = 7,
     ENTRY_ROLLBACK_STORE = 8,
     ENTRY_REG_DUMP_EXTENDED = 9,
+    ENTRY_DEF_USE = 10,
 };
 
 /// @brief Pretty-printer for trace_entry_type_t
@@ -48,12 +49,23 @@ static constexpr const char *to_string(const debug_trace_entry_type_t &type)
         return "ROLLBACK";
     case debug_trace_entry_type_t::ENTRY_REG_DUMP_EXTENDED:
         return "REG_DUMP2";
+    case debug_trace_entry_type_t::ENTRY_DEF_USE:
+        return "DEF_USE";
     }
 
     return "UNKNOWN";
 }
 
 struct debug_trace_entry_t {
+    // Size of the initial padding
+    static constexpr const unsigned PADDING_SIZE = 8;
+    // Entries have a fixed size
+    static constexpr const unsigned TOTAL_SIZE = 64;
+    // Calculate how many characters of the module name fit in an entry
+    static constexpr const unsigned MAX_LOC_LEN = TOTAL_SIZE - PADDING_SIZE - sizeof(uint64_t);
+    // Calculate how many defined or used registers fit in an entry
+    static constexpr const unsigned MAX_REGS_NUM = ((TOTAL_SIZE - PADDING_SIZE) / 4) / 2;
+
     // What does this entry contain
     debug_trace_entry_type_t type;
     // Nested speculation (0 is architectural)
@@ -92,7 +104,7 @@ struct debug_trace_entry_t {
         // ENTRY_LOC (module name and offset, for disassembly)
         struct {
             uint64_t offset;
-            std::array<char, 48> module_name; // NOLINT
+            std::array<char, MAX_LOC_LEN> module_name;
         } loc;
         // ENTRY_EXCEPTION
         struct {
@@ -117,6 +129,13 @@ struct debug_trace_entry_t {
             size_t size;
             uint64_t nesting_level;
         } rollback_store;
+        // ENTRY_DEF_USE
+        struct {
+            uint16_t reg_def[MAX_REGS_NUM]; // NOLINT
+            uint16_t mem_def[MAX_REGS_NUM]; // NOLINT
+            uint16_t reg_use[MAX_REGS_NUM]; // NOLINT
+            uint16_t mem_use[MAX_REGS_NUM]; // NOLINT
+        } def_use;
     };
 
     /// @param Declare a marker to identify traces of this type
@@ -194,8 +213,45 @@ struct debug_trace_entry_t {
             out << " r10: 0x" << std::hex << regs_2.r10;
             out << " r11: 0x" << std::hex << regs_2.r11;
             break;
+        case debug_trace_entry_type_t::ENTRY_DEF_USE:
+            char delimiter = ' ';
+            out << "REG_DEFS = [";
+            for (const auto &reg_id : def_use.reg_def) {
+                if (reg_id == 0)
+                    break;
+                out << delimiter << " " << std::dec << (int)reg_id;
+                delimiter = ',';
+            }
+            out << "];  REG_USES = [";
+            delimiter = ' ';
+            for (const auto &reg_id : def_use.reg_use) {
+                if (reg_id == 0)
+                    break;
+                out << delimiter << " " << std::dec << (int)reg_id;
+                delimiter = ',';
+            }
+            out << "];  MEM_DEFS = [";
+            delimiter = ' ';
+            for (const auto &reg_id : def_use.mem_def) {
+                if (reg_id == 0)
+                    break;
+                out << delimiter << " " << std::dec << (int)reg_id;
+                delimiter = ',';
+            }
+            out << "];  MEM_USES = [";
+            delimiter = ' ';
+            for (const auto &reg_id : def_use.mem_use) {
+                if (reg_id == 0)
+                    break;
+                out << delimiter << " " << std::dec << (int)reg_id;
+                delimiter = ',';
+            }
+            out << "];";
+            break;
         }
 
         out << "\n";
     }
 };
+
+static_assert(sizeof(debug_trace_entry_t) == debug_trace_entry_t::TOTAL_SIZE);

@@ -18,6 +18,7 @@
 #include <dr_tools.h>
 
 #include "logger.hpp"
+#include "types/debug_trace.hpp"
 
 // =================================================================================================
 // Local helper functions
@@ -79,7 +80,8 @@ void Logger::close() { log.clear(); }
 // Logging methods
 // =================================================================================================
 
-void Logger::log_instruction(instr_obs_t instr, dr_mcontext_t *mc, unsigned int nesting_level)
+void Logger::log_instruction(instr_obs_t instr, dr_mcontext_t *mc, void *dc,
+                             unsigned int nesting_level)
 {
     if (not is_enabled())
         return;
@@ -125,6 +127,81 @@ void Logger::log_instruction(instr_obs_t instr, dr_mcontext_t *mc, unsigned int 
         // Move the recovered module name into the corresponding member of the entry
         std::move(module_name.begin(), module_name.end(), loc_entry.loc.module_name.begin());
         log.push_back(loc_entry);
+    }
+
+    if (log_level >= LOG_DEF_USE) {
+        // Decode the instruction
+        instr_noalloc_t noalloc;
+        instr_noalloc_init(dc, &noalloc);
+        instr_t *cur_instr = instr_from_noalloc(&noalloc);
+        byte *next_pc = decode(dc, (byte *)instr.pc, cur_instr);
+        DR_ASSERT_MSG(next_pc != nullptr,
+                      "[ERROR] cond_speculator: Failed to decode instruction\n");
+
+        debug_trace_entry_t def_use_entry = {};
+        def_use_entry.type = debug_trace_entry_type_t::ENTRY_DEF_USE;
+        def_use_entry.nesting_level = cur_nesting_level;
+
+        // Log source registers (uses)
+        int num_srcs = instr_num_srcs(cur_instr);
+        DR_ASSERT_MSG(num_srcs < debug_trace_entry_t::MAX_REGS_NUM,
+                      "Too many source registers to log DEF-USE");
+        int cur_src_reg_idx = 0;
+        int cur_src_mem_idx = 0;
+        for (int i = 0; i < num_srcs; i++) {
+            opnd_t src = instr_get_src(cur_instr, i);
+
+            if (opnd_is_reg(src)) {
+                reg_id_t reg = opnd_get_reg(src);
+                def_use_entry.def_use.reg_use[cur_src_reg_idx] = (uint16_t)reg;
+                cur_src_reg_idx += 1;
+            } else if (opnd_is_memory_reference(src)) {
+                reg_id_t base = opnd_get_base(src);
+                reg_id_t index = opnd_get_index(src);
+                if (base != DR_REG_NULL) {
+                    def_use_entry.def_use.mem_use[cur_src_mem_idx] = (uint16_t)base;
+                    cur_src_mem_idx += 1;
+                }
+                if (index != DR_REG_NULL) {
+                    def_use_entry.def_use.mem_use[cur_src_mem_idx] = (uint16_t)index;
+                    cur_src_mem_idx += 1;
+                }
+            }
+            DR_ASSERT_MSG(cur_src_reg_idx < debug_trace_entry_t::MAX_REGS_NUM &&
+                              cur_src_mem_idx < debug_trace_entry_t::MAX_REGS_NUM,
+                          "Too many source registers to log DEF-USE");
+        }
+
+        // Log destination registers (defs)
+        int num_dsts = instr_num_dsts(cur_instr);
+        int cur_dst_reg_idx = 0;
+        int cur_dst_mem_idx = 0;
+        DR_ASSERT_MSG(num_dsts < debug_trace_entry_t::MAX_REGS_NUM,
+                      "Too many destination registers to log DEF-USE");
+        for (int i = 0; i < num_dsts; i++) {
+            opnd_t dst = instr_get_dst(cur_instr, i);
+            if (opnd_is_reg(dst)) {
+                reg_id_t reg = opnd_get_reg(dst);
+                def_use_entry.def_use.reg_def[cur_dst_reg_idx] = (uint16_t)reg;
+                cur_dst_reg_idx += 1;
+            } else if (opnd_is_memory_reference(dst)) {
+                reg_id_t base = opnd_get_base(dst);
+                reg_id_t index = opnd_get_index(dst);
+                if (base != DR_REG_NULL) {
+                    def_use_entry.def_use.mem_def[cur_dst_mem_idx] = (uint16_t)base;
+                    cur_dst_mem_idx += 1;
+                }
+                if (index != DR_REG_NULL) {
+                    def_use_entry.def_use.mem_def[cur_dst_mem_idx] = (uint16_t)index;
+                    cur_dst_mem_idx += 1;
+                }
+            }
+            DR_ASSERT_MSG(cur_dst_reg_idx < debug_trace_entry_t::MAX_REGS_NUM &&
+                              cur_dst_mem_idx < debug_trace_entry_t::MAX_REGS_NUM,
+                          "Too many destination registers to log DEF-USE");
+        }
+
+        log.push_back(def_use_entry);
     }
 }
 
