@@ -55,11 +55,11 @@ class TracerABC
     ///        by the target contract.
     ///        Note: some subclasses may not record any information as the corresponding
     ///        contract may not require it. For such subclasses, this method should be a no-op.
-    /// @param opcode The opcode of the instruction
-    /// @param pc The program counter (address) of the instruction
+    /// @param instr the observed instruction
     /// @param mc The machine context of the instruction
+    /// @param dc The DR context of the instruction
     /// @return void
-    virtual void observe_instruction(instr_obs_t instr, dr_mcontext_t *mc);
+    virtual void observe_instruction(instr_obs_t instr, dr_mcontext_t *mc, void *dc);
 
     /// @brief Record per-memory access information on the trace (e.g., its address and value)
     ///        as defined by the target contract.

@@ -928,6 +928,16 @@
       {"type_": "MEM", "values": ["rsp"], "src": false, "dest": true, "width": 64}
     ]
   },
+  {"name": "call", "category": "BASE-CALL", "is_control_flow": true,
+    "operands": [
+      {"type_": "LABEL", "values": [], "src": true, "dest": false, "width": 0}
+    ],
+    "implicit_operands": [
+      {"type_": "REG", "values": ["rsp"], "src": true, "dest": true, "width": 64},
+      {"type_": "REG", "values": ["rip"], "src": true, "dest": true, "width": 64},
+      {"type_": "MEM", "values": ["rsp"], "src": false, "dest": true, "width": 64}
+    ]
+  },
   {"name": "{disp32} call", "category": "BASE-CALL", "is_control_flow": true,
     "operands": [
       {"type_": "LABEL", "values": [], "src": true, "dest": false, "width": 0}

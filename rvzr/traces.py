@@ -24,7 +24,7 @@ _REG_ID_TO_NAME_ARM = {0: "x0", 1: "x1", 2: "x2", 3: "x3", 4: "x4", 5: "x5"}
 # ==================================================================================================
 # Contract Trace
 # ==================================================================================================
-CTraceEntryType = Literal["mem", "pc", "val", "reg"]
+CTraceEntryType = Literal["mem", "pc", "val", "reg", "ind"]
 
 
 class CTraceEntry(NamedTuple):
@@ -111,6 +111,8 @@ class CTrace:
                 s += "mem: " + m_col + hex(item.value) + reset_col
             elif item.type_ == "pc":
                 s += "pc: " + pc_col + hex(item.value) + reset_col
+            elif item.type_ == "ind":
+                s += "indcall: " + pc_col + hex(item.value) + reset_col
             elif item.type_ == "val":
                 s += "val: " + val_col + hex(item.value) + reset_col
             elif item.type_ == "reg":

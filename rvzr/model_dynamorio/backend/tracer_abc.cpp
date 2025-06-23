@@ -73,7 +73,7 @@ void TracerABC::tracing_finalize()
     tracing_finalized = true;
 }
 
-void TracerABC::observe_instruction(instr_obs_t /*instr*/, dr_mcontext_t * /*mc*/)
+void TracerABC::observe_instruction(instr_obs_t /*instr*/, dr_mcontext_t * /*mc*/, void * /*dc*/)
 {
     // The rest of the functionality - if any - is implemented by subclasses
 }

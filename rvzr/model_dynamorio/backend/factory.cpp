@@ -18,6 +18,7 @@
 #include "speculators/seq.hpp"
 #include "tracer_abc.hpp"
 #include "tracers/ct.hpp"
+#include "tracers/ind.hpp"
 #include "tracers/pc.hpp"
 
 using std::function;
@@ -39,6 +40,12 @@ const std::unordered_map<string, function<unique_ptr<TracerABC>(const string &, 
                             "pc",
                             [](const string &out_path, Logger &logger, bool print) {
                                 return std::make_unique<TracerPC>(out_path, logger, print);
+                            },
+                        },
+                        {
+                            "ind",
+                            [](const string &out_path, Logger &logger, bool print) {
+                                return std::make_unique<TracerInd>(out_path, logger, print);
                             },
                         }};
 

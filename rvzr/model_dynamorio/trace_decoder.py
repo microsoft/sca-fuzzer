@@ -31,12 +31,13 @@ class TraceEntryType(Enum):
     ENTRY_READ = 2
     ENTRY_WRITE = 3
     ENTRY_EXCEPTION = 4
+    ENTRY_IND = 5
 
 
 _TRACE_ENTRY_T: Final[str] = "struct trace_entry_t"
 _TRACE_ENTRY_DEF: Final[str] = """
 struct trace_entry_t {
-    // pc for instructions; address for memory accesses
+    // pc for instructions; address for memory accesses; target for indirect calls
     uint64_t addr;
     // instruction size for instructions; memory access size for memory accesses
     uint32_t size;

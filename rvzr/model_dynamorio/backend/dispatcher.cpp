@@ -41,7 +41,7 @@ static pc_t instruction_dispatch(dr_mcontext_t *mc, void *dc, const Dispatcher *
                                  instr_obs_t instr)
 {
     dispatcher->logger->log_instruction(instr, mc, dispatcher->speculator->get_nesting_level());
-    dispatcher->tracer->observe_instruction(instr, mc);
+    dispatcher->tracer->observe_instruction(instr, mc, dc);
     const pc_t next_pc = dispatcher->speculator->handle_instruction(instr, mc, dc);
     return next_pc;
 }

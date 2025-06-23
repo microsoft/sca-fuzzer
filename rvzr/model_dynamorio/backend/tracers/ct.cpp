@@ -17,9 +17,9 @@
 #include "tracers/ct.hpp"
 #include "util.hpp"
 
-void TracerCT::observe_instruction(instr_obs_t instr, dr_mcontext_t *mc)
+void TracerCT::observe_instruction(instr_obs_t instr, dr_mcontext_t *mc, void *dc)
 {
-    TracerABC::observe_instruction(instr, mc);
+    TracerABC::observe_instruction(instr, mc, dc);
 
     // Nothing to do if tracing is off
     if (not tracing_on) {
