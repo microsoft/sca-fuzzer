@@ -15,7 +15,8 @@ enum class trace_entry_type_t : uint8_t {
     ENTRY_PC = 1,
     ENTRY_READ = 2,
     ENTRY_WRITE = 3,
-    ENTRY_EXCEPTION = 4
+    ENTRY_EXCEPTION = 4,
+    ENTRY_IND = 5,
 };
 
 /// @brief Pretty-printer for trace_entry_type_t
@@ -32,6 +33,8 @@ static constexpr const char *to_string(const trace_entry_type_t &type)
         return "WRITE";
     case trace_entry_type_t::ENTRY_EXCEPTION:
         return "XCPT";
+    case trace_entry_type_t::ENTRY_IND:
+        return "IND";
     }
 
     return "UNKNOWN";
@@ -39,7 +42,7 @@ static constexpr const char *to_string(const trace_entry_type_t &type)
 
 /// @brief An entry of an observed trace
 struct trace_entry_t {
-    // pc for instructions; address for memory accesses
+    // pc for instructions; address for memory accesses; target for indirect calls
     uint64_t addr;
     // instruction size for instructions; memory access size for memory accesses
     uint32_t size;
@@ -72,6 +75,9 @@ struct trace_entry_t {
         case trace_entry_type_t::ENTRY_EXCEPTION:
             out << " faulty_addr: " << std::hex << addr;
             out << "  (sig: " << std::dec << size << ")";
+            break;
+        case trace_entry_type_t::ENTRY_IND:
+            out << "  --> target: " << std::hex << addr;
             break;
         }
 

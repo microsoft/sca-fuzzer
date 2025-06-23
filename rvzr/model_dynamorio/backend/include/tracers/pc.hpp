@@ -19,9 +19,9 @@ class TracerPC : public TracerABC
     using TracerABC::TracerABC;
 
     /// @brief Record the PC of the executed instruction on the contract trace
-    /// @param opcode unused
-    /// @param pc The program counter of the executed instruction
+    /// @param instr the observed instruction
     /// @param mc unused
+    /// @param dc unused
     /// @return void
-    void observe_instruction(instr_obs_t instr, dr_mcontext_t *mc) override;
+    void observe_instruction(instr_obs_t instr, dr_mcontext_t *mc, void *dc) override;
 };

@@ -302,6 +302,9 @@ class _TraceReader:
             elif type_ == TraceEntryType.ENTRY_PC:
                 val = self._layout.code_addr_to_offset(entry.addr)
                 trace.append(CTraceEntry(type_="pc", value=val))
+            elif type_ == TraceEntryType.ENTRY_IND:
+                val = self._layout.code_addr_to_offset(entry.addr)
+                trace.append(CTraceEntry(type_="ind", value=val))
 
         return CTrace(trace)
 

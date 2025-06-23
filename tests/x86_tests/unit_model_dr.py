@@ -67,6 +67,18 @@ ASM_BRANCH_NESTED = InstList([
     Inst("mov rax, qword ptr [r14]", 3, MAIN_OFFSET + 0, 1),
 ])
 
+ASM_INDCALL_AND_LOAD = InstList([
+    Inst("xor rax, rax", 3, 0, 0),
+    Inst("lea rax,qword ptr [rip+.l0]", 7, 0, 0),
+    Inst("call rax", 2, 0, 0),
+    Inst(".end:", 0, 0, 0),
+    Inst("jmp .l2", 2, 0, 0),
+    Inst(".l0:", 0, 0, 0),
+    Inst("mov rax, qword ptr [r14]", 3, MAIN_OFFSET + 0, 1),
+    Inst("ret", 1, 0, 0),
+    Inst(".l2:", 0, 0, 0),
+])
+
 
 class X86DRModelTest(unittest.TestCase):
     """
@@ -374,3 +386,27 @@ class X86DRModelTest(unittest.TestCase):
         expected_trace.append(instructions[10].pc_offset)
 
         self.assertEqual(ctraces[0].get_untyped(), expected_trace)
+
+    def test_ind(self) -> None:
+        self._skip_if_not_installed()
+        self._save_conf()
+        self._set_clauses("ind", ["cond"])
+
+        model = get_model((DATA_BASE, CODE_BASE), enable_mismatch_check_mode=False)
+        assert isinstance(model, DynamoRIOModel)
+        instructions = ASM_INDCALL_AND_LOAD
+        tc = instructions.to_test_case()
+        model.load_test_case(tc)
+
+        input_ = get_default_input()
+        ctraces = model.trace_test_case([input_], 0)
+        self.assertEqual(len(ctraces), 1)
+
+        expected_trace: List[int] = []
+
+        expected_trace.append(instructions[2].pc_offset)
+        expected_trace.append(instructions[6].pc_offset)
+        expected_trace.append(instructions[7].pc_offset)
+        expected_trace.append(instructions[3].pc_offset)
+
+        self.assertEqual(ctraces[0].get_untyped()[:4], expected_trace)
