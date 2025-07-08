@@ -32,10 +32,16 @@
 // clang-format on
 
 // MSR access
+#if defined(ARCH_X86_64)
 #define wrmsr64(msr, value) native_write_msr(msr, (uint32_t)value, (uint32_t)(value >> 32))
 #define rdmsr64(msr)        native_read_msr(msr)
+#elif defined(ARCH_ARM)
+#define write_msr(NAME, VALUE) asm volatile("msr " NAME ", %0\n isb\n" ::"r"(VALUE));
+#define read_msr(NAME, VAR)    asm volatile("mrs %0, " NAME "\n isb\n" : "=r"(VAR));
+#endif
 
 // Bit manipulation
+#define BIT_(x) (1ULL << x)
 
 // Printing
 #define PRINT_ERR(msg, ...)       printk(KERN_ERR "[rvzr_executor] " msg, ##__VA_ARGS__);

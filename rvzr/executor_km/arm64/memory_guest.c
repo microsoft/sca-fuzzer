@@ -11,6 +11,7 @@
 #include "main.h"
 #include "sandbox_manager.h"
 #include "shortcuts.h"
+#include "memory_guest.h"
 
 // eptp_t *ept_ptr = NULL; // global
 

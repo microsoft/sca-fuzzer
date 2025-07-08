@@ -6,6 +6,8 @@
 #ifndef _HARDWARE_DESC_H_
 #define _HARDWARE_DESC_H_
 
+#include <linux/types.h>
+
 #ifndef VENDOR_ID
 #error "Undefined VENDOR_ID"
 #define VENDOR_ID 0
@@ -17,7 +19,7 @@
 
 #define VENDOR_INTEL_ 1
 #define VENDOR_AMD_   2
-#define VENDOR_ARM_  3
+#define VENDOR_ARM_   3
 #undef VENDOR_INTEL
 #undef VENDOR_AMD
 #undef VENDOR_ARM
