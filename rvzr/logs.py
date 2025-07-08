@@ -169,7 +169,7 @@ def warning(src: str, msg: str) -> None:
     if _LOG_CONF.redraw_mode:
         print("")
     if CONF.color:
-        print(f"{YELLOW}WARNING:{COL_RESET} [{src}] {msg}")
+        print(f"{RED}WARNING:{COL_RESET} [{src}] {msg}")
     else:
         print(f"WARNING: [{src}] {msg}")
 
