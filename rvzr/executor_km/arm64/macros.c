@@ -239,15 +239,71 @@ static void __attribute__((noipa)) body_macro_fast_prime(void)
 
 static void __attribute__((noipa)) body_macro_probe(void)
 {
+    // pseudocode:
+    // tmp_reg6 = NZCV  // ensure that the macro doesn't corrupt flags
+    // if (status != STATUS_ENDED)  // ensure that macro is executed only once
+    //    read_pfc_end()
+    //    htrace_register = probe(sandbox->util.l1d_priming_area)
+    //    status = STATUS_ENDED
+    // NZCV = tmp_reg6
+
     asm volatile(".quad " xstr(MACRO_START));
-    asm volatile(""                          //
-                 "mrs " TMP_REG6 ", nzcv \n" //
-                 READ_PFC_END()              //
-                 PROBE()                     //
-                 SET_SR_ENDED()              //
-                 "msr nzcv, " TMP_REG6 "\n"  //
-                 "isb\n"                     //
-                 "dsb SY \n"                 //
+    asm volatile(""                                                                       //
+                 "mrs " TMP_REG6 ", nzcv \n"                                              //
+                 TEST_SR_ENDED()                                                          //
+                 "b.eq 99f\n"                                                             //
+                 "mov " TMP_REG1 ", " UTIL_BASE_REGISTER "\n"                             //
+                 "add " TMP_REG1 ", " TMP_REG1 ", " xstr(L1D_PRIMING_OFFSET) "\n"         //
+                 READ_PFC_END()                                                           //
+                 PROBE(TMP_REG1, TMP_REG2, TMP_REG3, TMP_REG4, TMP_REG5, HTRACE_REGISTER) //
+                 SET_SR_ENDED()                                                           //
+                 "99:\n"                                                                  //
+                 "msr nzcv, " TMP_REG6 "\n"                                               //
+                 "isb\n"                                                                  //
+                 "dsb SY \n"                                                              //
+    );
+    asm volatile(".quad " xstr(MACRO_END));
+}
+
+// Flush + Reload and variants
+static void __attribute__((noipa)) body_macro_flush(void)
+{
+    asm volatile(".quad " xstr(MACRO_START));
+    asm volatile(""                                             //
+                 "mrs " TMP_REG6 ", nzcv \n"                    //
+                 "mov " TMP_REG1 ", " MEMORY_BASE_REGISTER "\n" //
+                 FLUSH(TMP_REG1, TMP_REG2, TMP_REG3)            //
+                 READ_PFC_START()                               //
+                 SET_SR_STARTED()                               //
+                 "msr nzcv, " TMP_REG6 "\n"                     //
+                 "isb\n dsb SY\n"                               //
+    );
+    asm volatile(".quad " xstr(MACRO_END));
+}
+
+static void __attribute__((noipa)) body_macro_reload(void)
+{
+    // pseudocode:
+    // tmp_reg6 = NZCV  // ensure that the macro doesn't corrupt flags
+    // if (status != STATUS_ENDED)  // ensure that macro is executed only once
+    //    read_pfc_end()
+    //    htrace_register = reload(sandbox->main)
+    //    status = STATUS_ENDED
+    // NZCV = tmp_reg6
+
+    asm volatile(".quad " xstr(MACRO_START));
+    asm volatile(""                                                              //
+                 "mrs " TMP_REG6 ", nzcv \n"                                     //
+                 TEST_SR_ENDED()                                                 //
+                 "b.eq 99f\n"                                                    //
+                 "mov " TMP_REG1 ", " MEMORY_BASE_REGISTER "\n"                  //
+                 READ_PFC_END()                                                  //
+                 RELOAD(TMP_REG1, TMP_REG2, TMP_REG3, TMP_REG4, HTRACE_REGISTER) //
+                 SET_SR_ENDED()                                                  //
+                 "99:\n"                                                         //
+                 "msr nzcv, " TMP_REG6 "\n"                                      //
+                 "isb\n"                                                         //
+                 "dsb SY \n"                                                     //
     );
     asm volatile(".quad " xstr(MACRO_END));
 }
@@ -299,14 +355,14 @@ macro_descr_t macro_descriptors[] = {
     [TYPE_PARTIAL_PRIME] = {.start = NULL, .body = NULL},
     [TYPE_FAST_PARTIAL_PRIME] = {.start = NULL, .body = NULL},
     [TYPE_PROBE] = {.start = NULL, .body = body_macro_probe},
-    [TYPE_FLUSH] = {.start = NULL, .body = NULL},
+    [TYPE_FLUSH] = {.start = NULL, .body = body_macro_flush},
     [TYPE_EVICT] = {.start = NULL, .body = body_macro_prime},
-    [TYPE_RELOAD] = {.start = NULL, .body = NULL},
+    [TYPE_RELOAD] = {.start = NULL, .body = body_macro_reload},
     [TYPE_TSC_START] = {.start = NULL, .body = NULL},
     [TYPE_TSC_END] = {.start = NULL, .body = NULL},
     [TYPE_FAULT_HANDLER] = {.start = start_macro_fault_handler, .body = NULL},
     [TYPE_FAULT_AND_PROBE] = {.start = start_macro_fault_handler, .body = body_macro_probe},
-    [TYPE_FAULT_AND_RELOAD] = {.start = NULL, .body = NULL},
+    [TYPE_FAULT_AND_RELOAD] = {.start = start_macro_fault_handler, .body = body_macro_reload},
     [TYPE_FAULT_AND_TSC_END] = {.start = NULL, .body = NULL},
     [TYPE_SWITCH] = {.start = start_macro_switch, .body = NULL},
     [TYPE_SET_K2U_TARGET] = {.start = NULL, .body = NULL},
