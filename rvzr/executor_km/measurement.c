@@ -224,11 +224,13 @@ void recover_orig_state(void)
             stop_svm_operation();
         }
     }
-    unset_outer_fault_handlers(); // restores original IDT regardless of the current IDTR value
 #endif
 
     restore_special_registers();
     restore_orig_sandbox_page_tables();
+
+    // restores original IDT regardless of the current IDTR value
+    unset_outer_fault_handlers();
 }
 
 // =================================================================================================
@@ -336,6 +338,7 @@ int trace_test_case(void)
 
     post_run(&irq_flags);
     CHECK_ERR("trace_test_case:cleanup");
+
     return err;
 }
 

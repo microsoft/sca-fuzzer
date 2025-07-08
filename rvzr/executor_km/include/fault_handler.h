@@ -29,8 +29,6 @@ struct idt_data {
 
 #elif defined(ARCH_ARM)
 
-#include <../arch/arm64/include/asm/traps.h>
-
 // FIXME: exception handling is not implemented for ARM
 #define HANDLED_FAULTS_DEFAULT 0
 

@@ -428,7 +428,6 @@ __attribute__((unused)) void run_experiment_handler_wrapper(void)
               fault_data[5], cr2);
 
     // the code below MUST match the epilogue of unsafe_bubble in measurement.c
-    unset_outer_fault_handlers();
     recover_orig_state();
 
     asm volatile(""
