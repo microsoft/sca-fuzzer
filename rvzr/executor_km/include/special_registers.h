@@ -21,7 +21,7 @@ typedef struct {
     uint64_t syscfg;
     uint64_t gs_base;
 #elif defined(ARCH_ARM)
-    uint64_t placeholder;
+    uint64_t cpuectlr_el1;
 #endif
 } __attribute__((packed)) special_registers_t;
 
