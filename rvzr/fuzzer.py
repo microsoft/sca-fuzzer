@@ -115,6 +115,7 @@ class _RoundManager:
     _non_boosted_ctraces: List[CTrace]
 
     violations: List[Violation]
+    arch_violations: List[Violation]
 
     fuzzer: Final[Fuzzer]
     conf: Final[_RoundState]
@@ -127,6 +128,7 @@ class _RoundManager:
         self.htraces = []
         self.ctraces = []
         self.violations = []
+        self.arch_violations = []
 
         self.fuzzer = fuzzer
         self.conf = _RoundState(fuzzer.model.is_speculative)
@@ -386,7 +388,7 @@ class _RoundManager:
             htraces = self.fuzzer.arch_executor.trace_test_case(self.boosted_inputs, n_reps=1)
         except IOError:
             warning("fuzz", "Error during architectural mismatch check. Skipping this test case")
-            self.violations = []  # skip test case in case of a tracing error
+            self.arch_violations = []  # skip test case in case of a tracing error
             return
         for htrace_obj in htraces:
             raw_traces = htrace_obj.get_raw_readings()
@@ -411,7 +413,7 @@ class _RoundManager:
             measurement = TraceBundle(i, input_, ctraces[i], htraces[i])
             violation = Violation([measurement], self.boosted_inputs, self.test_case)
             violation.set_trivial_hw_classes()
-            self.violations = [violation]
+            self.arch_violations = [violation]
             return
         return
 
@@ -627,7 +629,7 @@ class Fuzzer:
         # Such cases are rare, hence we check for them last.
         # To remove such FPs, we check if the violation is caused by an architectural mismatch
         round_manager.execute_stage("arch_mismatch")
-        if not round_manager.violations:
+        if round_manager.arch_violations:
             self._report_bug_arch(round_manager)
             round_manager.finalize()
             return None
@@ -842,6 +844,7 @@ class Fuzzer:
                 input_.save(f"{violation_dir}/input_{i:04}.bin")
 
     def _report_bug_arch(self, round_manager: _RoundManager) -> None:
+        warning("fuzzer", "Architectural mismatch between model and executor detected")
         if self._work_dir and CONF.is_generation_enabled():
             warning("fuzzer", f"Storing the bug into {self._work_dir}/bugs/")
             self._store_violation_artifact(round_manager.violations[0], f"{self._work_dir}/bugs/")
@@ -896,7 +899,7 @@ class ArchitecturalFuzzer(Fuzzer):
         """
         round_manager = _RoundManager(self, test_case, inputs)
         round_manager.execute_stage("arch_mismatch")
-        return round_manager.violations[0] if round_manager.violations else None
+        return round_manager.arch_violations[0] if round_manager.arch_violations else None
 
 
 class ArchDiffFuzzer(Fuzzer):

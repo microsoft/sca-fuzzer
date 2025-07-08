@@ -392,7 +392,7 @@ def assemble(test_case: TestCaseProgram) -> None:
             print(pretty_error_msg(error_msg))
         else:
             print(error_msg)
-        raise e
+        exit(1)
     finally:
         pass
         # run(f"rm {patched_asm_file}", shell=True, check=True)
