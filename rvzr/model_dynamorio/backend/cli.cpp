@@ -5,6 +5,7 @@
 // SPDX-License-Identifier: MIT
 
 #include <algorithm>
+#include <cstdint>
 #include <string>
 
 #include <dr_api.h> // NOLINT
@@ -79,6 +80,10 @@ const droption_t<int>    op_max_spec_window(DROPTION_SCOPE_CLIENT,
                         "max-spec-window", 250,
                         "Maximum number of speculative instructions.",
                         "Maximum number of speculative instructions.");
+const droption_t<uint64_t> op_poison_value(DROPTION_SCOPE_CLIENT,
+                        "poison-value", 0,
+                        "Value to forward on speculative faulty loads. If 0, speculative loads cause a rollback.",
+                        "Value to forward on speculative faulty loads. If 0, speculative loads cause a rollback.");
 
 // Listing Options
 const droption_t<bool> op_list_tracers(DROPTION_SCOPE_CLIENT,
@@ -124,6 +129,12 @@ void parse_cli(int argc, const char **argv, DR_PARAM_OUT cli_args_t &parsed_args
     parsed_args.max_spec_window = op_max_spec_window.get_value();
     parsed_args.list_tracers = op_list_tracers.get_value();
     parsed_args.list_speculators = op_list_speculators.get_value();
+    uint64_t poison_value = op_poison_value.get_value();
+    if (poison_value == 0) {
+        parsed_args.poison_value = {};
+    } else {
+        parsed_args.poison_value = poison_value;
+    }
 
     // Check values
     if (not validate_tracer(&parsed_args)) {

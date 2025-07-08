@@ -79,6 +79,24 @@ ASM_INDCALL_AND_LOAD = InstList([
     Inst(".l2:", 0, 0, 0),
 ])
 
+ASM_INDCALL_AFTER_FAULTY_LOAD = InstList([
+    Inst("xor rax, rax", 3, 0, 0),
+    Inst("jz .end", 2, 0, 0),
+    Inst(".l0:", 0, 0, 0),
+    Inst("lea rax,qword ptr [rip+.l3]", 7, 0, 0),
+    Inst("call rax", 2, 0, 0),
+    Inst(".l1:", 0, 0, 0),
+    Inst("xor rax, rax", 3, 0, 0),
+    Inst("mov rax, qword ptr [rax]", 3, MAIN_OFFSET + 0, 1),
+    Inst("call rax", 2, 0, 0),
+    Inst(".l2:", 0, 0, 0),
+    Inst("jmp .end", 2, 0, 0),
+    Inst(".l3:", 0, 0, 0),
+    Inst("mov rax, qword ptr [r14]", 3, MAIN_OFFSET + 0, 1),
+    Inst("ret", 1, 0, 0),
+    Inst(".end:", 0, 0, 0),
+])
+
 
 class X86DRModelTest(unittest.TestCase):
     """
@@ -404,9 +422,72 @@ class X86DRModelTest(unittest.TestCase):
 
         expected_trace: List[int] = []
 
+        # Call (src and dest)
         expected_trace.append(instructions[2].pc_offset)
         expected_trace.append(instructions[6].pc_offset)
+        # Ret (src and dest)
         expected_trace.append(instructions[7].pc_offset)
         expected_trace.append(instructions[3].pc_offset)
 
-        self.assertEqual(ctraces[0].get_untyped()[:4], expected_trace)
+        # Node: last two rets are inserted by the instrumentation: ignore them
+        self.assertEqual(ctraces[0].get_untyped()[:-4], expected_trace)
+
+    def test_ind_spec(self) -> None:
+        self._skip_if_not_installed()
+        self._save_conf()
+        self._set_clauses("ind", ["cond"])
+
+        model = get_model((DATA_BASE, CODE_BASE), enable_mismatch_check_mode=False)
+        assert isinstance(model, DynamoRIOModel)
+        instructions = ASM_INDCALL_AFTER_FAULTY_LOAD
+        tc = instructions.to_test_case()
+        model.load_test_case(tc)
+
+        input_ = get_default_input()
+        ctraces = model.trace_test_case([input_], 0)
+        self.assertEqual(len(ctraces), 1)
+
+        expected_trace: List[int] = []
+
+        # Call (src and dest)
+        expected_trace.append(instructions[4].pc_offset)
+        expected_trace.append(instructions[12].pc_offset)
+        # Ret (src and dest)
+        expected_trace.append(instructions[13].pc_offset)
+        expected_trace.append(instructions[5].pc_offset)
+
+        # Node: last two rets are inserted by the instrumentation: ignore them
+        self.assertEqual(ctraces[0].get_untyped()[:-4], expected_trace)
+
+    def test_ind_poison(self) -> None:
+        self._skip_if_not_installed()
+        self._save_conf()
+        self._set_clauses("ind", ["cond"])
+
+        model = get_model((DATA_BASE, CODE_BASE), enable_mismatch_check_mode=False)
+        assert isinstance(model, DynamoRIOModel)
+        model.poison_value = 0xDEADBEEF
+        instructions = ASM_INDCALL_AFTER_FAULTY_LOAD
+        tc = instructions.to_test_case()
+        model.load_test_case(tc)
+
+        input_ = get_default_input()
+        ctraces, code_base_addr, _ = model.trace_test_case_with_addr([input_], 0)
+        self.assertEqual(len(ctraces), 1)
+
+        expected_trace: List[int] = []
+
+        # Call (src and dest)
+        expected_trace.append(instructions[4].pc_offset)
+        expected_trace.append(instructions[12].pc_offset)
+        # Ret (src and dest)
+        expected_trace.append(instructions[13].pc_offset)
+        expected_trace.append(instructions[5].pc_offset)
+        # Second call: this is reachable only if speculation doesn't get rolled-back on the
+        # previous faulty load.
+        expected_trace.append(instructions[8].pc_offset)
+        # The call should be trying to jump to the poison value
+        expected_trace.append(model.poison_value - code_base_addr)
+
+        # Node: last two rets are inserted by the instrumentation: ignore them
+        self.assertEqual(ctraces[0].get_untyped()[:-4], expected_trace)

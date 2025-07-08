@@ -164,23 +164,18 @@ static void exit_callback()
     dr_set_mcontext(drcontext, &mc);
 }
 
-bool Dispatcher::handle_exception(void * /*drcontext*/, dr_siginfo_t *siginfo) const
+bool Dispatcher::handle_exception(void *drcontext, dr_siginfo_t *siginfo) const
 {
     logger->log_exception(siginfo);
-    if (speculator->in_speculation) {
-        // Abort speculation on speculative exceptions
-        speculator->handle_exception(siginfo);
-        // Perform rollback
-        dr_mcontext_t *mc = siginfo->mcontext;
-        const pc_t newpc = speculator->rollback(mc);
-        mc->pc = (byte *)newpc;
-        return true;
-    }
+    // Exceptions on speculative paths are handled by the speculator.
+    const bool redirected = speculator->handle_exception(drcontext, siginfo);
+    if (redirected)
+        return true; // intercepted
 
-    // Architectural exceptions are redirected to the program
+    // Architectural exceptions are forwarded to the program
     dr_printf("[XCPT] Dispatcher::handle_exception: exception on a non-speculative path\n");
     tracer->observe_exception(siginfo);
-    return false;
+    return false; // not intercepted
 }
 
 // =================================================================================================
@@ -255,7 +250,7 @@ Dispatcher::Dispatcher(cli_args_t *cli_args) : instrumentation_on(false)
     tracer = create_tracer(cli_args->tracer_type, cli_args->trace_output, *logger,
                            cli_args->print_trace);
     speculator = create_speculator(cli_args->speculator_type, cli_args->max_nesting,
-                                   cli_args->max_spec_window, *logger);
+                                   cli_args->max_spec_window, *logger, cli_args->poison_value);
 }
 
 Dispatcher::~Dispatcher()

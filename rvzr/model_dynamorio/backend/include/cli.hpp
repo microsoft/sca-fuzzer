@@ -6,8 +6,11 @@
 
 #pragma once
 
-#include <dr_defines.h> // DR_PARAM_OUT
+#include <cstdint>
+#include <optional>
 #include <string>
+
+#include <dr_defines.h> // DR_PARAM_OUT
 
 struct cli_args_t {
     std::string tracer_type;
@@ -22,6 +25,7 @@ struct cli_args_t {
     int max_spec_window;
     bool list_tracers;
     bool list_speculators;
+    std::optional<uint64_t> poison_value;
 };
 
 /// @brief Parse the command line arguments
