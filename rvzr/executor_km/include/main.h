@@ -52,13 +52,6 @@ extern int (*set_memory_nx)(unsigned long, int);
 #include <linux/set_memory.h>
 #endif
 
-// CPU features
-#if defined(ARCH_X86_64)
-typedef struct cpuinfo_x86 cpuinfo_t;
-static inline cpuinfo_t* get_cpuinfo(int i) { return &cpu_data(i); }
-#elif defined(ARCH_ARM)
-typedef struct cpuinfo_arm64 cpuinfo_t;
-#endif
 extern cpuinfo_t *cpuinfo; // cached result of cpu_data for CPU 0
 
 #endif // _RVZR_EXECUTOR_MAIN_H_

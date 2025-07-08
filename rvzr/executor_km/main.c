@@ -554,11 +554,13 @@ static ssize_t dbg_guest_page_tables_show(struct kobject *kobj, struct kobj_attr
     return sprintf(buf, "done (see dmesg)\n");
 }
 
-// ============================================================================
-// Memory Management and Initialization
+// =================================================================================================
+// Initialization and Memory Management
+// =================================================================================================
 
-/// Get symbols for missing kernel functions
-///
+/// @brief Get symbols for missing kernel functions
+/// @param void
+/// @return void
 static inline void _get_required_kernel_functions(void)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0)
@@ -572,6 +574,31 @@ static inline void _get_required_kernel_functions(void)
     set_memory_x = (void *)kallsyms_lookup_name("set_memory_x");
     set_memory_nx = (void *)kallsyms_lookup_name("set_memory_nx");
 #endif // LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0)
+}
+
+/// @brief Get a description of the CPU
+/// @param void
+/// @return 0 on success, -1 on failure
+static inline cpuinfo_t *get_cpuinfo(void)
+{
+#if defined(ARCH_X86_64)
+    return &cpu_data(0);
+#elif defined(ARCH_ARM)
+    cpuinfo_t *cpuinfo = kmalloc(sizeof(cpuinfo_t), GFP_KERNEL);
+    if (!cpuinfo) {
+        return NULL;
+    }
+
+    uint64_t midr_el1 = 0;
+    asm volatile("MRS %0, MIDR_EL1" : "=r"(midr_el1));
+    cpuinfo->implementer = (midr_el1 >> 24) & 0xFF;
+    cpuinfo->variant = (midr_el1 >> 20) & 0xF;
+    cpuinfo->architecture = (midr_el1 >> 16) & 0xF;
+    cpuinfo->part = (midr_el1 >> 4) & 0xFFF;
+    cpuinfo->revision = midr_el1 & 0xF;
+
+    return cpuinfo;
+#endif
 }
 
 /// @brief Check if the CPU supports the required features
@@ -601,14 +628,7 @@ static int check_cpu_compat(void)
         return -1;
     }
 #elif defined(ARCH_ARM)
-    uint64_t current_el = 0;
-    asm volatile("mrs %0, CurrentEL" : "=r"(current_el));
-    current_el >>= 2;
-    if (current_el != 1) {
-        printk(KERN_ERR "ERROR: rvzr_executor: Executor KM must be run in EL1; running in EL%llx\n",
-               current_el);
-        return -1;
-    }
+    // Nothing so far
 #endif
     return 0;
 }
@@ -616,9 +636,11 @@ static int check_cpu_compat(void)
 static int __init executor_init(void)
 {
     // Get CPU information and store in a global variable for future references
-#if defined(ARCH_X86_64)
-    cpuinfo = get_cpuinfo(0);
-#endif
+    cpuinfo = get_cpuinfo();
+    if (!cpuinfo) {
+        printk(KERN_ERR "rvzr_executor: Failed to get CPU information\n");
+        return -ENOMEM;
+    }
 
     // Check if the CPU supports the required features
     if (check_cpu_compat() != 0) {
@@ -715,6 +737,11 @@ static void __exit executor_exit(void)
     free_vmx();
 #elif VENDOR_ID == VENDOR_AMD_
     free_svm();
+#endif
+
+#if defined(ARCH_ARM)
+    if (cpuinfo)
+        kfree(cpuinfo);
 #endif
 
     if (kobj_interface)

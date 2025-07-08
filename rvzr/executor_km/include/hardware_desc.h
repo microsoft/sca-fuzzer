@@ -30,7 +30,24 @@
 #define ARCH_ARM
 #endif
 
-// Memory
+// =================================================================================================
+// CPU identification
+// =================================================================================================
+#if defined(ARCH_X86_64)
+typedef struct cpuinfo_x86 cpuinfo_t;
+#elif defined(ARCH_ARM)
+typedef struct {
+    int implementer;
+    int variant;
+    int architecture;
+    int part;
+    int revision;
+} cpuinfo_t;
+#endif
+
+// =================================================================================================
+// Memory configuration
+// =================================================================================================
 #ifndef PHYSICAL_WIDTH
 #define PHYSICAL_WIDTH 51 // unused in the build; used only for syntax highlighting
 #error "PHYSICAL_WIDTH must be defined by the makefile"
@@ -38,7 +55,9 @@
 
 #define MAX_PHYSICAL_ADDRESS ((1ULL << PHYSICAL_WIDTH) - 1)
 
+// =================================================================================================
 // Cache configuration
+// =================================================================================================
 #ifndef L1D_ASSOCIATIVITY
 #error "Undefined L1D_ASSOCIATIVITY"
 #define L1D_ASSOCIATIVITY 0
