@@ -440,6 +440,8 @@ disable=W0511,  # disable warnings on FIXME tag
         r0903,
         # rise-missing-from
         w0707,
+        # consider-using-sys-exit: just meh
+        r1722,
 
 
 # Enable the message, report, category or checker with the given id(s). You can
