@@ -95,20 +95,22 @@ void TracerInd::observe_instruction(instr_obs_t instr, dr_mcontext_t *mc, void *
     instr_noalloc_t noalloc;
     const auto &mbr_info = get_mbr_info(instr, mc, dc, &noalloc);
 
-    // Skip if not a branch
+    // Skip if it's not an MBR
     if (not mbr_info)
         return;
 
-    // Log source
+    // Trace source
     trace.push_back({
-        .addr = mbr_info->src,
+        .addr = instr.pc,
         .size = 0,
         .type = trace_entry_type_t::ENTRY_PC,
     });
-    // Log destination
+    // Trace target
     trace.push_back({
         .addr = mbr_info->target,
         .size = 0,
         .type = trace_entry_type_t::ENTRY_IND,
     });
+    // Log indirect call
+    logger.log_mbr(mbr_info->src, mbr_info->target);
 }

@@ -66,6 +66,8 @@ class Logger
     void log_rollback_store(uint64_t addr, uint64_t val, size_t size, uint64_t nesting_level);
     /// @brief log end of trace
     void log_eot();
+    /// @brief log multi-way branch target
+    void log_mbr(uint64_t source, uint64_t target);
 
   private:
     static constexpr const unsigned buf_sz = 8 * 1024;

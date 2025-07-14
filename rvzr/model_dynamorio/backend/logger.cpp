@@ -301,3 +301,16 @@ void Logger::log_eot()
 
     log.push_back({.type = debug_trace_entry_type_t::ENTRY_EOT});
 }
+
+void Logger::log_mbr(uint64_t source, uint64_t target)
+{
+    if (not is_enabled())
+        return;
+
+    log.push_back({.type = debug_trace_entry_type_t::ENTRY_IND,
+                   .nesting_level = cur_nesting_level,
+                   .ind{
+                       .source = source,
+                       .target = target,
+                   }});
+}
