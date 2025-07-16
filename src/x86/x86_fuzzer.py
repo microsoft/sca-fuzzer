@@ -85,7 +85,9 @@ def create_fenced_test_case(test_case: TestCase, fenced_name: str, asm_parser) -
     with open(test_case.asm_path, 'r') as f:
         with open(fenced_name, 'w') as fenced_asm:
             started = False
-            for line in f:
+            lines = f.readlines()
+            n_lines = len(lines)
+            for i, line in enumerate(lines):
                 fenced_asm.write(line + '\n')
                 line = line.strip().lower()
                 if 'test_case_enter:' in line:
@@ -95,6 +97,10 @@ def create_fenced_test_case(test_case: TestCase, fenced_name: str, asm_parser) -
                     continue
                 if '.test_case_exit:' in line:
                     break
+                # adding a fence before the landing pad will mess with the parsing algorithm,
+                # and it won't have any meaningful effect anyways. So we skip it
+                if i < n_lines and "landing" in lines[i + 1]:
+                    continue
                 if line and line[0] not in ["#", "j"] \
                         and "loop" not in line \
                         and "section" not in line \
