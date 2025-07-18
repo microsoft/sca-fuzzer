@@ -73,6 +73,8 @@ class DebugTraceEntryType(Enum):
     ENTRY_ROLLBACK = 7
     ENTRY_ROLLBACK_STORE = 8
     ENTRY_REG_DUMP_EXTENDED = 9
+    ENTRY_USE_DEF = 10
+    ENTRY_IND = 11
 
 
 _DEBUG_TRACE_ENTRY_T: Final[str] = "struct debug_trace_entry_t"
@@ -141,6 +143,18 @@ struct debug_trace_entry_t {
             size_t size;
             uint64_t nesting_level;
         } rollback_store;
+        // ENTRY_DEF_USE
+        struct {
+            uint16_t reg_def[7]; // NOLINT
+            uint16_t mem_def[7]; // NOLINT
+            uint16_t reg_use[7]; // NOLINT
+            uint16_t mem_use[7]; // NOLINT
+        } def_use;
+        // ENTRY_IND
+        struct {
+            uint64_t source;
+            uint64_t target;
+        } ind;
     };
 };
 """

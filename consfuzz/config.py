@@ -14,7 +14,9 @@ import shutil
 import yaml
 from typing_extensions import assert_never
 
-FuzzingStages = Literal["fuzz", "pub_gen", "stage2", "report"]
+from .triage.config import LeakageInspectorConfig
+
+FuzzingStages = Literal["fuzz", "pub_gen", "stage2", "report", "inspect"]
 YAMLData = Dict[str, Any]
 ReportVerbosity = Literal[1, 2, 3]
 
@@ -70,6 +72,11 @@ class _WorkingDirManager:
                 os.makedirs(self.config.stage1_wd, exist_ok=True)
                 os.makedirs(self.config.stage2_wd, exist_ok=True)
                 os.makedirs(self.config.stage3_wd, exist_ok=True)
+            return
+
+        # Inspector doesn't need a working dir
+        # TODO: For now the inspector creates files in-place in the stage2 folder
+        if stage == "inspect":
             return
 
         # Identify the target directory for the given stage
@@ -155,8 +162,9 @@ class Config:
     __config_instantiated: bool = False
     """ Class-local flag that allows us to detect attempts to instantiate Config more than once. """
 
-    _internal_opts: Final[List[str]] = ["stage1_wd", "stage2_wd", "stage3_wd"]
+    _internal_opts: Final[List[str]] = ["stage1_wd", "stage2_wd", "stage3_wd", "_inspector_config"]
     _help: str = ""
+    _inspector_config: LeakageInspectorConfig = LeakageInspectorConfig()
 
     # ==============================================================================================
     # Fuzzing directories
@@ -254,6 +262,7 @@ class Config:
         # Parse the config YAML file and ensure that it is set up correctly
         yaml_data = self._parse_yaml(config_yaml)
         self._set_from_yaml(yaml_data)
+        self._inspector_config.parse(yaml_data.get('inspector', {}))
         self._validate_config()
 
         # Ensure that the working directory is managed properly
@@ -269,6 +278,9 @@ class Config:
         help_str = "ConSFuzz Configuration Options:\n"
         help_str += cls._help
         return help_str
+
+    def get_inspector_config(self) -> LeakageInspectorConfig:
+        return self._inspector_config
 
     def _parse_yaml(self, config_yaml: str) -> YAMLData:
         """

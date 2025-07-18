@@ -18,3 +18,6 @@ dbg/
 site
 dist/
 .cache/
+*.asm
+*.bin
+*.dat

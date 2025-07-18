@@ -110,7 +110,7 @@ unique_ptr<Logger> create_logger(const string &out_path, int level, bool print)
 {
     // Sanitize log level
     if (level >= Logger::log_level_t::LOG_MAX) {
-        level = Logger::log_level_t::LOG_MAX - 1;
+        level = Logger::log_level_t::LOG_MAX;
     } else if (level < 0) {
         level = 0;
     }

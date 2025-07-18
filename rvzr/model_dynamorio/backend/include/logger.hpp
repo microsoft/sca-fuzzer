@@ -29,7 +29,8 @@ class Logger
         LOG_INSTRUCTIONS = 1, // Report PC, registers, memory operations and exceptions
         LOG_SPEC = 2,         // Also report rollbacks and checkpoints
         LOG_DISASM = 3,       // Also report module_name+offset of each instruction
-        LOG_MAX = 4,
+        LOG_DEF_USE = 4,      // Also report DEFs/USEs for an instruction
+        LOG_MAX = 5,
     };
 
     /// @param logs_path Path of the file where to dump the binary logs
@@ -51,7 +52,8 @@ class Logger
 
     /// @brief log the PC and registers of the current instruction, and whether it is speculative or
     /// biot
-    void log_instruction(instr_obs_t instr, dr_mcontext_t *mc, unsigned int nesting_level);
+    void log_instruction(instr_obs_t instr, dr_mcontext_t *mc, void *dc,
+                         unsigned int nesting_level);
     /// @brief log a memory operation, including the value that is currently stored at the address
     void log_mem_access(bool is_write, void *address, uint64_t size);
     /// @brief log an exception
@@ -64,6 +66,8 @@ class Logger
     void log_rollback_store(uint64_t addr, uint64_t val, size_t size, uint64_t nesting_level);
     /// @brief log end of trace
     void log_eot();
+    /// @brief log multi-way branch target
+    void log_mbr(uint64_t source, uint64_t target);
 
   private:
     static constexpr const unsigned buf_sz = 8 * 1024;
