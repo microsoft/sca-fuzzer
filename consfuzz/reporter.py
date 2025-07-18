@@ -189,9 +189,12 @@ class _Analyser:
             # Get a reference trace for the given group; we will use it to check that
             # all other traces are the same
             reference_trace_file = os.path.join(input_group_dir, "000.trace")
-            if not os.path.exists(reference_trace_file):
-                # If the reference trace does not exist, skip this group
+            if not os.path.exists(reference_trace_file) or \
+                    os.path.exists(reference_trace_file.replace(".trace", ".failed")):
+                # Ignore faulty traces
+                # TODO: add to failed list
                 continue
+
             inputs[reference_trace_file] = []
 
             # Compare the reference trace with all other traces in the group
@@ -204,6 +207,10 @@ class _Analyser:
 
                 # parse the trace file and extract a list of leaky instructions
                 trace_file = os.path.join(input_group_dir, trace_file)
+                if os.path.exists(trace_file.replace(".trace", ".failed")):
+                    # Ignore faulty traces
+                    # TODO: add to failed list
+                    continue
                 inputs[reference_trace_file].append(trace_file)
 
         # Initialize a progress bar to track the progress of the analysis
@@ -234,6 +241,7 @@ class _Analyser:
     def _parse_trace_file(self, trace_file: str) -> _Trace:
         trace = _Trace(trace_file)
         raw_traces, _ = self.trace_decoder.decode_trace_file(trace_file)
+        assert len(raw_traces) > 0, f"No trace found for {trace_file}"
 
         for i, entry in enumerate(raw_traces[0]):
             type_ = TraceEntryType(entry.type)
@@ -482,7 +490,7 @@ class _ReportPrinter:
                     continue
                 # Looking for a range of addresses in two consecutive states that
                 # contain the required address.
-                if prevstate and prevstate.address <= address < entry.state.address:
+                if prevstate and int(prevstate.address) <= address < int(entry.state.address):
                     filename = line['file_entry'][prevstate.file - delta].name.decode()
                     line = prevstate.line
                     return CodeLine(f"{filename}:{line}")

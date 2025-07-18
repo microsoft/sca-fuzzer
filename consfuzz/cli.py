@@ -15,6 +15,7 @@ from typing_extensions import get_args
 
 from .config import Config, FuzzingStages
 from .fuzzer import FuzzerCore
+from .triager import LeakageInspector
 
 CMD_HELP =\
     "Command to execute (e.g., 'openssl enc -e -aes256 -out enc.bin -in @@ -pbkdf2 -pass @#').\n" \
@@ -122,6 +123,38 @@ def _parse_args() -> Any:  # pylint: disable=r0915
         help="Path to the target binary to be fuzzed (e.g., '/usr/bin/openssl')",
     )
 
+    # ==============================================================================================
+    # Phase 4: Leak inspection/triaging
+    inspect = subparsers.add_parser('inspect', add_help=True, parents=[common_parser])
+    inspect.add_argument("file_and_line",
+                        type=str,
+                        help="A string <trace_file:line1:line2> as found in the report")
+    inspect.add_argument("-b",
+                        "--binary",
+                        type=str,
+                        help="Path of the binary to read the debug symbols from",
+                        default=None)
+    inspect.add_argument("-v",
+                        "--violation",
+                        type=str,
+                        help="Which violation has been found at the specified line",
+                        choices=["I", "D", "C"])
+    inspect.add_argument("--skip-tracing",
+                        action="store_true",
+                        help="Avoid regenerating traces")
+    inspect.add_argument("--usedef",
+                        action="store_true",
+                        help="Generate a use-def analysis for this violation")
+    inspect.add_argument("--debug-trace",
+                        action="store_true",
+                        help="The provided file path is already a debug trace")
+    inspect.add_argument("--baseline",
+                        type=str,
+                        default="none",
+                        help="Select a second trace as baseline for differential analysis." +
+                        "Specify 'auto' for automatic baseline and 'none' for no differential analysis.")
+
+
     args = parser.parse_args()
 
     # Custom check for subparser name
@@ -189,6 +222,18 @@ def main() -> int:
             target_cov=0,  # TODO: will be replaced with args.target_cov when implemented
             timeout_s=args.timeout,
             num_sec_inputs=args.num_sec_inputs,
+        )
+
+    if args.subparser_name == 'inspect':
+        inspector = LeakageInspector(config.get_inspector_config())
+        return inspector.inspect(
+                file_and_line=args.file_and_line,
+                violation=args.violation,
+                baseline=args.baseline,
+                binary=args.binary,
+                skip_tracing=args.skip_tracing,
+                usedef=args.usedef,
+                debug_trace=args.debug_trace
         )
 
     print("ERROR: Unknown subcommand")
