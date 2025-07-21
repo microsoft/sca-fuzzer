@@ -90,7 +90,7 @@ class DynamoRIOModel(Model):
         test_case.get_obj().save_rcbf(self._rcbf_file)
 
     def _trace_test_case_with_addr(self, inputs: List[InputData],
-                                  unused_nesting: int) -> Tuple[List[CTrace], int, int]:
+                                   unused_nesting: int) -> Tuple[List[CTrace], int, int]:
         """
         Execute the test case with the given inputs on DR backend and return the traces
         and the sandbox addresses.
