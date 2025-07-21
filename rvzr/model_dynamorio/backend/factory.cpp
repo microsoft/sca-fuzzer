@@ -49,20 +49,24 @@ const std::unordered_map<string, function<unique_ptr<TracerABC>(const string &, 
                             },
                         }};
 
-const std::unordered_map<string, function<unique_ptr<SpeculatorABC>(int, int, Logger &)>>
-    speculator_factories = {
-        {
-            "seq",
-            [](int max_nesting_, int max_spec_window_, Logger &logger) {
-                return std::make_unique<SpeculatorSeq>(max_nesting_, max_spec_window_, logger);
-            },
-        },
-        {
-            "cond",
-            [](int max_nesting_, int max_spec_window_, Logger &logger) {
-                return std::make_unique<SpeculatorCond>(max_nesting_, max_spec_window_, logger);
-            },
-        }};
+const std::unordered_map<
+    string, function<unique_ptr<SpeculatorABC>(int, int, Logger &, std::optional<uint64_t>)>>
+    speculator_factories = {{
+                                "seq",
+                                [](int max_nesting_, int max_spec_window_, Logger &logger,
+                                   std::optional<uint64_t> poison_value) {
+                                    return std::make_unique<SpeculatorSeq>(
+                                        max_nesting_, max_spec_window_, logger, poison_value);
+                                },
+                            },
+                            {
+                                "cond",
+                                [](int max_nesting_, int max_spec_window_, Logger &logger,
+                                   std::optional<uint64_t> poison_value) {
+                                    return std::make_unique<SpeculatorCond>(
+                                        max_nesting_, max_spec_window_, logger, poison_value);
+                                },
+                            }};
 
 } // namespace
 
@@ -87,10 +91,12 @@ vector<string> get_tracer_list()
 }
 
 std::unique_ptr<SpeculatorABC> create_speculator(const string &speculator_type, int max_nesting_,
-                                                 int max_spec_window_, Logger &logger)
+                                                 int max_spec_window_, Logger &logger,
+                                                 std::optional<uint64_t> poison_value)
 {
     try {
-        return speculator_factories.at(speculator_type)(max_nesting_, max_spec_window_, logger);
+        return speculator_factories.at(speculator_type)(max_nesting_, max_spec_window_, logger,
+                                                        poison_value);
     } catch (const std::out_of_range &e) {
         throw std::invalid_argument("Unexpected speculator type: " + speculator_type);
     }

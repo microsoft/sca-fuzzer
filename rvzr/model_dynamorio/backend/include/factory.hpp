@@ -33,11 +33,13 @@ std::vector<std::string> get_tracer_list();
 /// @param max_nesting_ The maximum nesting level for the speculator
 /// @param max_spec_window_ The maximum size of the speculation window
 /// @param logger Where to log events for debugging
+/// @param poison_value If not empty, this value will be forwarded on speculative faulty loads
 /// @return A unique pointer to the created speculator instance
 /// @throw std::invalid_argument if the speculator name is unknown
 std::unique_ptr<SpeculatorABC> create_speculator(const std::string &speculator_type,
                                                  int max_nesting_, int max_spec_window_,
-                                                 Logger &logger);
+                                                 Logger &logger,
+                                                 std::optional<uint64_t> poison_value);
 
 /// @brief Get a list of all available speculators
 /// @return A list of all available speculators

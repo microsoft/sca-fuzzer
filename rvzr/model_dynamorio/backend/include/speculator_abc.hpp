@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 #include <dr_api.h> // NOLINT
@@ -89,8 +90,10 @@ class StoreLog
 class SpeculatorABC
 {
   public:
-    SpeculatorABC(int max_nesting_, int max_spec_window_, Logger &logger)
-        : max_nesting(max_nesting_), max_spec_window(max_spec_window_), logger(logger)
+    SpeculatorABC(int max_nesting_, int max_spec_window_, Logger &logger,
+                  std::optional<uint64_t> poison_value)
+        : max_nesting(max_nesting_), max_spec_window(max_spec_window_), logger(logger),
+          poison_value(poison_value)
     {
     }
     virtual ~SpeculatorABC() = default;
@@ -152,7 +155,8 @@ class SpeculatorABC
     virtual bool handle_mem_access(bool is_write, void *address, uint64_t size);
 
     /// @brief Notifies the speculator of an exception, needed to possibly reset internal state.
-    virtual void handle_exception(dr_siginfo_t *siginfo);
+    /// @return Whether the speculator redirected execution or not.
+    virtual bool handle_exception(void *drcontext, dr_siginfo_t *siginfo);
 
   protected:
     // ---------------------------------------------------------------------------------------------
@@ -179,6 +183,9 @@ class SpeculatorABC
 
     /// @param Current speculation window
     unsigned int spec_window = 0;
+
+    /// @param Should faulty loads cause a rollback or continue speculation with a poisoned value?
+    const std::optional<uint64_t> poison_value;
 
     /// @param Used to log checkpoint and rollback events
     Logger &logger;

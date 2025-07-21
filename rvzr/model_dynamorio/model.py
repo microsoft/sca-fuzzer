@@ -44,6 +44,7 @@ class DynamoRIOModel(Model):
 
     _trace_file: str = ""
     _dbg_trace_file: str = ""
+    poison_value: int = 0  # If this value is != 0, it will be returned on speculative faulty loads
 
     # ----------------------------------------------------------------------------------------------
     # Constructor/Destructor
@@ -55,6 +56,7 @@ class DynamoRIOModel(Model):
         #       for customization of the memory layout
         self._enable_mismatch_check_mode = enable_mismatch_check_mode
         self.is_speculative = True  # may be changed by configure_clauses
+        self.poison_value = 0  # may be changed later
 
         with tempfile.NamedTemporaryFile("wb", delete=False) as trace_f:
             self._trace_file = trace_f.name
@@ -87,16 +89,18 @@ class DynamoRIOModel(Model):
         # store the test case in the RCBF format
         test_case.get_obj().save_rcbf(self._rcbf_file)
 
-    def trace_test_case(self, inputs: List[InputData], nesting: int) -> List[CTrace]:
+    def _trace_test_case_with_addr(self, inputs: List[InputData],
+                                   unused_nesting: int) -> Tuple[List[CTrace], int, int]:
         """
         Execute the test case with the given inputs on DR backend and return the traces
+        and the sandbox addresses.
         :param inputs: input sequence to trace
         :param nesting: maximum nesting level to emulated in the model
-        :return: list of contract traces, one per input
+        :return: list of contract traces, one per input, and the addresses of the sandbox
         """
         assert self._test_case is not None, "No test case was loaded"
         if len(inputs) == 0:
-            return []
+            return [], 0, 0
 
         # remove the previous RDBF file if it exists and create a new one
         if self._rdbf_file is not None and os.path.exists(self._rdbf_file):
@@ -127,9 +131,20 @@ class DynamoRIOModel(Model):
         if self._enable_mismatch_check_mode:
             # In this mode, the contract trace is the register values at the end of the test case
             arch_traces = [CTrace(t.get_typed()[-6:]) for t in dbg_traces]
-            return arch_traces
+            return arch_traces, code_base_addr, data_base_addr
 
-        return traces
+        return traces, code_base_addr, data_base_addr
+
+    def trace_test_case(self, inputs: List[InputData], nesting: int) -> List[CTrace]:
+        """
+        Execute the test case with the given inputs on DR backend and return the traces
+        :param inputs: input sequence to trace
+        :param nesting: maximum nesting level to emulated in the model
+        :return: list of contract traces, one per input
+        """
+        # Just ignore sandbox addresses
+        trace, _, _ = self._trace_test_case_with_addr(inputs, nesting)
+        return trace
 
     def trace_test_case_with_taints(self, inputs: List[InputData],
                                     nesting: int) -> Tuple[List[CTrace], List[InputTaint]]:
@@ -233,6 +248,9 @@ class DynamoRIOModel(Model):
             f" --trace-output {self._trace_file}"
         if self._enable_mismatch_check_mode:
             flags += f" --log-level 1 --debug-trace-output {self._dbg_trace_file}"
+        if self.poison_value != 0:
+            flags += f" --poison-value {self.poison_value}"
+
         binary = _ADAPTER_PATH
         args = f"{self._rcbf_file} {self._rdbf_file}"
         cmd = _DRRUN_CMD.format(flags=flags, binary=binary, args=args)
