@@ -12,9 +12,13 @@
         <meta name="author" content="Microsoft">
       
       
-        <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/devel/post-violation/">
+        <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/user/actors/">
       
       
+        <link rel="prev" href="../minimization/">
+      
+      
+        <link rel="next" href="../templates/">
       
       
       <link rel="icon" href="../../assets/ms_icon.png">
@@ -22,7 +26,7 @@
     
     
       
-        <title>Post-Violation Checks - Revizor</title>
+        <title>Actors - Revizor</title>
       
     
     
@@ -72,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#post-violation-checks" class="md-skip">
+        <a href="#actors" class="md-skip">
           Skip to content
         </a>
       
@@ -105,7 +109,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Post-Violation Checks
+              Actors
             
           </span>
         </div>
@@ -240,11 +244,13 @@
         
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../../user/cli/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../cli/" class="md-tabs__link">
           
   
   User Documentation
@@ -262,7 +268,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../overview/" class="md-tabs__link">
+        <a href="../../devel/overview/" class="md-tabs__link">
           
   
   Developer Documentation
@@ -399,23 +405,28 @@
       
   
   
+    
   
   
+  
     
     
     
-      
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
             
   
   <span class="md-ellipsis">
@@ -426,7 +437,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             User Documentation
@@ -440,7 +451,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user/cli/" class="md-nav__link">
+      <a href="../cli/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -461,7 +472,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user/modes/" class="md-nav__link">
+      <a href="../modes/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -482,7 +493,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user/config/" class="md-nav__link">
+      <a href="../config/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -503,7 +514,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user/minimization/" class="md-nav__link">
+      <a href="../minimization/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -521,10 +532,30 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../user/actors/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Actors
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -533,6 +564,77 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-an-actor" class="md-nav__link">
+    <span class="md-ellipsis">
+      What is an Actor?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#actor-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Actor Configuration
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#actor-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      Actor Templates
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Actor Templates">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#transition-macros" class="md-nav__link">
+    <span class="md-ellipsis">
+      Transition Macros
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#actor-non-interference-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      Actor Non-Interference Contract
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -545,7 +647,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user/templates/" class="md-nav__link">
+      <a href="../templates/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -566,7 +668,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user/macros/" class="md-nav__link">
+      <a href="../macros/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -632,7 +734,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../overview/" class="md-nav__link">
+      <a href="../../devel/overview/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -653,7 +755,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../development/" class="md-nav__link">
+      <a href="../../devel/development/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -712,7 +814,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../registers/" class="md-nav__link">
+      <a href="../../devel/registers/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -733,7 +835,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../sandbox/" class="md-nav__link">
+      <a href="../../devel/sandbox/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -754,7 +856,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../macros/" class="md-nav__link">
+      <a href="../../devel/macros/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -775,7 +877,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../dr-model/" class="md-nav__link">
+      <a href="../../devel/dr-model/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -796,7 +898,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../binary-formats/" class="md-nav__link">
+      <a href="../../devel/binary-formats/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -817,7 +919,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../code-generation/" class="md-nav__link">
+      <a href="../../devel/code-generation/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -974,6 +1076,65 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-an-actor" class="md-nav__link">
+    <span class="md-ellipsis">
+      What is an Actor?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#actor-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Actor Configuration
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#actor-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      Actor Templates
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Actor Templates">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#transition-macros" class="md-nav__link">
+    <span class="md-ellipsis">
+      Transition Macros
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#actor-non-interference-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      Actor Non-Interference Contract
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -990,9 +1151,165 @@
   
 
 
-<h1 id="post-violation-checks">Post-Violation Checks</h1>
-<p>This document describes a series of test that the fuzzer automatically performs to distinguish between false positives (e.g., due to noise) and genuine violations.</p>
-<p><strong>UNDER CONSTRUCTION</strong>: If you are interested in this topic, please contact us by opening an issue on GitHub, and we will prioritize this document.</p>
+<h1 id="actors">Actors</h1>
+<p>Actors in Revizor are a concept that allows to test for information leaks across different security domains, such as leakage from OS kernel to user space, or from one virtual machine to another. They represent distinct execution contexts with specific isolation properties, enabling the detection of microarchitectural vulnerabilities across these boundaries.</p>
+<p>Despite the relative complexity of their usage, actors have proven to be the most powerful feature of Revizor, as they allowed us to discover a number of critical vulnerabilities in real-world CPUs, most notably the Transient Scheduler Attacks (TSA) in AMD CPUs. This concept also allows to test mitigations against such high-profile vulnerabilities like Meltdown, Foreshadow, and MDS.</p>
+<h2 id="what-is-an-actor">What is an Actor?</h2>
+<p>An actor is an abstraction that encompasses:</p>
+<ul>
+<li><strong>Code region</strong>: A part of the test case program that is associated with a specific execution context</li>
+<li><strong>Data region</strong>: Private data memory with configurable permissions and properties</li>
+<li><strong>Execution context</strong>: CPU mode (host/guest), privilege level (kernel/user), and system configuration</li>
+</ul>
+<p>In other words, a test case can be split into multiple isolated sections with associated data and CPU configurations, and each such section is called an actor.</p>
+<p>Every test case in Revizor always contains one actor by default, called <code>main</code>, which is executed in the host kernel mode and contains the entry and exit points of the test case. Any additional actors are optional, and can be reached only through special macros that handle transitions between different execution contexts.</p>
+<h2 id="actor-configuration">Actor Configuration</h2>
+<p>Actors are defined in the configuration file under the <code>actors</code> section:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">actors</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">main</span><span class="p">:</span><span class="w">                      </span><span class="c1"># Default main actor</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;host&quot;</span><span class="w">              </span><span class="c1"># Always host for main;</span>
+<span class="w">                                </span><span class="c1"># changing to &quot;guest&quot; will produce an error</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">privilege_level</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;kernel&quot;</span><span class="w"> </span><span class="c1"># Always kernel for main;</span>
+<span class="w">                                </span><span class="c1"># changing to &quot;user&quot; will produce an error</span>
+
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">user</span><span class="p">:</span><span class="w">                      </span><span class="c1"># Example user-mode actor</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;host&quot;</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">privilege_level</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;user&quot;</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">data_properties</span><span class="p">:</span><span class="w">        </span><span class="c1"># Custom page table properties of the faulty page</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">writable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">       </span><span class="c1"># Faulty page of the user actor is read-only</span>
+</code></pre></div>
+<p>Available properties for each actor include:</p>
+<ul>
+<li><code>mode</code>: Virtualization mode of the actor<ul>
+<li><code>host</code>: Normal, non-virtualized execution</li>
+<li><code>guest</code>: Runs in a virtual machine (each guest actor is another VM)</li>
+</ul>
+</li>
+<li><code>privilege_level</code>: CPL of the actor<ul>
+<li><code>kernel</code>: Ring 0 execution (CPL=0)</li>
+<li><code>user</code>: Ring 3 execution (CPL=3)</li>
+</ul>
+</li>
+<li><code>data_properties</code>: A list of properties that define the permissions and attributes of the actor's faulty data area (see <a href="../../devel/sandbox/">sandbox</a> for an explanation of the faulty area).<ul>
+<li><code>present</code>: Page present bit (true for present, false for not present)</li>
+<li><code>writable</code>: Page writable bit (true for writable, false for read-only)</li>
+<li><code>user</code>: User/Supervisor bit (true for user-accessible, false for supervisor-only)</li>
+<li><code>accessed</code>: A-bit value of the page table entry (true if 1, false if 0)</li>
+<li><code>dirty</code>: D-bit value of the page table entry (true if 1, false if 0)</li>
+<li><code>reserved_bit</code>: Reserved bit (true if 1, false if 0)</li>
+<li><code>executable</code>: Execute bit (true if executable, false if not)</li>
+<li><code>randomized</code>: If true, the properties are randomized per test case execution (use <code>false</code> for deterministic testing)</li>
+</ul>
+</li>
+<li><code>data_ept_properties</code>: A list of properties that define the Extended Page Table (EPT) attributes for guest actors. The list of properties is similar to <code>data_properties</code>, but applies to the EPT entries instead of the page table entries.</li>
+<li><code>observer</code>: A boolean flag indicating whether the actor is an observer. Used to determine the threat model when testing <a href="#actor-non-interference-contract">Non-Interference contracts</a>.<ul>
+<li><code>true</code>: Actor is an attacker that can observe data leaks</li>
+<li><code>false</code>: Actor is a victim or neutral party that does not observe leaks</li>
+</ul>
+</li>
+</ul>
+<h2 id="actor-templates">Actor Templates</h2>
+<p>Multi-actor execution is supported only in the <a href="../templates/">template-based mode</a>, where actors are defined in the test case template. Each actor can have its own code and data sections, and transitions between actors are handled by macros.</p>
+<p>For example, a template with two actors (kernel and user) might look like this:</p>
+<div class="highlight"><pre><span></span><code><span class="na">.intel_syntax</span><span class="w"> </span><span class="no">noprefix</span>
+
+<span class="c1"># ---------------- Main (Kernel) Actor ---------</span>
+<span class="na">.section</span><span class="w"> </span><span class="no">.data.main</span>
+<span class="nl">.function_main_0:</span>
+<span class="w">    </span><span class="c1"># Set up user transition</span>
+<span class="w">    </span><span class="nl">.macro.set_k2u_target.user.function_user_0:</span>
+<span class="w">    </span><span class="nl">.macro.set_u2k_target.main.function_main_1:</span>
+
+<span class="w">    </span><span class="c1"># Generate random kernel code</span>
+<span class="w">    </span><span class="nl">.macro.random_instructions.32.0:</span>
+
+<span class="w">    </span><span class="c1"># Transition to user mode</span>
+<span class="w">    </span><span class="nl">.macro.switch_k2u.user.0:</span>
+
+<span class="nl">.function_main_1:</span>
+<span class="w">    </span><span class="nl">.macro.landing_u2k.main_1:</span>
+<span class="w">    </span><span class="c1"># Back in kernel, clean up and exit</span>
+<span class="w">    </span><span class="nf">nop</span>
+
+<span class="nl">.test_case_exit:</span>
+
+<span class="c1"># ---------------- User Actor -----------------</span>
+<span class="na">.section</span><span class="w"> </span><span class="no">.data.user</span>
+<span class="nl">.function_user_0:</span>
+<span class="w">    </span><span class="nl">.macro.landing_k2u.user_0:</span>
+
+<span class="w">    </span><span class="c1"># Start measurement in user mode</span>
+<span class="w">    </span><span class="nl">.macro.measurement_start:</span>
+
+<span class="w">    </span><span class="c1"># Generate random user code</span>
+<span class="w">    </span><span class="nl">.macro.random_instructions.16.1:</span>
+
+<span class="w">    </span><span class="c1"># End measurement</span>
+<span class="w">    </span><span class="nl">.macro.measurement_end:</span>
+
+<span class="w">    </span><span class="c1"># Return to kernel</span>
+<span class="w">    </span><span class="nl">.macro.switch_u2k.main.0:</span>
+</code></pre></div>
+<h3 id="transition-macros">Transition Macros</h3>
+<p>The following macros are available for performing transitions between actors.</p>
+<p><strong>Kernel-User transitions:</strong></p>
+<p><code>.set_k2u_target</code>: Set the target for the user entry point; must be executed in a kernel actor</p>
+<ul>
+<li>argument 1: Name of the user actor</li>
+<li>argument 2: Name of the user function to jump to</li>
+</ul>
+<p><code>.set_u2k_target</code>: Set the target for the kernel return point; must be executed in a kernel actor</p>
+<ul>
+<li>argument 1: Name of the kernel actor</li>
+<li>argument 2: Name of the kernel function to jump to</li>
+</ul>
+<p><code>.switch_k2u</code>: Perform the transition from kernel to user mode; must be executed in a kernel actor</p>
+<ul>
+<li>argument 1: Name of the user actor</li>
+</ul>
+<p><code>.switch_u2k</code>: Perform the transition from user to kernel mode; must be executed in a user actor</p>
+<ul>
+<li>argument 1: Name of the kernel actor</li>
+</ul>
+<p><code>.landing_k2u</code>: Define the landing point in user mode</p>
+<ul>
+<li>no arguments</li>
+</ul>
+<p><code>.landing_u2k</code>: Define the landing point in kernel mode</p>
+<ul>
+<li>no arguments</li>
+</ul>
+<p><strong>Host-Guest transitions:</strong></p>
+<p><code>.set_h2g_target</code>: Set the target for the guest VM entry point; must be executed in a host actor</p>
+<ul>
+<li>argument 1: Name of the guest actor</li>
+<li>argument 2: Name of the guest function to enter</li>
+</ul>
+<p><code>.set_g2h_target</code>: Set the target for the host VM exit point; must be executed in a guest actor</p>
+<ul>
+<li>argument 1: Name of the host actor</li>
+<li>argument 2: Name of the host function to return to</li>
+</ul>
+<p><code>.switch_h2g</code>: Perform the transition from host to guest mode; must be executed in a host actor</p>
+<ul>
+<li>argument 1: Name of the guest actor</li>
+</ul>
+<p><code>.switch_g2h</code>: Perform the transition from guest to host mode; must be executed in a guest actor</p>
+<ul>
+<li>argument 1: Name of the host actor</li>
+</ul>
+<p><code>.landing_h2g</code>: Define the landing point in guest mode</p>
+<ul>
+<li>no arguments</li>
+</ul>
+<p><code>.landing_g2h</code>: Define the landing point in host mode</p>
+<ul>
+<li>no arguments</li>
+</ul>
+<h2 id="actor-non-interference-contract">Actor Non-Interference Contract</h2>
+<p>The typical scenario for actors is to test isolation between different security domains. For this purpose, Revizor provides a special contract called <strong>Actor Non-Interference</strong>.</p>
+<p>Actor Non-Interference contract assumes that (at least one) actor is an observer, and the contract states that the traces collected by the observer actor do not contain any information from the non-observer actors. Or in simpler terms, the observer's execution should not depend on the execution of non-observer actors. And conversely, if Revizor finds a test case where the observer's traces depend on some data from a non-observer actor, it will report a violation.</p>
+<p>In practice, we use a slightly modified version of the contract which permits leakage of the non-observer actor's memory accesses and control flow, but not of the raw data values. Essentially, it means that the non-observer actors follow the classical <code>ct-seq</code> contract while the observer actor expose all their data. This is done to filter out cases of cross-domain leakage through the cache state, which are typically assumed benign in current software systems. You can read more about the contract and the motivation behind it our paper <a href="https://aka.ms/enter-exit-leak">Enter, Exit, Page Fault, Leak: Testing Isolation Boundaries for Microarchitectural Leaks</a>.</p>
 
 
 

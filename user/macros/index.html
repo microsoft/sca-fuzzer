@@ -12,9 +12,13 @@
         <meta name="author" content="Microsoft">
       
       
-        <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/devel/post-violation/">
+        <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/user/macros/">
       
       
+        <link rel="prev" href="../templates/">
+      
+      
+        <link rel="next" href="../../devel/overview/">
       
       
       <link rel="icon" href="../../assets/ms_icon.png">
@@ -22,7 +26,7 @@
     
     
       
-        <title>Post-Violation Checks - Revizor</title>
+        <title>Macros - Revizor</title>
       
     
     
@@ -72,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#post-violation-checks" class="md-skip">
+        <a href="#macros" class="md-skip">
           Skip to content
         </a>
       
@@ -105,7 +109,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Post-Violation Checks
+              Macros
             
           </span>
         </div>
@@ -240,11 +244,13 @@
         
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../../user/cli/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../cli/" class="md-tabs__link">
           
   
   User Documentation
@@ -262,7 +268,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../overview/" class="md-tabs__link">
+        <a href="../../devel/overview/" class="md-tabs__link">
           
   
   Developer Documentation
@@ -399,23 +405,28 @@
       
   
   
+    
   
   
+  
     
     
     
-      
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
             
   
   <span class="md-ellipsis">
@@ -426,7 +437,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             User Documentation
@@ -440,7 +451,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user/cli/" class="md-nav__link">
+      <a href="../cli/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -461,7 +472,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user/modes/" class="md-nav__link">
+      <a href="../modes/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -482,7 +493,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user/config/" class="md-nav__link">
+      <a href="../config/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -503,7 +514,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user/minimization/" class="md-nav__link">
+      <a href="../minimization/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -524,7 +535,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user/actors/" class="md-nav__link">
+      <a href="../actors/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -545,7 +556,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user/templates/" class="md-nav__link">
+      <a href="../templates/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -563,10 +574,30 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../user/macros/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Macros
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -575,6 +606,119 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-a-macro" class="md-nav__link">
+    <span class="md-ellipsis">
+      What is a macro?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#macro-definition-and-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Macro Definition and Usage
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Macro Definition and Usage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#assembly-syntax" class="md-nav__link">
+    <span class="md-ellipsis">
+      Assembly Syntax
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example Usage
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#available-macro-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      Available Macro Types
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Implementation Overview
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Implementation Overview">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#internal-representation-of-macros" class="md-nav__link">
+    <span class="md-ellipsis">
+      Internal Representation of Macros
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#macros-in-executor" class="md-nav__link">
+    <span class="md-ellipsis">
+      Macros in Executor
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#macros-in-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      Macros in Model
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -632,7 +776,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../overview/" class="md-nav__link">
+      <a href="../../devel/overview/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -653,7 +797,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../development/" class="md-nav__link">
+      <a href="../../devel/development/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -712,7 +856,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../registers/" class="md-nav__link">
+      <a href="../../devel/registers/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -733,7 +877,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../sandbox/" class="md-nav__link">
+      <a href="../../devel/sandbox/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -754,7 +898,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../macros/" class="md-nav__link">
+      <a href="../../devel/macros/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -775,7 +919,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../dr-model/" class="md-nav__link">
+      <a href="../../devel/dr-model/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -796,7 +940,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../binary-formats/" class="md-nav__link">
+      <a href="../../devel/binary-formats/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -817,7 +961,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../code-generation/" class="md-nav__link">
+      <a href="../../devel/code-generation/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -974,6 +1118,107 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-a-macro" class="md-nav__link">
+    <span class="md-ellipsis">
+      What is a macro?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#macro-definition-and-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Macro Definition and Usage
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Macro Definition and Usage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#assembly-syntax" class="md-nav__link">
+    <span class="md-ellipsis">
+      Assembly Syntax
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example Usage
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#available-macro-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      Available Macro Types
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Implementation Overview
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Implementation Overview">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#internal-representation-of-macros" class="md-nav__link">
+    <span class="md-ellipsis">
+      Internal Representation of Macros
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#macros-in-executor" class="md-nav__link">
+    <span class="md-ellipsis">
+      Macros in Executor
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#macros-in-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      Macros in Model
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -990,9 +1235,127 @@
   
 
 
-<h1 id="post-violation-checks">Post-Violation Checks</h1>
-<p>This document describes a series of test that the fuzzer automatically performs to distinguish between false positives (e.g., due to noise) and genuine violations.</p>
-<p><strong>UNDER CONSTRUCTION</strong>: If you are interested in this topic, please contact us by opening an issue on GitHub, and we will prioritize this document.</p>
+<h1 id="macros">Macros</h1>
+<p>This document explains the concept of macros in Revizor and describes how to create test cases that use macros.</p>
+<p>Note that macros are especially useful in the template-based mode of Revizor, so if you are not familiar, check out the <a href="../templates/">Template-Based Mode</a> documentation as well.</p>
+<h2 id="what-is-a-macro">What is a macro?</h2>
+<p>Macros in Revizor are special pseudo-instructions that provide a flexible way to insert complex operations into test cases. They appear as labels of a special format in the assembly code but are dynamically expanded into actual implementations during execution by the model and the executor.</p>
+<p>Macros solve two key challenges, especially in the context of multi-domain testing:</p>
+<ul>
+<li>Structuring: Enable insertion of pre-defined instruction sequences (like domain transitions or microarchitectural isolation primitives) within randomized test contexts</li>
+<li>Unification: Allow the same test case template to be instantiated differently across executor and model stages, accommodating differences in ISA support.</li>
+</ul>
+<h2 id="macro-definition-and-usage">Macro Definition and Usage</h2>
+<h3 id="assembly-syntax">Assembly Syntax</h3>
+<p>Macros use standard assembly syntax of a label with the <code>.macro</code> prefix:</p>
+<div class="highlight"><pre><span></span><code>.macro.macro_name.argument1.argument2.argument3.argument4:
+</code></pre></div>
+<p>A macro can take at most four arguments. The arguments are strictly static; Revizor does not support dynamic arguments in macros, such as registers or memory addresses.</p>
+<h3 id="example-usage">Example Usage</h3>
+<p>A user can create a test case program where only a subset of instruction is measured by using <code>measurement_start</code> and <code>measurement_end</code> macros:</p>
+<div class="highlight"><pre><span></span><code><span class="na">.intel_syntax</span><span class="w"> </span><span class="no">noprefix</span>
+<span class="na">.section</span><span class="w"> </span><span class="no">.data.main</span>
+
+<span class="na">...</span><span class="w"> </span><span class="c1">; non-measured code here</span>
+
+<span class="nl">.macro.measurement_start:</span>
+
+<span class="na">...</span><span class="w"> </span><span class="c1">; measured code here</span>
+
+<span class="nl">.macro.measurement_end:</span>
+
+<span class="na">...</span><span class="w"> </span><span class="c1">; non-measured code here</span>
+
+<span class="nl">.test_case_exit:</span>
+</code></pre></div>
+<p>Revizor will automatically replace the macros with no-op operations of an ISA-dependent size, and record the location and the arguments of the macros in the test case metadata. When the executor and the model run the test case, they will recognize these macros and execute the corresponding logic. Note that the logic can be configurable, e.g., when the user has set <code>executor_mode: P+P</code> (prime+probe), the <code>measurement_start</code> macro will correspond the Prime stage of the measurement, and <code>measurement_end</code> will correspond to the Probe stage.</p>
+<p>See <a href="#implementation-overview">Implementation Overview</a> for details on how macros are implemented in the executor and model.</p>
+<h2 id="available-macro-types">Available Macro Types</h2>
+<p><strong>Measurement Macros:</strong></p>
+<ul>
+<li><code>measurement_start</code>: Begin hardware/contract trace collection</li>
+<li><code>measurement_end</code>: End hardware/contract trace collection</li>
+</ul>
+<p><strong>Fault Handling Macros:</strong></p>
+<ul>
+<li><code>fault_handler</code>: Label the location where control flow should be redirected upon an exception or interrupt</li>
+</ul>
+<p>Example usage:
+<div class="highlight"><pre><span></span><code>mov rdx, 0
+mov rax, 0
+mov rbx, 0
+div rbx  ; This will cause a division by zero exception
+
+.fault_handler:
+    ; Execute some code after the fault
+    mov rax, 1
+</code></pre></div></p>
+<p>Note that if <code>fault_handler</code> is not defined, the executor will use a default handler that jumps to the exit point of the test case.</p>
+<p><strong>Generation Macros:</strong></p>
+<ul>
+<li><code>random_instructions.N</code>: Generate N random instructions. This macro is intended to be used in the template-based mode.</li>
+</ul>
+<p>Example usage:
+<div class="highlight"><pre><span></span><code>mov rax, 0
+mov rbx, 0
+.random_instructions.10:  ; Generate 10 random instructions
+mul rax, rcx
+</code></pre></div></p>
+<p><strong>Actor Transition Macros:</strong></p>
+<ul>
+<li>Host-guest transitions:<ul>
+<li><code>set_h2g_target</code>: Set VM entry point</li>
+<li><code>set_g2h_target</code>: Set VM exit point</li>
+<li><code>switch_h2g</code>: Host to guest transition</li>
+<li><code>landing_h2g</code>: Label guest landing point</li>
+<li><code>switch_g2h</code>: Guest to host transition</li>
+<li><code>landing_g2h</code>: Label host landing point</li>
+</ul>
+</li>
+<li>Kernel-user transitions:<ul>
+<li><code>set_k2u_target</code>: Set user mode entry point</li>
+<li><code>set_u2k_target</code>: Set kernel mode entry point</li>
+<li><code>switch_k2u</code>: Kernel to user transition</li>
+<li><code>switch_u2k</code>: User to kernel transition</li>
+<li><code>landing_k2u</code>: Kernel to user landing point</li>
+<li><code>landing_u2k</code>: User to kernel landing point</li>
+</ul>
+</li>
+</ul>
+<p>See <a href="../actors/">Actors</a> for more details and examples of how to use these macros.</p>
+<h2 id="implementation-overview">Implementation Overview</h2>
+<h3 id="internal-representation-of-macros">Internal Representation of Macros</h3>
+<p>Revizor internally replaces all macros with a no-op placeholder of a fixed size (8 bytes for x86-64, 12 bytes for ARM64). This placeholder is used to maintain the original instruction flow while allowing the executor and model to recognize and handle macros dynamically. The macro location, type, and arguments are stored in the test case metadata, namely in the <code>SYMBOL TABLE</code> section of the <a href="../../devel/binary-formats/">RCBF File Format</a>, where <code>owner</code> is set to the actor ID of the actor that contains the macro, <code>offset</code> is the offset of the macro placeholder in the code section of the actor, <code>id</code> is the macro type (defined in <a href="https://github.com/microsoft/sca-fuzzer/blob/main/src/x86/executor/include/macro_loader.h">executor_km/include/macro_expansion.h</a>), and <code>args</code> is a compressed representation of the macro arguments.</p>
+<h3 id="macros-in-executor">Macros in Executor</h3>
+<p>Each actor's code section contains a dedicated memory region for macros, and the implementation is copied there during test case initialization. The executor copies the implementations of all macros into this section, and it replaces the macro placeholders with direct jumps to the corresponding implementations. The executor also inserts a return jump at the end of each macro implementation to return control flow back to the original instruction sequence.</p>
+<p>For example, if we have a simple test case like this:</p>
+<div class="highlight"><pre><span></span><code><span class="nl">.macro.measurement_start:</span>
+<span class="na">...</span><span class="w"> </span><span class="c1">; some code here</span>
+<span class="nl">.macro.measurement_end:</span>
+<span class="nl">.test_case_exit:</span>
+</code></pre></div>
+<p>The executor with expand it as follows:</p>
+<div class="highlight"><pre><span></span><code><span class="nf">jump</span><span class="w"> </span><span class="no">measurement_start_impl</span>
+<span class="nf">lfence</span>
+<span class="nl">.l1:</span>
+<span class="na">...</span><span class="w"> </span><span class="c1">; some code here</span>
+<span class="nf">jump</span><span class="w"> </span><span class="no">measurement_end_impl</span>
+<span class="nf">lfence</span>
+<span class="nl">.l2:</span>
+<span class="nl">.test_case_exit:</span>
+
+<span class="nl">.macro_code_section:</span>
+<span class="nl">measurement_start_impl:</span>
+<span class="na">...</span><span class="w"> </span><span class="c1">; sequence of instructions that implements the macro</span>
+<span class="nf">jump</span><span class="w"> </span><span class="no">.l1</span><span class="w">  </span><span class="c1">; jump to the end of the macro section</span>
+
+<span class="nl">measurement_end_impl:</span>
+<span class="na">...</span><span class="w"> </span><span class="c1">; sequence of instructions that implements the macro</span>
+<span class="nf">jump</span><span class="w"> </span><span class="no">.l2</span><span class="w">  </span><span class="c1">; jump to the end of the macro section</span>
+</code></pre></div>
+<p>Note that the executor also inserts LFENCE barriers after each macro jump. This is to ensure that the macro execution does not trigger straight-line speculation, which could interfere with the measurement process.</p>
+<h3 id="macros-in-model">Macros in Model</h3>
+<p>In the model, macros are implemented as dynamic callbacks. The model executes a hook function on every instruction execution, checking if the current instruction matches an entry in the symbol table. If a match is found, the model invokes the corresponding callback function to emulate the macro behavior.</p>
 
 
 
