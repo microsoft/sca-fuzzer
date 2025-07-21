@@ -89,7 +89,7 @@ class DynamoRIOModel(Model):
         # store the test case in the RCBF format
         test_case.get_obj().save_rcbf(self._rcbf_file)
 
-    def trace_test_case_with_addr(self, inputs: List[InputData],
+    def _trace_test_case_with_addr(self, inputs: List[InputData],
                                   unused_nesting: int) -> Tuple[List[CTrace], int, int]:
         """
         Execute the test case with the given inputs on DR backend and return the traces
@@ -143,7 +143,7 @@ class DynamoRIOModel(Model):
         :return: list of contract traces, one per input
         """
         # Just ignore sandbox addresses
-        trace, _, _ = self.trace_test_case_with_addr(inputs, nesting)
+        trace, _, _ = self._trace_test_case_with_addr(inputs, nesting)
         return trace
 
     def trace_test_case_with_taints(self, inputs: List[InputData],
