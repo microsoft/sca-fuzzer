@@ -690,6 +690,22 @@
         <h1>Trophies</h1>
         <div class="trophies">
                 <ul>
+                    <li><b>Transient Scheduler Attack - L1 Cache (TSA-L1, <a href="https://nvd.nist.gov/vuln/detail/CVE-2024-36357">CVE-2024-36357</a>):</b>
+                        A speculative leak affecting AMD Family 19h processors where false completions in load instructions can leak data from the L1 data cache across security boundaries. The attack exploits the linear address-based microtag system used for L1 cache lookups - when a load finds a matching microtag entry but the L1 doesn't contain valid data, invalid data from the matching microtag entry is used in a false completion. This leak enables information disclosure between kernel/userspace, hypervisor/guest, across different applications or VMs, and from SEV-SNP VMs to the host.
+                        (More details in <a href="https://aka.ms/enter-exit-leak">Enter-Exit</a> and <a href="https://www.amd.com/en/resources/product-security/bulletin/amd-sb-7029.html">AMD Advisory</a>)
+                    </li>
+                    <li><b>Transient Scheduler Attack - Store Queue (TSA-SQ, <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=2024-36350">CVE-2024-36350</a>):</b>
+                        A speculative leak affecting AMD Family 19h processors where false completions in Store-To-Load Forwarding operations can leak data from previous store instructions. When a load matches an older store's address but the store data isn't yet available, a false completion occurs using invalid data from a previously executed store that occupied the same store queue entry. This effect enables information leakage from the OS kernel to user applications, hypervisor to guest, and to a lesser extent, between application.
+                        (More details in <a href="https://aka.ms/enter-exit-leak">Enter-Exit</a> and <a href="https://www.amd.com/en/resources/product-security/bulletin/amd-sb-7029.html">AMD Advisory</a>)
+                    </li>
+                    <li><b>Control Register Speculation (<a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-36348">CVE-2024-36348</a>):</b>
+                        A speculative leak affecting AMD processors where user processes can speculatively infer control register values even when User Mode Instruction Prevention (UMIP) is enabled. This bypasses intended security boundaries by allowing unprivileged code to access system-level configuration information through speculative channels.
+                        (More details in <a href="https://aka.ms/enter-exit-leak">Enter-Exit</a> and <a href="https://www.amd.com/en/resources/product-security/bulletin/amd-sb-7029.html">AMD Advisory</a>)
+                    </li>
+                    <li><b>TSC_AUX Speculation (<a href="https://nvd.nist.gov/vuln/detail/CVE-2024-36349">CVE-2024-36349</a>):</b>
+                        A speculative leak affecting AMD processors affecting AMD processors that permits user processes to infer the Time Stamp Counter Auxiliary (TSC_AUX) register value even when direct reads are disabled. 
+                        (More details in <a href="https://aka.ms/enter-exit-leak">Enter-Exit</a> and <a href="https://www.amd.com/en/resources/product-security/bulletin/amd-sb-7029.html">AMD Advisory</a>)
+                    </li>
                     <li><b>Divider State Sampling (DSS, <a href="https://nvd.nist.gov/vuln/detail/CVE-2023-20588">CVE-2023-20588)</a></b>:
                         A speculative leak where division-by-zero operations can transiently return values that depend on previous division operations.
                         The leaked state persists across privilege boundaries. The discovery of the leak triggered a patch to the Linux kernel as well as other operating systems.
