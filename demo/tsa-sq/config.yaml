@@ -1,0 +1,65 @@
+instruction_set: x86-64
+instruction_categories:
+  - BASE-BINARY
+  - BASE-BITBYTE
+  - BASE-CMOV
+  - BASE-COND_BR
+  - BASE-CONVERT
+  - BASE-DATAXFER
+  - BASE-FLAGOP
+  - BASE-LOGICAL
+  - BASE-MISC
+  - BASE-NOP
+  - BASE-POP
+  - BASE-PUSH
+  - BASE-SEMAPHORE
+  - BASE-SETCC
+  - BASE-WIDENOP
+
+
+generator_faults_allowlist:
+  - user-to-kernel-access
+
+actors:
+  - main:
+    - mode: "host"
+    - privilege_level: "kernel"
+    - fault_blocklist:
+      - user-to-kernel-access
+  - user:
+    - mode: "host"
+    - observer: true
+    - privilege_level: "user"
+    - data_properties:
+      - present: true
+
+contract_observation_clause: ct
+contract_execution_clause:
+  - noninterference
+
+max_bb_per_function: 1
+
+executor_mode: F+R
+executor_sample_sizes:
+  - 15
+  - 40
+  - 160
+  - 320
+
+executor_filtering_repetitions: 5
+x86_enable_hpa_gpa_collisions: true
+
+program_generator_seed: 20000000
+input_gen_seed: 1000000
+inputs_per_class: 2
+
+analyser_stat_threshold: 0.05
+
+# enable_speculation_filter: true
+enable_observation_filter: true
+enable_fast_path_model: true
+
+# color: true
+logging_modes:
+  - info
+  # - stat

@@ -45,7 +45,9 @@ nav:
     - Modes of Operation: user/modes.md
     - Configuration Options: user/config.md
     - Minimization Passes: user/minimization.md
-    - Violation Root-Causing: user/fuzzing-guide.md
+    - Actors: user/actors.md
+    - Templates: user/templates.md
+    - Macros: user/macros.md
   - Developer Documentation:
     - Architecture Overview: devel/overview.md
     - Development Guidelines: devel/development.md
@@ -56,4 +58,8 @@ nav:
       - DynamoRIO backend: devel/dr-model.md
       - Binary Formats: devel/binary-formats.md
       - Test Case Code Generation: devel/code-generation.md
+  - Tutorials:
+    - Designing a Revizor Fuzzing Campaign: tutorials/fuzzing-campaign.md
+    - Root-Causing a Violation Detected by Revizor: tutorials/root-causing.md
+    - Detecting TSA-SQ with Revizor: tutorials/tsa-sq.md
   # - Trophies: trophies.md
