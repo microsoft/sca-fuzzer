@@ -10,7 +10,7 @@ SPDX-License-Identifier: MIT
 """
 import os
 import random
-from typing import List, Tuple
+from typing import List, Tuple, Final
 
 import numpy as np
 
@@ -26,10 +26,17 @@ class DataGenerator:
 
     _state: int = 0
     _boosting_state: int = 0
+    _max_gpr_value: Final[int] = pow(2, 64) - 1
 
     def __init__(self, seed: int):
         self.max_input_value = pow(2, CONF.data_generator_entropy_bits)
         self._state = seed
+
+        self._skip_special_values = CONF.input_gen_probability_of_special_value == 0
+        self._probability_of_zero = CONF.input_gen_probability_of_special_value
+        self._probability_of_max = CONF.input_gen_probability_of_special_value * 2
+        assert self._probability_of_max < 1, \
+            "The sum of probabilities of special values must be less than 1."
 
     def get_state(self) -> int:
         """
@@ -140,16 +147,27 @@ class DataGenerator:
         input_ = InputData(n_actors)
         input_.seed = state
 
-        size = input_.itemsize // 8
+        per_actor_data_size = input_.itemsize // 8
+        n_registers = input_[0]['gpr'].itemsize
 
         rng = np.random.default_rng(seed=state)
-        n_inputs = len(input_)
-        for i in range(n_inputs):
+        for i in range(n_actors):
             # generate random data
-            data = rng.integers(self.max_input_value, size=size, dtype=np.uint64)  # type: ignore
+            data = rng.integers(
+                self.max_input_value, size=per_actor_data_size, dtype=np.uint64)  # type: ignore
 
             # copy lower 32-bits to upper 32-bits, for every 8-byte word
             data = (data << np.uint64(32)) + data
+
+            # for each of the registers and with a probability of 0.01
+            # set the register to zero or to max value
+            if not self._skip_special_values:
+                for reg_id in range(n_registers):
+                    roll = rng.random()
+                    if roll < self._probability_of_zero:
+                        input_[i]['gpr'][reg_id] = 0
+                    elif roll < self._probability_of_max:
+                        input_[i]['gpr'][reg_id] = self._max_gpr_value
 
             input_.set_actor_data(i, data)
 

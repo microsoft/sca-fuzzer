@@ -472,7 +472,7 @@ class X86DRModelTest(unittest.TestCase):
         model.load_test_case(tc)
 
         input_ = get_default_input()
-        ctraces, code_base_addr, _ = model.trace_test_case_with_addr([input_], 0)
+        ctraces, code_base_addr, _ = model._trace_test_case_with_addr([input_], 0)
         self.assertEqual(len(ctraces), 1)
 
         expected_trace: List[int] = []

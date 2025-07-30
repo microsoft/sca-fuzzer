@@ -261,7 +261,10 @@ def _create_fenced_test_case(original_asm: str, fenced_asm: str, asm_parser: Asm
     """ Add fences to all instructions in the test case """
     with open(original_asm, 'r') as f:
         with open(fenced_asm, 'w') as fenced_file:
-            for line in f:
+            lines = f.readlines()
+            n_lines = len(lines)
+
+            for i, line in enumerate(lines):
                 fenced_file.write(line)
                 line = line.strip().lower()
 
@@ -284,6 +287,11 @@ def _create_fenced_test_case(original_asm: str, fenced_asm: str, asm_parser: Asm
                 # stop adding fences after the test case exit
                 if "test_case_exit" in line:
                     break
+
+                # adding a fence before the landing pad will mess with the parsing algorithm,
+                # and it won't have any meaningful effect anyways. So we skip it
+                if i < n_lines and "landing" in lines[i + 1]:
+                    continue
 
                 # add fences after all other instructions
                 fenced_file.write('lfence\n')

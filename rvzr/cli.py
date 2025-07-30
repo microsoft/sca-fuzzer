@@ -186,7 +186,7 @@ def _parse_args() -> Any:  # pylint: disable=r0915
         "--num-inputs",
         type=int,
         default=100,
-        help="Number of inputs per test case. [IGNORED if --input-dir is set]",
+        help="Number of inputs per test case. [IGNORED if --inputs is set]",
     )
 
     # ==============================================================================================
