@@ -179,7 +179,7 @@ def main() -> int:
         "--num-inputs",
         type=int,
         default=100,
-        help="Number of inputs per test case. [IGNORED if --input-dir is set]",
+        help="Number of inputs per test case. [IGNORED if --inputs is set]",
     )
 
     # ==============================================================================================
