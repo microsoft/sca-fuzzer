@@ -89,52 +89,6 @@ class DynamoRIOModel(Model):
         # store the test case in the RCBF format
         test_case.get_obj().save_rcbf(self._rcbf_file)
 
-    def _trace_test_case_with_addr(self, inputs: List[InputData],
-                                   unused_nesting: int) -> Tuple[List[CTrace], int, int]:
-        """
-        Execute the test case with the given inputs on DR backend and return the traces
-        and the sandbox addresses.
-        :param inputs: input sequence to trace
-        :param nesting: maximum nesting level to emulated in the model
-        :return: list of contract traces, one per input, and the addresses of the sandbox
-        """
-        assert self._test_case is not None, "No test case was loaded"
-        if len(inputs) == 0:
-            return [], 0, 0
-
-        # remove the previous RDBF file if it exists and create a new one
-        if self._rdbf_file is not None and os.path.exists(self._rdbf_file):
-            os.unlink(self._rdbf_file)
-        with tempfile.NamedTemporaryFile("wb", delete=False) as f:
-            self._rdbf_file = f.name
-
-        # store the input sequence
-        save_input_sequence_as_rdbf(inputs, self._rdbf_file)
-
-        # call the backend
-        self._clean_trace_files()
-        cmd = self._construct_drrun_cmd()
-        output = check_output(cmd, shell=True)
-        assert len(output) >= 16, "No traces were generated"
-
-        # the first two entries in the output are used to create a representation of the sandbox
-        code_base_addr = int.from_bytes(output[:8], byteorder="little")
-        data_base_addr = int.from_bytes(output[8:16], byteorder="little")
-        self.layout = SandboxLayout((data_base_addr, code_base_addr), self._test_case.n_actors())
-
-        # read traces from the trace files
-        reader = _TraceReader(self.layout, self._test_case)
-        traces, dbg_traces = reader.decode_traces(self._trace_file, self._dbg_trace_file)
-        assert len(traces) == len(inputs), "Mismatch between the number of inputs and traces"
-        self._clean_trace_files()
-
-        if self._enable_mismatch_check_mode:
-            # In this mode, the contract trace is the register values at the end of the test case
-            arch_traces = [CTrace(t.get_typed()[-6:]) for t in dbg_traces]
-            return arch_traces, code_base_addr, data_base_addr
-
-        return traces, code_base_addr, data_base_addr
-
     def trace_test_case(self, inputs: List[InputData], nesting: int) -> List[CTrace]:
         """
         Execute the test case with the given inputs on DR backend and return the traces
@@ -264,6 +218,54 @@ class DynamoRIOModel(Model):
         with open(self._dbg_trace_file, 'wb') as dbg_tf:
             dbg_tf.truncate()
 
+    def _trace_test_case_with_addr(self, inputs: List[InputData],
+                                   nesting: int) -> Tuple[List[CTrace], int, int]:
+        """
+        Execute the test case with the given inputs on DR backend and return the traces
+        and the sandbox addresses.
+        :param inputs: input sequence to trace
+        :param nesting: maximum nesting level to emulated in the model
+        :return: list of contract traces, one per input, and the addresses of the sandbox
+        """
+        assert nesting != 1, "Nesting is not yet supported by the DynamoRIO backend"
+
+        assert self._test_case is not None, "No test case was loaded"
+        if len(inputs) == 0:
+            return [], 0, 0
+
+        # remove the previous RDBF file if it exists and create a new one
+        if self._rdbf_file is not None and os.path.exists(self._rdbf_file):
+            os.unlink(self._rdbf_file)
+        with tempfile.NamedTemporaryFile("wb", delete=False) as f:
+            self._rdbf_file = f.name
+
+        # store the input sequence
+        save_input_sequence_as_rdbf(inputs, self._rdbf_file)
+
+        # call the backend
+        self._clean_trace_files()
+        cmd = self._construct_drrun_cmd()
+        output = check_output(cmd, shell=True)
+        assert len(output) >= 16, "No traces were generated"
+
+        # the first two entries in the output are used to create a representation of the sandbox
+        code_base_addr = int.from_bytes(output[:8], byteorder="little")
+        data_base_addr = int.from_bytes(output[8:16], byteorder="little")
+        self.layout = SandboxLayout((data_base_addr, code_base_addr), self._test_case.n_actors())
+
+        # read traces from the trace files
+        reader = _TraceReader(self.layout, self._test_case)
+        traces, dbg_traces = reader.decode_traces(self._trace_file, self._dbg_trace_file)
+        assert len(traces) == len(inputs), "Mismatch between the number of inputs and traces"
+        self._clean_trace_files()
+
+        if self._enable_mismatch_check_mode:
+            # In this mode, the contract trace is the register values at the end of the test case
+            arch_traces = [CTrace(t.get_typed()[-6:]) for t in dbg_traces]
+            return arch_traces, code_base_addr, data_base_addr
+
+        return traces, code_base_addr, data_base_addr
+
 
 class _TraceReader:
     """
@@ -287,16 +289,14 @@ class _TraceReader:
         dbg_traces: List[CTrace] = []
 
         # iterate over the binary trace and parse the entries
-        raw_traces, _ = self._decoder.decode_trace_file(trace_path)
-        assert len(_) == 0
+        raw_traces = self._decoder.decode_trace_file(trace_path)
         for raw_trace in raw_traces:
             converted = self._raw_to_ctrace(raw_trace)
             if converted:
                 traces.append(converted)
 
         # do the same for debug traces
-        _, raw_dbg_traces = self._decoder.decode_trace_file(dbg_path)
-        assert len(_) == 0
+        raw_dbg_traces = self._decoder.decode_debug_trace_file(dbg_path)
         for raw_dbg_trace in raw_dbg_traces:
             converted = self._raw_dbg_to_ctrace(raw_dbg_trace)
             if converted:

@@ -88,17 +88,22 @@ static void event_module_load(void * /*drcontext*/, const module_data_t *module_
 /// @return void
 static void event_instrumentation_start(void *wrapctx, DR_PARAM_OUT void **user_data)
 {
-    DR_ASSERT_MSG(not instrumented_func.found,
-                  "[ERROR] Instrumented function should be called only once\n");
-
-    // Set return address for later instrumentation
-    instrumented_func.exit_pc = drwrap_get_retaddr(wrapctx);
-    instrumented_func.found = true;
     // Flush all code cache: we might want to instrument basic blocks that have already been
     // translated (e.g. libc)
     flush_bb_cache();
-    // Notify the dispatcher
-    glob_dispatcher->start(wrapctx, user_data);
+
+    // If this is the first time we instrument the function, we need to initialize the
+    // dispatcher and store the function's return address for later instrumentation.
+    if (not glob_dispatcher->is_initialized) {
+        instrumented_func.exit_pc = drwrap_get_retaddr(wrapctx);
+        instrumented_func.found = true;
+        glob_dispatcher->start(wrapctx, user_data);
+        return;
+    }
+
+    // Otherwise, we reset the dispatcher
+    instrumented_func.returned = false;
+    glob_dispatcher->restart(wrapctx, user_data);
 }
 
 /// @brief Callback executed at the first instrumentation stage:

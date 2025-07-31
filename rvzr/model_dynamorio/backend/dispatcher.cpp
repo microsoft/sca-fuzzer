@@ -183,8 +183,21 @@ bool Dispatcher::handle_exception(void *drcontext, dr_siginfo_t *siginfo) const
 // =================================================================================================
 void Dispatcher::start(void * /*wrapctx*/, void ** /*user_data*/)
 {
-    DR_ASSERT_MSG(not instrumentation_on,
-                  "[ERROR] Starting instrumentation multiple times is not supported.");
+    DR_ASSERT_MSG(not is_initialized,
+                  "[ERROR] Attempting to initialize Dispatcher multiple times.");
+
+    instrumentation_on = true;
+    is_initialized = true;
+
+    // Turn service modules on
+    tracer->tracing_start();
+    speculator->enable();
+}
+
+void Dispatcher::restart(void * /*wrapctx*/, void ** /*user_data*/)
+{
+    DR_ASSERT_MSG(is_initialized,
+                  "[ERROR] Attempting to restart Dispatcher without initialization.");
 
     instrumentation_on = true;
 

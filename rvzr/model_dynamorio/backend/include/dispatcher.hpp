@@ -38,6 +38,12 @@ class Dispatcher
     /// @return void
     void start(void *wrapctx, void **user_data);
 
+    /// @brief Restarts the instrumentation process for a wrapped function
+    /// @param wrapctx The machine context of the wrapped function
+    /// @param user_data Unused
+    /// @return void
+    void restart(void *wrapctx, void **user_data);
+
     /// @brief Finalizes the instrumentation process
     /// @return void
     void finalize();
@@ -72,6 +78,9 @@ class Dispatcher
     std::unique_ptr<TracerABC> tracer = nullptr;
     /// @param speculator: implements execution clause
     std::unique_ptr<SpeculatorABC> speculator = nullptr;
+
+    /// @param initialized: true if the dispatcher has been already initialized (start was called)
+    bool is_initialized = false;
 
   private:
     bool instrumentation_on;

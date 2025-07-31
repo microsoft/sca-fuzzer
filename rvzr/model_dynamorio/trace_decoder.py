@@ -6,13 +6,15 @@ SPDX-License-Identifier: MIT
 """
 
 from enum import Enum
-from typing import Any, Final
+from typing import Any, Final, List, Literal
 from io import BufferedReader
 import sys
 import os
 
 from cffi import FFI
+from typing_extensions import get_args, cast, assert_never
 
+_MarkerType = Literal["T", "D"]
 
 # ==================================================================================================
 # Trace types
@@ -20,6 +22,7 @@ from cffi import FFI
 # TODO: autogenerate from trace.hpp
 # NOTE: cffi cannot parse CPP constructs (e.g. enum classes, sdt::array) so we
 #       need to manually adjust some of the fields.
+
 
 class TraceEntryType(Enum):
     """
@@ -48,15 +51,13 @@ struct trace_entry_t {
 };
 """
 
-_TRACE_MARKER: Final[str] = "T"
-
-
 # ==================================================================================================
 # Debug Trace types
 # ==================================================================================================
 # TODO: autogenerate from debug_trace.hpp
 # NOTE: cffi cannot parse CPP constructs (e.g. enum classes, sdt::array) so we
 #       need to manually adjust some of the fields.
+
 
 class DebugTraceEntryType(Enum):
     """
@@ -145,15 +146,13 @@ struct debug_trace_entry_t {
 };
 """
 
-_DEBUG_TRACE_MARKER: Final[str] = "D"
-
 
 # ==================================================================================================
 # Decoder
 # ==================================================================================================
 class TraceDecoder:
     """
-    This clas provides a unified API for decoding trace entries
+    This class provides a unified API for decoding trace entries
     """
 
     _ffi: FFI
@@ -169,99 +168,95 @@ class TraceDecoder:
         self._ffi.cdef(_DEBUG_TRACE_ENTRY_DEF)
         self._debug_trace_entry_size = self._ffi.sizeof(_DEBUG_TRACE_ENTRY_T)
 
-    def decode_trace_entry(self, chunk: bytes) -> Any:
+    # ----------------------------------------------------------------------------------------------
+    # Public API
+    # ----------------------------------------------------------------------------------------------
+    def read_trace_marker(self, f: BufferedReader) -> _MarkerType | Literal[""]:
         """
-        Decode a single entry from a chunk of bytes
+        Get the type of the trace file.
         """
-        # Decode it with ffi
-        entry: Any = self._ffi.new(_TRACE_ENTRY_T + "*")
-        self._ffi.memmove(entry, chunk, self._trace_entry_size)
-        # Check that the entry type is valid
-        try:
-            TraceEntryType(entry.type)
-        except Exception:
-            raise ValueError(f"Error: Unknown trace entry type {str(entry.type)}")
+        marker = f.read(1).decode('utf-8')
+        if len(marker) == 0:
+            return ""
+        assert marker in get_args(_MarkerType), f"Unknown trace type marker: {marker}"
+        f.read(7)  # skip padding bytes
+        return cast(_MarkerType, marker)
 
-        return entry
+    def decode_trace_file(self, file: str) -> List[List[Any]]:
+        """ Read a set of traces from a file. """
+        with open(file, "rb") as f:
+            marker = self.read_trace_marker(f)
+            if marker == "":  # empty file
+                return []
+            assert marker == "T", f"Expected Normal trace (T), got {marker}"
 
-    def decode_debug_trace_entry(self, chunk: bytes) -> Any:
-        """
-        Decode a single debug entry from a chunk of bytes
-        """
-        # Decode it with ffi
-        entry: Any = self._ffi.new(_DEBUG_TRACE_ENTRY_T + "*")
-        self._ffi.memmove(entry, chunk, self._debug_trace_entry_size)
-        # Check that the entry type is valid
-        try:
-            DebugTraceEntryType(entry.type)
-        except Exception:
-            raise ValueError(f"Error: Unkown debug entry type {str(entry.type)}")
+            # Read the traces
+            traces = []
+            eof = False
+            while not eof:
 
-        return entry
+                entries = []
+                while True:
+                    # Read one entry
+                    chunk = f.read(self._trace_entry_size)
+                    if len(chunk) < self._trace_entry_size:
+                        eof = True
+                        break  # no more bytes to read: exit
 
-    def decode_trace(self, f: BufferedReader) -> list[Any]:
-        """
-        Read a complete trace from a file, until an EOT entry is found.
-        """
-        entries = []
-        while True:
-            # Read one entry
-            chunk = f.read(self._trace_entry_size)
-            if len(chunk) < self._trace_entry_size:
-                break  # no more bytes to read: exit
-            # Decode it
-            entry = self.decode_trace_entry(chunk)
-            # Append to trace
-            entries.append(entry)
-            # If we reached EOT we're done
-            if TraceEntryType(entry.type) == TraceEntryType.ENTRY_EOT:
-                break
+                    # Decode it
+                    entry = self._decode_trace_entry(chunk)
+                    entries.append(entry)
 
-        return entries
+                    # If we reached EOT, move on to the next trace
+                    if TraceEntryType(entry.type) == TraceEntryType.ENTRY_EOT:
+                        traces.append(entries)
+                        break
 
-    def decode_debug_trace(self, f: BufferedReader) -> list[Any]:
-        """
-        Read a complete debug trace from a file, until an EOT entry is found.
-        """
-        entries = []
-        while True:
-            # Read one entry
-            chunk = f.read(self._debug_trace_entry_size)
-            if len(chunk) < self._debug_trace_entry_size:
-                break  # no more bytes to read: exit
-            # Decode it
-            entry = self.decode_debug_trace_entry(chunk)
-            # Append to trace
-            entries.append(entry)
-            # If we reached EOT we're done
-            if DebugTraceEntryType(entry.type) == DebugTraceEntryType.ENTRY_EOT:
-                break
+                # Check that the last trace ended with an EOT entry or EXCEPTION
+                if eof and len(entries) > 0:
+                    last_entry = entries[-1]
+                    if TraceEntryType(last_entry.type) != TraceEntryType.ENTRY_EOT:
+                        raise ValueError("Trace file does not end with an EOT entry")
 
-        return entries
+        return traces
 
-    def decode_trace_file(self, file: str) -> tuple[list[Any], list[Any]]:
-        """
-        Decode an entire trace file, which might contain multiple traces.
-        """
-        traces = []
-        debug_traces = []
+    def decode_debug_trace_file(self, file: str) -> List[List[Any]]:
+        """ Read a debug trace from a file. """
+        with open(file, "rb") as f:
+            marker = self.read_trace_marker(f)
+            if marker == "":  # empty file
+                return []
+            assert marker == "D", f"Expected Debug trace (D), got {marker}"
 
-        with open(file, 'rb') as f:
-            while True:
-                # Read marker
-                marker = f.read(1).decode('utf-8')
-                if len(marker) == 0:
-                    break  # file has ended
+            # Read the traces
+            traces = []
+            eof = False
+            while not eof:
 
-                # Decode based on the marker
-                if marker == _TRACE_MARKER:
-                    traces.append(self.decode_trace(f))
-                elif marker == _DEBUG_TRACE_MARKER:
-                    debug_traces.append(self.decode_debug_trace(f))
-                else:
-                    raise ValueError(f"Error: Unknown trace type marker! Found {marker}")
+                entries = []
+                while True:
+                    # Read one entry
+                    chunk = f.read(self._debug_trace_entry_size)
+                    if len(chunk) < self._debug_trace_entry_size:
+                        eof = True
+                        break  # no more bytes to read: exit
 
-        return traces, debug_traces
+                    # Decode it
+                    entry = self._decode_debug_trace_entry(chunk)
+                    entries.append(entry)
+
+                    # If we reached EOT, move on to the next trace
+                    if DebugTraceEntryType(entry.type) == DebugTraceEntryType.ENTRY_EOT:
+                        traces.append(entries)
+                        break
+
+                # Check that the last trace ended with an EOT or EXCEPTION entry
+                if eof and len(entries) > 0:
+                    last_entry = entries[-1]
+                    if DebugTraceEntryType(last_entry.type) != DebugTraceEntryType.ENTRY_EOT:
+                        raise ValueError("Trace file does not end with an EOT entry")
+
+        return traces
 
     def is_trace_corrupted(self, trace_path: str) -> bool:
         """
@@ -272,67 +267,115 @@ class TraceDecoder:
             return True
 
         with open(trace_path, "rb") as f:
-            # Read marker
-            marker = f.read(1).decode('utf-8')
+            trace_type = self.read_trace_marker(f)
+            if trace_type == "":
+                return True
 
-            # Decode based on the marker
-            if marker == _TRACE_MARKER:
+            # Decode based on the type
+            if trace_type == "T":
                 entry_sz = self._ffi.sizeof(_TRACE_ENTRY_T)
                 if os.stat(trace_path).st_size < entry_sz:
                     return True
 
                 # Decode last entry
                 f.seek(-entry_sz, os.SEEK_END)
-                last_entry = self.decode_trace_entry(f.read(entry_sz))
+                last_entry = self._decode_trace_entry(f.read(entry_sz))
 
                 # Check its type
                 last_entry_type = TraceEntryType(last_entry.type)
-                expected = (TraceEntryType.ENTRY_EOT, TraceEntryType.ENTRY_EXCEPTION)
-                return last_entry_type not in expected
+                return last_entry_type != TraceEntryType.ENTRY_EOT
 
-            if marker == _DEBUG_TRACE_MARKER:
+            if trace_type == "D":
                 entry_sz = self._ffi.sizeof(_DEBUG_TRACE_ENTRY_T)
                 if os.stat(trace_path).st_size < entry_sz:
                     return True
 
                 # Decode last entry
                 f.seek(-entry_sz, os.SEEK_END)
-                last_dbg_entry = self.decode_debug_trace_entry(f.read(entry_sz))
+                last_dbg_entry = self._decode_debug_trace_entry(f.read(entry_sz))
 
                 # Check its type
                 last_dbg_entry_type = DebugTraceEntryType(last_dbg_entry.type)
-                expected_dbg = (DebugTraceEntryType.ENTRY_EOT, DebugTraceEntryType.ENTRY_EXCEPTION)
-                return last_dbg_entry_type not in expected_dbg
+                return last_dbg_entry_type != DebugTraceEntryType.ENTRY_EOT
 
-            raise ValueError(f"Error: Unknown trace type marker! Found {marker}")
+            assert_never(trace_type)
+
+    # ----------------------------------------------------------------------------------------------
+    # Private API
+    # ----------------------------------------------------------------------------------------------
+    def _decode_trace_entry(self, chunk: bytes) -> Any:
+        """
+        Decode a single entry from a chunk of bytes
+        """
+        # Decode it with ffi
+        entry: Any = self._ffi.new(_TRACE_ENTRY_T + "*")
+        self._ffi.memmove(entry, chunk, self._trace_entry_size)
+
+        # Check that the entry type is valid
+        try:
+            TraceEntryType(entry.type)
+        except Exception:
+            raise ValueError(f"Error: Unknown trace entry type {str(entry.type)}")
+
+        return entry
+
+    def _decode_debug_trace_entry(self, chunk: bytes) -> Any:
+        """
+        Decode a single debug entry from a chunk of bytes
+        """
+        # Decode it with ffi
+        entry: Any = self._ffi.new(_DEBUG_TRACE_ENTRY_T + "*")
+        self._ffi.memmove(entry, chunk, self._debug_trace_entry_size)
+
+        # Check that the entry type is valid
+        try:
+            DebugTraceEntryType(entry.type)
+        except Exception:
+            raise ValueError(f"Error: Unknown debug entry type {str(entry.type)}")
+
+        return entry
 
 
-# Sample usage: pretty-print trace entries from a file
-if __name__ == '__main__':
+def main() -> None:
+    """ Standalone decoding interface: pretty-print trace entries from a file """
     if len(sys.argv) != 2:
         print(f"Usage {sys.argv[0]} <TRACE_PATH>")
         sys.exit(1)
 
     # 1. Create decoder
     decoder = TraceDecoder()
+
     # 2. Decode file
-    parsed_traces, parsed_gdb_traces = decoder.decode_trace_file(sys.argv[1])
+    with open(sys.argv[1], "rb") as f:
+        trace_type = decoder.read_trace_marker(f)
+    if trace_type == "":
+        print(f"Empty trace file: {sys.argv[1]}")
+        sys.exit(1)
+    if trace_type == "T":
+        parsed_traces = decoder.decode_trace_file(sys.argv[1])
+    elif trace_type == "D":
+        parsed_traces = decoder.decode_trace_file(sys.argv[1])
+        print(f"Only leakage traces allowed: found {len(parsed_traces)} debug traces instead")
+        sys.exit(1)
+    else:
+        assert_never(trace_type)
 
     # Check that the input contains leakage traces
     if len(parsed_traces) == 0:
         print(f"No traces found in {sys.argv[1]}")
         sys.exit(1)
-    if len(parsed_gdb_traces) > 0:
-        print(f"Only leakage traces allowed: found {len(parsed_gdb_traces)} debug traces instead")
-        sys.exit(1)
 
     # 3. Print all entries
-    for nt, trace in enumerate(parsed_traces):
+    for nt, trace_ in enumerate(parsed_traces):
         print("-------- TRACE --------")
-        for ne, e in enumerate(trace):
+        for ne, e in enumerate(trace_):
             try:
                 # Parse the entry type
                 type_ = TraceEntryType(e.type)
                 print(f"[{type_.name}] {hex(e.addr)}")
             except Exception:
                 raise ValueError(f"Failed to decode entry {ne} of trace {nt}")
+
+
+if __name__ == '__main__':
+    main()

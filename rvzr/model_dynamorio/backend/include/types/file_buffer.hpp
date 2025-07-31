@@ -53,13 +53,17 @@ template <typename T, unsigned BufSize> class FileBackedBuf
         if (stream.is_open())
             return;
 
-        // Open the backing stram
+        // Open the backing stream
         filename = filename_;
         stream.open(filename_, std::ios::binary | std::ios::out);
 
         // Write header so that the parser knows which type of trace we are generating
         char marker = T::marker;
         stream.write(&marker, 1);
+
+        // pad the header to 8 bytes for readability
+        const char padding[7] = {0, 0, 0, 0, 0, 0, 0}; // NOLINT
+        stream.write(padding, 7);                      // NOLINT
     }
 
     /// @brief Flush the current buffer contents into the backing file

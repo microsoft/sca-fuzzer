@@ -37,6 +37,18 @@ TracerABC::TracerABC(const std::string &out_path, Logger &logger, bool print)
     trace.open(out_path);
 }
 
+TracerABC::~TracerABC()
+{
+    if (not tracing_finalized) {
+        tracing_finalize();
+    }
+    trace.clear();
+    if (logger.is_enabled()) {
+        logger.close();
+    }
+
+}
+
 // =================================================================================================
 // Public Methods
 // =================================================================================================
@@ -52,20 +64,13 @@ void TracerABC::tracing_finalize()
         return;
     }
 
-    dr_printf("Done Tracing!\n");
-
     // Push the end-of-trace marker and flush the remaining entries.
     trace.push_back({.type = trace_entry_type_t::ENTRY_EOT});
-    trace.clear();
-    // Tell the user where to find the trace
-    dr_printf("Trace saved to %s\n", trace.get_filename().c_str());
+    trace.flush();
 
     // Print the trace buffers
     if (logger.is_enabled()) {
         logger.log_eot();
-        logger.close();
-        // Tell the user where to find the debug trace
-        dr_printf("Debug trace saved to %s\n", logger.get_filename().c_str());
     }
 
     // Reset tracing flags

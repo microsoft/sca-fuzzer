@@ -12,9 +12,10 @@ SPDX-License-Identifier: MIT
 
 import unittest
 import struct
+import os
 # from unittest.mock import MagicMock
 from tempfile import NamedTemporaryFile
-from typing import Any
+from typing import Any, List, Dict
 
 from rvzr.model_dynamorio.trace_decoder import TraceDecoder, TraceEntryType
 from rvzr.model_dynamorio.trace_decoder import DebugTraceEntryType
@@ -23,12 +24,32 @@ from rvzr.model_dynamorio.trace_decoder import DebugTraceEntryType
 # Leakage trace representation
 # ------------------------------------------------------------------------------
 # Content of the test trace
-TEST_TRACE: list[dict[str, Any]] = [
-    {"addr": 0x0, "size": 8, "type": TraceEntryType.ENTRY_PC.value},
-    {"addr": 0xdeadbeef, "size": 4, "type": TraceEntryType.ENTRY_READ.value},
-    {"addr": 0xcafecafe, "size": 8, "type": TraceEntryType.ENTRY_WRITE.value},
-    {"addr": 11, "size": 0, "type": TraceEntryType.ENTRY_EXCEPTION.value},
-    {"addr": 0x0, "size": 0x0, "type": TraceEntryType.ENTRY_EOT.value},
+TEST_TRACE: List[Dict[str, Any]] = [
+    {
+        "addr": 0x0,
+        "size": 8,
+        "type": TraceEntryType.ENTRY_PC.value
+    },
+    {
+        "addr": 0xdeadbeef,
+        "size": 4,
+        "type": TraceEntryType.ENTRY_READ.value
+    },
+    {
+        "addr": 0xcafecafe,
+        "size": 8,
+        "type": TraceEntryType.ENTRY_WRITE.value
+    },
+    {
+        "addr": 11,
+        "size": 0,
+        "type": TraceEntryType.ENTRY_EXCEPTION.value
+    },
+    {
+        "addr": 0x0,
+        "size": 0x0,
+        "type": TraceEntryType.ENTRY_EOT.value
+    },
 ]
 # Format string to parse a trace entry
 TRACE_FMT = "<QIBxxx"
@@ -37,7 +58,7 @@ TRACE_FMT = "<QIBxxx"
 # Debug trace representation
 # ------------------------------------------------------------------------------
 # Contents of the debug test trace
-TEST_DBG_TRACE: list[dict[str, Any]] = [
+TEST_DBG_TRACE: List[Dict[str, Any]] = [
     {
         "type": DebugTraceEntryType.ENTRY_REG_DUMP.value,
         "spec": 0,
@@ -117,7 +138,7 @@ DBG_TRACE_FMT = {
 }
 
 # ------------------------------------------------------------------------------
-# Testuite
+# Testsuite
 # ------------------------------------------------------------------------------
 
 
@@ -125,6 +146,7 @@ class DRTraceDecodeTest(unittest.TestCase):
     """
     Suite of tests for the DR trace decoder
     """
+
     # --------------------------------------------------------------------------
     # Helpers
     # --------------------------------------------------------------------------
@@ -146,22 +168,13 @@ class DRTraceDecodeTest(unittest.TestCase):
     # --------------------------------------------------------------------------
     # Test cases
     # --------------------------------------------------------------------------
-    def test_trace_entry_decoding(self) -> None:
-        decoder = TraceDecoder()
-
-        for original in TEST_TRACE:
-            # Create a bytes array corresponding to the encoded entry
-            encoded = self._encode_from_dict(original)
-            # Decode it as an object
-            decoded = decoder.decode_trace_entry(encoded)
-            # Test the decoded output
-            self._check_trace_equivalence(original, decoded)
-
     def test_trace_decoding(self) -> None:
         decoder = TraceDecoder()
 
         # Encode the special marker
         packed_trace = struct.pack("c", "T".encode('utf-8'))
+        packed_trace += b'\x00' * 7  # Padding to ensure the marker is 8 bytes long
+
         # Encode all entries
         for test_entry in TEST_TRACE:
             packed_trace += self._encode_from_dict(test_entry)
@@ -171,8 +184,7 @@ class DRTraceDecodeTest(unittest.TestCase):
             f.write(packed_trace)
             f.close()
             # Decode the file
-            parsed_traces, parsed_dbg_traces = decoder.decode_trace_file(f.name)
-            self.assertEqual(len(parsed_dbg_traces), 0)
+            parsed_traces = decoder.decode_trace_file(f.name)
             self.assertEqual(len(parsed_traces), 1)
             # Check decoded entries
             for idx, decoded in enumerate(parsed_traces[0]):
@@ -183,31 +195,35 @@ class DRTraceDecodeTest(unittest.TestCase):
 
         # Encode the special marker
         marker = struct.pack("c", "T".encode('utf-8'))
+        marker += b'\x00' * 7  # Padding to ensure the marker is 8 bytes long
         pc = self._encode_from_dict(self._find_entry_of_type(TraceEntryType.ENTRY_PC))
         xcpt = self._encode_from_dict(self._find_entry_of_type(TraceEntryType.ENTRY_EXCEPTION))
         eot = self._encode_from_dict(self._find_entry_of_type(TraceEntryType.ENTRY_EOT))
 
-        # Only EOT and EXCEPTIONs are valid at the end of the trace
-        traces = [(pc, True), (pc + xcpt, False), (pc + eot, False), (pc + xcpt + eot, False)]
+        # Only EOT is valid at the end of the trace
+        traces = [(pc, True), (pc + xcpt, True), (pc + eot, False), (pc + xcpt + eot, False)]
 
-        with NamedTemporaryFile("wb", delete=False) as f:
-            for t in traces:
+        for t in traces:
+            with NamedTemporaryFile("wb", delete=False) as f:
                 # Write encoded entries to file
-                f.truncate()
                 f.write(marker + t[0])
-                f.seek(0)
-                # Decode the file
-                parsed_traces, parsed_dbg_traces = decoder.decode_trace_file(f.name)
-                self.assertEqual(len(parsed_dbg_traces), 0)
+
+            # Decode the file
+            if t[1]:
+                with self.assertRaises(ValueError):
+                    decoder.decode_trace_file(f.name)
+            else:
+                parsed_traces = decoder.decode_trace_file(f.name)
                 self.assertEqual(len(parsed_traces), 1)
-                # Check is_corrupted
-                self.assertEqual(decoder.is_trace_corrupted(f.name), t[1])
+
+            os.remove(f.name)
 
 
 class DRDebugTraceDecodeTest(unittest.TestCase):
     """
     Suite of tests for the DR trace decoder for debug traces
     """
+
     # --------------------------------------------------------------------------
     # Helpers
     # --------------------------------------------------------------------------
@@ -308,7 +324,7 @@ class DRDebugTraceDecodeTest(unittest.TestCase):
             # Encode entry to a bytes array
             encoded = self._encode_from_dict(original)
             # Decode it as an object
-            decoded = decoder.decode_debug_trace_entry(encoded)
+            decoded = decoder._decode_debug_trace_entry(encoded)
             # Test the decoded output
             self._check_dbg_trace_equivalence(original, decoded)
 
@@ -317,6 +333,8 @@ class DRDebugTraceDecodeTest(unittest.TestCase):
 
         # Encode the special marker
         packed_trace = struct.pack("c", "D".encode('utf-8'))
+        packed_trace += b'\x00' * 7  # Padding to ensure the marker is 8 bytes long
+
         # Encode all entries
         for test_entry in TEST_DBG_TRACE:
             packed_trace += self._encode_from_dict(test_entry)
@@ -326,9 +344,8 @@ class DRDebugTraceDecodeTest(unittest.TestCase):
             f.write(packed_trace)
             f.close()
             # Decode the file
-            parsed_traces, parsed_dbg_traces = decoder.decode_trace_file(f.name)
+            parsed_dbg_traces = decoder.decode_debug_trace_file(f.name)
             self.assertEqual(len(parsed_dbg_traces), 1)
-            self.assertEqual(len(parsed_traces), 0)
             # Check decoded entries
             for idx, decoded in enumerate(parsed_dbg_traces[0]):
                 self._check_dbg_trace_equivalence(TEST_DBG_TRACE[idx], decoded)
@@ -338,18 +355,25 @@ class DRDebugTraceDecodeTest(unittest.TestCase):
 
         # Encode the special marker
         marker = struct.pack("c", "D".encode('utf-8'))
+        marker += b'\x00' * 7  # Padding to ensure the marker is 8 bytes long
         pc = self._encode_from_dict(self._find_entry_of_type(DebugTraceEntryType.ENTRY_REG_DUMP))
         xcpt = self._encode_from_dict(self._find_entry_of_type(DebugTraceEntryType.ENTRY_EXCEPTION))
         eot = self._encode_from_dict(self._find_entry_of_type(DebugTraceEntryType.ENTRY_EOT))
 
-        # Only EOT and EXCEPTIONs are valid at the end of the trace
-        traces = [(pc, True), (pc + xcpt, False), (pc + eot, False), (pc + xcpt + eot, False)]
+        # Only EOT is valid at the end of the trace
+        traces = [(pc, True), (pc + xcpt, True), (pc + eot, False), (pc + xcpt + eot, False)]
 
-        with NamedTemporaryFile("wb", delete=False) as f:
-            for t in traces:
+        for t in traces:
+            with NamedTemporaryFile("wb", delete=False) as f:
                 # Write encoded entries to file
-                f.truncate()
                 f.write(marker + t[0])
-                f.seek(0)
-                # Check is_corrupted
-                self.assertEqual(decoder.is_trace_corrupted(f.name), t[1])
+
+            # Decode the file
+            if t[1]:
+                with self.assertRaises(ValueError):
+                    decoder.decode_debug_trace_file(f.name)
+            else:
+                parsed_traces = decoder.decode_debug_trace_file(f.name)
+                self.assertEqual(len(parsed_traces), 1)
+
+            os.remove(f.name)
