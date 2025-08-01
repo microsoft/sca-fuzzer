@@ -284,7 +284,7 @@ class HTrace:
         trace_distribution = sorted(counter.items(), key=lambda x: x[1], reverse=True)
         for t, c in trace_distribution:
             t = t & mask
-            s += f"{line_prefix}{t:<08} [{c}]\n"
+            s += f"{line_prefix}{t:08} [{c}]\n"
         return s
 
     def _full_cache_str(self, line_prefix: str, r1_col: str, r2_col: str, reset_col: str) -> str:
@@ -328,8 +328,8 @@ class HTrace:
     def _full_tsc_pair_str(self, other: HTrace) -> str:
         """ Return a string representation of two TSC sample distributions side-by-side
         Example output:
-        00000001        [16]   | [8]
-        00000002        [16]   | [24]
+        00000001        [16     | 8      ]
+        00000002        [16     | 24     ]
         """
         mask = np.uint64(0xFFFFFFFFFFFFFF)
         c1 = Counter(self.get_raw_traces())
@@ -340,7 +340,7 @@ class HTrace:
         final_str = ""
         for t in traces:
             t = t & mask
-            final_str += f"{t:<16} [{c1[t]:<6} | {c2[t]:<6}]\n"
+            final_str += f"{t:08} [{c1[t]:<6} | {c2[t]:<6}]\n"
         return final_str
 
     def _full_cache_pair_str(self, other: HTrace, r1_col: str, r2_col: str, res_col: str) -> str:
@@ -520,6 +520,15 @@ class HardwareEqClass:
 
     def __getitem__(self, index: int) -> TraceBundle:
         return self.measurements[index]
+
+    def __eq__(self, other: object) -> bool:
+        """
+        Compare two hardware equivalence classes for equality.
+        Two classes are equal if they have the same hardware trace and the same measurements.
+        """
+        if not isinstance(other, HardwareEqClass):
+            raise NotImplementedError("Cannot compare HardwareEqClass with object of another type")
+        return self.htrace == other.htrace and self.measurements == other.measurements
 
 
 class ContractEqClass:

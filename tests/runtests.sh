@@ -109,6 +109,8 @@ function core_unit_tests() {
     python3 -m unittest tests.unit_stats
     echo "-------------"
     python3 -m unittest tests.unit_tc_components
+    echo "-------------"
+    python3 -m unittest tests.unit_traces
     cd - >/dev/null || exit
 }
 

@@ -22,3 +22,5 @@ exclude_also =
     # unit_model_dr
     def _check_if_installed
     if type_id not in _TRACE_ID_TO_NAME
+    .*# pylint: disable=unreachable
+    .*NotImplementedError
