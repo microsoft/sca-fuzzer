@@ -25,11 +25,11 @@ static size_t old_x_size = 0;
 
 static int allocate_util_and_data(size_t n_actors)
 {
-    SAFE_VFREE(_util_n_data_unaligned);
+    SAFE_FREE(_util_n_data_unaligned);
 
     // allocate working memory
     size_t mem_size = sizeof(util_t) + n_actors * sizeof(actor_data_t);
-    _util_n_data_unaligned = CHECKED_VMALLOC(mem_size + 0x1000);
+    _util_n_data_unaligned = CHECKED_MALLOC(mem_size + 0x1000);
     memset(_util_n_data_unaligned, 0, mem_size);
 
     // align memory to 2 pages (vmalloc guarantees 1 page alignment)
@@ -221,8 +221,7 @@ int init_sandbox_manager(void)
 
 void free_sandbox_manager(void)
 {
-    SAFE_VFREE(_util_n_data_unaligned);
-    SAFE_VFREE(code);
+    SAFE_FREE(_util_n_data_unaligned);
     util_n_data = NULL;
 
     if (code) {
