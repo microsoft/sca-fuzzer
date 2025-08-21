@@ -7,6 +7,7 @@
 // #include <asm/io.h>
 // #include <asm/msr.h>
 
+#include "memory_guest.h"
 #include "actor.h"
 #include "main.h"
 #include "sandbox_manager.h"

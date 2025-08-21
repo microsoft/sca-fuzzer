@@ -29,15 +29,14 @@
 #define PMCR_DP               BIT_(5)
 #define PMCR_N_COUNTER_START  11
 #define PMCR_N_COUNTER_MASK   0b11111
-#define MDCR_HPME BIT_(7)
-#define MDCR_HPMD BIT_(17)
-#define PMCNTENSET_P0 BIT_(0)
-#define PMCNTENSET_P1 BIT_(1)
-#define PMCNTENSET_P2 BIT_(2)
-#define PMCNTENSET_C  BIT_(31)
-#define PMCCFILTR_NSH BIT_(27)
-#define PMSELR_CYCLE_CNTR 0x1f
-
+#define MDCR_HPME             BIT_(7)
+#define MDCR_HPMD             BIT_(17)
+#define PMCNTENSET_P0         BIT_(0)
+#define PMCNTENSET_P1         BIT_(1)
+#define PMCNTENSET_P2         BIT_(2)
+#define PMCNTENSET_C          BIT_(31)
+#define PMCCFILTR_NSH         BIT_(27)
+#define PMSELR_CYCLE_CNTR     0x1f
 
 // =================================================================================================
 // Private module-level functions
@@ -83,7 +82,9 @@ static inline int pmu_enable(void)
 /// @return 0 on success, -1 on failure
 static inline int pmu_reset(void)
 {
-    write_msr("PMCR_EL0", PMCR_EVENT_CNTR_RESET & PMCR_CYCLE_CNTR_RESET);
+    uint64_t pmcr = 0;
+    read_msr("PMCR_EL0", pmcr);
+    write_msr("PMCR_EL0", pmcr | PMCR_EVENT_CNTR_RESET | PMCR_CYCLE_CNTR_RESET);
     return 0;
 }
 
@@ -152,8 +153,7 @@ int pfc_configure(void)
     int err = 0;
 
 #ifndef VMBUILD
-    if (get_current_exception_level() >= 2)
-    {
+    if (get_current_exception_level() >= 2) {
         err = pmu_enable_el2();
         CHECK_ERR("pmu_enable_el2");
     }
@@ -172,6 +172,7 @@ int pfc_configure(void)
 
     err = pmu_enable();
     CHECK_ERR("pmu_enable");
+
 #endif // VMBUILD
 
     return err;
