@@ -68,7 +68,18 @@ typedef struct {
 #warning "Unsupported/corrupted L1D associativity. Falling back to 8-way"
 #define L1D_ASSOCIATIVITY 8
 #endif
-#define L1D_CONFLICT_DISTANCE 4096
+
+#ifndef L1D_SIZE_KB
+#error "Undefined L1D_SIZE"
+#define L1D_SIZE_KB 32 // unused in the build; used only for syntax highlighting
+#else
+#endif
+
+#define L1D_CONFLICT_DISTANCE (L1D_SIZE_KB * 1024 / L1D_ASSOCIATIVITY)
+
+// =================================================================================================
+// Misc.
+// =================================================================================================
 
 // Definitions of MSRs missing in the kernel
 #define MSR_SYSCFG 0xc0010010

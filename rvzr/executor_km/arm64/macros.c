@@ -206,16 +206,15 @@ static uint64_t update_util_base_reg(int section_id, uint8_t *dest, uint64_t cur
 static void __attribute__((noipa)) body_macro_prime(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
-    asm volatile(""                                                               //
-                 "mrs " TMP_REG6 ", nzcv \n"                                      //
-                 "mov " TMP_REG1 ", " UTIL_BASE_REGISTER "\n"                     //
-                 "add " TMP_REG1 ", " TMP_REG1 ", " xstr(L1D_PRIMING_OFFSET) "\n" //
-                 PRIME(TMP_REG1, TMP_REG2, TMP_REG3, TMP_REG4, TMP_REG5, "8")     //
-                 READ_PFC_START()                                                 //
-                 SET_SR_STARTED()                                                 //
-                 "msr nzcv, " TMP_REG6 "\n"                                       //
-                 "isb\n"                                                          //
-                 "dsb SY \n"                                                      //
+    asm volatile(""                                                                //
+                 "mrs " TMP_REG6 ", nzcv \n"                                       //
+                 "mov " TMP_REG1 ", " UTIL_BASE_REGISTER "\n"                      //
+                 "add " TMP_REG1 ", " TMP_REG1 ", #" xstr(L1D_PRIMING_OFFSET) "\n" //
+                 PRIME(TMP_REG1, TMP_REG2, TMP_REG3, TMP_REG4, TMP_REG5, "8")      //
+                 READ_PFC_START()                                                  //
+                 SET_SR_STARTED()                                                  //
+                 "msr nzcv, " TMP_REG6 "\n"                                        //
+                 SPEC_FENCE()                                                      //
     );
     asm volatile(".quad " xstr(MACRO_END));
 }
@@ -223,16 +222,15 @@ static void __attribute__((noipa)) body_macro_prime(void)
 static void __attribute__((noipa)) body_macro_fast_prime(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
-    asm volatile(""                                                               //
-                 "mrs " TMP_REG6 ", nzcv \n"                                      //
-                 "mov " TMP_REG1 ", " UTIL_BASE_REGISTER "\n"                     //
-                 "add " TMP_REG1 ", " TMP_REG1 ", " xstr(L1D_PRIMING_OFFSET) "\n" //
-                 PRIME(TMP_REG1, TMP_REG2, TMP_REG3, TMP_REG4, TMP_REG5, "1")     //
-                 READ_PFC_START()                                                 //
-                 SET_SR_STARTED()                                                 //
-                 "msr nzcv, " TMP_REG6 "\n"                                       //
-                 "isb\n"                                                          //
-                 "dsb SY \n"                                                      //
+    asm volatile(""                                                                //
+                 "mrs " TMP_REG6 ", nzcv \n"                                       //
+                 "mov " TMP_REG1 ", " UTIL_BASE_REGISTER "\n"                      //
+                 "add " TMP_REG1 ", " TMP_REG1 ", #" xstr(L1D_PRIMING_OFFSET) "\n" //
+                 PRIME(TMP_REG1, TMP_REG2, TMP_REG3, TMP_REG4, TMP_REG5, "1")      //
+                 READ_PFC_START()                                                  //
+                 SET_SR_STARTED()                                                  //
+                 "msr nzcv, " TMP_REG6 "\n"                                        //
+                 SPEC_FENCE()                                                      //
     );
     asm volatile(".quad " xstr(MACRO_END));
 }
@@ -252,15 +250,14 @@ static void __attribute__((noipa)) body_macro_probe(void)
                  "mrs " TMP_REG6 ", nzcv \n"                                              //
                  TEST_SR_ENDED()                                                          //
                  "b.eq 99f\n"                                                             //
-                 "mov " TMP_REG1 ", " UTIL_BASE_REGISTER "\n"                             //
-                 "add " TMP_REG1 ", " TMP_REG1 ", " xstr(L1D_PRIMING_OFFSET) "\n"         //
                  READ_PFC_END()                                                           //
+                 "mov " TMP_REG1 ", " UTIL_BASE_REGISTER "\n"                             //
+                 "add " TMP_REG1 ", " TMP_REG1 ", #" xstr(L1D_PRIMING_OFFSET) "\n"        //
                  PROBE(TMP_REG1, TMP_REG2, TMP_REG3, TMP_REG4, TMP_REG5, HTRACE_REGISTER) //
                  SET_SR_ENDED()                                                           //
                  "99:\n"                                                                  //
                  "msr nzcv, " TMP_REG6 "\n"                                               //
-                 "isb\n"                                                                  //
-                 "dsb SY \n"                                                              //
+                 SPEC_FENCE()                                                             //
     );
     asm volatile(".quad " xstr(MACRO_END));
 }
@@ -276,7 +273,7 @@ static void __attribute__((noipa)) body_macro_flush(void)
                  READ_PFC_START()                               //
                  SET_SR_STARTED()                               //
                  "msr nzcv, " TMP_REG6 "\n"                     //
-                 "isb\n dsb SY\n"                               //
+                 SPEC_FENCE()                                   //
     );
     asm volatile(".quad " xstr(MACRO_END));
 }
@@ -296,14 +293,13 @@ static void __attribute__((noipa)) body_macro_reload(void)
                  "mrs " TMP_REG6 ", nzcv \n"                                     //
                  TEST_SR_ENDED()                                                 //
                  "b.eq 99f\n"                                                    //
-                 "mov " TMP_REG1 ", " MEMORY_BASE_REGISTER "\n"                  //
                  READ_PFC_END()                                                  //
+                 "mov " TMP_REG1 ", " MEMORY_BASE_REGISTER "\n"                  //
                  RELOAD(TMP_REG1, TMP_REG2, TMP_REG3, TMP_REG4, HTRACE_REGISTER) //
                  SET_SR_ENDED()                                                  //
                  "99:\n"                                                         //
                  "msr nzcv, " TMP_REG6 "\n"                                      //
-                 "isb\n"                                                         //
-                 "dsb SY \n"                                                     //
+                 SPEC_FENCE()                                                    //
     );
     asm volatile(".quad " xstr(MACRO_END));
 }

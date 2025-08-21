@@ -47,6 +47,7 @@ ifeq ($(shell ls /sys/devices/system/cpu/cpu0/cache/index0/ways_of_associativity
 $(error "Cache info not found")
 endif
 EXTRA_CFLAGS += -DL1D_ASSOCIATIVITY=$(shell cat /sys/devices/system/cpu/cpu0/cache/index0/ways_of_associativity)
+EXTRA_CFLAGS += -DL1D_SIZE_KB=$(shell cat /sys/devices/system/cpu/cpu0/cache/index0/size | sed 's/[^0-9]*//g')
 
 ifeq ($(VENDOR_ID), 1)
 EXTRA_CFLAGS += -msse2
@@ -85,7 +86,7 @@ ifeq ($(is_vm_vendor), 'yes')
 	$(error ERROR: VM or WSL environment detected; use `make VMBUILD=1`)
 endif
 endif
-	make -C $(KDIR) M=$(PWD) modules 2>&1 | grep -vE $(GREP_FILTER)
+	make -C $(KDIR) M=$(PWD) -j modules 2>&1 | grep -vE $(GREP_FILTER)
 
 clean:
 	make -C $(KDIR) M=$(PWD) clean

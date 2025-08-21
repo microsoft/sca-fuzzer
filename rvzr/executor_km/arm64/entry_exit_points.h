@@ -11,6 +11,8 @@
 #ifndef _ENTRY_EXIT_H_
 #define _ENTRY_EXIT_H_
 
+#include "asm_snippets.h"
+
 #define TEMPLATE_START                     0x0000111100001111
 #define TEMPLATE_INSERT_TC                 0x0000222200002222
 #define TEMPLATE_DEFAULT_EXCEPTION_LANDING 0x0000333300003333
@@ -42,7 +44,9 @@ static inline void prologue(void)
 
         // sandbox->util->stored_rsp = sp
         "mov x0, sp\n"
-        "str x0, ["UTIL_BASE_REGISTER", #"xstr(STORED_RSP_OFFSET)"]\n"
+        "mov x1, #"xstr(STORED_RSP_OFFSET)"\n"
+        "add x1, "UTIL_BASE_REGISTER", x1\n"
+        "str x0, [x1]\n"
 
         // clear the rest of the registers
         "mov x0, 0\n"
@@ -97,7 +101,9 @@ static inline void epilogue(void)
         "str "STATUS_REGISTER", [x0, #48]\n" // Measurement status
 
         // rsp = sandbox->util->stored_rsp
-        "ldr x0, ["UTIL_BASE_REGISTER", #"xstr(STORED_RSP_OFFSET)"]\n"
+        "mov x1, #"xstr(STORED_RSP_OFFSET)"\n"
+        "add x1, "UTIL_BASE_REGISTER", x1\n"
+        "ldr x0, [x1]\n"
         "mov sp, x0\n"
 
         // restore registers
@@ -136,7 +142,9 @@ static inline void epilogue_dbg_gpr(void)
         "str "STATUS_REGISTER", [x7, #48]\n"
 
         // rsp = sandbox->util->stored_rsp
-        "ldr x0, ["UTIL_BASE_REGISTER", #"xstr(STORED_RSP_OFFSET)"]\n"
+        "mov x0, #"xstr(STORED_RSP_OFFSET)"\n"
+        "add x0, "UTIL_BASE_REGISTER", x0\n"
+        "ldr x0, [x0]\n"
         "mov sp, x0\n"
 
         // restore registers

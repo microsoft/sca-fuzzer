@@ -43,19 +43,25 @@
     "cmp x16, " xstr(STATUS_ENDED) " \n"
 
 /// ================================================================================================
+/// Shortcuts
+/// ================================================================================================
+#define SPEC_FENCE()      "dsb SY \n isb \n"
+#define CACHE_FLUSH(ADDR) "dc civac, " ADDR "\n"
+
+/// ================================================================================================
 /// MSR and Performance Counter accessors
 /// ================================================================================================
 
 // clobber: x16
 #define READ_MSR_START(ID, DEST)                                                                   \
-    "isb; dsb SY \n"                                                                               \
+    SPEC_FENCE()                                                                                   \
     "mov " DEST ", #0 \n"                                                                          \
     "mrs x16, " ID " \n"                                                                           \
     "sub " DEST ", " DEST ", x16 \n"
 
 // clobber: x16
 #define READ_MSR_END(ID, DEST)                                                                     \
-    "isb; dsb SY \n"                                                                               \
+    SPEC_FENCE()                                                                                   \
     "mrs x16, " ID " \n"                                                                           \
     "add " DEST ", " DEST ", x16 \n"
 
@@ -68,7 +74,7 @@
 // clobber: x16, PFC0, PFC1, PFC2
 // clang-format off
 #define READ_PFC_START() \
-        "isb; dsb SY \n" \
+        SPEC_FENCE() \
         "mov " PFC0 ", #0 \n" \
         "mov " PFC1 ", #0 \n" \
         "mov " PFC2 ", #0 \n" \
@@ -81,7 +87,7 @@
 
 // clobber: rax, rcx, rdx
 #define READ_PFC_END() \
-        "isb; dsb SY \n" \
+        SPEC_FENCE() \
         READ_PFC_ONE("1", "x16") \
         "add " PFC0 ", " PFC0 ", x16 \n" \
         READ_PFC_ONE("2", "x16") \
@@ -126,7 +132,6 @@
 /// ================================================================================================
 /// Measurement primitives
 /// ================================================================================================
-#define SPEC_FENCE() "isb \n dsb SY \n"
 
 // clang-format off
 #if L1D_ASSOCIATIVITY == 2
@@ -198,36 +203,38 @@
             SPEC_FENCE() \
             PRIME_ONE_SET(BASE, OFFSET, TMP, DEPENDENCY_REGISTER) \
             "add "OFFSET", "OFFSET", #64 \n" \
-            "mov "TMP", #"xstr(L1D_CONFLICT_DISTANCE)" \n" \
-            "cmp "OFFSET", "TMP"; \n" \
+            "cmp "OFFSET", #"xstr(L1D_CONFLICT_DISTANCE)" \n" \
             "b.lt 2b \n" \
         "sub "REP_COUNTER", "REP_COUNTER", #1 \n" \
         "cmp "REP_COUNTER", xzr \n" \
         "b.ne 1b \n" \
-    "isb \n dsb SY \n"
+    SPEC_FENCE()
 // clang-format on
 
+// clang-format off
 /// @brief Probe part of the Prime+Probe attack
 // clobber: none
 // clang-format off
 #define PROBE(BASE, OFFSET, DEPENDENCY_REGISTER, EVICT_COUNT, TMP, TRACE) \
-    "mov "OFFSET", 0 \n" \
-    "mov "DEPENDENCY_REGISTER", 0 \n" \
     "mov "TRACE", 0 \n" \
+    "mov "DEPENDENCY_REGISTER", 0 \n" \
+    "mov "OFFSET", #"xstr(L1D_CONFLICT_DISTANCE)" \n" \
+    "sub "OFFSET", "OFFSET", #64 \n" \
     "1: \n" \
         SPEC_FENCE() \
         READ_PFC_ONE("0", EVICT_COUNT) \
+        SPEC_FENCE() \
         PRIME_ONE_SET(BASE, OFFSET, TMP, DEPENDENCY_REGISTER) \
         SPEC_FENCE() \
         READ_PFC_ONE("0", TMP) \
-        "mov "TRACE", "TRACE", lsl #1 \n" \
+        "mov "TRACE", "TRACE", ror #1 \n" \
         "cmp "TMP", "EVICT_COUNT" \n" \
         "b.eq 2f \n" \
-            "orr "TRACE", "TRACE", #1 \n" \
+        "  orr "TRACE", "TRACE", #1 \n" \
         "2: \n" \
-        "add "OFFSET", "OFFSET", #64 \n" \
-        "cmp "OFFSET", #"xstr(L1D_CONFLICT_DISTANCE)" \n" \
-        "b.lt 1b \n" \
+        "sub "OFFSET", "OFFSET", #64 \n" \
+        "cmp "OFFSET", xzr \n" \
+        "b.ge 1b \n" \
     SPEC_FENCE()
 // clang-format on
 
@@ -237,11 +244,10 @@
 #define FLUSH(BASE, OFFSET, TMP) \
     "mov "OFFSET", #0 \n" \
     "1: \n" \
-        SPEC_FENCE() \
         "add "TMP", "BASE", "OFFSET" \n" \
-        "dc ivac, "TMP" \n" \
+        CACHE_FLUSH(TMP) \
         "add "OFFSET", "OFFSET", #64 \n" \
-        "cmp "OFFSET", #4096\n" \
+        "cmp "OFFSET", #0x1000\n" \
         "b.lt 1b \n" \
     SPEC_FENCE()
 // clang-format on
@@ -255,6 +261,7 @@
     "1: \n" \
         SPEC_FENCE() \
         READ_PFC_ONE("0", EVICT_COUNT) \
+        SPEC_FENCE() \
         "add "TMP", "BASE", "OFFSET" \n" \
         "ldr "TMP", ["TMP"] \n" \
         SPEC_FENCE() \
@@ -262,11 +269,10 @@
         "mov "TRACE", "TRACE", lsl #1 \n" \
         "cmp "TMP", "EVICT_COUNT" \n" \
         "b.ne 2f \n" \
-            "orr "TRACE", "TRACE", #1 \n" \
+        "  orr "TRACE", "TRACE", #1 \n" \
         "2: \n" \
         "add "OFFSET", "OFFSET", #64 \n" \
-        "mov "TMP", #4096 \n" \
-        "cmp "OFFSET", "TMP" \n" \
+        "cmp "OFFSET", #0x1000 \n" \
         "b.lt 1b \n" \
     SPEC_FENCE()
 // clang-format on

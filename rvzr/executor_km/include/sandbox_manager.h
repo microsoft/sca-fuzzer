@@ -15,7 +15,7 @@
 // =================================================================================================
 // Sandbox data layout
 // =================================================================================================
-#define L1D_PRIMING_AREA_SIZE (L1D_ASSOCIATIVITY * 4096)
+#define L1D_PRIMING_AREA_SIZE (L1D_SIZE_KB * 1024)
 
 // layout of actor_data_t
 #define MACRO_STACK_SIZE   64
