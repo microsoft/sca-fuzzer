@@ -380,7 +380,7 @@ def main() -> int:  # pylint: disable=r0911,r0912,r0915  # this function is nece
 
     # Enforce the Unicorn version: New versions of Unicorn have a bug that causes false positives
     # in the fuzzer. This is a temporary workaround until the bug is fixed.
-    if unicorn.__version__ != '1.0.3':  # type: ignore
+    if unicorn.__version__ != '1.0.3' and CONF.instruction_set == 'x86-64':  # type: ignore
         print(
             "[ERROR]", "The fuzzer requires Unicorn version 1.0.3. Please install it using "
             "`pip install unicorn==1.0.3`.")
