@@ -659,7 +659,7 @@ class AsmParser(ABC):
         self._connect_control_flow(test_case)
 
         # Handle empty and trivial assembly files
-        if len(test_case) == 1 and len(test_case[0]) == 1:
+        if len(test_case) == 1 and len(test_case[0]) == 0 and len(test_case[0][0]) == 0:
             self._handle_empty_test_case(test_case)
 
         # Perform final correctness checks

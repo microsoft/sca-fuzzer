@@ -364,6 +364,8 @@ class CodeSection:
 
     def append(self, func: Function) -> None:
         """ Append a function to the section """
+        assert func.name not in [f.name for f in self._functions], \
+            f"Function {func.name} already exists in the section"
         self._functions.append(func)
 
     def assign_elf_data(self, offset: int, size: int, id_: int) -> None:
