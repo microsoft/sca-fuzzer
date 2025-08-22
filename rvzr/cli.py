@@ -9,7 +9,7 @@ SPDX-License-Identifier: MIT
 import os
 import sys
 from typing import TYPE_CHECKING, Any
-from argparse import ArgumentParser, ArgumentTypeError
+from argparse import ArgumentParser, ArgumentTypeError, ArgumentDefaultsHelpFormatter
 
 import unicorn
 
@@ -65,7 +65,11 @@ def _parse_args() -> Any:  # pylint: disable=r0915
 
     # ==============================================================================================
     # Fuzzing
-    parser_fuzz = subparsers.add_parser('fuzz', add_help=True, parents=[common_parser])
+    parser_fuzz = subparsers.add_parser(
+        'fuzz',
+        add_help=True,
+        parents=[common_parser],
+        formatter_class=ArgumentDefaultsHelpFormatter)
     parser_fuzz.add_argument(
         "-n",
         "--num-test-cases",
@@ -108,7 +112,11 @@ def _parse_args() -> Any:  # pylint: disable=r0915
 
     # ==============================================================================================
     # Template-based fuzzing
-    parser_tfuzz = subparsers.add_parser('tfuzz', add_help=True, parents=[common_parser])
+    parser_tfuzz = subparsers.add_parser(
+        'tfuzz',
+        add_help=True,
+        parents=[common_parser],
+        formatter_class=ArgumentDefaultsHelpFormatter)
     parser_tfuzz.add_argument(
         "-n",
         "--num-test-cases",
@@ -151,7 +159,11 @@ def _parse_args() -> Any:  # pylint: disable=r0915
 
     # ==============================================================================================
     # Standalone interface to trace analysis
-    parser_analyser = subparsers.add_parser('analyse', add_help=True, parents=[common_parser])
+    parser_analyser = subparsers.add_parser(
+        'analyse',
+        add_help=True,
+        parents=[common_parser],
+        formatter_class=ArgumentDefaultsHelpFormatter)
     parser_analyser.add_argument(
         '--ctraces',
         type=str,
@@ -165,7 +177,11 @@ def _parse_args() -> Any:  # pylint: disable=r0915
 
     # ==============================================================================================
     # Reproducing violation
-    parser_reproduce = subparsers.add_parser('reproduce', add_help=True, parents=[common_parser])
+    parser_reproduce = subparsers.add_parser(
+        'reproduce',
+        add_help=True,
+        parents=[common_parser],
+        formatter_class=ArgumentDefaultsHelpFormatter)
     parser_reproduce.add_argument(
         '-t',
         '--testcase',
@@ -197,7 +213,7 @@ def _parse_args() -> Any:  # pylint: disable=r0915
         parents=[common_parser],
         help="Minimize a test case by executing a series of minimization passes. "
         "The set of passes is controlled via CLI arguments.",
-    )
+        formatter_class=ArgumentDefaultsHelpFormatter)
     parser_mini.add_argument(
         '--testcase',
         '-t',
@@ -303,7 +319,7 @@ def _parse_args() -> Any:  # pylint: disable=r0915
 
     # ==============================================================================================
     # Standalone interface to test case generation
-    parser_generator = subparsers.add_parser('generate', add_help=True, parents=[common_parser])
+    parser_generator = subparsers.add_parser('generate', add_help=True, parents=[common_parser], formatter_class=ArgumentDefaultsHelpFormatter)
     parser_generator.add_argument(
         "-r",
         "--seed",
