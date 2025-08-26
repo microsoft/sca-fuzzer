@@ -535,7 +535,7 @@ class ModelLogger:
             return
 
         assert self.model_layout is not None
-        base = self.model_layout.code_start
+        base = self.model_layout.code_start()
 
         msg = f"ROLLBACK to 0x{address - base:x}"
         if CONF.color:

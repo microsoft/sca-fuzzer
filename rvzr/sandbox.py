@@ -59,10 +59,10 @@ class SandboxLayout:
     Layout of the data and code sandboxes. This class is responsible for ensuring
     consistency of memory layouts between the executor, the model, and the generators.
     """
-    data_start: DataAddr
-    data_end: DataAddr
-    code_start: CodeAddr
-    code_end: CodeAddr
+    _data_start: DataAddr
+    _data_end: DataAddr
+    _code_start: CodeAddr
+    _code_end: CodeAddr
 
     _data_addresses: List[Dict[DataArea, DataAddr]]
     _code_addresses: List[Dict[CodeArea, CodeAddr]]
@@ -158,15 +158,15 @@ class SandboxLayout:
     # ==============================================================================================
     def __init__(self, bases: BaseAddrTuple, n_actors: int):
         # Data boundaries
-        self.data_start = bases[0]
+        self._data_start = bases[0]
         self.data_size = self._DataAreaLayout.itemsize * n_actors
-        self.data_end = bases[0] + self.data_size
+        self._data_end = bases[0] + self.data_size
         assert self.data_size % PAGE_SIZE == 0
 
         # Code boundaries
-        self.code_start = bases[1]
+        self._code_start = bases[1]
         self.code_size = self._CodeAreaLayout.itemsize * n_actors
-        self.code_end = bases[1] + self.code_size
+        self._code_end = bases[1] + self.code_size
         assert self.code_size % PAGE_SIZE == 0
 
         # Pre-compute data and code addresses
@@ -174,14 +174,30 @@ class SandboxLayout:
         # once and used many times.
         self._data_addresses = []
         for actor_id in range(n_actors):
-            actor_data_start = self.data_start + actor_id * self.data_size_per_actor()
+            actor_data_start = self._data_start + actor_id * self.data_size_per_actor()
             self._data_addresses.append(
                 {area: actor_data_start + self.data_area_offset(area) for area in DataArea})
         self._code_addresses = []
         for actor_id in range(n_actors):
-            actor_code_start = self.code_start + actor_id * self.code_size_per_actor()
+            actor_code_start = self._code_start + actor_id * self.code_size_per_actor()
             self._code_addresses.append(
                 {area: actor_code_start + self.code_area_offset(area) for area in CodeArea})
+
+    def code_start(self) -> CodeAddr:
+        """ Read-only access to the code start address """
+        return self._code_start
+
+    def code_end(self) -> CodeAddr:
+        """ Read-only access to the code end address """
+        return self._code_end
+
+    def data_start(self) -> DataAddr:
+        """ Read-only access to the data start address """
+        return self._data_start
+
+    def data_end(self) -> DataAddr:
+        """ Read-only access to the data end address """
+        return self._data_end
 
     def get_data_addr(self, area: DataArea, actor_id: int) -> DataAddr:
         """
@@ -190,7 +206,7 @@ class SandboxLayout:
         :param actor_id: The actor to get the address for.
         :return: The starting address of the area in the data sandbox.
         """
-        actor_data_start = self.data_start + actor_id * self.data_size_per_actor()
+        actor_data_start = self._data_start + actor_id * self.data_size_per_actor()
         return actor_data_start + self.data_area_offset(area)
 
     def get_code_addr(self, area: CodeArea, actor_id: int) -> CodeAddr:
@@ -200,7 +216,7 @@ class SandboxLayout:
         :param actor_id: The actor to get the address for.
         :return: The starting address of the area in the code sandbox.
         """
-        actor_code_start = self.code_start + actor_id * self.code_size_per_actor()
+        actor_code_start = self._code_start + actor_id * self.code_size_per_actor()
         return actor_code_start + self.code_area_offset(area)
 
     def get_exit_addr(self, test_case: TestCaseProgram) -> CodeAddr:
@@ -211,7 +227,7 @@ class SandboxLayout:
         """
         main_section = test_case.find_section(name="main")
         main_size = main_section.get_elf_data()["size"]
-        exit_offset = self.code_start + main_size - 1
+        exit_offset = self._code_start + main_size - 1
         return exit_offset
 
     def is_data_addr(self, addr: DataAddr) -> bool:
@@ -220,7 +236,7 @@ class SandboxLayout:
         :param addr: The address to check.
         :return: True if the address is within the data sandbox, False otherwise.
         """
-        return self.data_start <= addr < self.data_end
+        return self._data_start <= addr < self._data_end
 
     def is_code_addr(self, addr: CodeAddr) -> bool:
         """
@@ -228,7 +244,7 @@ class SandboxLayout:
         :param addr: The address to check.
         :return: True if the address is within the code sandbox, False otherwise.
         """
-        return self.code_start <= addr < self.code_end
+        return self._code_start <= addr < self._code_end
 
     def data_addr_to_offset(self, addr: DataAddr) -> DataAddr:
         """
@@ -236,7 +252,7 @@ class SandboxLayout:
         :param addr: The address to convert.
         :return: The offset within the data sandbox.
         """
-        return addr - self.data_start
+        return addr - self._data_start
 
     def code_addr_to_offset(self, addr: CodeAddr) -> CodeAddr:
         """
@@ -244,7 +260,7 @@ class SandboxLayout:
         :param addr: The address to convert.
         :return: The offset within the code sandbox.
         """
-        return addr - self.code_start
+        return addr - self._code_start
 
     def code_addr_to_actor_id(self, addr: CodeAddr) -> int:
         """
@@ -252,7 +268,7 @@ class SandboxLayout:
         :param addr: Code address
         :return: Actor ID
         """
-        return (addr - self.code_start) // self.code_size_per_actor()
+        return (addr - self._code_start) // self.code_size_per_actor()
 
     def data_addr_to_actor_id(self, addr: DataAddr) -> int:
         """
@@ -260,4 +276,4 @@ class SandboxLayout:
         :param addr: Data address
         :return: Actor ID
         """
-        return (addr - self.data_start) // self.data_size_per_actor()
+        return (addr - self._data_start) // self.data_size_per_actor()

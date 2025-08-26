@@ -253,9 +253,9 @@ class UnicornModel(Model, ABC):
         # Allocate memory and write the binary
         # Note: the data will be written later, by the _load_input method
         try:
-            self.emulator.mem_map(self.layout.code_start, self.layout.code_size)
-            self.emulator.mem_map(self.layout.data_start, self.layout.data_size)
-            self.emulator.mem_write(self.layout.code_start, code)
+            self.emulator.mem_map(self.layout.code_start(), self.layout.code_size)
+            self.emulator.mem_map(self.layout.data_start(), self.layout.data_size)
+            self.emulator.mem_write(self.layout.code_start(), code)
         except UcError as e:
             error(f"[UnicornModel:load_test_case] {e}")
 
@@ -403,12 +403,13 @@ class UnicornModel(Model, ABC):
             `docs/assets/unicorn-model-state-machine.drawio.png`.
 
         """
-        pc = self.layout.code_start
+        code_start = self.layout.code_start()
+        pc = code_start
         while True:
             self.state.reset_after_em_stop(pc)
 
             # Handle re-entries after faults and rollbacks
-            if pc != self.layout.code_start:
+            if pc != code_start:
                 in_speculation = self.speculator.in_speculation()
 
                 # When entering a new loop iterations, there are the following options:
@@ -433,7 +434,7 @@ class UnicornModel(Model, ABC):
 
             # Execute the test case
             try:
-                self.emulator.emu_start(pc, self.layout.code_end, timeout=10 * uc.UC_SECOND_SCALE)
+                self.emulator.emu_start(pc, self.layout.code_end(), timeout=10 * uc.UC_SECOND_SCALE)
             except UcError as e:
                 self.state.pending_fault = int(e.errno)  # type: ignore  # missing type annotation
 

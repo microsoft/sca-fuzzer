@@ -101,7 +101,7 @@ class ModelExecutionState:
 
     def _set_fault_handler_addr(self, fh_id: int) -> None:
         test_case_obj = self._test_case.get_obj()
-        code_start = self._layout.code_start
+        code_start = self._layout.code_start()
         offset = test_case_obj.get_macro_offset(fh_id)
         if offset == -1:
             self.fault_handler_addr = self.exit_addr
