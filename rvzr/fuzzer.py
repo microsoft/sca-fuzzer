@@ -562,12 +562,12 @@ class Fuzzer:
         """
         # pylint: disable=too-many-return-statements
 
+        # Initialize the round manager and load the test case
+        round_manager = _RoundManager(self, test_case, inputs)
+
         # If a list of ignored inputs is provided, set it in the executor
         if starting_ignore_list:
             self.executor.set_ignore_list(starting_ignore_list)
-
-        # Initialize the round manager and load the test case
-        round_manager = _RoundManager(self, test_case, inputs)
 
         # 1. Fast path: Collect traces with minimal nesting and repetitions
         round_manager.execute_stage("fast")
