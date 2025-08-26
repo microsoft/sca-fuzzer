@@ -722,8 +722,9 @@ class ARM64UnicornModel(UnicornModel):
 
         # Initialize memory for each actor:
         n_actors = self.state.current_test_case().n_actors()
+        init_gpr: List[np.uint64]
         for actor_id in range(n_actors):
-            input_fragment = input_[actor_id]
+            input_fragment = input_[actor_id].copy()
 
             # - initialize overflows with zeroes
             write_area(DataArea.OVERFLOW_PAD, actor_id, self.overflow_pad_values)
@@ -743,16 +744,17 @@ class ARM64UnicornModel(UnicornModel):
             # - SIMD
             write_area(DataArea.SIMD, actor_id, input_fragment['simd'].tobytes())
 
-        # Registers are initialized with the main actor's input
-        input_fragment = input_[0]
+            # Save the GPR area of the main actor as it will be used to initialize registers
+            if actor_id == 0:
+                init_gpr = input_fragment['gpr']
 
         # - initialize GPRs
         value: np.uint64
-        for i, value in enumerate(input_fragment['gpr']):
+        for i, value in enumerate(init_gpr):
             em.reg_write(regs[i], int(value))
 
         # similarly to above, patch reg. values
-        em.reg_write(self._uc_target_desc.flags_register, int(input_fragment['gpr'][6]))
+        em.reg_write(self._uc_target_desc.flags_register, int(init_gpr[6]))
         em.reg_write(self._uc_target_desc.sp_register,
                      self.layout.get_data_addr(DataArea.RSP_INIT, 0))
         em.reg_write(self._uc_target_desc.actor_base_register,

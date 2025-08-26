@@ -156,7 +156,7 @@ class Minimizer:
                 break
 
         # Run the analysis passes
-        test_case = self._run_instruction_passes(test_case, inputs, violation, test_case_outfile)
+        test_case = self._run_analysis_passes(test_case, inputs, violation, test_case_outfile)
 
         # Get rid of unused labels
         if enabled_passes.get("enable_label_pass", False):
@@ -169,9 +169,6 @@ class Minimizer:
         test_case.save(test_case_outfile)
 
     def _reset(self, enabled_passes: Dict[str, Any]) -> None:
-        # Check arguments
-        assert CONF.instruction_set == "x86-64", "Postprocessor supports only x86-64 so far"
-
         # Get lists of enabled passes
         self._set_passes(enabled_passes)
 

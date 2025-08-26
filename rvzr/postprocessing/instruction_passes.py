@@ -11,14 +11,19 @@ import os
 import re
 from subprocess import run
 from typing import TYPE_CHECKING, List, Dict, Callable
+from typing_extensions import assert_never
 
 from .pass_abc import BaseMinimizationPass
 from ..logs import warning
+from ..config import CONF
 
 if TYPE_CHECKING:
     from ..traces import Violation
     from ..tc_components.test_case_code import TestCaseProgram
     from ..tc_components.test_case_data import InputData
+    from ..fuzzer import Fuzzer
+    from ..isa_spec import InstructionSet
+    from ..postprocessing.progress_printer import ProgressPrinter
 
 
 class BaseInstructionMinimizationPass(BaseMinimizationPass):
@@ -67,12 +72,12 @@ class BaseInstructionMinimizationPass(BaseMinimizationPass):
                 return True
             # We skip lines that meet the following criteria:
             is_skipped = line == ""  # empty line
-            is_skipped |= (line[0] == "#")  # comment
+            is_skipped |= (line[0] == self._comment_symbol)  # comment
             is_skipped |= ("lfence" in line)  # fences
             is_skipped |= ('.' == line[0])  # labels
             is_skipped |= ('noremove' in line)  # explicitly marked as non-removable
             is_skipped |= (skip_instrumentation_lines and 'instrumentation' in line)
-            is_skipped |= (", r14" in line)  # removing sandbox-relative operations causes FPs
+            is_skipped |= (self._base_register in line)  # sandbox-relative operations
             return is_skipped
 
         # get all lines of the test case
@@ -220,6 +225,10 @@ class InstructionSimplificationPass(BaseInstructionMinimizationPass):
     }
 
     def run(self, test_case: TestCaseProgram, inputs: List[InputData]) -> TestCaseProgram:
+        if CONF.instruction_set == "arm64":
+            warning("postprocessor", "--enable-simplification-pass has no effect on ARM64")
+            return test_case
+
         inst_ids = self.minimization_loop(test_case, inputs)
         self._progress.pass_finish()
 
@@ -252,6 +261,22 @@ class ConstantSimplificationPass(BaseInstructionMinimizationPass):
     """
     name = "Constant Simplification Pass"
 
+    def __init__(self, fuzzer: Fuzzer, instruction_set_spec: InstructionSet,
+                 progress: ProgressPrinter):
+        super().__init__(fuzzer, instruction_set_spec, progress)
+        if CONF.instruction_set == "x86-64":
+            self._match_dec = re.compile(r"^-?[0-9]+$")
+            self._match_hex = re.compile(r"^-?0x[0-9a-f]+$")
+            self._match_bin = re.compile(r"^-?0b[01]+$")
+            self._replacement = "0"
+        elif CONF.instruction_set == "arm64":
+            self._match_dec = re.compile(r"^#-?[0-9]+$")
+            self._match_hex = re.compile(r"^#-?0x[0-9a-f]+$")
+            self._match_bin = re.compile(r"^#-?0b[01]+$")
+            self._replacement = "#1"  # this value is safe as both an immediate and a bitmask
+        else:
+            assert_never(CONF.instruction_set)
+
     def run(self, test_case: TestCaseProgram, inputs: List[InputData]) -> TestCaseProgram:
         inst_ids = self.minimization_loop(test_case, inputs)
         self._progress.pass_finish()
@@ -268,11 +293,12 @@ class ConstantSimplificationPass(BaseInstructionMinimizationPass):
         words = clean_line.split(",")
         for word_id, word in enumerate(words):
             word = word.strip()
-            if word == "0":  # already replaced
+            if word == self._replacement:  # already replaced
                 break
-            if re.match(r"^-?[0-9]+$", word) or re.match(r"^-?0x[0-9a-f]+$", word) \
-               or re.match(r"^-?0b[01]+$", word):
-                tmp[cursor] = ", ".join(words[:word_id] + ["0"] + words[word_id + 1:]) + "\n"
+            if self._match_dec.match(word) or self._match_hex.match(word) \
+               or self._match_bin.match(word):
+                tmp[cursor] = ", ".join(words[:word_id] + [self._replacement]
+                                        + words[word_id + 1:]) + "\n"
                 return tmp
         return []
 
@@ -317,9 +343,9 @@ class MaskSimplificationPass(BaseInstructionMinimizationPass):
     def modify_instruction(self, instructions: List[str], cursor: int) -> List[str]:
         tmp = list(instructions)  # make a copy
 
-        comment_split = tmp[cursor].split("#")
+        comment_split = tmp[cursor].split(self._comment_symbol)
         clean_line = comment_split[0].strip().lower()
-        comment = "#".join(comment_split[1:]) if len(comment_split) > 1 else ""
+        comment = self._comment_symbol.join(comment_split[1:]) if len(comment_split) > 1 else ""
 
         words = clean_line.split(",")
         for word_id, word in enumerate(words):
@@ -327,7 +353,7 @@ class MaskSimplificationPass(BaseInstructionMinimizationPass):
             replacement = self._mask_replacements.get(word, None)
             if replacement:
                 tmp[cursor] = ", ".join(words[:word_id] + [replacement] + words[word_id + 1:]) \
-                    + " #" + comment
+                    + " " + self._comment_symbol + comment
                 return tmp
 
         return []
@@ -343,7 +369,7 @@ class NopReplacementPass(BaseInstructionMinimizationPass):
     """
     name = "NOP Replacement Pass"
 
-    _replacements = {
+    _replacements_x86 = {
         1: "nop  # 1 B",
         2: ".byte 0x66, 0x90  # 2 B",
         3: "nop dword ptr [rax]  # 3 B",
@@ -354,6 +380,24 @@ class NopReplacementPass(BaseInstructionMinimizationPass):
         8: "nop qword ptr [rax + 0xff]  # 8 B",
         9: "nop qword ptr [rax + rax + 0xff]  # 9 B",
     }
+    _replacements_arm64 = {
+        4: "nop",  # all instructions are 4 bytes
+    }
+
+    def __init__(self, fuzzer: Fuzzer, instruction_set_spec: InstructionSet,
+                 progress: ProgressPrinter):
+        super().__init__(fuzzer, instruction_set_spec, progress)
+        if CONF.instruction_set == "x86-64":
+            self._replacements = self._replacements_x86
+        elif CONF.instruction_set == "arm64":
+            self._replacements = self._replacements_arm64
+        else:
+            assert_never(CONF.instruction_set)
+
+        self._match_jump = re.compile(r"^j[a-z]* .*") if CONF.instruction_set == "x86-64" else \
+            re.compile(r"^b\.[a-z]* .*|^bl[a-z]* .*")
+        self._match_loop = re.compile(r"^loop[a-z]* .*") if CONF.instruction_set == "x86-64" else \
+            re.compile(r"^cbz .*|^cbnz .*|^tbnz .*|^tbz .*")
 
     def run(self, test_case: TestCaseProgram, inputs: List[InputData]) -> TestCaseProgram:
         modified_ids = self.minimization_loop(test_case, inputs, skip_instrumentation_lines=True)
@@ -393,12 +437,13 @@ class NopReplacementPass(BaseInstructionMinimizationPass):
             return []
 
         # skip jumps as replacing them with nops will confuse our assembly parser
-        if line.startswith("j") or line.startswith("loop"):
+        if self._match_jump.match(line) or self._match_loop.match(line):
             return []
 
         # determine the instruction size
         with open("tmp.asm", "w") as f:
-            f.write(".intel_syntax noprefix\n")
+            if CONF.instruction_set == "x86-64":
+                f.write(".intel_syntax noprefix\n")
             f.write(line)
             f.write("\n")
         run("as tmp.asm -o tmp.o", shell=True, check=True)
@@ -476,6 +521,15 @@ class FenceInsertionPass(BaseInstructionMinimizationPass):
     """
     name = "Fence Insertion Pass"
 
+    def __init__(self, fuzzer: Fuzzer, instruction_set_spec: InstructionSet,
+                 progress: ProgressPrinter):
+        super().__init__(fuzzer, instruction_set_spec, progress)
+        self._match_jump = re.compile(r"^j[a-z]* .*") if CONF.instruction_set == "x86-64" else \
+            re.compile(r"^b\.[a-z]* .*|^bl[a-z]* .*")
+        self._match_loop = re.compile(r"^loop[a-z]* .*") if CONF.instruction_set == "x86-64" else \
+            re.compile(r"^cbz .*|^cbnz .*|^tbnz .*|^tbz .*")
+        self._fence = "lfence" if CONF.instruction_set == "x86-64" else "dsb sy\n isb"
+
     def run(self, test_case: TestCaseProgram, inputs: List[InputData]) -> TestCaseProgram:
         inst_ids = self.minimization_loop(test_case, inputs)
         self._progress.pass_finish()
@@ -483,14 +537,14 @@ class FenceInsertionPass(BaseInstructionMinimizationPass):
         with open(test_case.asm_path(), "r") as f:
             instructions = f.readlines()
         for i in inst_ids:
-            instructions = instructions[:i] + ["lfence\n"] + instructions[i:]
+            instructions = instructions[:i] + [self._fence + "\n"] + instructions[i:]
         return self._get_test_case_from_instructions(instructions)
 
     def modify_instruction(self, instructions: List[str], cursor: int) -> List[str]:
         curr_instr = instructions[cursor].lower()
-        if curr_instr[0] == "j" or curr_instr[0:3] == "loop":
+        if self._match_jump.match(curr_instr) or self._match_loop.match(curr_instr):
             return []  # skip control-flow instructions - their target is already fenced
-        return instructions[:cursor] + ["lfence\n"] + instructions[cursor:]
+        return instructions[:cursor] + [self._fence + "\n"] + instructions[cursor:]
 
     def verify_modification(self, test_case: TestCaseProgram, inputs: List[InputData]) -> bool:
         return self._check_for_violation(test_case, inputs, self._ignore_list)

@@ -34,6 +34,9 @@ class BaseMinimizationPass(abc.ABC):
         self._progress = progress
         self._ignore_list = []
 
+        self._comment_symbol = "#" if CONF.instruction_set == "x86-64" else "//"
+        self._base_register = "r14" if CONF.instruction_set == "x86-64" else "x30"
+
     def set_ignore_list(self, ignore_list: List[int]) -> None:
         """ Set the list of input IDs to ignore """
         self._ignore_list = ignore_list

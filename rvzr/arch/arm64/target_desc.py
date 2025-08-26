@@ -37,10 +37,7 @@ class ARM64TargetDesc(TargetDesc):
         "w6": "R6", "x6": "R6",
         "w7": "R7", "x7": "R7",
         "w30": "R30", "x30": "R30",
-        "N": "N",
-        "Z": "Z",
-        "C": "C",
-        "V": "V",
+        "CF": "CF", "ZF": "ZF", "SF": "SF", "OF": "OF",
         "pc": "RIP",
         "sp": "RSP", "wsp": "RSP", "xsp": "RSP",
     }  # yapf: disable
@@ -177,10 +174,10 @@ class ARM64UnicornTargetDesc(UnicornTargetDesc):  # pylint: disable=too-few-publ
         "R7": ucc.UC_ARM64_REG_X7,
         "R30": ucc.UC_ARM64_REG_X30,
         "FLAGS": ucc.UC_ARM64_REG_NZCV,
-        "N": ucc.UC_ARM64_REG_NZCV,
-        "Z": ucc.UC_ARM64_REG_NZCV,
-        "C": ucc.UC_ARM64_REG_NZCV,
-        "V": ucc.UC_ARM64_REG_NZCV,
+        "SF": ucc.UC_ARM64_REG_NZCV,  # N
+        "ZF": ucc.UC_ARM64_REG_NZCV,  # Z
+        "CF": ucc.UC_ARM64_REG_NZCV,  # C
+        "OF": ucc.UC_ARM64_REG_NZCV,  # V
         "RIP": -1,
         "RSP": -1,
     }
