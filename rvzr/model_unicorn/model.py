@@ -608,7 +608,7 @@ class X86UnicornModel(UnicornModel):
         # workaround for Unicorn not enabling MPX
         inst = self.state.current_instruction
         if inst.name == "bndcu":
-            mem_op = inst.get_mem_operands(True)[0]
+            mem_op = inst.get_agen_operands()[0]
             mem_regs = re.split(r'\+|-|\*', mem_op.value)
             assert len(mem_regs) == 2 and "r14" in mem_regs[0].lower(), "Invalid format of BNDCU"
             offset_reg = self._uc_target_desc.reg_str_to_constant.get(mem_regs[1].lower().strip(),

@@ -75,7 +75,7 @@ function assert_violation_or_arch_fail() {
     echo "Command: $cmd"
     echo "Exit code: $status"
     echo "Output: '$output'"
-    if [[ "$output" == *" Architectural violation "* ]]; then
+    if [[ "$output" == *" Architectural mismatch "* ]]; then
         return
     fi
 
@@ -228,7 +228,7 @@ function x86_only() {
     if ! grep "mpx" /proc/cpuinfo >/dev/null; then
         skip
     fi
-    if ! grep "bndcu" $ISA; then
+    if ! grep "bndcu" $ISA >/dev/null; then
         skip "MPX instructions not found in $ISA"
     fi
     # Note: an arch. violation is expected here if MPX is disabled in the kernel

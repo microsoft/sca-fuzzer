@@ -252,7 +252,10 @@ class Instruction:
     """ Instruction in a test case program """
 
     # pylint: disable=too-many-instance-attributes
-    # This is a data container class, so it is expected to have many attributes
+    # NOTE: This is a data container class, so it is expected to have many attributes
+    # pylint: disable=too-many-public-methods
+    # NOTE: This contains separate accessors for each operand type,
+    # so it is expected to have many methods
 
     name: Final[str]
     """ name: The name of the instruction without any operands """
@@ -519,6 +522,18 @@ class Instruction:
             for o in self.implicit_operands:
                 if isinstance(o, ImmediateOp):
                     res.append(o)
+        return res
+
+    def get_agen_operands(self) -> List[AgenOp]:
+        """
+        Get a list of address generation operands of the instruction.
+        :return: A list of address generation operands
+        """
+        res = []
+        for o in self.operands:
+            if isinstance(o, AgenOp):
+                res.append(o)
+        # not checking implicit operands -> agen must be explicit
         return res
 
     # ----------------------------------------------------------------------------------------------

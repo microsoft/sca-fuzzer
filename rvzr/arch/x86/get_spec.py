@@ -502,21 +502,6 @@ class XMLSpecParser:
             inst.implicit_operands = [op1, op2]
             self._instructions.append(inst)
 
-        if not extensions or "MPX" in extensions:
-            for name in ["bndcl", "bndcu"]:
-                inst = _XMLInstructionSpec()
-                inst.name = name
-                inst.category = "MPX-MPX"
-                inst.is_control_flow = False
-                op1 = _XMLOperandSpec()
-                op1.type_, op1.src, op1.dest, op1.width = "REG", True, False, 128
-                op1.values = ["bnd0", "bnd1", "bnd2", "bnd3"]
-                op2 = _XMLOperandSpec()
-                op2.type_, op2.src, op2.dest, op2.width = "MEM", True, False, 64
-                op2.values = []
-                inst.operands = [op1, op2]
-                self._instructions.append(inst)
-
     def _check_extension_list(self) -> None:
         # get a list of all available extensions
         available_extensions = set()
