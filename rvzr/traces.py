@@ -279,7 +279,7 @@ class HTrace:
         00000002 [16]
         """
         s = ""
-        mask = 0xFFFFFFFFFFFFFF
+        mask = np.uint64(0xFFFFFFFFFFFFFF)
         counter = Counter(self._raw['trace'])
         trace_distribution = sorted(counter.items(), key=lambda x: x[1], reverse=True)
         for t, c in trace_distribution:

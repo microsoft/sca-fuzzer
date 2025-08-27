@@ -444,11 +444,11 @@ class _VspecBaseSpeculator(FaultSpeculator, ABC):
             pass
             # FaultSpeculator.trace_mem_access(emulator, access, address, size, value, model)
 
-    def _checkpoint(self, next_instruction_addr: int) -> None:
+    def _checkpoint(self, next_instruction_addr: int, include_current_inst: bool = True) -> None:
         self._reg_taints_checkpoints.append(copy(self._reg_taints))
         self._mem_taints_checkpoints.append(copy(self._mem_taints))
         self._whole_memory_tainted_checkpoints.append(copy(self._whole_memory_tainted))
-        return super()._checkpoint(next_instruction_addr)
+        return super()._checkpoint(next_instruction_addr, include_current_inst=include_current_inst)
 
     def rollback(self) -> int:
         self._reg_taints = self._reg_taints_checkpoints.pop()

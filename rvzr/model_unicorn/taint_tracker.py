@@ -100,12 +100,15 @@ class UnicornTaintTracker:
         self._dependencies = _Dependencies()
         self._tracking_in_progress = True
 
-    def checkpoint(self) -> None:
-        """ Save the current state of the taint tracker """
+    def checkpoint(self, include_current_inst: bool) -> None:
+        """
+        Save the current state of the taint tracker
+        :param include_current_inst: if True, include the current instruction in the checkpoint
+        """
         if not self._enable_tracking:
             return
 
-        if self._instruction is not None:
+        if include_current_inst and self._instruction is not None:
             self._finalize_instruction()
         self._checkpoints.append(copy.deepcopy(self._dependencies))
 

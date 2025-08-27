@@ -251,9 +251,9 @@ class X86UnicornDEH(FaultSpeculator):
         self._prev_tracing_state = self._model.tracer.enable_tracing
         self._model.tracer.enable_tracing = False
 
-    def _checkpoint(self, next_instruction_addr: int) -> None:
+    def _checkpoint(self, next_instruction_addr: int, include_current_inst: bool = True) -> None:
         self._dependency_checkpoints.append(copy(self._dependencies))
-        return super()._checkpoint(next_instruction_addr)
+        return super()._checkpoint(next_instruction_addr, include_current_inst=include_current_inst)
 
     def rollback(self) -> int:
         self._dependencies = self._dependency_checkpoints.pop()

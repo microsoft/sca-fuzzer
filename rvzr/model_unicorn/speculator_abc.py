@@ -171,15 +171,20 @@ class UnicornSpeculator(ABC):
 
     # ----------------------------------------------------------------------------------------------
     # Private Methods
-    def _checkpoint(self, next_instruction_addr: int) -> None:
-        """ Store a checkpoint for the current state of the model and its service modules. """
+    def _checkpoint(self, next_instruction_addr: int, include_current_inst: bool = True) -> None:
+        """
+        Store a checkpoint for the current state of the model and its service modules.
+        :param next_instruction_addr: address of the next instruction to execute
+        :param include_current_inst: if True, include the effects of the current instruction in the
+                                     checkpoint (used for taint tracking)
+        """
         flags: int = self._emulator.reg_read(self._uc_target_desc.flags_register)  # type: ignore
         context = self._emulator.context_save()
         spec_window = self._speculation_window
         self._checkpoints.append((context, next_instruction_addr, flags, spec_window))
         self._store_logs.append([])
         self._in_speculation = True
-        self._taint_tracker.checkpoint()
+        self._taint_tracker.checkpoint(include_current_inst=include_current_inst)
 
     def _max_nesting_reached(self) -> bool:
         """ Check if the maximum nesting level has been reached. """

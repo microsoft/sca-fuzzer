@@ -246,8 +246,9 @@ class StoreBpasSpeculator(UnicornSpeculator):
             new_value = (self._previous_store[3]). \
                 to_bytes(self._previous_store[1], byteorder='little', signed=new_is_signed)
 
-            # store a checkpoint
-            self._checkpoint(address)
+            # store a checkpoint (do not include the effects of the current instruction as the
+            # speculation was actually triggered by the previous instruction)
+            self._checkpoint(address, include_current_inst=False)
 
             # cancel the previous store but preserve its value
             self._emulator.mem_write(store_addr, old_value)
