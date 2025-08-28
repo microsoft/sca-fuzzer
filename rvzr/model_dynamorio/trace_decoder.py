@@ -6,7 +6,7 @@ SPDX-License-Identifier: MIT
 """
 
 from enum import Enum
-from typing import Any, Final, List, Literal
+from typing import Any, Final, List, Literal, Union
 from io import BufferedReader
 import sys
 import os
@@ -171,7 +171,7 @@ class TraceDecoder:
     # ----------------------------------------------------------------------------------------------
     # Public API
     # ----------------------------------------------------------------------------------------------
-    def read_trace_marker(self, f: BufferedReader) -> _MarkerType | Literal[""]:
+    def read_trace_marker(self, f: BufferedReader) -> Union[_MarkerType, Literal[""]]:
         """
         Get the type of the trace file.
         """
