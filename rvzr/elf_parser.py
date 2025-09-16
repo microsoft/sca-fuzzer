@@ -294,12 +294,11 @@ class ELFParser:
                                                     symbol_table)
                         cursor += self._instruction_per_macro
 
-        # FIXME: is this deprecated? if so, remove the next three lines
         # Fixup: the last instruction in .data.main is the test case exit, and it must map to a NOP
         exit_nop = Instruction("nop", "BASE-NOP", is_instrumentation=True)
-        instruction_map[0][elf_data["exit_addr"]] = exit_nop
-        self._assign_instruction_metadata(exit_nop, instr_addr_map, cursor, sorted_sections[0],
-                                          instruction_map)
+        instr_addr_map["main"].append(elf_data["exit_addr"])
+        self._assign_instruction_metadata(exit_nop, instr_addr_map, len(instruction_map[0]),
+                                          sorted_sections[0], instruction_map)
 
         # Sort symbols in the symbol table by section id and offset within the section
         symbol_table.sort(key=lambda x: (x.sid, x.offset))
