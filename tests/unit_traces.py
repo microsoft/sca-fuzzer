@@ -59,12 +59,15 @@ class TestCTrace(unittest.TestCase):
         m_col, pc_col, val_col, reset_col = "m|", "p|", "v|", "r|"
 
         # 1. Normal case
-        expected = "[mem: m|0x0r|, pc: p|0x0r|, indcall: p|0x0r|, val: v|0x0r|, rsi: 0x0r|]"
-        self.assertEqual(trace.full_str(m_col, pc_col, val_col, reset_col), expected)
+        expected_x86 = "[mem: m|0x0r|, pc: p|0x0r|, indcall: p|0x0r|, val: v|0x0r|, rsi: 0x0r|]"
+        expected_arm = "[mem: m|0x0r|, pc: p|0x0r|, indcall: p|0x0r|, val: v|0x0r|, x4: 0x0r|]"
+        self.assertIn(
+            trace.full_str(m_col, pc_col, val_col, reset_col), [expected_x86, expected_arm])
 
         # 2. Default colors
-        expected = "[mem: 0x0, pc: 0x0, indcall: 0x0, val: 0x0, rsi: 0x0]"
-        self.assertEqual(trace.full_str(), expected)
+        expected_x86 = "[mem: 0x0, pc: 0x0, indcall: 0x0, val: 0x0, rsi: 0x0]"
+        expected_arm = "[mem: 0x0, pc: 0x0, indcall: 0x0, val: 0x0, x4: 0x0]"
+        self.assertIn(trace.full_str(), [expected_x86, expected_arm])
 
         # 3. Invalid color combination
         with self.assertRaises(AssertionError):
@@ -153,8 +156,9 @@ class TestHTrace(unittest.TestCase):
 
         # full_str: architectural trace
         trace = HTrace(np.array([(0x1, 0x2, 0x3, 0x4, 0x5, 0x6)], dtype=RawHTraceSample), "reg")
-        expected = "[rax: 0x1, rbx: 0x2, rcx: 0x3, rdx: 0x4, rsi: 0x5, rdi: 0x6]"
-        self.assertEqual(trace.full_str(), expected)
+        expected_x86 = "[rax: 0x1, rbx: 0x2, rcx: 0x3, rdx: 0x4, rsi: 0x5, rdi: 0x6]"
+        expected_arm = "[x0: 0x1, x1: 0x2, x2: 0x3, x3: 0x4, x4: 0x5, x5: 0x6]"
+        self.assertIn(trace.full_str(), [expected_x86, expected_arm])
 
     def test_pair_printers(self) -> None:
         # Test `full_pair_str` interface

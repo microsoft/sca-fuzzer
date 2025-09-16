@@ -36,6 +36,10 @@ class ARM64TargetDesc(TargetDesc):
         "w5": "R5", "x5": "R5",
         "w6": "R6", "x6": "R6",
         "w7": "R7", "x7": "R7",
+        "w8": "R8", "x8": "R8",
+        "w9": "R9", "x9": "R9",
+        "w10": "R10", "x10": "R10",
+        "w20": "R20", "x20": "R20",
         "w30": "R30", "x30": "R30",
         "CF": "CF", "ZF": "ZF", "SF": "SF", "OF": "OF",
         "pc": "RIP",
@@ -51,6 +55,7 @@ class ARM64TargetDesc(TargetDesc):
         "R5": {64: "x5", 32: "w5"},
         "R6": {64: "x6", 32: "w6"},
         "R7": {64: "x7", 32: "w7"},
+        "R20": {64: "x20", 32: "w20"},
         "R30": {64: "x30", 32: "w30"},
         "RIP": {64: "pc"},
         "RSP": {64: "sp", 32: "wsp"},
@@ -172,6 +177,7 @@ class ARM64UnicornTargetDesc(UnicornTargetDesc):  # pylint: disable=too-few-publ
         "R5": ucc.UC_ARM64_REG_X5,
         "R6": ucc.UC_ARM64_REG_X6,
         "R7": ucc.UC_ARM64_REG_X7,
+        "R20": ucc.UC_ARM64_REG_X20,
         "R30": ucc.UC_ARM64_REG_X30,
         "FLAGS": ucc.UC_ARM64_REG_NZCV,
         "SF": ucc.UC_ARM64_REG_NZCV,  # N
@@ -186,4 +192,4 @@ class ARM64UnicornTargetDesc(UnicornTargetDesc):  # pylint: disable=too-few-publ
     flags_register: int = ucc.UC_ARM64_REG_NZCV
     pc_register: int = ucc.UC_ARM64_REG_PC
     sp_register: int = ucc.UC_ARM64_REG_SP
-    actor_base_register: int = ucc.UC_ARM64_REG_X30
+    actor_base_register: int = ucc.UC_ARM64_REG_X20

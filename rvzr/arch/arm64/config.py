@@ -40,7 +40,16 @@ _option_values = {
         'reserved_bit',
         'randomized',
     ],
-    'unicorn_instruction_categories': ["general",],
+    'unicorn_instruction_categories': [
+        "general-arithmetic",
+        "general-barrier",
+        "general-bitwise",
+        "general-branch",
+        "general-comparison",
+        "general-condsel",
+        "general-dataxfer",
+        "general-misc",
+    ],
     "dr_instruction_categories": [
         # DynamoRIO backend is not yet supported on ARM
     ],
@@ -49,7 +58,7 @@ _option_values = {
 # in contrast to x86, on ARM64, we handle all fault types by default
 _handled_faults: List[str] = ["PF", "DE", "DB", "BP", "BR", "UD", "PF", "GP"]
 
-instruction_categories: List[str] = ["general"]
+instruction_categories: List[str] = ["general-arithmetic"]
 """ instruction_categories: a default list of tested instruction categories """
 
 _buggy_instructions: List[str] = []
