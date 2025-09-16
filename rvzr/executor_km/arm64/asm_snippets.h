@@ -48,6 +48,14 @@
 #define SPEC_FENCE()      "dsb SY \n isb \n"
 #define CACHE_FLUSH(ADDR) "dc civac, " ADDR "\n"
 
+// clang-format off
+#define mov_imm_to_reg(DEST, SRC)                                                                      \
+    "movz " DEST ", #(" xstr(SRC) ") & 0xFFFF, lsl #0 \n"                                          \
+    "movk " DEST ", #(" xstr(SRC) " >> 16) & 0xFFFF, lsl #16 \n"                                   \
+    "movk " DEST ", #(" xstr(SRC) " >> 32) & 0xFFFF, lsl #32 \n"                                   \
+    "movk " DEST ", #(" xstr(SRC) " >> 48) & 0xFFFF, lsl #48 \n"
+// clang-format on
+
 /// ================================================================================================
 /// MSR and Performance Counter accessors
 /// ================================================================================================

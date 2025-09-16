@@ -39,7 +39,7 @@ static inline void prologue(void)
 
         // x29 = sandbox->util (x30 - UTIL_REL_TO_MAIN)
         "mov "UTIL_BASE_REGISTER", "MEMORY_BASE_REGISTER"\n"
-        "mov x0, "xstr(UTIL_REL_TO_MAIN)"\n"
+        mov_imm_to_reg("x0", UTIL_REL_TO_MAIN)
         "sub "UTIL_BASE_REGISTER", "UTIL_BASE_REGISTER", x0\n"
 
         // sandbox->util->stored_rsp = sp
@@ -68,7 +68,7 @@ static inline void prologue(void)
 
         // initialize special registers
         "mov "HTRACE_REGISTER", 0\n"
-        "mov "STATUS_REGISTER", "xstr(STATUS_UNINITIALIZED)"\n"
+        mov_imm_to_reg(STATUS_REGISTER, STATUS_UNINITIALIZED)
 
         // create space on stack
         // "mov rbp, rsp\n"
@@ -88,7 +88,7 @@ static inline void epilogue(void)
 
         // x0 = &latest_measurement
         "mov x0, "UTIL_BASE_REGISTER"\n"
-        "mov x1, #"xstr(MEASUREMENT_OFFSET)"\n"
+        mov_imm_to_reg("x1", MEASUREMENT_OFFSET)
         "add x0, x0, x1\n"
 
         // Store the results
@@ -101,7 +101,7 @@ static inline void epilogue(void)
         "str "STATUS_REGISTER", [x0, #48]\n" // Measurement status
 
         // rsp = sandbox->util->stored_rsp
-        "mov x1, #"xstr(STORED_RSP_OFFSET)"\n"
+        mov_imm_to_reg("x1", STORED_RSP_OFFSET)
         "add x1, "UTIL_BASE_REGISTER", x1\n"
         "ldr x0, [x1]\n"
         "mov sp, x0\n"
@@ -129,7 +129,7 @@ static inline void epilogue_dbg_gpr(void)
 
         // x7 = &latest_measurement
         "mov x7, "UTIL_BASE_REGISTER"\n"
-        "mov x8, #"xstr(MEASUREMENT_OFFSET)"\n"
+        mov_imm_to_reg("x8", MEASUREMENT_OFFSET)
         "add x7, x7, x8\n"
 
         // Store the results
@@ -142,7 +142,7 @@ static inline void epilogue_dbg_gpr(void)
         "str "STATUS_REGISTER", [x7, #48]\n"
 
         // rsp = sandbox->util->stored_rsp
-        "mov x0, #"xstr(STORED_RSP_OFFSET)"\n"
+        mov_imm_to_reg("x0", STORED_RSP_OFFSET)
         "add x0, "UTIL_BASE_REGISTER", x0\n"
         "ldr x0, [x0]\n"
         "mov sp, x0\n"
