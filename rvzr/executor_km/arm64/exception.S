@@ -111,31 +111,33 @@ outer_vector_table:
 .global inner_vector_table
 .balign 2048
 inner_vector_table:
-    // Interrupts/exceptions from EL1 to EL1; using SP_EL1 as sp
+    // Interrupts/exceptions from EL1 to EL1; using SP_EL1 as sp (EL1t)
+    .balign 0x80   // Synchronous
         b test_case_handler
-    .balign 0x80
+    .balign 0x80  // IRQ
         b test_case_handler
-    .balign 0x80
+    .balign 0x80  // FIQ
         b test_case_handler
-    .balign 0x80
+    .balign 0x80  // SError
         b test_case_handler
-    // Interrupts/exceptions from EL1 to EL1; using SP_ELX as sp
-    .balign 0x80
+    // Interrupts/exceptions from EL1 to EL1; using SP_ELX as sp (EL1h)
+    .balign 0x80  // Synchronous
+        // Handle all other exceptions
         b test_case_handler
-    .balign 0x80
+    .balign 0x80  // IRQ
         b test_case_handler
-    .balign 0x80
+    .balign 0x80  // FIQ
         b test_case_handler
-    .balign 0x80
+    .balign 0x80  // SError
         b test_case_handler
     // Interrupts/exceptions from EL0 to EL1; in AArch64 mode
-    .balign 0x80
+    .balign 0x80   // Synchronous
         b test_case_handler
-    .balign 0x80
+    .balign 0x80  // IRQ
         b test_case_handler
-    .balign 0x80
+    .balign 0x80  // FIQ
         b test_case_handler
-    .balign 0x80
+    .balign 0x80  // SError
         b test_case_handler
     // Interrupts/exceptions from EL0 to EL1; in AArch32 mode
     .balign 0x80
@@ -162,6 +164,7 @@ fallback_handler:
     mov x4, sp
     adr x5, .Lunexpected_fault_msg
 
+    // set the return address to the recovery code
     adr x0, .run_experiment_recovery
     msr elr_el1, x0
     eret

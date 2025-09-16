@@ -133,10 +133,10 @@ static inline int configure_events(void)
     write_msr("PMXEVTYPER_EL0", (PMCCFILTR_NSH | EVENT_L1D_CACHE_REFILL));
 
     write_msr("PMSELR_EL0", 1);
-    write_msr("PMXEVTYPER_EL0", (PMCCFILTR_NSH | EVENT_INST_RETIRED));
+    write_msr("PMXEVTYPER_EL0", EVENT_INST_SPEC);
 
     write_msr("PMSELR_EL0", 2);
-    write_msr("PMXEVTYPER_EL0", (PMCCFILTR_NSH | EVENT_INST_SPEC));
+    write_msr("PMXEVTYPER_EL0", EVENT_INST_RETIRED);
 
     return 0;
 }

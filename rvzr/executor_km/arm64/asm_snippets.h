@@ -69,9 +69,7 @@
         READ_PFC_ONE("1", "x16") \
         "sub " PFC0 ", " PFC0 ", x16 \n" \
         READ_PFC_ONE("2", "x16") \
-        "sub " PFC1 ", " PFC1 ", x16 \n" \
-        READ_PFC_ONE("3", "x16") \
-        "sub " PFC2 ", " PFC2 ", x16 \n"
+        "sub " PFC1 ", " PFC1 ", x16 \n"
 
 // clobber: rax, rcx, rdx
 #define READ_PFC_END() \
@@ -79,9 +77,7 @@
         READ_PFC_ONE("1", "x16") \
         "add " PFC0 ", " PFC0 ", x16 \n" \
         READ_PFC_ONE("2", "x16") \
-        "add " PFC1 ", " PFC1 ", x16 \n" \
-        READ_PFC_ONE("3", "x16") \
-        "add " PFC2 ", " PFC2 ", x16 \n"
+        "add " PFC1 ", " PFC1 ", x16 \n"
 // clang-format on
 
 /// ================================================================================================
@@ -215,11 +211,11 @@
         PRIME_ONE_SET(BASE, OFFSET, TMP, DEPENDENCY_REGISTER) \
         SPEC_FENCE() \
         READ_PFC_ONE("0", TMP) \
-        "mov "TRACE", "TRACE", ror #1 \n" \
         "cmp "TMP", "EVICT_COUNT" \n" \
         "b.eq 2f \n" \
         "  orr "TRACE", "TRACE", #1 \n" \
         "2: \n" \
+        "mov "TRACE", "TRACE", ror #1 \n" \
         "sub "OFFSET", "OFFSET", #64 \n" \
         "cmp "OFFSET", xzr \n" \
         "b.ge 1b \n" \
