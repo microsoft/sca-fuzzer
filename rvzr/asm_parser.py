@@ -303,7 +303,7 @@ class _AsmPatcher:
         self._add_default_measurements(patched_asm_file)
 
     def _is_instruction(self, line: str) -> bool:
-        return line != '' and line[0] != '#' \
+        return line != '' and line[0] not in ["#", "/"] \
             and (line[0] != '.' or line[:4] == ".bcd"
                  or line[:5] in [".byte", ".long", ".quad"] or line[:6] == '.macro'
                  or line[6:] in [".value", ".2byte", ".4byte", ".8byte"])
