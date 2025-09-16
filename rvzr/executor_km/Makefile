@@ -1,6 +1,9 @@
 NAME = rvzr_executor
 KDIR=/lib/modules/$(shell uname -r)/build
 
+# ==================================================================================================
+# HW configuration
+# ==================================================================================================
 # Determine CPU vendor
 ifneq ($(shell grep "Intel" /proc/cpuinfo),)
 VENDOR_ID = 1
@@ -12,6 +15,31 @@ else
 $(error "Unknown CPU vendor")
 endif
 
+# Physical address width
+PHYSICAL_WIDTH = $(shell grep -m1 "bits physical," /proc/cpuinfo | awk '{print $$4}')
+
+# Cache configuration
+ifeq ($(shell ls /sys/devices/system/cpu/cpu0/cache/index0/ways_of_associativity 2>/dev/null),)
+$(error "Cache info not found")
+endif
+L1D_ASSOCIATIVITY=$(shell cat /sys/devices/system/cpu/cpu0/cache/index0/ways_of_associativity)
+L1D_SIZE_KB=$(shell cat /sys/devices/system/cpu/cpu0/cache/index0/size | sed 's/[^0-9]*//g')
+
+# Check if VMBUILD is required
+ifndef VMBUILD
+sys_vendor = $(shell cat /sys/devices/virtual/dmi/id/sys_vendor)
+is_vm_vendor = 'no'
+ifeq ($(sys_vendor), QEMU)
+is_vm_vendor = 'yes'
+endif
+ifeq ($(sys_vendor), Microsoft Corporation)
+is_vm_vendor = 'yes'
+endif
+endif
+
+# ==================================================================================================
+# Files
+# ==================================================================================================
 # Object files
 SRC_ = input_parser.c test_case_parser.c code_loader.c data_loader.c sandbox_manager.c \
 	measurement.c main.c macro_expansion.c page_tables_host.c
@@ -36,18 +64,18 @@ endif
 obj-m += $(NAME).o
 $(NAME)-objs += $(SRC_:.c=.o) $(ASM_:.S=.o)
 
+# ==================================================================================================
+# Flags
+# ==================================================================================================
 # Common build flags
 EXTRA_CFLAGS += -I$(src)/include
 EXTRA_CFLAGS += -std=gnu11 -Wno-declaration-after-statement -Wno-comment
 EXTRA_CFLAGS += -g -DDEBUG
 EXTRA_CFLAGS += -DVENDOR_ID=$(VENDOR_ID)
 EXTRA_CFLAGS += -DFORCE_SMAP_OFF
-EXTRA_CFLAGS += -DPHYSICAL_WIDTH=$(shell grep -m1 "bits physical," /proc/cpuinfo | awk '{print $$4}')
-ifeq ($(shell ls /sys/devices/system/cpu/cpu0/cache/index0/ways_of_associativity 2>/dev/null),)
-$(error "Cache info not found")
-endif
-EXTRA_CFLAGS += -DL1D_ASSOCIATIVITY=$(shell cat /sys/devices/system/cpu/cpu0/cache/index0/ways_of_associativity)
-EXTRA_CFLAGS += -DL1D_SIZE_KB=$(shell cat /sys/devices/system/cpu/cpu0/cache/index0/size | sed 's/[^0-9]*//g')
+EXTRA_CFLAGS += -DPHYSICAL_WIDTH=$(PHYSICAL_WIDTH)
+EXTRA_CFLAGS += -DL1D_ASSOCIATIVITY=$(L1D_ASSOCIATIVITY)
+EXTRA_CFLAGS += -DL1D_SIZE_KB=$(L1D_SIZE_KB)
 
 ifeq ($(VENDOR_ID), 1)
 EXTRA_CFLAGS += -msse2
@@ -59,6 +87,13 @@ ifdef VMBUILD
 EXTRA_CFLAGS += -DVMBUILD
 endif
 
+EXTRA_AFLAGS += -I$(src)/include
+EXTRA_AFLAGS += -DVENDOR_ID=$(VENDOR_ID) -DPHYSICAL_WIDTH=$(PHYSICAL_WIDTH)
+EXTRA_AFLAGS += -DL1D_ASSOCIATIVITY=$(L1D_ASSOCIATIVITY) -DL1D_SIZE_KB=$(L1D_SIZE_KB)
+
+# ==================================================================================================
+# Workarounds
+# ==================================================================================================
 # Suppress objtool warnings - a lot of code in the module violates the checks intentionally,
 # so it's impossible to fix
 GREP_FILTER = "return found in RETHUNK|indirect call found in RETPOLINE|call without frame pointer|undefined stack stae|return with modified stack frame|unsupported instruction in callable|undefined stack state|ENDBR: "
@@ -67,19 +102,9 @@ OBJECT_FILES_NON_STANDARD := y
 # File-specific flags
 CFLAGS_code_loader.o := -Wno-attribute-warning # workaround for __write_overflow_field warning
 
-# Check if VMBUILD is required
-ifndef VMBUILD
-sys_vendor = $(shell cat /sys/devices/virtual/dmi/id/sys_vendor)
-is_vm_vendor = 'no'
-ifeq ($(sys_vendor), QEMU)
-is_vm_vendor = 'yes'
-endif
-ifeq ($(sys_vendor), Microsoft Corporation)
-is_vm_vendor = 'yes'
-endif
-endif
-
+# ==================================================================================================
 # build targets
+# ==================================================================================================
 all:
 ifndef VMBUILD
 ifeq ($(is_vm_vendor), 'yes')
