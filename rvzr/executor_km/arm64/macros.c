@@ -76,9 +76,71 @@ static inline uint32_t b_imm(uint32_t offset)
     return 0x14000000 | offset;
 }
 
+/// @brief mov rd, rn
+static inline uint32_t mov_reg(uint8_t rd, uint8_t rn)
+{
+    uint32_t opcode = 0xaa0003e0;
+    opcode |= rd;               // set destination register
+    opcode |= (rn & 0x1f) << 5; // set source register
+    return opcode;
+}
+
+/// @brief add rd, rn, rm
+static inline uint32_t add_reg(uint8_t rd, uint8_t rn, uint8_t rm)
+{
+    uint32_t opcode = 0x8b000000;
+    opcode |= rd;                // set destination register
+    opcode |= (rn & 0x1f) << 5;  // set first source register
+    opcode |= (rm & 0x1f) << 16; // set second source register
+    return opcode;
+}
+
+/// @brief str rt, [rn]
+static inline uint32_t str_reg(uint8_t rt, uint8_t rn)
+{
+    uint32_t opcode = 0xf9000000;
+    opcode |= rt;               // set source register
+    opcode |= (rn & 0x1f) << 5; // set base register
+    return opcode;
+}
+
+/// @brief ldr rt, [rn]
+static inline uint32_t ldr_reg(uint8_t rt, uint8_t rn)
+{
+    uint32_t opcode = 0xf9400000;
+    opcode |= rt;               // set destination register
+    opcode |= (rn & 0x1f) << 5; // set base register
+    return opcode;
+}
+
 // =================================================================================================
 // Helper functions
 // =================================================================================================
+/// @brief Insert a sequence of instructions into dest that moves a 64-bit immediate value
+///        into a register
+/// @param rd Destination register (0-31)
+/// @param value 64-bit immediate value
+/// @param dest Pointer to the destination of the code sequence
+/// @param cursor Current position in the destination buffer
+/// @return Number of bytes written to the destination buffer
+static inline uint64_t mov_uint64_to_reg(uint8_t rd, uint64_t value, uint8_t *dest, uint64_t cursor)
+{
+    int old_cursor = cursor;
+    uint32_t opcode = movz(rd, value & 0xffff, 0);
+    APPEND_U32_TO_DEST(opcode);
+
+    opcode = movk(rd, value >> 16 & 0xffff, 1);
+    APPEND_U32_TO_DEST(opcode);
+
+    opcode = movk(rd, value >> 32 & 0xffff, 2);
+    APPEND_U32_TO_DEST(opcode);
+
+    opcode = movk(rd, value >> 48 & 0xffff, 3);
+    APPEND_U32_TO_DEST(opcode);
+
+    return cursor - old_cursor;
+}
+
 /// @brief Get the address of a function within a section
 /// @param section_id ID of the section
 /// @param function_id ID of the function
@@ -110,18 +172,7 @@ static uint64_t update_memory_base_reg(int section_id, uint8_t *dest, uint64_t c
     uint64_t new_val = 0;
     new_val = (uint64_t)sandbox->data[section_id].main_area;
     uint8_t rd = MEMORY_BASE_REGISTER_ID;
-
-    uint32_t opcode = movz(rd, new_val & 0xffff, 0);
-    APPEND_U32_TO_DEST(opcode);
-
-    opcode = movk(rd, new_val >> 16 & 0xffff, 1);
-    APPEND_U32_TO_DEST(opcode);
-
-    opcode = movk(rd, new_val >> 32 & 0xffff, 2);
-    APPEND_U32_TO_DEST(opcode);
-
-    opcode = movk(rd, new_val >> 48 & 0xffff, 3);
-    APPEND_U32_TO_DEST(opcode);
+    cursor += mov_uint64_to_reg(rd, new_val, dest, cursor);
 
     return cursor - old_cursor;
 }
@@ -140,21 +191,10 @@ static uint64_t update_mem_base_and_sp(int section_id, uint8_t *dest, uint64_t c
     // calculate the new sp value
     uint64_t new_sp = 0;
     new_sp = (uint64_t)sandbox->data[section_id].main_area + LOCAL_RSP_OFFSET;
-
-    uint32_t opcode = movz(TMP_REG1_ID, new_sp & 0xffff, 0);
-    APPEND_U32_TO_DEST(opcode);
-
-    opcode = movk(TMP_REG1_ID, new_sp >> 16 & 0xffff, 1);
-    APPEND_U32_TO_DEST(opcode);
-
-    opcode = movk(TMP_REG1_ID, new_sp >> 32 & 0xffff, 2);
-    APPEND_U32_TO_DEST(opcode);
-
-    opcode = movk(TMP_REG1_ID, new_sp >> 48 & 0xffff, 3);
-    APPEND_U32_TO_DEST(opcode);
+    cursor += mov_uint64_to_reg(TMP_REG1_ID, new_sp, dest, cursor);
 
     // ASM: mov sp, SCRATCH_REG
-    opcode = mov_to_sp(TMP_REG1_ID);
+    uint32_t opcode = mov_to_sp(TMP_REG1_ID);
     APPEND_U32_TO_DEST(opcode);
 
     return cursor - old_cursor;
@@ -174,18 +214,7 @@ static uint64_t update_util_base_reg(int section_id, uint8_t *dest, uint64_t cur
     uint64_t new_val = 0;
     new_val = (uint64_t)sandbox->util;
     uint8_t rd = UTIL_BASE_REGISTER_ID;
-
-    uint32_t opcode = movz(rd, new_val & 0xffff, 0);
-    APPEND_U32_TO_DEST(opcode);
-
-    opcode = movk(rd, new_val >> 16 & 0xffff, 1);
-    APPEND_U32_TO_DEST(opcode);
-
-    opcode = movk(rd, new_val >> 32 & 0xffff, 2);
-    APPEND_U32_TO_DEST(opcode);
-
-    opcode = movk(rd, new_val >> 48 & 0xffff, 3);
-    APPEND_U32_TO_DEST(opcode);
+    cursor += mov_uint64_to_reg(rd, new_val, dest, cursor);
 
     return cursor - old_cursor;
 }
@@ -206,15 +235,15 @@ static uint64_t update_util_base_reg(int section_id, uint8_t *dest, uint64_t cur
 static void __attribute__((noipa)) body_macro_prime(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
-    asm volatile(""                                                                //
-                 "mrs " TMP_REG6 ", nzcv \n"                                       //
-                 "mov " TMP_REG1 ", " UTIL_BASE_REGISTER "\n"                      //
-                 "add " TMP_REG1 ", " TMP_REG1 ", #" xstr(L1D_PRIMING_OFFSET) "\n" //
-                 PRIME(TMP_REG1, TMP_REG2, TMP_REG3, TMP_REG4, TMP_REG5, "8")      //
-                 READ_PFC_START()                                                  //
-                 SET_SR_STARTED()                                                  //
-                 "msr nzcv, " TMP_REG6 "\n"                                        //
-                 SPEC_FENCE()                                                      //
+    asm volatile(""                                                               //
+                 "mrs " TMP_REG6 ", nzcv \n"                                      //
+                 "mov " TMP_REG1 ", " UTIL_BASE_REGISTER "\n"                     //
+                 "add " TMP_REG1 ", " TMP_REG1 ", " xstr(L1D_PRIMING_OFFSET) "\n" //
+                 PRIME(TMP_REG1, TMP_REG2, TMP_REG3, TMP_REG4, TMP_REG5, "8")     //
+                 READ_PFC_START()                                                 //
+                 SET_SR_STARTED()                                                 //
+                 "msr nzcv, " TMP_REG6 "\n"                                       //
+                 SPEC_FENCE()                                                     //
     );
     asm volatile(".quad " xstr(MACRO_END));
 }
@@ -222,15 +251,15 @@ static void __attribute__((noipa)) body_macro_prime(void)
 static void __attribute__((noipa)) body_macro_fast_prime(void)
 {
     asm volatile(".quad " xstr(MACRO_START));
-    asm volatile(""                                                                //
-                 "mrs " TMP_REG6 ", nzcv \n"                                       //
-                 "mov " TMP_REG1 ", " UTIL_BASE_REGISTER "\n"                      //
-                 "add " TMP_REG1 ", " TMP_REG1 ", #" xstr(L1D_PRIMING_OFFSET) "\n" //
-                 PRIME(TMP_REG1, TMP_REG2, TMP_REG3, TMP_REG4, TMP_REG5, "1")      //
-                 READ_PFC_START()                                                  //
-                 SET_SR_STARTED()                                                  //
-                 "msr nzcv, " TMP_REG6 "\n"                                        //
-                 SPEC_FENCE()                                                      //
+    asm volatile(""                                                               //
+                 "mrs " TMP_REG6 ", nzcv \n"                                      //
+                 "mov " TMP_REG1 ", " UTIL_BASE_REGISTER "\n"                     //
+                 "add " TMP_REG1 ", " TMP_REG1 ", " xstr(L1D_PRIMING_OFFSET) "\n" //
+                 PRIME(TMP_REG1, TMP_REG2, TMP_REG3, TMP_REG4, TMP_REG5, "1")     //
+                 READ_PFC_START()                                                 //
+                 SET_SR_STARTED()                                                 //
+                 "msr nzcv, " TMP_REG6 "\n"                                       //
+                 SPEC_FENCE()                                                     //
     );
     asm volatile(".quad " xstr(MACRO_END));
 }
@@ -252,7 +281,7 @@ static void __attribute__((noipa)) body_macro_probe(void)
                  "b.eq 99f\n"                                                             //
                  READ_PFC_END()                                                           //
                  "mov " TMP_REG1 ", " UTIL_BASE_REGISTER "\n"                             //
-                 "add " TMP_REG1 ", " TMP_REG1 ", #" xstr(L1D_PRIMING_OFFSET) "\n"        //
+                 "add " TMP_REG1 ", " TMP_REG1 ", " xstr(L1D_PRIMING_OFFSET) "\n"         //
                  PROBE(TMP_REG1, TMP_REG2, TMP_REG3, TMP_REG4, TMP_REG5, HTRACE_REGISTER) //
                  SET_SR_ENDED()                                                           //
                  "99:\n"                                                                  //
