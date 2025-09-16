@@ -12,8 +12,8 @@
 #include "shortcuts.h"
 #include "test_case_parser.h"
 
-#include "host_page_tables.h"
-#include "memory_guest.h"
+#include "page_tables_guest.h"
+#include "page_tables_host.h"
 
 sandbox_t *sandbox = NULL; // global
 
@@ -75,7 +75,7 @@ void reset_code_area(void)
 #if defined(ARCH_X86_64)
     memset(code, 0x90, sizeof(actor_code_t) * n_actors);
 #elif defined(ARCH_ARM)
-    for (int i = 0; i < n_actors * sizeof(actor_code_t) / 4 ; i += 1)
+    for (int i = 0; i < n_actors * sizeof(actor_code_t) / 4; i += 1)
         ((uint32_t *)code)[i] = 0xd503201f;
 #endif
 
@@ -199,22 +199,27 @@ int init_sandbox_manager(void)
     sandbox->util = (util_t *)util_n_data;
     loaded_test_case_entry = code;
 
-    // self-test: make sure the sandbox is aligned as we expect
+    // ensure that the main_area of the first actor is aligned as expected
     int offset = (unsigned long)sandbox->data[0].main_area % 0x2000;
     ASSERT(offset == 0, "init_sandbox_manager");
 
-    actor_data_t *data = &sandbox->data[0];
+    // self-test: To enable offset-based accesses in assembly code, we have to hardcode
+    //            the layout of the data structures in sandbox_constants.h;
+    //            This naturally creates a risk of mismatches, so we perform sanity checks here
+    //            to ensure that the layout is as expected.
     util_t *util = sandbox->util;
     ASSERT(&util->l1d_priming_area[0] - (uint8_t *)util == L1D_PRIMING_OFFSET, "init_sandbox");
-    ASSERT((uint8_t *)&util->stored_rsp - (uint8_t *)util == STORED_RSP_OFFSET, "init_sandbox");
-    ASSERT((uint8_t *)&util->latest_measurement - (uint8_t *)util == MEASUREMENT_OFFSET,
+    ASSERT((uint8_t *)&util->vars.stored_rsp - (uint8_t *)util == STORED_RSP_OFFSET,
            "init_sandbox");
-
+    ASSERT((uint8_t *)&util->vars.latest_measurement - (uint8_t *)util == MEASUREMENT_OFFSET,
+           "init_sandbox");
+    actor_data_t *data = &sandbox->data[0];
     ASSERT(&data->main_area[0] - (uint8_t *)util == UTIL_REL_TO_MAIN, "init_sandbox");
     ASSERT(&data->main_area[0] - &data->macro_stack[64] == MACRO_STACK_TOP_OFFSET, "init_sandbox");
     ASSERT(&data->faulty_area[0] - &data->main_area[0] == FAULTY_AREA_OFFSET, "init_sandbox");
     ASSERT(&data->reg_init_area[0] - &data->main_area[0] == REG_INIT_OFFSET, "init_sandbox");
     ASSERT(&data->overflow_pad[0] - &data->main_area[0] == OVERFLOW_PAD_OFFSET, "init_sandbox");
+    ASSERT(sizeof(measurement_t) == MEASUREMENT_SIZE, "init_sandbox");
 
     return 0;
 }

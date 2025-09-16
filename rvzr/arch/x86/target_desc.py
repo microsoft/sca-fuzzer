@@ -170,6 +170,18 @@ class X86TargetDesc(TargetDesc):
 
     mem_index_registers = ["rax", "rbx", "rcx", "rdx", "rsi", "rdi"]
 
+    page_property_to_pte_bit_name = {
+        "present": ("present", False),
+        "writable": ("writable", False),
+        "user": ("user", False),
+        'write-through': ("write-through", False),
+        "cache-disable": ("cache-disable", False),
+        "accessed": ("accessed", False),
+        "dirty": ("dirty", False),
+        "executable": ("non_executable", True),
+        "reserved_bit": ("reserved_bit", False),
+    }
+
     pte_bits = {
         # NAME: (position, default value)
         "present": (0, True),

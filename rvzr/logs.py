@@ -11,8 +11,6 @@ from typing import TYPE_CHECKING, NoReturn, Dict, List, Optional, Set, Any, Fina
 from pprint import pformat
 from traceback import print_stack
 
-from unicorn import UC_MEM_READ
-
 from .config import CONF
 from .stats import FuzzingStats
 
@@ -82,9 +80,9 @@ class _LoggingConfig:  # pylint: disable=too-few-public-methods  # because this 
     dbg_model_print_id: bool = True
 
     _all_modes: List[str] = [
-        "info", "stat", "dbg_timestamp", "dbg_violation", "dbg_dump_htraces",
-        "dbg_dump_ctraces", "dbg_dump_traces_unlimited", "dbg_executor_raw", "dbg_model",
-        "dbg_coverage", "dbg_generator", "dbg_priming"
+        "info", "stat", "dbg_timestamp", "dbg_violation", "dbg_dump_htraces", "dbg_dump_ctraces",
+        "dbg_dump_traces_unlimited", "dbg_executor_raw", "dbg_model", "dbg_coverage",
+        "dbg_generator", "dbg_priming"
     ]
 
     def __init__(self) -> None:
@@ -446,8 +444,8 @@ class ModelLogger:
 
         print(f"\n                     ##### Input {input_id} #####")
 
-    def dbg_mem_access(self, type_: int, value: int, address: int, size: int, model: UnicornModel,
-                       layout: SandboxLayout) -> None:
+    def dbg_mem_access(self, is_store: bool, value: int, address: int, size: int,
+                       model: UnicornModel, layout: SandboxLayout) -> None:
         """
         Print debug information about memory access, if debugging is enabled.
         The information includes:
@@ -470,7 +468,6 @@ class ModelLogger:
 
         # Address details
         normalized_address = layout.data_addr_to_offset(address)
-        is_store = type_ != UC_MEM_READ
 
         # Value details
         val = value if is_store else int.from_bytes(

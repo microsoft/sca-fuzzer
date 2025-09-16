@@ -193,7 +193,13 @@ static inline uint64_t vmalloc_to_phys(void *hva)
 
 static inline void native_page_invalidate(uint64_t va)
 {
+#if defined(ARCH_X86_64)
     asm volatile("invlpg (%0)" ::"r"(va) : "memory");
+#elif defined(ARCH_ARM)
+    va >>= 12;
+    va &= 0xfffffffffffULL;
+    asm volatile("dsb ishst\n tlbi vale1is, %0\n dsb ish\n" ::"r"(va) : "memory");
+#endif
 }
 
 #endif // _SHORTCUTS_H_

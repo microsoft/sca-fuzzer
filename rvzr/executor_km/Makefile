@@ -14,12 +14,12 @@ endif
 
 # Object files
 SRC_ = input_parser.c test_case_parser.c code_loader.c data_loader.c sandbox_manager.c \
-	measurement.c main.c macro_expansion.c
-SRC_X86 = x86/vmx.c x86/svm.c x86/perf_counters.c x86/host_page_tables.c x86/memory_guest.c \
+	measurement.c main.c macro_expansion.c page_tables_host.c
+SRC_X86 = x86/vmx.c x86/svm.c x86/perf_counters.c x86/page_tables_guest.c \
 	x86/special_registers.c x86/fault_handler.c x86/macros.c
 ASM_X86 =
 SRC_ARM64 = arm64/fault_handler.c arm64/perf_counters.c arm64/special_registers.c \
-	arm64/host_page_tables.c arm64/memory_guest.c arm64/macros.c
+	arm64/page_tables_guest.c arm64/macros.c
 ASM_ARM64 = arm64/exception.S
 
 ifeq ($(VENDOR_ID), 1)

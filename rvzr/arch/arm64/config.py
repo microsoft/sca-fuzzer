@@ -23,8 +23,6 @@ _option_values = {
         'present',
         'writable',
         'user',
-        'write-through',
-        'cache-disable',
         'accessed',
         'dirty',
         'executable',
@@ -82,7 +80,17 @@ register_blocklist: List[str] = [
 ]  # yapf: disable
 
 
-_generator_fault_to_fault_name: Dict[str, str] = {}
+# FIXME: this is copied from x86, needs to be adapted for ARM64
+_generator_fault_to_fault_name: Dict[str, str] = {
+    'div-by-zero': "DE",
+    'div-overflow': "DE",
+    'opcode-undefined': "UD",
+    'bounds-range-exceeded': "BR",
+    'breakpoint': "BP",
+    'debug-register': "DB",
+    'non-canonical-access': "GP",
+    'user-to-kernel-access': "PF",
+}
 
 _actor_default = {
     'name': "main",
@@ -93,12 +101,8 @@ _actor_default = {
         'present': True,
         'writable': True,
         'user': False,
-        'write-through': False,
-        'cache-disable': False,
         'accessed': True,
-        'dirty': True,
         'executable': False,
-        'reserved_bit': False,
         'randomized': False,
     },
     'data_ept_properties': {
@@ -106,9 +110,7 @@ _actor_default = {
         'writable': True,
         'executable': False,
         'accessed': True,
-        'dirty': True,
         'user': False,
-        'reserved_bit': False,
         'randomized': False,
     },
     'instruction_blocklist': set(),

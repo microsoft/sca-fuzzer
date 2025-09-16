@@ -104,7 +104,7 @@ class _Dispatcher:
         self._taint_tracker.track_memory_access(address, size, access == UC_MEM_WRITE)
         self._speculator.handle_mem_access(access, address, size, value)
         self._tracer.observe_mem_access(access, address, size, value)
-        self._interpreter.interpret_mem_access(address)
+        self._interpreter.interpret_mem_access(access, address, size, value)
 
 
 def _instruction_hook(_: Uc, address: int, size: int, model: UnicornModel) -> None:
@@ -318,7 +318,8 @@ class UnicornModel(Model, ABC):
         """
         Callback function called when Unicorn accesses memory.
         """
-        self._log.dbg_mem_access(address, value, address, size, self, self.layout)
+        self._log.dbg_mem_access(access == UC_HOOK_MEM_WRITE, value, address, size, self,
+                                 self.layout)
         self._dispatcher.mem_access_dispatch(access, address, size, value)
 
     def do_soft_fault(self, errno: int) -> None:

@@ -18,7 +18,9 @@ from .arch.arm64 import config as arm64_config
 # ==================================================================================================
 # Custom Types
 # ==================================================================================================
-PageConf = Dict[str, bool]
+PagePropertyName = Literal['present', 'writable', 'user', 'write-through', 'cache-disable',
+                           'accessed', 'dirty', 'executable', 'reserved_bit', 'randomized']
+PageConf = Dict[PagePropertyName, bool]
 
 
 class ActorConf(TypedDict):

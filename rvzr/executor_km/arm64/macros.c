@@ -96,7 +96,7 @@ static uint64_t get_function_addr(int section_id, int function_id)
     return section_base + test_case->symbol_table[function_id].offset;
 }
 
-/// @brief Insert a sequence of instructions into dest that updates x30 (memory base register)
+/// @brief Insert a sequence of instructions into dest that updates memory base register
 ///        to point to the base address of the memory owned by actor with `section_id`
 /// @param section_id ID of the section
 /// @param dest Pointer to the destination of the code sequence
@@ -106,7 +106,7 @@ static uint64_t update_memory_base_reg(int section_id, uint8_t *dest, uint64_t c
 {
     int old_cursor = cursor;
 
-    // calculate the new x30 value
+    // calculate the new memory base register value
     uint64_t new_val = 0;
     new_val = (uint64_t)sandbox->data[section_id].main_area;
     uint8_t rd = MEMORY_BASE_REGISTER_ID;
@@ -126,8 +126,8 @@ static uint64_t update_memory_base_reg(int section_id, uint8_t *dest, uint64_t c
     return cursor - old_cursor;
 }
 
-/// @brief Insert a sequence of instructions into dest that updates x30 and sp to match
-///        the actor owning section_id
+/// @brief Insert a sequence of instructions into dest that updates memory base register
+///        and sp to match the actor owning section_id
 /// @param section_id ID of the section
 /// @param dest Pointer to the destination of the code sequence
 /// @param cursor Current position in the destination buffer
@@ -160,7 +160,7 @@ static uint64_t update_mem_base_and_sp(int section_id, uint8_t *dest, uint64_t c
     return cursor - old_cursor;
 }
 
-/// @brief Insert a sequence of instructions into dest that updates x29 (util base register)
+/// @brief Insert a sequence of instructions into dest that updates x21 (util base register)
 ///        to point to the base address of the util region
 /// @param section_id ID of the section
 /// @param dest Pointer to the destination of the code sequence
@@ -170,7 +170,7 @@ static uint64_t update_util_base_reg(int section_id, uint8_t *dest, uint64_t cur
 {
     int old_cursor = cursor;
 
-    // calculate the new x29 value
+    // calculate the new x21 value
     uint64_t new_val = 0;
     new_val = (uint64_t)sandbox->util;
     uint8_t rd = UTIL_BASE_REGISTER_ID;

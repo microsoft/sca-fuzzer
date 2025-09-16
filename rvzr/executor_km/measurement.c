@@ -18,8 +18,8 @@
 #include "test_case_parser.h"
 
 #include "fault_handler.h"
-#include "host_page_tables.h"
-#include "memory_guest.h"
+#include "page_tables_host.h"
+#include "page_tables_guest.h"
 #include "perf_counters.h"
 #include "special_registers.h"
 
@@ -68,14 +68,16 @@ static inline int uarch_flush(void)
 /// @return 0 if the entry page is valid, -1 otherwise
 static int check_test_case_entry(void)
 {
-#if defined(ARCH_X86_64)
     pte_t *tc_pte = get_pte((uint64_t)loaded_test_case_entry);
-    if (!tc_pte || !pte_present(*tc_pte) || !pte_exec(*tc_pte)) {
+    if (!tc_pte || !pte_present(*tc_pte)) {
         return -1;
     }
-#elif defined(ARCH_ARM)
-    // FIXME: Implement for ARM
+#if defined(ARCH_X86_64)
+    if (!pte_exec(*tc_pte)) {
+        return -1;
+    }
 #endif
+
     return 0;
 }
 
@@ -289,7 +291,7 @@ int run_experiment(void)
             goto cleanup;
 
         // Store the measurement
-        measurement_t result = sandbox->util->latest_measurement;
+        measurement_t result = sandbox->util->vars.latest_measurement;
         measurements[i_].htrace[0] = result.htrace[0];
         memcpy(measurements[i_].pfc_reading, result.pfc_reading, sizeof(uint64_t) * NUM_PFC);
 

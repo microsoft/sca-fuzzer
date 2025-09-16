@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, List, Tuple, NamedTuple, Literal, TYPE_CHECKING
 import subprocess
 
-from rvzr.config import CONF
+from rvzr.config import CONF, PagePropertyName
 
 if TYPE_CHECKING:
     from .tc_components.instruction import Instruction, RegSize
@@ -22,8 +22,7 @@ Vendor = Literal["Intel", "AMD", "ARM", "Unknown"]
 RegName = str
 RegNormalizedName = str
 RegUnicornID = int
-PTEName = str
-EPTEName = str
+PTEBitName = str
 PTEBitOffset = int
 
 
@@ -151,12 +150,21 @@ class TargetDesc(ABC):
     """ Reverse mapping from normalized names to full register names.
     E.g., A -> {64: rax, 32: eax, 16: ax, 8: al} """
 
-    pte_bits: Dict[PTEName, Tuple[PTEBitOffset, bool]]
+    page_property_to_pte_bit_name: Dict[PagePropertyName, Tuple[PTEBitName, bool]]
+    """
+    Dictionary mapping architecture-independent page property names to architecture-specific
+    page table entry bit names together with a bit indicating whether the property is inverted.
+    E.g.,
+        'writable' -> ('writable', False)
+        'executable' -> ('non_executable', True)
+    """
+
+    pte_bits: Dict[PTEBitName, Tuple[PTEBitOffset, bool]]
     """
     Dictionary mapping page table entry field names to their bit offsets and their default values.
     """
 
-    epte_bits: Dict[EPTEName, Tuple[PTEBitOffset, bool]]
+    epte_bits: Dict[PTEBitName, Tuple[PTEBitOffset, bool]]
     """
     Dictionary mapping extended page table entry field names to their bit offsets
     and their default values.

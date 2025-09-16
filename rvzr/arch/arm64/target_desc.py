@@ -63,9 +63,30 @@ class ARM64TargetDesc(TargetDesc):
 
     mem_index_registers = ["x0", "x1", "x2", "x3", "x4", "x5"]
 
-    pte_bits = {}
+    page_property_to_pte_bit_name = {
+        "present": ("valid", False),
+        "writable": ("non_writable", True),
+        "user": ("user", False),
+        "accessed": ("accessed", False),
+        "executable": ("non_executable", True),
+    }
 
-    epte_bits = {}
+    pte_bits = {
+        "valid": (0, True),
+        "user": (6, False),
+        "non_writable": (7, False),
+        "accessed": (10, True),
+        "non_executable": (53, True),
+    }
+
+    # FIXME: EPTE is not yet supported on ARM64; this is a placeholder
+    epte_bits = {
+        "valid": (0, True),
+        "user": (0, False),
+        "non_writable": (0, False),
+        "accessed": (0, True),
+        "non_executable": (0, True),
+    }
 
     branch_conditions = {
         "eq": ["", "", "", "r", "", "", "", "", ""],

@@ -28,9 +28,9 @@
 #include "test_case_parser.h"
 
 #include "fault_handler.h"
-#include "host_page_tables.h"
-#include "memory_guest.h"
 #include "page_tables_common.h"
+#include "page_tables_guest.h"
+#include "page_tables_host.h"
 #include "perf_counters.h"
 #include "special_registers.h"
 
@@ -63,6 +63,7 @@ static struct kprobe kp = {.symbol_name = "kallsyms_lookup_name"};
 #include <linux/kallsyms.h>
 int (*set_memory_x)(unsigned long, int) = 0;
 int (*set_memory_nx)(unsigned long, int) = 0;
+struct mm_struct init_mm = {0};
 #else
 #include <linux/set_memory.h>
 #endif
@@ -573,6 +574,7 @@ static inline void _get_required_kernel_functions(void)
 #endif // KPROBE_LOOKUP
     set_memory_x = (void *)kallsyms_lookup_name("set_memory_x");
     set_memory_nx = (void *)kallsyms_lookup_name("set_memory_nx");
+    init_mm = *(struct mm_struct *)kallsyms_lookup_name("init_mm");
 #endif // LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0)
 }
 

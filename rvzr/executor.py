@@ -68,21 +68,31 @@ def _can_set_reserved() -> bool:
     :return: True if it's possible, False otherwise
     """
     actors_conf = CONF.get_actors_conf()
-    reserved_requested = \
-        any(actors_conf[a]['data_properties']['reserved_bit'] for a in actors_conf) or \
-        any(actors_conf[a]['data_ept_properties']['reserved_bit'] for a in actors_conf)
-    if reserved_requested:
-        if CONF.instruction_set == 'arm64':
-            return False  # exceptions are not supported on ARM64
-        assert CONF.instruction_set == 'x86-64'
-        physical_bits = int(
-            subprocess.run(
-                "lscpu | grep 'Address sizes' | awk '{print $3}'",
-                shell=True,
-                check=True,
-                capture_output=True).stdout.decode().strip())
-        if physical_bits > 51:
-            return False
+    reserved_requested = False
+    for a in actors_conf:
+        if 'reserved_bit' in actors_conf[a]['data_properties'] and \
+           actors_conf[a]['data_properties']['reserved_bit']:
+            reserved_requested = True
+            break
+        if 'reserved_bit' in actors_conf[a]['data_ept_properties'] and \
+           actors_conf[a]['data_ept_properties']['reserved_bit']:
+            reserved_requested = True
+            break
+    if not reserved_requested:
+        return True
+
+    if CONF.instruction_set == 'arm64':
+        return False  # reserved bits are not (yet?) supported on ARM64
+
+    assert CONF.instruction_set == 'x86-64'
+    physical_bits = int(
+        subprocess.run(
+            "lscpu | grep 'Address sizes' | awk '{print $3}'",
+            shell=True,
+            check=True,
+            capture_output=True).stdout.decode().strip())
+    if physical_bits > 51:
+        return False
     return True
 
 

@@ -11,10 +11,11 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Tuple, Dict, Callable, Set, Optional, List, Final
 
-from unicorn import UC_ERR_NOMEM, UcError, UC_ERR_EXCEPTION, UC_MEM_WRITE, UC_ERR_INSN_INVALID
+from unicorn import UC_ERR_NOMEM, UcError, UC_ERR_EXCEPTION, UC_MEM_WRITE, UC_ERR_INSN_INVALID, \
+    UC_ERR_READ_PROT, UC_ERR_WRITE_PROT
 import unicorn.x86_const as x86ucc  # type: ignore  # no type hints available
 
-from ..tc_components.actor import ActorMode, ActorPL, Actor
+from ..tc_components.actor import ActorMode, ActorPL, Actor, ActorID, PTEMask
 from ..sandbox import CodeArea, DataArea
 from ..logs import warning
 
@@ -70,14 +71,8 @@ class ExtraInterpreter(ABC):
         elif state.current_actor.privilege_level == ActorPL.USER:
             self._emulate_userspace_execution(address)
 
-    def interpret_mem_access(self, address: int) -> None:
+    def interpret_mem_access(self, access: int, address: int, size: int, value: int) -> None:
         """ Interpret the given memory access """
-        # FIXME: move to x86
-        # emulate page faults
-        if self._model.state.current_actor.privilege_level == ActorPL.USER:
-            target_actor = self._model.layout.data_addr_to_actor_id(address)
-            if target_actor != self._model.state.current_actor.get_id():
-                self._model.do_soft_fault(12)
 
     @abstractmethod
     def _interpret_macro(self, macro: Instruction, pc: int) -> None:
@@ -119,6 +114,14 @@ class X86ExtraInterpreter(ExtraInterpreter):
     def load_input(self, input_: InputData) -> None:
         self._fault_interpreter.load_input(input_)
 
+    def interpret_mem_access(self, access: int, address: int, size: int, value: int) -> None:
+        super().interpret_mem_access(access, address, size, value)
+        # emulate page faults
+        if self._model.state.current_actor.privilege_level == ActorPL.USER:
+            target_actor = self._model.layout.data_addr_to_actor_id(address)
+            if target_actor != self._model.state.current_actor.get_id():
+                self._model.do_soft_fault(12)
+
     def _interpret_macro(self, macro: Instruction, pc: int) -> None:
         self._macro_interpreter.interpret(macro, pc)
 
@@ -135,12 +138,18 @@ class ARMExtraInterpreter(ExtraInterpreter):
     def __init__(self, target_desc: TargetDesc, model: UnicornModel):
         super().__init__(target_desc, model)
         self._macro_interpreter = _ARM64MacroInterpreter(model, target_desc)
+        self._fault_interpreter = _ARM64FaultInterpreter(model, target_desc)
 
     def load_test_case(self, test_case: TestCaseProgram) -> None:
         self._macro_interpreter.load_test_case(test_case)
+        self._fault_interpreter.load_test_case(test_case)
 
     def load_input(self, input_: InputData) -> None:
-        pass
+        self._fault_interpreter.load_input(input_)
+
+    def interpret_mem_access(self, access: int, address: int, size: int, value: int) -> None:
+        super().interpret_mem_access(access, address, size, value)
+        self._fault_interpreter.emulate_crossing_fault(access, address, size)
 
     def _interpret_macro(self, macro: Instruction, pc: int) -> None:
         self._macro_interpreter.interpret(macro, pc)
@@ -286,7 +295,6 @@ class _X86MacroInterpreter(_MacroInterpreterCommon):
             "landing_u2k": self._macro_landing_u2k,
             "landing_h2g": self._macro_landing_h2g,
             "landing_g2h": self._macro_landing_g2h,
-            "fault_handler": lambda *_: None,
             "set_data_permissions": self._macro_set_data_permissions,
         })
 
@@ -431,7 +439,13 @@ class _X86MacroInterpreter(_MacroInterpreterCommon):
 
 class _ARM64MacroInterpreter(_MacroInterpreterCommon):
     """ Implements the interpretation of ARM64-specific macros """
-    # no ARM64-specific macros implemented yet
+
+    def __init__(self, model: UnicornModel, target_desc: TargetDesc):
+        super().__init__(model, target_desc)
+        self._is_amd = target_desc.cpu_desc.vendor == "AMD"
+        self._macro_callbacks.update({
+            "fault_handler": lambda *_: None,
+        })
 
 
 # ==================================================================================================
@@ -521,84 +535,157 @@ class _X86UserspaceInterpreter(_X86VMInterpreter):
 # ==================================================================================================
 # Private: Fault Handling and Permissions
 # ==================================================================================================
-class _X86FaultInterpreter:
+class _FaultInterpreterCommon(ABC):
     """ Class that handles page faults and permissions in the emulator """
     _model: UnicornModel
     _target_desc: TargetDesc
     _uc_target_desc: UnicornTargetDesc
     _test_case: Optional[TestCaseProgram] = None
 
-    _fault_masks: Dict[str, int]
-    _rw_forbidden: Dict[int, bool]
-    _w_forbidden: Dict[int, bool]
+    _faulty_page_readable: Dict[ActorID, bool]
+    _faulty_page_writable: Dict[ActorID, bool]
 
     def __init__(self, model: UnicornModel, target_desc: TargetDesc):
         self._model = model
         self._target_desc = target_desc
         self._uc_target_desc = target_desc.uc_target_desc
-        self._create_fault_masks()
 
     def load_test_case(self, test_case: TestCaseProgram) -> None:
         """ Load the test case into the interpreter """
         self._test_case = test_case
-        self._rw_forbidden = {}
-        self._w_forbidden = {}
+        self._faulty_page_readable = {}
+        self._faulty_page_writable = {}
         for actor in test_case.get_actors(sorted_=True):
             aid = actor.get_id()
 
-            pte: int = actor.data_properties
-            inverse_pte = 0xffffffffffffffff ^ pte
-            self._rw_forbidden[aid] = bool(self._fault_masks["pt_rw_must_set"] & inverse_pte) | \
-                bool(self._fault_masks["pt_rw_must_clear"] & pte)
-            self._w_forbidden[aid] = bool(self._fault_masks["pt_w_must_set"] & inverse_pte)
+            pte: PTEMask = actor.data_properties
+            self._faulty_page_readable[aid] = self._page_is_readable(pte)
+            self._faulty_page_writable[aid] = self._page_is_writable(pte)
 
             if actor.mode == ActorMode.GUEST:
-                epte: int = actor.data_ept_properties
-                inverse_epte = 0xffffffffffffffff ^ epte
-                self._rw_forbidden[aid] |= \
-                    bool(self._fault_masks["ept_rw_must_set"] & inverse_epte) | \
-                    bool(self._fault_masks["ept_rw_must_clear"] & epte)
-                self._w_forbidden[aid] |= bool(self._fault_masks["ept_w_must_set"] & inverse_epte)
+                epte: PTEMask = actor.data_ept_properties
+                self._faulty_page_readable[aid] &= self._extended_page_is_readable(epte)
+                self._faulty_page_writable[aid] &= self._extended_page_is_writable(epte)
 
         # make the permissions available to other components of the model
         self._model.state.page_permissions = {}
         for actor_id in range(test_case.n_actors()):
-            self._model.state.page_permissions[actor_id] = (self._rw_forbidden[actor_id],
-                                                            self._w_forbidden[actor_id])
+            self._model.state.page_permissions[actor_id] = (self._faulty_page_readable[actor_id],
+                                                            self._faulty_page_writable[actor_id])
 
     def load_input(self, _: InputData) -> None:
-        """ Load the input into the interpreter """
+        """ Set memory permissions for the given input """
         assert self._test_case is not None
+
         # Set memory permissions
         for actor_id in range(self._test_case.n_actors()):
-            if self._rw_forbidden[actor_id]:
+            if not self._faulty_page_readable[actor_id]:
                 self._model.set_faulty_area_rw(actor_id, False, False)
-            elif self._w_forbidden[actor_id]:
+            elif not self._faulty_page_writable[actor_id]:
                 self._model.set_faulty_area_rw(actor_id, True, False)
 
-    def _create_fault_masks(self) -> None:
-        self._fault_masks = {
-            "pt_rw_must_set": 0,
-            "pt_rw_must_clear": 0,
-            "pt_w_must_set": 0,
-            "ept_rw_must_set": 0,
-            "ept_rw_must_clear": 0,
-            "ept_w_must_set": 0,
-        }
+    @abstractmethod
+    def _page_is_readable(self, pet: PTEMask) -> bool:
+        """ Check if the page is readable according to the PTE bits """
 
-        bit_desc = {
-            "pt_rw_must_set": ["present", "accessed"],
-            "pt_rw_must_clear": ["user", "reserved_bit"],
-            "pt_w_must_set": ["writable", "dirty"],
-            "ept_rw_must_set": ["present", "accessed"],
-            "ept_rw_must_clear": ["user", "reserved_bit"],
-            "ept_w_must_set": ["writable", "dirty"],
-        }
+    @abstractmethod
+    def _page_is_writable(self, pet: PTEMask) -> bool:
+        """ Check if the page is writable according to the PTE bits """
 
-        for key in self._fault_masks:
-            if key.startswith("pt"):
-                for bit in bit_desc[key]:
-                    self._fault_masks[key] |= 1 << self._target_desc.pte_bits[bit][0]
-            else:
-                for bit in bit_desc[key]:
-                    self._fault_masks[key] |= 1 << self._target_desc.epte_bits[bit][0]
+    @abstractmethod
+    def _extended_page_is_readable(self, epet: PTEMask) -> bool:
+        """ Check if the page is readable according to the EPTE bits """
+
+    @abstractmethod
+    def _extended_page_is_writable(self, epet: PTEMask) -> bool:
+        """ Check if the page is writable according to the EPTE bits """
+
+
+class _X86FaultInterpreter(_FaultInterpreterCommon):
+    """ Implements page fault handling and permission checking for the x86 architecture """
+
+    def _page_is_readable(self, pet: PTEMask) -> bool:
+        pte_desc = self._target_desc.pte_bits
+        if (pet & (1 << pte_desc["present"][0])) == 0:
+            return False
+        if (pet & (1 << pte_desc["accessed"][0])) == 0:
+            return False
+        if (pet & (1 << pte_desc["reserved_bit"][0])) != 0:
+            return False
+        return True
+
+    def _page_is_writable(self, pet: PTEMask) -> bool:
+        pte_desc = self._target_desc.pte_bits
+        if (pet & (1 << pte_desc["writable"][0])) == 0:
+            return False
+        if (pet & (1 << pte_desc["dirty"][0])) == 0:
+            return False
+        return True
+
+    def _extended_page_is_readable(self, epet: PTEMask) -> bool:
+        epte_desc = self._target_desc.epte_bits
+        if (epet & (1 << epte_desc["present"][0])) == 0:
+            return False
+        if (epet & (1 << epte_desc["accessed"][0])) == 0:
+            return False
+        if (epet & (1 << epte_desc["reserved_bit"][0])) != 0:
+            return False
+        return True
+
+    def _extended_page_is_writable(self, epet: PTEMask) -> bool:
+        epte_desc = self._target_desc.epte_bits
+        if (epet & (1 << epte_desc["writable"][0])) == 0:
+            return False
+        if (epet & (1 << epte_desc["dirty"][0])) == 0:
+            return False
+        return True
+
+
+class _ARM64FaultInterpreter(_FaultInterpreterCommon):
+    """ Implements page fault handling and permission checking for the ARM64 architecture """
+
+    def _page_is_readable(self, pet: PTEMask) -> bool:
+        pte_desc = self._target_desc.pte_bits
+        if (pet & (1 << pte_desc["valid"][0])) == 0:
+            return False
+        return True
+
+    def _page_is_writable(self, pet: PTEMask) -> bool:
+        pte_desc = self._target_desc.pte_bits
+        if (pet & (1 << pte_desc["non_writable"][0])) != 0:
+            return False
+        return True
+
+    def _extended_page_is_readable(self, epet: PTEMask) -> bool:
+        return True
+
+    def _extended_page_is_writable(self, epet: PTEMask) -> bool:
+        return True
+
+    def emulate_crossing_fault(self, access: int, address: int, size: int) -> None:
+        """
+        Workaround: Unicorn does not trigger a fault if the memory access crosses a page
+        boundary and the first page is accessible but the second is not
+        """
+        # No need for the workaround if the access is within a page
+        if address % 0x1000 + size < 0x1000:
+            return
+
+        # Also does not apply if the crossing goes to any other page than the faulty area
+        layout = self._model.layout
+        access_end = address + size - 1
+        actor_id = layout.data_addr_to_actor_id(address)
+        if actor_id == -1:
+            return
+        faulty_base = layout.get_data_addr(DataArea.FAULTY, actor_id)
+        faulty_end = faulty_base + layout.data_area_size(DataArea.FAULTY)
+        if access_end < faulty_base or access_end >= faulty_end:
+            return
+
+        # Emulate a fault if the faulty area is non-readable/non-writable
+        if not self._faulty_page_readable[actor_id]:
+            self._model.do_soft_fault(UC_ERR_READ_PROT)
+            return
+        if access == UC_MEM_WRITE and not self._faulty_page_writable[actor_id]:
+            self._model.do_soft_fault(UC_ERR_WRITE_PROT)
+            return

@@ -6,10 +6,10 @@
 
 #include "asm_snippets.h"
 #include "fault_handler.h"
-#include "host_page_tables.h"
+#include "page_tables_host.h"
 #include "macro_expansion.h"
 #include "main.h"
-#include "memory_guest.h"
+#include "page_tables_guest.h"
 #include "sandbox_manager.h"
 #include "shortcuts.h"
 #include "svm.h"
