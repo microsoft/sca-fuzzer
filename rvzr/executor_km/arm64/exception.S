@@ -2,6 +2,13 @@
 //
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
+
+#include <asm/asm-bug.h>
+// #include <asm/exception.h>
+
+#include "sandbox_constants.h"
+#include "registers.h"
+
 .extern _printk
 .extern set_outer_fault_handlers
 .extern unset_outer_fault_handlers
@@ -11,7 +18,6 @@
 
 .extern fault_handler
 .extern is_nested_fault
-
 
 // =================================================================================================
 // Global variables
@@ -165,21 +171,21 @@ fallback_handler:
 .global test_case_handler
 test_case_handler:
     // check for nested faults
-    adr x11, is_nested_fault
-    ldr x10, [x11]
-    cmp x10, #0
+    adr TMP_REG1_, is_nested_fault
+    ldr TMP_REG2_, [TMP_REG1_]
+    cmp TMP_REG2_, #0
     b.ne .test_case_handler.default
-    mov x10, #1
-    str x10, [x11]
+    mov TMP_REG2_, #1
+    str TMP_REG2_, [TMP_REG1_]
 
     // check if a custom handler is registered
-    adr x10, fault_handler
-    ldr x10, [x10]
-    cmp x10, #0
+    adr TMP_REG2_, fault_handler
+    ldr TMP_REG2_, [TMP_REG2_]
+    cmp TMP_REG2_, #0
     b.eq .test_case_handler.default
 
     .test_case_handler.registered_handler:
-    msr elr_el1, x10
+    msr elr_el1, TMP_REG2_
     eret
 
     .test_case_handler.default:
@@ -222,7 +228,9 @@ run_experiment_outer:
     stp x25, x26, [sp, -16]!
     stp x27, x28, [sp, -16]!
     stp x29, x30, [sp, -16]!
-    mov x29, sp
+
+    // ??? no idea why this is needed ???
+    mov x21, sp
 
     // Save the SP into a global variables so that we can recover it after a destructive bug
     mov x0, sp
@@ -237,10 +245,12 @@ run_experiment_outer:
     b .run_experiment_normal_exit
 .run_experiment_recovery:
     // Overwrite SP with recovery_sp
-    adr x28, recovery_sp
-    ldr x28, [x28]
-    mov sp, x28
-    mov x29, sp
+    adr TMP_REG1_, recovery_sp
+    ldr TMP_REG2_, [TMP_REG1_]
+    mov sp, TMP_REG2_
+
+    // ??? no idea why this is needed ???
+    mov x21, sp
 
     // Print an error message
     // x1 already contains the fault code from the fault handler

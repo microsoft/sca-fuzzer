@@ -9,52 +9,35 @@
 
 #include <linux/types.h>
 
+#include "sandbox_constants.h"
+
 #include "hardware_desc.h" // L1D_ASSOCIATIVITY
 #include "measurement.h"   // measurement_t
 
 // =================================================================================================
 // Sandbox data layout
 // =================================================================================================
-#define L1D_PRIMING_AREA_SIZE (L1D_SIZE_KB * 1024)
-
-// layout of actor_data_t
-#define MACRO_STACK_SIZE   64
-#define UNDERFLOW_PAD_SIZE (4096 - MACRO_STACK_SIZE)
-#define MAIN_AREA_SIZE     4096
-#define FAULTY_AREA_SIZE   4096
-#define REG_INIT_AREA_SIZE 320 // 8 64-bit GPRs + 8 256-bit YMMs
-#define OVERFLOW_PAD_SIZE  (4096 - REG_INIT_AREA_SIZE)
-
-// offsets w.r.t. the base of util_t (r15 will be initialized to point there)
-#define L1D_PRIMING_OFFSET 0
-#define STORED_RSP_OFFSET  (L1D_PRIMING_AREA_SIZE)
-#define MEASUREMENT_OFFSET (STORED_RSP_OFFSET + 8)
-#define NESTED_FAULT_OFFSET (MEASUREMENT_OFFSET + sizeof(measurement_t))
-
-// offset of util_t w.r.t. the base of main_area of the main actor
-#define UTIL_REL_TO_MAIN (L1D_PRIMING_AREA_SIZE + 4096 + UNDERFLOW_PAD_SIZE + MACRO_STACK_SIZE)
-
-// offsets w.r.t. the base of main_area of the current actor (r14 will contain the base)
-#define MACRO_STACK_TOP_OFFSET (UNDERFLOW_PAD_SIZE)
-#define MAIN_AREA_OFFSET       0
-#define FAULTY_AREA_OFFSET     (MAIN_AREA_SIZE)
-#define REG_INIT_OFFSET        (FAULTY_AREA_OFFSET + FAULTY_AREA_SIZE)
-#define OVERFLOW_PAD_OFFSET    (REG_INIT_OFFSET + REG_INIT_AREA_SIZE)
-#define LOCAL_RSP_OFFSET       (FAULTY_AREA_OFFSET - 8)
-
-// area page IDs
-#define MAIN_PAGE_ID (MACRO_STACK_SIZE + UNDERFLOW_PAD_SIZE) / PAGE_SIZE
-#define FAULTY_PAGE_ID (MACRO_STACK_SIZE + UNDERFLOW_PAD_SIZE + MAIN_AREA_SIZE) / PAGE_SIZE
+/// @brief Area with test-case global variables that are used to communicate with the executor
+///        and store intermediate results
+typedef struct {
+    uint64_t stored_rsp;              // stores the stack pointer before calling the test case
+    measurement_t latest_measurement; // measurement results
+    uint64_t nested_fault;            // non-zero if a fault occurs during a fault handler
+#if defined(ARCH_X86_64)
+    uint8_t unused[UTIL_VARS_MAX - sizeof(measurement_t) - (2 * sizeof(uint64_t))];
+#elif defined(ARCH_ARM)
+    uint64_t k2u_target_address; // target address for k2u switches
+    uint64_t u2k_target_address; // target address for u2k switches
+    uint8_t unused[UTIL_VARS_MAX - sizeof(measurement_t) - (4 * sizeof(uint64_t))];
+#endif // ARCH_ARM
+} util_vars_t;
 
 /// @brief Utility data structure used by various primitives in the test case.
 ///        Must be allocated strictly before the main actor data as its code accesses
 ///        fields of util_t by using constant offsets from the base of its main_area.
 typedef struct {
     uint8_t l1d_priming_area[L1D_PRIMING_AREA_SIZE];
-    uint64_t stored_rsp;              // stores the stack pointer before calling the test case
-    measurement_t latest_measurement; // measurement results
-    uint64_t nested_fault;            // non-zero if a fault occurs during a fault handler
-    uint8_t unused[4096 - 16 - sizeof(measurement_t)];
+    util_vars_t vars;
 } __attribute__((packed)) util_t;
 
 /// @brief Data structure representing the memory accessible by the actor's code
@@ -70,9 +53,6 @@ typedef struct {
 // =================================================================================================
 // Sandbox code layout
 // =================================================================================================
-#define MAX_EXPANDED_SECTION_SIZE (0x1000 * 2)
-#define MAX_EXPANDED_MACROS_SIZE  (0x1000)
-
 typedef struct {
     uint8_t section[MAX_EXPANDED_SECTION_SIZE];
     uint8_t macros[MAX_EXPANDED_MACROS_SIZE];
@@ -87,10 +67,9 @@ typedef struct {
     util_t *util;
 } sandbox_t;
 
-#define N_UTIL_PAGES (sizeof(util_t) / PAGE_SIZE)
-#define N_DATA_PAGES_PER_ACTOR (sizeof(actor_data_t) / PAGE_SIZE)
-#define N_CODE_PAGES_PER_ACTOR (sizeof(actor_code_t) / PAGE_SIZE)
-
+// =================================================================================================
+// Sandbox manager interface
+// =================================================================================================
 extern sandbox_t *sandbox;
 
 int get_sandbox_size_pages(void);

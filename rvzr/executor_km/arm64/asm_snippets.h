@@ -8,27 +8,7 @@
 
 #include "hardware_desc.h"
 #include "measurement.h"
-
-/// Reserved registers
-// x16 is used internally by some of the code below; avoid using it
-#define STATUS_REGISTER         "x12"
-#define STATUS_REGISTER_32      "w12"
-#define HTRACE_REGISTER         "x13"
-#define MEMORY_BASE_REGISTER    "x30"
-#define MEMORY_BASE_REGISTER_ID 0x1e
-#define UTIL_BASE_REGISTER      "x29"
-#define UTIL_BASE_REGISTER_ID   0x1d
-#define TMP_REG1                "x28"
-#define TMP_REG1_ID             0x1c
-#define TMP_REG2                "x27"
-#define TMP_REG3                "x26"
-#define TMP_REG4                "x25"
-#define TMP_REG5                "x24"
-#define TMP_REG6                "x23"
-
-#define PFC0 "x10"
-#define PFC1 "x9"
-#define PFC2 "x8"
+#include "registers.h"
 
 /// State machine of the tracing process
 #define SET_SR_STARTED()                                                                           \

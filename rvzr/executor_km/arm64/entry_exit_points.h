@@ -34,10 +34,10 @@ static inline void prologue(void)
         "stp x28, x29, [sp, #-16]!\n"
         "str x30, [sp, #-16]!\n"
 
-        // x30 = main_area of actor 0 (passed in x0, the first argument of measurement_code)
+        // x20 = main_area of actor 0 (passed in x0, the first argument of measurement_code)
         "mov "MEMORY_BASE_REGISTER", x0\n"
 
-        // x29 = sandbox->util (x30 - UTIL_REL_TO_MAIN)
+        // x21 = sandbox->util (x20 - UTIL_REL_TO_MAIN)
         "mov "UTIL_BASE_REGISTER", "MEMORY_BASE_REGISTER"\n"
         mov_imm_to_reg("x0", UTIL_REL_TO_MAIN)
         "sub "UTIL_BASE_REGISTER", "UTIL_BASE_REGISTER", x0\n"

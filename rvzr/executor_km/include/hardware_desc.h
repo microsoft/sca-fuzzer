@@ -35,6 +35,7 @@
 // =================================================================================================
 // CPU identification
 // =================================================================================================
+#ifndef __ASSEMBLER__
 #if defined(ARCH_X86_64)
 typedef struct cpuinfo_x86 cpuinfo_t;
 #elif defined(ARCH_ARM)
@@ -46,6 +47,7 @@ typedef struct {
     int revision;
 } cpuinfo_t;
 #endif
+#endif // __ASSEMBLER__
 
 // =================================================================================================
 // Memory configuration
