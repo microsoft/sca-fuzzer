@@ -319,7 +319,11 @@ def _parse_args() -> Any:  # pylint: disable=r0915
 
     # ==============================================================================================
     # Standalone interface to test case generation
-    parser_generator = subparsers.add_parser('generate', add_help=True, parents=[common_parser], formatter_class=ArgumentDefaultsHelpFormatter)
+    parser_generator = subparsers.add_parser(
+        'generate',
+        add_help=True,
+        parents=[common_parser],
+        formatter_class=ArgumentDefaultsHelpFormatter)
     parser_generator.add_argument(
         "-r",
         "--seed",

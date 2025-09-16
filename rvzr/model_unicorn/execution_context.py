@@ -52,7 +52,7 @@ class ModelExecutionState:
 
     page_permissions: Optional[PAGE_PERMISSION_MAP] = None
     """ Dictionary of the page permissions for each actor at the start of execution.
-    Only containts permissions on the faulty area, as all other areas are always RW."""
+    Only contains permissions on the faulty area, as all other areas are always RW."""
 
     _test_case: Final[TestCaseProgram]  # The test case being currently executed by the model
     _layout: Final[SandboxLayout]  # The layout of the sandbox

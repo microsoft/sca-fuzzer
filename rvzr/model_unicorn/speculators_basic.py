@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Dict, Tuple, Callable, Final, Optional
 from unicorn import UC_MEM_WRITE
 
 import unicorn.x86_const as ucc  # type: ignore # no type hints for this library
+import unicorn.arm64_const as aucc  # type: ignore # no type hints for this library
 
 from .speculator_abc import UnicornSpeculator
 from ..config import CONF
@@ -28,6 +29,11 @@ FLAGS_IF = 0b001000000000
 FLAGS_DF = 0b010000000000
 FLAGS_OF = 0b100000000000
 
+FLAGS_N: Final[int] = 1 << 31
+FLAGS_Z: Final[int] = 1 << 30
+FLAGS_C: Final[int] = 1 << 29
+FLAGS_V: Final[int] = 1 << 28
+
 
 class SeqSpeculator(UnicornSpeculator):
     """
@@ -41,6 +47,9 @@ class SeqSpeculator(UnicornSpeculator):
 _CondBranchFlipper = Callable[[bytearray, int, int], Tuple[bytearray, bool, bool]]
 
 
+# ==================================================================================================
+# Conditional branch prediction (Spectre v1)
+# ==================================================================================================
 class X86CondSpeculator(UnicornSpeculator):
     """
     Speculator for conditional branch mispredicitons.
@@ -163,7 +172,7 @@ class X86CondSpeculator(UnicornSpeculator):
 
         # decode the instruction
         code: bytearray = self._emulator.mem_read(address, size)
-        flags: int = self._emulator.reg_read(ucc.UC_X86_REG_EFLAGS)  # type: ignore
+        flags: int = self._emulator.reg_read(self._uc_target_desc.flags_register)  # type: ignore
         rcx: int = self._emulator.reg_read(ucc.UC_X86_REG_RCX)  # type: ignore
         target, will_jump, is_loop = self.decode(code, flags, rcx)
 
@@ -199,6 +208,141 @@ class X86CondSpeculator(UnicornSpeculator):
         return int.from_bytes(target, byteorder='little', signed=True), will_jump, is_loop
 
 
+class ARM64CondSpeculator(UnicornSpeculator):
+    """
+    Speculator for conditional branch mispredictions on ARM64.
+    Forces all cond. branches to speculatively go into a wrong target
+    """
+
+    def __init__(self, target_desc: TargetDesc, model: UnicornModel,
+                 taint_tracker: UnicornTaintTracker) -> None:
+        super().__init__(target_desc, model, taint_tracker)
+        assert CONF.instruction_set == "arm64"
+
+    def _speculate_instruction(self, address: int, size: int) -> None:
+        if self._max_nesting_reached():  # reached max spec. window? skip
+            return
+
+        # decode the instruction
+        code: bytearray = self._emulator.mem_read(address, size)
+        flags: int = self._emulator.reg_read(self._uc_target_desc.flags_register)  # type: ignore
+        target_offset, will_jump = self.decode(code, flags)
+
+        # not a a cond. jump? ignore
+        if not target_offset:
+            return
+
+        # Take a checkpoint
+        next_instr = address + size + target_offset if will_jump else address + size
+        self._checkpoint(next_instr)
+
+        # Simulate misprediction
+        target_addr = address + size if will_jump else address + size + target_offset
+        self._emulator.reg_write(self._uc_target_desc.pc_register, target_addr)
+
+    def decode(self, code: bytearray, flags: int) -> Tuple[int, bool]:
+        """
+        Decodes the instruction encoded in `code` and, if it's a conditional jump,
+        returns its expected target and whether it will jump to the target (based
+        on the `flags` value).
+        """
+        instruction = int.from_bytes(code, byteorder='little')
+        first_byte = instruction >> 24
+        if first_byte == 0x54 and instruction & 0x10 == 0:
+            # B.cond instruction
+            return self._decode_b_cond(instruction, flags)
+
+        if 0xb4 <= first_byte <= 0xb7 or 0x34 <= first_byte <= 0x37:
+            # CBZ/CBNZ/TBZ/TBNZ
+            return self._decode_cb_tb(instruction, first_byte)
+        return (0, False)
+
+    def _decode_b_cond(self, instruction: int, flags: int) -> Tuple[int, bool]:
+        target = self._twos_complement(instruction >> 5, 19)
+        condition = instruction & 0xf
+        n = (flags & FLAGS_N) != 0
+        z = (flags & FLAGS_Z) != 0
+        c = (flags & FLAGS_C) != 0
+        v = (flags & FLAGS_V) != 0
+        # table here is useful:
+        # https://community.arm.com/arm-community-blogs/b/
+        # architectures-and-processors-blog/posts/condition-codes-1-condition-flags-and-codes
+        will_jump = [
+            z,  # 0 = b.eq "equal"
+            not z,  # 1 = b.ne "not equal"
+            c,  # 2 = b.cs "carry set"
+            not c,  # 3 = b.cc "carry clear"
+            n,  # 4 = b.mi "minus"
+            not n,  # 5 = b.pl "plus"
+            v,  # 6 = b.vs "overflow set"
+            not v,  # 7 = b.vc "overflow clear"
+            c and not z,  # 8 = b.hi "higher than"
+            not c or z,  # 9 = b.ls "lower or same"
+            n == v,  # a = b.ge "greater than or equal"
+            n != v,  # b = b.lt "less than"
+            not z and n == v,  # c = b.gt "greater than"
+            z or n != v,  # d = b.le "less than or equal"
+            True,  # e = b.al "always"
+            False,  # f = b.nv "never"
+        ][condition]
+        return (target, will_jump)
+
+    def _decode_cb_tb(self, instruction: int, first_byte: int) -> Tuple[int, bool]:
+        # CBZ/CBNZ/TBZ/TBNZ
+        register_index = instruction & 0x1f
+        is_32bit = first_byte >> 4 == 0x3
+
+        register_value: int
+        if register_index < 31:
+            # for some reason UC_ARM64_REG_X29 != UC_ARM64_REG_X0 + 29
+            uc_reg_id = \
+                (aucc.UC_ARM64_REG_X0 + register_index) if register_index <= 28 else \
+                (aucc.UC_ARM64_REG_X29 + (register_index - 29))
+
+            register_value = self._emulator.reg_read(uc_reg_id)  # type: ignore
+        elif register_index == 31:
+            # xzr "zero register"
+            register_value = 0
+        else:
+            raise ValueError(f"Invalid register index {register_index} in CBZ/CBNZ/TBZ/TBNZ")
+
+        if is_32bit:
+            register_value &= 0xffff_ffff
+        if first_byte & 0xf <= 0x5:
+            # CBZ/CBNZ
+            target = self._twos_complement(instruction >> 5, 19)
+            if first_byte & 0xf == 4:
+                # CBZ
+                will_jump = register_value == 0
+            else:
+                # CBNZ
+                will_jump = register_value != 0
+        else:
+            target = self._twos_complement(instruction >> 5, 14)
+            bit_number = (instruction >> 19) & 0x1f
+            if not is_32bit:
+                bit_number += 32
+            bit = register_value & (1 << bit_number)
+            if first_byte & 0xf == 6:
+                # TBZ
+                will_jump = bit == 0
+            else:
+                # TBNZ
+                will_jump = bit != 0
+        return (target, will_jump)
+
+    @staticmethod
+    def _twos_complement(n: int, n_bits: int) -> int:
+        n &= (1 << n_bits) - 1
+        sign_bit = 1 << (n_bits - 1)
+        if n & sign_bit:
+            return n - 2 * sign_bit
+        return n
+
+
+# ==================================================================================================
+# Speculative Store Bypass (Spectre v4)
+# ==================================================================================================
 class StoreBpasSpeculator(UnicornSpeculator):
     """
     Speculator for speculative store bypasses.
@@ -210,6 +354,10 @@ class StoreBpasSpeculator(UnicornSpeculator):
         # if there are any pending speculative store bypasses, cancel them
         self._previous_store = None
         return super().rollback()
+
+    def reset(self) -> None:
+        self._previous_store = None
+        super().reset()
 
     def _speculate_mem_access(self, access: int, address: int, size: int, value: int) -> None:
         # Since Unicorn does not have post-instruction hooks,
