@@ -91,7 +91,7 @@ class _ARM64Printer(Printer):
 # Private: Collection of Instrumentation Passes
 # ==================================================================================================
 
-_DispatcherKey = Literal["memory", "division"]
+_DispatcherKey = Literal["memory"]
 _SandboxDispatcher = Dict[_DispatcherKey, Tuple[List[InstructionNode],
                                                 Callable[[InstructionNode, BasicBlock], None]]]
 
@@ -100,9 +100,11 @@ class _ARM64SandboxPass(Pass):
     """
     A pass that instruments the test case to prevent certain types of faults,
     including:
-    - division by zero
-    - division overflow
     - out-of-sandbox memory accesses
+    - ... (more to be added in the future)
+
+    NOTE: in contrast to x86, arm64 does not fault on div by zero, so no need to
+    sandbox division instructions
     """
 
     # pylint: disable=R0801
@@ -122,12 +124,10 @@ class _ARM64SandboxPass(Pass):
     def run_on_test_case(self, test_case: TestCaseProgram) -> None:
         dispatcher: _SandboxDispatcher = {
             "memory": ([], self._sandbox_memory_access),
-            "division": ([], self._sandbox_division),
         }
 
         for bb in test_case.iter_basic_blocks():
             dispatcher["memory"][0].clear()
-            dispatcher["division"][0].clear()
 
             # collect all instructions that require sandboxing
             for node in bb.iter_nodes():
@@ -137,8 +137,6 @@ class _ARM64SandboxPass(Pass):
 
                 if inst.has_mem_operand(True):
                     dispatcher["memory"][0].append(node)
-                if inst.name in ["div", "rex div", "idiv", "rex idiv"]:
-                    dispatcher["division"][0].append(node)
 
             # sandbox them
             for _, (nodes, sandbox_func) in dispatcher.items():
@@ -146,7 +144,7 @@ class _ARM64SandboxPass(Pass):
                     sandbox_func(node, bb)
 
     def _sandbox_memory_access(self, node: InstructionNode, parent: BasicBlock) -> None:
-        """ Force the memory accesses into the page starting from x30 """
+        """ Force the memory accesses into the page starting from x20 """
 
         instr = node.instruction
 
@@ -175,26 +173,17 @@ class _ARM64SandboxPass(Pass):
             add_base = Instruction("add", is_instrumentation=True) \
                 .add_op(RegisterOp(address_reg, mem_operand.width, True, True)) \
                 .add_op(RegisterOp(address_reg, mem_operand.width, True, True)) \
-                .add_op(RegisterOp("x30", 64, True, True)) \
+                .add_op(RegisterOp("x20", 64, True, True)) \
                 .add_op(FlagsOp(("w", "", "", "w", "w", "", "", "", "w")), True)
             parent.insert_before(node, add_base)
             return
 
         raise NotImplementedError("Implicit memory accesses are not yet supported")
 
-    def _sandbox_division(self, node: InstructionNode, parent: BasicBlock) -> None:
-        """
-        In the experiments where division errors are not permitted, we prevent them
-        through code instrumentation.
-        """
-        raise NotImplementedError("Division sandboxing is not yet implemented")
-
     @staticmethod
     def requires_sandbox(inst: InstructionSpec) -> bool:
         """ Check if the instruction requires instrumentation to prevent faults """
         if inst.has_mem_operand:
-            return True
-        if inst.name in ["udiv", "sdiv"]:
             return True
         return False
 
