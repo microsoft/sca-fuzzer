@@ -221,14 +221,11 @@ class DifferentialInputMinimizerPass(BaseInputMinimizationPass):
             input_a[actor_id][region_name][addr] = org_input_a[actor_id][region_name][addr]
             input_b[actor_id][region_name][addr] = org_input_b[actor_id][region_name][addr]
 
-        def _zero_out_block() -> int:
+        def _zero_out_block(addr: int) -> int:
             """
             Try to zero out a block of memory and check if the violation is still triggered.
             Start with the largest possible block size and iteratively decrease the block size
             until violation is triggered or the block size is 1.
-            :param actor_id: The actor ID
-            :param region_name: The name of the region
-            :param block_start: The start index of the block
             :return: The size of the block that was successfully zeroed out, or 1
             """
             assert input_a is not None and input_b is not None and \
@@ -236,13 +233,13 @@ class DifferentialInputMinimizerPass(BaseInputMinimizationPass):
 
             # Find a suitable starting block size, fulfilling the following criteria:
             #    * the block size is less then 512 bytes (64 * 8)
-            block_size = _MAX_BLOCK_SIZE - (block_start % _MAX_BLOCK_SIZE)
+            block_size: int = _MAX_BLOCK_SIZE - (addr % _MAX_BLOCK_SIZE)
             #    * the block does not overlap with the next region
-            block_size = min(block_size, region_size - block_start)
+            block_size = min(block_size, region_size - addr)
             #    * the block size is a power of 2
             block_size = 2**int(log2(block_size))
             #    * i mod block_size == 0
-            while block_size > 1 and block_start % block_size != 0:
+            while block_size > 1 and addr % block_size != 0:
                 block_size //= 2
 
             # Starting from the determined block size, try to find the largest block
@@ -250,8 +247,8 @@ class DifferentialInputMinimizerPass(BaseInputMinimizationPass):
             while block_size > 1:
                 # Try zeroing out the block
                 for i in range(block_size):
-                    input_a[actor_id][region_name][block_start + i] = 0
-                    input_b[actor_id][region_name][block_start + i] = 0
+                    input_a[actor_id][region_name][addr + i] = 0
+                    input_b[actor_id][region_name][addr + i] = 0
 
                 # Check if the violation is still triggered
                 if self._check_for_violation(self._test_case, self._inputs,
@@ -261,14 +258,14 @@ class DifferentialInputMinimizerPass(BaseInputMinimizationPass):
 
                 # If not reproduced, restore the original values and try a smaller block
                 for i in range(block_size):
-                    _restore_addr(block_start + i)
+                    _restore_addr(addr + i)
                 block_size //= 2
 
             # If we reach here, we could not zero out a block larger than 1 byte
             return 1
 
         # First, try setting a large block of bytes to zero
-        block_size = _zero_out_block()
+        block_size = _zero_out_block(block_start)
         if block_size > 1:
             # If reproduced, print progress and return the block size
             n_64byte_blocks = block_size // 8
