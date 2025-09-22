@@ -355,6 +355,7 @@ class Conf:
             "dbg_coverage",
             "dbg_priming",
             "dbg_executor_raw",
+            "dbg_isa_filter",
         ],
     }
 

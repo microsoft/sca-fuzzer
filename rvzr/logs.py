@@ -76,13 +76,14 @@ class _LoggingConfig:  # pylint: disable=too-few-public-methods  # because this 
     dbg_coverage: bool = False
     dbg_generator: bool = False
     dbg_priming: bool = False
+    dbg_isa_filter: bool = False
 
     dbg_model_print_id: bool = True
 
     _all_modes: List[str] = [
         "info", "stat", "dbg_timestamp", "dbg_violation", "dbg_dump_htraces", "dbg_dump_ctraces",
         "dbg_dump_traces_unlimited", "dbg_executor_raw", "dbg_model", "dbg_coverage",
-        "dbg_generator", "dbg_priming"
+        "dbg_generator", "dbg_priming", "dbg_isa_filter"
     ]
 
     def __init__(self) -> None:
@@ -116,7 +117,8 @@ class _LoggingConfig:  # pylint: disable=too-few-public-methods  # because this 
         if not __debug__:
             dbg_required = any([
                 self.dbg_timestamp, self.dbg_model, self.dbg_coverage, self.dbg_dump_htraces,
-                self.dbg_dump_ctraces, self.dbg_generator, self.dbg_priming, self.dbg_executor_raw
+                self.dbg_dump_ctraces, self.dbg_generator, self.dbg_priming, self.dbg_executor_raw,
+                self.dbg_isa_filter
             ])
             if dbg_required:
                 warning(
@@ -200,6 +202,7 @@ class FuzzLogger:
     progress: float = 0.0
     progress_percent: int = 0
     msg: str = ""
+    _msg_width: int = 0
     start_time: datetime
     _conf: Final[_LoggingConfig]
 
@@ -242,7 +245,7 @@ class FuzzLogger:
 
         # Print the progress bar
         if STAT.test_cases > 0:
-            print(f"{self.msg}                         ", end=self._conf.line_ending, flush=True)
+            print(f"{self.msg:<{self._msg_width}}", end=self._conf.line_ending, flush=True)
         if self._conf.dbg_timestamp and round_id and round_id % 1000 == 0:
             dbg(
                 "fuzzer", f"Time: {datetime.today()} | "
@@ -252,26 +255,25 @@ class FuzzLogger:
         """ Print a message indicating that the fuzzer is in the priming phase """
         if not self._conf.info:
             return
-        msg = self.msg
-        print(
-            msg + f"> Priming  {num_violations}             ",
-            end=self._conf.line_ending,
-            flush=True)
+        msg = self.msg + f"> Priming  {num_violations}             "
+        print(msg, end=self._conf.line_ending, flush=True)
+        self._msg_width = max(self._msg_width, len(msg))
 
     def nesting_increased(self) -> None:
         """ Print a message indicating that the model's nesting level has been increased """
         if not self._conf.info:
             return
-        print(
-            self.msg + "> Nest   " + str(CONF.model_max_nesting) + "         ",
-            end=self._conf.line_ending,
-            flush=True)
+        msg = self.msg + f"> Nest   {CONF.model_max_nesting}         "
+        self._msg_width = max(self._msg_width, len(msg))
+        print(msg, end=self._conf.line_ending, flush=True)
 
     def slow_path(self) -> None:
         """ Print a message indicating that the fuzzer has entered the slow path """
         if not self._conf.info:
             return
-        print(self.msg + "> Entering slow path...", end=self._conf.line_ending, flush=True)
+        msg = self.msg + ">" + " Entering slow path..."
+        self._msg_width = max(self._msg_width, len(msg))
+        print(msg, end=self._conf.line_ending, flush=True)
 
     def timeout(self) -> None:
         """ Print a message indicating that the fuzzer has timed out """
@@ -283,10 +285,9 @@ class FuzzLogger:
         """ Print a message indicating that the sample size has been increased """
         if not self._conf.info:
             return
-        print(
-            f"{self.msg} > Increase sample size to {sample_size}",
-            end=self._conf.line_ending,
-            flush=True)
+        msg = self.msg + ">" + " Increasing sample size... to " + str(sample_size)
+        self._msg_width = max(self._msg_width, len(msg))
+        print(msg, end=self._conf.line_ending, flush=True)
 
     def report_violations(self, violation: Violation) -> None:
         """ Print the detected violations """
@@ -597,3 +598,22 @@ class ExecutorLogger:
         for input_id, htrace in enumerate(htraces):
             prefix = f"{input_id:03}, "
             print(htrace.full_str(prefix))
+
+
+class ISALogger:
+    """ A class that provides logging services for the isa_spec module """
+
+    def __init__(self) -> None:
+        self._conf = _LoggingConfig()
+
+    def dbg_dump_filtering_reason(self, instruction: InstructionSpec, reason: str) -> None:
+        """
+        Print the reason why a specific instruction was filtered out by the ISA module,
+        if debugging is enabled.
+        """
+        if not __debug__:
+            return
+        if not self._conf.dbg_isa_filter or not CONF.is_generation_enabled():
+            return
+
+        dbg("isa_spec", f"{instruction.name} ({instruction.category}) filtered out: {reason}")
