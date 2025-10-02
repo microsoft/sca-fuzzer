@@ -73,14 +73,14 @@ class ARM64GeneratorTest(unittest.TestCase):
         asm_file = tempfile.NamedTemporaryFile("w", delete=False)
         obj_file = tempfile.NamedTemporaryFile("w", delete=False)
 
-        instruction_set = InstructionSet((test_dir / "min_arm64.json").absolute().as_posix(),
-                                         CONF.instruction_categories)
+        instruction_set = InstructionSet((test_dir / "min_arm64.json").absolute().as_posix())
         generator = get_program_generator(CONF.program_generator_seed, instruction_set)
         function_generator = generator._function_generator
         tc = TestCaseProgram(asm_file.name)
         tc.assign_obj(obj_file.name)
 
         func = function_generator.generate_empty(".function_0", tc.find_section(name="main"))
+        tc.find_section(name="main").append(func)
         printer = _ARM64Printer(ARM64TargetDesc())
         all_instructions = ['']
 

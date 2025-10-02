@@ -188,6 +188,8 @@ class _RoundManager:
                 self.fuzzer.log.sample_size_increase(sample_size)
                 self.conf.executor_n_reps = sample_size - len(self.htraces[0])
                 self._normal_stage()
+                if not self.violations:
+                    return
             return
 
         if stage == "priming_large":
@@ -217,6 +219,8 @@ class _RoundManager:
             return
         if len(self.org_inputs) > 0:
             self._check_violations()
+            if not self.violations:
+                return
             self._update_ignore_list()
 
     def _boost_inputs(self) -> None:

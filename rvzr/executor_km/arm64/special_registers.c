@@ -17,10 +17,10 @@ static int store_special_registers(void)
     ASSERT(orig_special_registers_state != NULL, "store_special_registers");
     memset(orig_special_registers_state, 0, sizeof(special_registers_t));
 
-    read_msr("SPSR_EL1", orig_special_registers_state->spsr_el1);
-    read_msr("SP_EL0", orig_special_registers_state->sp_el0);
-    read_msr("SP_EL1", orig_special_registers_state->sp_el1);
-    read_msr("ELR_EL1", orig_special_registers_state->elr_el1);
+    // read_msr("SPSR_EL1", orig_special_registers_state->spsr_el1);
+    // read_msr("SP_EL0", orig_special_registers_state->sp_el0);
+    // read_msr("SP_EL1", orig_special_registers_state->sp_el1);
+    // read_msr("ELR_EL1", orig_special_registers_state->elr_el1);
     return 0;
 }
 
@@ -33,18 +33,18 @@ int set_special_registers(void)
 
 void restore_special_registers(void)
 {
-    if (orig_special_registers_state->spsr_el1 != 0) {
-        write_msr("SPSR_EL1", orig_special_registers_state->spsr_el1);
-    }
-    if (orig_special_registers_state->sp_el0 != 0) {
-        write_msr("SP_EL0", orig_special_registers_state->sp_el0);
-    }
-    if (orig_special_registers_state->sp_el1 != 0) {
-        write_msr("SP_EL1", orig_special_registers_state->sp_el1);
-    }
-    if (orig_special_registers_state->elr_el1 != 0) {
-        write_msr("ELR_EL1", orig_special_registers_state->elr_el1);
-    }
+    // if (orig_special_registers_state->spsr_el1 != 0) {
+    //     write_msr("SPSR_EL1", orig_special_registers_state->spsr_el1);
+    // }
+    // if (orig_special_registers_state->sp_el0 != 0) {
+    //     write_msr("SP_EL0", orig_special_registers_state->sp_el0);
+    // }
+    // if (orig_special_registers_state->sp_el1 != 0) {
+    //     write_msr("SP_EL1", orig_special_registers_state->sp_el1);
+    // }
+    // if (orig_special_registers_state->elr_el1 != 0) {
+    //     write_msr("ELR_EL1", orig_special_registers_state->elr_el1);
+    // }
     memset(orig_special_registers_state, 0, sizeof(special_registers_t));
 }
 

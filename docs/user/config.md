@@ -85,7 +85,7 @@ This option is helps a lot with readability, but may produce corrupted output wh
 ```yaml
 Name: logging_modes
 Default: ['info', 'stat']
-Options: 'info' | 'stat' | 'dbg_timestamp' | 'dbg_violation' | 'dbg_dump_htraces' | 'dbg_dump_ctraces' | 'dbg_dump_traces_unlimited' | 'dbg_executor_raw' | 'dbg_model' | 'dbg_coverage' | 'dbg_generator' | 'dbg_priming'
+Options: 'info' | 'stat' | 'dbg_timestamp' | 'dbg_violation' | 'dbg_dump_htraces' | 'dbg_dump_ctraces' | 'dbg_dump_traces_unlimited' | 'dbg_executor_raw' | 'dbg_model' | 'dbg_coverage' | 'dbg_generator' | 'dbg_priming' | 'dbg_isa_filter'
 ```
 
 This option controls the output:
@@ -104,6 +104,7 @@ This option controls the output:
 * `dbg_coverage` - stores instruction coverage information;
 * `dbg_generator` - prints a list of instructions used to generate test cases;
 * `dbg_priming` - prints information about the priming process; only useful for debugging the priming mechanism itself.
+* `dbg_isa_filter` - when rvzr loads information about the instruction set (normally, from `base.json`), it filters out some of the instructions, either because of the config options provided by the user, or because some instructions are known to cause issues in the model or executor. This debug option prints the list of instructions that were filtered out, along with the reason for filtering them out.
 
 ```yaml
 Name: multiline_output
