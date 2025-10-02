@@ -14,7 +14,7 @@ from rvzr.code_generator import CodeGenerator, Pass, Printer
 from rvzr.sandbox import SandboxLayout, DataArea
 from rvzr.instruction_spec import InstructionSpec
 from rvzr.tc_components.instruction import Instruction, Operand, RegisterOp, FlagsOp, \
-    MemoryOp, ImmediateOp, AgenOp
+    MemoryOp, ImmediateOp, AgenOp, CondOp
 from rvzr.tc_components.test_case_code import TestCaseProgram, BasicBlock, InstructionNode
 
 from .target_desc import ARM64TargetDesc
@@ -40,17 +40,27 @@ class _ARM64Printer(Printer):
         ]
 
     def _instruction_to_str(self, inst: Instruction) -> str:
+        """
+        Override to handle ARM64 conditional operands.
+        """
         if inst.name == "macro":
             return self._macro_to_str(inst)
 
-        operands = ", ".join([self._operand_to_str(op) for op in inst.operands])
+        # Handle conditional operands specially for ARM64
+        cond_op_str = ""
+        operands = list(inst.operands)
+        if operands and isinstance(operands[0], CondOp):
+            cond_op_str = operands[0].value
+            operands = operands[1:]
+
+        operands_str = ", ".join([self._operand_to_str(op) for op in operands])
         if inst.is_instrumentation:
             comment = "// instrumentation"
         elif inst.is_noremove:
             comment = "// noremove"
         else:
             comment = ""
-        return f"{inst.name} {operands} {comment}"
+        return f"{inst.name}{cond_op_str} {operands_str} {comment}"
 
     def _operand_to_str(self, op: Operand) -> str:
         if isinstance(op, (MemoryOp, AgenOp)):
@@ -165,15 +175,15 @@ class _ARM64SandboxPass(Pass):
             address_reg = mem_operand.value
             imm_width = mem_operand.width if mem_operand.width <= 32 else 32
             apply_mask = Instruction("and", is_instrumentation=True) \
-                .add_op(RegisterOp(address_reg, mem_operand.width, True, True)) \
-                .add_op(RegisterOp(address_reg, mem_operand.width, True, True)) \
+                .add_op(RegisterOp(address_reg, mem_operand.width, False, True)) \
+                .add_op(RegisterOp(address_reg, mem_operand.width, True, False)) \
                 .add_op(ImmediateOp(mask, imm_width)) \
                 .add_op(FlagsOp(("w", "", "", "w", "w", "", "", "", "w")), True)
             parent.insert_before(node, apply_mask)
             add_base = Instruction("add", is_instrumentation=True) \
-                .add_op(RegisterOp(address_reg, mem_operand.width, True, True)) \
-                .add_op(RegisterOp(address_reg, mem_operand.width, True, True)) \
-                .add_op(RegisterOp("x20", 64, True, True)) \
+                .add_op(RegisterOp(address_reg, mem_operand.width, False, True)) \
+                .add_op(RegisterOp(address_reg, mem_operand.width, True, False)) \
+                .add_op(RegisterOp("x20", 64, True, False)) \
                 .add_op(FlagsOp(("w", "", "", "w", "w", "", "", "", "w")), True)
             parent.insert_before(node, add_base)
             return
