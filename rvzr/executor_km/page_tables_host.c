@@ -58,8 +58,12 @@ pte_t *get_pte(uint64_t hva)
 
     pmd_t *pmdp = pmd_offset(pudp, hva);
     pmd_t pmd = READ_ONCE(*pmdp);
-    if (pmd_none(pmd) || pmd_bad(pmd)) {
-        PRINT_ERR("get_pte: pmd_none or pmd_bad");
+    if (pmd_none(pmd)) {
+        PRINT_ERR("get_pte: pmd_none");
+        return NULL;
+    }
+    if (pmd_bad(pmd)) {
+        PRINT_ERR("get_pte: pmd_bad");
         return NULL;
     }
 

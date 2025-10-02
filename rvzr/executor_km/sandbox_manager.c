@@ -17,56 +17,140 @@
 
 sandbox_t *sandbox = NULL; // global
 
-static void *_util_n_data_unaligned = NULL;
-static void *util_n_data = NULL;
-static void *code = NULL;
+// Util+Data allocation state (alloc_pages + vmap)
+static struct {
+    void *vaddr_unaligned;    // vmap'd virtual address (unaligned)
+    void *vaddr_aligned;      // aligned to 2-page boundary
+    struct page **page_array; // array of page pointers for vmap
+    int num_pages;            // number of pages allocated
+} util_data = {NULL, NULL, NULL, 0};
 
+static void *code = NULL;
 static size_t old_x_size = 0;
 
-static int allocate_util_and_data(size_t n_actors)
+/// @brief Free util_data allocation (vmap + physical pages)
+static void safe_free_util_data(void)
 {
-    SAFE_FREE(_util_n_data_unaligned);
-
-    // allocate working memory
-    size_t mem_size = sizeof(util_t) + n_actors * sizeof(actor_data_t);
-    _util_n_data_unaligned = CHECKED_MALLOC(mem_size + 0x1000);
-    memset(_util_n_data_unaligned, 0, mem_size);
-
-    // align memory to 2 pages (vmalloc guarantees 1 page alignment)
-    if ((unsigned long)_util_n_data_unaligned % 0x2000 == 0)
-        util_n_data = (sandbox_t *)_util_n_data_unaligned;
-    else
-        util_n_data = (sandbox_t *)((unsigned long)_util_n_data_unaligned + 0x1000);
-
-    return 0;
+    if (util_data.vaddr_unaligned) {
+        vunmap(util_data.vaddr_unaligned);
+        util_data.vaddr_unaligned = NULL;
+        util_data.vaddr_aligned = NULL;
+    }
+    if (util_data.page_array) {
+        int order = get_order(util_data.num_pages * PAGE_SIZE);
+        __free_pages(util_data.page_array[0], order);
+        kfree(util_data.page_array);
+        util_data.page_array = NULL;
+    }
 }
 
-static int allocate_code(size_t n_actors)
+/// @brief Free code allocation (vmalloc)
+static void safe_free_code(void)
 {
-    // release old space for sections
     if (code) {
         set_memory_nx((unsigned long)code, old_x_size);
         SAFE_VFREE(code);
         loaded_test_case_entry = NULL;
     }
+}
 
-    // create new space for sections
-    code = CHECKED_VMALLOC(n_actors * sizeof(actor_code_t));
+/// @brief Initialize sandbox pointers after allocation
+/// @return 0 on success, -ENOMEM on failure
+static int init_sandbox_pointers(void)
+{
+    if (!sandbox) {
+        sandbox = CHECKED_MALLOC(sizeof(sandbox_t));
+    }
+    sandbox->data = (actor_data_t *)((unsigned long)util_data.vaddr_aligned + sizeof(util_t));
+    sandbox->code = (actor_code_t *)code;
+    sandbox->util = (util_t *)util_data.vaddr_aligned;
+    loaded_test_case_entry = code;
+    return 0;
+}
 
-    // initialize
-    reset_code_area();
+/// @brief Allocate memory for the Util and Data areas of the sandbox
+/// @details
+/// Constraints:
+/// 1. Physical Continuity - Prime+Probe attacks require contiguous physical pages for PIPT caches
+/// 2. 4KB Page Tables - Executor must manipulate individual PTEs (impossible with huge pages)
+/// 3. 8KB Alignment - Memory must be aligned to 2-page boundary
+///
+/// Solution: alloc_pages() + vmap()
+/// - cannot use kmalloc: physically contiguous BUT uses huge pages in direct mapping
+/// - cannot use vmalloc: uses 4KB PTEs BUT not physically contiguous
+/// - solution -> alloc_pages + vmap: physically contiguous AND creates new 4KB page tables
+///
+/// @param n_actors Number of actors
+/// @return 0 on success, -ENOMEM on failure
+static int allocate_util_and_data(size_t n_actors)
+{
+    safe_free_util_data();
 
-    // make it executable
-    size_t size_pages = n_actors * sizeof(actor_code_t) / PAGE_SIZE;
-    if (n_actors * sizeof(actor_code_t) % PAGE_SIZE != 0)
-        size_pages++;
-    set_memory_x((unsigned long)code, size_pages);
-    old_x_size = size_pages;
+    // calculate required memory sizes
+    const size_t util_mem_size = sizeof(util_t);
+    const size_t data_mem_size = n_actors * sizeof(actor_data_t);
+    const size_t mem_size = util_mem_size + data_mem_size;
+    size_t alloc_size = mem_size + 0x1000; // add 4KB to ensure we can align to 8KB boundary
+    util_data.num_pages = (alloc_size + PAGE_SIZE - 1) / PAGE_SIZE;
+    int order = get_order(alloc_size);
+
+    // allocate physical pages
+    struct page *page = alloc_pages(GFP_KERNEL | __GFP_ZERO, order);
+    if (!page) {
+        PRINT_ERR("Error allocating util_and_data pages\n");
+        return -ENOMEM;
+    }
+
+    // map the pages into kernel virtual address space
+    util_data.page_array = kmalloc(util_data.num_pages * sizeof(struct page *), GFP_KERNEL);
+    if (!util_data.page_array) {
+        __free_pages(page, order);
+        PRINT_ERR("Error allocating page array\n");
+        return -ENOMEM;
+    }
+
+    for (int i = 0; i < util_data.num_pages; i++) {
+        util_data.page_array[i] = page + i;
+    }
+
+    util_data.vaddr_unaligned =
+        vmap(util_data.page_array, util_data.num_pages, VM_MAP, PAGE_KERNEL);
+    if (!util_data.vaddr_unaligned) {
+        kfree(util_data.page_array);
+        __free_pages(page, order);
+        util_data.page_array = NULL;
+        PRINT_ERR("Error mapping util_and_data pages\n");
+        return -ENOMEM;
+    }
+
+    // Align to 2-page (8KB) boundary
+    unsigned long addr = (unsigned long)util_data.vaddr_unaligned;
+    util_data.vaddr_aligned = (void *)ALIGN(addr, 0x2000);
 
     return 0;
 }
 
-/// @brief Clears out the code from previous executions and fills the area with NOPs
+/// @brief Allocate memory for the Code area of the sandbox
+/// @details
+/// Uses vmalloc (physical continuity not required). Provides 4KB page tables for PTE
+/// manipulation and executable memory support via set_memory_x().
+/// @param n_actors Number of actors (each gets its own code area)
+/// @return 0 on success, error code on failure
+static int allocate_code(size_t n_actors)
+{
+    safe_free_code();
+
+    code = CHECKED_VMALLOC(n_actors * sizeof(actor_code_t));
+    reset_code_area();
+
+    size_t code_size = n_actors * sizeof(actor_code_t);
+    old_x_size = DIV_ROUND_UP(code_size, PAGE_SIZE);
+    set_memory_x((unsigned long)code, old_x_size);
+
+    return 0;
+}
+
+/// @brief Clears out the code area from previous executions and fills the area with NOPs
 /// @param void
 /// @return void
 void reset_code_area(void)
@@ -100,18 +184,12 @@ int allocate_sandbox(void)
         err = allocate_code(n_actors);
         CHECK_ERR("allocate_code");
 
-        // initialize pointers
-        sandbox = CHECKED_MALLOC(sizeof(sandbox_t));
-        sandbox->data = (actor_data_t *)((unsigned long)util_n_data + sizeof(util_t));
-        sandbox->code = (actor_code_t *)code;
-        sandbox->util = (util_t *)util_n_data;
-
-        // point to the main section of the first actor
-        loaded_test_case_entry = code;
+        err = init_sandbox_pointers();
+        CHECK_ERR("init_sandbox_pointers");
     }
 
     // Make sure that everything is property initialized
-    memset(util_n_data, 0, sizeof(util_t) + n_actors * sizeof(actor_data_t));
+    memset(util_data.vaddr_aligned, 0, sizeof(util_t) + n_actors * sizeof(actor_data_t));
 
     err = cache_host_pteps();
     CHECK_ERR("cache_host_pteps");
@@ -134,16 +212,12 @@ int allocate_sandbox(void)
 /// @return number of pages; -1 on error
 int get_sandbox_size_pages(void)
 {
-    if (sandbox == NULL) {
+    if (!sandbox)
         return -1;
-    }
 
-    int n_pages = 0;
-    n_pages += sizeof(util_t) / PAGE_SIZE;
-    n_pages += sizeof(actor_data_t) / PAGE_SIZE * n_actors;
-    n_pages += sizeof(actor_code_t) / PAGE_SIZE * n_actors;
-
-    return n_pages;
+    return DIV_ROUND_UP(sizeof(util_t), PAGE_SIZE) +
+           DIV_ROUND_UP(sizeof(actor_data_t) * n_actors, PAGE_SIZE) +
+           DIV_ROUND_UP(sizeof(actor_code_t) * n_actors, PAGE_SIZE);
 }
 
 /// @brief Sets PTE values for the sandbox based on the current test case configuration
@@ -151,9 +225,7 @@ int get_sandbox_size_pages(void)
 /// @return 0 on success; -1 on error
 int set_sandbox_page_tables(void)
 {
-    int err = 0;
-
-    err = store_orig_host_permissions();
+    int err = store_orig_host_permissions();
     CHECK_ERR("store_orig_host_permissions");
 
     if (test_case->features.includes_user_actors) {
@@ -185,19 +257,14 @@ void restore_faulty_page_permissions(void)
 // =================================================================================================
 int init_sandbox_manager(void)
 {
-    int err = 0;
-    err = allocate_util_and_data(1);
+    int err = allocate_util_and_data(1);
     CHECK_ERR("allocate_util_and_data");
 
     err = allocate_code(1);
     CHECK_ERR("allocate_code");
 
-    // initialize pointers
-    sandbox = CHECKED_MALLOC(sizeof(sandbox_t));
-    sandbox->data = (actor_data_t *)((unsigned long)util_n_data + sizeof(util_t));
-    sandbox->code = (actor_code_t *)code;
-    sandbox->util = (util_t *)util_n_data;
-    loaded_test_case_entry = code;
+    err = init_sandbox_pointers();
+    CHECK_ERR("init_sandbox_pointers");
 
     // ensure that the main_area of the first actor is aligned as expected
     int offset = (unsigned long)sandbox->data[0].main_area % 0x2000;
@@ -226,16 +293,7 @@ int init_sandbox_manager(void)
 
 void free_sandbox_manager(void)
 {
-    SAFE_FREE(_util_n_data_unaligned);
-    util_n_data = NULL;
-
-    if (code) {
-        set_memory_nx((unsigned long)code, old_x_size);
-        SAFE_VFREE(code);
-        loaded_test_case_entry = NULL;
-    }
-
-    // since sandbox manager called allocators, it is responsible for also freeing the memory
-    // note that the below calls are safe even if the corresponding allocations were not made
+    safe_free_util_data();
+    safe_free_code();
     free_guest_page_tables();
 }
