@@ -142,19 +142,19 @@ class FuzzerRoundTest(unittest.TestCase):
         self.mock_asm_parser = MagicMock()
 
         # Create a minimal fuzzer with mocked components
-        with patch('rvzr.fuzzer.factory'):
-            self.fuzzer = Fuzzer.__new__(Fuzzer)
-            self.fuzzer.model = self.mock_model
-            self.fuzzer.executor = self.mock_executor
-            self.fuzzer.arch_model = self.mock_arch_model
-            self.fuzzer.arch_executor = self.mock_arch_executor
-            self.fuzzer.analyser = self.mock_analyser
-            self.fuzzer.code_gen = self.mock_code_gen
-            self.fuzzer.data_gen = self.mock_data_gen
-            self.fuzzer.elf_parser = self.mock_elf_parser
-            self.fuzzer.asm_parser = self.mock_asm_parser
-            self.fuzzer.log = MagicMock()
-            self.fuzzer._work_dir = "/tmp/test"
+        # Using __new__ bypasses __init__, so no factory is called
+        self.fuzzer = Fuzzer.__new__(Fuzzer)
+        self.fuzzer.model = self.mock_model
+        self.fuzzer.executor = self.mock_executor
+        self.fuzzer.arch_model = self.mock_arch_model
+        self.fuzzer.arch_executor = self.mock_arch_executor
+        self.fuzzer.analyser = self.mock_analyser
+        self.fuzzer.code_gen = self.mock_code_gen
+        self.fuzzer.data_gen = self.mock_data_gen
+        self.fuzzer.elf_parser = self.mock_elf_parser
+        self.fuzzer.asm_parser = self.mock_asm_parser
+        self.fuzzer.log = MagicMock()
+        self.fuzzer._work_dir = "/tmp/test"
 
     def tearDown(self) -> None:
         """Restore original config state"""
@@ -303,10 +303,7 @@ class FuzzerRoundTest(unittest.TestCase):
         finally:
             CONF.executor_sample_sizes = orig_sample_sizes
 
-    @patch('rvzr.fuzzer.warning')
-    def test_fuzzing_round_architectural_mismatch_detected(
-        self, mock_warning: MagicMock
-    ) -> None:
+    def test_fuzzing_round_architectural_mismatch_detected(self) -> None:
         # Test detection of architectural mismatches between model and executor"""
         # Temporarily disable priming to simplify test, and set work_dir to None
         # to prevent file writing on architectural mismatch
@@ -334,8 +331,9 @@ class FuzzerRoundTest(unittest.TestCase):
             self.mock_arch_executor.trace_test_case.return_value = arch_htraces
             self.mock_arch_model.trace_test_case.return_value = arch_ctraces
 
-            # Execute
-            result = self.fuzzer.fuzzing_round(self.test_case, self.inputs, [])
+            # Execute - suppress warning by mocking the report method
+            with patch.object(self.fuzzer, '_report_bug_arch'):
+                result = self.fuzzer.fuzzing_round(self.test_case, self.inputs, [])
 
             # Verify: architectural mismatch should filter the violation
             self.assertIsNone(result)
@@ -440,35 +438,32 @@ class FuzzerStartTest(unittest.TestCase):
         CONF.logging_modes = []
         update_logging_after_config_change()
 
-        with patch('rvzr.fuzzer.factory'):
-            self.fuzzer = Fuzzer.__new__(Fuzzer)
-            self.fuzzer.log = MagicMock()
-            self.fuzzer.code_gen = MagicMock()
-            self.fuzzer.data_gen = MagicMock()
-            self.fuzzer.model = MagicMock()
-            self.fuzzer.executor = MagicMock()
-            self.fuzzer.analyser = MagicMock()
-            self.fuzzer._work_dir = "/tmp/test"
-            self.fuzzer._input_paths = []
-            self.fuzzer._existing_test_case = ""
+        # Create minimal fuzzer using __new__ to bypass __init__ and factory
+        self.fuzzer = Fuzzer.__new__(Fuzzer)
+        self.fuzzer.log = MagicMock()
+        self.fuzzer.code_gen = MagicMock()
+        self.fuzzer.data_gen = MagicMock()
+        self.fuzzer.model = MagicMock()
+        self.fuzzer.executor = MagicMock()
+        self.fuzzer.analyser = MagicMock()
+        self.fuzzer._work_dir = "/tmp/test"
+        self.fuzzer._input_paths = []
+        self.fuzzer._existing_test_case = ""
 
-            # Mock generation
-            self.test_case = TestCaseProgram("test.asm")
-            self.fuzzer.code_gen.create_test_case.return_value = self.test_case
+        # Mock generation
+        self.test_case = TestCaseProgram("test.asm")
+        self.fuzzer.code_gen.create_test_case.return_value = self.test_case
 
-            # Mock data generation
-            self.inputs = [InputData(), InputData()]
-            self.fuzzer.data_gen.generate.return_value = self.inputs
+        # Mock data generation
+        self.inputs = [InputData(), InputData()]
+        self.fuzzer.data_gen.generate.return_value = self.inputs
 
     def tearDown(self) -> None:
         CONF.logging_modes = self.orig_logging
         update_logging_after_config_change()
 
-    @patch('rvzr.fuzzer.datetime')
-    def test_start_no_violations_found(self, mock_datetime: MagicMock) -> None:
+    def test_start_no_violations_found(self) -> None:
         # Test start() when no violations are found"""
-        mock_datetime.today.return_value.strftime.return_value = "250101-120000"
-
         # Mock fuzzing_round to return no violations
         with patch.object(self.fuzzer, 'fuzzing_round', return_value=None):
             result = self.fuzzer.start(
@@ -482,11 +477,8 @@ class FuzzerStartTest(unittest.TestCase):
         # Verify
         self.assertFalse(result)
 
-    @patch('rvzr.fuzzer.datetime')
-    def test_start_violation_found_stop(self, mock_datetime: MagicMock) -> None:
+    def test_start_violation_found_stop(self) -> None:
         # Test start() stops after finding first violation when nonstop=False"""
-        mock_datetime.today.return_value.strftime.return_value = "250101-120000"
-
         violation = _mk_violation()
 
         # Mock fuzzing_round to return violation on second iteration
@@ -502,11 +494,8 @@ class FuzzerStartTest(unittest.TestCase):
         # Verify: should stop after violation
         self.assertTrue(result)
 
-    @patch('rvzr.fuzzer.datetime')
-    def test_start_violation_found_nonstop(self, mock_datetime: MagicMock) -> None:
+    def test_start_violation_found_nonstop(self) -> None:
         # Test start() continues after finding violation when nonstop=True"""
-        mock_datetime.today.return_value.strftime.return_value = "250101-120000"
-
         violation = _mk_violation()
 
         # Mock fuzzing_round to return violations multiple times
