@@ -345,7 +345,9 @@ class ELFParser:
         if inst.name == "macro":
             for i in range(1, self._instruction_per_macro):
                 address = instr_addr_map_in_sec[cursor + i]
-                instr_map[section_data["id_"]][address] = Instruction("nop", "BASE-NOP")
+                nop_placeholder = Instruction("nop", "BASE-NOP")
+                nop_placeholder.is_macro_placeholder = True
+                instr_map[section_data["id_"]][address] = nop_placeholder
 
     def _assign_macro_metadata(self, inst: Instruction, sections_data: List[_SectionData],
                                functions_data: List[_FunctionData],

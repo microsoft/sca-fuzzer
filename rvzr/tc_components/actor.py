@@ -115,6 +115,8 @@ def _create_pte_mask(pte_descriptor: _PTEDescriptor, page_properties_to_set: Pag
             set_to_default = random.random() < probability_of_default
             if set_to_default:
                 bit_value = default_value
+            else:
+                bit_value = new_value
 
         # now set the bit in the mask
         bit_value = 1 if bit_value else 0

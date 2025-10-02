@@ -103,7 +103,8 @@ class _Dispatcher:
         self._interpreter.interpret_instruction(address, state)
         self.coverage.add_instruction(state.current_instruction)
 
-    def mem_access_dispatch(self, access: int, address: int, size: int, value: int) -> None:
+    def mem_access_dispatch(self, access: int, address: int, size: int, value: int,
+                            state: ModelExecutionState) -> None:
         """ Call memory access-related callbacks in service classes """
 
         if state.current_instruction.is_macro_placeholder:
@@ -330,7 +331,7 @@ class UnicornModel(Model, ABC):
         """
         self._log.dbg_mem_access(access == UC_HOOK_MEM_WRITE, value, address, size, self,
                                  self.layout)
-        self._dispatcher.mem_access_dispatch(access, address, size, value)
+        self._dispatcher.mem_access_dispatch(access, address, size, value, self.state)
 
     def do_soft_fault(self, errno: int) -> None:
         """

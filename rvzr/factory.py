@@ -122,9 +122,15 @@ _SPECULATORS_GENERIC: Dict[str, Type[speculator_abc.UnicornSpeculator]] = {
     "bpas": speculators_basic.StoreBpasSpeculator,
     "cond-bpas": speculators_basic.X86CondBpasSpeculator,
     "seq-assist": speculators_fault.SequentialAssistSpeculator,
+}
+
+_SPECULATORS_X86: Dict[str, Type[speculator_abc.UnicornSpeculator]] = {
+    **_SPECULATORS_GENERIC,
+    "cond": speculators_basic.X86CondSpeculator,
+    "conditional_br_misprediction": speculators_basic.X86CondSpeculator,
+    "delayed-exception-handling": speculators_fault.X86UnicornDEH,
     "nullinj-fault": speculators_fault.X86UnicornNull,
     "nullinj-assist": speculators_fault.X86UnicornNullAssist,
-    "delayed-exception-handling": speculators_fault.X86UnicornDEH,
     "meltdown": speculators_fault.X86Meltdown,
     "noncanonical": speculators_fault.X86NonCanonicalAddress,
     "vspec-ops-div": speculators_vs.VspecDIVSpeculator,
@@ -136,16 +142,11 @@ _SPECULATORS_GENERIC: Dict[str, Type[speculator_abc.UnicornSpeculator]] = {
     "vspec-all-memory-assists": speculators_vs.VspecAllMemoryAssistsSpeculator,
 }
 
-_SPECULATORS_X86: Dict[str, Type[speculator_abc.UnicornSpeculator]] = {
-    **_SPECULATORS_GENERIC,
-    "cond": speculators_basic.X86CondSpeculator,
-    "conditional_br_misprediction": speculators_basic.X86CondSpeculator,
-}
-
 _SPECULATORS_ARM64: Dict[str, Type[speculator_abc.UnicornSpeculator]] = {
     **_SPECULATORS_GENERIC,
     "cond": speculators_basic.ARM64CondSpeculator,
     "conditional_br_misprediction": speculators_basic.ARM64CondSpeculator,
+    "delayed-exception-handling": speculators_fault.ARMUnicornDEH,
 }
 
 

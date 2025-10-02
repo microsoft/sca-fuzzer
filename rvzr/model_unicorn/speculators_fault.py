@@ -7,7 +7,7 @@ SPDX-License-Identifier: MIT
 
 from __future__ import annotations
 
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Set, Tuple, List, Optional
 from copy import copy
 import re
@@ -15,7 +15,7 @@ import re
 from unicorn import UC_MEM_WRITE
 
 from .speculator_abc import UnicornSpeculator
-from ..tc_components.instruction import RegisterOp, FlagsOp, MemoryOp
+from ..tc_components.instruction import Instruction, RegisterOp, FlagsOp, MemoryOp, ImmediateOp
 
 if TYPE_CHECKING:
     from ..target_desc import TargetDesc
@@ -24,6 +24,9 @@ if TYPE_CHECKING:
     from ..tc_components.actor import ActorID
 
 
+# ==================================================================================================
+# Base class for all fault-based speculators
+# ==================================================================================================
 class FaultSpeculator(UnicornSpeculator, ABC):
     """
     Common set of functionality for all fault-based speculators.
@@ -61,6 +64,9 @@ class FaultSpeculator(UnicornSpeculator, ABC):
         self._model.set_faulty_area_rw(actor_id, org_permissions[0], org_permissions[1])
 
 
+# ==================================================================================================
+# Microcode assists
+# ==================================================================================================
 class SequentialAssistSpeculator(FaultSpeculator):
     """Speculator that simulates sequential handling of memory-based microcode assists"""
 
@@ -82,10 +88,19 @@ class SequentialAssistSpeculator(FaultSpeculator):
         return self._curr_instruction_addr
 
 
-class X86UnicornDEH(FaultSpeculator):
+# ==================================================================================================
+# Simple Out-of-Order Exception Handling
+# ==================================================================================================
+class UnicornDEH(FaultSpeculator, ABC):
     """
-    Contract for delayed exception handling (DEH).
-    Models typical handling of exceptions on out-of-order CPUs
+    Base class for delayed exception handling (DEH) speculators.
+    Models delayed handling in out-of-order CPUs, where an non-data-dependent instructions may
+    be executed before a faulting instruction is retired.
+
+    Example:
+        mov rax, [faulty_addr]  ; load from faulty address (may fault)
+        mov rbx, [non-faulty_addr] ; independent load (may be executed before the fault is handled)
+        mov [some_addr], rax    ; store the loaded value (should be skipped if the load faults)
     """
 
     _dependencies: Set[str]
@@ -99,6 +114,14 @@ class X86UnicornDEH(FaultSpeculator):
         self._errno_that_trigger_speculation = {6, 10, 12, 13, 21}
         self._dependencies = set()
         self._dependency_checkpoints = []
+
+    def _checkpoint(self, next_instruction_addr: int, include_current_inst: bool = True) -> None:
+        self._dependency_checkpoints.append(copy(self._dependencies))
+        return super()._checkpoint(next_instruction_addr, include_current_inst=include_current_inst)
+
+    def rollback(self) -> int:
+        self._dependencies = self._dependency_checkpoints.pop()
+        return super().rollback()
 
     def _speculate_fault(self, errno: int) -> int:
         if not self._fault_triggers_speculation(errno):
@@ -121,6 +144,7 @@ class X86UnicornDEH(FaultSpeculator):
         if self._model.state.is_exit_addr(self._next_instruction_addr):
             return 0  # no need for speculation if we're at the end
 
+        self._arm64_emulate_fault_with_post_increment()
         return self._next_instruction_addr
 
     def _speculate_instruction(self, address: int, size: int) -> None:
@@ -129,10 +153,8 @@ class X86UnicornDEH(FaultSpeculator):
         on a faulting instruction
         """
         # pylint: disable=too-many-branches
-        # pylint: disable=too-many-statements
-        # pylint: disable=too-many-locals
         # FIXME: refactor this method to reduce complexity;
-        # for now, it's left as is, because this contract is not a priority for now
+        # for now, it's left as is, because this contract is not a priority
         super()._speculate_instruction(address, size)
 
         # reset the tracing state if it was changed in the previous instruction
@@ -195,6 +217,45 @@ class X86UnicornDEH(FaultSpeculator):
         for reg in reg_dest_operands:
             self._dependencies.add(reg)
 
+        # Corner cases
+        self._handle_isa_specific_corner_cases(instruction, old_dependencies, reg_dest_operands)
+
+        # special case - many memory operations are implemented as two uops,
+        # and one of them could be expected even if the other is data-dependent
+        # we approximate it by simply not skipping the dependent stores
+        if instruction.has_mem_operand(True) and not is_dependent_addr:
+            return
+
+        # this instruction is dependent on a faulting instruction -> skip it
+        # (i.e., do not trace it)
+        self._prev_tracing_state = self._model.tracer.enable_tracing
+        self._model.tracer.enable_tracing = False
+
+    @abstractmethod
+    def _handle_isa_specific_corner_cases(self, instruction: Instruction,
+                                          old_dependencies: List[str],
+                                          reg_dest_operands: List[str]) -> None:
+        """Handle ISA-specific corner cases in dependency tracking"""
+
+    def _arm64_emulate_fault_with_post_increment(self) -> None:
+        """ Workaround for ARM64 post-incrementing loads/stores that trigger a page fault"""
+
+
+class X86UnicornDEH(UnicornDEH):
+    """
+    x86-64 implementation of delayed exception handling (DEH).
+    Extends the base DEH class with x86-specific corner cases, such as:
+    - cmpxchg does not always taint RAX
+    - exchange instruction swaps dependencies
+    - XADD overrides the src taint with the dest taint
+    - zeroing and reset patterns (e.g., xor rax, rax)
+    """
+
+    def _handle_isa_specific_corner_cases(self, instruction: Instruction,
+                                          old_dependencies: List[str],
+                                          reg_dest_operands: List[str]) -> None:
+        # pylint: disable=too-many-branches
+
         # special case 1 - cmpxchg does not always taint RAX
         name = instruction.name
         if "cmpxchg" in name:
@@ -206,9 +267,10 @@ class X86UnicornDEH(FaultSpeculator):
                 assert flags
                 for flag in flags.get_flags_by_type("write"):
                     self._dependencies.remove(flag)
+            return
 
         # special case 2 - exchange instruction swaps dependencies
-        elif "xchg" in name:
+        if "xchg" in name:
             assert len(instruction.operands) == 2
             op1, op2 = instruction.operands
             if isinstance(op1, RegisterOp):
@@ -223,43 +285,75 @@ class X86UnicornDEH(FaultSpeculator):
                 op2_val = self._target_desc.reg_normalized[op2.value]
                 if op2_val in old_dependencies:
                     self._dependencies.remove(op2_val)
+            return
 
         # special case 3 - XADD overrides the src taint with the dest taint
-        elif "xadd" in name:
+        if "xadd" in name:
             assert len(instruction.operands) == 2
             op1, op2 = instruction.operands
             if (isinstance(op1, MemoryOp)
                     or self._target_desc.reg_normalized[op1.value] not in old_dependencies):
                 self._dependencies.remove(self._target_desc.reg_normalized[op2.value])
+            return
 
         # special case 4 - zeroing and reset patterns
-        elif name in ["sub", "lock sub", "sbb", "lock sbb", "xor", "lock xor", "cmp"]:
+        if name in ["sub", "lock sub", "sbb", "lock sbb", "xor", "lock xor", "cmp"]:
             assert len(instruction.operands) == 2
             op1, op2 = instruction.operands
             if op1.value == op2.value:
                 for reg in reg_dest_operands:
                     self._dependencies.remove(reg)
-
-        # special case - many memory operations are implemented as two uops,
-        # and one of them could be expected even if the other is data-dependent
-        # we approximate it by simply not skipping the dependent stores
-        if instruction.has_mem_operand(True) and not is_dependent_addr:
             return
 
-        # this instruction is dependent on a faulting instruction -> skip it
-        # (i.e., do not trace it)
-        self._prev_tracing_state = self._model.tracer.enable_tracing
-        self._model.tracer.enable_tracing = False
 
-    def _checkpoint(self, next_instruction_addr: int, include_current_inst: bool = True) -> None:
-        self._dependency_checkpoints.append(copy(self._dependencies))
-        return super()._checkpoint(next_instruction_addr, include_current_inst=include_current_inst)
+class ARMUnicornDEH(UnicornDEH):
+    """
+    ARM64 implementation of delayed exception handling (DEH).
+    Currently, there are no known corner cases for ARM64.
+    """
 
-    def rollback(self) -> int:
-        self._dependencies = self._dependency_checkpoints.pop()
-        return super().rollback()
+    def _handle_isa_specific_corner_cases(self, instruction: Instruction,
+                                          old_dependencies: List[str],
+                                          reg_dest_operands: List[str]) -> None:
+        pass  # No known corner cases for ARM yet
+
+    def _arm64_emulate_fault_with_post_increment(self) -> None:
+        """
+        Workaround for ARM64 handling of faults:
+        If a post-incrementing load/store triggers a page fault,
+        the address register is still incremented by the immediate value.
+
+        E.g., if the instruction is `ldr x0, [x1], #8` and it faults,
+        x1 is still speculatively incremented by 8, even though the load did not complete.
+        """
+        instr = self._model.state.current_instruction
+        if "ldr" not in instr.name and "str" not in instr.name:
+            return  # instruction cannot have post-increment
+
+        # check if the instruction has a post-incrementing operand
+        operands = instr.get_all_operands()
+        if not isinstance(operands[-1], ImmediateOp):
+            return
+
+        # find the register being incremented
+        mem_addr_op = operands[-2]
+        assert isinstance(mem_addr_op, MemoryOp)
+        addr_reg = mem_addr_op.get_base_register()
+        if addr_reg is None:
+            return
+
+        # increment the register
+        increment_str = operands[-1].value
+        increment = int(increment_str[1:]) if increment_str.startswith("#") else int(increment_str)
+        uc_reg = self._target_desc.uc_target_desc.reg_str_to_constant[addr_reg.value]
+        curr_value = int(self._emulator.reg_read(uc_reg))  # type: ignore
+        new_value = curr_value + increment
+        self._emulator.reg_write(uc_reg, new_value)
 
 
+# ==================================================================================================
+# Value-injection Speculation
+# ==================================================================================================
 class X86UnicornNull(FaultSpeculator):
     """
     Contract describing zero injection on faults.
