@@ -70,6 +70,8 @@ def _create_pte_mask(pte_descriptor: _PTEDescriptor, page_properties_to_set: Pag
     :return: bitmask representing the PTE properties
     :raises: AssertionError if the properties dictionary is invalid
     """
+    # pylint: disable=too-many-locals  # justification: function is complex but clear
+
     is_randomized = page_properties_to_set['randomized']
 
     # First, translate the architecture-independent properties to architecture-specific ones

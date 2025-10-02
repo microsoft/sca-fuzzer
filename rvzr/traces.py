@@ -672,6 +672,7 @@ class Violation(ContractEqClass):
         Return a string representation of the violation, including the contract and hardware
         traces of all measurements in the violation
         """
+        # pylint: disable=too-many-locals  # justification: the method is clear enough as is
 
         s = "Violation Details:\n"
 
