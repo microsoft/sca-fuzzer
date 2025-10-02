@@ -111,7 +111,6 @@ We use the following branches for graduation:
 
 * `main`: The latest release. This branch should always be stable, and it is the last branch to receive changes.
 * `main-fixes`: Commits that go in the next maintenance release. This branch is created from the last release branch.
-* `pre-release`: Stable commits that go in the next release.
 * `dev`: The development branch. This branch is the first to receive changes.
 
 Commits should be merged upwards:

@@ -54,6 +54,9 @@ def _get_mock_target_desc() -> MagicMock:
     mock_td.page_property_to_pte_bit_name = {
         "user": ("user", False),
     }
+    mock_td.page_property_to_vm_pte_bit_name = {
+        "user": ("user", False),
+    }
     return mock_td
 
 
