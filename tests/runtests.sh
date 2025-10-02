@@ -100,6 +100,8 @@ function core_unit_tests() {
     echo ""
     echo "===== Core Unit Tests ====="
     cd $SCRIPT_DIR/.. || exit
+    python3 -m unittest tests.unit_fuzzer -v
+    echo "-------------"
     python3 -m unittest tests.unit_analyser -v
     echo "-------------"
     python3 -m unittest tests.unit_docs -v

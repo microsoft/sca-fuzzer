@@ -130,8 +130,8 @@ class _ARM646LineParser(AsmLineParser):
                 continue
 
             # match keyword immediate
-            if op_raw in ["sy", "ld", "st"]:
-                if op_spec.type != OT.IMM:
+            if op_spec.type == OT.IMM:
+                if op_raw not in op_spec.values:
                     return False
                 continue
 

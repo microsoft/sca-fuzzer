@@ -34,17 +34,30 @@ def _get_dummy_actor_dict() -> ActorConf:
         'name': 'test_actor',
         'data_properties': {
             'randomized': False,
-            'executable': True
+            'user': True
         },
         'data_ept_properties': {
             'randomized': False,
-            'executable': True,
+            'user': True,
         },
         'observer': False,
         "instruction_blocklist": set(),
         "fault_blocklist": set(),
     }
     return actor_dict
+
+
+def _get_mock_target_desc() -> MagicMock:
+    mock_td = MagicMock()
+    mock_td.pte_bits = {'user': (0, False)}
+    mock_td.vm_pte_bits = {'user': (0, False)}
+    mock_td.page_property_to_pte_bit_name = {
+        "user": ("user", False),
+    }
+    mock_td.page_property_to_vm_pte_bit_name = {
+        "user": ("user", False),
+    }
+    return mock_td
 
 
 class ActorTest(unittest.TestCase):
@@ -54,7 +67,7 @@ class ActorTest(unittest.TestCase):
         actor_dict = _get_dummy_actor_dict()
 
         # Create Actor from dict
-        actor = Actor.from_dict(actor_dict, MagicMock())
+        actor = Actor.from_dict(actor_dict, _get_mock_target_desc())
 
         # Assertions
         self.assertEqual(actor.mode, ActorMode.HOST)
@@ -65,19 +78,19 @@ class ActorTest(unittest.TestCase):
         # Guest/User Actor
         actor_dict['mode'] = 'guest'
         actor_dict['privilege_level'] = 'user'
-        actor = Actor.from_dict(actor_dict, MagicMock())
+        actor = Actor.from_dict(actor_dict, _get_mock_target_desc())
         self.assertEqual(actor.mode, ActorMode.GUEST)
         self.assertEqual(actor.privilege_level, ActorPL.USER)
 
         # Invalid privilege level
         actor_dict['privilege_level'] = 'invalid_pl'
         with self.assertRaises(ValueError):
-            _ = Actor.from_dict(actor_dict, MagicMock())
+            _ = Actor.from_dict(actor_dict, _get_mock_target_desc())
 
         # Invalid mode
         actor_dict['mode'] = 'invalid_mode'
         with self.assertRaises(ValueError):
-            _ = Actor.from_dict(actor_dict, MagicMock())
+            _ = Actor.from_dict(actor_dict, _get_mock_target_desc())
 
     def test_create_main(self) -> None:
         # Call the create_main method
@@ -91,7 +104,7 @@ class ActorTest(unittest.TestCase):
     def test_get_id(self) -> None:
         # Create an Actor instance
         actor_dict = _get_dummy_actor_dict()
-        actor = Actor.from_dict(actor_dict, MagicMock())
+        actor = Actor.from_dict(actor_dict, _get_mock_target_desc())
         section = CodeSection(actor)
 
         # Call get_id without assigning an ElfSection and assert it raises an AssertionError
@@ -107,7 +120,7 @@ class ActorTest(unittest.TestCase):
     def test_is_main(self) -> None:
         actor_dict = _get_dummy_actor_dict()
         actor_dict['name'] = 'main'
-        target_desc = MagicMock()
+        target_desc = _get_mock_target_desc()
 
         main_actor = Actor.from_dict(actor_dict, target_desc)
         self.assertTrue(main_actor.is_main)
@@ -118,27 +131,24 @@ class ActorTest(unittest.TestCase):
 
     def test_pte_constructor(self) -> None:
         actor_dict = _get_dummy_actor_dict()
-        actor_dict['data_properties'] = {'randomized': False, 'executable': True}
-        actor_dict['data_ept_properties'] = {'randomized': False, 'executable': False}
+        actor_dict['data_properties'] = {'randomized': False, 'user': False}
+        actor_dict['data_ept_properties'] = {'randomized': False, 'user': False}
 
         # Mock target_desc
-        target_desc = MagicMock()
-        target_desc.pte_bits = {'non_executable': (0, True)}
-        target_desc.epte_bits = {'executable': (0, False)}
+        target_desc = _get_mock_target_desc()
 
         # Create Actor from dict
         actor = Actor.from_dict(actor_dict, target_desc)
-
         self.assertEqual(actor.data_properties, 0)
         self.assertEqual(actor.data_ept_properties, 0)
 
-        actor_dict['data_properties'] = {'randomized': True, 'executable': True}
-        actor_dict['data_ept_properties'] = {'randomized': True, 'executable': True}
-        random.seed(43)
+        actor_dict['data_properties'] = {'randomized': True, 'user': True}
+        actor_dict['data_ept_properties'] = {'randomized': True, 'user': True}
+        random.seed(52)
 
         actor = Actor.from_dict(actor_dict, target_desc)
         self.assertEqual(actor.data_properties, 1)
-        self.assertEqual(actor.data_ept_properties, 1)
+        self.assertEqual(actor.data_ept_properties, 0)
 
 
 class InstructionSpecTest(unittest.TestCase):

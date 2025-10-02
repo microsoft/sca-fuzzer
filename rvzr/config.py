@@ -18,7 +18,9 @@ from .arch.arm64 import config as arm64_config
 # ==================================================================================================
 # Custom Types
 # ==================================================================================================
-PageConf = Dict[str, bool]
+PagePropertyName = Literal['present', 'writable', 'user', 'write-through', 'cache-disable',
+                           'accessed', 'dirty', 'executable', 'reserved_bit', 'randomized']
+PageConf = Dict[PagePropertyName, bool]
 
 
 class ActorConf(TypedDict):
@@ -173,7 +175,8 @@ class Conf:
     """ instruction_blocklist_append: same as instruction_blocklist, but the list is added
     to the existing blocklist instead of replacing it """
     program_generator_seed: int = 0
-    """ program_generator_seed: seed of the program generator """
+    """ program_generator_seed: seed of the program generator; if set to zero, a random seed
+    will be used """
     program_size: int = 24
     """ program_size: size of generated programs """
     avg_mem_accesses: int = 12
@@ -353,6 +356,7 @@ class Conf:
             "dbg_coverage",
             "dbg_priming",
             "dbg_executor_raw",
+            "dbg_isa_filter",
         ],
     }
 

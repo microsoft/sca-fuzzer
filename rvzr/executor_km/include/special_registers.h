@@ -9,6 +9,10 @@
 #include <linux/types.h>
 #include "hardware_desc.h"
 
+/// @brief Structure to hold the state of special registers (MSRs and other system registers)
+///        that need to be preserved by the kernel module. This ensures that the host system
+///        remains stable despite the potentially unsafe operations performed by the
+///        executor and the sandboxed code.
 typedef struct {
 #if defined(ARCH_X86_64)
     uint64_t cr0;
@@ -21,7 +25,10 @@ typedef struct {
     uint64_t syscfg;
     uint64_t gs_base;
 #elif defined(ARCH_ARM)
-    uint64_t placeholder;
+    uint64_t spsr_el1;
+    uint64_t sp_el0;
+    uint64_t sp_el1;
+    uint64_t elr_el1;
 #endif
 } __attribute__((packed)) special_registers_t;
 

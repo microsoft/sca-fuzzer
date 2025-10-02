@@ -11,7 +11,7 @@
 #include "main.h"
 #include "fault_handler.h"
 #include "hardware_desc.h"
-#include "memory_guest.h"
+#include "page_tables_guest.h"
 #include "special_registers.h"
 #include "svm.h"
 #include "svm_constants.h"

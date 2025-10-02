@@ -116,17 +116,21 @@ _TRACERS: Dict[str, Type[tracer.UnicornTracer]] = {
     "ct-ni": tracer.ActorNITracer,
 }
 
-_SPECULATORS: Dict[str, Type[speculator_abc.UnicornSpeculator]] = {
+_SPECULATORS_GENERIC: Dict[str, Type[speculator_abc.UnicornSpeculator]] = {
     "seq": speculators_basic.SeqSpeculator,
     "no_speculation": speculators_basic.SeqSpeculator,
-    "cond": speculators_basic.X86CondSpeculator,
-    "conditional_br_misprediction": speculators_basic.X86CondSpeculator,
     "bpas": speculators_basic.StoreBpasSpeculator,
     "cond-bpas": speculators_basic.X86CondBpasSpeculator,
     "seq-assist": speculators_fault.SequentialAssistSpeculator,
+}
+
+_SPECULATORS_X86: Dict[str, Type[speculator_abc.UnicornSpeculator]] = {
+    **_SPECULATORS_GENERIC,
+    "cond": speculators_basic.X86CondSpeculator,
+    "conditional_br_misprediction": speculators_basic.X86CondSpeculator,
+    "delayed-exception-handling": speculators_fault.X86UnicornDEH,
     "nullinj-fault": speculators_fault.X86UnicornNull,
     "nullinj-assist": speculators_fault.X86UnicornNullAssist,
-    "delayed-exception-handling": speculators_fault.X86UnicornDEH,
     "meltdown": speculators_fault.X86Meltdown,
     "noncanonical": speculators_fault.X86NonCanonicalAddress,
     "vspec-ops-div": speculators_vs.VspecDIVSpeculator,
@@ -136,6 +140,13 @@ _SPECULATORS: Dict[str, Type[speculator_abc.UnicornSpeculator]] = {
     "vspec-all-div": speculators_vs.VspecAllDIVSpeculator,
     "vspec-all-memory-faults": speculators_vs.VspecAllMemoryFaultsSpeculator,
     "vspec-all-memory-assists": speculators_vs.VspecAllMemoryAssistsSpeculator,
+}
+
+_SPECULATORS_ARM64: Dict[str, Type[speculator_abc.UnicornSpeculator]] = {
+    **_SPECULATORS_GENERIC,
+    "cond": speculators_basic.ARM64CondSpeculator,
+    "conditional_br_misprediction": speculators_basic.ARM64CondSpeculator,
+    "delayed-exception-handling": speculators_fault.ARMUnicornDEH,
 }
 
 
@@ -158,7 +169,7 @@ def _get_x86_unicorn_model(bases: BaseAddrTuple, obs_clause_name: str, exec_clau
                            enable_mismatch_check_mode: bool) -> model.Model:
     target_desc = _TARGET_DESC[CONF.instruction_set]()
     tracer_cls = _TRACERS[obs_clause_name]
-    speculator_cls = _SPECULATORS[exec_clause_name]
+    speculator_cls = _SPECULATORS_X86[exec_clause_name]
     interpreter_cls = interpreter.X86ExtraInterpreter
     model_ = uc_model.X86UnicornModel(bases, target_desc, speculator_cls, tracer_cls,
                                       interpreter_cls, enable_mismatch_check_mode)
@@ -169,7 +180,7 @@ def _get_arm64_unicorn_model(bases: BaseAddrTuple, obs_clause_name: str, exec_cl
                              enable_mismatch_check_mode: bool) -> model.Model:
     target_desc = _TARGET_DESC[CONF.instruction_set]()
     tracer_cls = _TRACERS[obs_clause_name]
-    speculator_cls = _SPECULATORS[exec_clause_name]
+    speculator_cls = _SPECULATORS_ARM64[exec_clause_name]
     interpreter_cls = interpreter.ARMExtraInterpreter
     model_ = uc_model.ARM64UnicornModel(bases, target_desc, speculator_cls, tracer_cls,
                                         interpreter_cls, enable_mismatch_check_mode)

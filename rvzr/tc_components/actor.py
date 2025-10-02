@@ -10,14 +10,19 @@ from typing import Dict, Tuple, Final, Optional, TYPE_CHECKING
 from enum import Enum
 import random
 
+from ..target_desc import TargetDesc, PTEBitName, PTEBitOffset
+
 if TYPE_CHECKING:
-    from ..target_desc import TargetDesc
-    from ..config import PageConf, ActorConf
+    from ..config import PageConf, PagePropertyName, ActorConf
     from .test_case_code import CodeSection
+
+    _PTEBitValue = bool
+    _PTEDescriptor = Dict[PTEBitName, Tuple[PTEBitOffset, _PTEBitValue]]
+    _PropertyMap = Dict[PagePropertyName, Tuple[PTEBitName, bool]]
 
 ActorID = int
 ActorName = str
-PageProperties = int
+PTEMask = int
 
 
 class ActorMode(Enum):
@@ -32,62 +37,106 @@ class ActorPL(Enum):
     USER = 1
 
 
-def _pte_properties_to_mask(properties: PageConf,
-                            def_bits_dict: Dict[str, Tuple[int, bool]]) -> PageProperties:
+# ==================================================================================================
+# Helper Functions to manage actor data properties
+# ==================================================================================================
+def _create_pte_mask(pte_descriptor: _PTEDescriptor, page_properties_to_set: PageConf,
+                     page_property_to_pte_bit_name: _PropertyMap) -> PTEMask:
     """
-    Convert a dictionary of PTE properties to a bitmask, later used to set the attributes
-    of faulty pages in the executor.
-    If properties['randomized'] is set to True, each bit has a chance of retaining its
-    default value. Otherwise, the mask is created with the exact values from the dictionary.
+    Create an architecture-specific page table entry (PTE) bitmask based on the actor's
+    architecture-independent data properties. This bitmask is to be used by the executor
+    and the model to set page table properties of actors.
 
-    :param properties: dictionary of PTE properties
-    :param def_bits_dict: dictionary of default values for PTE bits
+    The function takes a dictionary `pte_descriptor` that describes each bit of the PTE for
+    the target architecture. Each entry in the dictionary maps a bit name to a tuple containing
+    the bit's offset in the PTE and its default value.
+
+    The function modifies the default values based on the `page_properties_to_set` dictionary,
+    which specifies the desired properties for the page table entry (this typically originates
+    from config.yaml).
+
+    As the names of the properties in `page_properties_to_set` may differ from the names used in
+    the `pte_descriptor`, the function uses the `page_property_to_pte_bit_name` mapping to
+    translate between the two.
+
+    Optionally, if `page_properties_to_set['randomized']` is True, the function introduces
+    randomness in the bitmask generation. Each bit has a chance of being set to its default
+    value, with the probability proportional to the number of bits that differ from their
+    default values.
+
+    :param pte_descriptor: dictionary of default values for PTE bits
+    :param page_properties_to_set: dictionary of page properties to set
+    :param page_property_to_pte_bit_name: mapping from property names to PTE bit names
     :return: bitmask representing the PTE properties
     :raises: AssertionError if the properties dictionary is invalid
     """
+    # pylint: disable=too-many-locals  # justification: function is complex but clear
 
-    # calculate the probability of a bit being set to its default value
+    is_randomized = page_properties_to_set['randomized']
+
+    # First, translate the architecture-independent properties to architecture-specific ones
+    arch_specific_properties: Dict[PTEBitName, bool] = {}
+    for property_name, value in page_properties_to_set.items():
+        if property_name == 'randomized':
+            continue
+        assert property_name in page_property_to_pte_bit_name, \
+            f"Actor data property {property_name} is not supported on this architecture"
+        bit_name, is_inverted = page_property_to_pte_bit_name[property_name]
+        if is_inverted:
+            value = not value
+        arch_specific_properties[bit_name] = value
+
+    # If randomization is requested, calculate the probability of a bit being set to default value
     probability_of_default = 0.0
-    if properties['randomized']:
+    if is_randomized:
+        # calculate the number of non-default bits
         count_non_default = 0
-        for bit_name in def_bits_dict:
-            # transform non_executable to executable
-            if bit_name == "non_executable":
-                p_value = not properties["executable"]
-            else:
-                p_value = properties[bit_name]
-
-            if def_bits_dict[bit_name][1] != p_value:
+        for bit_name in pte_descriptor:
+            if pte_descriptor[bit_name][1] != arch_specific_properties[bit_name]:
                 count_non_default += 1
-        probability_of_default = count_non_default / len(properties)
+
+        # the probability is proportional to the number of non-default bits
+        # we use a formula that maps the probability in the range of roughly [0.5, 0.8] to
+        # avoid having too low or too high probabilities
+        a = count_non_default
+        b = len(pte_descriptor)
+        probability_of_default = (a / (a + b)) * 0.5 + 0.5
 
     # create the mask
-    mask: PageProperties = 0
-    for bit_name in def_bits_dict:
-        bit_offset, default_value = def_bits_dict[bit_name]
+    mask: PTEMask = 0
+    for bit_name, new_value in arch_specific_properties.items():
+        # get the bit offset and default value from the PTE descriptor
+        bit_offset, default_value = pte_descriptor[bit_name]
 
-        # transform non_executable to executable
-        if bit_name == "non_executable":
-            p_value = not properties["executable"]
+        # The new value of the bit is either directly taken from the properties dictionary,
+        # or it is randomly set to the default value based on the probability calculated above.
+        bit_value: int
+        if not is_randomized or new_value == default_value:
+            bit_value = new_value
         else:
-            p_value = properties[bit_name]
+            set_to_default = random.random() < probability_of_default
+            if set_to_default:
+                bit_value = default_value
+            else:
+                bit_value = new_value
 
-        if random.random() < probability_of_default:
-            p_value = default_value
-
-        bit_value = 1 if p_value else 0
+        # now set the bit in the mask
+        bit_value = 1 if bit_value else 0
         mask |= bit_value << bit_offset
     return mask
 
 
+# ==================================================================================================
+# Actor Class
+# ==================================================================================================
 class Actor:
     """ Class representing an actor in a test case. """
 
     mode: Final[ActorMode]
     privilege_level: Final[ActorPL]
     name: Final[ActorName]
-    data_properties: Final[PageProperties]
-    data_ept_properties: Final[PageProperties]
+    data_properties: Final[PTEMask]
+    data_ept_properties: Final[PTEMask]
     observer: Final[bool]
     is_main: Final[bool]
 
@@ -100,8 +149,8 @@ class Actor:
                  mode: ActorMode,
                  pl: ActorPL,
                  name: ActorName,
-                 data_properties: PageProperties = 0,
-                 data_ept_properties: PageProperties = 0,
+                 data_properties: PTEMask = 0,
+                 data_ept_properties: PTEMask = 0,
                  is_observer: bool = False) -> None:
         self.mode = mode
         self.privilege_level = pl
@@ -137,10 +186,16 @@ class Actor:
             raise ValueError(f"Invalid actor privilege level: {actor_dict['privilege_level']}")
 
         # PTE and EPTE properties
-        data_properties = _pte_properties_to_mask(actor_dict["data_properties"],
-                                                  target_desc.pte_bits)
-        data_ept_properties = _pte_properties_to_mask(actor_dict["data_ept_properties"],
-                                                      target_desc.epte_bits)
+        data_properties = _create_pte_mask(
+            target_desc.pte_bits,
+            actor_dict["data_properties"],
+            target_desc.page_property_to_pte_bit_name,
+        )
+        data_ept_properties = _create_pte_mask(
+            target_desc.vm_pte_bits,
+            actor_dict["data_ept_properties"],
+            target_desc.page_property_to_vm_pte_bit_name,
+        )
 
         # create the actor
         return Actor(

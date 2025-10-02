@@ -188,6 +188,8 @@ class _RoundManager:
                 self.fuzzer.log.sample_size_increase(sample_size)
                 self.conf.executor_n_reps = sample_size - len(self.htraces[0])
                 self._normal_stage()
+                if not self.violations:
+                    return
             return
 
         if stage == "priming_large":
@@ -217,6 +219,8 @@ class _RoundManager:
             return
         if len(self.org_inputs) > 0:
             self._check_violations()
+            if not self.violations:
+                return
             self._update_ignore_list()
 
     def _boost_inputs(self) -> None:
@@ -562,12 +566,12 @@ class Fuzzer:
         """
         # pylint: disable=too-many-return-statements
 
+        # Initialize the round manager and load the test case
+        round_manager = _RoundManager(self, test_case, inputs)
+
         # If a list of ignored inputs is provided, set it in the executor
         if starting_ignore_list:
             self.executor.set_ignore_list(starting_ignore_list)
-
-        # Initialize the round manager and load the test case
-        round_manager = _RoundManager(self, test_case, inputs)
 
         # 1. Fast path: Collect traces with minimal nesting and repetitions
         round_manager.execute_stage("fast")
@@ -813,13 +817,13 @@ class Fuzzer:
 
                 if actor.mode != ActorMode.GUEST:
                     continue
-                epte_fields = []
-                for field in target_desc.epte_bits:
-                    offset, default = target_desc.epte_bits[field]
+                vm_pte_fields = []
+                for field in target_desc.vm_pte_bits:
+                    offset, default = target_desc.vm_pte_bits[field]
                     value = bool(actor.data_ept_properties & (1 << offset))
                     if value != default:
-                        epte_fields.append(f"{field}={value}")
-                f.write(f"    * EPTE: {'; '.join(epte_fields)}\n")
+                        vm_pte_fields.append(f"{field}={value}")
+                f.write(f"    * EPTE: {'; '.join(vm_pte_fields)}\n")
 
             f.write("\n## Counterexample Inputs\n")
             for m in violation.measurements:

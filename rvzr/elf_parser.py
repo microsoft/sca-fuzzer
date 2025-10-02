@@ -295,8 +295,10 @@ class ELFParser:
                         cursor += self._instruction_per_macro
 
         # Fixup: the last instruction in .data.main is the test case exit, and it must map to a NOP
-        instruction_map[0][elf_data["exit_addr"]] = \
-            Instruction("nop", "BASE-NOP", is_instrumentation=True)
+        exit_nop = Instruction("nop", "BASE-NOP", is_instrumentation=True)
+        instr_addr_map["main"].append(elf_data["exit_addr"])
+        self._assign_instruction_metadata(exit_nop, instr_addr_map, len(instruction_map[0]),
+                                          sorted_sections[0], instruction_map)
 
         # Sort symbols in the symbol table by section id and offset within the section
         symbol_table.sort(key=lambda x: (x.sid, x.offset))
@@ -343,7 +345,9 @@ class ELFParser:
         if inst.name == "macro":
             for i in range(1, self._instruction_per_macro):
                 address = instr_addr_map_in_sec[cursor + i]
-                instr_map[section_data["id_"]][address] = Instruction("nop", "BASE-NOP")
+                nop_placeholder = Instruction("nop", "BASE-NOP")
+                nop_placeholder.is_macro_placeholder = True
+                instr_map[section_data["id_"]][address] = nop_placeholder
 
     def _assign_macro_metadata(self, inst: Instruction, sections_data: List[_SectionData],
                                functions_data: List[_FunctionData],

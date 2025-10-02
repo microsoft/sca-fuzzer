@@ -13,8 +13,8 @@
 #include "sandbox_manager.h"
 #include "shortcuts.h"
 
-#include "../x86/memory_guest.h"
-#include "../x86/page_tables_common.h"
+#include "page_tables_common.h"
+#include "page_tables_guest.h"
 
 #define INIT_PTE(PTE, PADDR, P, W, US, PWT, PCD, XD, A)                                            \
     {                                                                                              \
@@ -266,7 +266,7 @@ static int set_guest_page_tables(void)
 }
 
 /// @brief Map sandbox_t from host memory into the guest memory of each guest actor, according to
-/// the layout defined in guest_memory_t (see memory_guest.h), with the base address equal to
+/// the layout defined in guest_memory_t (see page_tables_guest.h), with the base address equal to
 /// GUEST_MEMORY_START
 /// @param void
 /// @return 0 on success, -1 on failure

@@ -27,8 +27,8 @@ typedef struct {
 extern vector_table_t outer_vector_table;
 extern vector_table_t inner_vector_table;
 
-uint32_t handled_faults = 0; // global
-char *fault_handler = NULL;  // global
+uint32_t handled_faults = 0;  // global
+char *fault_handler = NULL;   // global
 uint64_t is_nested_fault = 0; // shared with exception.S
 
 vector_table_t *orig_vector_table_ptr = NULL;
@@ -58,6 +58,7 @@ int set_outer_fault_handlers(void)
     vbar_el1_write(&outer_vector_table);
     return 0;
 }
+
 int unset_outer_fault_handlers(void)
 {
     // Restore the original vector table

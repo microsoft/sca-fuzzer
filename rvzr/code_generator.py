@@ -288,8 +288,8 @@ class CodeGenerator(ABC):
         :param seed: The seed value
         """
         if seed == 0:
-            self._state = random.randint(1, 1000000)
-            inform("prog_gen", f"Setting program_generator_seed to random value: {self._state}")
+            seed = random.randint(1, 1000000)
+            inform("prog_gen", f"Setting program_generator_seed to random value: {seed}")
         self._state = seed
         random.seed(self._state)
 

@@ -12,6 +12,7 @@ from typing_extensions import get_args
 
 from .instruction_spec import OT, XOT, OperandSpec, InstructionSpec
 from .config import CONF
+from .logs import ISALogger
 
 _OT_STR_TO_ENUM = {
     "REG": OT.REG,
@@ -35,6 +36,7 @@ class InstructionSet:
 
     instructions: List[InstructionSpec]
     instructions_unfiltered: List[InstructionSpec]
+    logger: ISALogger
 
     has_unconditional_branch: bool = False
     has_conditional_branch: bool = False
@@ -63,7 +65,7 @@ class InstructionSet:
         if CONF.instruction_set == "x86-64":
             return InstructionSpec("ret", "BASE-RET", is_control_flow=True)
         if CONF.instruction_set == "arm64":
-            return InstructionSpec("ret", "BASE-RET", is_control_flow=True)
+            return InstructionSpec("ret", "general-ret", is_control_flow=True)
         raise NotImplementedError(f"Unsupported instruction set: {CONF.instruction_set}")
 
     def get_unconditional_jump_spec(self) -> InstructionSpec:
@@ -76,7 +78,7 @@ class InstructionSet:
             spec.operands.append(OperandSpec([], OT.LABEL, src=True, dest=False, width=64))
             return spec
         if CONF.instruction_set == "arm64":
-            spec = InstructionSpec("b", "BASE-UNCOND_BR", is_control_flow=True)
+            spec = InstructionSpec("b", "general-uncond_branch", is_control_flow=True)
             spec.operands.append(OperandSpec([], OT.LABEL, src=True, dest=False, width=64))
             return spec
         raise NotImplementedError(f"Unsupported instruction set: {CONF.instruction_set}")
@@ -145,14 +147,17 @@ def _reduce(isa: InstructionSet, include_categories: Optional[List[str]]) -> Non
             return True
 
         if include_categories and spec.category not in include_categories:
+            logger.dbg_dump_filtering_reason(spec, "category not in include_categories")
             return False
 
         if spec.name in CONF.instruction_blocklist:
+            logger.dbg_dump_filtering_reason(spec, "in instruction_blocklist")
             return False
 
         for operand in spec.operands:
             if operand.type == OT.MEM and operand.values \
                     and operand.values[0] in register_blocklist:
+                logger.dbg_dump_filtering_reason(spec, "mem operand uses blocked register")
                 return False
 
         # FP SIMD is not supported
@@ -161,20 +166,26 @@ def _reduce(isa: InstructionSet, include_categories: Optional[List[str]]) -> Non
                 continue
             assert operand.xtype in get_args(XOT), f"Unknown xtype value: {operand.xtype}"
             if operand.xtype in _FP_XOT or operand.xtype in _BFP_XOT:
+                logger.dbg_dump_filtering_reason(spec, "uses unsupported FP/SIMD registers")
                 return False
 
         for implicit_operand in spec.implicit_operands:
             assert implicit_operand.type != OT.LABEL  # I know no such instructions
             if implicit_operand.type == OT.MEM \
                     and implicit_operand.values[0] in register_blocklist:
+                logger.dbg_dump_filtering_reason(spec, "implicit mem operand uses blocked register")
                 return False
 
             if implicit_operand.type == OT.REG \
                     and implicit_operand.values[0] in register_blocklist:
                 assert len(implicit_operand.values) == 1
+                logger.dbg_dump_filtering_reason(spec, "implicit reg operand uses blocked register")
                 return False
         return True
 
+    logger = ISALogger()
+
+    # Identify which registers should not be used
     register_blocklist = set(CONF.register_blocklist) - set(CONF.register_allowlist)
 
     # Remove unsupported instructions
@@ -221,7 +232,7 @@ def _set_isa_properties(isa: InstructionSet) -> None:
     """
     for inst in isa.instructions:
         if inst.is_control_flow:
-            if inst.category == "BASE-UNCOND_BR":
+            if inst.category in ["BASE-UNCOND_BR", "general-uncond_branch"]:
                 isa.has_unconditional_branch = True
             else:
                 isa.has_conditional_branch = True

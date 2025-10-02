@@ -5,24 +5,18 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 
-import subprocess
-
-from rvzr.executor import Executor
+from rvzr.executor import Executor, km_write
 from rvzr.config import CONF, ConfigException
 from rvzr.target_desc import TargetDesc
 
 
-def _km_write(value: str, path: str) -> None:
-    subprocess.run(f"echo -n {value} > {path}", shell=True, check=True)
-
-
 def _set_x86_common_features() -> None:
-    _km_write("1" if getattr(CONF, 'x86_executor_enable_ssbp_patch') else "0",
-              "/sys/rvzr_executor/enable_ssbp_patch")
-    _km_write("1" if getattr(CONF, 'x86_executor_enable_prefetcher') else "0",
-              "/sys/rvzr_executor/enable_prefetcher")
-    _km_write("1" if getattr(CONF, 'x86_enable_hpa_gpa_collisions') else "0",
-              "/sys/rvzr_executor/enable_hpa_gpa_collisions")
+    km_write("1" if getattr(CONF, 'x86_executor_enable_ssbp_patch') else "0",
+             "/sys/rvzr_executor/enable_ssbp_patch")
+    km_write("1" if getattr(CONF, 'x86_executor_enable_prefetcher') else "0",
+             "/sys/rvzr_executor/enable_prefetcher")
+    km_write("1" if getattr(CONF, 'x86_enable_hpa_gpa_collisions') else "0",
+             "/sys/rvzr_executor/enable_hpa_gpa_collisions")
 
 
 class X86IntelExecutor(Executor):
@@ -40,7 +34,7 @@ class X86IntelExecutor(Executor):
         _set_x86_common_features()
 
         handled_faults = CONF._handled_faults  # pylint: disable=protected-access  # FIXME
-        _km_write("1" if "BR" in handled_faults else "0", "/sys/rvzr_executor/enable_mpx")
+        km_write("1" if "BR" in handled_faults else "0", "/sys/rvzr_executor/enable_mpx")
 
 
 class X86AMDExecutor(Executor):

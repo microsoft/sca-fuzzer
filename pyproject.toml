@@ -16,7 +16,8 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "unicorn==1.0.3",
+    "unicorn==1.0.3; platform_machine == 'x86_64'",
+    "unicorn; platform_machine == 'aarch64'",
     "pyyaml",
     "types-pyyaml",
     "numpy",

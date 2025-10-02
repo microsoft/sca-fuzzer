@@ -91,6 +91,11 @@ class _Dispatcher:
     def instruction_dispatch(self, address: int, size: int, _: UnicornModel,
                              state: ModelExecutionState) -> None:
         """ Call instruction-related callbacks in service classes """
+
+        if state.current_instruction.is_macro_placeholder:
+            # Skip macro placeholders as they are not real instructions
+            return
+
         # NOTE: the order of the following calls is important
         self._taint_tracker.track_instruction(state.current_instruction)
         self._speculator.handle_instruction(address, size)
@@ -98,13 +103,19 @@ class _Dispatcher:
         self._interpreter.interpret_instruction(address, state)
         self.coverage.add_instruction(state.current_instruction)
 
-    def mem_access_dispatch(self, access: int, address: int, size: int, value: int) -> None:
+    def mem_access_dispatch(self, access: int, address: int, size: int, value: int,
+                            state: ModelExecutionState) -> None:
         """ Call memory access-related callbacks in service classes """
+
+        if state.current_instruction.is_macro_placeholder:
+            # Skip macro placeholders as they are not real instructions
+            return
+
         # NOTE: the order of the following calls is important
         self._taint_tracker.track_memory_access(address, size, access == UC_MEM_WRITE)
         self._speculator.handle_mem_access(access, address, size, value)
         self._tracer.observe_mem_access(access, address, size, value)
-        self._interpreter.interpret_mem_access(address)
+        self._interpreter.interpret_mem_access(access, address, size, value)
 
 
 def _instruction_hook(_: Uc, address: int, size: int, model: UnicornModel) -> None:
@@ -253,9 +264,9 @@ class UnicornModel(Model, ABC):
         # Allocate memory and write the binary
         # Note: the data will be written later, by the _load_input method
         try:
-            self.emulator.mem_map(self.layout.code_start, self.layout.code_size)
-            self.emulator.mem_map(self.layout.data_start, self.layout.data_size)
-            self.emulator.mem_write(self.layout.code_start, code)
+            self.emulator.mem_map(self.layout.code_start(), self.layout.code_size)
+            self.emulator.mem_map(self.layout.data_start(), self.layout.data_size)
+            self.emulator.mem_write(self.layout.code_start(), code)
         except UcError as e:
             error(f"[UnicornModel:load_test_case] {e}")
 
@@ -318,8 +329,9 @@ class UnicornModel(Model, ABC):
         """
         Callback function called when Unicorn accesses memory.
         """
-        self._log.dbg_mem_access(address, value, address, size, self, self.layout)
-        self._dispatcher.mem_access_dispatch(access, address, size, value)
+        self._log.dbg_mem_access(access == UC_HOOK_MEM_WRITE, value, address, size, self,
+                                 self.layout)
+        self._dispatcher.mem_access_dispatch(access, address, size, value, self.state)
 
     def do_soft_fault(self, errno: int) -> None:
         """
@@ -403,12 +415,13 @@ class UnicornModel(Model, ABC):
             `docs/assets/unicorn-model-state-machine.drawio.png`.
 
         """
-        pc = self.layout.code_start
+        code_start = self.layout.code_start()
+        pc = code_start
         while True:
             self.state.reset_after_em_stop(pc)
 
             # Handle re-entries after faults and rollbacks
-            if pc != self.layout.code_start:
+            if pc != code_start:
                 in_speculation = self.speculator.in_speculation()
 
                 # When entering a new loop iterations, there are the following options:
@@ -433,7 +446,7 @@ class UnicornModel(Model, ABC):
 
             # Execute the test case
             try:
-                self.emulator.emu_start(pc, self.layout.code_end, timeout=10 * uc.UC_SECOND_SCALE)
+                self.emulator.emu_start(pc, self.layout.code_end(), timeout=10 * uc.UC_SECOND_SCALE)
             except UcError as e:
                 self.state.pending_fault = int(e.errno)  # type: ignore  # missing type annotation
 
@@ -721,8 +734,9 @@ class ARM64UnicornModel(UnicornModel):
 
         # Initialize memory for each actor:
         n_actors = self.state.current_test_case().n_actors()
+        init_gpr: List[np.uint64]
         for actor_id in range(n_actors):
-            input_fragment = input_[actor_id]
+            input_fragment = input_[actor_id].copy()
 
             # - initialize overflows with zeroes
             write_area(DataArea.OVERFLOW_PAD, actor_id, self.overflow_pad_values)
@@ -742,16 +756,17 @@ class ARM64UnicornModel(UnicornModel):
             # - SIMD
             write_area(DataArea.SIMD, actor_id, input_fragment['simd'].tobytes())
 
-        # Registers are initialized with the main actor's input
-        input_fragment = input_[0]
+            # Save the GPR area of the main actor as it will be used to initialize registers
+            if actor_id == 0:
+                init_gpr = input_fragment['gpr']
 
         # - initialize GPRs
         value: np.uint64
-        for i, value in enumerate(input_fragment['gpr']):
+        for i, value in enumerate(init_gpr):
             em.reg_write(regs[i], int(value))
 
         # similarly to above, patch reg. values
-        em.reg_write(self._uc_target_desc.flags_register, int(input_fragment['gpr'][6]))
+        em.reg_write(self._uc_target_desc.flags_register, int(init_gpr[6]))
         em.reg_write(self._uc_target_desc.sp_register,
                      self.layout.get_data_addr(DataArea.RSP_INIT, 0))
         em.reg_write(self._uc_target_desc.actor_base_register,

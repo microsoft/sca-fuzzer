@@ -6,13 +6,13 @@ SPDX-License-Identifier: MIT
 """
 
 from enum import Enum
-from typing import Any, Final, List, Literal, Union
+from typing import Any, Final, List, Literal, Union, cast
 from io import BufferedReader
 import sys
 import os
 
 from cffi import FFI
-from typing_extensions import get_args, cast, assert_never
+from typing_extensions import get_args, assert_never
 
 _MarkerType = Literal["T", "D"]
 

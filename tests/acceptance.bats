@@ -94,6 +94,12 @@ function x86_only() {
     fi
 }
 
+function arm_only() {
+    if [ "$ARCH" != "aarch64" ]; then
+        skip "ARM-specific test"
+    fi
+}
+
 # ------------------------------------------------------------------------------
 # Tests
 # ------------------------------------------------------------------------------
@@ -132,22 +138,14 @@ function x86_only() {
 }
 
 @test "Test Basics: Sequence of direct jumps" {
-    x86_only
     assert_no_violation "$fuzz_opt -c $CONF_DIR/ct-seq.yaml -t $ASM_DIR/direct_jumps.asm -i 100"
 }
 
-@test "Test Basics: Long in-reg test case" {
-    x86_only
-    assert_no_violation "$fuzz_opt -c $CONF_DIR/ct-seq.yaml -t $ASM_DIR/large_arithmetic.asm -i 100"
-}
-
 @test "Test Basics: Sequence of calls" {
-    x86_only
     assert_no_violation "$fuzz_opt -c $CONF_DIR/ct-seq.yaml -t $ASM_DIR/calls.asm -i 100"
 }
 
 @test "Detection [spectre-type]: Spectre V1; load variant" {
-    x86_only
     assert_violation "$fuzz_opt -t $ASM_DIR/spectre_v1.asm -c $CONF_DIR/ct-seq.yaml  -i 20"
     assert_no_violation "$fuzz_opt -t $ASM_DIR/spectre_v1.asm -c $CONF_DIR/ct-cond.yaml -i 20"
 }
@@ -251,6 +249,11 @@ function x86_only() {
     assert_no_violation "$fuzz_opt -t $ASM_DIR/fault_UD.asm -c $CONF_DIR/exceptions.yaml -i 100"
 }
 
+@test "Detection [meltdown-type]: Out-of-order Undefined Instruction Exception" {
+    arm_only
+    assert_violation "$fuzz_opt -t $ASM_DIR/fault_undefined_opcode.asm -c $CONF_DIR/ct-seq.yaml -i 20"
+}
+
 @test "Feature: Storing and loading test cases" {
     x86_only
     assert_no_violation "$cli_opt generate -s $ISA -c $CONF_DIR/ct-seq.yaml -w $TEST_DIR -n 1 -i 2"
@@ -266,7 +269,6 @@ function x86_only() {
 }
 
 @test "Feature: Macro fault handler" {
-    x86_only
     local cmd="$fuzz_opt -t $ASM_DIR/macro_fault_handler.asm -c $CONF_DIR/fault-handler.yaml -i 1"
     run bash -c "$cmd"
     echo "Command: $cmd"

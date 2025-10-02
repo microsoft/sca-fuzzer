@@ -303,7 +303,7 @@ class _AsmPatcher:
         self._add_default_measurements(patched_asm_file)
 
     def _is_instruction(self, line: str) -> bool:
-        return line != '' and line[0] != '#' \
+        return line != '' and line[0] not in ["#", "/"] \
             and (line[0] != '.' or line[:4] == ".bcd"
                  or line[:5] in [".byte", ".long", ".quad"] or line[:6] == '.macro'
                  or line[6:] in [".value", ".2byte", ".4byte", ".8byte"])
@@ -659,7 +659,7 @@ class AsmParser(ABC):
         self._connect_control_flow(test_case)
 
         # Handle empty and trivial assembly files
-        if len(test_case) == 1 and len(test_case[0]) == 1:
+        if len(test_case) == 1 and len(test_case[0]) == 0 and len(test_case[0][0]) == 0:
             self._handle_empty_test_case(test_case)
 
         # Perform final correctness checks

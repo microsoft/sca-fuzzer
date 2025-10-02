@@ -23,7 +23,7 @@ typedef struct {
 
 extern sandbox_pteps_t *sandbox_pteps;
 
-pte_t *get_pte(uint64_t address);
+pte_t *get_pte(uint64_t hva);
 
 int cache_host_pteps(void);
 int store_orig_host_permissions(void);

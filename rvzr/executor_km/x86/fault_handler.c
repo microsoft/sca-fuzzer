@@ -112,7 +112,7 @@ static void idt_set_custom_handlers(gate_desc *idt, struct desc_ptr *idtr, void 
 int set_outer_fault_handlers(void)
 {
     ASSERT(pre_bubble_rsp != 0, "set_outer_fault_handlers");
-    sandbox->util->nested_fault = 0;
+    sandbox->util->vars.nested_fault = 0;
     native_sidt(&orig_idtr); // preserve original IDT
     idt_set_custom_handlers(bubble_idt, &bubble_idtr, run_experiment_handler,
                             run_experiment_handlers);
@@ -129,7 +129,7 @@ int set_inner_fault_handlers(void)
 {
     ASSERT(bubble_idtr.address != 0, "set_test_case_idt");
     idt_set_custom_handlers(test_case_idt, &test_case_idtr, fault_handler, fallback_handlers);
-    sandbox->util->nested_fault = 0;
+    sandbox->util->vars.nested_fault = 0;
     return 0;
 }
 
@@ -262,7 +262,7 @@ __attribute__((unused)) void fallback_handler_wrapper(void)
         ".fallback_handler_end:\n"
 
         : [util_base] "=m"(sandbox->util),
-          [nested_flag] "+m"(sandbox->util->nested_fault),
+          [nested_flag] "+m"(sandbox->util->vars.nested_fault),
           [fault_data] "=m"(fault_data[0])
         : [recover_orig_state] "r"(&recover_orig_state)
         : "rax", "rbx", "rcx", "r10", "r11", "r12", "r13", "r14", "r15"
@@ -372,45 +372,46 @@ __attribute__((unused)) void run_experiment_handler_wrapper(void)
                  :
                  : "memory");
 
-    asm volatile(""
-                 "mov %%r13, %%r14\n" // r14 <- error code
+    asm volatile(
+        ""
+        "mov %%r13, %%r14\n" // r14 <- error code
 
-                 // check for nested faults
-                 "lea %[nested_flag], %%rax\n"
-                 "cmpq $0, (%%rax)\n"
-                 "jne .nested_fault_bubble\n"
-                 "movq $1, (%%rax)\n"
+        // check for nested faults
+        "lea %[nested_flag], %%rax\n"
+        "cmpq $0, (%%rax)\n"
+        "jne .nested_fault_bubble\n"
+        "movq $1, (%%rax)\n"
 
-                 // store error info
-                 "lea %[fault_data], %%rax\n"
-                 "mov %%r14, (%%rax)\n"
-                 "pop %%rbx\n"
-                 "movq %%rbx, 8(%%rax)\n"
-                 "pop %%rbx\n"
-                 "movq %%rbx, 16(%%rax)\n"
-                 "pop %%rbx\n"
-                 "movq %%rbx, 24(%%rax)\n"
-                 "pop %%rbx\n"
-                 "movq %%rbx, 32(%%rax)\n"
-                 "pop %%rbx\n"
-                 "movq %%rbx, 40(%%rax)\n"
+        // store error info
+        "lea %[fault_data], %%rax\n"
+        "mov %%r14, (%%rax)\n"
+        "pop %%rbx\n"
+        "movq %%rbx, 8(%%rax)\n"
+        "pop %%rbx\n"
+        "movq %%rbx, 16(%%rax)\n"
+        "pop %%rbx\n"
+        "movq %%rbx, 24(%%rax)\n"
+        "pop %%rbx\n"
+        "movq %%rbx, 32(%%rax)\n"
+        "pop %%rbx\n"
+        "movq %%rbx, 40(%%rax)\n"
 
-                 "jmp .bubble_handler_end\n"
+        "jmp .bubble_handler_end\n"
 
-                 // BUG on nested fault
-                 ".nested_fault_bubble:\n"
-                 "mov %[recover_orig_state], %%rax\n"
-                 "call *%%rax\n"
-                 "sti\n"
+        // BUG on nested fault
+        ".nested_fault_bubble:\n"
+        "mov %[recover_orig_state], %%rax\n"
+        "call *%%rax\n"
+        "sti\n"
 #if VENDOR_ID == VENDOR_AMD_
-                 "stgi\n"
+        "stgi\n"
 #endif
-                 "ud2\n"
+        "ud2\n"
 
-                 ".bubble_handler_end:\n"
-                 : [fault_data] "=m"(fault_data[0]), [nested_flag] "+m"(sandbox->util->nested_fault)
-                 : [recover_orig_state] "r"(&recover_orig_state)
-                 : "rax", "rbx", "r13");
+        ".bubble_handler_end:\n"
+        : [fault_data] "=m"(fault_data[0]), [nested_flag] "+m"(sandbox->util->vars.nested_fault)
+        : [recover_orig_state] "r"(&recover_orig_state)
+        : "rax", "rbx", "r13");
 
     uint64_t cr2 = read_cr2();
     PRINT_ERRS("run_experiment_handler", "run_experiment triggered a fault\n");

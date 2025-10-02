@@ -16,6 +16,8 @@ size_t n_actors = 1;             // global
 
 static size_t n_symbols;
 
+static int new_test_case(test_case_t **test_case_p);
+
 // =================================================================================================
 // State machine for test case loading
 // =================================================================================================
@@ -40,7 +42,10 @@ static int __batch_tc_parsing_start(const char *buf)
 
     // Create a new batch
     SAFE_FREE(test_case);
-    test_case = CHECKED_MALLOC(sizeof(test_case_t));
+    if (new_test_case(&test_case) != 0) {
+        PRINT_ERRS("__batch_tc_parsing_start", "Failed to create test case\n");
+        return -ENOMEM;
+    }
 
     // Get the number the number of actors
     uint64_t new_n_actors = ((uint64_t *)buf)[0];
@@ -300,6 +305,32 @@ ssize_t parse_test_case_buffer(const char *buf, size_t count, bool *finished)
 bool tc_parsing_completed(void) { return !_is_receiving_test_case; }
 
 // =================================================================================================
+
+/// @brief Helper function to initialize a new test case with default values
+/// @param test_case_p
+/// @return 0 on success; -ENOMEM on error
+static int new_test_case(test_case_t **test_case_p)
+{
+    test_case_t *tc = CHECKED_MALLOC(sizeof(test_case_t));
+    memset(tc, 0, sizeof(test_case_t)); // zero out just in case
+
+    tc->actor_table_size = sizeof(actor_metadata_t);
+    tc->symbol_table_size = 0;
+    tc->metadata_size = sizeof(tc_section_metadata_entry_t);
+    tc->sections_size = sizeof(tc_section_t);
+    tc->actor_table = _allocated_actor_table;
+    tc->symbol_table = _allocated_symbol_table;
+    tc->metadata = _allocated_metadata;
+    tc->sections = _allocated_data;
+
+    tc->features.includes_vm_actors = false;
+    tc->features.includes_user_actors = false;
+    tc->features.has_explicit_fault_handler = false;
+
+    *test_case_p = tc;
+    return 0;
+}
+
 int init_test_case_parser(void)
 {
     // locals
@@ -312,16 +343,10 @@ int init_test_case_parser(void)
     _allocated_data = CHECKED_VMALLOC(sizeof(tc_section_t));
 
     // Dummy test case
-    test_case = CHECKED_MALLOC(sizeof(test_case_t));
-    test_case->actor_table_size = sizeof(actor_metadata_t);
-    test_case->symbol_table_size = 0;
-    test_case->metadata_size = sizeof(tc_section_metadata_entry_t);
-    test_case->sections_size = sizeof(tc_section_t);
-    test_case->actor_table = _allocated_actor_table;
-    test_case->symbol_table = _allocated_symbol_table;
-    test_case->metadata = _allocated_metadata;
-    test_case->sections = _allocated_data;
-
+    if (new_test_case(&test_case) != 0) {
+        PRINT_ERRS("init_test_case_parser", "Failed to create test case\n");
+        return -ENOMEM;
+    }
     actors = test_case->actor_table;
     return 0;
 }

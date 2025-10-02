@@ -9,7 +9,7 @@ import re
 import unicorn.x86_const as ucc  # type: ignore
 
 from rvzr.tc_components.instruction import Instruction
-from rvzr.target_desc import TargetDesc, CPUDesc, UnicornTargetDesc
+from rvzr.target_desc import TargetDesc, CPUDesc, UnicornTargetDesc, PTEBitNameMapper
 
 
 class X86TargetDesc(TargetDesc):
@@ -170,6 +170,18 @@ class X86TargetDesc(TargetDesc):
 
     mem_index_registers = ["rax", "rbx", "rcx", "rdx", "rsi", "rdi"]
 
+    page_property_to_pte_bit_name = {
+        "present": ("present", False),
+        "writable": ("writable", False),
+        "user": ("user", False),
+        'write-through': ("write-through", False),
+        "cache-disable": ("cache-disable", False),
+        "accessed": ("accessed", False),
+        "dirty": ("dirty", False),
+        "executable": ("non_executable", True),
+        "reserved_bit": ("reserved_bit", False),
+    }
+
     pte_bits = {
         # NAME: (position, default value)
         "present": (0, True),
@@ -183,7 +195,17 @@ class X86TargetDesc(TargetDesc):
         "non_executable": (63, True),
     }
 
-    epte_bits_intel = {
+    _page_property_to_epte_bit_name: PTEBitNameMapper = {
+        "present": ("present", False),
+        "writable": ("writable", False),
+        "user": ("user", False),
+        "accessed": ("accessed", False),
+        "dirty": ("dirty", False),
+        "executable": ("executable", False),
+        "reserved_bit": ("reserved_bit", False),
+    }
+
+    _epte_bits_intel = {
         # NAME: (position, default value)
         "present": (0, True),
         "writable": (1, True),
@@ -194,7 +216,17 @@ class X86TargetDesc(TargetDesc):
         "reserved_bit": (51, False),
     }
 
-    npte_bits_amd = {
+    _page_property_to_npte_bit_name: PTEBitNameMapper = {
+        "present": ("present", False),
+        "writable": ("writable", False),
+        "user": ("user", False),
+        "accessed": ("accessed", False),
+        "dirty": ("dirty", False),
+        "executable": ("non_executable", True),
+        "reserved_bit": ("reserved_bit", False),
+    }
+
+    _npte_bits_amd = {
         # NAME: (position, default value)
         "present": (0, True),
         "writable": (1, True),
@@ -223,8 +255,14 @@ class X86TargetDesc(TargetDesc):
         # modify/set target parameters based on the CPU under test and the configuration
         self.registers_by_size = self._filter_blocked_registers()
         self.cpu_desc = self._build_cpu_desc()
-        self.epte_bits = \
-            self.epte_bits_intel if self.cpu_desc.vendor == 'Intel' else self.npte_bits_amd
+
+        # Select VM page table bits and property mapping based on vendor
+        if self.cpu_desc.vendor == 'Intel':
+            self.vm_pte_bits = self._epte_bits_intel
+            self.page_property_to_vm_pte_bit_name = self._page_property_to_epte_bit_name
+        else:
+            self.vm_pte_bits = self._npte_bits_amd
+            self.page_property_to_vm_pte_bit_name = self._page_property_to_npte_bit_name
 
         # connect Unicorn TD
         self.uc_target_desc = X86UnicornTargetDesc()

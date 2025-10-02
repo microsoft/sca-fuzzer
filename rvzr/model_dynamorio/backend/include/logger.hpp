@@ -49,8 +49,7 @@ class Logger
     /// @return the path of the file where the logs are dumped to
     [[nodiscard]] const std::string &get_filename() const;
 
-    /// @brief log the PC and registers of the current instruction, and whether it is speculative or
-    /// biot
+    /// @brief log the PC and registers of the current instruction, and whether it is speculative
     void log_instruction(instr_obs_t instr, dr_mcontext_t *mc, unsigned int nesting_level);
     /// @brief log a memory operation, including the value that is currently stored at the address
     void log_mem_access(bool is_write, void *address, uint64_t size);

@@ -17,6 +17,6 @@ class ARM64ISALoaderTest(unittest.TestCase):
 
     def test_loading(self) -> None:
         instruction_set = InstructionSet((test_dir / "min_arm64.json").absolute().as_posix(),
-                                         ["general"])
+                                         ["general-dataxfer"])
         inst_names = [i.name for i in instruction_set.instructions]
         self.assertIn("mov", inst_names)

@@ -35,7 +35,11 @@ STAT = FuzzingStats()
 # ==================================================================================================
 # Helper functions
 # ==================================================================================================
-def _km_write(value: str, path: str) -> None:
+def km_write(value: str, path: str) -> None:
+    """
+    Write a value to a file in the /sys filesystem.
+    This is used to configure the executor kernel module.
+    """
     subprocess.run(f"echo -n {value} > {path}", shell=True, check=True)
 
 
@@ -64,21 +68,31 @@ def _can_set_reserved() -> bool:
     :return: True if it's possible, False otherwise
     """
     actors_conf = CONF.get_actors_conf()
-    reserved_requested = \
-        any(actors_conf[a]['data_properties']['reserved_bit'] for a in actors_conf) or \
-        any(actors_conf[a]['data_ept_properties']['reserved_bit'] for a in actors_conf)
-    if reserved_requested:
-        if CONF.instruction_set == 'arm64':
-            return False  # exceptions are not supported on ARM64
-        assert CONF.instruction_set == 'x86-64'
-        physical_bits = int(
-            subprocess.run(
-                "lscpu | grep 'Address sizes' | awk '{print $3}'",
-                shell=True,
-                check=True,
-                capture_output=True).stdout.decode().strip())
-        if physical_bits > 51:
-            return False
+    reserved_requested = False
+    for a in actors_conf:
+        if 'reserved_bit' in actors_conf[a]['data_properties'] and \
+           actors_conf[a]['data_properties']['reserved_bit']:
+            reserved_requested = True
+            break
+        if 'reserved_bit' in actors_conf[a]['data_ept_properties'] and \
+           actors_conf[a]['data_ept_properties']['reserved_bit']:
+            reserved_requested = True
+            break
+    if not reserved_requested:
+        return True
+
+    if CONF.instruction_set == 'arm64':
+        return False  # reserved bits are not (yet?) supported on ARM64
+
+    assert CONF.instruction_set == 'x86-64'
+    physical_bits = int(
+        subprocess.run(
+            "lscpu | grep 'Address sizes' | awk '{print $3}'",
+            shell=True,
+            check=True,
+            capture_output=True).stdout.decode().strip())
+    if physical_bits > 51:
+        return False
     return True
 
 
@@ -87,9 +101,9 @@ def _is_kernel_module_installed() -> bool:
 
 
 def _configure_kernel_module() -> None:
-    _km_write(str(CONF.executor_warmups), '/sys/rvzr_executor/warmups')
-    _km_write("1" if CONF.enable_pre_run_flush else "0", "/sys/rvzr_executor/enable_pre_run_flush")
-    _km_write(CONF.executor_mode, "/sys/rvzr_executor/measurement_mode")
+    km_write(str(CONF.executor_warmups), '/sys/rvzr_executor/warmups')
+    km_write("1" if CONF.enable_pre_run_flush else "0", "/sys/rvzr_executor/enable_pre_run_flush")
+    km_write(CONF.executor_mode, "/sys/rvzr_executor/measurement_mode")
 
 
 def _read_trace(n_reps: int,
@@ -254,8 +268,8 @@ class Executor(ABC):
         :return: None
         """
         # enable mismatch check mode if requested
-        _km_write("1" if self._enable_mismatch_check_mode else "0",
-                  "/sys/rvzr_executor/enable_dbg_gpr_mode")
+        km_write("1" if self._enable_mismatch_check_mode else "0",
+                 "/sys/rvzr_executor/enable_dbg_gpr_mode")
 
         # write the test case to the kernel module
         test_case.get_obj().save_rcbf('/sys/rvzr_executor/test_case')
@@ -388,7 +402,7 @@ class Executor(ABC):
 
         :param state: True to enable the quick and dirty mode, False to disable it
         """
-        _km_write("1" if state else "0", "/sys/rvzr_executor/enable_quick_and_dirty_mode")
+        km_write("1" if state else "0", "/sys/rvzr_executor/enable_quick_and_dirty_mode")
 
     # ==============================================================================================
     # Private Interface: Vendor-specific Features

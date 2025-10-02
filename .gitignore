@@ -18,3 +18,4 @@ dbg/
 site
 dist/
 .cache/
+.claude/

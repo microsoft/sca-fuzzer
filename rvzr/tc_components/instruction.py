@@ -100,6 +100,26 @@ class MemoryOp(Operand):
         self.width = width
         super().__init__(address, src, dest)
 
+    def get_base_register(self) -> Optional[RegisterOp]:
+        """
+        Get the base register of the memory operand, if any.
+        E.g., for [rax + 8], return rax.
+        :return: The base register, or None if there is no base register
+        """
+        addr = self.value.strip()
+
+        # Split by + and - to find base register
+        tokens = [t.strip() for t in addr.replace('-', '+').split('+')]
+
+        # Filter out numeric tokens
+        tokens = [t for t in tokens if not t.replace('0x', '').isdigit()]
+        tokens = [t for t in tokens if not t.replace('0b', '').isdigit()]
+
+        for t in tokens:
+            # the first non-numeric token is the base register
+            return RegisterOp(t.lower(), self.width, True, False)
+        return None
+
 
 class ImmediateOp(Operand):
     """ Immediate operand of an instruction """
@@ -273,7 +293,11 @@ class Instruction:
     """ is_noremove: If True, the instruction should be skipped while doing minimization passes """
     is_from_template: bool = False
     """ is_from_template: If True, the instruction was directly copied from the template rather
-    then being automatically created by the generator """
+    then being automatically created by the generator. """
+    is_macro_placeholder: bool = False
+    """ is_macro_placeholder: If True, this instruction is a part of a placeholder that will be
+    replaced by a macro call in the executor/model; this instruction is expected to be a NOP.
+    For most instructions, this is always False. """
 
     operands: Final[List[AnyOperand]]
     """ operands: List of explicit operands of the instruction """
@@ -557,24 +581,28 @@ class Instruction:
         :param offset: The section offset of the instruction in the object file
         :param size: The size of the instruction in bytes, after it has been assembled
         """
-        assert self._section_id == -1, "Instruction properties are already assigned"
+        assert self._section_id == -1, "Instruction properties are already assigned \n" \
+            "    (assign_binary_properties() can only be called once)"
         self._section_id = section_id
         self._section_offset = offset
         self._size = size
 
     def section_id(self) -> int:
         """ Get the ID of the section in the object file where the instruction is located. """
-        assert self._section_id != -1, "Instruction properties are not assigned"
+        assert self._section_id != -1, "Instruction properties are not assigned \n" \
+            "    (assign_binary_properties() must be called before section_id() can be used)"
         return self._section_id
 
     def section_offset(self) -> int:
         """ Get the section offset of the instruction in the object file. """
-        assert self._section_offset != -1, "Instruction properties are not assigned"
+        assert self._section_offset != -1, "Instruction properties are not assigned \n" \
+            "    (assign_binary_properties() must be called before section_offset() can be used)"
         return self._section_offset
 
     def size(self) -> int:
         """ Get the size of the instruction in bytes. """
-        assert self._size != -1, "Instruction properties are not assigned"
+        assert self._size != -1, "Instruction properties are not assigned \n" \
+            "    (assign_binary_properties() must be called before size() can be used)"
         return self._size
 
 
@@ -607,6 +635,7 @@ def copy_inst_with_modification(instruction: Instruction,
 
     new_inst = Instruction(name, category, is_control_flow, is_instrumentation, is_noremove)
     new_inst.is_from_template = instruction.is_from_template
+    new_inst.is_macro_placeholder = instruction.is_macro_placeholder
     new_inst.operands.extend(instruction.operands.copy())
     new_inst.implicit_operands.extend(instruction.implicit_operands.copy())
     new_inst._section_id = instruction._section_id  # pylint: disable=protected-access

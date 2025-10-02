@@ -1,4 +1,4 @@
-/// File: Header for guest page table functions
+/// File: Dispatch header that includes the guest page table definitions for the architecture
 ///
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
@@ -6,14 +6,23 @@
 #ifndef _GUEST_PAGE_TABLES_H_
 #define _GUEST_PAGE_TABLES_H_
 
-#include "../x86/page_tables_common.h"
 #include "hardware_desc.h"
+#include "page_tables_common.h"
 #include "sandbox_manager.h"
+
+// =================================================================================================
+// Memory layout
+// =================================================================================================
 
 // start of guest's physical memory; this is an arbitrary large aligned number
 #define GUEST_P_MEMORY_START 0
 #define GUEST_V_MEMORY_START 0x0ULL
 #define GUEST_MEMORY_SIZE    (512 * 4096) // max size that could be mapped by a single last-level PT
+
+// =================================================================================================
+// Extended page tables
+// =================================================================================================
+#if defined(ARCH_X86_64)
 
 // Memory layout within the guest memory
 typedef struct {
@@ -64,6 +73,15 @@ typedef struct {
 
 extern eptp_t *ept_ptr;
 
+#elif defined(ARCH_ARM)
+
+// nothing here yet
+
+#endif // ARCH_ARM
+
+// =================================================================================================
+// Public interfaces
+// =================================================================================================
 int dbg_dump_guest_page_tables(int actor_id);
 int dbg_dump_ept(int actor_id);
 

@@ -36,11 +36,12 @@ class ARM64TargetDesc(TargetDesc):
         "w5": "R5", "x5": "R5",
         "w6": "R6", "x6": "R6",
         "w7": "R7", "x7": "R7",
+        "w8": "R8", "x8": "R8",
+        "w9": "R9", "x9": "R9",
+        "w10": "R10", "x10": "R10",
+        "w20": "R20", "x20": "R20",
         "w30": "R30", "x30": "R30",
-        "N": "N",
-        "Z": "Z",
-        "C": "C",
-        "V": "V",
+        "CF": "CF", "ZF": "ZF", "SF": "SF", "OF": "OF",
         "pc": "RIP",
         "sp": "RSP", "wsp": "RSP", "xsp": "RSP",
     }  # yapf: disable
@@ -54,6 +55,7 @@ class ARM64TargetDesc(TargetDesc):
         "R5": {64: "x5", 32: "w5"},
         "R6": {64: "x6", 32: "w6"},
         "R7": {64: "x7", 32: "w7"},
+        "R20": {64: "x20", 32: "w20"},
         "R30": {64: "x30", 32: "w30"},
         "RIP": {64: "pc"},
         "RSP": {64: "sp", 32: "wsp"},
@@ -61,9 +63,39 @@ class ARM64TargetDesc(TargetDesc):
 
     mem_index_registers = ["x0", "x1", "x2", "x3", "x4", "x5"]
 
-    pte_bits = {}
+    page_property_to_pte_bit_name = {
+        "present": ("valid", False),
+        "writable": ("non_writable", True),
+        "user": ("user", False),
+        "accessed": ("accessed", False),
+        "executable": ("non_executable", True),
+    }
 
-    epte_bits = {}
+    pte_bits = {
+        "valid": (0, True),
+        "user": (6, False),
+        "non_writable": (7, False),
+        "accessed": (10, True),
+        "non_executable": (53, True),
+    }
+
+    # FIXME: EPTE is not yet supported on ARM64; this is a placeholder
+    page_property_to_vm_pte_bit_name = {
+        "present": ("valid", False),
+        "writable": ("non_writable", True),
+        "user": ("user", False),
+        "accessed": ("accessed", False),
+        "executable": ("non_executable", True),
+    }
+
+    # FIXME: EPTE is not yet supported on ARM64; this is a placeholder
+    vm_pte_bits = {
+        "valid": (0, True),
+        "user": (0, False),
+        "non_writable": (0, False),
+        "accessed": (0, True),
+        "non_executable": (0, True),
+    }
 
     branch_conditions = {
         "eq": ["", "", "", "r", "", "", "", "", ""],
@@ -175,12 +207,13 @@ class ARM64UnicornTargetDesc(UnicornTargetDesc):  # pylint: disable=too-few-publ
         "R5": ucc.UC_ARM64_REG_X5,
         "R6": ucc.UC_ARM64_REG_X6,
         "R7": ucc.UC_ARM64_REG_X7,
+        "R20": ucc.UC_ARM64_REG_X20,
         "R30": ucc.UC_ARM64_REG_X30,
         "FLAGS": ucc.UC_ARM64_REG_NZCV,
-        "N": ucc.UC_ARM64_REG_NZCV,
-        "Z": ucc.UC_ARM64_REG_NZCV,
-        "C": ucc.UC_ARM64_REG_NZCV,
-        "V": ucc.UC_ARM64_REG_NZCV,
+        "SF": ucc.UC_ARM64_REG_NZCV,  # N
+        "ZF": ucc.UC_ARM64_REG_NZCV,  # Z
+        "CF": ucc.UC_ARM64_REG_NZCV,  # C
+        "OF": ucc.UC_ARM64_REG_NZCV,  # V
         "RIP": -1,
         "RSP": -1,
     }
@@ -189,4 +222,4 @@ class ARM64UnicornTargetDesc(UnicornTargetDesc):  # pylint: disable=too-few-publ
     flags_register: int = ucc.UC_ARM64_REG_NZCV
     pc_register: int = ucc.UC_ARM64_REG_PC
     sp_register: int = ucc.UC_ARM64_REG_SP
-    actor_base_register: int = ucc.UC_ARM64_REG_X30
+    actor_base_register: int = ucc.UC_ARM64_REG_X20

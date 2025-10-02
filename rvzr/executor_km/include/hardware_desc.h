@@ -6,6 +6,8 @@
 #ifndef _HARDWARE_DESC_H_
 #define _HARDWARE_DESC_H_
 
+#include <linux/types.h>
+
 #ifndef VENDOR_ID
 #error "Undefined VENDOR_ID"
 #define VENDOR_ID 0
@@ -17,7 +19,7 @@
 
 #define VENDOR_INTEL_ 1
 #define VENDOR_AMD_   2
-#define VENDOR_ARM_  3
+#define VENDOR_ARM_   3
 #undef VENDOR_INTEL
 #undef VENDOR_AMD
 #undef VENDOR_ARM
@@ -30,7 +32,26 @@
 #define ARCH_ARM
 #endif
 
-// Memory
+// =================================================================================================
+// CPU identification
+// =================================================================================================
+#ifndef __ASSEMBLER__
+#if defined(ARCH_X86_64)
+typedef struct cpuinfo_x86 cpuinfo_t;
+#elif defined(ARCH_ARM)
+typedef struct {
+    int implementer;
+    int variant;
+    int architecture;
+    int part;
+    int revision;
+} cpuinfo_t;
+#endif
+#endif // __ASSEMBLER__
+
+// =================================================================================================
+// Memory configuration
+// =================================================================================================
 #ifndef PHYSICAL_WIDTH
 #define PHYSICAL_WIDTH 51 // unused in the build; used only for syntax highlighting
 #error "PHYSICAL_WIDTH must be defined by the makefile"
@@ -38,7 +59,9 @@
 
 #define MAX_PHYSICAL_ADDRESS ((1ULL << PHYSICAL_WIDTH) - 1)
 
+// =================================================================================================
 // Cache configuration
+// =================================================================================================
 #ifndef L1D_ASSOCIATIVITY
 #error "Undefined L1D_ASSOCIATIVITY"
 #define L1D_ASSOCIATIVITY 0
@@ -47,6 +70,18 @@
 #warning "Unsupported/corrupted L1D associativity. Falling back to 8-way"
 #define L1D_ASSOCIATIVITY 8
 #endif
+
+#ifndef L1D_SIZE_KB
+#error "Undefined L1D_SIZE"
+#define L1D_SIZE_KB 32 // unused in the build; used only for syntax highlighting
+#else
+#endif
+
+#define L1D_CONFLICT_DISTANCE (L1D_SIZE_KB * 1024 / L1D_ASSOCIATIVITY)
+
+// =================================================================================================
+// Misc.
+// =================================================================================================
 
 // Definitions of MSRs missing in the kernel
 #define MSR_SYSCFG 0xc0010010

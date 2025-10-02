@@ -52,7 +52,7 @@ class ModelExecutionState:
 
     page_permissions: Optional[PAGE_PERMISSION_MAP] = None
     """ Dictionary of the page permissions for each actor at the start of execution.
-    Only containts permissions on the faulty area, as all other areas are always RW."""
+    Only contains permissions on the faulty area, as all other areas are always RW."""
 
     _test_case: Final[TestCaseProgram]  # The test case being currently executed by the model
     _layout: Final[SandboxLayout]  # The layout of the sandbox
@@ -101,7 +101,7 @@ class ModelExecutionState:
 
     def _set_fault_handler_addr(self, fh_id: int) -> None:
         test_case_obj = self._test_case.get_obj()
-        code_start = self._layout.code_start
+        code_start = self._layout.code_start()
         offset = test_case_obj.get_macro_offset(fh_id)
         if offset == -1:
             self.fault_handler_addr = self.exit_addr

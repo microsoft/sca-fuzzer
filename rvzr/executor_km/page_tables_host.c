@@ -12,36 +12,62 @@
 #include "sandbox_manager.h"
 #include "shortcuts.h"
 
-#include "host_page_tables.h"
 #include "page_tables_common.h"
+#include "page_tables_host.h"
 
 sandbox_pteps_t *sandbox_pteps;
 
 static sandbox_ptes_t *orig_ptes;
 static pte_t_ *faulty_ptes = NULL;
 
-pte_t *get_pte(uint64_t address)
+extern struct mm_struct init_mm;
+
+pte_t *get_pte(uint64_t hva)
 {
-    pgd_t *pgd;
-    p4d_t *p4d;
-    pud_t *pud;
-    pmd_t *pmd;
-    pte_t *pte;
+    // Make sure we are in vmalloc area
+    if (!is_vmalloc_addr((void *)hva) && !virt_addr_valid((void *)hva)) {
+        PRINT_ERR("get_pte: address not in vmalloc or kmalloc area");
+        return NULL;
+    }
 
-    /* Make sure we are in vmalloc area: */
-    ASSERT_ENULL(address >= VMALLOC_START && address < VMALLOC_END, "get_pte");
+    // Do a page walk
+    pgd_t *pgdp = pgd_offset_k(hva);
+    pgd_t pgd = READ_ONCE(*pgdp);
+    if (pgd_none(pgd)) {
+        PRINT_ERR("get_pte: pgd_none");
+        return NULL;
+    }
 
-    pgd = pgd_offset(current->mm, address);
-    ASSERT_ENULL(!pgd_none(*pgd), "get_pte");
+    p4d_t *p4dp = p4d_offset(pgdp, hva);
+    p4d_t p4d = READ_ONCE(*p4dp);
+    if (p4d_none(p4d)) {
+        PRINT_ERR("get_pte: p4d_none");
+        return NULL;
+    }
 
-    p4d = p4d_offset(pgd, address);
-    pud = pud_offset(p4d, address);
-    ASSERT_ENULL(!pud_none(*pud), "get_pte");
+    pud_t *pudp = pud_offset(p4dp, hva);
+    pud_t pud = READ_ONCE(*pudp);
+    if (pud_none(pud)) {
+        PRINT_ERR("get_pte: pud_none");
+        return NULL;
+    }
+    if (pud_bad(pud)) {
+        PRINT_ERR("get_pte: pud_bad");
+        return NULL;
+    }
 
-    pmd = pmd_offset(pud, address);
-    ASSERT_ENULL(!pmd_none(*pmd), "get_pte");
+    pmd_t *pmdp = pmd_offset(pudp, hva);
+    pmd_t pmd = READ_ONCE(*pmdp);
+    if (pmd_none(pmd)) {
+        PRINT_ERR("get_pte: pmd_none");
+        return NULL;
+    }
+    if (pmd_bad(pmd)) {
+        PRINT_ERR("get_pte: pmd_bad");
+        return NULL;
+    }
 
-    pte = pte_offset_kernel(pmd, address);
+    pte_t *pte = pte_offset_kernel(pmdp, hva);
     ASSERT_ENULL(pte_present(*pte), "get_pte");
 
     return pte;
@@ -71,7 +97,7 @@ int cache_host_pteps(void)
 
     // cache the PTE pointers for the util pages
     for (int i = 0; i < N_UTIL_PAGES; i++) {
-        uint64_t va = (uint64_t)sandbox->util + i * 4096;
+        uint64_t va = (uint64_t)sandbox->util + i * PAGE_SIZE;
         pte_t *ptep = get_pte(va);
         ASSERT(ptep != NULL, "cache_host_pteps");
         sandbox_pteps->util_pteps[i] = (pte_t_ *)&ptep->pte;
@@ -81,14 +107,14 @@ int cache_host_pteps(void)
     for (int actor_id = 0; actor_id < n_actors; actor_id++) {
         // cache the PTE pointers for the data pages of the actor
         for (int i = 0; i < N_DATA_PAGES_PER_ACTOR; i++) {
-            uint64_t va = ((uint64_t)&sandbox->data[actor_id]) + i * 4096;
+            uint64_t va = ((uint64_t)&sandbox->data[actor_id]) + i * PAGE_SIZE;
             pte_t *ptep = get_pte(va);
             ASSERT(ptep != NULL, "cache_host_pteps");
             sandbox_pteps->data_pteps[actor_id * N_DATA_PAGES_PER_ACTOR + i] = (pte_t_ *)&ptep->pte;
         }
         // cache the PTE pointers for the code pages of the actor
         for (int i = 0; i < N_CODE_PAGES_PER_ACTOR; i++) {
-            uint64_t va = ((uint64_t)&sandbox->code[actor_id]) + i * 4096;
+            uint64_t va = ((uint64_t)&sandbox->code[actor_id]) + i * PAGE_SIZE;
             pte_t *ptep = get_pte(va);
             ASSERT(ptep != NULL, "cache_host_pteps");
             sandbox_pteps->code_pteps[actor_id * N_CODE_PAGES_PER_ACTOR + i] = (pte_t_ *)&ptep->pte;
@@ -166,7 +192,7 @@ int restore_orig_host_permissions(void)
     // restore the original PTEs for the util pages
     for (int i = 0; i < N_UTIL_PAGES; i++) {
         restore_pte(sandbox_pteps->util_pteps[i], orig_ptes->util_ptes[i],
-                    (uint64_t)sandbox->util + i * 4096);
+                    (uint64_t)sandbox->util + i * PAGE_SIZE);
     }
 
     // restore the original PTEs for the code and data pages of the sandbox
@@ -175,13 +201,13 @@ int restore_orig_host_permissions(void)
         for (int i = 0; i < N_DATA_PAGES_PER_ACTOR; i++) {
             int page_id = actor_id * N_DATA_PAGES_PER_ACTOR + i;
             restore_pte(sandbox_pteps->data_pteps[page_id], orig_ptes->data_ptes[page_id],
-                        (uint64_t)&sandbox->data[actor_id] + i * 4096);
+                        (uint64_t)&sandbox->data[actor_id] + i * PAGE_SIZE);
         }
         // restore the original PTEs for the code pages of the actor
         for (int i = 0; i < N_CODE_PAGES_PER_ACTOR; i++) {
             int page_id = actor_id * N_CODE_PAGES_PER_ACTOR + i;
             restore_pte(sandbox_pteps->code_pteps[page_id], orig_ptes->code_ptes[page_id],
-                        (uint64_t)&sandbox->code[actor_id] + i * 4096);
+                        (uint64_t)&sandbox->code[actor_id] + i * PAGE_SIZE);
         }
     }
     return 0;
@@ -199,8 +225,8 @@ int set_user_pages(void)
 
     // enable user access to util pages so that the actors can store measurement results
     for (int i = 0; i < N_UTIL_PAGES; i++) {
-        sandbox_pteps->util_pteps[i]->user_supervisor = 1;
-        native_page_invalidate((uint64_t)sandbox->util + i * 4096);
+        set_user_bit(sandbox_pteps->util_pteps[i]);
+        native_page_invalidate((uint64_t)sandbox->util + i * PAGE_SIZE);
     }
 
     // enable user access to code and data pages of the sandbox that belong to user actors
@@ -214,13 +240,13 @@ int set_user_pages(void)
         // configure PTEs for each area of the actor sandbox
         for (int i = 0; i < N_DATA_PAGES_PER_ACTOR; i++) {
             int page_id = actor_id * N_DATA_PAGES_PER_ACTOR + i;
-            sandbox_pteps->data_pteps[page_id]->user_supervisor = 1;
-            native_page_invalidate((uint64_t)&sandbox->data[actor_id] + i * 4096);
+            set_user_bit(sandbox_pteps->data_pteps[page_id]);
+            native_page_invalidate((uint64_t)&sandbox->data[actor_id] + i * PAGE_SIZE);
         }
         for (int i = 0; i < N_CODE_PAGES_PER_ACTOR; i++) {
             int page_id = actor_id * N_CODE_PAGES_PER_ACTOR + i;
-            sandbox_pteps->code_pteps[page_id]->user_supervisor = 1;
-            native_page_invalidate((uint64_t)&sandbox->code[actor_id] + i * 4096);
+            set_user_bit(sandbox_pteps->code_pteps[page_id]);
+            native_page_invalidate((uint64_t)&sandbox->code[actor_id] + i * PAGE_SIZE);
         }
     }
 
@@ -242,10 +268,12 @@ void set_faulty_page_host_permissions(void)
         faulty_ptes[actor_id] = *ptep;
         uint64_t org_value = *(uint64_t *)ptep;
         uint64_t pte = (org_value | mask_set) & mask_clear;
+        // PRINT_ERR("set_faulty_page_host_permissions: actor %d, pte 0x%llx -> 0x%llx", actor_id,
+        //   org_value, pte);
 
         if (pte != org_value) {
-            *(uint64_t *)ptep = (pte | mask_set) & mask_clear;
-            native_page_invalidate((uint64_t)&sandbox->data[actor_id] + FAULTY_PAGE_ID * 4096);
+            *(uint64_t *)ptep = pte;
+            native_page_invalidate((uint64_t)&sandbox->data[actor_id] + FAULTY_PAGE_ID * PAGE_SIZE);
         }
     }
 }
@@ -257,7 +285,7 @@ void restore_faulty_page_host_permissions(void)
     for (int actor_id = 0; actor_id < n_actors; actor_id++) {
         int page_id = actor_id * N_DATA_PAGES_PER_ACTOR + FAULTY_PAGE_ID;
         *sandbox_pteps->data_pteps[page_id] = faulty_ptes[actor_id];
-        native_page_invalidate((uint64_t)&sandbox->data[actor_id] + FAULTY_PAGE_ID * 4096);
+        native_page_invalidate((uint64_t)&sandbox->data[actor_id] + FAULTY_PAGE_ID * PAGE_SIZE);
     }
 }
 

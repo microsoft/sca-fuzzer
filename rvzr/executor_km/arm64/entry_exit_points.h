@@ -11,6 +11,8 @@
 #ifndef _ENTRY_EXIT_H_
 #define _ENTRY_EXIT_H_
 
+#include "asm_snippets.h"
+
 #define TEMPLATE_START                     0x0000111100001111
 #define TEMPLATE_INSERT_TC                 0x0000222200002222
 #define TEMPLATE_DEFAULT_EXCEPTION_LANDING 0x0000333300003333
@@ -32,17 +34,19 @@ static inline void prologue(void)
         "stp x28, x29, [sp, #-16]!\n"
         "str x30, [sp, #-16]!\n"
 
-        // x30 = main_area of actor 0 (passed in x0, the first argument of measurement_code)
+        // x20 = main_area of actor 0 (passed in x0, the first argument of measurement_code)
         "mov "MEMORY_BASE_REGISTER", x0\n"
 
-        // x29 = sandbox->util (x30 - UTIL_REL_TO_MAIN)
+        // x21 = sandbox->util (x20 - UTIL_REL_TO_MAIN)
         "mov "UTIL_BASE_REGISTER", "MEMORY_BASE_REGISTER"\n"
-        "mov x0, "xstr(UTIL_REL_TO_MAIN)"\n"
+        mov_imm_to_reg("x0", UTIL_REL_TO_MAIN)
         "sub "UTIL_BASE_REGISTER", "UTIL_BASE_REGISTER", x0\n"
 
         // sandbox->util->stored_rsp = sp
         "mov x0, sp\n"
-        "str x0, ["UTIL_BASE_REGISTER", #"xstr(STORED_RSP_OFFSET)"]\n"
+        "mov x1, #"xstr(STORED_RSP_OFFSET)"\n"
+        "add x1, "UTIL_BASE_REGISTER", x1\n"
+        "str x0, [x1]\n"
 
         // clear the rest of the registers
         "mov x0, 0\n"
@@ -64,7 +68,7 @@ static inline void prologue(void)
 
         // initialize special registers
         "mov "HTRACE_REGISTER", 0\n"
-        "mov "STATUS_REGISTER", "xstr(STATUS_UNINITIALIZED)"\n"
+        mov_imm_to_reg(STATUS_REGISTER, STATUS_UNINITIALIZED)
 
         // create space on stack
         // "mov rbp, rsp\n"
@@ -84,7 +88,7 @@ static inline void epilogue(void)
 
         // x0 = &latest_measurement
         "mov x0, "UTIL_BASE_REGISTER"\n"
-        "mov x1, #"xstr(MEASUREMENT_OFFSET)"\n"
+        mov_imm_to_reg("x1", MEASUREMENT_OFFSET)
         "add x0, x0, x1\n"
 
         // Store the results
@@ -97,7 +101,9 @@ static inline void epilogue(void)
         "str "STATUS_REGISTER", [x0, #48]\n" // Measurement status
 
         // rsp = sandbox->util->stored_rsp
-        "ldr x0, ["UTIL_BASE_REGISTER", #"xstr(STORED_RSP_OFFSET)"]\n"
+        mov_imm_to_reg("x1", STORED_RSP_OFFSET)
+        "add x1, "UTIL_BASE_REGISTER", x1\n"
+        "ldr x0, [x1]\n"
         "mov sp, x0\n"
 
         // restore registers
@@ -123,7 +129,7 @@ static inline void epilogue_dbg_gpr(void)
 
         // x7 = &latest_measurement
         "mov x7, "UTIL_BASE_REGISTER"\n"
-        "mov x8, #"xstr(MEASUREMENT_OFFSET)"\n"
+        mov_imm_to_reg("x8", MEASUREMENT_OFFSET)
         "add x7, x7, x8\n"
 
         // Store the results
@@ -136,7 +142,9 @@ static inline void epilogue_dbg_gpr(void)
         "str "STATUS_REGISTER", [x7, #48]\n"
 
         // rsp = sandbox->util->stored_rsp
-        "ldr x0, ["UTIL_BASE_REGISTER", #"xstr(STORED_RSP_OFFSET)"]\n"
+        mov_imm_to_reg("x0", STORED_RSP_OFFSET)
+        "add x0, "UTIL_BASE_REGISTER", x0\n"
+        "ldr x0, [x0]\n"
         "mov sp, x0\n"
 
         // restore registers

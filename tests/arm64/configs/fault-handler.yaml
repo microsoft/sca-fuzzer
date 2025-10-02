@@ -1,0 +1,12 @@
+file: !include common.yaml
+file: !include ct-seq.yaml
+
+actors:
+  - main:
+    - data_properties:
+      - present: false
+
+
+executor_mode: F+R
+logging_modes:
+  - dbg_dump_htraces
