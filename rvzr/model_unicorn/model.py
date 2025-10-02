@@ -91,6 +91,11 @@ class _Dispatcher:
     def instruction_dispatch(self, address: int, size: int, _: UnicornModel,
                              state: ModelExecutionState) -> None:
         """ Call instruction-related callbacks in service classes """
+
+        if state.current_instruction.is_macro_placeholder:
+            # Skip macro placeholders as they are not real instructions
+            return
+
         # NOTE: the order of the following calls is important
         self._taint_tracker.track_instruction(state.current_instruction)
         self._speculator.handle_instruction(address, size)
@@ -100,6 +105,11 @@ class _Dispatcher:
 
     def mem_access_dispatch(self, access: int, address: int, size: int, value: int) -> None:
         """ Call memory access-related callbacks in service classes """
+
+        if state.current_instruction.is_macro_placeholder:
+            # Skip macro placeholders as they are not real instructions
+            return
+
         # NOTE: the order of the following calls is important
         self._taint_tracker.track_memory_access(address, size, access == UC_MEM_WRITE)
         self._speculator.handle_mem_access(access, address, size, value)
