@@ -24,6 +24,7 @@ RegNormalizedName = str
 RegUnicornID = int
 PTEBitName = str
 PTEBitOffset = int
+PTEBitNameMapper = Dict[PagePropertyName, Tuple[PTEBitName, bool]]
 
 
 # ==================================================================================================
@@ -150,7 +151,7 @@ class TargetDesc(ABC):
     """ Reverse mapping from normalized names to full register names.
     E.g., A -> {64: rax, 32: eax, 16: ax, 8: al} """
 
-    page_property_to_pte_bit_name: Dict[PagePropertyName, Tuple[PTEBitName, bool]]
+    page_property_to_pte_bit_name: PTEBitNameMapper
     """
     Dictionary mapping architecture-independent page property names to architecture-specific
     page table entry bit names together with a bit indicating whether the property is inverted.
@@ -164,10 +165,17 @@ class TargetDesc(ABC):
     Dictionary mapping page table entry field names to their bit offsets and their default values.
     """
 
-    epte_bits: Dict[PTEBitName, Tuple[PTEBitOffset, bool]]
+    page_property_to_vm_pte_bit_name: PTEBitNameMapper
     """
-    Dictionary mapping extended page table entry field names to their bit offsets
-    and their default values.
+    Dictionary mapping architecture-independent page property names to architecture-specific
+    VM page table entry bit names. This is the unified mapping for both Intel EPT and AMD NPT.
+    """
+
+    vm_pte_bits: Dict[PTEBitName, Tuple[PTEBitOffset, bool]]
+    """
+    Dictionary mapping VM page table entry field names to their bit offsets
+    and their default values. This is the unified interface for various types of host-to-guest
+    page tables, such as Intel EPT and AMD NPT.
     """
 
     branch_conditions: Dict[str, List[str]]

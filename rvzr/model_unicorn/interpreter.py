@@ -623,7 +623,7 @@ class _X86FaultInterpreter(_FaultInterpreterCommon):
         return True
 
     def _extended_page_is_readable(self, epet: PTEMask) -> bool:
-        epte_desc = self._target_desc.epte_bits
+        epte_desc = self._target_desc.vm_pte_bits
         if (epet & (1 << epte_desc["present"][0])) == 0:
             return False
         if (epet & (1 << epte_desc["accessed"][0])) == 0:
@@ -633,7 +633,7 @@ class _X86FaultInterpreter(_FaultInterpreterCommon):
         return True
 
     def _extended_page_is_writable(self, epet: PTEMask) -> bool:
-        epte_desc = self._target_desc.epte_bits
+        epte_desc = self._target_desc.vm_pte_bits
         if (epet & (1 << epte_desc["writable"][0])) == 0:
             return False
         if (epet & (1 << epte_desc["dirty"][0])) == 0:

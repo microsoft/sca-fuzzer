@@ -192,9 +192,9 @@ class Actor:
             target_desc.page_property_to_pte_bit_name,
         )
         data_ept_properties = _create_pte_mask(
-            target_desc.epte_bits,
+            target_desc.vm_pte_bits,
             actor_dict["data_ept_properties"],
-            target_desc.page_property_to_pte_bit_name,
+            target_desc.page_property_to_vm_pte_bit_name,
         )
 
         # create the actor

@@ -817,13 +817,13 @@ class Fuzzer:
 
                 if actor.mode != ActorMode.GUEST:
                     continue
-                epte_fields = []
-                for field in target_desc.epte_bits:
-                    offset, default = target_desc.epte_bits[field]
+                vm_pte_fields = []
+                for field in target_desc.vm_pte_bits:
+                    offset, default = target_desc.vm_pte_bits[field]
                     value = bool(actor.data_ept_properties & (1 << offset))
                     if value != default:
-                        epte_fields.append(f"{field}={value}")
-                f.write(f"    * EPTE: {'; '.join(epte_fields)}\n")
+                        vm_pte_fields.append(f"{field}={value}")
+                f.write(f"    * EPTE: {'; '.join(vm_pte_fields)}\n")
 
             f.write("\n## Counterexample Inputs\n")
             for m in violation.measurements:

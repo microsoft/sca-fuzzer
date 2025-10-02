@@ -50,7 +50,7 @@ def _get_dummy_actor_dict() -> ActorConf:
 def _get_mock_target_desc() -> MagicMock:
     mock_td = MagicMock()
     mock_td.pte_bits = {'user': (0, False)}
-    mock_td.epte_bits = {'user': (0, False)}
+    mock_td.vm_pte_bits = {'user': (0, False)}
     mock_td.page_property_to_pte_bit_name = {
         "user": ("user", False),
     }

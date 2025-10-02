@@ -80,7 +80,16 @@ class ARM64TargetDesc(TargetDesc):
     }
 
     # FIXME: EPTE is not yet supported on ARM64; this is a placeholder
-    epte_bits = {
+    page_property_to_vm_pte_bit_name = {
+        "present": ("valid", False),
+        "writable": ("non_writable", True),
+        "user": ("user", False),
+        "accessed": ("accessed", False),
+        "executable": ("non_executable", True),
+    }
+
+    # FIXME: EPTE is not yet supported on ARM64; this is a placeholder
+    vm_pte_bits = {
         "valid": (0, True),
         "user": (0, False),
         "non_writable": (0, False),
