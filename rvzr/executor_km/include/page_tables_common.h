@@ -241,7 +241,7 @@ typedef struct {
 typedef pte_t_ epte_t_;
 #endif
 
-static void set_user_bit(pte_t_ *pte) { pte->user_supervisor = 1; }
+static inline void set_user_bit(pte_t_ *pte) { pte->user_supervisor = 1; }
 
 // =================================================================================================
 // ARM
