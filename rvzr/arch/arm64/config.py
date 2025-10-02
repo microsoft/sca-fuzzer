@@ -42,7 +42,8 @@ _option_values = {
         "general-arithmetic",
         "general-barrier",
         "general-bitwise",
-        "general-branch",
+        "general-uncond_branch",
+        "general-cond_branch",
         "general-comparison",
         "general-condsel",
         "general-dataxfer",
@@ -56,7 +57,7 @@ _option_values = {
 # in contrast to x86, on ARM64, we handle all fault types by default
 _handled_faults: List[str] = ["PF", "DE", "DB", "BP", "BR", "UD", "PF", "GP"]
 
-instruction_categories: List[str] = ["general-arithmetic"]
+instruction_categories: List[str] = ["general-arithmetic", "general-dataxfer"]
 """ instruction_categories: a default list of tested instruction categories """
 
 _buggy_instructions: List[str] = []
@@ -71,7 +72,7 @@ register_blocklist: List[str] = [
     'x6', 'x7', 'x8', 'x9', 'x10', 'x11', 'x12', 'x13', 'x14', 'x15',
     'x16', 'x17', 'x18', 'x19', 'x20', 'x21', 'x22', 'x23',
     'x24', 'x25', 'x26', 'x27', 'x28', 'x29', 'x30', 'x31',
-    'sp', 'pc',
+    'sp',
     'w6', 'w7', 'w8', 'w9', 'w10', 'w11', 'w12', 'w13', 'w14', 'w15',
     'w16', 'w17', 'w18', 'w19', 'w20', 'w21', 'w22', 'w23',
     'w24', 'w25', 'w26', 'w27', 'w28', 'w29', 'w30', 'w31',

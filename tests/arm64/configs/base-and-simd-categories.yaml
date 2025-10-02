@@ -2,7 +2,8 @@ instruction_categories:
   - general-arithmetic
   - general-barrier
   - general-bitwise
-  - general-branch
+  - general-uncond_branch
+  - general-cond_branch
   - general-comparison
   - general-condsel
   - general-dataxfer
