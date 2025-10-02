@@ -346,8 +346,8 @@ class HTrace:
     def _full_cache_pair_str(self, other: HTrace, r1_col: str, r2_col: str, res_col: str) -> str:
         """ Return a string representation of two cache sample distributions side-by-side
         Example output:
-        .....^..................^....................................... [16]    | [8]
-        .....^.......................................................... [16]    | [24]
+        .....^..................^....................................... |16     | 8      |
+        .....^.......................................................... |16     | 24     |
         """
         c1 = Counter(self.get_raw_traces())
         c2 = Counter(other.get_raw_traces())
@@ -363,7 +363,7 @@ class HTrace:
                 + r1_col + s[32:40] + r2_col + s[40:48] \
                 + r1_col + s[48:56] + r2_col + s[56:64] \
                 + res_col + s[64:]
-            final_str += s + f" [{c1[t]:<6} | {c2[t]:<6}]\n"
+            final_str += s + f" | {c1[t]:<6} | {c2[t]:<6}|\n"
         return final_str
 
     # ==============================================================================================
@@ -704,9 +704,16 @@ class Violation(ContractEqClass):
             inputs2 = [m.input_id for m in hw_classes[1]]
             htrace1 = hw_classes[0][0].htrace
             htrace2 = hw_classes[1][0].htrace
-            s += f"  Input group 1: {inputs1}\n"
-            s += f"  Input group 2: {inputs2}\n"
-            s += htrace1.full_pair_str(htrace2, region1_col, region2_col, reset_col)
+            trace_table = htrace1.full_pair_str(htrace2, region1_col, region2_col, reset_col)
+
+            line_width = max(len(line) for line in trace_table.splitlines())
+            assert line_width > 19, "Invalid trace table"
+            trace_width = line_width - 19
+
+            header = "\n" + "-" * line_width + "\n"
+            header += f"{'HTrace':^{trace_width}} | ID:{inputs1[0]:<3} | ID:{inputs2[0]:<3}|\n"
+            header += "-" * line_width + "\n"
+            s += header + trace_table
             return s
 
         # 4. With more than two HW classes, print each HW class separately

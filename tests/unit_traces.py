@@ -166,8 +166,10 @@ class TestHTrace(unittest.TestCase):
         trace1 = HTrace(np.array([(0b10001, 0, 0, 0, 0, 0)], dtype=RawHTraceSample), "cache")
         trace2 = HTrace(np.array([(0b10010, 0, 0, 0, 0, 0)], dtype=RawHTraceSample), "cache")
         expected = \
-            "...........................................................^...^ [1      | 0     ]\n" \
-            "...........................................................^..^. [0      | 1     ]\n"
+            "...........................................................^...^" \
+            " | 1      | 0     |\n" \
+            "...........................................................^..^." \
+            " | 0      | 1     |\n"
         self.assertEqual(trace1.full_pair_str(trace2), expected)
 
         # TSC traces
