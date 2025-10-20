@@ -227,7 +227,7 @@ class DynamoRIOModel(Model):
         :param nesting: maximum nesting level to emulated in the model
         :return: list of contract traces, one per input, and the addresses of the sandbox
         """
-        assert nesting != 1, "Nesting is not yet supported by the DynamoRIO backend"
+        assert nesting == 1, "Nesting is not yet supported by the DynamoRIO backend"
 
         assert self._test_case is not None, "No test case was loaded"
         if len(inputs) == 0:

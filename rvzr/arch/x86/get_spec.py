@@ -64,6 +64,8 @@ REG_SIZE = {
     'tsc': 64,
     "tscaux": 64,
     "bnd0": 128,
+    "fsbase": 64,
+    "gsbase": 64,
 }
 REG_SIZE.update({f"mm{i}": 64 for i in range(8)})
 REG_SIZE.update({f"xmm{i}": 128 for i in range(16)})
@@ -168,7 +170,6 @@ ALL_EXTENSIONS = SAFE_EXTENSIONS + [
     "RDSEED",
     "RDWRFSGS",
     "HRESET",
-    "SYSRET",
     "SMAP",
     "AMD_INVLPGB",
     "SNP",
