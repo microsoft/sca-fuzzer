@@ -39,8 +39,8 @@ function assert_no_violation() {
 
 SCRIPT_DIR=$(dirname $(realpath $0))
 
-cmd="rvzr $cli fuzz -s $SCRIPT_DIR/../base.json --save-violations f -I $SCRIPT_DIR/x86_tests/configs -t $SCRIPT_DIR/x86_tests/asm/spectre_v1.asm -c $SCRIPT_DIR/x86_tests/configs/ct-seq.yaml -i 20"
+cmd="./revizor.py fuzz -s $SCRIPT_DIR/../base.json --save-violations f -I $SCRIPT_DIR/x86_tests/configs -t $SCRIPT_DIR/x86_tests/asm/spectre_v1.asm -c $SCRIPT_DIR/x86_tests/configs/ct-seq.yaml -i 20"
 assert_violation "$cmd"
 
-cmd="rvzr $cli fuzz -s $SCRIPT_DIR/../base.json --save-violations f -I $SCRIPT_DIR/x86_tests/configs -t $SCRIPT_DIR/x86_tests/asm/spectre_v1.asm -c $SCRIPT_DIR/x86_tests/configs/ct-cond.yaml -i 20"
+cmd="./revizor.py fuzz -s $SCRIPT_DIR/../base.json --save-violations f -I $SCRIPT_DIR/x86_tests/configs -t $SCRIPT_DIR/x86_tests/asm/spectre_v1.asm -c $SCRIPT_DIR/x86_tests/configs/ct-cond.yaml -i 20"
 assert_no_violation "$cmd"
