@@ -1,5 +1,4 @@
 .intel_syntax noprefix
-.test_case_enter:
 
 # ----------------------------- Kernel-mode Actor (Victim) -------------------
 .section .data.main
@@ -71,4 +70,5 @@
 
 
 # ----------------------------- Exit -----------------------------------------
+.section .data.main
 .test_case_exit:

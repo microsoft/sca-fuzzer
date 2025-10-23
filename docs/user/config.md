@@ -282,7 +282,7 @@ The available options are:
 * `breakpoint` - generate breakpoints, which can cause INT3 exceptions.
 * `debug-register` - generate instructions that cause INT1 exceptions.
 * `non-canonical-access` - randomly select a memory access in a generated program and instrument it to access a non-canonical address.
-* `user-to-kernel-access` - randomly select a memory access in a user actor's code and instrument it to access a kernel address; works only if there is at least one user actor.
+* `user-to-kernel-access` - randomly select memory access instructions in user-privilege actors and instrument them to access the kernel actor's (actor 0) memory. This creates cross-privilege-level memory access patterns useful for detecting CPU vulnerabilities like Meltdown. Requires at least one actor with `privilege_level: user`. The instrumentation modifies both the memory operands and the sandboxing masks to ensure accesses target the kernel's FAULTY data area.
 
 ## Actor Configuration
 
@@ -391,10 +391,12 @@ Actor-specific instruction blocklist. This list has priority over the global `in
 ```yaml
 Actor Option: fault_blocklist
 Default: []
-Options: (any fault names)
+Options: (any fault names from generator_faults_allowlist)
 ```
 
-Actor-specific fault blocklist. This list has priority over the global `generator_faults_allowlist`.
+Actor-specific fault blocklist. This list has priority over the global `generator_faults_allowlist` and prevents specific actors from having certain fault-inducing instrumentation applied to their code.
+
+For example, when using `user-to-kernel-access`, you typically want to add it to the kernel actor's `fault_blocklist` to prevent the kernel from accessing its own memory (which would not be a cross-privilege access).
 
 ## Input Generator Configuration
 

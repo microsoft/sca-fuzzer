@@ -16,22 +16,19 @@ instruction_categories:
   - BASE-SETCC
   - BASE-WIDENOP
 
-
-generator_faults_allowlist:
-  - user-to-kernel-access
-
 actors:
   - main:
     - mode: "host"
     - privilege_level: "kernel"
-    - fault_blocklist:
-      - user-to-kernel-access
-  - user:
-    - mode: "host"
+  - vmvictim:
+    - mode: "guest"
+    - privilege_level: "kernel"
+  - vm:
+    - mode: "guest"
     - observer: true
-    - privilege_level: "user"
+    - privilege_level: "kernel"
     - data_properties:
-      - present: true
+      - writable: false
 
 contract_observation_clause: ct-ni
 
@@ -51,7 +48,7 @@ program_generator_seed: 20000000
 data_generator_seed: 1000000
 inputs_per_class: 2
 
-analyser_stat_threshold: 0.2
+analyser_stat_threshold: 0.1
 
 # enable_speculation_filter: true
 enable_observation_filter: true

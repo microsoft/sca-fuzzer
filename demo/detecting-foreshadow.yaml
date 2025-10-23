@@ -22,7 +22,7 @@ instruction_categories:
   - BASE-PUSH
   - BASE-SETCC
 
-instruction_blocklist:
+instruction_blocklist_append:
   - DIV
   - IDIV
 

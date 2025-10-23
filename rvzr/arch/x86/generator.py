@@ -207,13 +207,35 @@ class _X86NonCanonicalAddressPass(Pass):
 
 class _X86U2KAccessPass(Pass):
     """
-    A pass that selects a random memory access instruction in a user actor and replaces it
-    with an access to the kernel actor's data (actor 0).
+    User-to-Kernel Access Instrumentation Pass.
+
+    This pass instruments user-privilege actors to perform memory accesses targeting
+    the kernel actor's (actor 0) FAULTY data area. This creates cross-privilege-level
+    memory access patterns useful for detecting CPU vulnerabilities like Meltdown.
+
+    The pass randomly selects memory access instructions in user actors and modifies
+    their memory operands to access kernel memory by calculating and applying a fixed
+    offset based on the sandbox memory layout.
+
+    IMPORTANT: This pass must run after _X86SandboxPass because it modifies the
+    sandboxing instrumentation to ensure memory accesses target a single page.
     """
 
     def run_on_test_case(self, test_case: TestCaseProgram) -> None:
-        for sec in test_case:
+        """
+        Identify and instrument memory accesses in user-privilege actors.
+
+        :param test_case: The test case to process
+        """
+        # Use enumeration order as actor ID
+        # FIXME: This is potentially fragile as it assumes that the sections in the binary
+        # will be ordered the same way as the actors were defined in the test case, which
+        # may not always hold true. However, we cannot get the actual section ID here because
+        # the assembly is not yet generated, so there is nothing to assemble. It's a chicken-and-egg
+        # problem. Thus, for now, we have to rely on this assumption.
+        for sec_id, sec in enumerate(test_case):
             owner = sec.owner
+            # Only instrument user-privilege actors (kernel accesses don't trigger Meltdown)
             if owner.privilege_level != ActorPL.USER:
                 continue
 
@@ -222,50 +244,54 @@ class _X86U2KAccessPass(Pass):
                 for bb in func:
                     for node in bb.iter_nodes():
                         instr = node.instruction
+                        # Skip instrumentation code and template code
                         if instr.is_instrumentation or instr.is_from_template:
                             continue
+                        # Skip div/idiv as instrumentation interferes with their operand constraints
                         if instr.name in ["div", "idiv"]:
-                            # Instrumentation is difficult to combine
                             continue
                         if instr.has_mem_operand(False):
                             to_instrument.append(node)
 
                     for node in to_instrument:
-                        # randomly select the instruction to instrument
+                        # Randomly select instructions based on avg_mem_accesses config
                         probability = 1 / CONF.avg_mem_accesses
                         if random.random() > probability:
                             continue
 
-                        self._instrument(node, bb, owner.get_id())
+                        self._instrument(node, bb, sec_id)
 
     def _instrument(self, node: InstructionNode, _: BasicBlock, owner_id: ActorID) -> None:
         """
-        Instrument a memory access instruction to access the kernel actor's data.
-        :param node: the node to instrument
-        :param parent: the parent basic block
-        :param owner_id: the owner ID of the function
-        :return: None
-        :raises: AssertionError if the instruction is not a memory access instruction
+        Modify a memory access instruction to target kernel memory instead of user memory.
+        :param node: The instruction node to instrument
+        :param _: The parent basic block (unused)
+        :param owner_id: The actor ID of the instruction's owner (used for offset calculation)
         """
         instr = node.instruction
 
-        # calculate offset to the kernel (actor 0) FAULTY_AREA
-        layout = SandboxLayout((0, 0), owner_id)  # create a dummy layout to calculate the offset
+        # Calculate the memory offset from user's MAIN area to kernel's FAULTY area.
+        # We use a dummy SandboxLayout with base (0,0) to compute the relative offset
+        # between the two memory regions based on their positions in the sandbox layout.
+        layout = SandboxLayout((0, 0), owner_id)
         user_main_start = layout.get_data_addr(DataArea.MAIN, owner_id)
         kernel_faulty_start = layout.get_data_addr(DataArea.FAULTY, 0)
         offset = user_main_start - kernel_faulty_start
 
-        # select operand to patch
+        # Select which memory operand to modify (random if instruction has multiple)
         mem_operands: List[MemoryOp] = instr.get_mem_operands(True)
         if len(mem_operands) == 1:
             mem_operand = mem_operands[0]
         else:
             mem_operand = random.choice(mem_operands)
 
-        # subtract the offset from the memory operand of the patched instruction
+        # Redirect the memory access to kernel memory by subtracting the offset
         mem_operand.value += " - " + str(offset)
 
-        # patch instrumentation added by X86SandboxPass so that it targets only one page
+        # Adjust sandboxing masks added by X86SandboxPass to target a single page.
+        # X86SandboxPass adds AND instructions to mask memory addresses to stay within
+        # the actor's data sandbox. We need to reduce these masks to PAGE_SIZE to ensure
+        # the cross-privilege access targets only the kernel's FAULTY page.
         previous_node = node.previous
         while previous_node and previous_node.instruction.is_instrumentation:
             for op in previous_node.instruction.operands:
