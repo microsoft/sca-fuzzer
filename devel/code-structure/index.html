@@ -12,13 +12,13 @@
         <meta name="author" content="Microsoft">
       
       
-        <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/devel/overview/">
+        <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/devel/code-structure/">
       
       
-        <link rel="prev" href="../../user/macros/">
+        <link rel="prev" href="../arch-overview/">
       
       
-        <link rel="next" href="../development/">
+        <link rel="next" href="../arch-fuzz/">
       
       
       <link rel="icon" href="../../assets/ms_icon.png">
@@ -26,7 +26,7 @@
     
     
       
-        <title>Architecture Overview - Revizor</title>
+        <title>Code Structure - Revizor</title>
       
     
     
@@ -47,10 +47,12 @@
         
         
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
-        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CInter+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"Inter Mono"}</style>
       
     
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
     
     <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
@@ -76,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#architecture-overview" class="md-skip">
+        <a href="#code-structure" class="md-skip">
           Skip to content
         </a>
       
@@ -109,7 +111,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Architecture Overview
+              Code Structure
             
           </span>
         </div>
@@ -267,14 +269,25 @@
   
     
     
+      
+  
+  
+    
+  
+  
+    
+    
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="./" class="md-tabs__link">
+        <a href="../guidelines-general/" class="md-tabs__link">
           
   
   Developer Documentation
 
         </a>
       </li>
+    
+  
+
     
   
 
@@ -640,6 +653,176 @@
                 
   
   
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_1" id="__nav_5_1_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Development Guidelines
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_1">
+            <span class="md-nav__icon md-icon"></span>
+            Development Guidelines
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guidelines-general/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    General Guidelines
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guidelines-code-style/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Code Style
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guidelines-git/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Git Workflow
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5_2" id="__nav_5_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Architecture and Modules
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5_2">
+            <span class="md-nav__icon md-icon"></span>
+            Architecture and Modules
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arch-overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -652,132 +835,15 @@
         
       
       
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    Architecture Overview
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
-    Architecture Overview
+    Code Structure
   </span>
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#how-revizor-works" class="md-nav__link">
-    <span class="md-ellipsis">
-      How Revizor works
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="How Revizor works">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#1-initialization" class="md-nav__link">
-    <span class="md-ellipsis">
-      1. Initialization
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#2-code-generation" class="md-nav__link">
-    <span class="md-ellipsis">
-      2. Code Generation
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-data-generation" class="md-nav__link">
-    <span class="md-ellipsis">
-      3. Data Generation
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#4-model-execution" class="md-nav__link">
-    <span class="md-ellipsis">
-      4. Model Execution
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#5-hardware-execution" class="md-nav__link">
-    <span class="md-ellipsis">
-      5. Hardware Execution
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#6-trace-analysis" class="md-nav__link">
-    <span class="md-ellipsis">
-      6. Trace Analysis
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#7-post-violation-analysis" class="md-nav__link">
-    <span class="md-ellipsis">
-      7. Post-violation Analysis
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#revizor-modules-and-interfaces" class="md-nav__link">
-    <span class="md-ellipsis">
-      Revizor Modules and Interfaces
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
       
     </li>
   
@@ -791,15 +857,191 @@
   
   
     <li class="md-nav__item">
-      <a href="../development/" class="md-nav__link">
+      <a href="../arch-fuzz/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Development Guidelines
+    Orchestration
   </span>
   
 
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arch-isa/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ISA specification
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arch-code/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Test Case Code Generation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arch-data/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Test Case Data Generation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arch-exec/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Hardware Tracing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arch-model/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contract Tracing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arch-analysis/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Trace Analysis
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arch-mini/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Minimization
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arch-logging/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Logging
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -829,7 +1071,7 @@
             
   
   <span class="md-ellipsis">
-    Advanced Topics
+    Contract Modeling Backends
   </span>
   
 
@@ -838,6 +1080,94 @@
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_5_3">
+            <span class="md-nav__icon md-icon"></span>
+            Contract Modeling Backends
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../model-unicorn/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Unicorn Backend
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../model-dr/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    DynamoRIO Backend
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_4" id="__nav_5_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Advanced Topics
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_4">
             <span class="md-nav__icon md-icon"></span>
             Advanced Topics
           </label>
@@ -913,53 +1243,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../dr-model/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    DynamoRIO backend
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../binary-formats/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
     Binary Formats
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../code-generation/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Test Case Code Generation
   </span>
   
 
@@ -1112,101 +1400,6 @@
     
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#how-revizor-works" class="md-nav__link">
-    <span class="md-ellipsis">
-      How Revizor works
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="How Revizor works">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#1-initialization" class="md-nav__link">
-    <span class="md-ellipsis">
-      1. Initialization
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#2-code-generation" class="md-nav__link">
-    <span class="md-ellipsis">
-      2. Code Generation
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-data-generation" class="md-nav__link">
-    <span class="md-ellipsis">
-      3. Data Generation
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#4-model-execution" class="md-nav__link">
-    <span class="md-ellipsis">
-      4. Model Execution
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#5-hardware-execution" class="md-nav__link">
-    <span class="md-ellipsis">
-      5. Hardware Execution
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#6-trace-analysis" class="md-nav__link">
-    <span class="md-ellipsis">
-      6. Trace Analysis
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#7-post-violation-analysis" class="md-nav__link">
-    <span class="md-ellipsis">
-      7. Post-violation Analysis
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#revizor-modules-and-interfaces" class="md-nav__link">
-    <span class="md-ellipsis">
-      Revizor Modules and Interfaces
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -1223,61 +1416,20 @@
   
 
 
-<h1 id="architecture-overview">Architecture Overview</h1>
-<p>This document provides an overview of Revizor's architecture and its key components.</p>
-<h2 id="how-revizor-works">How Revizor works</h2>
-<p>Revizor detects contract violations via a method called Model-based Relational Testing (MRT).
-This method relies on a <a href="../../contracts/">leakage model</a> that encodes known microarchitectural vulnerabilities to predict the information leaked when executing some code, which
- allows it to distinguish between expected and unexpected  leaks. The approach generates random code that is executed both in the CPU-under-test and in the model. It then measures the microarchitectural state changes caused by the code and compares it to the leakage predicted by the model. If the observed leakage matches the model’s prediction, this indicates that the CPU is behaving as expected, and
- the test case is discarded. Otherwise, if the random code exposed unexpected information, this indicates a potential security vulnerability, and the generated code can be used as a starting point for further (manual) analysis of the new leak.</p>
-<p>Revizor works by executing the following loop for a number of rounds, or until a model violation is detected, as summarized by the diagram:</p>
-<p><img alt="architecture" src="../../assets/fuzzing-flow.png" /></p>
-<h3 id="1-initialization">1. Initialization</h3>
-<p>The first step (executed only once) is to receive fuzzing configuration from the user.
-The configuration specifies the target CPU, its ISA specification, the instruction pool to be tested, the side-channel to be tested, and other fuzzing parameters.</p>
-<p><strong>Details</strong>: All interactions with a user are handled by the <code>cli.py</code> module, which parses the command-line arguments. Based on the arguments it creates an <code>InstructionSet</code> object (defined in <code>isa_spec.py</code>) and a <code>Config</code> object (defined in <code>config.py</code>). It also initializes the <code>Fuzzer</code> object (defined in <code>fuzzer.py</code>), which will handle the fuzzing process from now on.</p>
-<h3 id="2-code-generation">2. Code Generation</h3>
-<p>A testing round starts by generating a <a href="../tc-representation/">test case program</a>. The program is essentially a random sequence of assembly instructions with a semi-random control flow, generated from a predefined instruction pool. The code generator create such a program based on the ISA specification provided by the user.</p>
-<p>The generator can be configured to constrain the shape of the program’s control-flow graph, control the pool of instructions, and configure the instruction frequencies. It also (optionally) instruments the program to prevent undesired faults, such as division by zero.</p>
-<p><strong>Details</strong>: <code>Fuzzer</code> invokes code generation by calling <code>CodeGenerator::create_test_case</code> (defined in <code>code_generator.py</code>).
-This method uses the <code>InstructionSet</code> and <code>Config</code> objects as the basis for the generation process.
-The created test case is returned as a <code>TestCaseProgram</code> object (defined in <code>tc_components/test_case_code.py</code>).</p>
-<h3 id="3-data-generation">3. Data Generation</h3>
-<p>The next step is to generate a set of program inputs. Each input is a binary blob, used by the model and the executor to initialize the program’s memory and registers before it is executed. The data generator creates random (but seeded) values to populate the binary blob according to a predefined <a href="../binary-formats/#revizor-data-binary-format-rdbf">format</a>.</p>
-<p><strong>Details</strong>: Data generator is implemented by the <code>data_generator.py</code> module. The main interface to the generator is the <code>DataGenerator</code> class, with its <code>generate</code> method being the main entry point.
-The generated data is returned as a list of <code>InputData</code> objects (defined in <code>tc_components/test_case_data.py</code>).</p>
-<h3 id="4-model-execution">4. Model Execution</h3>
-<p>The model takes the generated program and executes it with each of the generated inputs.
-The model records the data that we expect to be leaked on the given CPU, and to emulate the expected speculative behavior. For mode details on leakage models, see <a href="../../contracts/">Speculation Contracts</a>.</p>
-<p><strong>Details</strong>: The model is implemented by the <code>model.py</code> module.
-The main interface to the model is the <code>Model</code> class, with its <code>load_test_case</code> and <code>trace_test_case</code> methods being the main entry points.
-<code>load_test_case</code> takes a <code>TestCaseProgram</code> object and loads its binary into the model.
-<code>trace_test_case</code> takes a list of <code>InputData</code> objects, loads their data into the model's memory one at a time and executes the loaded program with each.
-The resulting contract traces are returned as a list of <code>CTrace</code> objects (defined in <code>traces.py</code>).</p>
-<p>Note that Revizor supports multiple modelling backends, which are implemented as subclasses of the <code>Model</code> class. The current backends are based on <a href="../unicorn-model/">Unicorn</a> and <a href="../dr-model/">DynamoRIO</a>.</p>
-<h3 id="5-hardware-execution">5. Hardware Execution</h3>
-<p>The executor takes a program, executes it on the target CPU with each of the inputs, and collects hardware traces for each execution. The traces are typically (though not strictly necessarily) collected via a side-channel attack, such as Prime+Probe, in which case a trace is a set of cache lines evicted by the program. In addition to collecting traces, the executor also ensures a low-noise and reproducible execution environment, for example, by disabling interrupts and flushing caches before starting a measurement.</p>
-<p><strong>Details</strong>: The executor is implemented by the <code>executor.py</code> module.
-The main interface to the executor is the <code>Executor</code> class, with its <code>load_test_case</code> and <code>trace_test_case</code> methods being the main entry points.
-<code>load_test_case</code> takes a <code>TestCaseProgram</code> object and loads its binary into the executor.
-<code>trace_test_case</code> takes a list of <code>InputData</code> objects, loads their data into the executor's memory one at a time and executes the loaded program with each.
-The resulting hardware traces are returned as a list of <code>HTrace</code> objects (defined in <code>traces.py</code>).</p>
-<p>The architecture of Revizor can potentially support many types of executors, but currently, we support only one. It is implemented as a kernel module (<code>executor_km/</code>), to which the <code>Executor</code> class acts as an adapter.</p>
-<h3 id="6-trace-analysis">6. Trace Analysis</h3>
-<p>The trace analyzer uses the leakage predicted by the model to filter out instances of expected leaks from the set of collected hardware traces, thus leaving only the unexpected leaks. The analyzer performs the filtering by <a href="../../contracts/">checking the noninterference property w.r.t. the model</a>.</p>
-<p>The key aspect of this approach is that MRT never directly compares the hardware traces to the model’s prediction; instead, it compares the exposed information. This allows a complex modern CPU to be tested against a simple model, and still effectively filter out expected leaks while detecting unexpected leaks.</p>
-<p><strong>Details</strong>: The analyzer is implemented by the <code>analyser.py</code> module.
-The main interface to the analyzer is the <code>Analyser</code> class, with its <code>filter_violation</code> method being the main entry point.
-It takes a list of <code>CTrace</code> and a list of <code>HTrace</code> objects, and returns a <code>Violation</code> object (defined in <code>traces.py</code>) if a contract violation is detected.</p>
-<h3 id="7-post-violation-analysis">7. Post-violation Analysis</h3>
-<p>If a violation is detected, the fuzzer performs a sequence of <a href="../post-violation/">post-violation tests</a> to filter out various types of false positives.
-If the violation survives all these tests, it is reported to the user.
-The user can then utilize the <a href="../../user/minimization/">postprocessing features of Revizor</a> to identify the root cause of leakage.</p>
-<p><strong>Details</strong>: The post-violation analysis is implemented largely in the <code>Fuzzer::fuzzing_round</code> method.
-The reporting of the violation is done by the <code>logs.py:FuzzLogger</code> class, which is accessed via the <code>report_violation</code> method.
-The post-processing is implemented by various classes in the <code>postprocessing</code> module.</p>
-<h2 id="revizor-modules-and-interfaces">Revizor Modules and Interfaces</h2>
-<p><strong>UNDER CONSTRUCTION</strong>: If you are interested in this topic, please contact us by opening an issue on GitHub, and we will prioritize this document.</p>
+<h1 id="code-structure">Code Structure</h1>
+<p>The Revizor codebase is organized into the following main directories:</p>
+<div class="highlight"><pre><span></span><code>rvzr/                         Main source code directory containing core fuzzing logic
+  ├── *.py                    Core modules that implement main fuzzing components
+  ├── tc_components/          Test case representation objects (code and data)
+  ├── model_unicorn/          Unicorn-based leakage model
+  ├── model_dynamorio/        DynamoRIO-based leakage model
+  ├── executor_km/            Kernel module that implements the hardware executor
+  ├── postprocessing/         Minimization utilities for contract counterexamples
+  └── arch/                   Architecture-specific implementations (x86/ and arm64/)
+tests/                        Unit and integration tests
+docs/                         Documentation files
+</code></pre></div>
+<p>The main entry point is <code>rvzr/cli.py</code>, which parses command-line arguments and initializes the <code>Fuzzer</code> object.</p>
 
 
 

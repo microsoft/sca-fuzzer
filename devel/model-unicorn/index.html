@@ -12,9 +12,13 @@
         <meta name="author" content="Microsoft">
       
       
-        <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/devel/post-violation/">
+        <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/devel/model-unicorn/">
       
       
+        <link rel="prev" href="../arch-logging/">
+      
+      
+        <link rel="next" href="../model-dr/">
       
       
       <link rel="icon" href="../../assets/ms_icon.png">
@@ -22,7 +26,7 @@
     
     
       
-        <title>Post-Violation Checks - Revizor</title>
+        <title>Unicorn Backend - Revizor</title>
       
     
     
@@ -43,10 +47,12 @@
         
         
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
-        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CInter+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"Inter Mono"}</style>
       
     
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
     
     <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
@@ -72,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#post-violation-checks" class="md-skip">
+        <a href="#unicorn-backend" class="md-skip">
           Skip to content
         </a>
       
@@ -105,7 +111,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Post-Violation Checks
+              Unicorn Backend
             
           </span>
         </div>
@@ -258,17 +264,30 @@
         
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../overview/" class="md-tabs__link">
+      
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../guidelines-general/" class="md-tabs__link">
           
   
   Developer Documentation
 
         </a>
       </li>
+    
+  
+
     
   
 
@@ -591,23 +610,28 @@
       
   
   
+    
   
   
+  
     
     
     
-      
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
         
           
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
             
   
   <span class="md-ellipsis">
@@ -618,7 +642,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             Developer Documentation
@@ -631,12 +655,50 @@
   
   
   
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_1" id="__nav_5_1_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Development Guidelines
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_1">
+            <span class="md-nav__icon md-icon"></span>
+            Development Guidelines
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
     <li class="md-nav__item">
-      <a href="../overview/" class="md-nav__link">
+      <a href="../guidelines-general/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Architecture Overview
+    General Guidelines
   </span>
   
 
@@ -653,15 +715,44 @@
   
   
     <li class="md-nav__item">
-      <a href="../development/" class="md-nav__link">
+      <a href="../guidelines-code-style/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Development Guidelines
+    Code Style
   </span>
   
 
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guidelines-git/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Git Workflow
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -684,10 +775,387 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_2" id="__nav_5_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Architecture and Modules
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_2">
+            <span class="md-nav__icon md-icon"></span>
+            Architecture and Modules
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arch-overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../code-structure/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Code Structure
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arch-fuzz/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Orchestration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arch-isa/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ISA specification
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arch-code/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Test Case Code Generation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arch-data/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Test Case Data Generation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arch-exec/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Hardware Tracing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arch-model/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contract Tracing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arch-analysis/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Trace Analysis
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arch-mini/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Minimization
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arch-logging/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Logging
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3" checked>
         
           
           <label class="md-nav__link" for="__nav_5_3" id="__nav_5_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Contract Modeling Backends
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5_3">
+            <span class="md-nav__icon md-icon"></span>
+            Contract Modeling Backends
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Unicorn Backend
+  </span>
+  
+
+      </a>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../model-dr/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    DynamoRIO Backend
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_4" id="__nav_5_4_label" tabindex="0">
             
   
   <span class="md-ellipsis">
@@ -698,8 +1166,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5_3">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_4">
             <span class="md-nav__icon md-icon"></span>
             Advanced Topics
           </label>
@@ -775,53 +1243,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../dr-model/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    DynamoRIO backend
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../binary-formats/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
     Binary Formats
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../code-generation/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Test Case Code Generation
   </span>
   
 
@@ -990,9 +1416,22 @@
   
 
 
-<h1 id="post-violation-checks">Post-Violation Checks</h1>
-<p>This document describes a series of test that the fuzzer automatically performs to distinguish between false positives (e.g., due to noise) and genuine violations.</p>
-<p><strong>UNDER CONSTRUCTION</strong>: If you are interested in this topic, please contact us by opening an issue on GitHub, and we will prioritize this document.</p>
+<h1 id="unicorn-backend">Unicorn Backend</h1>
+<p>Unicorn backend architecture:</p>
+<div class="highlight"><pre><span></span><code>UnicornModel (main orchestrator)
+  ├─ UnicornTracer            Records observations (PC, memory addresses, etc.)
+  ├─ UnicornSpeculator        Simulates speculative execution
+  ├─ UnicornTaintTracker      Tracks data flow for boosted input generation
+  ├─ ExtraInterpreter         Handles features Unicorn doesn&#39;t support
+  └─ InstructionCoverage      Tracks which instructions were tested
+</code></pre></div>
+<p>Key components:</p>
+<ul>
+<li><code>UnicornModel</code>:   Manages the emulator and coordinates components through hooks on instruction and memory events.</li>
+<li><code>UnicornTracer</code>:   Implements the observation clause of the contract. Different tracers record different information (program counters, memory addresses, data values).</li>
+<li><code>UnicornSpeculator</code>:   Implements the speculation clause using checkpoint-rollback mechanisms. When speculation triggers (branch misprediction, CPU exception), it saves state and executes speculatively up to a window limit (default 250 instructions). It rolls back on serializing instructions or window expiration.</li>
+<li><code>UnicornTaintTracker</code>:   Performs dynamic taint analysis to identify which input bytes affect the contract trace. Used for boosted input generation.</li>
+</ul>
 
 
 
