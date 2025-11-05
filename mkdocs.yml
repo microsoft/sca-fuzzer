@@ -10,6 +10,9 @@ repo_url: https://github.com/microsoft/sca-fuzzer
 
 theme:
   name: material
+  font:
+    text: Inter
+    code: Inter Mono
   custom_dir: mkdocs-overrides
   logo: assets/ms_icon.png
   favicon: assets/ms_icon.png
@@ -19,6 +22,9 @@ theme:
     - navigation.instant
     - navigation.tabs
     - search.share
+
+extra_css:
+  - stylesheets/extra.css
 
 plugins:
   - search
@@ -49,15 +55,30 @@ nav:
     - Templates: user/templates.md
     - Macros: user/macros.md
   - Developer Documentation:
-    - Architecture Overview: devel/overview.md
-    - Development Guidelines: devel/development.md
+    - Development Guidelines:
+      - General Guidelines: devel/guidelines-general.md
+      - Code Style: devel/guidelines-code-style.md
+      - Git Workflow: devel/guidelines-git.md
+    - Architecture and Modules:
+      - Overview: devel/arch-overview.md
+      - Code Structure: devel/code-structure.md
+      - Orchestration: devel/arch-fuzz.md
+      - ISA specification: devel/arch-isa.md
+      - Test Case Code Generation: devel/arch-code.md
+      - Test Case Data Generation: devel/arch-data.md
+      - Hardware Tracing: devel/arch-exec.md
+      - Contract Tracing: devel/arch-model.md
+      - Trace Analysis: devel/arch-analysis.md
+      - Minimization: devel/arch-mini.md
+      - Logging: devel/arch-logging.md
+    - Contract Modeling Backends:
+      - Unicorn Backend: devel/model-unicorn.md
+      - DynamoRIO Backend: devel/model-dr.md
     - Advanced Topics:
       - Register Allocation: devel/registers.md
       - Test Case Sandbox: devel/sandbox.md
       - Macros: devel/macros.md
-      - DynamoRIO backend: devel/dr-model.md
       - Binary Formats: devel/binary-formats.md
-      - Test Case Code Generation: devel/code-generation.md
   - Tutorials:
     - Designing a Revizor Fuzzing Campaign: tutorials/fuzzing-campaign.md
     - Root-Causing a Violation Detected by Revizor: tutorials/root-causing.md

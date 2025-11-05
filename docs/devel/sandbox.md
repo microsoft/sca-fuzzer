@@ -36,7 +36,7 @@ Each actor in the test case has its own sub-area for its data and code, and the 
 
 The data area is divided into the following regions:
 * **Main and Faulty Areas**: These are the two regions of memory that are accessible by the test case code.
-  This is enforced by the test case generator, which instruments all memory accesses to ensure that they fall within these regions (see [code-generation](code-generation.md) for more details).
+  This is enforced by the test case generator, which instruments all memory accesses to ensure that they fall within these regions (see [code-generation](arch-code.md) for more details).
   Both areas are initialized with the input data from the [RBDF](binary-formats.md).
   The main area always has default permissions (RW), while the faulty area has permissions can be configured to cause a fault when accessed.
   This configuration originates from the [config file](../user/config.md).

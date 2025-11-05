@@ -228,7 +228,7 @@ rvzr minimize -s base.json -c violation-<timestamp>/minimize.yaml -g violation-<
 The result of minimization will be stored in `violation-<timestamp>/minimized.asm`.
 If the result is still too complicated, try [other minimization passes](user/minimization.md).
 
-The further analysis is manual; you can find an example in [this guide](user/fuzzing-guide.md).
+The further analysis is manual; you can find an example in [this guide](tutorials/root-causing.md).
 
 ## Need Help with Revizor?
 
