@@ -9,13 +9,13 @@
 Revizor is a security-oriented fuzzer for detecting information leaks in CPUs, such as [Spectre and Meltdown](https://meltdownattack.com/).
 It tests CPUs against [Leakage Contracts](https://arxiv.org/abs/2006.03841) and searches for unexpected leaks.
 
-For more details, see our [Paper](https://dl.acm.org/doi/10.1145/3503222.3507729) (open access [here](https://arxiv.org/abs/2105.06872)), and the follow-up papers ([1](https://arxiv.org/pdf/2301.07642.pdf), [2](https://www.usenix.org/conference/usenixsecurity23/presentation/hofmann)).
+<!-- For more details, see our [Paper](https://dl.acm.org/doi/10.1145/3503222.3507729) (open access [here](https://arxiv.org/abs/2105.06872)), and the follow-up papers ([1](https://arxiv.org/pdf/2301.07642.pdf), [2](https://www.usenix.org/conference/usenixsecurity23/presentation/hofmann)). -->
 
 ## Getting Started and Documentation
 
 You can find a quick start guide at [Quick Start](https://microsoft.github.io/sca-fuzzer/quick-start/).
 
-For information on how to use Revizor, see [User Documentation](https://microsoft.github.io/sca-fuzzer/cli/).
+For information on how to use Revizor, see [User Documentation](https://microsoft.github.io/sca-fuzzer/user/cli/).
 
 For information on how to contribute to Revizor, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
