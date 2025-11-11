@@ -141,6 +141,11 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
+         <loc>https://github.com/microsoft/sca-fuzzer/user/</loc>
+         <lastmod>2025-11-11</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
          <loc>https://github.com/microsoft/sca-fuzzer/user/actors/</loc>
          <lastmod>2025-11-11</lastmod>
          <changefreq>daily</changefreq>
