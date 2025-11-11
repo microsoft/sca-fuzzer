@@ -47,6 +47,7 @@ nav:
   - Quick Start: quick-start.md
   - Theoretical Foundations: contracts.md
   - User Documentation:
+    - Index: user/index.md
     - Command Line Interface: user/cli.md
     - Modes of Operation: user/modes.md
     - Configuration Options: user/config.md
