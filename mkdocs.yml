@@ -55,6 +55,7 @@ nav:
     - Templates: user/templates.md
     - Macros: user/macros.md
   - Developer Documentation:
+    - Index: devel/index.md
     - Development Guidelines:
       - General Guidelines: devel/guidelines-general.md
       - Code Style: devel/guidelines-code-style.md
