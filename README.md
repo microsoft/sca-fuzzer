@@ -15,7 +15,7 @@ It tests CPUs against [Leakage Contracts](https://arxiv.org/abs/2006.03841) and 
 
 You can find a quick start guide at [Quick Start](https://microsoft.github.io/sca-fuzzer/quick-start/).
 
-For information on how to use Revizor, see [User Documentation](https://microsoft.github.io/sca-fuzzer/user/cli/).
+For information on how to use Revizor, see [User Documentation](https://microsoft.github.io/sca-fuzzer/user/).
 
 For information on how to contribute to Revizor, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
