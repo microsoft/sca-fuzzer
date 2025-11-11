@@ -27,7 +27,7 @@ If something is confusing or you need help in using Revizor, we have a [discussi
 
 ## Citing Revizor
 
-To cite this project, you can use the following references:
+To cite this project, you can use any of the following references:
 
 1. Original paper that introduced the concept of Model-based Relation Testing as well as the Revizor tool:
 
@@ -49,7 +49,9 @@ To cite this project, you can use the following references:
 
     Jana Hofmann, Emanuele Vannacci, Cédric Fournet, Boris Köpf, and Oleksii Oleksenko. "[Speculation at Fault: Modeling and Testing Microarchitectural Leakage of CPU Exceptions.](https://www.usenix.org/conference/usenixsecurity23/presentation/hofmann)" in Proceedings of 32nd USENIX Security Symposium (USENIX Security), 2023.
 
+6. Paper that introduced testing of cross-VM and user-kernel leaks in Revizor, as well as presented TSA attacks on AMD CPUs:
 
+    Oleksii Oleksenko, Flavien Solt, Cédric Fournet, Jana Hofmann, Boris Köpf, and Stavros Volos. "[Enter, Exit, Page Fault, Leak: Testing Isolation Boundaries for Microarchitectural Leaks](https://www.microsoft.com/en-us/research/wp-content/uploads/2025/07/Enter-Exit-SP26.pdf)" (to be published) in Proceedings of the 2026 IEEE Symposium on Security and Privacy (SP), 2026.
 
 ## Trademarks
 
