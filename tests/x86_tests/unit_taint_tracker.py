@@ -1,255 +1,227 @@
 """
+File: collection of tests for the taint tracking logic in all model backends
+
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 # pylint: disable=missing-function-docstring
 # pylint: disable=missing-class-docstring
-# pylint: disable=protected-access
+# pylint: disable=too-many-public-methods
 
 import unittest
+from abc import ABC
+from typing import List, Tuple, Union
+from copy import deepcopy
 
-from rvzr.model_unicorn import taint_tracker
-from rvzr.arch.x86.target_desc import X86TargetDesc
+from rvzr.model_unicorn.model import X86UnicornModel
+from rvzr.model_dynamorio.model import DynamoRIOModel
+from rvzr.tc_components.test_case_data import InputData, InputTaint
+from rvzr.traces import CTrace
+from rvzr.factory import get_model
+from rvzr.config import CONF, Conf
+from rvzr.logs import update_logging_after_config_change
 
-from rvzr.tc_components.instruction import Instruction, RegisterOp, MemoryOp, LabelOp, \
-    FlagsOp, AgenOp
-from rvzr.tc_components.test_case_data import InputTaint
-
-
-# ==================================================================================================
-# Helper functions
-# ==================================================================================================
-def get_r64_src(reg: str) -> RegisterOp:
-    return RegisterOp(reg, 64, True, False)
-
-
-def get_r64_dest(reg: str) -> RegisterOp:
-    return RegisterOp(reg, 64, False, True)
-
-
-def get_r64_src_dest(reg: str) -> RegisterOp:
-    return RegisterOp(reg, 64, True, True)
-
-
-def get_r32_src(reg: str) -> RegisterOp:
-    return RegisterOp(reg, 32, True, False)
-
-
-def get_r32_dest(reg: str) -> RegisterOp:
-    return RegisterOp(reg, 32, False, True)
-
-
-def get_r32_src_dest(reg: str) -> RegisterOp:
-    return RegisterOp(reg, 32, True, True)
-
-
-def get_m64_src(reg: str) -> MemoryOp:
-    return MemoryOp(reg, 64, True, False)
-
-
-def get_m64_dest(reg: str) -> MemoryOp:
-    return MemoryOp(reg, 64, False, True)
-
-
-def get_m64_src_dest(reg: str) -> MemoryOp:
-    return MemoryOp(reg, 64, True, True)
-
-
-TD = X86TargetDesc()
+from .model_common import Inst, InstList, DATA_BASE, CODE_BASE, Backend, \
+    RAX, RBX, RCX, XMM0, InputBuilder
 
 
 # ==================================================================================================
 # Tests
 # ==================================================================================================
-class X86TaintTrackerTest(unittest.TestCase):
+class _SharedTaintTrackerTest(ABC, unittest.TestCase):
+    """Abstract base class for X86 taint tracking tests.
 
-    def test_dependency_tracking_basic(self) -> None:
-        # Basic dependency tracking: reg to reg, reg to mem, mem to reg, and mem to mem
-        tracker = taint_tracker.UnicornTaintTracker((0, 0), TD)
+    Subclasses must define:
+        _backend: Backend type ("dr" or "uc")
+        _model_backend_name: Model backend name ("dynamorio" or "unicorn")
+    """
 
-        # reg <- reg
-        inst = Instruction("ADD").add_op(get_r64_src_dest("RAX")).add_op(get_r64_src("RBX"))
-        tracker.track_instruction(inst)
-        tracker._finalize_instruction()
-        self.assertCountEqual(tracker._dependencies.reg['A'], ['A', 'B'])
+    _prev_conf: Conf
+    _backend: Backend
+    _model_backend_name: str
 
-        # chain of dependencies
-        inst = Instruction("MOV").add_op(get_r64_dest("RCX")).add_op(get_r64_src("RAX"))
-        tracker.track_instruction(inst)
-        tracker._finalize_instruction()
-        self.assertCountEqual(tracker._dependencies.reg['A'], ['A', 'B'])
-        self.assertCountEqual(tracker._dependencies.reg['C'], ['A', 'B'])
+    # Exclude this parent class from test discovery
+    @classmethod
+    def setUpClass(cls) -> None:
+        if cls is _SharedTaintTrackerTest:
+            raise unittest.SkipTest("Skipping base class")
+        # Validate that subclass defines required attributes
+        if not hasattr(cls, '_backend') or not hasattr(cls, '_model_backend_name'):
+            raise TypeError(
+                f"{cls.__name__} must define class attributes '_backend' and '_model_backend_name'")
+        # Save and configure settings for taint tracking tests
+        cls._prev_conf = deepcopy(CONF)
+        CONF.instruction_set = "x86-64"
+        CONF.model_backend = cls._model_backend_name
+        CONF._no_generation = True  # type: ignore
+        CONF.logging_modes = []
+        update_logging_after_config_change()
 
-        # reg <- mem
-        inst = Instruction("MOV").add_op(get_r64_dest("RDX")).add_op(get_m64_src("RCX"))
-        tracker.track_instruction(inst)
-        tracker.track_memory_access(0x1100, 8, False)
-        tracker._finalize_instruction()
-        self.assertCountEqual(tracker._dependencies.reg['D'], ['0x1100'])
+    @classmethod
+    def tearDownClass(cls) -> None:
+        # Restore configuration
+        for attr, value in cls._prev_conf.__dict__.items():
+            setattr(CONF, attr, value)
 
-        # mem <- reg
-        inst = Instruction("MOV").add_op(get_m64_dest("RAX")).add_op(get_r64_src("RSI"))
-        tracker.track_instruction(inst)
-        tracker.track_memory_access(0x1200, 8, True)
-        tracker._finalize_instruction()
-        self.assertCountEqual(tracker._dependencies.mem['0x1200'], ['0x1200', 'SI'])
+    def __init__(self, methodName: str) -> None:
+        super().__init__(methodName)
+        self._input_builder = InputBuilder()
 
-        # load <- store
-        inst = Instruction("MOV").add_op(get_r64_dest("RDI")).add_op(get_m64_src("RAX"))
-        tracker.track_instruction(inst)
-        tracker.track_memory_access(0x1200, 8, False)
-        tracker._finalize_instruction()
-        self.assertCountEqual(tracker._dependencies.reg['DI'], ['SI', '0x1200'])
+    def _get_model(self) -> Union[DynamoRIOModel, X86UnicornModel]:
+        """Create a model configured for taint tracking."""
+        CONF.contract_observation_clause = "ct"
+        CONF.contract_execution_clause = ["seq"]
+        CONF.model_backend = self._model_backend_name
+        model = get_model((DATA_BASE, CODE_BASE), enable_mismatch_check_mode=False)
+        assert isinstance(model, (DynamoRIOModel, X86UnicornModel))
+        return model
 
-    def test_dependency_tracking_split_access(self) -> None:
-        # Memory accesses that split 8-byte boundaries must taint both parts
-        tracker = taint_tracker.UnicornTaintTracker((0, 0), TD)
+    def _trace_with_taints(self, test_case: InstList,
+                           inputs: List[InputData]) -> Tuple[List[CTrace], List[InputTaint]]:
+        """Helper to load test case and trace with taints."""
+        model = self._get_model()
+        tc = test_case.to_test_case()
+        model.load_test_case(tc)
+        ctraces, taints = model.trace_test_case_with_taints(inputs, nesting=1)
+        return ctraces, taints
 
-        inst = Instruction("MOV").add_op(get_r64_dest("RAX")).add_op(get_m64_src("RCX"))
-        tracker.track_instruction(inst)
-        tracker.track_memory_access(0x1104, 8, False)
-        tracker._finalize_instruction()
-        self.assertCountEqual(tracker._dependencies.reg['A'], ['0x1100', '0x1108'])
+    def _run_taint_test(self, instructions: List[Inst], input_: InputData) -> InputTaint:
+        """Run a taint test and return the taint result for the first input.
 
-    def test_dependency_xmm(self) -> None:
-        # Test dependency tracking for XMM registers
-        tracker = taint_tracker.UnicornTaintTracker((0, 0), TD)
+        :param instructions: List of instructions to execute
+        :param input_: Input data to use for the test
+        :return: Taint information for the first input
+        """
+        test_case = InstList(instructions, backend=self._backend)
+        _, taints = self._trace_with_taints(test_case, [input_])
+        return taints[0]
 
-        inst = Instruction("MOVAPS").add_op(RegisterOp("XMM0", 128, False, True)).add_op(
-            RegisterOp("XMM1", 128, True, False))
-        tracker.track_instruction(inst)
-        tracker._finalize_instruction()
-        self.assertCountEqual(tracker._dependencies.reg['XMM0'], ['XMM0', 'XMM1'])
+    def test_basic_taint(self) -> None:
+        instructions = [
+            Inst("mov rax, qword ptr [r14 + rax]", 3, 0, 0),
+        ]
+        input_ = self._input_builder.get_input_with_zeroed_gprs(RAX)
+        taint = self._run_taint_test(instructions, input_)
+        self.assertTrue(taint[0]['gpr'][RAX])
 
-    def test_dependency_override(self) -> None:
-        """ Test that dependencies are overridden when a 64-bit register is written to"""
-        tracker = taint_tracker.UnicornTaintTracker((0, 0), TD)
+    def test_reg_to_reg(self) -> None:
+        instructions = [
+            Inst("add rax, rbx", 0, 0, 0),
+            Inst("mov rax, qword ptr [r14 + rax]", 0, 0, 0),
+        ]
+        input_ = self._input_builder.get_input_with_zeroed_gprs(RAX, RBX)
+        taint = self._run_taint_test(instructions, input_)
+        self.assertTrue(taint[0]['gpr'][RAX])
+        self.assertTrue(taint[0]['gpr'][RBX])
 
-        inst = Instruction("MOV").add_op(get_r64_dest("RAX")).add_op(get_r64_src("RBX"))
-        tracker.track_instruction(inst)
-        tracker._finalize_instruction()
-        self.assertCountEqual(tracker._dependencies.reg['A'], ['B'])
+    def test_mem_to_reg(self) -> None:
+        instructions = [
+            Inst("mov rbx, qword ptr [r14 + rbx]", 0, 0, 0),  # main[0] -> RBX
+            Inst("mov rax, rbx", 0, 0, 0),  # RBX -> RAX
+            Inst("and rax, 0b1", 0, 0, 0),
+            Inst("mov rax, qword ptr [r14 + rax]", 0, 0, 0),  # RAX tainted
+        ]
+        input_ = self._input_builder.get_input_with_zeroed_gprs(RAX, RBX)
+        taint = self._run_taint_test(instructions, input_)
+        self.assertFalse(taint[0]['gpr'][RAX])
+        self.assertTrue(taint[0]['gpr'][RBX])
+        self.assertTrue(taint[0]['main'][0])
 
-        inst = Instruction("MOV").add_op(get_r64_dest("RAX")).add_op(get_r64_src("RCX"))
-        tracker.track_instruction(inst)
-        tracker._finalize_instruction()
-        self.assertCountEqual(tracker._dependencies.reg['A'], ['C'])
+    def test_load_to_store(self) -> None:
+        instructions = [
+            Inst("mov qword ptr [r14], rax", 0, 0, 0),  # RAX -> main[0]
+            Inst("mov rbx, qword ptr [r14]", 0, 0, 0),  # main[0] -> RBX
+            Inst("mov rax, qword ptr [r14 + rbx]", 0, 0, 0),  # RBX tainted
+        ]
+        input_ = self._input_builder.get_input_with_zeroed_gprs(RAX, RBX)
+        taint = self._run_taint_test(instructions, input_)
+        self.assertTrue(taint[0]['gpr'][RAX])
+        self.assertFalse(taint[0]['gpr'][RBX])
 
-    def test_dependency_override_32bit(self) -> None:
-        """ Test that dependencies are NOT overridden when a 32-bit register is written to"""
-        tracker = taint_tracker.UnicornTaintTracker((0, 0), TD)
+    def test_unaligned_memory_access_taints_both_qwords(self) -> None:
+        # Memory accesses spanning 8-byte boundaries must taint both qwords
+        instructions = [
+            Inst("mov rax, qword ptr [r14 + 0x4]", 0, 0, 0),  # main[0:1] -> RAX
+            Inst("mov rax, qword ptr [r14 + rax]", 0, 0, 0),  # RAX tainted
+        ]
+        input_ = self._input_builder.get_input_with_zeroed_memory(main=0)
+        input_[0]['main'][1] = 0
+        taint = self._run_taint_test(instructions, input_)
+        self.assertTrue(taint[0]['main'][0])
+        self.assertTrue(taint[0]['main'][1])
 
-        inst = Instruction("MOV").add_op(get_r32_dest("EAX")).add_op(get_r32_src("EBX"))
-        tracker.track_instruction(inst)
-        tracker._finalize_instruction()
-        self.assertCountEqual(tracker._dependencies.reg['A'], ['B', 'A'])
+    def test_simd_register_dependencies_are_tracked(self) -> None:
+        # Taint tracking should work for SIMD (XMM) registers
+        instructions = [
+            Inst("movaps xmm0, xmm1", 0, 0, 0),  # XMM1 -> XMM0
+            Inst("movaps xmmword ptr [r14], xmm0", 0, 0, 0),  # XMM0 -> main[0]
+            Inst("mov rax, qword ptr [r14]", 0, 0, 0),  # main[0] -> RAX
+            Inst("and rax, 0b1", 0, 0, 0),
+            Inst("mov rax, qword ptr [r14 + rax]", 0, 0, 0),  # RAX tainted
+        ]
+        input_ = InputData()
+        taint = self._run_taint_test(instructions, input_)
+        self.assertTrue(taint[0]['simd'][XMM0])
 
-        inst = Instruction("MOV").add_op(get_r32_dest("EAX")).add_op(get_r32_src("ECX"))
-        tracker.track_instruction(inst)
-        tracker._finalize_instruction()
-        self.assertCountEqual(tracker._dependencies.reg['A'], ['B', 'C', 'A'])
+    def test_32bit_writes_preserve_64bit_dependencies(self) -> None:
+        # Writing to 32-bit registers (eax) should preserve dependencies from 64-bit (rax)
+        instructions = [
+            Inst("mov eax, ebx", 0, 0, 0),  # EBX -> EAX
+            Inst("mov eax, ecx", 0, 0, 0),  # ECX -> EAX (RAX must remain dependent on RBX)
+            Inst("mov rax, qword ptr [r14 + rax]", 0, 0, 0),  # RAX tainted
+        ]
+        input_ = self._input_builder.get_input_with_zeroed_gprs(RAX, RBX, RCX)
+        taint = self._run_taint_test(instructions, input_)
+        self.assertTrue(taint[0]['gpr'][RAX])
+        self.assertTrue(taint[0]['gpr'][RBX])
+        self.assertTrue(taint[0]['gpr'][RCX])
 
-    def test_dependency_override_partial(self) -> None:
-        # Test that partial update instructions (e.g., MOVHPS) do NOT override dependencies
-        tracker = taint_tracker.UnicornTaintTracker((0, 0), TD)
+    def test_lea_address_computation_propagates_taint(self) -> None:
+        # LEA computes addresses; operands used in address calculation should be tainted
+        instructions = [
+            Inst("lea rax, qword ptr [rbx]", 0, 0, 0),  # RBX -> RAX
+            Inst("mov rax, qword ptr [r14 + rax]", 0, 0, 0),  # RAX tainted
+        ]
+        input_ = self._input_builder.get_input_with_zeroed_gprs(RAX, RBX)
+        taint = self._run_taint_test(instructions, input_)
+        self.assertFalse(taint[0]['gpr'][RAX])
+        self.assertTrue(taint[0]['gpr'][RBX])
 
-        inst = Instruction("MOVHPS").add_op(RegisterOp("XMM1", 128, False,
-                                                       True)).add_op(get_m64_src("RCX"))
-        tracker.track_instruction(inst)
-        tracker.track_memory_access(0x1100, 8, False)
-        tracker._finalize_instruction()
-        self.assertCountEqual(tracker._dependencies.reg['XMM1'], ['XMM1', '0x1100'])
+    def test_control_flow_dependency_taints_condition(self) -> None:
+        # Data used in conditional branches creates control-flow dependencies
+        instructions = [
+            Inst("mov rax, qword ptr [r14 + 0x0]", 0, 0, 0),  # main[0] -> RAX
+            Inst("cmp rax, 0", 0, 0, 0),  # RAX -> flags
+            Inst("je .label", 0, 0, 0),  # Conditional branch on flags
+            Inst(".label:", 0, 0, 0),
+        ]
+        input_ = self._input_builder.get_input_with_zeroed_gprs(RAX)
+        taint = self._run_taint_test(instructions, input_)
+        self.assertFalse(taint[0]['gpr'][RAX])
+        self.assertTrue(taint[0]['main'][0])
 
-    def test_dependency_lea(self) -> None:
-        # Test that LEA instructions are handled correctly
-        tracker = taint_tracker.UnicornTaintTracker((0, 0), TD)
 
-        inst = Instruction("LEA").add_op(get_r64_dest("RAX")).add_op(AgenOp("RDX + RBX", 8))
-        tracker.track_instruction(inst)
-        tracker._finalize_instruction()
-        self.assertCountEqual(tracker._dependencies.reg['A'], ['B', 'D'])
+class X86DRTaintTrackerTest(_SharedTaintTrackerTest):
+    """Unit tests for the x86 DynamoRIO backend adaptor."""
 
-    def test_tainting_memory_access(self) -> None:
-        # Test that memory accesses are tainted correctly
-        tracker = taint_tracker.UnicornTaintTracker((0, 0), TD)
+    _backend: Backend = "dr"
+    _model_backend_name: str = "dynamorio"
 
-        # Initial dependency
-        inst = Instruction("MOV").add_op(get_r64_dest("RAX")).add_op(get_r64_src("RBX"))
-        tracker.track_instruction(inst)
-        tracker._finalize_instruction()
+    def _skip_if_not_installed(self) -> None:
+        try:
+            DynamoRIOModel._check_if_installed()  # type: ignore
+        except FileNotFoundError:
+            self.skipTest("DynamoRIO is not installed")
 
-        # Taint memory address
-        inst = Instruction("MOV").add_op(get_r64_dest("RAX")).add_op(get_m64_src("RAX"))
-        tracker.track_instruction(inst)
-        tracker.track_memory_access(0x1100, 8, True)
-        tracker.taint("mem")
-        tracker._finalize_instruction()
+    def setUp(self) -> None:
+        self._skip_if_not_installed()
 
-        taint: InputTaint = tracker.get_taint(1)
-        self.assertCountEqual(tracker._tainted_labels, {'B'})
-        self.assertEqual(taint[0]['gpr'][1], True)  # RBX is tainted
 
-    def test_tainting_pc(self) -> None:
-        # Test that the program counter is tainted correctly
-        tracker = taint_tracker.UnicornTaintTracker((0, 0), TD)
+class UnicornTaintTrackerTest(_SharedTaintTrackerTest):  # pylint: disable=too-many-public-methods
+    """Unit tests for the x86 Unicorn backend adaptor."""
 
-        # Initial dependency
-        inst = Instruction("ADD").add_op(get_r64_src_dest("RAX")).add_op(get_r64_src("RBX")) \
-            .add_op(FlagsOp(("w", "", "", "", "", "", "", "", "")))
-        tracker.track_instruction(inst)
-        tracker._finalize_instruction()
-
-        # Taint PC
-        jmp_instruction = Instruction("JC", is_control_flow=True)\
-            .add_op(LabelOp(".bb0"))\
-            .add_op(FlagsOp(("r", "", "", "", "", "", "", "", "")), True)\
-            .add_op(RegisterOp("RIP", 64, True, True), True)
-        tracker.track_instruction(jmp_instruction)
-        tracker.taint("pc")
-        tracker._finalize_instruction()
-
-        taint: InputTaint = tracker.get_taint(1)
-        self.assertEqual(tracker._tainted_labels, {'A', 'B', 'RIP'})
-        self.assertEqual(taint[0]['gpr'][0], True)  # RAX
-        self.assertEqual(taint[0]['gpr'][1], True)  # RBX
-
-    def test_tainting_load_value(self) -> None:
-        tracker = taint_tracker.UnicornTaintTracker((0, 0), TD)
-
-        # Initial dependency
-        inst = Instruction("MOV").add_op(get_r64_dest("RAX")).add_op(get_r64_src("RBX"))
-        tracker.track_instruction(inst)
-        tracker._finalize_instruction()
-
-        # Taint load value
-        inst = Instruction("MOV").add_op(get_r64_dest("RAX")).add_op(get_m64_src("RAX"))
-        tracker.track_instruction(inst)
-        tracker.track_memory_access(0x1100, 8, is_write=False)
-        tracker.taint("mem")
-        tracker.taint("ld_val")
-        tracker._finalize_instruction()
-
-        taint: InputTaint = tracker.get_taint(1)
-        self.assertEqual(tracker._tainted_labels, {'B', '0x1100'})
-        self.assertEqual(taint[0]['gpr'][1], True)
-        self.assertEqual(taint[0]['main'][0x100 // 8], True)
-
-    def test_label_to_taint(self) -> None:
-        tracker = taint_tracker.UnicornTaintTracker((0, 0), TD)
-        tracker._tainted_labels = {'0x1000', '0x1040', '0x1640', 'D', 'SI', '8', '14', 'DF', 'RIP'}
-        taint: InputTaint = tracker.get_taint(1)
-
-        expected: InputTaint = InputTaint()
-        expected.fill(0)
-        expected[0]['main'][0] = True  # 0x0
-        expected[0]['main'][8] = True  # 0x40
-        expected[0]['main'][200] = True  # 640
-        expected[0]['gpr'][3] = True  # D
-        expected[0]['gpr'][4] = True  # SI
-        expected[0]['gpr'][6] = True  # DF - flags
-        # 8, 14, RIP - not a part of the input
-
-        self.assertListEqual(list(taint), list(expected))
+    _backend: Backend = "uc"
+    _model_backend_name: str = "unicorn"
 
 
 if __name__ == '__main__':
