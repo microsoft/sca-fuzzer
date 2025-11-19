@@ -40,8 +40,8 @@ The data area is divided into the following regions:
   Both areas are initialized with the input data from the [RBDF](binary-formats.md).
   The main area always has default permissions (RW), while the faulty area has permissions can be configured to cause a fault when accessed.
   This configuration originates from the [config file](../user/config.md).
-* **GPR and SIMD Areas**: These regions store the values that will be used by the modules to initialize the general-purpose registers (GPR) and SIMD registers before executing the test case and when switching between actors.
-  Both areas are initialized with the input data from the [RBDF](binary-formats.md).
+* **GPR and SIMD Areas**: These regions store the values that will be used by the modules to initialize the general-purpose registers (GPR) and SIMD registers before executing the test case and when switching between actors. Both areas are initialized with the input data from the [RBDF](binary-formats.md).
+  The order of registers is: `rax`, `rbx`, `rcx`, `rdx`, `rsi`, `rdi`, `flags`, `rsp` for GPRs, and `xmm0` to `xmm7` for SIMD registers.
 * **Over- and Underflow Pads**: These two zero-initialized regions surround the actors' data areas, and their purpose is to determinize the hardware traces on the executor.
   Namely, they are needed for the cases when the CPU speculatively bypasses the sandboxing instrumentation inserted by the test case generator, and the bypass leads to an out-of-bounds memory access.
   As the pads are zero-initialized, the bypassed memory accesses will produce deterministic results.
