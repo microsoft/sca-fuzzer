@@ -1,4 +1,4 @@
-/// File: Constants for the sandbox layout
+/// File: Sandbox layout
 /// (see docs/sandbox.md for layout description)
 ///
 // Copyright (C) Microsoft Corporation
@@ -11,28 +11,11 @@
 
 #include "rcbf.h"
 #include "rdbf.h"
-
-#define PAGE_SIZE 4096
+#include "sandbox_const.h"
 
 // =================================================================================================
 // Data sections
 // =================================================================================================
-// layout of code_section_t
-#define MACRO_STACK_SIZE   64
-#define UNDERFLOW_PAD_SIZE (PAGE_SIZE - MACRO_STACK_SIZE)
-#define MAIN_AREA_SIZE     PAGE_SIZE
-#define FAULTY_AREA_SIZE   PAGE_SIZE
-#define REG_INIT_AREA_SIZE 320 // 8 64-bit GPRs + 8 256-bit YMMs
-#define OVERFLOW_PAD_SIZE  (PAGE_SIZE - REG_INIT_AREA_SIZE)
-
-#define REG_INIT_AREA_SIZE_ALIGNED PAGE_SIZE
-#define STACK_OFFSET               (MAIN_AREA_SIZE - 8)
-#define REG_INIT_OFFSET            (MAIN_AREA_SIZE + FAULTY_AREA_SIZE)
-#define SIMD_INIT_OFFSET           (REG_INIT_OFFSET + 64)
-
-#define GPR_SIZE       8
-#define EFLAGS_INIT_ID 6
-#define RSP_INIT_ID    7
 
 // IMPORTANT! This structure must match the layout in rvzr/executor_km/include/sandbox_manager.h
 typedef struct {
@@ -47,14 +30,15 @@ typedef struct {
 // =================================================================================================
 // Code sections
 // =================================================================================================
-#define MAX_EXPANDED_SECTION_SIZE (PAGE_SIZE * 2)
-#define MACRO_AREA_SIZE           (PAGE_SIZE)
 
 // IMPORTANT! This structure must match the layout in rvzr/executor_km/include/sandbox_manager.h
 typedef struct {
     uint8_t code[MAX_EXPANDED_SECTION_SIZE];
     uint8_t unused[MACRO_AREA_SIZE]; // unused; mirrors the macro area in sandbox_manager.h
 } __attribute__((packed)) code_section_t;
+
+_Static_assert(MAX_ACTORS * sizeof(code_section_t) == (unsigned long)TEST_CASE_MAX_SIZE,
+               "Invalid value of TEST_CASE_MAX_SIZE");
 
 // =================================================================================================
 // sandbox_t

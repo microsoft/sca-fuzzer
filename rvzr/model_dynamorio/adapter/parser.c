@@ -9,6 +9,7 @@
 
 #include "rcbf.h"
 #include "rdbf.h"
+#include "sandbox_const.h"
 
 /// @brief Parse the file in RCBF format and return
 ///        pointer to the parsed data
@@ -75,7 +76,8 @@ rcbf_t *parse_rcbf(const char *filename)
         perror("malloc:rcbf->section_metadata");
         exit(EXIT_FAILURE);
     }
-    if (fread(rcbf->section_metadata, sizeof(code_section_metadata_t), n_actors, rdbf_fp) != n_actors) {
+    if (fread(rcbf->section_metadata, sizeof(code_section_metadata_t), n_actors, rdbf_fp) !=
+        n_actors) {
         perror("fread:rcbf->section_metadata");
         exit(EXIT_FAILURE);
     }

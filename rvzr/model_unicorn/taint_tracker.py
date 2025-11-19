@@ -152,7 +152,7 @@ class UnicornTaintTracker:
         flag_op = self._instruction.inst.get_flags_operand()
         if flag_op:
             for flag_label in flag_op.get_flags_by_type('overwrite'):
-                self._dependencies.flag[flag_label] = set()
+                self._dependencies.flag[flag_label] = {flag_label}
 
     def track_memory_access(self, address: int, size: int, is_write: bool) -> None:
         """

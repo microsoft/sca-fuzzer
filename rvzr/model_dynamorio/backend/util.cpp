@@ -16,6 +16,7 @@
 #include <drvector.h>
 
 #include "observables.hpp"
+#include "types/decoder.hpp"
 #include "util.hpp"
 
 void reserve_register_checked(void *drcontext, instrlist_t *ilist, instr_t *where,
@@ -50,21 +51,10 @@ bool force_write(byte *addr, size_t size, const uint64_t *val, size_t *w_size)
     return success;
 }
 
-bool is_illegal_jump(instr_obs_t instr, dr_mcontext_t *mc, void *dc)
+bool is_illegal_jump(instr_obs_t instr, dr_mcontext_t *mc, void *dc, Decoder &decoder)
 {
     // Decode the instruction
-    // FIXME: we should avoid decoding the same instruction many times.
-    // At the moment, we decode both in the COND speculator (to get branch information) and when
-    // handling memory operations.
-    instr_noalloc_t noalloc;
-    instr_noalloc_init(dc, &noalloc);
-    instr_t *cur_instr = instr_from_noalloc(&noalloc);
-    byte *next_pc = decode(dc, (byte *)instr.pc, cur_instr);
-    if (next_pc == nullptr) {
-        dr_printf("[ERROR] is_illegal_jump: Failed to decode instruction\n");
-        dr_abort();
-        return false; // unreachable
-    }
+    instr_t *cur_instr = decoder.get_decoded_instr(dc, (byte *)instr.pc);
 
     // Check if it's an indirect jump or ret (a.k.a. multi-way branch).
     if (not instr_is_mbr(cur_instr))

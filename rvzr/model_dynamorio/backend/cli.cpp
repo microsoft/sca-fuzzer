@@ -23,6 +23,7 @@ using dynamorio::droption::droption_t;
 
 static bool validate_tracer(cli_args_t *parsed_args);
 static bool validate_speculator(cli_args_t *parsed_args);
+bool validate_taint_tracker(cli_args_t *parsed_args);
 
 static const int max_reasonable_nesting = 100;
 static const int max_reasonable_spec_window = 1000;
@@ -34,6 +35,13 @@ namespace
 {
 // clang-format off
 // General Configuration
+
+// Mode selector: standalone vs serving as a backend for rvzr
+const droption_t<string> op_mode(DROPTION_SCOPE_CLIENT,
+                        "mode", "standalone",
+                        "Mode of operation: standalone or rvzr",
+                        "Mode of operation: "
+                        "standalone (default) or rvzr (used as a backend for rvzr)");
 
 // Tracer Configuration
 const droption_t<string> op_tracer_name(DROPTION_SCOPE_CLIENT,
@@ -85,6 +93,16 @@ const droption_t<uint64_t> op_poison_value(DROPTION_SCOPE_CLIENT,
                         "Value to forward on speculative faulty loads. If 0, speculative loads cause a rollback.",
                         "Value to forward on speculative faulty loads. If 0, speculative loads cause a rollback.");
 
+// Taint Tracker Configuration
+const droption_t<bool>   op_enable_taint_tracker(DROPTION_SCOPE_CLIENT,
+                        "enable-taint-tracker", false,
+                        "Enable the taint tracker for contract-based input generation.",
+                        "Enable the taint tracker for contract-based input generation.");
+const droption_t<string> op_taint_output(DROPTION_SCOPE_CLIENT,
+                        "taint-output", "",
+                        "Where to save the taint information (in binary format).",
+                        "Where to save the taint information (in binary format).");
+
 // Listing Options
 const droption_t<bool> op_list_tracers(DROPTION_SCOPE_CLIENT,
                         "list-tracers", false,
@@ -116,6 +134,17 @@ void parse_cli(int argc, const char **argv, DR_PARAM_OUT cli_args_t &parsed_args
         dr_abort();
     }
 
+    // Select overall mode
+    const std::string mode_str = op_mode.get_value();
+    if (mode_str == "standalone") {
+        parsed_args.mode = Mode::STANDALONE;
+    } else if (mode_str == "rvzr") {
+        parsed_args.mode = Mode::RVZR_BACKEND;
+    } else {
+        dr_printf("Invalid mode: %s\n", mode_str.c_str());
+        dr_abort();
+    }
+
     // Set the parsed arguments
     parsed_args.tracer_type = op_tracer_name.get_value();
     parsed_args.instrumented_func = op_instrumented_func.get_value();
@@ -127,6 +156,8 @@ void parse_cli(int argc, const char **argv, DR_PARAM_OUT cli_args_t &parsed_args
     parsed_args.speculator_type = op_speculator_name.get_value();
     parsed_args.max_nesting = op_max_nesting.get_value();
     parsed_args.max_spec_window = op_max_spec_window.get_value();
+    parsed_args.enable_taint_tracker = op_enable_taint_tracker.get_value();
+    parsed_args.taint_output = op_taint_output.get_value();
     parsed_args.list_tracers = op_list_tracers.get_value();
     parsed_args.list_speculators = op_list_speculators.get_value();
     uint64_t poison_value = op_poison_value.get_value();
@@ -141,6 +172,9 @@ void parse_cli(int argc, const char **argv, DR_PARAM_OUT cli_args_t &parsed_args
         dr_abort();
     }
     if (not validate_speculator(&parsed_args)) {
+        dr_abort();
+    }
+    if (not validate_taint_tracker(&parsed_args)) {
         dr_abort();
     }
 }
@@ -208,6 +242,27 @@ bool validate_speculator(cli_args_t *parsed_args)
         dr_printf("Invalid maximum speculation window: %d\n", parsed_args->max_spec_window);
         dr_printf("Maximum speculation window must be less than or equal to 1000.\n");
         return false;
+    }
+
+    return true;
+}
+
+bool validate_taint_tracker(cli_args_t *parsed_args)
+{
+    // Taint tracker is only available for backend mode
+    if (parsed_args->enable_taint_tracker and parsed_args->mode != Mode::RVZR_BACKEND) {
+        dr_printf(
+            "Taint tracker can only be enabled when the model is used as a backend for rvzr.\n");
+        return false;
+    }
+
+    // If the taint tracker is enabled, check that the output path is valid
+    if (parsed_args->enable_taint_tracker) {
+        if (parsed_args->taint_output.empty()) {
+            dr_printf(
+                "Taint tracker output path cannot be empty when the taint tracker is enabled.\n");
+            return false;
+        }
     }
 
     return true;

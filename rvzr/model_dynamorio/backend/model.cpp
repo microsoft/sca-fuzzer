@@ -1,5 +1,12 @@
 ///
-/// File: Interface between the model and the DynamoRIO API
+/// File: DynamoRIO client entry point and instrumentation orchestrator
+///
+/// This file implements the main DynamoRIO client (dr_client_main) and coordinates
+/// the instrumentation lifecycle. The file is responsible for detecting when to start/stop
+/// instrumentation of the target function based on its name. It also registers event callbacks
+/// for module loading, basic block transformation, and instruction-level instrumentation.
+/// The callbacks transfer control to the Dispatcher class, which manages the rest of
+/// the model's logic.
 ///
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
@@ -30,37 +37,136 @@ using std::string;
 
 /// @brief Pointer to the dispatcher instance;
 /// @note We have to use a global pointer to share state (tracer, speculator, state of the
-///       instrumentation) with the callbacks
+///       instrumentation) with the callbacks. This is the reason for NOLINT as well.
 std::unique_ptr<Dispatcher> glob_dispatcher = nullptr; // NOLINT
 
 namespace dr_model
 {
 
-/// @brief Struct holding information about the function to instrument.
-struct instrumented_func_info_t {
+static void dr_model_del() noexcept;
+
+// =================================================================================================
+// State machine of instrumentation
+// =================================================================================================
+
+/// @brief Class holding information about the function to instrument and managing the state of the
+/// instrumentation process.
+class InstrumentationStateMachine
+{
+  public:
+    InstrumentationStateMachine(std::string name_) : name(std::move(name_)) {}
+    ~InstrumentationStateMachine() = default;
+    InstrumentationStateMachine(const InstrumentationStateMachine &) = delete;
+    InstrumentationStateMachine &operator=(const InstrumentationStateMachine &) = delete;
+    InstrumentationStateMachine(InstrumentationStateMachine &&) = delete;
+    InstrumentationStateMachine &operator=(InstrumentationStateMachine &&) = delete;
+
     /// @brief Name of the function to instrument
     std::string name;
-    /// @brief First pc executed after the instrumented function. This is populated dynamically once
-    /// we reach a call to the instrumented function
-    app_pc exit_pc = nullptr;
-    /// @brief Whether the function to instrument has been found at least once.
-    /// @note Currently we assume that the instrumented func is always executed only once.
-    bool found = false;
-    /// @brief Whether the function to instrument has returned.
-    /// @note Currently we assume that the instrumented func is always executed only once.
-    bool returned = false;
-} instrumented_func; // NOLINT
 
-static void event_instrumentation_start(void *wrapctx, DR_PARAM_OUT void **user_data);
-static void dr_model_del() noexcept;
+    /// @brief Whether DynamoRIO is currently executing inside the instrumented function.
+    bool in_function = false;
+
+    void register_entry_pc(app_pc pc)
+    {
+        DR_ASSERT_MSG(not entry_found, "Function entry pc already registered");
+        entry_pc = pc;
+        entry_found = true;
+    }
+
+    bool is_entry_pc(byte const *pc) const { return entry_found and pc == entry_pc; }
+
+    void register_exit_pc(app_pc pc)
+    {
+        DR_ASSERT_MSG(not exit_found, "Function exit pc already registered");
+        exit_pc = pc;
+        exit_found = true;
+    }
+
+    bool is_exit_pc(byte const *pc) const { return exit_found and pc == exit_pc; }
+
+    /// @return true on first call (to trigger code cache flush, which will cause re-execution),
+    ///         false afterwards
+    bool start_instrumentation(void *drcontext)
+    {
+        DR_ASSERT_MSG(in_function == false,
+                      "[ERROR] Recursive calls to the instrumented function are not supported.");
+        in_function = true;
+
+        // Flush all code cache: we might want to instrument basic blocks that have already
+        // been translated (e.g. libc)
+        if (not entry_flush_done) {
+            flush_bb_cache();
+            entry_flush_done = true;
+            in_function = false;
+
+            // quick return: the flush will cause a re-instrumentation, so this function will be
+            // called again immediately after this return
+            return true;
+        }
+
+        // If this is the first time we instrument the function, we need to initialize the
+        // dispatcher and store the function's return address for later instrumentation.
+        if (not glob_dispatcher->is_initialized) {
+            glob_dispatcher->start();
+        } else {
+            glob_dispatcher->restart();
+        }
+
+        // Also, if this is the first time we instrument the function, we have to
+        // identify the exit pc by inspecting the return address on the stack
+        // (we assume that the function is always called from the same location, hence
+        // this is done only once)
+        if (not exit_found) {
+            dr_mcontext_t mc = {sizeof(mc), DR_MC_ALL};
+            dr_get_mcontext(drcontext, &mc);
+            exit_found = true;
+            exit_pc = *((app_pc *)mc.xsp);
+        }
+        return false;
+    }
+
+    void end_instrumentation(void *drcontext, instrlist_t *bb, instr_t *instr)
+    {
+        DR_ASSERT_MSG(in_function == true,
+                      "[ERROR] Found function exit pc while not in the function.");
+        in_function = false;
+        glob_dispatcher->instrument_exit(drcontext, bb, instr);
+    }
+
+  private:
+    /// @brief First pc executed when entering the instrumented function. This is populated
+    /// dynamically by `event_module_load` based on symbol resolution.
+    app_pc entry_pc = nullptr;
+    /// @brief Whether the function entry point has been found.
+    bool entry_found = false;
+    /// @brief The first time the entry point is executed, we flush the code cache, but only once.
+    /// This flag tracks whether we already did it.
+    bool entry_flush_done = false;
+    /// @brief First pc executed after the instrumented function. This is populated dynamically once
+    /// we reach a call to the instrumented function by inspecting the return address on the stack.
+    app_pc exit_pc = nullptr;
+    /// @brief Whether the function exit point has been found at least once.
+    /// @note Currently we assume that the exit point is always the same, that is the function
+    ///       is always called by the same instruction.
+    bool exit_found = false;
+};
+
+/// @brief Global state machine instance
+/// @note We have to use a global pointer since it is the only way to make it accessible from
+///       DynamoRIO callbacks. This is the reason for NOLINT as well.
+/// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+std::unique_ptr<InstrumentationStateMachine> instrumentation_state_machine = nullptr;
 
 // =================================================================================================
 // Event callbacks
 // =================================================================================================
 
 /// @brief Callback executed before loading a module.
-///        The implementation wraps a function called `instrumented_func_name`
-///        with a call to `event_instrumentation_start`.
+///        This callback is responsible for detecting the presence of the function to instrument.
+///        It checks if the module being loaded contains the function to instrument, and if so,
+///        communicates its address to Dispatcher, so that is knows when
+///        to start the instrumentation (see `event_instrumentation_start`).
 /// @param unused
 /// @param module_ Pointer to the module data
 /// @param unused
@@ -68,42 +174,12 @@ static void dr_model_del() noexcept;
 static void event_module_load(void * /*drcontext*/, const module_data_t *module_, bool /*loaded*/)
 {
     size_t offset = 0;
-    const drsym_error_t sym_res = drsym_lookup_symbol(
-        module_->full_path, instrumented_func.name.c_str(), &offset, DRSYM_DEMANGLE);
+    const char *symbol = instrumentation_state_machine->name.c_str();
+    const drsym_error_t sym_res =
+        drsym_lookup_symbol(module_->full_path, symbol, &offset, DRSYM_DEMANGLE);
     if (sym_res == DRSYM_SUCCESS) {
-        app_pc to_wrap = module_->start + offset;
-        // We only insert a pre-hook for the start of the instrumentation.
-        // End of instrumentation is handled dynamically in the callbacks.
-        // NOTE: This is needed to deal with speculative exits: by default, DynamoRIO's will ignore
-        // consecutive post-hook without a matching pre-hook call. In our case, we can reach the
-        // post-hook multiple times (speculatively) in the same call, but we only really care about
-        // the architectural exit.
-        drwrap_wrap(to_wrap, event_instrumentation_start, nullptr);
+        instrumentation_state_machine->register_entry_pc(module_->start + offset);
     }
-}
-
-/// @brief Callback executed before calling the `instrumented_func_name` function.
-/// @param wrapctx The wrap context
-/// @param user_data
-/// @return void
-static void event_instrumentation_start(void *wrapctx, DR_PARAM_OUT void **user_data)
-{
-    // Flush all code cache: we might want to instrument basic blocks that have already been
-    // translated (e.g. libc)
-    flush_bb_cache();
-
-    // If this is the first time we instrument the function, we need to initialize the
-    // dispatcher and store the function's return address for later instrumentation.
-    if (not glob_dispatcher->is_initialized) {
-        instrumented_func.exit_pc = drwrap_get_retaddr(wrapctx);
-        instrumented_func.found = true;
-        glob_dispatcher->start(wrapctx, user_data);
-        return;
-    }
-
-    // Otherwise, we reset the dispatcher
-    instrumented_func.returned = false;
-    glob_dispatcher->restart(wrapctx, user_data);
 }
 
 /// @brief Callback executed at the first instrumentation stage:
@@ -145,10 +221,26 @@ static dr_emit_flags_t event_bb_instrumentation(void *drcontext, void * /*tag*/,
                                                 bool /*translating*/, void * /*user_data*/)
 {
     // disassemble_with_info(drcontext, instr_get_app_pc(org_instr), STDOUT, true, true);
+    app_pc instr_pc = instr_get_app_pc(instr);
 
-    if (instrumented_func.found and instr_get_app_pc(instr) == instrumented_func.exit_pc) {
+    if (instrumentation_state_machine->is_entry_pc(instr_pc)) {
+        const bool triggers_reexecute =
+            instrumentation_state_machine->start_instrumentation(drcontext);
+        if (triggers_reexecute) {
+            // start_instrumentation triggered a code cache flush, so we return early to re-execute
+            return DR_EMIT_DEFAULT;
+        }
+        // no return here: this is the first instruction of the target function,
+        // so we still need to instrument it as all other instructions
+    }
+
+    if (instrumentation_state_machine->is_exit_pc(instr_pc)) {
         // We found the end pc: add the corresponding callback
-        return glob_dispatcher->instrument_exit(drcontext, bb, instr);
+        instrumentation_state_machine->end_instrumentation(drcontext, bb, instr);
+
+        // return early: this instruction is already outside the instrumented function (it's
+        // the first instruction after the return), so we don't need to instrument it
+        return DR_EMIT_DEFAULT;
     }
 
     // Add a clean call to the dispatch callback, which will forward the call to the service
@@ -236,6 +328,8 @@ void dr_model_del() noexcept
     drx_exit();
     drutil_exit();
     drmgr_exit();
+
+    instrumentation_state_machine.reset();
 }
 
 } // namespace dr_model
@@ -251,7 +345,7 @@ void dr_model_del() noexcept
 /// @param argc Number of CLI arguments
 /// @param argv CLI arguments
 /// @return void
-DR_EXPORT void dr_client_main(client_id_t _, int argc, const char **argv) // NOLINT
+DR_EXPORT void dr_client_main(client_id_t /* client_id */, int argc, const char **argv)
 {
     // Parse CLI arguments
     cli_args_t parsed_args = {};
@@ -275,12 +369,8 @@ DR_EXPORT void dr_client_main(client_id_t _, int argc, const char **argv) // NOL
     glob_dispatcher = std::make_unique<Dispatcher>(&parsed_args);
 
     // Set the target function
-    dr_model::instrumented_func = {
-        .name = parsed_args.instrumented_func,
-        .exit_pc = nullptr,
-        .found = false,
-        .returned = false,
-    };
+    dr_model::instrumentation_state_machine =
+        std::make_unique<dr_model::InstrumentationStateMachine>(parsed_args.instrumented_func);
 
     // Initialize the DR model
     dr_model::dr_model_init();

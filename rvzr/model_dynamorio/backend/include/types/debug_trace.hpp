@@ -31,9 +31,9 @@ static constexpr const char *to_string(const debug_trace_entry_type_t &type)
     case debug_trace_entry_type_t::ENTRY_EOT:
         return "EOT";
     case debug_trace_entry_type_t::ENTRY_REG_DUMP:
-        return "REG_DUMP";
+        return "REG_DUMP ";
     case debug_trace_entry_type_t::ENTRY_READ:
-        return "READ";
+        return "READ ";
     case debug_trace_entry_type_t::ENTRY_WRITE:
         return "WRITE";
     case debug_trace_entry_type_t::ENTRY_LOC:

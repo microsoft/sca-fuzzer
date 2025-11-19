@@ -15,6 +15,7 @@
 #include <drvector.h>
 
 #include "observables.hpp"
+#include "types/decoder.hpp"
 
 #define INSERT_BEFORE instrlist_meta_preinsert
 
@@ -56,7 +57,7 @@ bool force_write(byte *addr, size_t size, const uint64_t *val, size_t *w_size);
 /// @param instr The instruction to check
 /// @param mc
 /// @param dc
-bool is_illegal_jump(instr_obs_t instr, dr_mcontext_t *mc, void *dc);
+bool is_illegal_jump(instr_obs_t instr, dr_mcontext_t *mc, void *dc, Decoder &decoder);
 
 /// @brief Flush dynamorio's basic-block cache. This is needed when transitioning from
 /// non-instrumented code to instrumented code, as any shared code (e.g. libc) might be cached and

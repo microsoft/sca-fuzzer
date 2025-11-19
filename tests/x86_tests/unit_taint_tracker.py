@@ -22,7 +22,7 @@ from rvzr.config import CONF, Conf
 from rvzr.logs import update_logging_after_config_change
 
 from .model_common import Inst, InstList, DATA_BASE, CODE_BASE, Backend, \
-    RAX, RBX, RCX, XMM0, InputBuilder
+    RAX, RBX, RCX, FLAGS, XMM0, InputBuilder
 
 
 # ==================================================================================================
@@ -166,13 +166,13 @@ class _SharedTaintTrackerTest(ABC, unittest.TestCase):
     def test_32bit_writes_preserve_64bit_dependencies(self) -> None:
         # Writing to 32-bit registers (eax) should preserve dependencies from 64-bit (rax)
         instructions = [
-            Inst("mov eax, ebx", 0, 0, 0),  # EBX -> EAX
+            Inst("mov rax, rbx", 0, 0, 0),  # RBX -> RAX
             Inst("mov eax, ecx", 0, 0, 0),  # ECX -> EAX (RAX must remain dependent on RBX)
             Inst("mov rax, qword ptr [r14 + rax]", 0, 0, 0),  # RAX tainted
         ]
         input_ = self._input_builder.get_input_with_zeroed_gprs(RAX, RBX, RCX)
         taint = self._run_taint_test(instructions, input_)
-        self.assertTrue(taint[0]['gpr'][RAX])
+        self.assertFalse(taint[0]['gpr'][RAX])
         self.assertTrue(taint[0]['gpr'][RBX])
         self.assertTrue(taint[0]['gpr'][RCX])
 
@@ -197,8 +197,9 @@ class _SharedTaintTrackerTest(ABC, unittest.TestCase):
         ]
         input_ = self._input_builder.get_input_with_zeroed_gprs(RAX)
         taint = self._run_taint_test(instructions, input_)
-        self.assertFalse(taint[0]['gpr'][RAX])
+        self.assertTrue(taint[0]['gpr'][FLAGS])
         self.assertTrue(taint[0]['main'][0])
+        self.assertFalse(taint[0]['gpr'][RAX])
 
 
 class X86DRTaintTrackerTest(_SharedTaintTrackerTest):

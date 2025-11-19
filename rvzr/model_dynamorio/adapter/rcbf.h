@@ -22,7 +22,6 @@ enum {
 };
 
 #define MAX_SECTION_SIZE 4096
-#define MAX_ACTORS 256
 
 typedef struct {
     uint64_t n_actors;

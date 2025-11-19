@@ -81,6 +81,7 @@ void SpeculatorABC::checkpoint(dr_mcontext_t *mc, pc_t pc)
     // store the register state and the rollback address
     checkpoints.push_back({.rollback_pc = pc, .spec_window = spec_window, .mc = *mc});
     logger.log_checkpoint(pc, spec_window, store_log.size());
+    taint_tracker.checkpoint(false);
 
     // update the state machine that tracks the speculation proces
     in_speculation = true;
@@ -147,6 +148,7 @@ pc_t SpeculatorABC::rollback(dr_mcontext_t *mc)
         }
     }
 
+    taint_tracker.rollback();
     logger.log_rollback(nesting, checkpoint.rollback_pc);
     return checkpoint.rollback_pc;
 }
@@ -171,7 +173,7 @@ pc_t SpeculatorABC::handle_instruction(instr_obs_t instr, dr_mcontext_t *mc, voi
     }
 
     // rollback if we're about to jump/ret to an illegal address
-    if (is_illegal_jump(instr, mc, dc)) {
+    if (is_illegal_jump(instr, mc, dc, decoder)) {
         return rollback(mc);
     }
 
@@ -228,14 +230,11 @@ static bool is_supported_reg(const reg_id_t reg)
            (reg >= DR_REG_START_ZMM && reg <= DR_REG_STOP_ZMM);
 }
 
-static std::pair<instr_t *, byte *> get_load_inst(instr_noalloc_t *noalloc, void *dc,
-                                                  dr_mcontext_t *mc)
+std::pair<instr_t *, byte *> get_load_inst(void *dc, byte *pc, Decoder &decoder)
 {
-    // Decode the instruction
-    instr_noalloc_init(dc, noalloc);
-    instr_t *cur_instr = instr_from_noalloc(noalloc);
-    byte *next_pc = decode(dc, mc->pc, cur_instr);
-    DR_ASSERT_MSG(next_pc != nullptr, "[ERROR] cond_speculator: Failed to decode instruction\n");
+    // Decode the instruction and get its next PC
+    instr_t *cur_instr = decoder.get_decoded_instr(dc, pc);
+    byte *next_pc = decoder.get_next_pc(dc, pc);
 
     // Return a nullptr if it's not a load.
     if (not instr_reads_memory(cur_instr))
@@ -255,8 +254,7 @@ bool SpeculatorABC::handle_exception(void *drcontext, dr_siginfo_t *siginfo)
     // Check if we need to poison the destination register. If not, just rollback.
     if (poison_value.has_value()) {
         // Decode the instruction
-        instr_noalloc_t noalloc;
-        const auto [cur_instr, next_pc] = get_load_inst(&noalloc, drcontext, mc);
+        const auto [cur_instr, next_pc] = get_load_inst(drcontext, mc->pc, decoder);
 
         // Forward poison value
         if (cur_instr != nullptr and instr_num_dsts(cur_instr) > 0) {

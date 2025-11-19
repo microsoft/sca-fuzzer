@@ -12,7 +12,13 @@
 
 #include <dr_defines.h> // DR_PARAM_OUT
 
+enum class Mode : uint8_t {
+    STANDALONE,
+    RVZR_BACKEND,
+};
+
 struct cli_args_t {
+    Mode mode;
     std::string tracer_type;
     std::string instrumented_func;
     std::string trace_output;
@@ -23,6 +29,8 @@ struct cli_args_t {
     std::string speculator_type;
     int max_nesting;
     int max_spec_window;
+    bool enable_taint_tracker;
+    std::string taint_output;
     bool list_tracers;
     bool list_speculators;
     std::optional<uint64_t> poison_value;

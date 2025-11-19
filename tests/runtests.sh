@@ -5,6 +5,10 @@ AVAILABLE_STAGES=("type_check" "code_style_check" "core_unit_tests" "package_ins
 
 function parse_args() {
     POSITIONAL_ARGS=()
+    IGNORE_ERRORS=false
+    STRICT=false
+    SKIP_KM_TESTS=false
+    STAGE=""
 
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -21,6 +25,10 @@ function parse_args() {
             shift
             ;;
         --stage)
+            if [ -z "$2" ]; then
+                echo "Error: --stage requires an argument"
+                exit 1
+            fi
             STAGE="$2"
             shift 2
             ;;
@@ -83,16 +91,26 @@ function code_style_check() {
     echo ""
     echo "===== [DR] Code Style & Linting with clang-tidy ====="
     cd $SCRIPT_DIR/../rvzr/model_dynamorio || exit
-    if [ -d "adapter/build" ]; then
-        find . -name "*.c" -or -name "*.h" | grep -v "CMakeFiles" | xargs clang-tidy --quiet --p adapter/build/ --config-file=adapter/.clang-tidy
-    else
-        echo "[DR] No build directory for DR adapter found; skipping clang-tidy check"
-    fi
-    if [ -d "backend/build" ]; then
-        find . -name "*.cpp" -or -name "*.hpp" | grep -v "CMakeFiles" | xargs clang-tidy --quiet --config-file=backend/.clang-tidy -p backend/build
+
+    if [ -d "adapter/build" ] || [ -d "backend/build" ]; then
+        # this test requires that libstd++-*-dev is installed on the system;
+        versions=($(dpkg -l | grep libstdc++- | grep dev | awk '{print $2}' | sed 's/libstdc++-//;s/-dev//'))
+        if [ ${#versions[@]} -eq 0 ]; then
+            echo "[DR] No libstdc++-*-dev package found; skipping clang-tidy check"
+            cd - >/dev/null || exit
+            return
+        fi
+
+        if [ -d "adapter/build" ]; then
+            find . -name "*.c" -or -name "*.h" | grep -v "CMakeFiles" | xargs clang-tidy --quiet -p adapter/build/ --config-file=adapter/.clang-tidy
+        fi
+        if [ -d "backend/build" ]; then
+            find backend -name "*.cpp" -or -name "*.hpp" | grep -v "CMakeFiles" | xargs clang-tidy --quiet --use-color -p backend/build --config-file=backend/.clang-tidy
+        fi
     else
         echo "[DR] No build directory for DR backend found; skipping clang-tidy check"
     fi
+
     cd - >/dev/null || exit
 }
 
@@ -166,11 +184,10 @@ function arch_unit_tests() {
         echo "-------------"
         python3 -m unittest tests.x86_tests.unit_generators -v
         echo "-------------"
-        python3 -m unittest tests.x86_tests.unit_model_unicorn -v
+        python3 -m unittest tests.x86_tests.unit_model -v
         echo "-------------"
         python3 -m unittest tests.x86_tests.unit_taint_tracker -v
         echo "-------------"
-        python3 -m unittest tests.x86_tests.unit_model_dr -v
         python3 -m unittest tests.x86_tests.unit_dr_decoder -v
         echo "-------------"
         cd - >/dev/null || exit
@@ -184,11 +201,9 @@ function arch_unit_tests() {
         echo "-------------"
         python3 -m unittest tests.arm64.unit_generators -v
         echo "-------------"
-        # python3 -m unittest tests.arm64.unit_model_unicorn -v
+        # python3 -m unittest tests.arm64.unit_model -v
         # echo "-------------"
         # python3 -m unittest tests.arm64.unit_taint_tracker -v
-        # echo "-------------"
-        # python3 -m unittest tests.arm64.unit_model_dr -v
         # echo "-------------"
         cd - >/dev/null || exit
         # exit
