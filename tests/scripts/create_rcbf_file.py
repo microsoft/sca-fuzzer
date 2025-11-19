@@ -1,4 +1,13 @@
 #!/usr/bin/env python3
+"""
+File: create_rcbf_file.py
+      Creates an RCBF test case file from an assembly source file.
+      On details of the RCBF file format, see docs/devel/binary-formats.md
+
+Copyright (C) Microsoft Corporation
+SPDX-License-Identifier: MIT
+"""
+
 import sys
 import os
 import subprocess

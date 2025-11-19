@@ -44,9 +44,9 @@ function load_test_case() {
     local dest_file=$3
 
     if [ $ARCH == "x86_64" ]; then
-        ${DIR}/asm_to_bin_testcase.py $asm_file $dest_file x86
+        ${DIR}/scripts/create_dcbf_file.py $asm_file $dest_file x86
     else
-        ${DIR}/asm_to_bin_testcase.py $asm_file $dest_file arm64
+        ${DIR}/scripts/create_dcbf_file.py $asm_file $dest_file arm64
     fi
 
     if [ $create_only = false ]; then
