@@ -28,13 +28,13 @@ $(dr_path)/drrun:
 
 backend:
 	mkdir -p $(current_dir)/backend/build
-	cd $(current_dir)/backend/build && cmake $(DCMAKE_FLAGS) -DDynamoRIO_DIR=$(dr_path)/DynamoRIO-Linux-$(release)/cmake -D CMAKE_BUILD_TYPE=Debug  $(current_dir)/backend
+	cd $(current_dir)/backend/build && cmake $(CMAKE_FLAGS) -DDynamoRIO_DIR=$(dr_path)/DynamoRIO-Linux-$(release)/cmake -D CMAKE_BUILD_TYPE=Debug  $(current_dir)/backend
 	make -C $(current_dir)/backend/build
 	cp $(current_dir)/backend/build/libdr_model.so $(dr_path)
 
 adapter:
 	mkdir -p $(current_dir)/adapter/build
-	cd $(current_dir)/adapter/build && cmake $(DCMAKE_FLAGS) $(current_dir)/adapter
+	cd $(current_dir)/adapter/build && cmake $(CMAKE_FLAGS) $(current_dir)/adapter
 	make -C $(current_dir)/adapter/build
 	make -C $(current_dir)/adapter/build install
 

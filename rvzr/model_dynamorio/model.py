@@ -9,7 +9,8 @@ from __future__ import annotations
 import os
 import tempfile
 from subprocess import check_output, CalledProcessError, STDOUT
-from typing import List, Tuple, Optional, TYPE_CHECKING, Final, Any, TypeAlias
+from typing import List, Tuple, Optional, TYPE_CHECKING, Final, Any
+from typing_extensions import TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
