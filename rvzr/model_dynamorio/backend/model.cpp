@@ -1,5 +1,12 @@
 ///
-/// File: Interface between the model and the DynamoRIO API
+/// File: DynamoRIO client entry point and instrumentation orchestrator
+///
+/// This file implements the main DynamoRIO client (dr_client_main) and coordinates
+/// the instrumentation lifecycle. The file is responsible for detecting when to start/stop
+/// instrumentation of the target function based on its name. It also registers event callbacks
+/// for module loading, basic block transformation, and instruction-level instrumentation.
+/// The callbacks transfer control to the Dispatcher class, which manages the rest of
+/// the model's logic.
 ///
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT

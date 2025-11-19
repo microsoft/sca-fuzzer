@@ -1,7 +1,13 @@
 ///
-/// File: Taint Tracker class,
-///       which performs backward taint analysis to identify parts of the input that influence
-///       contract traces.
+/// File: Taint Tracker class
+///
+/// Performs backward taint analysis during DynamoRIO instrumentation to identify which parts
+/// of the test input (registers and memory) influence contract trace observations. Tracks data
+/// dependencies through instruction execution, supporting speculative execution via checkpoint/
+/// rollback. Used to implement `trace_test_case_with_taints` interface in the DR Model backend,
+/// and is therefore tightly coupled with rvzr's InputTaint class.
+///
+/// The module should only be used when the model is running in `rvzr` mode.
 ///
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
