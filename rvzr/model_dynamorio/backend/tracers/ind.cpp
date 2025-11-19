@@ -16,6 +16,7 @@
 
 #include "dr_tools.h"
 #include "tracers/ind.hpp"
+#include "types/decoder.hpp"
 
 // =================================================================================================
 // Local helper functions
@@ -30,13 +31,10 @@ typedef struct {
 /// @brief If the instruction is a multi-branch instruction, get the source and target,
 /// otherwise return an empty option.
 static std::optional<mbr_info_t> get_mbr_info(instr_obs_t instr, dr_mcontext_t *mc, void *dc,
-                                              instr_noalloc_t *noalloc)
+                                              Decoder &decoder)
 {
-    // Decode the instruction
-    instr_noalloc_init(dc, noalloc);
-    instr_t *cur_instr = instr_from_noalloc(noalloc);
-    byte *next_pc = decode(dc, (byte *)instr.pc, cur_instr);
-    DR_ASSERT_MSG(next_pc != nullptr, "[ERROR] ind_tracer: Failed to decode instruction\n");
+    // Decode the instruction using the shared cache
+    instr_t *cur_instr = decoder.get_decoded_instr(dc, (byte *)instr.pc);
 
     // Check if it's an indirect jump or ret (a.k.a. multi-way branch).
     if (not instr_is_mbr(cur_instr))
@@ -91,14 +89,14 @@ void TracerInd::observe_instruction(instr_obs_t instr, dr_mcontext_t *mc, void *
         return;
     }
 
-    // Decode the instruction
-    instr_noalloc_t noalloc;
-    const auto &mbr_info = get_mbr_info(instr, mc, dc, &noalloc);
+    // Decode the instruction using the shared cache
+    const auto &mbr_info = get_mbr_info(instr, mc, dc, decoder);
 
     // Skip if not a branch
     if (not mbr_info)
         return;
 
+    // FIXME: refactor to use similar pattern as in record_pc and record_mem_access
     // Log source
     trace.push_back({
         .addr = mbr_info->src,

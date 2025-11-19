@@ -17,20 +17,24 @@
 #include "rcbf.h"
 #include "rdbf.h"
 #include "sandbox.h"
-#include "test_case_entry.h"
 
 static const char *rcbf_file = NULL;
 static const char *rdbf_file = NULL;
+static const char *bases_file = NULL;
+
+// Defined in test_case_entry.asm
+void test_case_entry_outer(uint8_t *main_area_base, uint8_t *code_base);
 
 static int parse_args(int argc, char const *argv[])
 {
     // Check usage
-    if (argc != 3) {
-        printf("Usage: %s <RCBF file> <RDBF file>\n", argv[0]);
+    if (argc != 4) {
+        printf("Usage: %s <RCBF file> <RDBF file> <bases_file>\n", argv[0]);
         return -1;
     }
     rcbf_file = argv[1];
     rdbf_file = argv[2];
+    bases_file = argv[3];
 
     // Check if files exist
     if (access(rcbf_file, F_OK) == -1) {
@@ -39,6 +43,10 @@ static int parse_args(int argc, char const *argv[])
     }
     if (access(rdbf_file, F_OK) == -1) {
         fprintf(stderr, "ERROR: RDBF file %s does not exist\n", rdbf_file);
+        return -1;
+    }
+    if (access(bases_file, F_OK) == -1) {
+        fprintf(stderr, "ERROR: Bases file %s does not exist\n", bases_file);
         return -1;
     }
 
@@ -85,9 +93,16 @@ int main(int argc, char const *argv[])
 
     // Communicate sandbox base addresses to the python model, in binary format
     sandbox_t *sandbox = get_sandbox();
-    fwrite((const void *) &sandbox->code, sizeof(uint8_t *), 1, stdout);
-    fwrite((const void *) &sandbox->data, sizeof(uint8_t *), 1, stdout);
-    fflush(stdout);
+    FILE *bases_fp = fopen(bases_file, "wb");
+    if (bases_fp == NULL) {
+        perror("fopen:bases_file");
+        cleanup(rcbf_data, rdbf_data);
+        return -1;
+    }
+    fwrite((const void *)&sandbox->code, sizeof(uint8_t *), 1, bases_fp);
+    fwrite((const void *)&sandbox->data, sizeof(uint8_t *), 1, bases_fp);
+    fflush(bases_fp);
+    fclose(bases_fp);
 
     // Load data into the sandbox and execute the test case
     for (int i = 0; i < rdbf_data->header.n_inputs; i++) {
@@ -96,7 +111,8 @@ int main(int argc, char const *argv[])
             cleanup(rcbf_data, rdbf_data);
             return -1;
         }
-        test_case_entry(get_sandbox());
+        sandbox_t *sandbox = get_sandbox();
+        test_case_entry_outer(&sandbox->data->main_area[0], &sandbox->code->code[0]);
     }
 
     cleanup(rcbf_data, rdbf_data);

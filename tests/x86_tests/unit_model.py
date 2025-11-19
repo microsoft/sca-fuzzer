@@ -11,7 +11,7 @@ SPDX-License-Identifier: MIT
 # pylint: disable=missing-function-docstring
 
 import unittest
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union, Any, Dict
 from copy import deepcopy
 from pathlib import Path
 from functools import wraps
@@ -43,7 +43,7 @@ TEST_MEM_VALUE_B = 0x42
 POISON_VALUE = 0xDEADBEEF
 
 
-def skip_for_backend(backend: Backend, reason: str = "not supported") -> Callable:
+def skip_for_backend(backend: Backend, reason: str = "not supported") -> Callable[[Any], Any]:
     """Decorator to skip tests for specific backends.
 
     :param backend: Backend to skip ('dr' or 'uc')
@@ -55,13 +55,13 @@ def skip_for_backend(backend: Backend, reason: str = "not supported") -> Callabl
             ...
     """
 
-    def decorator(test_func: Callable) -> Callable:
+    def decorator(test_func: Callable[[Any], Any]) -> Callable[[Any], Any]:
 
         @wraps(test_func)
-        def wrapper(self: '_SharedX86Model', *args, **kwargs):
+        def wrapper(self: '_SharedX86Model') -> Any:
             if self._backend == backend:
                 raise unittest.SkipTest(reason)
-            return test_func(self, *args, **kwargs)
+            return test_func(self)
 
         return wrapper
 
@@ -80,18 +80,16 @@ class _SharedX86Model(unittest.TestCase):
 
     # Exclude this parent class from test discovery
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         if cls is _SharedX86Model:
             raise unittest.SkipTest("Skipping base class")
 
     @classmethod
     def _configure_class(cls,
-                         backend_short: str,
                          backend_long: str,
-                         additional_config: Optional[dict] = None) -> None:
+                         additional_config: Optional[Dict[str, Any]] = None) -> None:
         """Configure test class with backend-specific settings.
 
-        :param backend_short: Short backend name ('dr' or 'uc')
         :param backend_long: Full backend name ('dynamorio' or 'unicorn')
         :param additional_config: Optional dict of additional CONF attributes to set
         """
@@ -820,7 +818,7 @@ class X86DRModelTest(_SharedX86Model):
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls._configure_class("dr", "dynamorio")
+        cls._configure_class("dynamorio")
 
     @classmethod
     def tearDownClass(cls) -> None:
@@ -886,9 +884,9 @@ class X86DRModelTest(_SharedX86Model):
         model.load_test_case(tc)
 
         # Check that a temporary file was created and that it contains the test case
-        self.assertIsNotNone(model._rcbf_file)
-        assert model._rcbf_file is not None
-        with open(model._rcbf_file, "rb") as f:
+        self.assertIsNotNone(model._files.rcbf)
+        assert model._files.rcbf is not None
+        with open(model._files.rcbf, "rb") as f:
             rcbf_data = f.read()
         self.assertNotEqual(len(rcbf_data), 0)
 
@@ -909,9 +907,9 @@ class X86DRModelTest(_SharedX86Model):
         _ = model.trace_test_case([InputData()], 1)
 
         # RDBF
-        self.assertIsNotNone(model._rdbf_file)
-        assert model._rdbf_file is not None
-        with open(model._rdbf_file, "rb") as f:
+        self.assertIsNotNone(model._files.rdbf)
+        assert model._files.rdbf is not None
+        with open(model._files.rdbf, "rb") as f:
             rdbf_data = f.read()
         self.assertNotEqual(len(rdbf_data), 0)
         # FIXME: the next two statements should be a part of test_case_data tests
@@ -919,9 +917,9 @@ class X86DRModelTest(_SharedX86Model):
         self.assertEqual(rdbf_data[8], 1)  # number of inputs
 
         # RCBF
-        self.assertIsNotNone(model._rcbf_file)
-        assert model._rcbf_file is not None
-        with open(model._rcbf_file, "rb") as f:
+        self.assertIsNotNone(model._files.rcbf)
+        assert model._files.rcbf is not None
+        with open(model._files.rcbf, "rb") as f:
             rcbf_data = f.read()
         self.assertEqual(rcbf_data[0], 1)  # number of actors
 
@@ -942,12 +940,12 @@ class X86DRModelTest(_SharedX86Model):
         model.load_test_case(tc)
         _ = model.trace_test_case([input_], 1)
 
-        with open(model._rcbf_file, "rb") as f:
+        with open(model._files.rcbf, "rb") as f:
             rcbf_data2 = f.read()
         self.assertNotEqual(len(rcbf_data2), 0)
         self.assertNotEqual(rcbf_data, rcbf_data2)
 
-        with open(model._rdbf_file, "rb") as f:
+        with open(model._files.rdbf, "rb") as f:
             rdbf_data2 = f.read()
         self.assertNotEqual(len(rdbf_data2), 0)
         self.assertNotEqual(rdbf_data, rdbf_data2)
@@ -965,7 +963,7 @@ class UnicornModelTest(_SharedX86Model):  # pylint: disable=too-many-public-meth
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls._configure_class("uc", "unicorn", {
+        cls._configure_class("unicorn", {
             'instruction_set': 'x86-64',
             'data_generator_seed': 10,
         })

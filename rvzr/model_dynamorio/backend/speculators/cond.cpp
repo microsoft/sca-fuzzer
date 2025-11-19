@@ -15,6 +15,7 @@
 #include "observables.hpp"
 #include "speculator_abc.hpp"
 #include "speculators/cond.hpp"
+#include "types/decoder.hpp"
 
 // =================================================================================================
 // Local helper functions
@@ -31,21 +32,17 @@ typedef struct {
 /// @brief If the instruction is a conditional branch return its relevant information, otherwise
 /// return an empty option.
 static std::optional<BranchInfo> get_branch_info(instr_obs_t instr, dr_mcontext_t *mc, void *dc,
-                                                 instr_noalloc_t *noalloc)
+                                                 Decoder &decoder)
 {
-    // Decode the instruction
-    instr_noalloc_init(dc, noalloc);
-    instr_t *cur_instr = instr_from_noalloc(noalloc);
-    byte *next_pc = decode(dc, (byte *)instr.pc, cur_instr);
-    if (next_pc == nullptr) {
-        dr_printf("[ERROR] cond_speculator: Failed to decode instruction\n");
-        dr_abort();
-        return {};
-    }
+    // Decode the instruction using the shared cache
+    instr_t *cur_instr = decoder.get_decoded_instr(dc, (byte *)instr.pc);
 
     // Not a branch, return empty option
     if (not instr_is_cbr(cur_instr))
         return {};
+
+    // Get the next PC (fallthrough address) from the cache
+    byte *next_pc = decoder.get_next_pc(dc, (byte *)instr.pc);
 
     // Parse branch information
     return BranchInfo{
@@ -71,9 +68,8 @@ pc_t SpeculatorCond::handle_instruction(instr_obs_t instr, dr_mcontext_t *mc, vo
     if (skip_speculation())
         return 0;
 
-    // Decode the instruction
-    instr_noalloc_t noalloc;
-    const auto &branch_info = get_branch_info(instr, mc, dc, &noalloc);
+    // Decode the instruction using the shared cache
+    const auto &branch_info = get_branch_info(instr, mc, dc, decoder);
 
     // Skip if not a branch
     if (not branch_info)

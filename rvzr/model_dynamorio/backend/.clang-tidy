@@ -12,6 +12,10 @@
 # - `cppcoreguidelines-non-private-member-variables-in-classes`: Alias of the above
 # - `llvm-header-guard`: Checks for "LLVM-style" include guards, we want to use #pragma once instead
 # - `modernize-use-using`: This style diverges from the rest of the code base
+# - `readability-convert-member-functions-to-static`: This makes code less uniform with the rest of the code base
+# - `bugprone-easily-swappable-parameters`: DR has many C APIs, and this check causes many false positives
+# - `performance-enum-size`: The enum size in the backend is often dictated by the serialization formats, and it causes false positives on this check
+# - `cppcoreguidelines-avoid-magic-numbers`: Duplicate of readability-magic-numbers; excluded for consistency
 Checks: >
     -*,
     bugprone-*,
@@ -34,6 +38,10 @@ Checks: >
     -cppcoreguidelines-non-private-member-variables-in-classes,
     -llvm-header-guard,
     -modernize-use-using,
+    -readability-convert-member-functions-to-static,
+    -bugprone-easily-swappable-parameters,
+    -performance-enum-size,
+    -cppcoreguidelines-avoid-magic-numbers
 
 # Turn all the warnings from the checks above into errors.
 WarningsAsErrors: "*"
@@ -47,3 +55,5 @@ CheckOptions:
       value: "pc|mc|bb|dc|it"
     - key: bugprone-easily-swappable-parameters.IgnoredParameterNames
       value: '"";drcontext;wrapctx;;user_data;xflags;max_nesting_'
+    - key: readability-magic-numbers.IgnoredIntegerValues
+      value: '0;1;2;4;8;-1;-0x1ULL'

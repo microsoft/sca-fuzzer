@@ -43,7 +43,7 @@ MEM_FAULTY_DEFAULT_VALUE = 3
 RSP_DEFAULT_VALUE = FAULTY_OFFSET - 8
 
 # Register indices for x86-64 (used in test input array indexing)
-RAX, RBX, RCX, RDX, RSI, RDI, RSP = 0, 1, 2, 3, 4, 5, 6
+RAX, RBX, RCX, RDX, RSI, RDI, FLAGS, RSP = 0, 1, 2, 3, 4, 5, 6, 7
 NUM_TEST_GPRS = 7  # Number of GPRs initialized in default test inputs
 
 # SIMD register indices

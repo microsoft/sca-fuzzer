@@ -254,6 +254,15 @@ class InputTaint(BOOL_NDARRAY):
         view: BOOL_NDARRAY = self[actor_id].view((np.bool_, self[actor_id].itemsize))
         return view
 
+    def full_linear_view(self) -> np.ndarray[Tuple[int, ...], np.dtype[np.bool_]]:
+        """
+        Get a linear view of the taint for all actors;
+        that is, a 1D array of booleans.
+        :return: A linear view of the taint for all actors
+        """
+        view = self.view(np.bool_)
+        return view
+
     def taint_actor_offsets(self, actor_id: 'ActorID', offsets: List[int]) -> None:
         """
         Taint a list of locations in the input of a single actor as tainted. The locations are

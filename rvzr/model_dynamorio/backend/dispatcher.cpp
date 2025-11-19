@@ -41,6 +41,7 @@ static pc_t instruction_dispatch(dr_mcontext_t *mc, void *dc, const Dispatcher *
                                  instr_obs_t instr)
 {
     dispatcher->logger->log_instruction(instr, mc, dispatcher->speculator->get_nesting_level());
+    dispatcher->taint_tracker->track_instruction(instr, mc, dc);
     dispatcher->tracer->observe_instruction(instr, mc, dc);
     const pc_t next_pc = dispatcher->speculator->handle_instruction(instr, mc, dc);
     return next_pc;
@@ -55,14 +56,8 @@ static pc_t instruction_dispatch(dr_mcontext_t *mc, void *dc, const Dispatcher *
 ///         otherwise, 0 (zero)
 static pc_t mem_access_dispatch(void *dc, dr_mcontext_t *mc, const Dispatcher *dispatcher, pc_t pc)
 {
-    // decode the instruction to extract its memory references
-    instr_noalloc_t noalloc;
-    instr_noalloc_init(dc, &noalloc);
-    instr_t *instr = instr_from_noalloc(&noalloc);
-    byte *next_pc = decode(dc, (byte *)pc, instr);
-
-    DR_ASSERT_MSG(next_pc != nullptr,
-                  "[ERROR] mem_access_dispatch: Failed to decode instruction\n");
+    // Decode the instruction using the shared cache to extract its memory references
+    instr_t *instr = dispatcher->decoder->get_decoded_instr(dc, (byte *)pc);
 
     // Identify the size of the memory reference
     // (assumed that all memory references for the instruction are of the same size)
@@ -74,6 +69,7 @@ static pc_t mem_access_dispatch(void *dc, dr_mcontext_t *mc, const Dispatcher *d
     app_pc addr = nullptr;
     while (instr_compute_address_ex(instr, mc, index, &addr, &is_write)) {
         dispatcher->logger->log_mem_access(is_write, addr, size);
+        dispatcher->taint_tracker->track_memory_access(is_write, (void *)addr, size);
         dispatcher->tracer->observe_mem_access(is_write, addr, size);
         if (not dispatcher->speculator->handle_mem_access(is_write, (void *)addr, size)) {
             return dispatcher->speculator->rollback(mc);
@@ -181,7 +177,7 @@ bool Dispatcher::handle_exception(void *drcontext, dr_siginfo_t *siginfo) const
 // =================================================================================================
 // Instrumentation-time Methods
 // =================================================================================================
-void Dispatcher::start(void * /*wrapctx*/, void ** /*user_data*/)
+void Dispatcher::start()
 {
     DR_ASSERT_MSG(not is_initialized,
                   "[ERROR] Attempting to initialize Dispatcher multiple times.");
@@ -190,11 +186,12 @@ void Dispatcher::start(void * /*wrapctx*/, void ** /*user_data*/)
     is_initialized = true;
 
     // Turn service modules on
-    tracer->tracing_start();
+    taint_tracker->enable();
+    tracer->enable();
     speculator->enable();
 }
 
-void Dispatcher::restart(void * /*wrapctx*/, void ** /*user_data*/)
+void Dispatcher::restart()
 {
     DR_ASSERT_MSG(is_initialized,
                   "[ERROR] Attempting to restart Dispatcher without initialization.");
@@ -202,7 +199,8 @@ void Dispatcher::restart(void * /*wrapctx*/, void ** /*user_data*/)
     instrumentation_on = true;
 
     // Turn service modules on
-    tracer->tracing_start();
+    taint_tracker->enable();
+    tracer->enable();
     speculator->enable();
 }
 
@@ -212,7 +210,8 @@ void Dispatcher::finalize()
         return;
 
     // Turn service modules off
-    tracer->tracing_finalize();
+    taint_tracker->finalize();
+    tracer->finalize();
     speculator->disable();
 
     instrumentation_on = false;
@@ -240,17 +239,16 @@ dr_emit_flags_t Dispatcher::instrument_instruction(void *drcontext, instrlist_t 
 
     // Add a clean call to the dispatch callback, which will forward the call to the service
     // modules
-    dr_insert_clean_call(drcontext, bb, instr, (void *)dispatch_callback, false, 3, opcode, pc_op,
-                         has_mem_ref);
+    const int dispatch_callback_nargs = 3;
+    dr_insert_clean_call(drcontext, bb, instr, (void *)dispatch_callback, false,
+                         dispatch_callback_nargs, opcode, pc_op, has_mem_ref);
 
     return DR_EMIT_DEFAULT;
 }
 
-// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-dr_emit_flags_t Dispatcher::instrument_exit(void *drcontext, instrlist_t *bb, instr_t *instr) const
+void Dispatcher::instrument_exit(void *drcontext, instrlist_t *bb, instr_t *instr) const
 {
     dr_insert_clean_call(drcontext, bb, instr, (void *)exit_callback, false, 0);
-    return DR_EMIT_DEFAULT;
 }
 
 // =================================================================================================
@@ -260,15 +258,21 @@ Dispatcher::Dispatcher(cli_args_t *cli_args) : instrumentation_on(false)
 {
     // Create service modules
     logger = create_logger(cli_args->debug_output, cli_args->log_level, cli_args->print_dbg_trace);
-    tracer = create_tracer(cli_args->tracer_type, cli_args->trace_output, *logger,
-                           cli_args->print_trace);
+    decoder = std::make_unique<Decoder>();
+    taint_tracker = create_taint_tracker(cli_args->enable_taint_tracker, cli_args->taint_output,
+                                         *logger, *decoder);
+    tracer = create_tracer(cli_args->tracer_type, cli_args->trace_output, *logger, *taint_tracker,
+                           *decoder, cli_args->print_trace);
     speculator = create_speculator(cli_args->speculator_type, cli_args->max_nesting,
-                                   cli_args->max_spec_window, *logger, cli_args->poison_value);
+                                   cli_args->max_spec_window, *logger, *taint_tracker, *decoder,
+                                   cli_args->poison_value);
 }
 
 Dispatcher::~Dispatcher()
 {
     logger.reset();
+    decoder.reset();
     tracer.reset();
     speculator.reset();
+    taint_tracker.reset();
 }

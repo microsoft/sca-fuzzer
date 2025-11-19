@@ -13,11 +13,13 @@
 
 static sandbox_t *sandbox;
 static const int nop_opcode = 0x90;
-static const int lfence_opcode[] = {0x0f, 0xae, 0xe8};
 static const int ret_opcode = 0xc3;
 
 static const int eflags_must_clear_mask = 2263;
 static const int eflags_must_set_mask = 2;
+
+// Defined in test_case_entry.asm
+void test_case_entry(uint8_t *main_area_base);
 
 /// @brief Load a test case code into the sandbox
 /// @param rcbf_data Parsed RCBF data
@@ -26,20 +28,15 @@ int load_code_in_sandbox(rcbf_t *rcbf_data)
 {
     for (uint64_t section_id = 0; section_id < rcbf_data->header.n_actors; section_id++) {
         code_section_t *code_section = &sandbox->code[section_id];
+        // printf("Loading code section %lx into sandbox %llx\n", section_id, code_section);
 
         // Copy the code into the sandbox
         int code_size = (int)rcbf_data->section_metadata[section_id].size;
         memcpy(code_section->code, rcbf_data->sections[section_id].code, code_size);
 
         // The end of the code section in the main area is the test case exit point;
-        // We insert an LFENCE there (to ensure the model doesn't exit the test case speculatively)
-        // and a RETQ instruction to return to the caller
+        // We insert a RETQ instruction to return to the caller
         if (section_id == 0) {
-            code_section->code[code_size] = lfence_opcode[0];
-            code_section->code[code_size + 1] = lfence_opcode[1];
-            code_section->code[code_size + 2] = lfence_opcode[2];
-            code_size += 3;
-
             code_section->code[code_size] = ret_opcode;
             code_size++;
         }
@@ -106,12 +103,7 @@ int allocate_sandbox(uint64_t n_actors)
         return -1;
     }
 
-    sandbox->code = (code_section_t *)aligned_alloc(PAGE_SIZE, n_actors * sizeof(code_section_t));
-    if (sandbox->code == NULL) {
-        free(sandbox->data);
-        free(sandbox);
-        return -1;
-    }
+    sandbox->code = (code_section_t *) test_case_entry;
     mprotect(sandbox->code, n_actors * sizeof(code_section_t), PROT_READ | PROT_WRITE | PROT_EXEC);
 
     return 0;
@@ -121,6 +113,5 @@ int allocate_sandbox(uint64_t n_actors)
 void free_sandbox()
 {
     free(sandbox->data);
-    free(sandbox->code);
     free(sandbox);
 }

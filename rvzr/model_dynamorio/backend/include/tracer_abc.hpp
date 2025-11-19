@@ -16,6 +16,8 @@
 
 #include "logger.hpp"
 #include "observables.hpp"
+#include "taint_tracker.hpp"
+#include "types/decoder.hpp"
 #include "types/file_buffer.hpp"
 #include "types/trace.hpp"
 
@@ -29,7 +31,8 @@ using std::uint64_t;
 class TracerABC
 {
   public:
-    TracerABC(const std::string &out_path, Logger &logger, bool print);
+    TracerABC(const std::string &out_path, Logger &logger, TaintTracker &taint_tracker,
+              Decoder &decoder, bool print);
     virtual ~TracerABC();
     TracerABC(const TracerABC &) = delete;
     TracerABC &operator=(const TracerABC &) = delete;
@@ -38,18 +41,18 @@ class TracerABC
 
     static constexpr const unsigned buf_sz = 8 * 1024;
     /// @param  Buffer containing collected trace entries
-    FileBackedBuf<trace_entry_t, buf_sz> trace;
+    mutable FileBackedBuf<trace_entry_t, buf_sz> trace;
 
     // ---------------------------------------------------------------------------------------------
     // Public Methods
 
     /// @brief Starts the tracing process for a wrapped functions
     /// @return void
-    virtual void tracing_start();
+    virtual void enable();
 
     /// @brief Finalizes the tracing process for a wrapped function
     /// @return void
-    virtual void tracing_finalize();
+    virtual void finalize();
 
     /// @brief Record per-instruction information on the trace (e.g., its address) as defined
     ///        by the target contract.
@@ -73,7 +76,7 @@ class TracerABC
 
     /// @brief Record an architectural exception with a special marker in the trace.
     /// @param siginfo Information about the exception coming from DynamoRIO.
-    void observe_exception(dr_siginfo_t *siginfo);
+    void observe_exception(dr_siginfo_t *siginfo) const;
 
   protected:
     // ---------------------------------------------------------------------------------------------
@@ -86,4 +89,26 @@ class TracerABC
 
     /// @param Where to log events for debugging
     Logger &logger;
+
+    /// @brief Used to taint-track dependencies between input values and contract trace
+    TaintTracker &taint_tracker;
+
+    /// @brief Shared cache for decoded instructions
+    Decoder &decoder;
+
+    // ---------------------------------------------------------------------------------------------
+    // Protected Methods
+
+    /// @brief Create an new PC entry and push it on the trace buffer
+    ///        This method is meant to be used by observe_instruction if a given contract requires
+    ///        recording PCs in the trace.
+    /// @param instr The observed instruction
+    void record_pc(instr_obs_t instr);
+
+    /// @brief Create an new mem entry and push it on the trace buffer
+    ///        This method is meant to be used by observe_mem_access if a given contract requires
+    ///        recording memory accesses in the trace.
+    /// @param address The address of the memory access
+    /// @param size The size of the memory access
+    void record_mem_access(bool is_write, void *address, uint64_t size);
 };

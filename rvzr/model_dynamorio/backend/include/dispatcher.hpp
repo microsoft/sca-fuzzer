@@ -14,7 +14,9 @@
 #include "cli.hpp"
 #include "logger.hpp"
 #include "speculator_abc.hpp"
+#include "taint_tracker.hpp"
 #include "tracer_abc.hpp"
+#include "types/decoder.hpp"
 
 /// @brief Dispatcher class responsible for adding instrumentation to instructions
 ///        in the target application and calling the appropriate
@@ -30,19 +32,33 @@ class Dispatcher
     Dispatcher &operator=(Dispatcher &&) = delete;
 
     // ---------------------------------------------------------------------------------------------
+    // Public Attributes
+
+    /// @param logger: shared logger for event tracing
+    std::unique_ptr<Logger> logger = nullptr;
+    /// @param decoder: shared instruction decode cache used by all modules
+    std::unique_ptr<Decoder> decoder = nullptr;
+    /// @param tracer: implements observation clause
+    std::unique_ptr<TracerABC> tracer = nullptr;
+    /// @param speculator: implements execution clause
+    std::unique_ptr<SpeculatorABC> speculator = nullptr;
+    /// @param taint_tracker: implements taint tracking for input boosting
+    ///        (aka contract-based input generation)
+    std::unique_ptr<TaintTracker> taint_tracker = nullptr;
+
+    /// @param initialized: true if the dispatcher has been already initialized (start was called)
+    bool is_initialized = false;
+
+    // ---------------------------------------------------------------------------------------------
     // Public Methods
 
     /// @brief Starts the instrumentation process for a wrapped function
-    /// @param wrapctx The machine context of the wrapped function
-    /// @param user_data Unused
     /// @return void
-    void start(void *wrapctx, void **user_data);
+    void start();
 
     /// @brief Restarts the instrumentation process for a wrapped function
-    /// @param wrapctx The machine context of the wrapped function
-    /// @param user_data Unused
     /// @return void
-    void restart(void *wrapctx, void **user_data);
+    void restart();
 
     /// @brief Finalizes the instrumentation process
     /// @return void
@@ -64,7 +80,7 @@ class Dispatcher
     /// @param bb The basic block to be instrumented
     /// @param instr The instruction to instrument
     /// @return Flags to be consumed by DynamoRIO instrumentation callbacks
-    dr_emit_flags_t instrument_exit(void *drcontext, instrlist_t *bb, instr_t *instr) const;
+    void instrument_exit(void *drcontext, instrlist_t *bb, instr_t *instr) const;
 
     /// @brief Passes the exception down to service modules for handling
     /// @param drcontext The drcontext of the current thread
@@ -72,16 +88,8 @@ class Dispatcher
     /// @return True if the exception has been handled (control-flow should be redirected)
     bool handle_exception(void *drcontext, dr_siginfo_t *siginfo) const;
 
-    /// @param logger: shared logger for event tracing
-    std::unique_ptr<Logger> logger = nullptr;
-    /// @param tracer: implements observation clause
-    std::unique_ptr<TracerABC> tracer = nullptr;
-    /// @param speculator: implements execution clause
-    std::unique_ptr<SpeculatorABC> speculator = nullptr;
-
-    /// @param initialized: true if the dispatcher has been already initialized (start was called)
-    bool is_initialized = false;
-
+    // ---------------------------------------------------------------------------------------------
+    // Private Attributes
   private:
     bool instrumentation_on;
 };

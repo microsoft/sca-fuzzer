@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.13)
+
+project(dr_model)
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # add all C++ files in the current directory
 file(GLOB MAIN_SOURCES "*.cpp")
@@ -23,3 +27,9 @@ use_DynamoRIO_extension(dr_model drutil)
 use_DynamoRIO_extension(dr_model drx)
 use_DynamoRIO_extension(dr_model drwrap)
 use_DynamoRIO_extension(dr_model drsyms)
+
+# Ensure C++17 standard is preserved after DynamoRIO configuration
+set_target_properties(dr_model PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
+)
