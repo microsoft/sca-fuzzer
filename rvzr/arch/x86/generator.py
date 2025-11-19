@@ -401,7 +401,7 @@ class _X86SandboxPass(Pass):
             address_reg = mem_operand.value
             imm_width = mem_operand.width if mem_operand.width <= 32 else 32
             apply_mask = Instruction("and", is_instrumentation=True) \
-                .add_op(RegisterOp(address_reg, mem_operand.width, True, True)) \
+                .add_op(RegisterOp(address_reg, 64, True, True)) \
                 .add_op(ImmediateOp(mask, imm_width)) \
                 .add_op(FlagsOp(("w", "w", "undef", "w", "w", "", "", "", "w")), True)
             parent.insert_before(node, apply_mask)
