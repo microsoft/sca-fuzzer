@@ -6,9 +6,7 @@ model_path := $(HOME)/.local/dynamorio/model/
 
 release := 11.2.0
 
-CC := clang
-CXX := clang++
-CMAKE_FLAGS := -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_C_COMPILER=$(CC) -DCMAKE_CXX_COMPILER=$(CXX)
+CMAKE_FLAGS := -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
 .PHONY: all download_dr backend adapter clean-backend clean-adapter clean
 
