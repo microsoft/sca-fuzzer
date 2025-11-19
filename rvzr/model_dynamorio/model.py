@@ -531,7 +531,7 @@ class _TaintReader:
             # end marker reached? store the current input taint and start a new one
             if val == _EOT_MARKER:
                 taints.append(taint)
-                taint = InputTaint()
+                taint = InputTaint(self._n_actors)
                 linear_view = taint.full_linear_view()
                 unfinished = False
                 continue

@@ -26,7 +26,7 @@
 #include <dr_ir_opnd.h>    // NOLINT
 #include <dr_ir_utils.h>   // NOLINT
 
-// End-of-trace marker written to taint output file
+// End-of-taint marker written to taint output file
 const uint64_t EOT_MARKER = -1ULL;
 
 // Maximum register ID used by DynamoRIO (register IDs are < 256)
@@ -575,7 +575,7 @@ void TaintTracker::store_taints()
         stream.write(reinterpret_cast<const char *>(&value), sizeof(uint64_t));
     }
 
-    // Write end-of-trace marker
+    // Write end-of-taint marker
     auto eot = EOT_MARKER;
     stream.write(reinterpret_cast<const char *>(&eot), sizeof(uint64_t));
 
