@@ -15,6 +15,10 @@
         <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/intro/tutorial4-isolation/part1/">
       
       
+        <link rel="prev" href="../../tutorial3-faults/part3/">
+      
+      
+        <link rel="next" href="../../tsa-sq/">
       
       
         
@@ -25,7 +29,7 @@
     
     
       
-        <title>Tutorial 4: Testing Security Domain Isolation with Revizor - Revizor</title>
+        <title>Part 1 - Revizor</title>
       
     
     
@@ -111,7 +115,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Tutorial 4: Testing Security Domain Isolation with Revizor
+              Part 1
             
           </span>
         </div>
@@ -260,10 +264,12 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
+      <li class="md-tabs__item md-tabs__item--active">
         <a href="../../../structure/" class="md-tabs__link">
           
   
@@ -426,8 +432,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -447,17 +455,20 @@
     
     
       
+        
+        
+      
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   
@@ -475,7 +486,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -518,8 +529,10 @@
                 
   
   
+    
   
   
+  
     
     
       
@@ -539,6 +552,8 @@
       
         
       
+        
+      
     
     
     
@@ -546,11 +561,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" checked>
         
           
           <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
@@ -571,7 +586,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1101,6 +1116,108 @@
   
 
       </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2_8" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3_2_8" id="__nav_3_2_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorial 4 - Testing Isolation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_2_8_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_2_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorial 4 - Testing Isolation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Part 1
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
     </li>
   
 
@@ -2873,169 +2990,212 @@
 
 
 <h1 id="tutorial-4-testing-security-domain-isolation-with-revizor">Tutorial 4: Testing Security Domain Isolation with Revizor</h1>
-<p>In the previous tutorials, we used random test generation to find Spectre V1 and LVI-Null. While random fuzzing is powerful for discovering unexpected vulnerabilities, some attack scenarios require more structure. In this tutorial, we'll transition to template-based fuzzing to test isolation between security domains—specifically, whether privileged kernel code can leak information to unprivileged user code through speculation.</p>
-<h3 id="41-understand-the-need-for-templates">4.1. Understand the need for templates</h3>
-<p>So far, Revizor has been generating completely random test cases. This approach works well when we're testing general speculation sources like branch misprediction or page faults. However, some vulnerability classes require specific execution patterns that are unlikely to appear through pure randomness.</p>
-<p>Consider testing privilege-based isolation. We want to detect whether a kernel function can leak secrets to user space through speculative execution. This requires a specific structure: user code calls into the kernel, the kernel performs some operation on secret data, control returns to user space, and user space attempts to observe side effects from the kernel's speculative execution. Generating this pattern randomly would be extremely unlikely.</p>
-<p>Templates solve this problem by letting us specify the high-level structure of test cases while still benefiting from randomization. We define a skeleton that captures the essential attack pattern, then let Revizor fill in the details with random instructions. This combines the best of both worlds: targeted testing for specific scenarios with the coverage benefits of fuzzing.</p>
-<h3 id="42-write-a-simple-template">4.2. Write a simple template</h3>
-<p>Let's start with a basic template to understand the syntax. Create a file named <code>simple-template.asm</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="na">.intel_syntax</span><span class="w"> </span><span class="no">noprefix</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="na">.section</span><span class="w"> </span><span class="no">.data.main</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="nl">.test_case_enter:</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="nl">.macro.start_measurement:</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span><span class="nf">nop</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="nl">.function_main:</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">    </span><span class="nl">.macro.generate_random_code:</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">        </span><span class="nl">instruction_categories:</span><span class="w"> </span><span class="nf">BASE-BINARY</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">        </span><span class="nl">min_instructions:</span><span class="w"> </span><span class="err">5</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">        </span><span class="nl">max_instructions:</span><span class="w"> </span><span class="err">10</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="nl">.macro.end_measurement:</span>
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">    </span><span class="nf">nop</span>
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="nl">.test_case_exit:</span>
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="w">    </span><span class="nf">nop</span>
+<p>In the previous tutorials, we used random test generation to find Spectre V1 and LVI-Null by testing against contracts. While contract violations are interesting, the most critical security issues often arise from failures in isolation between different security domains—such as user vs kernel mode, or different virtual machines.</p>
+<p>In this tutorial, we'll explore how to use Revizor's template-based fuzzing and multi-actor testing features to evaluate isolation guarantees. Specifically, we'll test whether privileged kernel code can leak information to unprivileged user code through speculative execution.</p>
+<h3 id="preliminaries">Preliminaries</h3>
+<p>Through this tutorial, you should become familiar with three concepts: actors, templates, and actor non-interference. These concepts are covered in detail in the <a href="../../../topics/actors/">Topic Guide: Actors</a> and <a href="../../../howto/use-templates/">Howto: Use Templates</a>, but we'll provide a brief overview here.</p>
+<p><strong>Actors</strong> are an abstraction that separates a test case into multiple components, each with its own code, execution context, privilege level, and memory space. This allows us to model scenarios where different parts of the test case run under different security domains. For example, we can define a <code>kernel</code> actor that runs in kernel mode and a <code>user</code> actor that runs in user mode. While they will have separate memory spaces and are isolated through privilege separation by the CPU, information could still leak from the kernel actor to the user actor through side channels; Revizor helps us detect such leaks.</p>
+<p><strong>Templates</strong> are assembly files that define the high-level structure of test cases. They allow us to specify hard-coded parts of the test case and its actors, while still leaving room for random instruction generation.</p>
+<p>Templates are essential for testing isolation because they define how different actors interact. For example, a template can specify that the user actor calls into the kernel actor, which processes secret data, and then returns control to the user actor for observation. This structure is unlikely to be generated through pure randomness, so templates enable targeted testing of specific attack patterns.</p>
+<p><strong>Actor Non-Interference Contract</strong> is a specialized contract that checks whether one actor's execution can influence another actor's observations. In our case, we want to ensure that the kernel actor's processing of secret data does not affect what the user actor can observe through side channels. If the user actor's hardware trace differs based on the kernel actor's secret data, that's a non-interference violation, indicating a potential isolation failure.</p>
+<h3 id="plan-the-campaign">Plan the campaign</h3>
+<p>Let's imagine we want to test whether a CPU properly enforces isolation between kernel and user mode. Specifically, we want to check if privileged kernel code can leak information to unprivileged user code through speculative execution side channels—attacks like Meltdown exploit exactly this type of isolation failure.</p>
+<p>For this campaign, we'll use a two-actor setup: a kernel actor (the victim) that processes secret data, and a user actor (the attacker) that attempts to observe those secrets through side channels. Rather than relying on pure random generation, we'll use a template that explicitly encodes the interaction pattern: the kernel processes data, then transfers control to user mode, where observation code runs. This template-based approach ensures we're testing the specific isolation boundary we care about.</p>
+<p>We'll pair this multi-actor test structure with the Actor Non-Interference contract. This contract checks whether the user actor's hardware traces (cache state, timing, etc.) differ based on the kernel actor's input data. If they do, it means information crossed the privilege boundary—a clear isolation failure. Unlike model-based contracts that compare hardware against an idealized model, non-interference testing directly verifies that one actor cannot observe another actor's secrets, which is precisely the security property we want to enforce.</p>
+<p>With this campaign plan, we are trying to answer a specific question: "Can unprivileged code observe secrets from privileged code through speculative side channels?"</p>
+<h3 id="create-the-configuration-file">Create the configuration file</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># contract for isolation testing</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nt">contract_observation_clause</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ct-ni</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># instruction categories</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="nt">instruction_categories</span><span class="p">:</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">BASE-BINARY</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="c1"># actor configuration</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="nt">actors</span><span class="p">:</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">main</span><span class="p">:</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">privilege_level</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;kernel&quot;</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">observer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">user</span><span class="p">:</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">privilege_level</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;user&quot;</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">observer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="c1"># filters</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="nt">enable_speculation_filter</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="nt">enable_observation_filter</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="nt">enable_fast_path_model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 </code></pre></div>
-<p>This template introduces several new concepts. The <code>.macro.start_measurement</code> and <code>.macro.end_measurement</code> markers tell Revizor when to begin and end side-channel observation. Only code between these markers contributes to the hardware trace—anything outside is setup or cleanup that we don't want to measure.</p>
-<p>The <code>.macro.generate_random_code</code> directive is where Revizor injects random instructions. The parameters control what gets generated: <code>instruction_categories</code> specifies which instruction types to use, <code>min_instructions</code> and <code>max_instructions</code> set bounds on how many instructions to generate. This gives us controlled randomization—the structure is fixed, but the content varies.</p>
-<p>The <code>.test_case_enter</code> and <code>.test_case_exit</code> labels mark the entry and exit points of the test case. Revizor's executor uses these to know where to start and stop execution.</p>
-<h3 id="43-run-template-based-fuzzing">4.3. Run template-based fuzzing</h3>
-<p>Let's test our template with a simple configuration. Create <code>template-config.yaml</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># contract</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nt">contract_observation_clause</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">loads+stores+pc</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="nt">contract_execution_clause</span><span class="p">:</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">no_speculation</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="c1"># filters</span>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="nt">enable_speculation_filter</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="nt">enable_observation_filter</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="nt">enable_fast_path_model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-</code></pre></div>
-<p>Now run template-based fuzzing:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>rvzr<span class="w"> </span>fuzz<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>template-config.yaml<span class="w"> </span>-t<span class="w"> </span>simple-template.asm<span class="w"> </span>-n<span class="w"> </span><span class="m">100</span><span class="w"> </span>-i<span class="w"> </span><span class="m">50</span><span class="w"> </span>-w<span class="w"> </span>.
-</code></pre></div>
-<p>This command is similar to random fuzzing, but we add the <code>-t</code> flag to specify our template. Revizor will generate 100 test cases, each using the template structure but with different random instructions filled in.</p>
-<p>The campaign should complete with no violations, just like our baseline in Tutorial 1. This makes sense—we're still just testing arithmetic operations without any speculation sources.</p>
-<h3 id="44-configure-multi-actor-testing">4.4. Configure multi-actor testing</h3>
-<p>Now let's move to the real goal: testing isolation between privilege levels. We'll configure a two-actor scenario with a kernel actor and a user actor. Create <code>actors-config.yaml</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># contract for isolation testing</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nt">contract_observation_clause</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ct-noninterference</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="nt">contract_execution_clause</span><span class="p">:</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">delayed-exception-handling</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="c1"># instruction categories</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="nt">instruction_categories</span><span class="p">:</span>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">BASE-BINARY</span>
-<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">BASE-COND_BR</span>
-<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>
-<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="c1"># actor configuration</span>
-<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="nt">actors</span><span class="p">:</span>
-<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">kernel</span><span class="p">:</span>
-<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="w">      </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kernel</span>
-<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="w">      </span><span class="nt">data_properties</span><span class="p">:</span>
-<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">present</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="w">      </span><span class="nt">observer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
-<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">user</span><span class="p">:</span>
-<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="w">      </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">user</span>
-<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="w">      </span><span class="nt">data_properties</span><span class="p">:</span>
-<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">present</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="w">      </span><span class="nt">observer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a>
-<a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a><span class="c1"># filters</span>
-<a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a><span class="nt">enable_speculation_filter</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a><span class="nt">enable_observation_filter</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a><span class="nt">enable_fast_path_model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-</code></pre></div>
-<p>This configuration introduces several important concepts. The <code>contract_observation_clause</code> is set to <code>ct-noninterference</code>, which is specifically designed for testing isolation between actors. This contract checks whether one actor's execution can influence another actor's observations—exactly what we need for detecting cross-privilege leaks.</p>
-<p>The <code>actors</code> section defines two execution contexts. The <code>kernel</code> actor runs in kernel mode (<code>mode: kernel</code>) and has <code>observer: false</code>, meaning it's the victim whose secrets might leak. The <code>user</code> actor runs in user mode (<code>mode: user</code>) and has <code>observer: true</code>, meaning it's the attacker trying to observe kernel secrets through side channels.</p>
-<p>Each actor gets its own sandbox memory region configured through <code>data_properties</code>. By setting <code>present: true</code> for both actors, we ensure their memory pages are valid and accessible at their respective privilege levels.</p>
+<p>This configuration introduces several important concepts. The <code>contract_observation_clause</code> is set to <code>ct-ni</code>, which tells Revizor to use the Actor Non-Interference check instead of the standard model-based testing.</p>
+<p>The <code>actors</code> section defines two execution contexts. The <code>main</code> actor runs in kernel mode (<code>mode: kernel</code>) and has <code>observer: false</code>, meaning it's the victim whose secrets might leak. The <code>user</code> actor runs in user mode (<code>mode: user</code>) and has <code>observer: true</code>, meaning it's the attacker trying to observe kernel secrets through side channels.</p>
 <p>For more details on actor configuration, see <a href="../../../topics/actors/">Topic Guide: Actors</a>.</p>
-<h3 id="45-write-a-privilege-crossing-template">4.5. Write a privilege-crossing template</h3>
-<p>Now we need a template that exercises the kernel-user boundary. Create <code>privilege-template.asm</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="na">.intel_syntax</span><span class="w"> </span><span class="no">noprefix</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="na">.section</span><span class="w"> </span><span class="no">.data.main</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="nl">.test_case_enter:</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="nl">.macro.switch_actor:</span>
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">    </span><span class="nl">target:</span><span class="w"> </span><span class="nf">kernel</span>
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>
-<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="nl">.function_kernel_victim:</span>
-<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">    </span><span class="nl">.macro.generate_random_code:</span>
-<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="w">        </span><span class="nl">instruction_categories:</span><span class="w"> </span><span class="nf">BASE-BINARY</span><span class="p">,</span><span class="w"> </span><span class="no">BASE-COND_BR</span>
-<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="w">        </span><span class="nl">min_instructions:</span><span class="w"> </span><span class="err">10</span>
-<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">        </span><span class="nl">max_instructions:</span><span class="w"> </span><span class="err">20</span>
-<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>
-<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="nl">.macro.switch_actor:</span>
-<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="w">    </span><span class="nl">target:</span><span class="w"> </span><span class="nf">user</span>
-<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>
-<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="nl">.macro.start_measurement:</span>
-<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="w">    </span><span class="nf">nop</span>
-<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>
-<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a><span class="nl">.function_user_observer:</span>
-<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a><span class="w">    </span><span class="nl">.macro.generate_random_code:</span>
-<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="w">        </span><span class="nl">instruction_categories:</span><span class="w"> </span><span class="nf">BASE-BINARY</span>
-<a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="w">        </span><span class="nl">min_instructions:</span><span class="w"> </span><span class="err">5</span>
-<a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="w">        </span><span class="nl">max_instructions:</span><span class="w"> </span><span class="err">10</span>
-<a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a>
-<a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a><span class="nl">.macro.end_measurement:</span>
-<a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a><span class="w">    </span><span class="nf">nop</span>
-<a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a>
-<a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a><span class="nl">.test_case_exit:</span>
-<a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a><span class="w">    </span><span class="nf">nop</span>
+<h3 id="create-the-template">Create the template</h3>
+<p>Now we need a template that exercises the kernel-user boundary. Create <code>template.asm</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="na">.intel_syntax</span><span class="w"> </span><span class="no">noprefix</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="c1"># ----------------------------- Kernel-mode Actor (Victim) -------------------</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="na">.section</span><span class="w"> </span><span class="no">.data.main</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="nl">.function_main_1:</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span><span class="c1"># random code of the victim</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="nl">.macro.random_instructions.16.8.main_1:</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">    </span><span class="c1"># switch to user actor to observe</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">    </span><span class="nl">.macro.set_k2u_target.user.function_user_1:</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">    </span><span class="nl">.macro.set_u2k_target.main.function_main_2:</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">    </span><span class="nl">.macro.switch_k2u.user.1:</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="nl">.macro.fault_handler:</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">    </span><span class="c1"># one more call to the user to complete the measurement in case of a fault</span>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="w">    </span><span class="nl">.macro.set_k2u_target.user.function_user_2:</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="w">    </span><span class="nl">.macro.set_u2k_target.main.function_main_3:</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="w">    </span><span class="nl">.macro.switch_k2u.user.2:</span>
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="c1"># return point for the user actor</span>
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="nl">.function_main_2:</span>
+<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="w">    </span><span class="nl">.macro.landing_u2k.main_2:</span>
+<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>
+<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a><span class="c1"># exit</span>
+<a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="nl">.function_main_3:</span>
+<a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a><span class="w">    </span><span class="nl">.macro.landing_u2k.main_3:</span>
+<a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a><span class="w">    </span><span class="nf">nop</span>
+<a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a>
+<a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a><span class="c1"># ----------------------------- User-mode Actor ------------------------------</span>
+<a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a><span class="na">.section</span><span class="w"> </span><span class="no">.data.user</span>
+<a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a><span class="nl">.function_user_1:</span>
+<a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a><span class="w">    </span><span class="c1"># reset registers to ensure we&#39;re not observing leftover state</span>
+<a id="__codelineno-1-33" name="__codelineno-1-33" href="#__codelineno-1-33"></a><span class="w">    </span><span class="nl">.macro.landing_k2u.user_1:</span>
+<a id="__codelineno-1-34" name="__codelineno-1-34" href="#__codelineno-1-34"></a><span class="w">    </span><span class="nf">xor</span><span class="w"> </span><span class="no">rax</span><span class="p">,</span><span class="w"> </span><span class="no">rax</span><span class="w">  </span><span class="c1"># noremove</span>
+<a id="__codelineno-1-35" name="__codelineno-1-35" href="#__codelineno-1-35"></a><span class="w">    </span><span class="nf">mov</span><span class="w"> </span><span class="no">rax</span><span class="p">,</span><span class="w"> </span><span class="no">qword</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">r14</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="mi">0x2000</span><span class="p">]</span><span class="w"> </span><span class="c1"># noremove</span>
+<a id="__codelineno-1-36" name="__codelineno-1-36" href="#__codelineno-1-36"></a><span class="w">    </span><span class="nf">mov</span><span class="w"> </span><span class="no">rbx</span><span class="p">,</span><span class="w"> </span><span class="no">qword</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">r14</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="mi">0x2008</span><span class="p">]</span><span class="w"> </span><span class="c1"># noremove</span>
+<a id="__codelineno-1-37" name="__codelineno-1-37" href="#__codelineno-1-37"></a><span class="w">    </span><span class="nf">mov</span><span class="w"> </span><span class="no">rcx</span><span class="p">,</span><span class="w"> </span><span class="no">qword</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">r14</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="mi">0x2010</span><span class="p">]</span><span class="w"> </span><span class="c1"># noremove</span>
+<a id="__codelineno-1-38" name="__codelineno-1-38" href="#__codelineno-1-38"></a><span class="w">    </span><span class="nf">mov</span><span class="w"> </span><span class="no">rdx</span><span class="p">,</span><span class="w"> </span><span class="no">qword</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">r14</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="mi">0x2018</span><span class="p">]</span><span class="w"> </span><span class="c1"># noremove</span>
+<a id="__codelineno-1-39" name="__codelineno-1-39" href="#__codelineno-1-39"></a><span class="w">    </span><span class="nf">mov</span><span class="w"> </span><span class="no">rsi</span><span class="p">,</span><span class="w"> </span><span class="no">qword</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">r14</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="mi">0x2020</span><span class="p">]</span><span class="w"> </span><span class="c1"># noremove</span>
+<a id="__codelineno-1-40" name="__codelineno-1-40" href="#__codelineno-1-40"></a><span class="w">    </span><span class="nf">mov</span><span class="w"> </span><span class="no">rdi</span><span class="p">,</span><span class="w"> </span><span class="no">qword</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">r14</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="mi">0x2028</span><span class="p">]</span><span class="w"> </span><span class="c1"># noremove</span>
+<a id="__codelineno-1-41" name="__codelineno-1-41" href="#__codelineno-1-41"></a><span class="w">    </span><span class="nf">lfence</span>
+<a id="__codelineno-1-42" name="__codelineno-1-42" href="#__codelineno-1-42"></a>
+<a id="__codelineno-1-43" name="__codelineno-1-43" href="#__codelineno-1-43"></a><span class="w">    </span><span class="c1"># attacker code to observe side effects</span>
+<a id="__codelineno-1-44" name="__codelineno-1-44" href="#__codelineno-1-44"></a><span class="w">    </span><span class="nl">.macro.measurement_start:</span>
+<a id="__codelineno-1-45" name="__codelineno-1-45" href="#__codelineno-1-45"></a><span class="w">    </span><span class="nl">.macro.random_instructions.16.8.user_1:</span>
+<a id="__codelineno-1-46" name="__codelineno-1-46" href="#__codelineno-1-46"></a><span class="w">    </span><span class="nl">.macro.measurement_end.1:</span>
+<a id="__codelineno-1-47" name="__codelineno-1-47" href="#__codelineno-1-47"></a>
+<a id="__codelineno-1-48" name="__codelineno-1-48" href="#__codelineno-1-48"></a><span class="w">    </span><span class="c1"># switch back to kernel actor</span>
+<a id="__codelineno-1-49" name="__codelineno-1-49" href="#__codelineno-1-49"></a><span class="w">    </span><span class="nl">.macro.switch_u2k.main.1:</span>
+<a id="__codelineno-1-50" name="__codelineno-1-50" href="#__codelineno-1-50"></a>
+<a id="__codelineno-1-51" name="__codelineno-1-51" href="#__codelineno-1-51"></a><span class="c1"># second measurement call; for the cases when the first one was bypassed by a fault</span>
+<a id="__codelineno-1-52" name="__codelineno-1-52" href="#__codelineno-1-52"></a><span class="nl">.function_user_2:</span>
+<a id="__codelineno-1-53" name="__codelineno-1-53" href="#__codelineno-1-53"></a><span class="w">    </span><span class="nl">.macro.landing_k2u.user_2:</span>
+<a id="__codelineno-1-54" name="__codelineno-1-54" href="#__codelineno-1-54"></a><span class="w">    </span><span class="nl">.macro.measurement_end.2:</span>
+<a id="__codelineno-1-55" name="__codelineno-1-55" href="#__codelineno-1-55"></a><span class="w">    </span><span class="nl">.macro.switch_u2k.main.2:</span>
+<a id="__codelineno-1-56" name="__codelineno-1-56" href="#__codelineno-1-56"></a><span class="w">    </span><span class="nf">lfence</span>
+<a id="__codelineno-1-57" name="__codelineno-1-57" href="#__codelineno-1-57"></a>
+<a id="__codelineno-1-58" name="__codelineno-1-58" href="#__codelineno-1-58"></a><span class="c1"># ----------------------------- Exit -----------------------------------------</span>
+<a id="__codelineno-1-59" name="__codelineno-1-59" href="#__codelineno-1-59"></a><span class="na">.section</span><span class="w"> </span><span class="no">.data.main</span>
+<a id="__codelineno-1-60" name="__codelineno-1-60" href="#__codelineno-1-60"></a><span class="nl">.test_case_exit:</span>
 </code></pre></div>
-<p>This template structures the test case to match a typical privilege-crossing attack. The <code>.macro.switch_actor</code> directive tells Revizor to change execution context. We start in kernel mode where we generate random code that might include conditional branches—potential speculation sources. Then we switch to user mode and observe side effects.</p>
-<p>The measurement markers are positioned to capture only the user actor's execution. This is intentional—we're testing whether the kernel's speculative execution leaves observable traces that user code can detect. By measuring only during user execution, we focus on what an unprivileged attacker could actually observe.</p>
-<p>Notice that the kernel function allows both <code>BASE-BINARY</code> and <code>BASE-COND_BR</code> instructions, giving it opportunities for branch misprediction. The user function uses only <code>BASE-BINARY</code>, keeping the observation code simple and deterministic.</p>
-<h3 id="46-run-the-isolation-test">4.6. Run the isolation test</h3>
+<p>Let's break down this template block by block to understand how it orchestrates the kernel-user isolation test:</p>
+<p><strong>Kernel Actor - Initial Execution (<code>function_main_1</code>)</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="na">.section</span><span class="w"> </span><span class="no">.data.main</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nl">.function_main_1:</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="nl">.macro.random_instructions.16.8.main_1:</span>
+</code></pre></div>
+<p>The template begins in the kernel actor's code space (<code>.section .data.main</code>). The <code>.macro.random_instructions.16.8.main_1</code> macro generates 16 random instructions with an average of 8 memory accesses. This randomized kernel code represents the victim's execution.</p>
+<p><strong>Transition Setup - Kernel to User</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="w">    </span><span class="nl">.macro.set_k2u_target.user.function_user_1:</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">    </span><span class="nl">.macro.set_u2k_target.main.function_main_2:</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="nl">.macro.switch_k2u.user.1:</span>
+</code></pre></div>
+<p>These macros configure and execute a privilege level transition. The <code>set_k2u_target</code> macro specifies that when dropping to user mode, execution should begin at <code>function_user_1</code> in the <code>user</code> actor. The <code>set_u2k_target</code> macro specifies that when returning to kernel mode, execution should resume at <code>function_main_2</code> in the <code>main</code> actor. Finally, <code>switch_k2u</code> performs the actual privilege drop, transferring control to user mode. The <code>.1</code> suffix is a unique label for this transition.</p>
+<p><strong>Kernel Actor - Return Point (<code>function_main_2</code>)</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nl">.function_main_2:</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span><span class="nl">.macro.landing_u2k.main_2:</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="nl">.macro.fault_handler:</span>
+</code></pre></div>
+<p>This is where the kernel resumes after the user actor returns control. The <code>landing_u2k</code> macro handles the privilege escalation transition, restoring the kernel execution context. The <code>fault_handler</code> macro designates this location as the exception handler—if any faults occur during execution (in either actor), control transfers here.</p>
+<p><strong>Second Transition - Kernel to User Again</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="w">    </span><span class="nl">.macro.set_k2u_target.user.function_user_2:</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">    </span><span class="nl">.macro.set_u2k_target.main.function_main_3:</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">    </span><span class="nl">.macro.switch_k2u.user.2:</span>
+</code></pre></div>
+<p>The kernel performs another transition to user mode, this time to <code>function_user_2</code>. This is necessary because, if the random code in the user actor triggers a fault, the <code>measurement_end</code> may never be reached, and the hardware trace would be corrupted. By splitting the measurement into two parts, we ensure that even if a fault occurs during the first measurement, we can still capture whatever trace was collected up to that point.</p>
+<p><strong>Kernel Actor - Exit (<code>function_main_3</code>)</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nl">.function_main_3:</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">    </span><span class="nl">.macro.landing_u2k.main_3:</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">    </span><span class="nf">nop</span>
+</code></pre></div>
+<p>The final kernel return point. After the second user-mode measurement completes, execution returns here and falls through to the test case exit.</p>
+<p><strong>User Actor - First Observation (<code>function_user_1</code>)</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="na">.section</span><span class="w"> </span><span class="no">.data.user</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="nl">.function_user_1:</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">    </span><span class="nl">.macro.landing_k2u.user_1:</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">    </span><span class="nf">xor</span><span class="w"> </span><span class="no">rax</span><span class="p">,</span><span class="w"> </span><span class="no">rax</span><span class="w">  </span><span class="c1"># noremove</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">    </span><span class="nf">mov</span><span class="w"> </span><span class="no">rax</span><span class="p">,</span><span class="w"> </span><span class="no">qword</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">r14</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="mi">0x2000</span><span class="p">]</span><span class="w"> </span><span class="c1"># noremove</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">    </span><span class="nf">mov</span><span class="w"> </span><span class="no">rbx</span><span class="p">,</span><span class="w"> </span><span class="no">qword</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">r14</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="mi">0x2008</span><span class="p">]</span><span class="w"> </span><span class="c1"># noremove</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">    </span><span class="na">...</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">    </span><span class="nf">lfence</span>
+</code></pre></div>
+<p>This is where the attacker code executes. The <code>landing_k2u</code> macro handles the privilege drop transition, setting up the user execution context. The explicit register initialization loads fresh values from memory (via <code>r14</code>, which points to the sandbox memory). The <code># noremove</code> comments prevent Revizor's minimization passes from removing these instructions—they're essential for resetting architectural state. The <code>lfence</code> ensures these loads complete before observation begins, preventing them from affecting the measurement.</p>
+<p><strong>User Actor - Measurement</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="w">    </span><span class="nl">.macro.measurement_start:</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">    </span><span class="nl">.macro.random_instructions.16.8.user_1:</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">    </span><span class="nl">.macro.measurement_end.1:</span>
+</code></pre></div>
+<p>The <code>measurement_start</code> macro marks where hardware trace collection begins. Only code between <code>measurement_start</code> and <code>measurement_end</code> contributes to the observed side-channel trace. The random instructions here represent attacker code that might be sensitive to cache state, timing variations, or other microarchitectural side effects left by the kernel's execution. The <code>.1</code> suffix distinguishes this measurement from the second one.</p>
+<p><strong>User Actor - Return to Kernel</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="w">    </span><span class="nl">.macro.switch_u2k.main.1:</span>
+</code></pre></div>
+<p>The <code>switch_u2k</code> macro performs a privilege escalation, returning control to the kernel actor. This transition was pre-configured earlier by the <code>set_u2k_target</code> macro.</p>
+<p><strong>User Actor - Second Observation (<code>function_user_2</code>)</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nl">.function_user_2:</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">    </span><span class="nl">.macro.landing_k2u.user_2:</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">    </span><span class="nl">.macro.measurement_end.2:</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">    </span><span class="nl">.macro.switch_u2k.main.2:</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">    </span><span class="nf">lfence</span>
+</code></pre></div>
+<p>The second user-mode entry point completes the measurement that was started in <code>function_user_1</code>.</p>
+<h3 id="run-the-isolation-test">Run the isolation test</h3>
 <p>Execute the multi-actor fuzzing campaign:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>rvzr<span class="w"> </span>fuzz<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>actors-config.yaml<span class="w"> </span>-t<span class="w"> </span>privilege-template.asm<span class="w"> </span>-n<span class="w"> </span><span class="m">500</span><span class="w"> </span>-i<span class="w"> </span><span class="m">30</span><span class="w"> </span>-w<span class="w"> </span>.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>./revizor.py<span class="w"> </span>tfuzz<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>config.yaml<span class="w"> </span>-t<span class="w"> </span>template.asm<span class="w"> </span>-n<span class="w"> </span><span class="m">1000</span><span class="w"> </span>-i<span class="w"> </span><span class="m">10</span><span class="w"> </span>-w<span class="w"> </span>.
 </code></pre></div>
-<p>We're running 500 test cases with 30 inputs each. Multi-actor testing often requires more iterations to find violations because we're looking for interactions between actors, which adds complexity.</p>
-<p>The fuzzer will run and search for isolation violations. Depending on your hardware and microarchitecture, you may or may not find violations. Modern CPUs with properly implemented speculation barriers typically prevent cross-privilege leaks, but older hardware or specific microarchitectural conditions might reveal violations.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>INFO: [fuzzer] Starting at 16:45:12
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>50    (10%)| Stats: Cls:28/30,In:60,R:15,SF:125,OF:18,Fst:12,CN:0,CT:0,P1:0,CS:0,P2:0,V:0
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>100   (20%)| Stats: Cls:27/30,In:60,R:15,SF:248,OF:35,Fst:24,CN:0,CT:0,P1:0,CS:0,P2:0,V:0
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>150   (30%)| Stats: Cls:29/30,In:60,R:15,SF:372,OF:53,Fst:36,CN:0,CT:0,P1:0,CS:0,P2:0,V:0
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>[...]
+<p>We're running 1000 test cases with 10 inputs each. Multi-actor testing often requires more iterations to find violations because we're looking for interactions between actors, which adds complexity.</p>
+<p>The fuzzer will run and search for isolation violations. On most systems, you will not find a violation; isolation mechanisms are generally robust. We will need to try harder to find issues.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>Duration: 60.5
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>Finished at 08:44:40
 </code></pre></div>
-<p>Notice that the statistics show non-zero values for speculation filter (<code>SF</code>) and observation filter (<code>OF</code>). This is expected—many of the generated test cases don't produce interesting speculation patterns or observable side effects, so they get filtered out early.</p>
-<h3 id="47-interpret-noninterference-violations">4.7. Interpret noninterference violations</h3>
-<p>If a violation is detected, the output format differs from what we saw in previous tutorials:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>================================ Violations detected ==========================
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>Noninterference violation:
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>Actor: kernel (victim)
-<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>  Input 3: &lt;PLACEHOLDER_VALUE_A&gt;
-<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>  Input 7: &lt;PLACEHOLDER_VALUE_B&gt;
-<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>
-<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>Actor: user (observer)
-<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>  Observable difference detected between inputs 3 and 7
-<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>  HTrace for input 3:  ^^.....^....^...........................................
-<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>  HTrace for input 7:  ^^.........^....^.......................................
+<h3 id="adding-faults">Adding Faults</h3>
+<p>Now let's add a little more complexity to the experiment. We will make the attacker "active" by allowing the user actor to try and access the memory of the kernel actor. This simulates an attacker that attempts to read privileged memory, which should be blocked by the CPU's privilege separation.</p>
+<p>To do this, we will use a generator pass that is specifically designed for this purpose. The <code>user-to-kernel-access</code> pass randomly selects a memory access from the user actor's code and modifies it to access the kernel actor's memory space. This creates a faulting access that the CPU should prevent.</p>
+<p>Update the configuration file to include this generator pass:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="nt">generator_faults_allowlist</span><span class="p">:</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">user-to-kernel-access</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="c1"># actor configuration</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="nt">actors</span><span class="p">:</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">main</span><span class="p">:</span>
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">privilege_level</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;kernel&quot;</span>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">observer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">fault_blocklist</span><span class="p">:</span>
+<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">user-to-kernel-access</span>
+<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">user</span><span class="p">:</span>
+<a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">privilege_level</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;user&quot;</span>
+<a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">observer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 </code></pre></div>
-<p>This violation format reflects the noninterference contract. The report shows that two inputs (3 and 7) differ only in the kernel actor's data, yet the user actor observes different hardware traces. This is a noninterference violation—the kernel's secret data influenced what the user actor could observe, breaking isolation.</p>
-<p>The hardware traces show different cache access patterns for the two inputs. Even though the user code was identical and the user data was identical, the cache side channel leaked information about the kernel's execution with different secret values.</p>
-<div class="admonition tip">
-<p class="admonition-title">Understanding Actor Roles</p>
-<p>The <code>observer</code> flag in the actor configuration is crucial. The observer actor is the attacker—the one whose observations we track. The non-observer actors are victims—they might be processing secrets that should remain isolated. Violations occur when observer traces differ based on victim data.</p>
-</div>
-<h3 id="48-validate-and-minimize-isolation-violations">4.8. Validate and minimize isolation violations</h3>
-<p>If you detect a violation, validate it using the same workflow from previous tutorials:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>mv<span class="w"> </span>violation-&lt;timestamp&gt;<span class="w"> </span>./violation
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>rvzr<span class="w"> </span>reproduce<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>./violation/reproduce.yaml<span class="w"> </span>-t<span class="w"> </span>./violation/program.asm<span class="w"> </span>-i<span class="w"> </span>./violation/input*.bin
+<p>Note that we also added a <code>fault_blocklist</code> to the kernel actor. This is done to prevent redundant work on the generator side; there is no point in making kernel access its own memory.</p>
+<h3 id="run-the-fuzzer-with-faults-enabled">Run the fuzzer with faults enabled</h3>
+<p>Run the fuzzer again with the updated configuration:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>./revizor.py<span class="w"> </span>tfuzz<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>config.yaml<span class="w"> </span>-t<span class="w"> </span>template.asm<span class="w"> </span>-n<span class="w"> </span><span class="m">5000</span><span class="w"> </span>-i<span class="w"> </span><span class="m">10</span><span class="w"> </span>-w<span class="w"> </span>.
 </code></pre></div>
-<p>Then minimize:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>rvzr<span class="w"> </span>minimize<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>./violation/minimize.yaml<span class="w"> </span>-t<span class="w"> </span>./violation/program.asm<span class="w"> </span>-o<span class="w"> </span>./violation/min.asm<span class="w"> </span>-i<span class="w"> </span><span class="m">10</span><span class="w"> </span>--num-attempts<span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">    </span>--enable-instruction-pass<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">    </span>--enable-simplification-pass<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">    </span>--enable-nop-pass<span class="w"> </span><span class="m">1</span>
+<p>This time, with the user actor actively trying to access kernel memory, we have a higher chance of provoking isolation violations.</p>
+<p>If you're testing a system vulnerable to Meltdown, you should see a violation reported:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>================================ Violations detected ==========================
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>Violation Details:
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>-----------------------------------------------------------------------------------
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>                             HTrace                              | ID:3   | ID:13 |
+<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>-----------------------------------------------------------------------------------
+<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>^^.^.......^.........^..^.........................^............^ | 627    | 0     |
+<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>^^.^...^...^............^.........................^............^ | 0      | 627   |
 </code></pre></div>
-<p>The minimized test case will reveal the specific mechanism through which kernel execution leaked to user observation. This might be a cache-based covert channel through speculative memory access, or timing variations that reveal kernel control flow decisions.</p>
+<p>Validate and minimize the violation, as we've done in the previous tutorials.</p>
+<p>As a result, you should obtain a minimized test case that contains a typical Meltdown pattern: the user actor attempts to read kernel memory, which causes a fault, but speculative execution allows some of the kernel data to leak through side channels, and thus impact the user's hardware traces.</p>
 <div class="admonition success">
 <p class="admonition-title">What We've Learned</p>
 <p>In this tutorial, we've progressed from random fuzzing to structured testing:</p>
@@ -3044,11 +3204,10 @@
 <li><strong>Macros control generation</strong>: The macro system gives fine-grained control over what code gets generated and where</li>
 <li><strong>Multi-actor testing</strong>: Revizor can test isolation between different privilege levels or security domains using the actor system</li>
 <li><strong>Noninterference contract</strong>: This specialized contract detects when one actor's data influences another actor's observations</li>
-<li><strong>Observer vs victim</strong>: The observer flag distinguishes attackers (who perform measurements) from victims (whose secrets might leak)</li>
 </ul>
-<p>Template-based fuzzing is particularly powerful for testing CPU security boundaries: user-kernel isolation, enclave isolation (SGX), hypervisor-guest isolation, and other privilege-based separations.</p>
 </div>
-<hr />
+<h3 id="whats-next">What's Next?</h3>
+<p>Proceed to <a href="../../tutorial5-extending/part1/">Tutorial 5</a> to see how we can go even further and start testing high-level isolation properties.</p>
 
 
 
