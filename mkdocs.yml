@@ -122,8 +122,8 @@ nav:
         - Part 3: intro/tutorial3-faults/part3.md
       - Tutorial 4 - Testing Isolation:
         - Part 1: intro/tutorial4-isolation/part1.md
-      # - Tutorial 5 - Extending Revizor:
-      #   - Part 1: intro/tutorial5-extending/part1.md
+      - Tutorial 5 - Extending Revizor:
+        - Part 1: intro/tutorial5-extending/part1.md
       - Extra Tutorial - Detecting TSA-SQ: intro/tsa-sq.md
     - How-To Guides:
       - Choose a Contract: howto/choose-contract.md
