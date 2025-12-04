@@ -77,7 +77,7 @@ class BaseInstructionMinimizationPass(BaseMinimizationPass):
             is_skipped |= ('.' == line[0])  # labels
             is_skipped |= ('noremove' in line)  # explicitly marked as non-removable
             is_skipped |= (skip_instrumentation_lines and 'instrumentation' in line)
-            is_skipped |= (self._base_register in line)  # sandbox-relative operations
+            is_skipped |= (self._base_register in line and '[' not in line)  # sandbox updates
             return is_skipped
 
         # get all lines of the test case
