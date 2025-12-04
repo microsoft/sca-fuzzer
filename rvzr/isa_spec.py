@@ -283,8 +283,10 @@ def _dedup(isa: InstructionSet) -> None:
 
 def _set_categories(isa: InstructionSet) -> None:
     isa.control_flow_specs = [i for i in isa.instructions if i.is_control_flow]
-    assert isa.control_flow_specs or CONF.max_successors_per_bb <= 1, \
-           "The instruction set is insufficient to generate a test case"
+    # adjust the config to the available instruction set
+    if len(isa.control_flow_specs) == 0:
+        CONF.min_successors_per_bb = 1
+        CONF.max_successors_per_bb = 1
 
     isa.non_control_flow_specs = [i for i in isa.instructions if not i.is_control_flow]
     assert isa.non_control_flow_specs, \

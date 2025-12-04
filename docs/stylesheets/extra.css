@@ -1,3 +1,11 @@
-/* .md-typeset {
-  font-size: 0.7rem;
-} */
+/* Custom styles for mkdocs-material */
+
+/* Inline box for default values and highlighted inline content */
+.inline-box {
+    background-color: var(--md-code-bg-color);
+    border: 1px solid var(--md-default-fg-color--lightest);
+    padding: 2px 6px;
+    border-radius: 2px;
+    display: inline-block;
+}
+

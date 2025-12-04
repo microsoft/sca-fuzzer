@@ -3,25 +3,44 @@ site_name: Revizor
 site_url: https://github.com/microsoft/sca-fuzzer
 site_author: Microsoft
 site_description: A security-oriented tool for testing CPUs and detecting microarchitectural leaks like Spectre and Meltdown
-copyright: 'Copyright &copy; 2024 Microsoft'
+copyright: 'Copyright &copy; 2025 Microsoft'
 
 repo_name: microsoft/sca-fuzzer
 repo_url: https://github.com/microsoft/sca-fuzzer
 
+docs_dir: docs
+
 theme:
   name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
   font:
-    text: Inter
-    code: Inter Mono
+    text: Roboto
+    code: Roboto Mono
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.indexes
+    - navigation.tabs
+    - toc.integrate
+    - search.suggest
+    - search.highlight
   custom_dir: mkdocs-overrides
   logo: assets/ms_icon.png
   favicon: assets/ms_icon.png
-  palette:
-    primary: indigo
-  features:
-    - navigation.instant
-    - navigation.tabs
-    - search.share
 
 extra_css:
   - stylesheets/extra.css
@@ -30,59 +49,128 @@ plugins:
   - search
 
 markdown_extensions:
+  - toc:
+      toc_depth: 2
+
+  # diagrams
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
-  - meta
+
+  # Better typography and formatting
+  - abbr
   - admonition
-  - pymdownx.highlight
+  - attr_list
+  - def_list
+  - footnotes
+  - meta
+  - tables
+  - pymdownx.caret
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.details
+
+  # Code highlighting (must be before tabbed)
+  - pymdownx.highlight:
+      anchor_linenums: true
+
+  - pymdownx.snippets
+
+  # Tabbed content blocks
+  - pymdownx.tabbed:
+      alternate_style: true
+      combine_header_slug: true
+
+  # Other extensions
   - pymdownx.pathconverter
-  - pymdownx.tabbed
-  - pymdownx.tasklist
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+  # Enhanced formatting
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.tilde
+  - pymdownx.smartsymbols
+
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
 
 nav:
   - Home: index.md
-  - Quick Start: quick-start.md
-  - Theoretical Foundations: contracts.md
-  - User Documentation:
-    - Index: user/index.md
-    - Command Line Interface: user/cli.md
-    - Modes of Operation: user/modes.md
-    - Configuration Options: user/config.md
-    - Minimization Passes: user/minimization.md
-    - Actors: user/actors.md
-    - Templates: user/templates.md
-    - Macros: user/macros.md
-  - Developer Documentation:
-    - Index: devel/index.md
-    - Development Guidelines:
-      - General Guidelines: devel/guidelines-general.md
-      - Code Style: devel/guidelines-code-style.md
-      - Git Workflow: devel/guidelines-git.md
-    - Architecture and Modules:
-      - Overview: devel/arch-overview.md
-      - Code Structure: devel/code-structure.md
-      - Orchestration: devel/arch-fuzz.md
-      - ISA specification: devel/arch-isa.md
-      - Test Case Code Generation: devel/arch-code.md
-      - Test Case Data Generation: devel/arch-data.md
-      - Hardware Tracing: devel/arch-exec.md
-      - Contract Tracing: devel/arch-model.md
-      - Trace Analysis: devel/arch-analysis.md
-      - Minimization: devel/arch-mini.md
-      - Logging: devel/arch-logging.md
-    - Contract Modeling Backends:
-      - Unicorn Backend: devel/model-unicorn.md
-      - DynamoRIO Backend: devel/model-dr.md
-    - Advanced Topics:
-      - Register Allocation: devel/registers.md
-      - Test Case Sandbox: devel/sandbox.md
-      - Macros: devel/macros.md
-      - Binary Formats: devel/binary-formats.md
-  - Tutorials:
-    - Designing a Revizor Fuzzing Campaign: tutorials/fuzzing-campaign.md
-    - Root-Causing a Violation Detected by Revizor: tutorials/root-causing.md
-    - Detecting TSA-SQ with Revizor: tutorials/tsa-sq.md
-  # - Trophies: trophies.md
+  - Start Here: intro/00_start_here.md
+  - Documentation:
+    - Documentation Structure: structure.md
+    - Getting Started:
+      - Revizor at a Glance: intro/01_overview.md
+      - Installation: intro/02_install.md
+      - Deep Dive into Concepts: intro/03_primer.md
+      - Overview of Tutorials: intro/04_tutorials_start.md
+      - Tutorial 1 - First Campaign:
+        - Part 1: intro/tutorial1-first-fuzz/part1.md
+        - Part 2: intro/tutorial1-first-fuzz/part2.md
+      - Tutorial 2 - First Vulnerability:
+        - Part 1: intro/tutorial2-first-vuln/part1.md
+        - Part 2: intro/tutorial2-first-vuln/part2.md
+        - Part 3: intro/tutorial2-first-vuln/part3.md
+      - Tutorial 3 - Testing Faults:
+        - Part 1: intro/tutorial3-faults/part1.md
+        - Part 2: intro/tutorial3-faults/part2.md
+        - Part 3: intro/tutorial3-faults/part3.md
+      - Tutorial 4 - Testing Isolation:
+        - Part 1: intro/tutorial4-isolation/part1.md
+      # - Tutorial 5 - Extending Revizor:
+      #   - Part 1: intro/tutorial5-extending/part1.md
+      - Extra Tutorial - Detecting TSA-SQ: intro/tsa-sq.md
+    - How-To Guides:
+      - Choose a Contract: howto/choose-contract.md
+      - Design a Campaign: howto/design-campaign.md
+      - Interpret Output: howto/interpret-results.md
+      - Minimize Violations: howto/minimize.md
+      - Root-Cause a Violation: howto/root-cause-a-violation.md
+      - Use Templates: howto/use-templates.md
+      - Use Macros: howto/use-macros.md
+    - Topics:
+      - Contracts: topics/contracts.md
+      - Leakage Models: topics/models.md
+      - Trace Analysis: topics/trace-analysis.md
+      - Test Case Generation: topics/test-case-generation.md
+      - Actors: topics/actors.md
+    - Reference:
+      - Modes of Operation: ref/modes.md
+      - Command Line Interface: ref/cli.md
+      - Configuration Options: ref/config.md
+      - Runtime Statistics: ref/runtime-statistic.md
+      - Minimization Passes: ref/minimization-passes.md
+      - Macros: ref/macros.md
+      - Artifact File Formats: ref/artifact-file-formats.md
+      - Internal Binary Formats: ref/binary-formats.md
+      - Registers: ref/registers.md
+      - Sandbox: ref/sandbox.md
+    - Glossary: glossary.md
+  - FAQ:
+    - General Questions: faq/general.md
+  - Contribute:
+    - Index: internals/index.md
+    - Guidelines:
+      - General Guidelines: internals/contributing/guidelines-general.md
+      - Code Style: internals/contributing/guidelines-code-style.md
+      - Git Workflow: internals/contributing/guidelines-git.md
+    - Code Structure: internals/code-structure.md
+    - Architecture:
+      - Overview: internals/architecture/overview.md
+      - Orchestration: internals/architecture/fuzz.md
+      - ISA Specification: internals/architecture/isa.md
+      - Test Case Code Generation: internals/architecture/code.md
+      - Test Case Data Generation: internals/architecture/data.md
+      - Hardware Tracing: internals/architecture/exec.md
+      - Contract Tracing: internals/architecture/model.md
+      - Trace Analysis: internals/architecture/analysis.md
+      - Minimization: internals/architecture/mini.md
+      - Logging: internals/architecture/logging.md
+    - Model Backends:
+      - Unicorn Backend: internals/model-backends/model-unicorn.md
+      - DynamoRIO Backend: internals/model-backends/model-dr.md

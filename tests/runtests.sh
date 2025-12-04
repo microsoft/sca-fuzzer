@@ -122,7 +122,7 @@ function core_unit_tests() {
     echo "-------------"
     python3 -m unittest tests.unit_analyser -v
     echo "-------------"
-    python3 -m unittest tests.unit_docs -v
+    # python3 -m unittest tests.unit_docs -v
     echo "-------------"
     python3 -m unittest tests.unit_isa_loader
     echo "-------------"

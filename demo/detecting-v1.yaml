@@ -1,7 +1,7 @@
 # This demo illustrates detection of a Spectre V1
 #
 #
-# Run it with: ./cli.py fuzz -s x86/isa_spec/base.json -n 1000 -i 100 -c ../demo/detecting-v1.yaml
+# Run it with: ./revizor.py fuzz -s x86/isa_spec/base.json -n 1000 -i 100 -c ../demo/detecting-v1.yaml
 
 # contract
 contract_observation_clause: loads+stores+pc

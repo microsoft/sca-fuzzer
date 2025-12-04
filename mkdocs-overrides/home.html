@@ -1,5 +1,21 @@
 {% extends "main.html" %}
 
+{% block styles %}
+  {{ super() }}
+  <style>
+    :root {
+      color-scheme: light !important;
+    }
+    [data-md-color-scheme="slate"] {
+      --md-default-fg-color: rgba(0, 0, 0, 0.87);
+      --md-default-bg-color: #fff;
+      --md-code-bg-color: #f5f5f5;
+      --md-code-fg-color: rgba(0, 0, 0, 0.87);
+      /* Add other light theme variables as needed */
+    }
+  </style>
+{% endblock %}
+
 {% block tabs %}
   {{ super() }}
 
@@ -408,7 +424,7 @@
                         (More details in <a href="https://aka.ms/enter-exit-leak">Enter-Exit</a> and <a href="https://www.amd.com/en/resources/product-security/bulletin/amd-sb-7029.html">AMD Advisory</a>)
                     </li>
                     <li><b>TSC_AUX Speculation (<a href="https://nvd.nist.gov/vuln/detail/CVE-2024-36349">CVE-2024-36349</a>):</b>
-                        A speculative leak affecting AMD processors affecting AMD processors that permits user processes to infer the Time Stamp Counter Auxiliary (TSC_AUX) register value even when direct reads are disabled. 
+                        A speculative leak affecting AMD processors affecting AMD processors that permits user processes to infer the Time Stamp Counter Auxiliary (TSC_AUX) register value even when direct reads are disabled.
                         (More details in <a href="https://aka.ms/enter-exit-leak">Enter-Exit</a> and <a href="https://www.amd.com/en/resources/product-security/bulletin/amd-sb-7029.html">AMD Advisory</a>)
                     </li>
                     <li><b>Divider State Sampling (DSS, <a href="https://nvd.nist.gov/vuln/detail/CVE-2023-20588">CVE-2023-20588)</a></b>:
