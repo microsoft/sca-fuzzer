@@ -328,8 +328,8 @@ class HTrace:
     def _full_tsc_pair_str(self, other: HTrace) -> str:
         """ Return a string representation of two TSC sample distributions side-by-side
         Example output:
-        00000001        [16     | 8      ]
-        00000002        [16     | 24     ]
+        00000001        |16     | 8      |
+        00000002        |16     | 24     |
         """
         mask = np.uint64(0xFFFFFFFFFFFFFF)
         c1 = Counter(self.get_raw_traces())
@@ -340,7 +340,7 @@ class HTrace:
         final_str = ""
         for t in traces:
             t = t & mask
-            final_str += f"{t:08} [{c1[t]:<6} | {c2[t]:<6}]\n"
+            final_str += f"{t:08} | {c1[t]:<6} | {c2[t]:<6} |\n"
         return final_str
 
     def _full_cache_pair_str(self, other: HTrace, r1_col: str, r2_col: str, res_col: str) -> str:
@@ -387,7 +387,7 @@ class HTrace:
         :return: A new HTrace object that contains all samples from both objects
         """
         samples = np.concatenate([self._raw, other._raw])  # pylint: disable=protected-access
-        return HTrace(samples)
+        return HTrace(samples, self.type_)
 
     def is_empty(self) -> bool:
         """ Check if the trace was created from an empty sample or via `empty_trace()` """
