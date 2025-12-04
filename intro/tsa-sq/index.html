@@ -1286,17 +1286,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#prerequisites" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Prerequisites
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#background-understanding-tsa-sq" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3115,7 +3104,8 @@
 <h1 id="tutorial-detecting-tsa-sq-with-revizor">Tutorial: Detecting TSA-SQ with Revizor</h1>
 <p>This tutorial demonstrates how we used Revizor to detect TSA-SQ (Transient Scheduler Attack - Store Queue), a microarchitectural vulnerability discovered in AMD Zen4 processors. We'll walk through the design rationale behind the fuzzing campaign configuration and template, explaining how each component contributes to successful vulnerability detection.</p>
 <p>You can reproduce this campaign using the provided configuration and template files, which are available in the Revizor repository under <code>demo/tsa-sq/</code>.</p>
-<h2 id="prerequisites">Prerequisites</h2>
+<div class="admonition info">
+<p class="admonition-title">Prerequisites</p>
 <p>To follow this tutorial, you should have:</p>
 <ul>
 <li>Non-virtualized access to an AMD Zen4 processor for testing</li>
@@ -3123,6 +3113,7 @@
 <li>Basic understanding of Revizor's fuzzing framework, in particular the concepts of <a href="../03_primer/">model-based relational testing</a>, <a href="../../topics/actors/">actors</a>, <a href="../../howto/use-templates/">templates</a>, <a href="../../ref/macros/">macros</a>.</li>
 <li>Familiarity with microarchitectural vulnerabilities and side-channel attacks</li>
 </ul>
+</div>
 <h2 id="background-understanding-tsa-sq">Background: Understanding TSA-SQ</h2>
 <p>Before diving into the Revizor configuration, let's briefly understand what TSA-SQ is. According to the <a href="https://www.amd.com/content/dam/amd/en/documents/resources/bulletin/technical-guidance-for-mitigating-transient-scheduler-attacks.pdf">AMD security bulletin</a>, TSA-SQ exploits timing variations in the CPU's store queue during "false completion" events. When a load instruction matches the address of an older store whose data isn't yet available, it may complete falsely using stale data from a previous store that occupied the same store queue entry. This creates timing differences that an attacker can observe to infer information about previous stores, even from different privilege levels.</p>
 <p>The key insight is that an unprivileged user process can potentially observe timing variations that depend on data from kernel stores, creating a kernel-to-user information leak channel.</p>
@@ -3145,6 +3136,7 @@
 <h2 id="template-design-simulating-attack-patterns">Template Design: Simulating Attack Patterns</h2>
 <p>The template structure follows the typical flow of a microarchitectural side-channel attack, specifically implementing a Flush+Reload pattern across privilege transitions.</p>
 <p><img alt="tsa-sq-template.png" src="../../assets/tsa-sq-template.png" /></p>
+<p>You can find the complete template in <a href="https://github.com/microsoft/sca-fuzzer/blob/main/demo/tsa-sq/template.asm"><code>template.asm</code></a>.</p>
 <p>Let's examine each phase:</p>
 <p><strong>Phase 1: Setup and Flush (function_main_0 and function_user_0)</strong></p>
 <p>The first stage represent the attacker preparing the microarchitectural state for measurements. The first action in the template is in the <code>function_user_0</code>, where the <code>user</code> actor initializes the microarchitectural state by flushing the cache lines that will be used for measurements. This is done using the <code>measurement_start</code> macro, which is translated into a Flush stage of Flush+Reload attack. Revizor does this translation automatically based on the <code>executor_mode: F+R</code> setting in the configuration file.</p>
