@@ -12,25 +12,31 @@
         <meta name="author" content="Microsoft">
       
       
+        <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/intro/tsa-sq/">
       
+      
+        <link rel="prev" href="../tutorial3-faults/part3/">
+      
+      
+        <link rel="next" href="../../howto/choose-contract/">
       
       
         
       
       
-      <link rel="icon" href="/microsoft/sca-fuzzer/assets/ms_icon.png">
+      <link rel="icon" href="../../assets/ms_icon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
     
     
       
-        <title>Revizor</title>
+        <title>Extra Tutorial - Detecting TSA-SQ - Revizor</title>
       
     
     
-      <link rel="stylesheet" href="/microsoft/sca-fuzzer/assets/stylesheets/main.618322db.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.618322db.min.css">
       
         
-        <link rel="stylesheet" href="/microsoft/sca-fuzzer/assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -49,9 +55,9 @@
       
     
     
-      <link rel="stylesheet" href="/microsoft/sca-fuzzer/stylesheets/extra.css">
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
     
-    <script>__md_scope=new URL("/microsoft/sca-fuzzer/",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -75,6 +81,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#tutorial-detecting-tsa-sq-with-revizor" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -85,9 +96,9 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="/microsoft/sca-fuzzer/." title="Revizor" class="md-header__button md-logo" aria-label="Revizor" data-md-component="logo">
+    <a href="../.." title="Revizor" class="md-header__button md-logo" aria-label="Revizor" data-md-component="logo">
       
-  <img src="/microsoft/sca-fuzzer/assets/ms_icon.png" alt="logo">
+  <img src="../../assets/ms_icon.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -104,7 +115,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              
+              Extra Tutorial - Detecting TSA-SQ
             
           </span>
         </div>
@@ -217,7 +228,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/microsoft/sca-fuzzer/." class="md-tabs__link">
+      <a href="../.." class="md-tabs__link">
         
   
   
@@ -236,7 +247,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/microsoft/sca-fuzzer/intro/00_start_here/" class="md-tabs__link">
+      <a href="../00_start_here/" class="md-tabs__link">
         
   
   
@@ -253,11 +264,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="/microsoft/sca-fuzzer/structure/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../structure/" class="md-tabs__link">
           
   
   
@@ -279,7 +292,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="/microsoft/sca-fuzzer/faq/general/" class="md-tabs__link">
+        <a href="../../faq/general/" class="md-tabs__link">
           
   
   
@@ -301,7 +314,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="/microsoft/sca-fuzzer/internals/" class="md-tabs__link">
+        <a href="../../internals/" class="md-tabs__link">
           
   
   
@@ -339,9 +352,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="/microsoft/sca-fuzzer/." title="Revizor" class="md-nav__button md-logo" aria-label="Revizor" data-md-component="logo">
+    <a href="../.." title="Revizor" class="md-nav__button md-logo" aria-label="Revizor" data-md-component="logo">
       
-  <img src="/microsoft/sca-fuzzer/assets/ms_icon.png" alt="logo">
+  <img src="../../assets/ms_icon.png" alt="logo">
 
     </a>
     Revizor
@@ -368,7 +381,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -395,7 +408,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/00_start_here/" class="md-nav__link">
+      <a href="../00_start_here/" class="md-nav__link">
         
   
   
@@ -419,8 +432,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -440,17 +455,20 @@
     
     
       
+        
+        
+      
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   
@@ -468,7 +486,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -486,7 +504,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/structure/" class="md-nav__link">
+      <a href="../../structure/" class="md-nav__link">
         
   
   
@@ -511,8 +529,10 @@
                 
   
   
+    
   
   
+  
     
     
       
@@ -539,11 +559,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" checked>
         
           
           <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
@@ -564,7 +584,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -582,7 +602,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/01_overview/" class="md-nav__link">
+      <a href="../01_overview/" class="md-nav__link">
         
   
   
@@ -610,7 +630,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/02_install/" class="md-nav__link">
+      <a href="../02_install/" class="md-nav__link">
         
   
   
@@ -638,7 +658,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/03_primer/" class="md-nav__link">
+      <a href="../03_primer/" class="md-nav__link">
         
   
   
@@ -666,7 +686,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/04_tutorials_start/" class="md-nav__link">
+      <a href="../04_tutorials_start/" class="md-nav__link">
         
   
   
@@ -750,7 +770,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial1-first-fuzz/part1/" class="md-nav__link">
+      <a href="../tutorial1-first-fuzz/part1/" class="md-nav__link">
         
   
   
@@ -778,7 +798,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial1-first-fuzz/part2/" class="md-nav__link">
+      <a href="../tutorial1-first-fuzz/part2/" class="md-nav__link">
         
   
   
@@ -872,7 +892,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial2-first-vuln/part1/" class="md-nav__link">
+      <a href="../tutorial2-first-vuln/part1/" class="md-nav__link">
         
   
   
@@ -900,7 +920,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial2-first-vuln/part2/" class="md-nav__link">
+      <a href="../tutorial2-first-vuln/part2/" class="md-nav__link">
         
   
   
@@ -928,7 +948,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial2-first-vuln/part3/" class="md-nav__link">
+      <a href="../tutorial2-first-vuln/part3/" class="md-nav__link">
         
   
   
@@ -1022,7 +1042,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial3-faults/part1/" class="md-nav__link">
+      <a href="../tutorial3-faults/part1/" class="md-nav__link">
         
   
   
@@ -1050,7 +1070,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial3-faults/part2/" class="md-nav__link">
+      <a href="../tutorial3-faults/part2/" class="md-nav__link">
         
   
   
@@ -1078,7 +1098,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial3-faults/part3/" class="md-nav__link">
+      <a href="../tutorial3-faults/part3/" class="md-nav__link">
         
   
   
@@ -1111,10 +1131,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tsa-sq/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Extra Tutorial - Detecting TSA-SQ
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1130,6 +1177,114 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#background-understanding-tsa-sq" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Background: Understanding TSA-SQ
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#design-rationale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design Rationale
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#threat-model-and-actor-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Threat Model and Actor Configuration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#template-design-simulating-attack-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Template Design: Simulating Attack Patterns
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-the-campaign" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running the Campaign
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verifying-genuine-violations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verifying Genuine Violations
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1216,7 +1371,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/choose-contract/" class="md-nav__link">
+      <a href="../../howto/choose-contract/" class="md-nav__link">
         
   
   
@@ -1244,7 +1399,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/design-campaign/" class="md-nav__link">
+      <a href="../../howto/design-campaign/" class="md-nav__link">
         
   
   
@@ -1272,7 +1427,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/interpret-results/" class="md-nav__link">
+      <a href="../../howto/interpret-results/" class="md-nav__link">
         
   
   
@@ -1300,7 +1455,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/minimize/" class="md-nav__link">
+      <a href="../../howto/minimize/" class="md-nav__link">
         
   
   
@@ -1328,7 +1483,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/root-cause-a-violation/" class="md-nav__link">
+      <a href="../../howto/root-cause-a-violation/" class="md-nav__link">
         
   
   
@@ -1356,7 +1511,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/use-templates/" class="md-nav__link">
+      <a href="../../howto/use-templates/" class="md-nav__link">
         
   
   
@@ -1384,7 +1539,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/use-macros/" class="md-nav__link">
+      <a href="../../howto/use-macros/" class="md-nav__link">
         
   
   
@@ -1482,7 +1637,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/contracts/" class="md-nav__link">
+      <a href="../../topics/contracts/" class="md-nav__link">
         
   
   
@@ -1510,7 +1665,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/models/" class="md-nav__link">
+      <a href="../../topics/models/" class="md-nav__link">
         
   
   
@@ -1538,7 +1693,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/trace-analysis/" class="md-nav__link">
+      <a href="../../topics/trace-analysis/" class="md-nav__link">
         
   
   
@@ -1566,7 +1721,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/test-case-generation/" class="md-nav__link">
+      <a href="../../topics/test-case-generation/" class="md-nav__link">
         
   
   
@@ -1594,7 +1749,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/actors/" class="md-nav__link">
+      <a href="../../topics/actors/" class="md-nav__link">
         
   
   
@@ -1702,7 +1857,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/modes/" class="md-nav__link">
+      <a href="../../ref/modes/" class="md-nav__link">
         
   
   
@@ -1730,7 +1885,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/cli/" class="md-nav__link">
+      <a href="../../ref/cli/" class="md-nav__link">
         
   
   
@@ -1758,7 +1913,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/config/" class="md-nav__link">
+      <a href="../../ref/config/" class="md-nav__link">
         
   
   
@@ -1786,7 +1941,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/runtime-statistic/" class="md-nav__link">
+      <a href="../../ref/runtime-statistic/" class="md-nav__link">
         
   
   
@@ -1814,7 +1969,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/minimization-passes/" class="md-nav__link">
+      <a href="../../ref/minimization-passes/" class="md-nav__link">
         
   
   
@@ -1842,7 +1997,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/macros/" class="md-nav__link">
+      <a href="../../ref/macros/" class="md-nav__link">
         
   
   
@@ -1870,7 +2025,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/artifact-file-formats/" class="md-nav__link">
+      <a href="../../ref/artifact-file-formats/" class="md-nav__link">
         
   
   
@@ -1898,7 +2053,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/binary-formats/" class="md-nav__link">
+      <a href="../../ref/binary-formats/" class="md-nav__link">
         
   
   
@@ -1926,7 +2081,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/registers/" class="md-nav__link">
+      <a href="../../ref/registers/" class="md-nav__link">
         
   
   
@@ -1954,7 +2109,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/sandbox/" class="md-nav__link">
+      <a href="../../ref/sandbox/" class="md-nav__link">
         
   
   
@@ -1990,7 +2145,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/glossary/" class="md-nav__link">
+      <a href="../../glossary/" class="md-nav__link">
         
   
   
@@ -2079,7 +2234,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/faq/general/" class="md-nav__link">
+      <a href="../../faq/general/" class="md-nav__link">
         
   
   
@@ -2143,7 +2298,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="/microsoft/sca-fuzzer/internals/" class="md-nav__link ">
+            <a href="../../internals/" class="md-nav__link ">
               
   
   
@@ -2245,7 +2400,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/contributing/guidelines-general/" class="md-nav__link">
+      <a href="../../internals/contributing/guidelines-general/" class="md-nav__link">
         
   
   
@@ -2273,7 +2428,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/contributing/guidelines-code-style/" class="md-nav__link">
+      <a href="../../internals/contributing/guidelines-code-style/" class="md-nav__link">
         
   
   
@@ -2301,7 +2456,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/contributing/guidelines-git/" class="md-nav__link">
+      <a href="../../internals/contributing/guidelines-git/" class="md-nav__link">
         
   
   
@@ -2337,7 +2492,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/code-structure/" class="md-nav__link">
+      <a href="../../internals/code-structure/" class="md-nav__link">
         
   
   
@@ -2437,7 +2592,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/overview/" class="md-nav__link">
+      <a href="../../internals/architecture/overview/" class="md-nav__link">
         
   
   
@@ -2465,7 +2620,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/fuzz/" class="md-nav__link">
+      <a href="../../internals/architecture/fuzz/" class="md-nav__link">
         
   
   
@@ -2493,7 +2648,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/isa/" class="md-nav__link">
+      <a href="../../internals/architecture/isa/" class="md-nav__link">
         
   
   
@@ -2521,7 +2676,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/code/" class="md-nav__link">
+      <a href="../../internals/architecture/code/" class="md-nav__link">
         
   
   
@@ -2549,7 +2704,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/data/" class="md-nav__link">
+      <a href="../../internals/architecture/data/" class="md-nav__link">
         
   
   
@@ -2577,7 +2732,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/exec/" class="md-nav__link">
+      <a href="../../internals/architecture/exec/" class="md-nav__link">
         
   
   
@@ -2605,7 +2760,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/model/" class="md-nav__link">
+      <a href="../../internals/architecture/model/" class="md-nav__link">
         
   
   
@@ -2633,7 +2788,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/analysis/" class="md-nav__link">
+      <a href="../../internals/architecture/analysis/" class="md-nav__link">
         
   
   
@@ -2661,7 +2816,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/mini/" class="md-nav__link">
+      <a href="../../internals/architecture/mini/" class="md-nav__link">
         
   
   
@@ -2689,7 +2844,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/logging/" class="md-nav__link">
+      <a href="../../internals/architecture/logging/" class="md-nav__link">
         
   
   
@@ -2781,7 +2936,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/model-backends/model-unicorn/" class="md-nav__link">
+      <a href="../../internals/model-backends/model-unicorn/" class="md-nav__link">
         
   
   
@@ -2809,7 +2964,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/model-backends/model-dr/" class="md-nav__link">
+      <a href="../../internals/model-backends/model-dr/" class="md-nav__link">
         
   
   
@@ -2858,8 +3013,126 @@
               
               <article class="md-content__inner md-typeset">
                 
-  <h1>404 - Not found</h1>
+                  
 
+
+  
+  
+
+
+<h1 id="tutorial-detecting-tsa-sq-with-revizor">Tutorial: Detecting TSA-SQ with Revizor</h1>
+<p>This tutorial demonstrates how we used Revizor to detect TSA-SQ (Transient Scheduler Attack - Store Queue), a microarchitectural vulnerability discovered in AMD Zen4 processors. We'll walk through the design rationale behind the fuzzing campaign configuration and template, explaining how each component contributes to successful vulnerability detection.</p>
+<p>You can reproduce this campaign using the provided configuration and template files, which are available in the Revizor repository under <code>demo/tsa-sq/</code>.</p>
+<h2 id="prerequisites">Prerequisites</h2>
+<p>To follow this tutorial, you should have:</p>
+<ul>
+<li>Non-virtualized access to an AMD Zen4 processor for testing</li>
+<li>A working installation of Revizor. See <a href="../02_install/">installation guide</a> for setup instructions.</li>
+<li>Basic understanding of Revizor's fuzzing framework, in particular the concepts of <a href="../03_primer/">model-based relational testing</a>, <a href="../../topics/actors/">actors</a>, <a href="../../howto/use-templates/">templates</a>, <a href="../../ref/macros/">macros</a>.</li>
+<li>Familiarity with microarchitectural vulnerabilities and side-channel attacks</li>
+</ul>
+<h2 id="background-understanding-tsa-sq">Background: Understanding TSA-SQ</h2>
+<p>Before diving into the Revizor configuration, let's briefly understand what TSA-SQ is. According to the <a href="https://www.amd.com/content/dam/amd/en/documents/resources/bulletin/technical-guidance-for-mitigating-transient-scheduler-attacks.pdf">AMD security bulletin</a>, TSA-SQ exploits timing variations in the CPU's store queue during "false completion" events. When a load instruction matches the address of an older store whose data isn't yet available, it may complete falsely using stale data from a previous store that occupied the same store queue entry. This creates timing differences that an attacker can observe to infer information about previous stores, even from different privilege levels.</p>
+<p>The key insight is that an unprivileged user process can potentially observe timing variations that depend on data from kernel stores, creating a kernel-to-user information leak channel.</p>
+<h2 id="design-rationale">Design Rationale</h2>
+<p>When this campaign was designed, we were not yet aware of the TSA-SQ vulnerability (in fact, the vulnerability was discovered as <em>result</em> of this campaign). Therefore, the campaign design is not specifically tailored to detect TSA-SQ, but rather to stress-test the general isolation between kernel and user modes in a way that could reveal microarchitectural vulnerabilities.</p>
+<h2 id="threat-model-and-actor-configuration">Threat Model and Actor Configuration</h2>
+<p>Our fuzzing campaign targets a common and high-impact threat model: a malicious user process attempting to extract sensitive data from the kernel. This scenario is particularly relevant for privilege escalation attacks where an attacker seeks to leak kernel secrets.</p>
+<p>The actor section of <code>config.yaml</code> reflects this threat model:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">actors</span><span class="p">:</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">main</span><span class="p">:</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;host&quot;</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">privilege_level</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;kernel&quot;</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">    </span><span class="l l-Scalar l-Scalar-Plain">...</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">user</span><span class="p">:</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">observer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;host&quot;</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">privilege_level</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;user&quot;</span>
+</code></pre></div>
+<p>The <code>main</code> actor represents the victim kernel, while the <code>user</code> actor represents the attacker. The <code>observer: true</code> flag designates the user actor as the attacker attempting to extract information. This configuration, in combination with the noninterference contract, tells Revizor that any information leakage from <code>main</code> to <code>user</code> should be flagged as a violation.</p>
+<h2 id="template-design-simulating-attack-patterns">Template Design: Simulating Attack Patterns</h2>
+<p>The template structure follows the typical flow of a microarchitectural side-channel attack, specifically implementing a Flush+Reload pattern across privilege transitions.</p>
+<p><img alt="tsa-sq-template.png" src="../../assets/tsa-sq-template.png" /></p>
+<p>Let's examine each phase:</p>
+<p><strong>Phase 1: Setup and Flush (function_main_0 and function_user_0)</strong></p>
+<p>The first stage represent the attacker preparing the microarchitectural state for measurements. The first action in the template is in the <code>function_user_0</code>, where the <code>user</code> actor initializes the microarchitectural state by flushing the cache lines that will be used for measurements. This is done using the <code>measurement_start</code> macro, which is translated into a Flush stage of Flush+Reload attack. Revizor does this translation automatically based on the <code>executor_mode: F+R</code> setting in the configuration file.</p>
+<p>Note that the template does not actually start from the <code>function_user_0</code> actor function. Instead, it starts with the <code>function_main_0</code>, which is a function belonging to the <code>main</code> actor. This is because Revizor requires that the entry point to the test case must be within the <code>main</code> actor's code.</p>
+<p><strong>Phase 2: Secret Injection (function_main_1)</strong></p>
+<p>After the initial setup, the attacker transitions to the victim and let's it do some computations on the victim's secret data. The victim actor execute a sequence of random instructions in the <code>function_main_1</code> macro, which simulates the kernel performing operations on sensitive data. Here, "random instructions" means a sequence of instructions that is randomly generated in each fuzzing round (i.e., each generated test case will have a different sequence of instructions in <code>function_main_1</code>).</p>
+<p>This randomness is crucial because it allows us to test a wide range of ways how secret data can impact microarchitectural state, without knowing a priori what specific instruction sequences might trigger a leak. This was one of the key factors that allowed us to discover TSA vulnerabilities without knowing about them beforehand.</p>
+<p><strong>Phase 3: Secret Extraction (function_user_1)</strong></p>
+<p>Back in user mode, we first clear the architectural state to eliminate any architectural information flow between actors. This is necessary to prevent any architectural information flows between the actors, which could otherwise lead to false positives in the analysis because Revizor is unable to distinguish between architectural and microarchitectural information flows (to be precise, Revizor would be able to distinguish them with a more subtle contract, but re-initializing the registers is a simpler solution).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>xor rax, rax  # noremove
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>mov rax, qword ptr [r14 + 0x2000] # noremove
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>mov rbx, qword ptr [r14 + 0x2008] # noremove
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a># ... more register initialization
+</code></pre></div>
+<p>After that, the attacker execute another sequence of random instructions, which simulates the user process attempting to access the sensitive data that was just processed by the kernel. Note that this sequence may include an attempt to access kernel memory from the user mode (see the <code>user-to-kernel-access</code> fault allowlist in the configuration). As we found out post-factum, this is not strictly necessary for TSA-SQ, but it helps to create complex microarchitectural conditions that can trigger the leak.</p>
+<p>Depending on whether random instruction sequence triggers the fault, the user actor will either switch to the kernel mode explicitly (using the <code>switch_u2k.main.user_1</code> macro) or the CPU will transfer control to the fault handler (<code>fault_handler</code> macro in the <code>function_main_2</code>). In this experiment, we were not particularly interested in fault handling, so both paths lead to the same point in the template.</p>
+<p><strong>Phase 4: State Measurement (function_user_2)</strong></p>
+<p>Finally, the "Reload" stage in <code>function_user_2</code> measures which cache lines were accessed by the random code in the previous stage. If the accessed cache lines were somehow influenced by the kernel's secret data, this will lead to a discrepancy in the "Reload" measurements, leading to diverging hardware traces for different inputs, and ultimately to Revizor detecting a violation.</p>
+<h2 id="configuration-overview">Configuration Overview</h2>
+<p>Beyond the actor configuration, <code>config.yaml</code> contains several other important settings that guide the fuzzing campaign, as described next:</p>
+<ul>
+<li><strong>Contract</strong>: The contract configuration specifies what information leakage we consider acceptable</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">contract_observation_clause</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ct</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nt">contract_execution_clause</span><span class="p">:</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">noninterference</span>
+</code></pre></div>
+<p>The <code>noninterference</code> execution clause implements the security property that observer actors cannot learn information about non-observer actors through microarchitectural channels. Combined with the <code>ct</code> (constant-time) observation clause, this allows the observer to see memory access patterns and control flow but prohibits leakage of raw data values.</p>
+<ul>
+<li><strong>Exceptions</strong>: The configuration includes <code>user-to-kernel-access</code> in the fault allowlist, which enables testing for Meltdown-type vulnerabilities. This was part of our original experimental design when we didn't yet know about TSA's existence. Revizor's program generator will randomly select memory accesses in the user actor and modify them to target kernel memory, triggering page faults.</li>
+</ul>
+<p>Interestingly, this exception-based approach helped discover TSA-SQ because the false completion events in the store queue can lead to timing differences in subsequent instructions, and the faults provide a constant-time reference point for the timing differences to get transformed into persistent cache state. Namely, when a variable-latency instruction is executed concurrently with a faulting instruction, it creates a race condition, where the cache impact of the variable-latency instruction can be influenced by whether the faulting instruction completes before or after it.</p>
+<p>Note the fault configuration quirk: we enable <code>user-to-kernel-access</code> globally but block it specifically for the main actor using <code>fault_blocklist</code>. This is the only way to enable a fault for a specific actor, because Revizor does not allow faults to be allow-listed for a specific actor.</p>
+<ul>
+<li><strong>Statistical Analysis</strong>: The statistical analysis parameters balance sensitivity with noise tolerance:</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nt">analyser_stat_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.05</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nt">executor_sample_sizes</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">15</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">40</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">160</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">320</span><span class="p p-Indicator">]</span>
+</code></pre></div>
+<p>The low threshold of 0.05 makes the analysis sensitive to subtle timing differences, while the adaptive sample sizes allow Revizor to start with quick tests and increase precision when potential violations are detected.</p>
+<ul>
+<li><strong>Instruction Set</strong>: The instruction set is defined as <code>x86-64</code> because we are targeting AMD CPUs, and the instruction categories include all base instructions, which allows for a wide range of microarchitectural interactions in the randomly generated code. Ideally, we would include even more categories, such as SIMD extensions and other advanced instructions, but Revizor does not yet support them (coming up soon, though!).</li>
+</ul>
+<h2 id="running-the-campaign">Running the Campaign</h2>
+<p>With the configuration and template in place, we can run the detection campaign using Revizor's <code>tfuzz</code> command. This command generates test cases based on the provided template and configuration, executes them, and analyzes the results for violations.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>./revizor.py<span class="w"> </span>tfuzz<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>--save-violations<span class="w"> </span>t<span class="w"> </span>-w<span class="w"> </span>./results/<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span>-c<span class="w"> </span>config.yaml<span class="w"> </span>-t<span class="w"> </span>template.asm<span class="w"> </span>-n<span class="w"> </span><span class="m">100000</span><span class="w"> </span>-i<span class="w"> </span><span class="m">25</span>
+</code></pre></div>
+<p>This runs 100,000 test cases with 25 inputs each. The <code>--save-violations</code> flag preserves any detected violations for later analysis. When TSA-SQ is present, you'll eventually see output similar to:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>================================ Violations detected ==========================
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>Contract trace:
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a> 14140085380608124960 (hash)
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>Hardware traces:
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>  Input group 1: [11]
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>  Input group 2: [36]
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>  ^^^.........^.................................^^................ [287    | 36    ]
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>  ^^^.........^.................................^................. [31     | 284   ]
+</code></pre></div>
+<p>The different hardware trace patterns for inputs 11 and 36, despite having the same contract trace hash, indicate that the CPU is leaking information not predicted by the noninterference contract.</p>
+<p>On our machine, the campaign typically takes about 5 hours to detect a leak, but your mileage may vary depending on the CPU model and due to the inherent randomness of the process.</p>
+<h2 id="verifying-genuine-violations">Verifying Genuine Violations</h2>
+<p>To confirm that a detected violation is genuine, reproduce it using:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>./revizor.py<span class="w"> </span>reproduce<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>./results/violation-*/reproduce.yaml<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">    </span>-t<span class="w"> </span>./results/violation-*/program.asm<span class="w"> </span>-i<span class="w"> </span>./results/violation-*/input_*.bin
+</code></pre></div>
+<p>A genuine violation will reproduce consistently across multiple runs with the same statistical pattern, confirming that the timing differences represent a real microarchitectural information leak.</p>
+<p>The next step is to do root-cause analysis of the violation, which is beyond the scope of this tutorial. See <a href="../../howto/root-cause-a-violation/">Root-Causing a Violation Detected by Revizor</a> for details on this process.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
               </article>
             </div>
           
@@ -2900,10 +3173,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "/microsoft/sca-fuzzer/", "features": ["navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.tabs", "toc.integrate", "search.suggest", "search.highlight"], "search": "/microsoft/sca-fuzzer/assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.tabs", "toc.integrate", "search.suggest", "search.highlight"], "search": "../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="/microsoft/sca-fuzzer/assets/javascripts/bundle.e71a0d61.min.js"></script>
+      <script src="../../assets/javascripts/bundle.e71a0d61.min.js"></script>
       
     
   </body>

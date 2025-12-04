@@ -12,25 +12,31 @@
         <meta name="author" content="Microsoft">
       
       
+        <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/intro/tutorial2-first-vuln/part2/">
       
+      
+        <link rel="prev" href="../part1/">
+      
+      
+        <link rel="next" href="../part3/">
       
       
         
       
       
-      <link rel="icon" href="/microsoft/sca-fuzzer/assets/ms_icon.png">
+      <link rel="icon" href="../../../assets/ms_icon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
     
     
       
-        <title>Revizor</title>
+        <title>Part 2 - Revizor</title>
       
     
     
-      <link rel="stylesheet" href="/microsoft/sca-fuzzer/assets/stylesheets/main.618322db.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.618322db.min.css">
       
         
-        <link rel="stylesheet" href="/microsoft/sca-fuzzer/assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -49,9 +55,9 @@
       
     
     
-      <link rel="stylesheet" href="/microsoft/sca-fuzzer/stylesheets/extra.css">
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
     
-    <script>__md_scope=new URL("/microsoft/sca-fuzzer/",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -75,6 +81,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#tutorial-2-detecting-your-first-vulnerability-part-2" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -85,9 +96,9 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="/microsoft/sca-fuzzer/." title="Revizor" class="md-header__button md-logo" aria-label="Revizor" data-md-component="logo">
+    <a href="../../.." title="Revizor" class="md-header__button md-logo" aria-label="Revizor" data-md-component="logo">
       
-  <img src="/microsoft/sca-fuzzer/assets/ms_icon.png" alt="logo">
+  <img src="../../../assets/ms_icon.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -104,7 +115,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              
+              Part 2
             
           </span>
         </div>
@@ -217,7 +228,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/microsoft/sca-fuzzer/." class="md-tabs__link">
+      <a href="../../.." class="md-tabs__link">
         
   
   
@@ -236,7 +247,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/microsoft/sca-fuzzer/intro/00_start_here/" class="md-tabs__link">
+      <a href="../../00_start_here/" class="md-tabs__link">
         
   
   
@@ -253,11 +264,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="/microsoft/sca-fuzzer/structure/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../../structure/" class="md-tabs__link">
           
   
   
@@ -279,7 +292,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="/microsoft/sca-fuzzer/faq/general/" class="md-tabs__link">
+        <a href="../../../faq/general/" class="md-tabs__link">
           
   
   
@@ -301,7 +314,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="/microsoft/sca-fuzzer/internals/" class="md-tabs__link">
+        <a href="../../../internals/" class="md-tabs__link">
           
   
   
@@ -339,9 +352,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="/microsoft/sca-fuzzer/." title="Revizor" class="md-nav__button md-logo" aria-label="Revizor" data-md-component="logo">
+    <a href="../../.." title="Revizor" class="md-nav__button md-logo" aria-label="Revizor" data-md-component="logo">
       
-  <img src="/microsoft/sca-fuzzer/assets/ms_icon.png" alt="logo">
+  <img src="../../../assets/ms_icon.png" alt="logo">
 
     </a>
     Revizor
@@ -368,7 +381,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/." class="md-nav__link">
+      <a href="../../.." class="md-nav__link">
         
   
   
@@ -395,7 +408,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/00_start_here/" class="md-nav__link">
+      <a href="../../00_start_here/" class="md-nav__link">
         
   
   
@@ -419,8 +432,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -440,17 +455,20 @@
     
     
       
+        
+        
+      
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   
@@ -468,7 +486,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -486,7 +504,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/structure/" class="md-nav__link">
+      <a href="../../../structure/" class="md-nav__link">
         
   
   
@@ -511,8 +529,10 @@
                 
   
   
+    
   
   
+  
     
     
       
@@ -539,11 +559,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" checked>
         
           
           <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
@@ -564,7 +584,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -582,7 +602,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/01_overview/" class="md-nav__link">
+      <a href="../../01_overview/" class="md-nav__link">
         
   
   
@@ -610,7 +630,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/02_install/" class="md-nav__link">
+      <a href="../../02_install/" class="md-nav__link">
         
   
   
@@ -638,7 +658,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/03_primer/" class="md-nav__link">
+      <a href="../../03_primer/" class="md-nav__link">
         
   
   
@@ -666,7 +686,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/04_tutorials_start/" class="md-nav__link">
+      <a href="../../04_tutorials_start/" class="md-nav__link">
         
   
   
@@ -750,7 +770,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial1-first-fuzz/part1/" class="md-nav__link">
+      <a href="../../tutorial1-first-fuzz/part1/" class="md-nav__link">
         
   
   
@@ -778,7 +798,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial1-first-fuzz/part2/" class="md-nav__link">
+      <a href="../../tutorial1-first-fuzz/part2/" class="md-nav__link">
         
   
   
@@ -811,8 +831,10 @@
                 
   
   
+    
   
   
+  
     
     
       
@@ -829,11 +851,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2_6" checked>
         
           
           <label class="md-nav__link" for="__nav_3_2_6" id="__nav_3_2_6_label" tabindex="0">
@@ -854,7 +876,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_2_6_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_2_6_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3_2_6">
             <span class="md-nav__icon md-icon"></span>
             
@@ -872,7 +894,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial2-first-vuln/part1/" class="md-nav__link">
+      <a href="../part1/" class="md-nav__link">
         
   
   
@@ -897,10 +919,19 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial2-first-vuln/part2/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -916,6 +947,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -928,7 +960,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial2-first-vuln/part3/" class="md-nav__link">
+      <a href="../part3/" class="md-nav__link">
         
   
   
@@ -1022,7 +1054,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial3-faults/part1/" class="md-nav__link">
+      <a href="../../tutorial3-faults/part1/" class="md-nav__link">
         
   
   
@@ -1050,7 +1082,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial3-faults/part2/" class="md-nav__link">
+      <a href="../../tutorial3-faults/part2/" class="md-nav__link">
         
   
   
@@ -1078,7 +1110,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial3-faults/part3/" class="md-nav__link">
+      <a href="../../tutorial3-faults/part3/" class="md-nav__link">
         
   
   
@@ -1114,7 +1146,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tsa-sq/" class="md-nav__link">
+      <a href="../../tsa-sq/" class="md-nav__link">
         
   
   
@@ -1216,7 +1248,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/choose-contract/" class="md-nav__link">
+      <a href="../../../howto/choose-contract/" class="md-nav__link">
         
   
   
@@ -1244,7 +1276,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/design-campaign/" class="md-nav__link">
+      <a href="../../../howto/design-campaign/" class="md-nav__link">
         
   
   
@@ -1272,7 +1304,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/interpret-results/" class="md-nav__link">
+      <a href="../../../howto/interpret-results/" class="md-nav__link">
         
   
   
@@ -1300,7 +1332,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/minimize/" class="md-nav__link">
+      <a href="../../../howto/minimize/" class="md-nav__link">
         
   
   
@@ -1328,7 +1360,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/root-cause-a-violation/" class="md-nav__link">
+      <a href="../../../howto/root-cause-a-violation/" class="md-nav__link">
         
   
   
@@ -1356,7 +1388,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/use-templates/" class="md-nav__link">
+      <a href="../../../howto/use-templates/" class="md-nav__link">
         
   
   
@@ -1384,7 +1416,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/use-macros/" class="md-nav__link">
+      <a href="../../../howto/use-macros/" class="md-nav__link">
         
   
   
@@ -1482,7 +1514,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/contracts/" class="md-nav__link">
+      <a href="../../../topics/contracts/" class="md-nav__link">
         
   
   
@@ -1510,7 +1542,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/models/" class="md-nav__link">
+      <a href="../../../topics/models/" class="md-nav__link">
         
   
   
@@ -1538,7 +1570,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/trace-analysis/" class="md-nav__link">
+      <a href="../../../topics/trace-analysis/" class="md-nav__link">
         
   
   
@@ -1566,7 +1598,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/test-case-generation/" class="md-nav__link">
+      <a href="../../../topics/test-case-generation/" class="md-nav__link">
         
   
   
@@ -1594,7 +1626,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/actors/" class="md-nav__link">
+      <a href="../../../topics/actors/" class="md-nav__link">
         
   
   
@@ -1702,7 +1734,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/modes/" class="md-nav__link">
+      <a href="../../../ref/modes/" class="md-nav__link">
         
   
   
@@ -1730,7 +1762,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/cli/" class="md-nav__link">
+      <a href="../../../ref/cli/" class="md-nav__link">
         
   
   
@@ -1758,7 +1790,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/config/" class="md-nav__link">
+      <a href="../../../ref/config/" class="md-nav__link">
         
   
   
@@ -1786,7 +1818,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/runtime-statistic/" class="md-nav__link">
+      <a href="../../../ref/runtime-statistic/" class="md-nav__link">
         
   
   
@@ -1814,7 +1846,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/minimization-passes/" class="md-nav__link">
+      <a href="../../../ref/minimization-passes/" class="md-nav__link">
         
   
   
@@ -1842,7 +1874,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/macros/" class="md-nav__link">
+      <a href="../../../ref/macros/" class="md-nav__link">
         
   
   
@@ -1870,7 +1902,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/artifact-file-formats/" class="md-nav__link">
+      <a href="../../../ref/artifact-file-formats/" class="md-nav__link">
         
   
   
@@ -1898,7 +1930,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/binary-formats/" class="md-nav__link">
+      <a href="../../../ref/binary-formats/" class="md-nav__link">
         
   
   
@@ -1926,7 +1958,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/registers/" class="md-nav__link">
+      <a href="../../../ref/registers/" class="md-nav__link">
         
   
   
@@ -1954,7 +1986,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/sandbox/" class="md-nav__link">
+      <a href="../../../ref/sandbox/" class="md-nav__link">
         
   
   
@@ -1990,7 +2022,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/glossary/" class="md-nav__link">
+      <a href="../../../glossary/" class="md-nav__link">
         
   
   
@@ -2079,7 +2111,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/faq/general/" class="md-nav__link">
+      <a href="../../../faq/general/" class="md-nav__link">
         
   
   
@@ -2143,7 +2175,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="/microsoft/sca-fuzzer/internals/" class="md-nav__link ">
+            <a href="../../../internals/" class="md-nav__link ">
               
   
   
@@ -2245,7 +2277,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/contributing/guidelines-general/" class="md-nav__link">
+      <a href="../../../internals/contributing/guidelines-general/" class="md-nav__link">
         
   
   
@@ -2273,7 +2305,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/contributing/guidelines-code-style/" class="md-nav__link">
+      <a href="../../../internals/contributing/guidelines-code-style/" class="md-nav__link">
         
   
   
@@ -2301,7 +2333,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/contributing/guidelines-git/" class="md-nav__link">
+      <a href="../../../internals/contributing/guidelines-git/" class="md-nav__link">
         
   
   
@@ -2337,7 +2369,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/code-structure/" class="md-nav__link">
+      <a href="../../../internals/code-structure/" class="md-nav__link">
         
   
   
@@ -2437,7 +2469,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/overview/" class="md-nav__link">
+      <a href="../../../internals/architecture/overview/" class="md-nav__link">
         
   
   
@@ -2465,7 +2497,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/fuzz/" class="md-nav__link">
+      <a href="../../../internals/architecture/fuzz/" class="md-nav__link">
         
   
   
@@ -2493,7 +2525,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/isa/" class="md-nav__link">
+      <a href="../../../internals/architecture/isa/" class="md-nav__link">
         
   
   
@@ -2521,7 +2553,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/code/" class="md-nav__link">
+      <a href="../../../internals/architecture/code/" class="md-nav__link">
         
   
   
@@ -2549,7 +2581,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/data/" class="md-nav__link">
+      <a href="../../../internals/architecture/data/" class="md-nav__link">
         
   
   
@@ -2577,7 +2609,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/exec/" class="md-nav__link">
+      <a href="../../../internals/architecture/exec/" class="md-nav__link">
         
   
   
@@ -2605,7 +2637,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/model/" class="md-nav__link">
+      <a href="../../../internals/architecture/model/" class="md-nav__link">
         
   
   
@@ -2633,7 +2665,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/analysis/" class="md-nav__link">
+      <a href="../../../internals/architecture/analysis/" class="md-nav__link">
         
   
   
@@ -2661,7 +2693,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/mini/" class="md-nav__link">
+      <a href="../../../internals/architecture/mini/" class="md-nav__link">
         
   
   
@@ -2689,7 +2721,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/logging/" class="md-nav__link">
+      <a href="../../../internals/architecture/logging/" class="md-nav__link">
         
   
   
@@ -2781,7 +2813,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/model-backends/model-unicorn/" class="md-nav__link">
+      <a href="../../../internals/model-backends/model-unicorn/" class="md-nav__link">
         
   
   
@@ -2809,7 +2841,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/model-backends/model-dr/" class="md-nav__link">
+      <a href="../../../internals/model-backends/model-dr/" class="md-nav__link">
         
   
   
@@ -2858,8 +2890,112 @@
               
               <article class="md-content__inner md-typeset">
                 
-  <h1>404 - Not found</h1>
+                  
 
+
+  
+  
+
+
+<h1 id="tutorial-2-detecting-your-first-vulnerability-part-2">Tutorial 2: Detecting Your First Vulnerability (Part 2)</h1>
+<p>This tutorial picks up where <a href="../part1/">part 1</a> left off. We will run the fuzzer with the configuration you've created, and see the results.</p>
+<h3 id="run-the-fuzzer">Run the fuzzer</h3>
+<p>Now we're ready to start fuzzing. Run Revizor with the following command:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>./revizor.py fuzz -s base.json -c config.yaml -n 1000 -i 10 -w .
+</code></pre></div>
+<p>This command tells Revizor to run 1000 test cases (<code>-n 1000</code>), with 10 inputs per test case (<code>-i 10</code>), using the ISA specification from <code>base.json</code> (<code>-s</code>) and our configuration file (<code>-c</code>). The <code>-w .</code> flag tells Revizor to save any violations it finds to the current directory.</p>
+<p>As the fuzzer runs, you'll see a continuously updating progress line:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>50    ( 5%)| Stats: Cls:10/10,In:20,R:7,SF:38,OF:6,Fst:6,CN:0,CT:0,P1:0,CS:0,P2:0,V:0
+</code></pre></div>
+<h3 id="view-the-detected-violation">View the detected violation</h3>
+<p>After a minute or so, you should see a violation.
+It will be reported in a format similar to this:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>================================ Violations detected ==========================
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>Violation Details:
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>-----------------------------------------------------------------------------------
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>                             HTrace                              | ID:4   | ID:14 |
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>-----------------------------------------------------------------------------------
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>^......^...^........^.................^...........^............. | 626    | 0     |
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>^......^...^........^........................................... | 1      | 18    |
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>^^.....^...^........^....^...................................... | 0      | 609   |
+</code></pre></div>
+<p>Excellent! We've successfully detected a contract violation. Let's understand what this violation report is telling us.</p>
+<p>The report shows us the violation details in a table format. The header row displays the input IDs that triggered the violation—in this case, inputs 4 and 14:</p>
+<p><code>| ID:4   | ID:14 |</code></p>
+<p>These are two inputs from our test case that the contract predicted would behave identically, but the hardware traces show they behaved differently.</p>
+<p>The three rows below show the different hardware traces that were observed:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>^......^...^........^.................^...........^.............
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>^......^...^........^...........................................
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>^^.....^...^........^....^......................................
+</code></pre></div>
+<p>Each row represents a distinct cache access pattern, visualized as a bitmap where <code>^</code> marks an accessed cache line and <code>.</code> marks an untouched cache line. We're using Prime+Probe cache side channel measurements (default), so each position in the bitmap corresponds to one of the 64 cache sets in the L1D cache. (A cache set is a group of cache lines that compete for the same position in the cache—when the CPU accesses memory at a particular address, the data goes into a specific cache set determined by the address bits.)</p>
+<p>For example, the first trace reads like this:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>Cache Set 0 accessed
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>|          Cache Set 11 accessed
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>|          |                          Cache set 38 accessed
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>|          |                          |
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>^......^...^........^.................^...........^.............
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>       |            |                             |
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>       |            |                             Cache Set 50 accessed
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>       |            Cache Set 20 accessed
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>       Cache Set 7 accessed
+</code></pre></div>
+<p>Finally, the numbers in the columns tell us how often each trace appeared for each input:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>... | 626    | 0     |
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>... | 1      | 18    |
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>... | 0      | 609   |
+</code></pre></div>
+<p>Looking at the first hardware trace we see it appeared 626 times for input 4 but never for input 14. The third trace shows the opposite pattern—0 times for input 4 but 609 times for input 14. This clear separation in the distributions confirms this is a genuine violation, not random noise.</p>
+<p>What we're seeing is a data-dependent cache access pattern. The test case accessed different cache lines depending on the input data, creating an observable side channel. We don't know yet what caused this channel, but we can already tell that it's likely to be caused by speculation; non-speculative cache accesses are permitted by our reference contract, so they wouldn't be reported as violations.</p>
+<p>For more details on interpreting violation reports, see <a href="../../../howto/interpret-results/">How to Interpret Violation Results</a>.</p>
+<h3 id="violation-artifact">Violation Artifact</h3>
+<p>The artifact for this violation is stored in a directory named <code>violation-&lt;timestamp&gt;</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>$<span class="w"> </span>ls<span class="w"> </span>-l<span class="w"> </span>violation-251203-103338
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>input_0000.bin<span class="w">  </span>input_0004.bin<span class="w">  </span>input_0008.bin<span class="w">  </span>input_0012.bin<span class="w">  </span>input_0016.bin<span class="w">  </span>minimize.yaml<span class="w">    </span>reproduce.yaml
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>input_0001.bin<span class="w">  </span>input_0005.bin<span class="w">  </span>input_0009.bin<span class="w">  </span>input_0013.bin<span class="w">  </span>input_0017.bin<span class="w">  </span>org-config.yaml
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>input_0002.bin<span class="w">  </span>input_0006.bin<span class="w">  </span>input_0010.bin<span class="w">  </span>input_0014.bin<span class="w">  </span>input_0018.bin<span class="w">  </span>program.asm
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>input_0003.bin<span class="w">  </span>input_0007.bin<span class="w">  </span>input_0011.bin<span class="w">  </span>input_0015.bin<span class="w">  </span>input_0019.bin<span class="w">  </span>report.txt
+</code></pre></div>
+<p>The <code>program.asm</code> file holds the test case program that triggered the violation. The <code>input_*.bin</code> files contain the input sequence that exposed the leak. The <code>report.txt</code> file provides additional details including hardware and contract traces. The configuration files include <code>org-config.yaml</code> (the original configuration), <code>reproduce.yaml</code> (for reproducing the violation), and <code>minimize.yaml</code> (for test case minimization).</p>
+<h3 id="validate-the-violation">Validate the violation</h3>
+<p>Let's verify this violation is genuine and reproducible. First, we'll move the violation artifacts to a simpler path:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>mv<span class="w"> </span>violation-251203-103338<span class="w"> </span>./violation
+</code></pre></div>
+<p>Now we'll reproduce the violation using the saved artifacts:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>./revizor.py<span class="w"> </span>reproduce<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>./violation/reproduce.yaml<span class="w"> </span>-t<span class="w"> </span>./violation/program.asm<span class="w"> </span>-i<span class="w"> </span>./violation/input*.bin
+</code></pre></div>
+<p>If the violation is genuine, we should see Revizor report it again:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>================================ Violations detected ==========================
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>Violation Details:
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>-----------------------------------------------------------------------------------
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>                             HTrace                              | ID:4   | ID:14 |
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>-----------------------------------------------------------------------------------
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>^......^...^........^.................^...........^............. | 626    | 0     |
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>^......^...^........^........................................... | 1      | 20    |
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>^^.....^...^........^....^...................................... | 0      | 607   |
+</code></pre></div>
+<p>Perfect! The hardware traces are roughly the same as before, confirming this is a stable, reproducible violation.</p>
+<div class="admonition tip">
+<p class="admonition-title">Dealing with False Positives</p>
+<p>In most cases, violations are genuine. However, if you're on a high-noise system, you might occasionally see non-reproducible violations. If this happens, adjust the noise tolerance by increasing <code>analyser_stat_threshold</code> or <code>executor_sample_sizes</code> in your configuration file (see the <a href="../../../ref/config/">Configuration Reference</a> for details), then rerun the fuzzer. Also, consider trying to mitigate the noise, for example by disabling hyperthreading or by turning prefetchers off.</p>
+</div>
+<h3 id="whats-next">What's Next?</h3>
+<p><a href="../part3/">Part 3</a> will walk you through minimizing and root-causing the violation.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
               </article>
             </div>
           
@@ -2900,10 +3036,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "/microsoft/sca-fuzzer/", "features": ["navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.tabs", "toc.integrate", "search.suggest", "search.highlight"], "search": "/microsoft/sca-fuzzer/assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.tabs", "toc.integrate", "search.suggest", "search.highlight"], "search": "../../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="/microsoft/sca-fuzzer/assets/javascripts/bundle.e71a0d61.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.e71a0d61.min.js"></script>
       
     
   </body>

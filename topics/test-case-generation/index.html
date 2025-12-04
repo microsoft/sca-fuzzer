@@ -12,25 +12,31 @@
         <meta name="author" content="Microsoft">
       
       
+        <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/topics/test-case-generation/">
       
+      
+        <link rel="prev" href="../trace-analysis/">
+      
+      
+        <link rel="next" href="../actors/">
       
       
         
       
       
-      <link rel="icon" href="/microsoft/sca-fuzzer/assets/ms_icon.png">
+      <link rel="icon" href="../../assets/ms_icon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
     
     
       
-        <title>Revizor</title>
+        <title>Test Case Generation - Revizor</title>
       
     
     
-      <link rel="stylesheet" href="/microsoft/sca-fuzzer/assets/stylesheets/main.618322db.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.618322db.min.css">
       
         
-        <link rel="stylesheet" href="/microsoft/sca-fuzzer/assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -49,9 +55,9 @@
       
     
     
-      <link rel="stylesheet" href="/microsoft/sca-fuzzer/stylesheets/extra.css">
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
     
-    <script>__md_scope=new URL("/microsoft/sca-fuzzer/",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -75,6 +81,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#test-case-generation" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -85,9 +96,9 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="/microsoft/sca-fuzzer/." title="Revizor" class="md-header__button md-logo" aria-label="Revizor" data-md-component="logo">
+    <a href="../.." title="Revizor" class="md-header__button md-logo" aria-label="Revizor" data-md-component="logo">
       
-  <img src="/microsoft/sca-fuzzer/assets/ms_icon.png" alt="logo">
+  <img src="../../assets/ms_icon.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -104,7 +115,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              
+              Test Case Generation
             
           </span>
         </div>
@@ -217,7 +228,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/microsoft/sca-fuzzer/." class="md-tabs__link">
+      <a href="../.." class="md-tabs__link">
         
   
   
@@ -236,7 +247,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/microsoft/sca-fuzzer/intro/00_start_here/" class="md-tabs__link">
+      <a href="../../intro/00_start_here/" class="md-tabs__link">
         
   
   
@@ -253,11 +264,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="/microsoft/sca-fuzzer/structure/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../structure/" class="md-tabs__link">
           
   
   
@@ -279,7 +292,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="/microsoft/sca-fuzzer/faq/general/" class="md-tabs__link">
+        <a href="../../faq/general/" class="md-tabs__link">
           
   
   
@@ -301,7 +314,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="/microsoft/sca-fuzzer/internals/" class="md-tabs__link">
+        <a href="../../internals/" class="md-tabs__link">
           
   
   
@@ -339,9 +352,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="/microsoft/sca-fuzzer/." title="Revizor" class="md-nav__button md-logo" aria-label="Revizor" data-md-component="logo">
+    <a href="../.." title="Revizor" class="md-nav__button md-logo" aria-label="Revizor" data-md-component="logo">
       
-  <img src="/microsoft/sca-fuzzer/assets/ms_icon.png" alt="logo">
+  <img src="../../assets/ms_icon.png" alt="logo">
 
     </a>
     Revizor
@@ -368,7 +381,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -395,7 +408,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/00_start_here/" class="md-nav__link">
+      <a href="../../intro/00_start_here/" class="md-nav__link">
         
   
   
@@ -419,8 +432,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -440,17 +455,20 @@
     
     
       
+        
+        
+      
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   
@@ -468,7 +486,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -486,7 +504,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/structure/" class="md-nav__link">
+      <a href="../../structure/" class="md-nav__link">
         
   
   
@@ -582,7 +600,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/01_overview/" class="md-nav__link">
+      <a href="../../intro/01_overview/" class="md-nav__link">
         
   
   
@@ -610,7 +628,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/02_install/" class="md-nav__link">
+      <a href="../../intro/02_install/" class="md-nav__link">
         
   
   
@@ -638,7 +656,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/03_primer/" class="md-nav__link">
+      <a href="../../intro/03_primer/" class="md-nav__link">
         
   
   
@@ -666,7 +684,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/04_tutorials_start/" class="md-nav__link">
+      <a href="../../intro/04_tutorials_start/" class="md-nav__link">
         
   
   
@@ -750,7 +768,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial1-first-fuzz/part1/" class="md-nav__link">
+      <a href="../../intro/tutorial1-first-fuzz/part1/" class="md-nav__link">
         
   
   
@@ -778,7 +796,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial1-first-fuzz/part2/" class="md-nav__link">
+      <a href="../../intro/tutorial1-first-fuzz/part2/" class="md-nav__link">
         
   
   
@@ -872,7 +890,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial2-first-vuln/part1/" class="md-nav__link">
+      <a href="../../intro/tutorial2-first-vuln/part1/" class="md-nav__link">
         
   
   
@@ -900,7 +918,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial2-first-vuln/part2/" class="md-nav__link">
+      <a href="../../intro/tutorial2-first-vuln/part2/" class="md-nav__link">
         
   
   
@@ -928,7 +946,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial2-first-vuln/part3/" class="md-nav__link">
+      <a href="../../intro/tutorial2-first-vuln/part3/" class="md-nav__link">
         
   
   
@@ -1022,7 +1040,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial3-faults/part1/" class="md-nav__link">
+      <a href="../../intro/tutorial3-faults/part1/" class="md-nav__link">
         
   
   
@@ -1050,7 +1068,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial3-faults/part2/" class="md-nav__link">
+      <a href="../../intro/tutorial3-faults/part2/" class="md-nav__link">
         
   
   
@@ -1078,7 +1096,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial3-faults/part3/" class="md-nav__link">
+      <a href="../../intro/tutorial3-faults/part3/" class="md-nav__link">
         
   
   
@@ -1114,7 +1132,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tsa-sq/" class="md-nav__link">
+      <a href="../../intro/tsa-sq/" class="md-nav__link">
         
   
   
@@ -1216,7 +1234,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/choose-contract/" class="md-nav__link">
+      <a href="../../howto/choose-contract/" class="md-nav__link">
         
   
   
@@ -1244,7 +1262,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/design-campaign/" class="md-nav__link">
+      <a href="../../howto/design-campaign/" class="md-nav__link">
         
   
   
@@ -1272,7 +1290,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/interpret-results/" class="md-nav__link">
+      <a href="../../howto/interpret-results/" class="md-nav__link">
         
   
   
@@ -1300,7 +1318,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/minimize/" class="md-nav__link">
+      <a href="../../howto/minimize/" class="md-nav__link">
         
   
   
@@ -1328,7 +1346,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/root-cause-a-violation/" class="md-nav__link">
+      <a href="../../howto/root-cause-a-violation/" class="md-nav__link">
         
   
   
@@ -1356,7 +1374,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/use-templates/" class="md-nav__link">
+      <a href="../../howto/use-templates/" class="md-nav__link">
         
   
   
@@ -1384,7 +1402,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/use-macros/" class="md-nav__link">
+      <a href="../../howto/use-macros/" class="md-nav__link">
         
   
   
@@ -1417,8 +1435,10 @@
                 
   
   
+    
   
   
+  
     
     
       
@@ -1439,11 +1459,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4" checked>
         
           
           <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="0">
@@ -1464,7 +1484,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3_4">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1482,7 +1502,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/contracts/" class="md-nav__link">
+      <a href="../contracts/" class="md-nav__link">
         
   
   
@@ -1510,7 +1530,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/models/" class="md-nav__link">
+      <a href="../models/" class="md-nav__link">
         
   
   
@@ -1538,7 +1558,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/trace-analysis/" class="md-nav__link">
+      <a href="../trace-analysis/" class="md-nav__link">
         
   
   
@@ -1563,10 +1583,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/test-case-generation/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Test Case Generation
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1582,6 +1629,103 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#generation-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Generation Modes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#instrumentation-passes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Instrumentation Passes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#test-case-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test Case Structure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#macro-placeholders" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Macro Placeholders
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#template-structure-and-expansion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Template Structure and Expansion
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#generation-performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Generation Performance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#whats-next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What's Next?
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1594,7 +1738,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/actors/" class="md-nav__link">
+      <a href="../actors/" class="md-nav__link">
         
   
   
@@ -1702,7 +1846,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/modes/" class="md-nav__link">
+      <a href="../../ref/modes/" class="md-nav__link">
         
   
   
@@ -1730,7 +1874,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/cli/" class="md-nav__link">
+      <a href="../../ref/cli/" class="md-nav__link">
         
   
   
@@ -1758,7 +1902,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/config/" class="md-nav__link">
+      <a href="../../ref/config/" class="md-nav__link">
         
   
   
@@ -1786,7 +1930,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/runtime-statistic/" class="md-nav__link">
+      <a href="../../ref/runtime-statistic/" class="md-nav__link">
         
   
   
@@ -1814,7 +1958,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/minimization-passes/" class="md-nav__link">
+      <a href="../../ref/minimization-passes/" class="md-nav__link">
         
   
   
@@ -1842,7 +1986,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/macros/" class="md-nav__link">
+      <a href="../../ref/macros/" class="md-nav__link">
         
   
   
@@ -1870,7 +2014,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/artifact-file-formats/" class="md-nav__link">
+      <a href="../../ref/artifact-file-formats/" class="md-nav__link">
         
   
   
@@ -1898,7 +2042,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/binary-formats/" class="md-nav__link">
+      <a href="../../ref/binary-formats/" class="md-nav__link">
         
   
   
@@ -1926,7 +2070,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/registers/" class="md-nav__link">
+      <a href="../../ref/registers/" class="md-nav__link">
         
   
   
@@ -1954,7 +2098,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/sandbox/" class="md-nav__link">
+      <a href="../../ref/sandbox/" class="md-nav__link">
         
   
   
@@ -1990,7 +2134,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/glossary/" class="md-nav__link">
+      <a href="../../glossary/" class="md-nav__link">
         
   
   
@@ -2079,7 +2223,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/faq/general/" class="md-nav__link">
+      <a href="../../faq/general/" class="md-nav__link">
         
   
   
@@ -2143,7 +2287,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="/microsoft/sca-fuzzer/internals/" class="md-nav__link ">
+            <a href="../../internals/" class="md-nav__link ">
               
   
   
@@ -2245,7 +2389,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/contributing/guidelines-general/" class="md-nav__link">
+      <a href="../../internals/contributing/guidelines-general/" class="md-nav__link">
         
   
   
@@ -2273,7 +2417,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/contributing/guidelines-code-style/" class="md-nav__link">
+      <a href="../../internals/contributing/guidelines-code-style/" class="md-nav__link">
         
   
   
@@ -2301,7 +2445,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/contributing/guidelines-git/" class="md-nav__link">
+      <a href="../../internals/contributing/guidelines-git/" class="md-nav__link">
         
   
   
@@ -2337,7 +2481,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/code-structure/" class="md-nav__link">
+      <a href="../../internals/code-structure/" class="md-nav__link">
         
   
   
@@ -2437,7 +2581,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/overview/" class="md-nav__link">
+      <a href="../../internals/architecture/overview/" class="md-nav__link">
         
   
   
@@ -2465,7 +2609,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/fuzz/" class="md-nav__link">
+      <a href="../../internals/architecture/fuzz/" class="md-nav__link">
         
   
   
@@ -2493,7 +2637,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/isa/" class="md-nav__link">
+      <a href="../../internals/architecture/isa/" class="md-nav__link">
         
   
   
@@ -2521,7 +2665,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/code/" class="md-nav__link">
+      <a href="../../internals/architecture/code/" class="md-nav__link">
         
   
   
@@ -2549,7 +2693,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/data/" class="md-nav__link">
+      <a href="../../internals/architecture/data/" class="md-nav__link">
         
   
   
@@ -2577,7 +2721,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/exec/" class="md-nav__link">
+      <a href="../../internals/architecture/exec/" class="md-nav__link">
         
   
   
@@ -2605,7 +2749,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/model/" class="md-nav__link">
+      <a href="../../internals/architecture/model/" class="md-nav__link">
         
   
   
@@ -2633,7 +2777,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/analysis/" class="md-nav__link">
+      <a href="../../internals/architecture/analysis/" class="md-nav__link">
         
   
   
@@ -2661,7 +2805,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/mini/" class="md-nav__link">
+      <a href="../../internals/architecture/mini/" class="md-nav__link">
         
   
   
@@ -2689,7 +2833,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/logging/" class="md-nav__link">
+      <a href="../../internals/architecture/logging/" class="md-nav__link">
         
   
   
@@ -2781,7 +2925,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/model-backends/model-unicorn/" class="md-nav__link">
+      <a href="../../internals/model-backends/model-unicorn/" class="md-nav__link">
         
   
   
@@ -2809,7 +2953,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/model-backends/model-dr/" class="md-nav__link">
+      <a href="../../internals/model-backends/model-dr/" class="md-nav__link">
         
   
   
@@ -2858,8 +3002,144 @@
               
               <article class="md-content__inner md-typeset">
                 
-  <h1>404 - Not found</h1>
+                  
 
+
+  
+  
+
+
+<h1 id="test-case-generation">Test Case Generation</h1>
+<p><a href="../../glossary/#test-case-program">Test case</a> generation is the process of creating executable programs that probe CPU microarchitectural behavior. Revizor generates test cases either randomly or from user-defined templates, then instruments them to prevent unwanted faults, and finally compiles them into binaries suitable for execution. The test cases serve as inputs to both the leakage model and the hardware executor, enabling comparison of expected and observed microarchitectural behavior.</p>
+<p>The generator must balance two competing requirements. First, it needs to produce diverse test cases that explore many different microarchitectural conditions and instruction sequences. This diversity is essential for thorough coverage of the CPU's behavior space. Second, when testing specific scenarios like domain transitions or mitigation effectiveness, it must generate programs with precise structures while still varying the surrounding context. This balance distinguishes Revizor's approach from simple random testing.</p>
+<h2 id="generation-modes">Generation Modes</h2>
+<p>Revizor supports two distinct modes of test case generation, each suited to different testing scenarios.</p>
+<p>Random generation creates test cases from scratch without any predefined structure. The generator builds a program by selecting instructions randomly from a configured pool, creating control flow by inserting conditional and unconditional branches, and allocating memory accesses to random addresses. This mode maximizes exploration of the instruction space and frequently discovers unexpected interactions between instructions. Random generation excels at finding vulnerabilities in single execution domains where no specific instruction sequence is required. However, it struggles with scenarios requiring precise setup, such as triggering specific page faults or transitioning between security domains.</p>
+<p>Template-based generation starts from a user-written assembly file that defines the overall structure of the test case. The template specifies where random code should be inserted, which domain transitions to perform, and how <a href="../../glossary/#actor">actors</a> should interact. The generator parses the template, expands special macros that mark randomization points, fills those points with random instructions, and instruments the result. Templates enable testing of specific scenarios while maintaining randomization where it matters. For example, a template can ensure that a kernel-to-user transition occurs at a specific point while randomizing the instructions executed in each domain.</p>
+<p>The distinction matters because microarchitectural vulnerabilities often depend on precise conditions. Consider testing whether a CPU leaks kernel data to user space. Random generation might occasionally produce programs that transition to user mode, but the probability is low and the surrounding context may not trigger the vulnerability. A <a href="../../glossary/#template">template</a> guarantees the transition occurs and controls the operations performed before and after it, dramatically increasing the likelihood of discovering leakage.</p>
+<h2 id="instrumentation-passes">Instrumentation Passes</h2>
+<p>Generated test cases, whether random or template-based, are not immediately ready for execution. They may contain instruction sequences that trigger unwanted faults, use undefined register values, or violate architectural constraints. Instrumentation passes transform test cases into safe, executable forms while preserving the properties being tested.</p>
+<p>Instrumentation operates on the <a href="#test-case-structure">structured representation of test cases</a>. Each pass implements a specific transformation by walking the instruction hierarchy and modifying it according to its rules. Passes run in sequence, with each pass seeing the output of previous passes. This pipeline architecture allows complex transformations to be built from simple components.</p>
+<p>One critical example of a pass is the sandboxing pass, which instruments memory accesses to ensure they target valid addresses within the test case's allocated memory. Accesses to unmapped addresses cause page faults. While some test cases intentionally trigger faults, most do not, and random generation can easily produce invalid addresses. The pass analyzes memory operands, identifies potentially invalid accesses, and masks the instruction operands to bound them within the sandbox.</p>
+<p>Another example is a pass that prevents division by zero. Divisions by zero and division overflows trigger exceptions on x86-64, which may be undesirable in a fuzzing campaign that does not focus on this specific type of exception. Yet random generator will commonly trigger them, especially the division overflows. This pass mitigates this issue by scanning the instruction stream for division instructions, and it instruments the division operands to ensure they are non-zero and within safe ranges.</p>
+<p>The passes are designed to introduce minimal microarchitectural side effects, to avoid interfering with the properties being tested. For example, the instrumentation code primarily uses arithmetic and logical operations that do not have any known speculative effects, and the instructions operate primarily on registers rather than memory. This careful design ensures that the instrumentation does not inadvertently create or mask vulnerabilities (or at least minimizes the chances of doing so).</p>
+<h2 id="test-case-structure"><a name="test-case-structure"></a> Test Case Structure</h2>
+<p>A test case is represented internally as a hierarchy of nested components. The following diagram illustrates this hierarchical structure:</p>
+<pre class="mermaid"><code>graph TD
+    TC[TestCaseProgram]
+    TC --&gt; CS1[CodeSection: main]
+    TC --&gt; CS2[CodeSection: user]
+
+    CS1 --&gt; F1[Function: .function_0]
+    CS2 --&gt; F2[Function: .function_user_0]
+
+    F1 --&gt; BB1[BasicBlock: entry]
+    F1 --&gt; BB2[BasicBlock: .label_1]
+    F1 --&gt; BB3[BasicBlock: exit]
+
+    BB1 --&gt; I1[Instruction: mov rax, rbx]
+    BB1 --&gt; I2[Instruction: add rax, 1]
+    BB1 --&gt; T1[Terminator: jmp .label_1]
+
+    BB2 --&gt; I3[Instruction: ...]
+    BB2 --&gt; T2[Terminator: ret]
+
+    F2 --&gt; BB4[BasicBlock: entry]
+    BB4 --&gt; I4[Instruction: ...]
+
+    style TC fill:#e1f5ff
+    style CS1 fill:#ffe1e1
+    style CS2 fill:#ffe1e1
+    style F1 fill:#fff4e1
+    style F2 fill:#fff4e1
+    style BB1 fill:#e1ffe1
+    style BB2 fill:#e1ffe1
+    style BB3 fill:#e1ffe1
+    style BB4 fill:#e1ffe1</code></pre>
+<p>At the top level, a TestCaseProgram contains one or more CodeSections. Each CodeSection belongs to a single Actor and holds the code that executes in that actor's context. In single-actor fuzzing, only one section exists. In multi-actor testing, each actor gets its own section with its own code and data.</p>
+<p>Within each CodeSection, code is organized into Functions. A Function consists of multiple BasicBlocks connected by control flow. The first block is the entry point, and execution proceeds through the blocks following branches and jumps. This structure mirrors conventional compiler intermediate representations, making it straightforward to apply standard analysis and transformation techniques.</p>
+<p>Each BasicBlock contains a sequence of Instructions terminated by zero or more control flow instructions. Regular instructions execute sequentially, while terminators (branches, jumps, returns) determine which block executes next. Instructions themselves are high-level representations that capture the operation, operands, and dependencies. They are not raw bytes but structured objects that can be analyzed and modified by instrumentation passes.</p>
+<p>This hierarchical design serves several purposes. It allows instrumentation passes to operate at different levels of granularity, from modifying individual instructions to restructuring entire functions. It makes the structure explicit, eliminating the need to repeatedly parse assembly text. It enables efficient copying and modification when expanding templates. Most importantly, it provides a common representation used throughout the fuzzing pipeline, from generation through model execution to hardware measurement.</p>
+<h2 id="macro-placeholders">Macro Placeholders</h2>
+<p><a href="../../glossary/#macro">Macro placeholders</a> are the key mechanism for combining fixed structure with randomization. They appear in templates as special labels that get expanded during test case generation. A macro looks like an assembly label but carries semantic meaning. For example, <code>.macro.random_instructions.64:</code> tells the generator to insert 64 randomly chosen instructions at that point.</p>
+<pre class="mermaid"><code>graph LR
+    subgraph "Template (Before Expansion)"
+        T1[".section .main&lt;br/&gt;.function_0:"]
+        T2[".macro.random_instructions.3:"]
+        T3["mov rax, [rbx]"]
+    end
+
+    subgraph "Expanded Test Case"
+        E1[".section .main&lt;br/&gt;.function_0:"]
+        E2["add rax, rbx"]
+        E3["mov [rdi], rcx"]
+        E4["cmp rax, 0"]
+        E5["mov rax, [rbx]"]
+    end
+
+    T1 --&gt; E1
+    T2 -.expands to.-&gt; E2
+    T2 -.expands to.-&gt; E3
+    T2 -.expands to.-&gt; E4
+    T3 --&gt; E5
+
+    style T2 fill:#ffe1e1
+    style E2 fill:#e1ffe1
+    style E3 fill:#e1ffe1
+    style E4 fill:#e1ffe1</code></pre>
+<p>The critical insight is that macros defer decisions. A template author specifies where randomization should occur without specifying the exact instructions. This preserves the ability to test many different instruction sequences while maintaining the overall structure.</p>
+<p>Macros also enable progressive refinement of test cases. An initial template might use a single random macro to generate a large instruction sequence. If that discovers a <a href="../../glossary/#violation">violation</a>, the user can refine the template to add more structure around the violation, narrowing the search space. The macro system makes this iteration efficient because templates remain concise and readable.</p>
+<div class="admonition note">
+<p class="admonition-title">Related Documentation</p>
+<p>For a complete list of available macros and their specifications, refer to the <a href="../../ref/macros/">Macro Reference</a>.</p>
+<p>For a how-to guide on using macros, see <a href="../../howto/use-macros/">How-To: Use Macros</a>.</p>
+</div>
+<h2 id="template-structure-and-expansion">Template Structure and Expansion</h2>
+<pre class="mermaid"><code>flowchart LR
+    T[Template File] --&gt; P[Parse Template]
+    C[Config File] --&gt; P
+    P --&gt; R[Fill Random&lt;br/&gt;Instructions]
+    R --&gt; IP[Instrumentation&lt;br/&gt;Passes]
+    IP --&gt; PR[Print to&lt;br/&gt;Assembly]
+    PR --&gt; AS[Assemble]
+    AS --&gt; B[Binary&lt;br/&gt;Test Case]
+
+    style T fill:#e1f5ff
+    style C fill:#e1f5ff
+    style R fill:#ffe1e1
+    style IP fill:#fff4e1
+    style B fill:#e1ffe1</code></pre>
+<p>Templates use standard assembly syntax with macro extensions. This design choice means templates are valid assembly files that can be processed by conventional tools. Comments, labels, directives, and instructions follow normal assembly conventions. Only the macro pseudo-instructions are specific to Revizor.</p>
+<p>Template expansion proceeds in several phases. First, the generator parses the template using a standard assembly parser extended to recognize macros. Parsing produces the hierarchical test case structure described earlier, with macros represented as special instruction types. Next, the generator walks the structure and expands the <code>random_instructions</code> macro placeholders to random instruction sequences. Finally, instrumentation passes run, the test case is printed back to assembly, and the assembler produces an object file.</p>
+<div class="admonition note">
+<p class="admonition-title">Related Documentation</p>
+<p>For detailed instructions on writing and using templates, refer to <a href="../../howto/use-templates/">How-To: Use Templates</a>.</p>
+</div>
+<h2 id="generation-performance">Generation Performance</h2>
+<p>Generation performance affects overall fuzzing throughput, although it usually has a low impact on the overall process compared to the executor and the model. Generation may dominate the execution time only in the rare case where the other components are extremely fast, such as when testing very small test cases with a small (&lt;10) number of inputs.</p>
+<p>Both random and template-based generation modes have similar performance as the template is re-used across all generation requests after the first expansion.</p>
+<h2 id="whats-next">What's Next?</h2>
+<ul>
+<li><a href="../../ref/config/">Configuration Reference</a>: Generator configuration options</li>
+<li><a href="../actors/">Actors</a>: Security domains represented in test cases</li>
+<li><a href="../../ref/binary-formats/">Binary Formats</a>: File formats for test case binaries</li>
+<li><a href="../../howto/use-macros/">How-To: Use Macros</a>: Guide on using macros in templates</li>
+<li><a href="../../howto/use-templates/">How-To: Use Templates</a>: Guide on writing and using templates</li>
+<li><a href="../../internals/architecture/code/">Code Generation</a>: Implementation details of code generation and instrumentation</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
               </article>
             </div>
           
@@ -2900,10 +3180,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "/microsoft/sca-fuzzer/", "features": ["navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.tabs", "toc.integrate", "search.suggest", "search.highlight"], "search": "/microsoft/sca-fuzzer/assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.tabs", "toc.integrate", "search.suggest", "search.highlight"], "search": "../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="/microsoft/sca-fuzzer/assets/javascripts/bundle.e71a0d61.min.js"></script>
+      <script src="../../assets/javascripts/bundle.e71a0d61.min.js"></script>
       
     
   </body>

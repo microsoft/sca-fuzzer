@@ -12,25 +12,27 @@
         <meta name="author" content="Microsoft">
       
       
+        <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/intro/tutorial4-isolation/part1/">
+      
       
       
       
         
       
       
-      <link rel="icon" href="/microsoft/sca-fuzzer/assets/ms_icon.png">
+      <link rel="icon" href="../../../assets/ms_icon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
     
     
       
-        <title>Revizor</title>
+        <title>Tutorial 4: Testing Security Domain Isolation with Revizor - Revizor</title>
       
     
     
-      <link rel="stylesheet" href="/microsoft/sca-fuzzer/assets/stylesheets/main.618322db.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.618322db.min.css">
       
         
-        <link rel="stylesheet" href="/microsoft/sca-fuzzer/assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -49,9 +51,9 @@
       
     
     
-      <link rel="stylesheet" href="/microsoft/sca-fuzzer/stylesheets/extra.css">
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
     
-    <script>__md_scope=new URL("/microsoft/sca-fuzzer/",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -75,6 +77,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#tutorial-4-testing-security-domain-isolation-with-revizor" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -85,9 +92,9 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="/microsoft/sca-fuzzer/." title="Revizor" class="md-header__button md-logo" aria-label="Revizor" data-md-component="logo">
+    <a href="../../.." title="Revizor" class="md-header__button md-logo" aria-label="Revizor" data-md-component="logo">
       
-  <img src="/microsoft/sca-fuzzer/assets/ms_icon.png" alt="logo">
+  <img src="../../../assets/ms_icon.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -104,7 +111,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              
+              Tutorial 4: Testing Security Domain Isolation with Revizor
             
           </span>
         </div>
@@ -217,7 +224,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/microsoft/sca-fuzzer/." class="md-tabs__link">
+      <a href="../../.." class="md-tabs__link">
         
   
   
@@ -236,7 +243,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/microsoft/sca-fuzzer/intro/00_start_here/" class="md-tabs__link">
+      <a href="../../00_start_here/" class="md-tabs__link">
         
   
   
@@ -257,7 +264,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="/microsoft/sca-fuzzer/structure/" class="md-tabs__link">
+        <a href="../../../structure/" class="md-tabs__link">
           
   
   
@@ -279,7 +286,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="/microsoft/sca-fuzzer/faq/general/" class="md-tabs__link">
+        <a href="../../../faq/general/" class="md-tabs__link">
           
   
   
@@ -301,7 +308,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="/microsoft/sca-fuzzer/internals/" class="md-tabs__link">
+        <a href="../../../internals/" class="md-tabs__link">
           
   
   
@@ -339,9 +346,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="/microsoft/sca-fuzzer/." title="Revizor" class="md-nav__button md-logo" aria-label="Revizor" data-md-component="logo">
+    <a href="../../.." title="Revizor" class="md-nav__button md-logo" aria-label="Revizor" data-md-component="logo">
       
-  <img src="/microsoft/sca-fuzzer/assets/ms_icon.png" alt="logo">
+  <img src="../../../assets/ms_icon.png" alt="logo">
 
     </a>
     Revizor
@@ -368,7 +375,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/." class="md-nav__link">
+      <a href="../../.." class="md-nav__link">
         
   
   
@@ -395,7 +402,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/00_start_here/" class="md-nav__link">
+      <a href="../../00_start_here/" class="md-nav__link">
         
   
   
@@ -486,7 +493,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/structure/" class="md-nav__link">
+      <a href="../../../structure/" class="md-nav__link">
         
   
   
@@ -582,7 +589,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/01_overview/" class="md-nav__link">
+      <a href="../../01_overview/" class="md-nav__link">
         
   
   
@@ -610,7 +617,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/02_install/" class="md-nav__link">
+      <a href="../../02_install/" class="md-nav__link">
         
   
   
@@ -638,7 +645,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/03_primer/" class="md-nav__link">
+      <a href="../../03_primer/" class="md-nav__link">
         
   
   
@@ -666,7 +673,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/04_tutorials_start/" class="md-nav__link">
+      <a href="../../04_tutorials_start/" class="md-nav__link">
         
   
   
@@ -750,7 +757,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial1-first-fuzz/part1/" class="md-nav__link">
+      <a href="../../tutorial1-first-fuzz/part1/" class="md-nav__link">
         
   
   
@@ -778,7 +785,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial1-first-fuzz/part2/" class="md-nav__link">
+      <a href="../../tutorial1-first-fuzz/part2/" class="md-nav__link">
         
   
   
@@ -872,7 +879,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial2-first-vuln/part1/" class="md-nav__link">
+      <a href="../../tutorial2-first-vuln/part1/" class="md-nav__link">
         
   
   
@@ -900,7 +907,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial2-first-vuln/part2/" class="md-nav__link">
+      <a href="../../tutorial2-first-vuln/part2/" class="md-nav__link">
         
   
   
@@ -928,7 +935,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial2-first-vuln/part3/" class="md-nav__link">
+      <a href="../../tutorial2-first-vuln/part3/" class="md-nav__link">
         
   
   
@@ -1022,7 +1029,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial3-faults/part1/" class="md-nav__link">
+      <a href="../../tutorial3-faults/part1/" class="md-nav__link">
         
   
   
@@ -1050,7 +1057,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial3-faults/part2/" class="md-nav__link">
+      <a href="../../tutorial3-faults/part2/" class="md-nav__link">
         
   
   
@@ -1078,7 +1085,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial3-faults/part3/" class="md-nav__link">
+      <a href="../../tutorial3-faults/part3/" class="md-nav__link">
         
   
   
@@ -1114,7 +1121,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tsa-sq/" class="md-nav__link">
+      <a href="../../tsa-sq/" class="md-nav__link">
         
   
   
@@ -1216,7 +1223,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/choose-contract/" class="md-nav__link">
+      <a href="../../../howto/choose-contract/" class="md-nav__link">
         
   
   
@@ -1244,7 +1251,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/design-campaign/" class="md-nav__link">
+      <a href="../../../howto/design-campaign/" class="md-nav__link">
         
   
   
@@ -1272,7 +1279,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/interpret-results/" class="md-nav__link">
+      <a href="../../../howto/interpret-results/" class="md-nav__link">
         
   
   
@@ -1300,7 +1307,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/minimize/" class="md-nav__link">
+      <a href="../../../howto/minimize/" class="md-nav__link">
         
   
   
@@ -1328,7 +1335,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/root-cause-a-violation/" class="md-nav__link">
+      <a href="../../../howto/root-cause-a-violation/" class="md-nav__link">
         
   
   
@@ -1356,7 +1363,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/use-templates/" class="md-nav__link">
+      <a href="../../../howto/use-templates/" class="md-nav__link">
         
   
   
@@ -1384,7 +1391,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/use-macros/" class="md-nav__link">
+      <a href="../../../howto/use-macros/" class="md-nav__link">
         
   
   
@@ -1482,7 +1489,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/contracts/" class="md-nav__link">
+      <a href="../../../topics/contracts/" class="md-nav__link">
         
   
   
@@ -1510,7 +1517,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/models/" class="md-nav__link">
+      <a href="../../../topics/models/" class="md-nav__link">
         
   
   
@@ -1538,7 +1545,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/trace-analysis/" class="md-nav__link">
+      <a href="../../../topics/trace-analysis/" class="md-nav__link">
         
   
   
@@ -1566,7 +1573,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/test-case-generation/" class="md-nav__link">
+      <a href="../../../topics/test-case-generation/" class="md-nav__link">
         
   
   
@@ -1594,7 +1601,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/actors/" class="md-nav__link">
+      <a href="../../../topics/actors/" class="md-nav__link">
         
   
   
@@ -1702,7 +1709,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/modes/" class="md-nav__link">
+      <a href="../../../ref/modes/" class="md-nav__link">
         
   
   
@@ -1730,7 +1737,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/cli/" class="md-nav__link">
+      <a href="../../../ref/cli/" class="md-nav__link">
         
   
   
@@ -1758,7 +1765,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/config/" class="md-nav__link">
+      <a href="../../../ref/config/" class="md-nav__link">
         
   
   
@@ -1786,7 +1793,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/runtime-statistic/" class="md-nav__link">
+      <a href="../../../ref/runtime-statistic/" class="md-nav__link">
         
   
   
@@ -1814,7 +1821,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/minimization-passes/" class="md-nav__link">
+      <a href="../../../ref/minimization-passes/" class="md-nav__link">
         
   
   
@@ -1842,7 +1849,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/macros/" class="md-nav__link">
+      <a href="../../../ref/macros/" class="md-nav__link">
         
   
   
@@ -1870,7 +1877,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/artifact-file-formats/" class="md-nav__link">
+      <a href="../../../ref/artifact-file-formats/" class="md-nav__link">
         
   
   
@@ -1898,7 +1905,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/binary-formats/" class="md-nav__link">
+      <a href="../../../ref/binary-formats/" class="md-nav__link">
         
   
   
@@ -1926,7 +1933,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/registers/" class="md-nav__link">
+      <a href="../../../ref/registers/" class="md-nav__link">
         
   
   
@@ -1954,7 +1961,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/sandbox/" class="md-nav__link">
+      <a href="../../../ref/sandbox/" class="md-nav__link">
         
   
   
@@ -1990,7 +1997,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/glossary/" class="md-nav__link">
+      <a href="../../../glossary/" class="md-nav__link">
         
   
   
@@ -2079,7 +2086,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/faq/general/" class="md-nav__link">
+      <a href="../../../faq/general/" class="md-nav__link">
         
   
   
@@ -2143,7 +2150,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="/microsoft/sca-fuzzer/internals/" class="md-nav__link ">
+            <a href="../../../internals/" class="md-nav__link ">
               
   
   
@@ -2245,7 +2252,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/contributing/guidelines-general/" class="md-nav__link">
+      <a href="../../../internals/contributing/guidelines-general/" class="md-nav__link">
         
   
   
@@ -2273,7 +2280,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/contributing/guidelines-code-style/" class="md-nav__link">
+      <a href="../../../internals/contributing/guidelines-code-style/" class="md-nav__link">
         
   
   
@@ -2301,7 +2308,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/contributing/guidelines-git/" class="md-nav__link">
+      <a href="../../../internals/contributing/guidelines-git/" class="md-nav__link">
         
   
   
@@ -2337,7 +2344,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/code-structure/" class="md-nav__link">
+      <a href="../../../internals/code-structure/" class="md-nav__link">
         
   
   
@@ -2437,7 +2444,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/overview/" class="md-nav__link">
+      <a href="../../../internals/architecture/overview/" class="md-nav__link">
         
   
   
@@ -2465,7 +2472,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/fuzz/" class="md-nav__link">
+      <a href="../../../internals/architecture/fuzz/" class="md-nav__link">
         
   
   
@@ -2493,7 +2500,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/isa/" class="md-nav__link">
+      <a href="../../../internals/architecture/isa/" class="md-nav__link">
         
   
   
@@ -2521,7 +2528,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/code/" class="md-nav__link">
+      <a href="../../../internals/architecture/code/" class="md-nav__link">
         
   
   
@@ -2549,7 +2556,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/data/" class="md-nav__link">
+      <a href="../../../internals/architecture/data/" class="md-nav__link">
         
   
   
@@ -2577,7 +2584,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/exec/" class="md-nav__link">
+      <a href="../../../internals/architecture/exec/" class="md-nav__link">
         
   
   
@@ -2605,7 +2612,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/model/" class="md-nav__link">
+      <a href="../../../internals/architecture/model/" class="md-nav__link">
         
   
   
@@ -2633,7 +2640,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/analysis/" class="md-nav__link">
+      <a href="../../../internals/architecture/analysis/" class="md-nav__link">
         
   
   
@@ -2661,7 +2668,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/mini/" class="md-nav__link">
+      <a href="../../../internals/architecture/mini/" class="md-nav__link">
         
   
   
@@ -2689,7 +2696,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/logging/" class="md-nav__link">
+      <a href="../../../internals/architecture/logging/" class="md-nav__link">
         
   
   
@@ -2781,7 +2788,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/model-backends/model-unicorn/" class="md-nav__link">
+      <a href="../../../internals/model-backends/model-unicorn/" class="md-nav__link">
         
   
   
@@ -2809,7 +2816,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/model-backends/model-dr/" class="md-nav__link">
+      <a href="../../../internals/model-backends/model-dr/" class="md-nav__link">
         
   
   
@@ -2858,8 +2865,203 @@
               
               <article class="md-content__inner md-typeset">
                 
-  <h1>404 - Not found</h1>
+                  
 
+
+  
+  
+
+
+<h1 id="tutorial-4-testing-security-domain-isolation-with-revizor">Tutorial 4: Testing Security Domain Isolation with Revizor</h1>
+<p>In the previous tutorials, we used random test generation to find Spectre V1 and LVI-Null. While random fuzzing is powerful for discovering unexpected vulnerabilities, some attack scenarios require more structure. In this tutorial, we'll transition to template-based fuzzing to test isolation between security domains—specifically, whether privileged kernel code can leak information to unprivileged user code through speculation.</p>
+<h3 id="41-understand-the-need-for-templates">4.1. Understand the need for templates</h3>
+<p>So far, Revizor has been generating completely random test cases. This approach works well when we're testing general speculation sources like branch misprediction or page faults. However, some vulnerability classes require specific execution patterns that are unlikely to appear through pure randomness.</p>
+<p>Consider testing privilege-based isolation. We want to detect whether a kernel function can leak secrets to user space through speculative execution. This requires a specific structure: user code calls into the kernel, the kernel performs some operation on secret data, control returns to user space, and user space attempts to observe side effects from the kernel's speculative execution. Generating this pattern randomly would be extremely unlikely.</p>
+<p>Templates solve this problem by letting us specify the high-level structure of test cases while still benefiting from randomization. We define a skeleton that captures the essential attack pattern, then let Revizor fill in the details with random instructions. This combines the best of both worlds: targeted testing for specific scenarios with the coverage benefits of fuzzing.</p>
+<h3 id="42-write-a-simple-template">4.2. Write a simple template</h3>
+<p>Let's start with a basic template to understand the syntax. Create a file named <code>simple-template.asm</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="na">.intel_syntax</span><span class="w"> </span><span class="no">noprefix</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="na">.section</span><span class="w"> </span><span class="no">.data.main</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="nl">.test_case_enter:</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="nl">.macro.start_measurement:</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span><span class="nf">nop</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="nl">.function_main:</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">    </span><span class="nl">.macro.generate_random_code:</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">        </span><span class="nl">instruction_categories:</span><span class="w"> </span><span class="nf">BASE-BINARY</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">        </span><span class="nl">min_instructions:</span><span class="w"> </span><span class="err">5</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">        </span><span class="nl">max_instructions:</span><span class="w"> </span><span class="err">10</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="nl">.macro.end_measurement:</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">    </span><span class="nf">nop</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="nl">.test_case_exit:</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="w">    </span><span class="nf">nop</span>
+</code></pre></div>
+<p>This template introduces several new concepts. The <code>.macro.start_measurement</code> and <code>.macro.end_measurement</code> markers tell Revizor when to begin and end side-channel observation. Only code between these markers contributes to the hardware trace—anything outside is setup or cleanup that we don't want to measure.</p>
+<p>The <code>.macro.generate_random_code</code> directive is where Revizor injects random instructions. The parameters control what gets generated: <code>instruction_categories</code> specifies which instruction types to use, <code>min_instructions</code> and <code>max_instructions</code> set bounds on how many instructions to generate. This gives us controlled randomization—the structure is fixed, but the content varies.</p>
+<p>The <code>.test_case_enter</code> and <code>.test_case_exit</code> labels mark the entry and exit points of the test case. Revizor's executor uses these to know where to start and stop execution.</p>
+<h3 id="43-run-template-based-fuzzing">4.3. Run template-based fuzzing</h3>
+<p>Let's test our template with a simple configuration. Create <code>template-config.yaml</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># contract</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nt">contract_observation_clause</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">loads+stores+pc</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="nt">contract_execution_clause</span><span class="p">:</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">no_speculation</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="c1"># filters</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="nt">enable_speculation_filter</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="nt">enable_observation_filter</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="nt">enable_fast_path_model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</code></pre></div>
+<p>Now run template-based fuzzing:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>rvzr<span class="w"> </span>fuzz<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>template-config.yaml<span class="w"> </span>-t<span class="w"> </span>simple-template.asm<span class="w"> </span>-n<span class="w"> </span><span class="m">100</span><span class="w"> </span>-i<span class="w"> </span><span class="m">50</span><span class="w"> </span>-w<span class="w"> </span>.
+</code></pre></div>
+<p>This command is similar to random fuzzing, but we add the <code>-t</code> flag to specify our template. Revizor will generate 100 test cases, each using the template structure but with different random instructions filled in.</p>
+<p>The campaign should complete with no violations, just like our baseline in Tutorial 1. This makes sense—we're still just testing arithmetic operations without any speculation sources.</p>
+<h3 id="44-configure-multi-actor-testing">4.4. Configure multi-actor testing</h3>
+<p>Now let's move to the real goal: testing isolation between privilege levels. We'll configure a two-actor scenario with a kernel actor and a user actor. Create <code>actors-config.yaml</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># contract for isolation testing</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nt">contract_observation_clause</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ct-noninterference</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="nt">contract_execution_clause</span><span class="p">:</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">delayed-exception-handling</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="c1"># instruction categories</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="nt">instruction_categories</span><span class="p">:</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">BASE-BINARY</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">BASE-COND_BR</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="c1"># actor configuration</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="nt">actors</span><span class="p">:</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">kernel</span><span class="p">:</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="w">      </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kernel</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="w">      </span><span class="nt">data_properties</span><span class="p">:</span>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">present</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="w">      </span><span class="nt">observer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">user</span><span class="p">:</span>
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="w">      </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">user</span>
+<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="w">      </span><span class="nt">data_properties</span><span class="p">:</span>
+<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">present</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="w">      </span><span class="nt">observer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a>
+<a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a><span class="c1"># filters</span>
+<a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a><span class="nt">enable_speculation_filter</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a><span class="nt">enable_observation_filter</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a><span class="nt">enable_fast_path_model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</code></pre></div>
+<p>This configuration introduces several important concepts. The <code>contract_observation_clause</code> is set to <code>ct-noninterference</code>, which is specifically designed for testing isolation between actors. This contract checks whether one actor's execution can influence another actor's observations—exactly what we need for detecting cross-privilege leaks.</p>
+<p>The <code>actors</code> section defines two execution contexts. The <code>kernel</code> actor runs in kernel mode (<code>mode: kernel</code>) and has <code>observer: false</code>, meaning it's the victim whose secrets might leak. The <code>user</code> actor runs in user mode (<code>mode: user</code>) and has <code>observer: true</code>, meaning it's the attacker trying to observe kernel secrets through side channels.</p>
+<p>Each actor gets its own sandbox memory region configured through <code>data_properties</code>. By setting <code>present: true</code> for both actors, we ensure their memory pages are valid and accessible at their respective privilege levels.</p>
+<p>For more details on actor configuration, see <a href="../../../topics/actors/">Topic Guide: Actors</a>.</p>
+<h3 id="45-write-a-privilege-crossing-template">4.5. Write a privilege-crossing template</h3>
+<p>Now we need a template that exercises the kernel-user boundary. Create <code>privilege-template.asm</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="na">.intel_syntax</span><span class="w"> </span><span class="no">noprefix</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="na">.section</span><span class="w"> </span><span class="no">.data.main</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="nl">.test_case_enter:</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="nl">.macro.switch_actor:</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">    </span><span class="nl">target:</span><span class="w"> </span><span class="nf">kernel</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="nl">.function_kernel_victim:</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">    </span><span class="nl">.macro.generate_random_code:</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="w">        </span><span class="nl">instruction_categories:</span><span class="w"> </span><span class="nf">BASE-BINARY</span><span class="p">,</span><span class="w"> </span><span class="no">BASE-COND_BR</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="w">        </span><span class="nl">min_instructions:</span><span class="w"> </span><span class="err">10</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">        </span><span class="nl">max_instructions:</span><span class="w"> </span><span class="err">20</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="nl">.macro.switch_actor:</span>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="w">    </span><span class="nl">target:</span><span class="w"> </span><span class="nf">user</span>
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="nl">.macro.start_measurement:</span>
+<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="w">    </span><span class="nf">nop</span>
+<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>
+<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a><span class="nl">.function_user_observer:</span>
+<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a><span class="w">    </span><span class="nl">.macro.generate_random_code:</span>
+<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="w">        </span><span class="nl">instruction_categories:</span><span class="w"> </span><span class="nf">BASE-BINARY</span>
+<a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="w">        </span><span class="nl">min_instructions:</span><span class="w"> </span><span class="err">5</span>
+<a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="w">        </span><span class="nl">max_instructions:</span><span class="w"> </span><span class="err">10</span>
+<a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a>
+<a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a><span class="nl">.macro.end_measurement:</span>
+<a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a><span class="w">    </span><span class="nf">nop</span>
+<a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a>
+<a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a><span class="nl">.test_case_exit:</span>
+<a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a><span class="w">    </span><span class="nf">nop</span>
+</code></pre></div>
+<p>This template structures the test case to match a typical privilege-crossing attack. The <code>.macro.switch_actor</code> directive tells Revizor to change execution context. We start in kernel mode where we generate random code that might include conditional branches—potential speculation sources. Then we switch to user mode and observe side effects.</p>
+<p>The measurement markers are positioned to capture only the user actor's execution. This is intentional—we're testing whether the kernel's speculative execution leaves observable traces that user code can detect. By measuring only during user execution, we focus on what an unprivileged attacker could actually observe.</p>
+<p>Notice that the kernel function allows both <code>BASE-BINARY</code> and <code>BASE-COND_BR</code> instructions, giving it opportunities for branch misprediction. The user function uses only <code>BASE-BINARY</code>, keeping the observation code simple and deterministic.</p>
+<h3 id="46-run-the-isolation-test">4.6. Run the isolation test</h3>
+<p>Execute the multi-actor fuzzing campaign:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>rvzr<span class="w"> </span>fuzz<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>actors-config.yaml<span class="w"> </span>-t<span class="w"> </span>privilege-template.asm<span class="w"> </span>-n<span class="w"> </span><span class="m">500</span><span class="w"> </span>-i<span class="w"> </span><span class="m">30</span><span class="w"> </span>-w<span class="w"> </span>.
+</code></pre></div>
+<p>We're running 500 test cases with 30 inputs each. Multi-actor testing often requires more iterations to find violations because we're looking for interactions between actors, which adds complexity.</p>
+<p>The fuzzer will run and search for isolation violations. Depending on your hardware and microarchitecture, you may or may not find violations. Modern CPUs with properly implemented speculation barriers typically prevent cross-privilege leaks, but older hardware or specific microarchitectural conditions might reveal violations.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>INFO: [fuzzer] Starting at 16:45:12
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>50    (10%)| Stats: Cls:28/30,In:60,R:15,SF:125,OF:18,Fst:12,CN:0,CT:0,P1:0,CS:0,P2:0,V:0
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>100   (20%)| Stats: Cls:27/30,In:60,R:15,SF:248,OF:35,Fst:24,CN:0,CT:0,P1:0,CS:0,P2:0,V:0
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>150   (30%)| Stats: Cls:29/30,In:60,R:15,SF:372,OF:53,Fst:36,CN:0,CT:0,P1:0,CS:0,P2:0,V:0
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>[...]
+</code></pre></div>
+<p>Notice that the statistics show non-zero values for speculation filter (<code>SF</code>) and observation filter (<code>OF</code>). This is expected—many of the generated test cases don't produce interesting speculation patterns or observable side effects, so they get filtered out early.</p>
+<h3 id="47-interpret-noninterference-violations">4.7. Interpret noninterference violations</h3>
+<p>If a violation is detected, the output format differs from what we saw in previous tutorials:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>================================ Violations detected ==========================
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>Noninterference violation:
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>Actor: kernel (victim)
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>  Input 3: &lt;PLACEHOLDER_VALUE_A&gt;
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>  Input 7: &lt;PLACEHOLDER_VALUE_B&gt;
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>Actor: user (observer)
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>  Observable difference detected between inputs 3 and 7
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>  HTrace for input 3:  ^^.....^....^...........................................
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>  HTrace for input 7:  ^^.........^....^.......................................
+</code></pre></div>
+<p>This violation format reflects the noninterference contract. The report shows that two inputs (3 and 7) differ only in the kernel actor's data, yet the user actor observes different hardware traces. This is a noninterference violation—the kernel's secret data influenced what the user actor could observe, breaking isolation.</p>
+<p>The hardware traces show different cache access patterns for the two inputs. Even though the user code was identical and the user data was identical, the cache side channel leaked information about the kernel's execution with different secret values.</p>
+<div class="admonition tip">
+<p class="admonition-title">Understanding Actor Roles</p>
+<p>The <code>observer</code> flag in the actor configuration is crucial. The observer actor is the attacker—the one whose observations we track. The non-observer actors are victims—they might be processing secrets that should remain isolated. Violations occur when observer traces differ based on victim data.</p>
+</div>
+<h3 id="48-validate-and-minimize-isolation-violations">4.8. Validate and minimize isolation violations</h3>
+<p>If you detect a violation, validate it using the same workflow from previous tutorials:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>mv<span class="w"> </span>violation-&lt;timestamp&gt;<span class="w"> </span>./violation
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>rvzr<span class="w"> </span>reproduce<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>./violation/reproduce.yaml<span class="w"> </span>-t<span class="w"> </span>./violation/program.asm<span class="w"> </span>-i<span class="w"> </span>./violation/input*.bin
+</code></pre></div>
+<p>Then minimize:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>rvzr<span class="w"> </span>minimize<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>./violation/minimize.yaml<span class="w"> </span>-t<span class="w"> </span>./violation/program.asm<span class="w"> </span>-o<span class="w"> </span>./violation/min.asm<span class="w"> </span>-i<span class="w"> </span><span class="m">10</span><span class="w"> </span>--num-attempts<span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">    </span>--enable-instruction-pass<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">    </span>--enable-simplification-pass<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">    </span>--enable-nop-pass<span class="w"> </span><span class="m">1</span>
+</code></pre></div>
+<p>The minimized test case will reveal the specific mechanism through which kernel execution leaked to user observation. This might be a cache-based covert channel through speculative memory access, or timing variations that reveal kernel control flow decisions.</p>
+<div class="admonition success">
+<p class="admonition-title">What We've Learned</p>
+<p>In this tutorial, we've progressed from random fuzzing to structured testing:</p>
+<ul>
+<li><strong>Templates provide structure</strong>: When testing specific attack scenarios, templates let us encode the essential pattern while still benefiting from randomization</li>
+<li><strong>Macros control generation</strong>: The macro system gives fine-grained control over what code gets generated and where</li>
+<li><strong>Multi-actor testing</strong>: Revizor can test isolation between different privilege levels or security domains using the actor system</li>
+<li><strong>Noninterference contract</strong>: This specialized contract detects when one actor's data influences another actor's observations</li>
+<li><strong>Observer vs victim</strong>: The observer flag distinguishes attackers (who perform measurements) from victims (whose secrets might leak)</li>
+</ul>
+<p>Template-based fuzzing is particularly powerful for testing CPU security boundaries: user-kernel isolation, enclave isolation (SGX), hypervisor-guest isolation, and other privilege-based separations.</p>
+</div>
+<hr />
+
+
+
+
+
+
+
+
+
+
+
+
+                
               </article>
             </div>
           
@@ -2900,10 +3102,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "/microsoft/sca-fuzzer/", "features": ["navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.tabs", "toc.integrate", "search.suggest", "search.highlight"], "search": "/microsoft/sca-fuzzer/assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.tabs", "toc.integrate", "search.suggest", "search.highlight"], "search": "../../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="/microsoft/sca-fuzzer/assets/javascripts/bundle.e71a0d61.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.e71a0d61.min.js"></script>
       
     
   </body>

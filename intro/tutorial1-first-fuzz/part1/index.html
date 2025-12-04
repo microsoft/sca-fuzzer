@@ -12,25 +12,31 @@
         <meta name="author" content="Microsoft">
       
       
+        <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/intro/tutorial1-first-fuzz/part1/">
       
+      
+        <link rel="prev" href="../../04_tutorials_start/">
+      
+      
+        <link rel="next" href="../part2/">
       
       
         
       
       
-      <link rel="icon" href="/microsoft/sca-fuzzer/assets/ms_icon.png">
+      <link rel="icon" href="../../../assets/ms_icon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
     
     
       
-        <title>Revizor</title>
+        <title>Part 1 - Revizor</title>
       
     
     
-      <link rel="stylesheet" href="/microsoft/sca-fuzzer/assets/stylesheets/main.618322db.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.618322db.min.css">
       
         
-        <link rel="stylesheet" href="/microsoft/sca-fuzzer/assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -49,9 +55,9 @@
       
     
     
-      <link rel="stylesheet" href="/microsoft/sca-fuzzer/stylesheets/extra.css">
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
     
-    <script>__md_scope=new URL("/microsoft/sca-fuzzer/",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -75,6 +81,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#tutorial-1-your-first-fuzz-part-1" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -85,9 +96,9 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="/microsoft/sca-fuzzer/." title="Revizor" class="md-header__button md-logo" aria-label="Revizor" data-md-component="logo">
+    <a href="../../.." title="Revizor" class="md-header__button md-logo" aria-label="Revizor" data-md-component="logo">
       
-  <img src="/microsoft/sca-fuzzer/assets/ms_icon.png" alt="logo">
+  <img src="../../../assets/ms_icon.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -104,7 +115,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              
+              Part 1
             
           </span>
         </div>
@@ -217,7 +228,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/microsoft/sca-fuzzer/." class="md-tabs__link">
+      <a href="../../.." class="md-tabs__link">
         
   
   
@@ -236,7 +247,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/microsoft/sca-fuzzer/intro/00_start_here/" class="md-tabs__link">
+      <a href="../../00_start_here/" class="md-tabs__link">
         
   
   
@@ -253,11 +264,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="/microsoft/sca-fuzzer/structure/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../../structure/" class="md-tabs__link">
           
   
   
@@ -279,7 +292,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="/microsoft/sca-fuzzer/faq/general/" class="md-tabs__link">
+        <a href="../../../faq/general/" class="md-tabs__link">
           
   
   
@@ -301,7 +314,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="/microsoft/sca-fuzzer/internals/" class="md-tabs__link">
+        <a href="../../../internals/" class="md-tabs__link">
           
   
   
@@ -339,9 +352,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="/microsoft/sca-fuzzer/." title="Revizor" class="md-nav__button md-logo" aria-label="Revizor" data-md-component="logo">
+    <a href="../../.." title="Revizor" class="md-nav__button md-logo" aria-label="Revizor" data-md-component="logo">
       
-  <img src="/microsoft/sca-fuzzer/assets/ms_icon.png" alt="logo">
+  <img src="../../../assets/ms_icon.png" alt="logo">
 
     </a>
     Revizor
@@ -368,7 +381,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/." class="md-nav__link">
+      <a href="../../.." class="md-nav__link">
         
   
   
@@ -395,7 +408,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/00_start_here/" class="md-nav__link">
+      <a href="../../00_start_here/" class="md-nav__link">
         
   
   
@@ -419,8 +432,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -440,17 +455,20 @@
     
     
       
+        
+        
+      
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   
@@ -468,7 +486,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -486,7 +504,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/structure/" class="md-nav__link">
+      <a href="../../../structure/" class="md-nav__link">
         
   
   
@@ -511,8 +529,10 @@
                 
   
   
+    
   
   
+  
     
     
       
@@ -539,11 +559,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" checked>
         
           
           <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
@@ -564,7 +584,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -582,7 +602,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/01_overview/" class="md-nav__link">
+      <a href="../../01_overview/" class="md-nav__link">
         
   
   
@@ -610,7 +630,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/02_install/" class="md-nav__link">
+      <a href="../../02_install/" class="md-nav__link">
         
   
   
@@ -638,7 +658,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/03_primer/" class="md-nav__link">
+      <a href="../../03_primer/" class="md-nav__link">
         
   
   
@@ -666,7 +686,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/04_tutorials_start/" class="md-nav__link">
+      <a href="../../04_tutorials_start/" class="md-nav__link">
         
   
   
@@ -691,8 +711,10 @@
                 
   
   
+    
   
   
+  
     
     
       
@@ -707,11 +729,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2_5" checked>
         
           
           <label class="md-nav__link" for="__nav_3_2_5" id="__nav_3_2_5_label" tabindex="0">
@@ -732,7 +754,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_2_5_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_2_5_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3_2_5">
             <span class="md-nav__icon md-icon"></span>
             
@@ -747,10 +769,19 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial1-first-fuzz/part1/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -766,6 +797,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -778,7 +810,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial1-first-fuzz/part2/" class="md-nav__link">
+      <a href="../part2/" class="md-nav__link">
         
   
   
@@ -872,7 +904,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial2-first-vuln/part1/" class="md-nav__link">
+      <a href="../../tutorial2-first-vuln/part1/" class="md-nav__link">
         
   
   
@@ -900,7 +932,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial2-first-vuln/part2/" class="md-nav__link">
+      <a href="../../tutorial2-first-vuln/part2/" class="md-nav__link">
         
   
   
@@ -928,7 +960,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial2-first-vuln/part3/" class="md-nav__link">
+      <a href="../../tutorial2-first-vuln/part3/" class="md-nav__link">
         
   
   
@@ -1022,7 +1054,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial3-faults/part1/" class="md-nav__link">
+      <a href="../../tutorial3-faults/part1/" class="md-nav__link">
         
   
   
@@ -1050,7 +1082,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial3-faults/part2/" class="md-nav__link">
+      <a href="../../tutorial3-faults/part2/" class="md-nav__link">
         
   
   
@@ -1078,7 +1110,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial3-faults/part3/" class="md-nav__link">
+      <a href="../../tutorial3-faults/part3/" class="md-nav__link">
         
   
   
@@ -1114,7 +1146,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tsa-sq/" class="md-nav__link">
+      <a href="../../tsa-sq/" class="md-nav__link">
         
   
   
@@ -1216,7 +1248,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/choose-contract/" class="md-nav__link">
+      <a href="../../../howto/choose-contract/" class="md-nav__link">
         
   
   
@@ -1244,7 +1276,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/design-campaign/" class="md-nav__link">
+      <a href="../../../howto/design-campaign/" class="md-nav__link">
         
   
   
@@ -1272,7 +1304,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/interpret-results/" class="md-nav__link">
+      <a href="../../../howto/interpret-results/" class="md-nav__link">
         
   
   
@@ -1300,7 +1332,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/minimize/" class="md-nav__link">
+      <a href="../../../howto/minimize/" class="md-nav__link">
         
   
   
@@ -1328,7 +1360,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/root-cause-a-violation/" class="md-nav__link">
+      <a href="../../../howto/root-cause-a-violation/" class="md-nav__link">
         
   
   
@@ -1356,7 +1388,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/use-templates/" class="md-nav__link">
+      <a href="../../../howto/use-templates/" class="md-nav__link">
         
   
   
@@ -1384,7 +1416,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/use-macros/" class="md-nav__link">
+      <a href="../../../howto/use-macros/" class="md-nav__link">
         
   
   
@@ -1482,7 +1514,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/contracts/" class="md-nav__link">
+      <a href="../../../topics/contracts/" class="md-nav__link">
         
   
   
@@ -1510,7 +1542,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/models/" class="md-nav__link">
+      <a href="../../../topics/models/" class="md-nav__link">
         
   
   
@@ -1538,7 +1570,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/trace-analysis/" class="md-nav__link">
+      <a href="../../../topics/trace-analysis/" class="md-nav__link">
         
   
   
@@ -1566,7 +1598,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/test-case-generation/" class="md-nav__link">
+      <a href="../../../topics/test-case-generation/" class="md-nav__link">
         
   
   
@@ -1594,7 +1626,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/actors/" class="md-nav__link">
+      <a href="../../../topics/actors/" class="md-nav__link">
         
   
   
@@ -1702,7 +1734,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/modes/" class="md-nav__link">
+      <a href="../../../ref/modes/" class="md-nav__link">
         
   
   
@@ -1730,7 +1762,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/cli/" class="md-nav__link">
+      <a href="../../../ref/cli/" class="md-nav__link">
         
   
   
@@ -1758,7 +1790,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/config/" class="md-nav__link">
+      <a href="../../../ref/config/" class="md-nav__link">
         
   
   
@@ -1786,7 +1818,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/runtime-statistic/" class="md-nav__link">
+      <a href="../../../ref/runtime-statistic/" class="md-nav__link">
         
   
   
@@ -1814,7 +1846,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/minimization-passes/" class="md-nav__link">
+      <a href="../../../ref/minimization-passes/" class="md-nav__link">
         
   
   
@@ -1842,7 +1874,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/macros/" class="md-nav__link">
+      <a href="../../../ref/macros/" class="md-nav__link">
         
   
   
@@ -1870,7 +1902,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/artifact-file-formats/" class="md-nav__link">
+      <a href="../../../ref/artifact-file-formats/" class="md-nav__link">
         
   
   
@@ -1898,7 +1930,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/binary-formats/" class="md-nav__link">
+      <a href="../../../ref/binary-formats/" class="md-nav__link">
         
   
   
@@ -1926,7 +1958,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/registers/" class="md-nav__link">
+      <a href="../../../ref/registers/" class="md-nav__link">
         
   
   
@@ -1954,7 +1986,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/sandbox/" class="md-nav__link">
+      <a href="../../../ref/sandbox/" class="md-nav__link">
         
   
   
@@ -1990,7 +2022,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/glossary/" class="md-nav__link">
+      <a href="../../../glossary/" class="md-nav__link">
         
   
   
@@ -2079,7 +2111,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/faq/general/" class="md-nav__link">
+      <a href="../../../faq/general/" class="md-nav__link">
         
   
   
@@ -2143,7 +2175,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="/microsoft/sca-fuzzer/internals/" class="md-nav__link ">
+            <a href="../../../internals/" class="md-nav__link ">
               
   
   
@@ -2245,7 +2277,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/contributing/guidelines-general/" class="md-nav__link">
+      <a href="../../../internals/contributing/guidelines-general/" class="md-nav__link">
         
   
   
@@ -2273,7 +2305,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/contributing/guidelines-code-style/" class="md-nav__link">
+      <a href="../../../internals/contributing/guidelines-code-style/" class="md-nav__link">
         
   
   
@@ -2301,7 +2333,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/contributing/guidelines-git/" class="md-nav__link">
+      <a href="../../../internals/contributing/guidelines-git/" class="md-nav__link">
         
   
   
@@ -2337,7 +2369,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/code-structure/" class="md-nav__link">
+      <a href="../../../internals/code-structure/" class="md-nav__link">
         
   
   
@@ -2437,7 +2469,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/overview/" class="md-nav__link">
+      <a href="../../../internals/architecture/overview/" class="md-nav__link">
         
   
   
@@ -2465,7 +2497,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/fuzz/" class="md-nav__link">
+      <a href="../../../internals/architecture/fuzz/" class="md-nav__link">
         
   
   
@@ -2493,7 +2525,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/isa/" class="md-nav__link">
+      <a href="../../../internals/architecture/isa/" class="md-nav__link">
         
   
   
@@ -2521,7 +2553,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/code/" class="md-nav__link">
+      <a href="../../../internals/architecture/code/" class="md-nav__link">
         
   
   
@@ -2549,7 +2581,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/data/" class="md-nav__link">
+      <a href="../../../internals/architecture/data/" class="md-nav__link">
         
   
   
@@ -2577,7 +2609,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/exec/" class="md-nav__link">
+      <a href="../../../internals/architecture/exec/" class="md-nav__link">
         
   
   
@@ -2605,7 +2637,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/model/" class="md-nav__link">
+      <a href="../../../internals/architecture/model/" class="md-nav__link">
         
   
   
@@ -2633,7 +2665,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/analysis/" class="md-nav__link">
+      <a href="../../../internals/architecture/analysis/" class="md-nav__link">
         
   
   
@@ -2661,7 +2693,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/mini/" class="md-nav__link">
+      <a href="../../../internals/architecture/mini/" class="md-nav__link">
         
   
   
@@ -2689,7 +2721,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/logging/" class="md-nav__link">
+      <a href="../../../internals/architecture/logging/" class="md-nav__link">
         
   
   
@@ -2781,7 +2813,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/model-backends/model-unicorn/" class="md-nav__link">
+      <a href="../../../internals/model-backends/model-unicorn/" class="md-nav__link">
         
   
   
@@ -2809,7 +2841,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/model-backends/model-dr/" class="md-nav__link">
+      <a href="../../../internals/model-backends/model-dr/" class="md-nav__link">
         
   
   
@@ -2858,8 +2890,53 @@
               
               <article class="md-content__inner md-typeset">
                 
-  <h1>404 - Not found</h1>
+                  
 
+
+  
+  
+
+
+<h1 id="tutorial-1-your-first-fuzz-part-1">Tutorial 1: Your First Fuzz (Part 1)</h1>
+<p>This is the first part of the tutorial on the basic usage of Revizor.</p>
+<h3 id="overview">Overview</h3>
+<p>In this first tutorial, we'll start with a baseline experiment to verify your Revizor installation and familiarize yourself with the basic workflow. This tutorial walks you through a simple fuzzing campaign that should find no violations.</p>
+<p>The goal of this first campaign is verification, not vulnerability detection. We'll deliberately choose an instruction set that should not trigger speculation on Intel or AMD CPUs—specifically, simple arithmetic operations without any branches or memory speculation sources. Since there are no conditional branches to mispredict and no page faults to speculate around, we expect the CPU to execute sequentially without any speculative side effects.</p>
+<p>This baseline is useful for two reasons. First, it confirms your installation is working correctly. If the fuzzer crashes or behaves unexpectedly, you'll know there's a setup issue rather than discovering problems later during more complex campaigns. Second, it establishes what "no violations" looks like, so you can recognize the difference when you do find a vulnerability in the next tutorial.</p>
+<h3 id="create-your-first-configuration-file">Create your first configuration file</h3>
+<p>Revizor's behavior is controlled by a YAML configuration file that specifies which instructions to test and what contract to check against. Create a file named <code>config.yaml</code> with the following content:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># tested instructions</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nt">instruction_categories</span><span class="p">:</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">BASE-BINARY</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="c1"># prevent branch generation</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="nt">max_bb_per_function</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="nt">min_bb_per_function</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="c1"># contract</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="nt">contract_observation_clause</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">loads+stores+pc</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="nt">contract_execution_clause</span><span class="p">:</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">no_speculation</span>
+</code></pre></div>
+<p>Let's understand each section. The <code>instruction_categories</code> field tells Revizor which instructions to include in generated test cases. We're using <code>BASE-BINARY</code>, which includes only arithmetic and logical operations like <code>add</code>, <code>sub</code>, <code>and</code>, <code>xor</code>, and <code>mov</code>. These operations are data-processing instructions that don't involve control flow or special memory access patterns.</p>
+<p>The <code>max_bb_per_function</code> and <code>min_bb_per_function</code> settings both set to 1 ensure that Revizor generates programs with exactly one basic block—meaning no branches at all. This simplifies our test cases to pure arithmetic sequences, eliminating any possibility of branch misprediction.</p>
+<p>The contract configuration section is set to use the simplest contract, CT-SEQ. This contract assumes nothing about the target CPU except the presence of CPU caches, making it a zero-knowledge baseline for detecting unknown vulnerabilities. With CT-SEQ, Revizor reports any information leaks beyond the most trivial non-speculative cache accesses.</p>
+<p>For a complete reference of all configuration options, see the <a href="../../../ref/config/">Configuration Reference</a>.</p>
+<h3 id="whats-next">What's Next</h3>
+<p>In <a href="../part2/">Part 2</a>, we'll use this configuration to run your first fuzzing campaign.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
               </article>
             </div>
           
@@ -2900,10 +2977,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "/microsoft/sca-fuzzer/", "features": ["navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.tabs", "toc.integrate", "search.suggest", "search.highlight"], "search": "/microsoft/sca-fuzzer/assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.tabs", "toc.integrate", "search.suggest", "search.highlight"], "search": "../../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="/microsoft/sca-fuzzer/assets/javascripts/bundle.e71a0d61.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.e71a0d61.min.js"></script>
       
     
   </body>

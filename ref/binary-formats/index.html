@@ -12,25 +12,31 @@
         <meta name="author" content="Microsoft">
       
       
+        <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/ref/binary-formats/">
       
+      
+        <link rel="prev" href="../artifact-file-formats/">
+      
+      
+        <link rel="next" href="../registers/">
       
       
         
       
       
-      <link rel="icon" href="/microsoft/sca-fuzzer/assets/ms_icon.png">
+      <link rel="icon" href="../../assets/ms_icon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
     
     
       
-        <title>Revizor</title>
+        <title>Internal Binary Formats - Revizor</title>
       
     
     
-      <link rel="stylesheet" href="/microsoft/sca-fuzzer/assets/stylesheets/main.618322db.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.618322db.min.css">
       
         
-        <link rel="stylesheet" href="/microsoft/sca-fuzzer/assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -49,9 +55,9 @@
       
     
     
-      <link rel="stylesheet" href="/microsoft/sca-fuzzer/stylesheets/extra.css">
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
     
-    <script>__md_scope=new URL("/microsoft/sca-fuzzer/",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -75,6 +81,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#binary-formats-in-revizor" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -85,9 +96,9 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="/microsoft/sca-fuzzer/." title="Revizor" class="md-header__button md-logo" aria-label="Revizor" data-md-component="logo">
+    <a href="../.." title="Revizor" class="md-header__button md-logo" aria-label="Revizor" data-md-component="logo">
       
-  <img src="/microsoft/sca-fuzzer/assets/ms_icon.png" alt="logo">
+  <img src="../../assets/ms_icon.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -104,7 +115,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              
+              Internal Binary Formats
             
           </span>
         </div>
@@ -217,7 +228,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/microsoft/sca-fuzzer/." class="md-tabs__link">
+      <a href="../.." class="md-tabs__link">
         
   
   
@@ -236,7 +247,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/microsoft/sca-fuzzer/intro/00_start_here/" class="md-tabs__link">
+      <a href="../../intro/00_start_here/" class="md-tabs__link">
         
   
   
@@ -253,11 +264,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="/microsoft/sca-fuzzer/structure/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../structure/" class="md-tabs__link">
           
   
   
@@ -279,7 +292,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="/microsoft/sca-fuzzer/faq/general/" class="md-tabs__link">
+        <a href="../../faq/general/" class="md-tabs__link">
           
   
   
@@ -301,7 +314,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="/microsoft/sca-fuzzer/internals/" class="md-tabs__link">
+        <a href="../../internals/" class="md-tabs__link">
           
   
   
@@ -339,9 +352,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="/microsoft/sca-fuzzer/." title="Revizor" class="md-nav__button md-logo" aria-label="Revizor" data-md-component="logo">
+    <a href="../.." title="Revizor" class="md-nav__button md-logo" aria-label="Revizor" data-md-component="logo">
       
-  <img src="/microsoft/sca-fuzzer/assets/ms_icon.png" alt="logo">
+  <img src="../../assets/ms_icon.png" alt="logo">
 
     </a>
     Revizor
@@ -368,7 +381,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -395,7 +408,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/00_start_here/" class="md-nav__link">
+      <a href="../../intro/00_start_here/" class="md-nav__link">
         
   
   
@@ -419,8 +432,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -440,17 +455,20 @@
     
     
       
+        
+        
+      
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   
@@ -468,7 +486,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -486,7 +504,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/structure/" class="md-nav__link">
+      <a href="../../structure/" class="md-nav__link">
         
   
   
@@ -582,7 +600,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/01_overview/" class="md-nav__link">
+      <a href="../../intro/01_overview/" class="md-nav__link">
         
   
   
@@ -610,7 +628,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/02_install/" class="md-nav__link">
+      <a href="../../intro/02_install/" class="md-nav__link">
         
   
   
@@ -638,7 +656,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/03_primer/" class="md-nav__link">
+      <a href="../../intro/03_primer/" class="md-nav__link">
         
   
   
@@ -666,7 +684,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/04_tutorials_start/" class="md-nav__link">
+      <a href="../../intro/04_tutorials_start/" class="md-nav__link">
         
   
   
@@ -750,7 +768,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial1-first-fuzz/part1/" class="md-nav__link">
+      <a href="../../intro/tutorial1-first-fuzz/part1/" class="md-nav__link">
         
   
   
@@ -778,7 +796,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial1-first-fuzz/part2/" class="md-nav__link">
+      <a href="../../intro/tutorial1-first-fuzz/part2/" class="md-nav__link">
         
   
   
@@ -872,7 +890,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial2-first-vuln/part1/" class="md-nav__link">
+      <a href="../../intro/tutorial2-first-vuln/part1/" class="md-nav__link">
         
   
   
@@ -900,7 +918,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial2-first-vuln/part2/" class="md-nav__link">
+      <a href="../../intro/tutorial2-first-vuln/part2/" class="md-nav__link">
         
   
   
@@ -928,7 +946,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial2-first-vuln/part3/" class="md-nav__link">
+      <a href="../../intro/tutorial2-first-vuln/part3/" class="md-nav__link">
         
   
   
@@ -1022,7 +1040,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial3-faults/part1/" class="md-nav__link">
+      <a href="../../intro/tutorial3-faults/part1/" class="md-nav__link">
         
   
   
@@ -1050,7 +1068,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial3-faults/part2/" class="md-nav__link">
+      <a href="../../intro/tutorial3-faults/part2/" class="md-nav__link">
         
   
   
@@ -1078,7 +1096,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial3-faults/part3/" class="md-nav__link">
+      <a href="../../intro/tutorial3-faults/part3/" class="md-nav__link">
         
   
   
@@ -1114,7 +1132,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tsa-sq/" class="md-nav__link">
+      <a href="../../intro/tsa-sq/" class="md-nav__link">
         
   
   
@@ -1216,7 +1234,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/choose-contract/" class="md-nav__link">
+      <a href="../../howto/choose-contract/" class="md-nav__link">
         
   
   
@@ -1244,7 +1262,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/design-campaign/" class="md-nav__link">
+      <a href="../../howto/design-campaign/" class="md-nav__link">
         
   
   
@@ -1272,7 +1290,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/interpret-results/" class="md-nav__link">
+      <a href="../../howto/interpret-results/" class="md-nav__link">
         
   
   
@@ -1300,7 +1318,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/minimize/" class="md-nav__link">
+      <a href="../../howto/minimize/" class="md-nav__link">
         
   
   
@@ -1328,7 +1346,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/root-cause-a-violation/" class="md-nav__link">
+      <a href="../../howto/root-cause-a-violation/" class="md-nav__link">
         
   
   
@@ -1356,7 +1374,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/use-templates/" class="md-nav__link">
+      <a href="../../howto/use-templates/" class="md-nav__link">
         
   
   
@@ -1384,7 +1402,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/use-macros/" class="md-nav__link">
+      <a href="../../howto/use-macros/" class="md-nav__link">
         
   
   
@@ -1482,7 +1500,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/contracts/" class="md-nav__link">
+      <a href="../../topics/contracts/" class="md-nav__link">
         
   
   
@@ -1510,7 +1528,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/models/" class="md-nav__link">
+      <a href="../../topics/models/" class="md-nav__link">
         
   
   
@@ -1538,7 +1556,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/trace-analysis/" class="md-nav__link">
+      <a href="../../topics/trace-analysis/" class="md-nav__link">
         
   
   
@@ -1566,7 +1584,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/test-case-generation/" class="md-nav__link">
+      <a href="../../topics/test-case-generation/" class="md-nav__link">
         
   
   
@@ -1594,7 +1612,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/actors/" class="md-nav__link">
+      <a href="../../topics/actors/" class="md-nav__link">
         
   
   
@@ -1627,8 +1645,10 @@
                 
   
   
+    
   
   
+  
     
     
       
@@ -1659,11 +1679,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_5" checked>
         
           
           <label class="md-nav__link" for="__nav_3_5" id="__nav_3_5_label" tabindex="0">
@@ -1684,7 +1704,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3_5">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1702,7 +1722,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/modes/" class="md-nav__link">
+      <a href="../modes/" class="md-nav__link">
         
   
   
@@ -1730,7 +1750,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/cli/" class="md-nav__link">
+      <a href="../cli/" class="md-nav__link">
         
   
   
@@ -1758,7 +1778,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/config/" class="md-nav__link">
+      <a href="../config/" class="md-nav__link">
         
   
   
@@ -1786,7 +1806,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/runtime-statistic/" class="md-nav__link">
+      <a href="../runtime-statistic/" class="md-nav__link">
         
   
   
@@ -1814,7 +1834,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/minimization-passes/" class="md-nav__link">
+      <a href="../minimization-passes/" class="md-nav__link">
         
   
   
@@ -1842,7 +1862,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/macros/" class="md-nav__link">
+      <a href="../macros/" class="md-nav__link">
         
   
   
@@ -1870,7 +1890,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/artifact-file-formats/" class="md-nav__link">
+      <a href="../artifact-file-formats/" class="md-nav__link">
         
   
   
@@ -1895,10 +1915,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/binary-formats/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Internal Binary Formats
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1914,6 +1961,48 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#revizor-code-binary-format-rcbf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Revizor Code Binary Format (RCBF)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#revizor-data-binary-format-rdbf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Revizor Data Binary Format (RDBF)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1926,7 +2015,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/registers/" class="md-nav__link">
+      <a href="../registers/" class="md-nav__link">
         
   
   
@@ -1954,7 +2043,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/sandbox/" class="md-nav__link">
+      <a href="../sandbox/" class="md-nav__link">
         
   
   
@@ -1990,7 +2079,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/glossary/" class="md-nav__link">
+      <a href="../../glossary/" class="md-nav__link">
         
   
   
@@ -2079,7 +2168,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/faq/general/" class="md-nav__link">
+      <a href="../../faq/general/" class="md-nav__link">
         
   
   
@@ -2143,7 +2232,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="/microsoft/sca-fuzzer/internals/" class="md-nav__link ">
+            <a href="../../internals/" class="md-nav__link ">
               
   
   
@@ -2245,7 +2334,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/contributing/guidelines-general/" class="md-nav__link">
+      <a href="../../internals/contributing/guidelines-general/" class="md-nav__link">
         
   
   
@@ -2273,7 +2362,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/contributing/guidelines-code-style/" class="md-nav__link">
+      <a href="../../internals/contributing/guidelines-code-style/" class="md-nav__link">
         
   
   
@@ -2301,7 +2390,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/contributing/guidelines-git/" class="md-nav__link">
+      <a href="../../internals/contributing/guidelines-git/" class="md-nav__link">
         
   
   
@@ -2337,7 +2426,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/code-structure/" class="md-nav__link">
+      <a href="../../internals/code-structure/" class="md-nav__link">
         
   
   
@@ -2437,7 +2526,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/overview/" class="md-nav__link">
+      <a href="../../internals/architecture/overview/" class="md-nav__link">
         
   
   
@@ -2465,7 +2554,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/fuzz/" class="md-nav__link">
+      <a href="../../internals/architecture/fuzz/" class="md-nav__link">
         
   
   
@@ -2493,7 +2582,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/isa/" class="md-nav__link">
+      <a href="../../internals/architecture/isa/" class="md-nav__link">
         
   
   
@@ -2521,7 +2610,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/code/" class="md-nav__link">
+      <a href="../../internals/architecture/code/" class="md-nav__link">
         
   
   
@@ -2549,7 +2638,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/data/" class="md-nav__link">
+      <a href="../../internals/architecture/data/" class="md-nav__link">
         
   
   
@@ -2577,7 +2666,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/exec/" class="md-nav__link">
+      <a href="../../internals/architecture/exec/" class="md-nav__link">
         
   
   
@@ -2605,7 +2694,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/model/" class="md-nav__link">
+      <a href="../../internals/architecture/model/" class="md-nav__link">
         
   
   
@@ -2633,7 +2722,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/analysis/" class="md-nav__link">
+      <a href="../../internals/architecture/analysis/" class="md-nav__link">
         
   
   
@@ -2661,7 +2750,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/mini/" class="md-nav__link">
+      <a href="../../internals/architecture/mini/" class="md-nav__link">
         
   
   
@@ -2689,7 +2778,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/logging/" class="md-nav__link">
+      <a href="../../internals/architecture/logging/" class="md-nav__link">
         
   
   
@@ -2781,7 +2870,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/model-backends/model-unicorn/" class="md-nav__link">
+      <a href="../../internals/model-backends/model-unicorn/" class="md-nav__link">
         
   
   
@@ -2809,7 +2898,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/model-backends/model-dr/" class="md-nav__link">
+      <a href="../../internals/model-backends/model-dr/" class="md-nav__link">
         
   
   
@@ -2858,8 +2947,142 @@
               
               <article class="md-content__inner md-typeset">
                 
-  <h1>404 - Not found</h1>
+                  
 
+
+  
+  
+
+
+<h1 id="binary-formats-in-revizor">Binary Formats in Revizor</h1>
+<div class="admonition info">
+<p class="admonition-title">Advanced Topic</p>
+<p>This is an advanced topic describing internal implementation details of Revizor. You are unlikely to need this information unless you are extending or modifying Revizor's core components.</p>
+</div>
+<p>This document describes the structure of the custom binary formats used by Revizor to transfer test cases and their data between different components, specifically for transferring generated test cases and their inputs to the executor kernel module and to the DynamoRIO-based model backend.</p>
+<p>Such custom formats are necessary because the components are implemented in different programming languages and different technologies, so passing objects directly is not possible. Using one of the standard formats (e.g., ELF) is also not an option because test cases in Revizor have special structure (e.g., multiple actors in different execution modes, some instructions are macros, etc.) and this structure is not supported by the standard formats.</p>
+<p>The formats are designed to as simple as possible to minimize the overhead of serialization and deserialization.</p>
+<h2 id="revizor-code-binary-format-rcbf">Revizor Code Binary Format (RCBF)</h2>
+<p>RCBF is a structured representation of the complete test case binary, together with its metadata.
+The structure is as follows:</p>
+<div class="highlight"><table class="highlighttable"><tr><th colspan="2" class="filename"><span class="filename">RCBF Structure</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-0-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-0-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-0-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-0-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-0-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-0-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-0-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-0-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-0-10">10</a></span>
+<span class="normal"><a href="#__codelineno-0-11">11</a></span>
+<span class="normal"><a href="#__codelineno-0-12">12</a></span>
+<span class="normal"><a href="#__codelineno-0-13">13</a></span>
+<span class="normal"><a href="#__codelineno-0-14">14</a></span>
+<span class="normal"><a href="#__codelineno-0-15">15</a></span>
+<span class="normal"><a href="#__codelineno-0-16">16</a></span>
+<span class="normal"><a href="#__codelineno-0-17">17</a></span>
+<span class="normal"><a href="#__codelineno-0-18">18</a></span>
+<span class="normal"><a href="#__codelineno-0-19">19</a></span>
+<span class="normal"><a href="#__codelineno-0-20">20</a></span>
+<span class="normal"><a href="#__codelineno-0-21">21</a></span>
+<span class="normal"><a href="#__codelineno-0-22">22</a></span>
+<span class="normal"><a href="#__codelineno-0-23">23</a></span>
+<span class="normal"><a href="#__codelineno-0-24">24</a></span>
+<span class="normal"><a href="#__codelineno-0-25">25</a></span>
+<span class="normal"><a href="#__codelineno-0-26">26</a></span>
+<span class="normal"><a href="#__codelineno-0-27">27</a></span>
+<span class="normal"><a href="#__codelineno-0-28">28</a></span>
+<span class="normal"><a href="#__codelineno-0-29">29</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1"></a><span class="l l-Scalar l-Scalar-Plain">HEADER (16 bytes total)</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2"></a><span class="w">  </span><span class="l l-Scalar l-Scalar-Plain">n_actors</span><span class="p p-Indicator">:</span><span class="w">                </span><span class="l l-Scalar l-Scalar-Plain">8 bytes</span><span class="w">  </span><span class="c1"># Number of Actors in the test case (also equals the number of code sections)</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3"></a><span class="w">  </span><span class="nt">n_symbols</span><span class="p">:</span><span class="w">               </span><span class="l l-Scalar l-Scalar-Plain">8 bytes</span><span class="w">  </span><span class="c1"># Number of symbols in the test case</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4"></a>
+<a id="__codelineno-0-5" name="__codelineno-0-5"></a><span class="l l-Scalar l-Scalar-Plain">ACTOR TABLE (48 x n_actors bytes)</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6"></a><span class="w">  </span><span class="l l-Scalar l-Scalar-Plain">actor_entry</span><span class="p p-Indicator">:</span><span class="w">             </span><span class="c1"># (repeated n_actors times)</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7"></a><span class="w">    </span><span class="nt">id</span><span class="p">:</span><span class="w">                    </span><span class="l l-Scalar l-Scalar-Plain">8 bytes</span><span class="w">  </span><span class="c1"># Unique identifier for the actor</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8"></a><span class="w">    </span><span class="nt">mode</span><span class="p">:</span><span class="w">                  </span><span class="l l-Scalar l-Scalar-Plain">8 bytes</span><span class="w">  </span><span class="c1"># Execution mode of the actor</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9"></a><span class="w">    </span><span class="nt">pl</span><span class="p">:</span><span class="w">                    </span><span class="l l-Scalar l-Scalar-Plain">8 bytes</span><span class="w">  </span><span class="c1"># Protection level</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10"></a><span class="w">    </span><span class="nt">data_permissions</span><span class="p">:</span><span class="w">      </span><span class="l l-Scalar l-Scalar-Plain">8 bytes</span><span class="w">  </span><span class="c1"># Data access permissions</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11"></a><span class="w">    </span><span class="nt">data_ept_permissions</span><span class="p">:</span><span class="w">  </span><span class="l l-Scalar l-Scalar-Plain">8 bytes</span><span class="w">  </span><span class="c1"># EPT (Extended Page Table) data permissions</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12"></a><span class="w">    </span><span class="nt">code_permissions</span><span class="p">:</span><span class="w">      </span><span class="l l-Scalar l-Scalar-Plain">8 bytes</span><span class="w">  </span><span class="c1"># Code execution permissions</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13"></a>
+<a id="__codelineno-0-14" name="__codelineno-0-14"></a><span class="l l-Scalar l-Scalar-Plain">SYMBOL TABLE (32 x n_symbols bytes)</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15"></a><span class="w">  </span><span class="l l-Scalar l-Scalar-Plain">symbol_entry</span><span class="p p-Indicator">:</span><span class="w">            </span><span class="c1"># (repeated n_symbols times)</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16"></a><span class="w">    </span><span class="nt">owner</span><span class="p">:</span><span class="w">                 </span><span class="l l-Scalar l-Scalar-Plain">8 bytes</span><span class="w">  </span><span class="c1"># ID of the actor that owns this symbol</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17"></a><span class="w">    </span><span class="nt">offset</span><span class="p">:</span><span class="w">                </span><span class="l l-Scalar l-Scalar-Plain">8 bytes</span><span class="w">  </span><span class="c1"># (Offset of the symbol within its section</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18"></a><span class="w">    </span><span class="nt">id</span><span class="p">:</span><span class="w">                    </span><span class="l l-Scalar l-Scalar-Plain">8 bytes</span><span class="w">  </span><span class="c1"># (Symbol&#39;s unique identifier</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19"></a><span class="w">    </span><span class="nt">args</span><span class="p">:</span><span class="w">                  </span><span class="l l-Scalar l-Scalar-Plain">8 bytes</span><span class="w">  </span><span class="c1"># (Number of arguments the symbol takes (relevant for macros)</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20"></a>
+<a id="__codelineno-0-21" name="__codelineno-0-21"></a><span class="l l-Scalar l-Scalar-Plain">METADATA (24 x n_actors bytes)</span>
+<a id="__codelineno-0-22" name="__codelineno-0-22"></a><span class="w">  </span><span class="l l-Scalar l-Scalar-Plain">metadata_entry</span><span class="p p-Indicator">:</span>
+<a id="__codelineno-0-23" name="__codelineno-0-23"></a><span class="w">    </span><span class="nt">owner</span><span class="p">:</span><span class="w">                 </span><span class="l l-Scalar l-Scalar-Plain">8 bytes</span><span class="w">  </span><span class="c1"># (ID of the actor that owns this section</span>
+<a id="__codelineno-0-24" name="__codelineno-0-24"></a><span class="w">    </span><span class="nt">size</span><span class="p">:</span><span class="w">                  </span><span class="l l-Scalar l-Scalar-Plain">8 bytes</span><span class="w">  </span><span class="c1"># (Size of the code section in bytes</span>
+<a id="__codelineno-0-25" name="__codelineno-0-25"></a><span class="w">    </span><span class="nt">reserved</span><span class="p">:</span><span class="w">              </span><span class="l l-Scalar l-Scalar-Plain">8 bytes</span><span class="w">  </span><span class="c1"># (Reserved for future use</span>
+<a id="__codelineno-0-26" name="__codelineno-0-26"></a>
+<a id="__codelineno-0-27" name="__codelineno-0-27"></a><span class="l l-Scalar l-Scalar-Plain">DATA (8 kB x n_actors bytes)</span>
+<a id="__codelineno-0-28" name="__codelineno-0-28"></a><span class="w">  </span><span class="l l-Scalar l-Scalar-Plain">code_section</span><span class="p p-Indicator">:</span><span class="w">            </span><span class="c1"># (repeated n_actors times)</span>
+<a id="__codelineno-0-29" name="__codelineno-0-29"></a><span class="w">    </span><span class="nt">code</span><span class="p">:</span><span class="w">                  </span><span class="l l-Scalar l-Scalar-Plain">8 kB</span><span class="w">     </span><span class="c1"># (Actual assembled binary code for the section</span>
+</code></pre></div></td></tr></table></div>
+<p>The file begins with a header containing the number of actors (it is also the number of sections) and the number of symbols in the test case.
+The term "symbol" in this context refers to any location in the test case that can be referenced.
+Two common types of symbols are functions (specifically, function entry points) and macros.</p>
+<p>Next, the file contains the actor table, which is an array of actor metadata entries, one for each actor in the test case.
+The actor metadata entry contains the actor's ID, execution mode, protection level, data permissions, EPT data permissions, and code permissions.</p>
+<p>After the actor table, the file contains the symbol table, which is an array of symbol entries, one for each symbol in the test case.
+The symbol entry contains the ID the section to which the symbol belongs, the offset of the symbol within the section, the symbol's ID, and the number of arguments the symbol takes (if it is a macro).</p>
+<p>The file continues with the table of metadata for each section in the test case.
+Each metadata entry contains the ID of the actor that owns the section and the size of the section.</p>
+<p>Finally, the file contains a sequence of code sections, one for each actor in the test case.
+These sections contain the actual assembled binary for each of the sections in the test case.</p>
+<h2 id="revizor-data-binary-format-rdbf">Revizor Data Binary Format (RDBF)</h2>
+<p>RDBF is a structured representation of the data used to initialize sandbox memory and registers before executing the test case.</p>
+<p>Note that this format combines multiple inputs into a single file. This is done because typically, a single test case program is executed multiple times with different inputs, and so it is more efficient to send a batch of inputs at once.</p>
+<div class="highlight"><table class="highlighttable"><tr><th colspan="2" class="filename"><span class="filename">RDBF Structure</span></th></tr><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-1-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-1-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-1-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-1-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-1-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-1-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-1-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-1-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-1-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-1-10">10</a></span>
+<span class="normal"><a href="#__codelineno-1-11">11</a></span>
+<span class="normal"><a href="#__codelineno-1-12">12</a></span>
+<span class="normal"><a href="#__codelineno-1-13">13</a></span>
+<span class="normal"><a href="#__codelineno-1-14">14</a></span>
+<span class="normal"><a href="#__codelineno-1-15">15</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1"></a><span class="l l-Scalar l-Scalar-Plain">HEADER (16 bytes)</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2"></a><span class="w">  </span><span class="l l-Scalar l-Scalar-Plain">n_actors</span><span class="p p-Indicator">:</span><span class="w">               </span><span class="l l-Scalar l-Scalar-Plain">8 bytes</span><span class="w">  </span><span class="c1"># Number of Actors in the test case (also equals the number of data sections)</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3"></a><span class="w">  </span><span class="nt">n_inputs</span><span class="p">:</span><span class="w">               </span><span class="l l-Scalar l-Scalar-Plain">8 bytes</span><span class="w">  </span><span class="c1"># Number of inputs in the batch</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4"></a>
+<a id="__codelineno-1-5" name="__codelineno-1-5"></a><span class="l l-Scalar l-Scalar-Plain">METADATA (16 x n_actors bytes)</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6"></a><span class="w">  </span><span class="l l-Scalar l-Scalar-Plain">metadata_entry</span><span class="p p-Indicator">:</span><span class="w">         </span><span class="c1"># (repeated n_actors x n_inputs times)</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7"></a><span class="w">    </span><span class="nt">section_size</span><span class="p">:</span><span class="w">         </span><span class="l l-Scalar l-Scalar-Plain">8 bytes</span><span class="w">  </span><span class="c1"># Size of the data section</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8"></a><span class="w">    </span><span class="nt">reserved</span><span class="p">:</span><span class="w">             </span><span class="l l-Scalar l-Scalar-Plain">8 bytes</span><span class="w">  </span><span class="c1"># Reserved for future use</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9"></a>
+<a id="__codelineno-1-10" name="__codelineno-1-10"></a><span class="l l-Scalar l-Scalar-Plain">DATA (12 x n_actors x n_inputs KB)</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11"></a><span class="w">  </span><span class="l l-Scalar l-Scalar-Plain">input</span><span class="p p-Indicator">:</span><span class="w">                  </span><span class="c1"># (repeated n_inputs times)</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12"></a><span class="w">    </span><span class="nt">data_section</span><span class="p">:</span><span class="w">         </span><span class="c1"># (repeated n_actors times)</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13"></a><span class="w">      </span><span class="nt">main_area</span><span class="p">:</span><span class="w">          </span><span class="l l-Scalar l-Scalar-Plain">4 KB</span><span class="w">  </span><span class="c1"># Main data area</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14"></a><span class="w">      </span><span class="nt">faulty_area</span><span class="p">:</span><span class="w">        </span><span class="l l-Scalar l-Scalar-Plain">4 KB</span><span class="w">  </span><span class="c1"># Faulty page area</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15"></a><span class="w">      </span><span class="nt">reg_init_region</span><span class="p">:</span><span class="w">    </span><span class="l l-Scalar l-Scalar-Plain">4 KB</span><span class="w">  </span><span class="c1"># Register initialization area</span>
+</code></pre></div></td></tr></table></div>
+<p>The file begins with a section containing the number of actors (equal to the number of sections) and the number of inputs in the batch.</p>
+<p>Next, the file contains the table of metadata for each data section, which only contains the size of the section.</p>
+<p>Finally, the file contains a sequence of data sections, one for each actor in the test case and each input in the batch. The data sections are arranged to mirror the data layout in the sandbox memory (see the <a href="../sandbox/">sandbox memory layout</a> document for more information).</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
               </article>
             </div>
           
@@ -2900,10 +3123,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "/microsoft/sca-fuzzer/", "features": ["navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.tabs", "toc.integrate", "search.suggest", "search.highlight"], "search": "/microsoft/sca-fuzzer/assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.tabs", "toc.integrate", "search.suggest", "search.highlight"], "search": "../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="/microsoft/sca-fuzzer/assets/javascripts/bundle.e71a0d61.min.js"></script>
+      <script src="../../assets/javascripts/bundle.e71a0d61.min.js"></script>
       
     
   </body>

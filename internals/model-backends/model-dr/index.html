@@ -12,25 +12,29 @@
         <meta name="author" content="Microsoft">
       
       
+        <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/internals/model-backends/model-dr/">
+      
+      
+        <link rel="prev" href="../model-unicorn/">
       
       
       
         
       
       
-      <link rel="icon" href="/microsoft/sca-fuzzer/assets/ms_icon.png">
+      <link rel="icon" href="../../../assets/ms_icon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
     
     
       
-        <title>Revizor</title>
+        <title>DynamoRIO Backend - Revizor</title>
       
     
     
-      <link rel="stylesheet" href="/microsoft/sca-fuzzer/assets/stylesheets/main.618322db.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.618322db.min.css">
       
         
-        <link rel="stylesheet" href="/microsoft/sca-fuzzer/assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -49,9 +53,9 @@
       
     
     
-      <link rel="stylesheet" href="/microsoft/sca-fuzzer/stylesheets/extra.css">
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
     
-    <script>__md_scope=new URL("/microsoft/sca-fuzzer/",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -75,6 +79,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#dynamorio-based-model-backend" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -85,9 +94,9 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="/microsoft/sca-fuzzer/." title="Revizor" class="md-header__button md-logo" aria-label="Revizor" data-md-component="logo">
+    <a href="../../.." title="Revizor" class="md-header__button md-logo" aria-label="Revizor" data-md-component="logo">
       
-  <img src="/microsoft/sca-fuzzer/assets/ms_icon.png" alt="logo">
+  <img src="../../../assets/ms_icon.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -104,7 +113,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              
+              DynamoRIO Backend
             
           </span>
         </div>
@@ -217,7 +226,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/microsoft/sca-fuzzer/." class="md-tabs__link">
+      <a href="../../.." class="md-tabs__link">
         
   
   
@@ -236,7 +245,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/microsoft/sca-fuzzer/intro/00_start_here/" class="md-tabs__link">
+      <a href="../../../intro/00_start_here/" class="md-tabs__link">
         
   
   
@@ -257,7 +266,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="/microsoft/sca-fuzzer/structure/" class="md-tabs__link">
+        <a href="../../../structure/" class="md-tabs__link">
           
   
   
@@ -279,7 +288,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="/microsoft/sca-fuzzer/faq/general/" class="md-tabs__link">
+        <a href="../../../faq/general/" class="md-tabs__link">
           
   
   
@@ -297,11 +306,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="/microsoft/sca-fuzzer/internals/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../" class="md-tabs__link">
           
   
   
@@ -339,9 +350,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="/microsoft/sca-fuzzer/." title="Revizor" class="md-nav__button md-logo" aria-label="Revizor" data-md-component="logo">
+    <a href="../../.." title="Revizor" class="md-nav__button md-logo" aria-label="Revizor" data-md-component="logo">
       
-  <img src="/microsoft/sca-fuzzer/assets/ms_icon.png" alt="logo">
+  <img src="../../../assets/ms_icon.png" alt="logo">
 
     </a>
     Revizor
@@ -368,7 +379,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/." class="md-nav__link">
+      <a href="../../.." class="md-nav__link">
         
   
   
@@ -395,7 +406,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/00_start_here/" class="md-nav__link">
+      <a href="../../../intro/00_start_here/" class="md-nav__link">
         
   
   
@@ -486,7 +497,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/structure/" class="md-nav__link">
+      <a href="../../../structure/" class="md-nav__link">
         
   
   
@@ -582,7 +593,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/01_overview/" class="md-nav__link">
+      <a href="../../../intro/01_overview/" class="md-nav__link">
         
   
   
@@ -610,7 +621,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/02_install/" class="md-nav__link">
+      <a href="../../../intro/02_install/" class="md-nav__link">
         
   
   
@@ -638,7 +649,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/03_primer/" class="md-nav__link">
+      <a href="../../../intro/03_primer/" class="md-nav__link">
         
   
   
@@ -666,7 +677,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/04_tutorials_start/" class="md-nav__link">
+      <a href="../../../intro/04_tutorials_start/" class="md-nav__link">
         
   
   
@@ -750,7 +761,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial1-first-fuzz/part1/" class="md-nav__link">
+      <a href="../../../intro/tutorial1-first-fuzz/part1/" class="md-nav__link">
         
   
   
@@ -778,7 +789,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial1-first-fuzz/part2/" class="md-nav__link">
+      <a href="../../../intro/tutorial1-first-fuzz/part2/" class="md-nav__link">
         
   
   
@@ -872,7 +883,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial2-first-vuln/part1/" class="md-nav__link">
+      <a href="../../../intro/tutorial2-first-vuln/part1/" class="md-nav__link">
         
   
   
@@ -900,7 +911,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial2-first-vuln/part2/" class="md-nav__link">
+      <a href="../../../intro/tutorial2-first-vuln/part2/" class="md-nav__link">
         
   
   
@@ -928,7 +939,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial2-first-vuln/part3/" class="md-nav__link">
+      <a href="../../../intro/tutorial2-first-vuln/part3/" class="md-nav__link">
         
   
   
@@ -1022,7 +1033,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial3-faults/part1/" class="md-nav__link">
+      <a href="../../../intro/tutorial3-faults/part1/" class="md-nav__link">
         
   
   
@@ -1050,7 +1061,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial3-faults/part2/" class="md-nav__link">
+      <a href="../../../intro/tutorial3-faults/part2/" class="md-nav__link">
         
   
   
@@ -1078,7 +1089,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial3-faults/part3/" class="md-nav__link">
+      <a href="../../../intro/tutorial3-faults/part3/" class="md-nav__link">
         
   
   
@@ -1114,7 +1125,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tsa-sq/" class="md-nav__link">
+      <a href="../../../intro/tsa-sq/" class="md-nav__link">
         
   
   
@@ -1216,7 +1227,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/choose-contract/" class="md-nav__link">
+      <a href="../../../howto/choose-contract/" class="md-nav__link">
         
   
   
@@ -1244,7 +1255,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/design-campaign/" class="md-nav__link">
+      <a href="../../../howto/design-campaign/" class="md-nav__link">
         
   
   
@@ -1272,7 +1283,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/interpret-results/" class="md-nav__link">
+      <a href="../../../howto/interpret-results/" class="md-nav__link">
         
   
   
@@ -1300,7 +1311,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/minimize/" class="md-nav__link">
+      <a href="../../../howto/minimize/" class="md-nav__link">
         
   
   
@@ -1328,7 +1339,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/root-cause-a-violation/" class="md-nav__link">
+      <a href="../../../howto/root-cause-a-violation/" class="md-nav__link">
         
   
   
@@ -1356,7 +1367,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/use-templates/" class="md-nav__link">
+      <a href="../../../howto/use-templates/" class="md-nav__link">
         
   
   
@@ -1384,7 +1395,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/use-macros/" class="md-nav__link">
+      <a href="../../../howto/use-macros/" class="md-nav__link">
         
   
   
@@ -1482,7 +1493,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/contracts/" class="md-nav__link">
+      <a href="../../../topics/contracts/" class="md-nav__link">
         
   
   
@@ -1510,7 +1521,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/models/" class="md-nav__link">
+      <a href="../../../topics/models/" class="md-nav__link">
         
   
   
@@ -1538,7 +1549,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/trace-analysis/" class="md-nav__link">
+      <a href="../../../topics/trace-analysis/" class="md-nav__link">
         
   
   
@@ -1566,7 +1577,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/test-case-generation/" class="md-nav__link">
+      <a href="../../../topics/test-case-generation/" class="md-nav__link">
         
   
   
@@ -1594,7 +1605,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/actors/" class="md-nav__link">
+      <a href="../../../topics/actors/" class="md-nav__link">
         
   
   
@@ -1702,7 +1713,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/modes/" class="md-nav__link">
+      <a href="../../../ref/modes/" class="md-nav__link">
         
   
   
@@ -1730,7 +1741,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/cli/" class="md-nav__link">
+      <a href="../../../ref/cli/" class="md-nav__link">
         
   
   
@@ -1758,7 +1769,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/config/" class="md-nav__link">
+      <a href="../../../ref/config/" class="md-nav__link">
         
   
   
@@ -1786,7 +1797,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/runtime-statistic/" class="md-nav__link">
+      <a href="../../../ref/runtime-statistic/" class="md-nav__link">
         
   
   
@@ -1814,7 +1825,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/minimization-passes/" class="md-nav__link">
+      <a href="../../../ref/minimization-passes/" class="md-nav__link">
         
   
   
@@ -1842,7 +1853,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/macros/" class="md-nav__link">
+      <a href="../../../ref/macros/" class="md-nav__link">
         
   
   
@@ -1870,7 +1881,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/artifact-file-formats/" class="md-nav__link">
+      <a href="../../../ref/artifact-file-formats/" class="md-nav__link">
         
   
   
@@ -1898,7 +1909,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/binary-formats/" class="md-nav__link">
+      <a href="../../../ref/binary-formats/" class="md-nav__link">
         
   
   
@@ -1926,7 +1937,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/registers/" class="md-nav__link">
+      <a href="../../../ref/registers/" class="md-nav__link">
         
   
   
@@ -1954,7 +1965,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/sandbox/" class="md-nav__link">
+      <a href="../../../ref/sandbox/" class="md-nav__link">
         
   
   
@@ -1990,7 +2001,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/glossary/" class="md-nav__link">
+      <a href="../../../glossary/" class="md-nav__link">
         
   
   
@@ -2079,7 +2090,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/faq/general/" class="md-nav__link">
+      <a href="../../../faq/general/" class="md-nav__link">
         
   
   
@@ -2111,6 +2122,8 @@
       
   
   
+    
+  
   
   
     
@@ -2132,18 +2145,21 @@
     
     
       
+        
+        
+      
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="/microsoft/sca-fuzzer/internals/" class="md-nav__link ">
+            <a href="../../" class="md-nav__link ">
               
   
   
@@ -2161,13 +2177,13 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
@@ -2245,7 +2261,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/contributing/guidelines-general/" class="md-nav__link">
+      <a href="../../contributing/guidelines-general/" class="md-nav__link">
         
   
   
@@ -2273,7 +2289,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/contributing/guidelines-code-style/" class="md-nav__link">
+      <a href="../../contributing/guidelines-code-style/" class="md-nav__link">
         
   
   
@@ -2301,7 +2317,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/contributing/guidelines-git/" class="md-nav__link">
+      <a href="../../contributing/guidelines-git/" class="md-nav__link">
         
   
   
@@ -2337,7 +2353,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/code-structure/" class="md-nav__link">
+      <a href="../../code-structure/" class="md-nav__link">
         
   
   
@@ -2437,7 +2453,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/overview/" class="md-nav__link">
+      <a href="../../architecture/overview/" class="md-nav__link">
         
   
   
@@ -2465,7 +2481,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/fuzz/" class="md-nav__link">
+      <a href="../../architecture/fuzz/" class="md-nav__link">
         
   
   
@@ -2493,7 +2509,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/isa/" class="md-nav__link">
+      <a href="../../architecture/isa/" class="md-nav__link">
         
   
   
@@ -2521,7 +2537,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/code/" class="md-nav__link">
+      <a href="../../architecture/code/" class="md-nav__link">
         
   
   
@@ -2549,7 +2565,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/data/" class="md-nav__link">
+      <a href="../../architecture/data/" class="md-nav__link">
         
   
   
@@ -2577,7 +2593,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/exec/" class="md-nav__link">
+      <a href="../../architecture/exec/" class="md-nav__link">
         
   
   
@@ -2605,7 +2621,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/model/" class="md-nav__link">
+      <a href="../../architecture/model/" class="md-nav__link">
         
   
   
@@ -2633,7 +2649,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/analysis/" class="md-nav__link">
+      <a href="../../architecture/analysis/" class="md-nav__link">
         
   
   
@@ -2661,7 +2677,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/mini/" class="md-nav__link">
+      <a href="../../architecture/mini/" class="md-nav__link">
         
   
   
@@ -2689,7 +2705,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/logging/" class="md-nav__link">
+      <a href="../../architecture/logging/" class="md-nav__link">
         
   
   
@@ -2722,8 +2738,10 @@
                 
   
   
+    
   
   
+  
     
     
       
@@ -2738,11 +2756,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_5" checked>
         
           
           <label class="md-nav__link" for="__nav_5_5" id="__nav_5_5_label" tabindex="0">
@@ -2763,7 +2781,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_5_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_5_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_5_5">
             <span class="md-nav__icon md-icon"></span>
             
@@ -2781,7 +2799,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/model-backends/model-unicorn/" class="md-nav__link">
+      <a href="../model-unicorn/" class="md-nav__link">
         
   
   
@@ -2806,10 +2824,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/model-backends/model-dr/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DynamoRIO Backend
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -2825,6 +2870,70 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#design-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#python-adapter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Python Adapter
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#test-case-loader" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test Case Loader
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dynamorio-tool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DynamoRIO Tool
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -2858,8 +2967,154 @@
               
               <article class="md-content__inner md-typeset">
                 
-  <h1>404 - Not found</h1>
+                  
 
+
+  
+  
+
+
+<h1 id="dynamorio-based-model-backend">DynamoRIO-based Model Backend</h1>
+<p>This document describes the DynamoRIO-based model.
+As any other model, this backend is responsible for collecting contract traces for generated test cases.</p>
+<h2 id="design-overview">Design Overview</h2>
+<p>This backend is composed of several parts:</p>
+<ul>
+<li>The Python adapter (<code>rvzr/model_dynamorio/model.py</code>) is responsible for receiving a test case from Revizor, transforming it into a format that can be executed by the backend, triggering the backend to execute the test case, and returning the collected contract traces to Revizor.</li>
+<li>The Test Case Loader (<code>rvzr/model_dynamorio/adapter.c</code>) is a C program that loads a test case program and a batch of inputs into its memory, and executes the test case program with each input in a sequence.</li>
+<li>The DynamoRIO components (<code>rvzr/model_dynamorio/backend</code>) are executed together with the test case loader, and they instrument the loader binary to collect contract traces.</li>
+</ul>
+<p>These components can be roughly divided into the instrumentation-time components that are responsible for modifying the binary, and execution-time components that implement the model logic (i.e., the contract).</p>
+<p><a href="../../../assets/dr-model.png"><img alt="DynamoRIO-based Model Backend" src="../../../assets/dr-model.png" /></a></p>
+<h2 id="python-adapter">Python Adapter</h2>
+<p>Revizor communicates with the backend through a Python adapter (<code>rvzr/model_dynamorio/model.py:DynamoRIOModel</code>).</p>
+<p>At the beginning of the fuzzing process, Revizor configures the backend by calling <code>configure_clauses</code> method.
+This configuration will be later passed down to the backend when the test case is executed.</p>
+<p>During the fuzzing process, Revizor sends test cases to the backend by calling <code>load_test_case</code> method, and then triggers the backend to execute the test case by calling <code>trace_test_case</code> method.
+Internally, <code>trace_test_case</code> will call the backend to execute the test case and collect the contract traces.
+The adapter will then parse the traces and return them back to the caller.</p>
+<p>The <code>trace_test_case</code> method implements the following algorithm:</p>
+<ul>
+<li>Convert test case program and inputs into RCBF and RDBF files, respectively</li>
+<li>For each input, call the test case loader with the RCBF and RDBF files. Attach the DynamoRIO backend to the call so that the binary instrumentation is performed:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>~/.local/dynamorio/drrun<span class="w"> </span>-c<span class="w"> </span>~/.local/dynamorio/libdr_model.so<span class="w"> </span>--tracer<span class="w"> </span>&lt;observation-clause&gt;<span class="w"> </span>--<span class="w"> </span>~/.local/dynamorio/adapter<span class="w"> </span>&lt;rcbf&gt;<span class="w"> </span>&lt;rdbf&gt;
+</code></pre></div></li>
+<li>Parse contract traces from the backend and convert them into <code>CTrace</code> objects</li>
+<li>Return the list of collected <code>CTrace</code> objects to the caller (usually, <code>fuzzer.py</code>)</li>
+</ul>
+<h2 id="test-case-loader">Test Case Loader</h2>
+<p>Since the test cases produced by Revizor are raw binaries, they cannot be directly executed (e.g., they don't have <code>libc</code> linked).
+The test case loader (<code>rvzr/model_dynamorio/adapter.c</code>) is a simple C program that fixes this issue by providing a wrapper around the test case binary.</p>
+<p>The loader implements the following algorithm:</p>
+<ul>
+<li>Receive the test case binary and an input from the Python adapter via CLI arguments</li>
+<li>Load the test case binary and the input into dedicated memory regions</li>
+<li>Print the addresses of the test case and input memory regions (for trace normalization)</li>
+<li>Initialize registers based on the input</li>
+<li>Jump to the test case binary entry point</li>
+<li>Return</li>
+</ul>
+<h2 id="dynamorio-tool">DynamoRIO Tool</h2>
+<p>The DynamoRIO tool (<code>rvzr/model_dynamorio/backend</code>) is responsible for instrumenting the test case loader binary and collecting contract traces.</p>
+<h3 id="implementation-overview">Implementation Overview</h3>
+<p>All instrumentation logic is implemented as a DynamoRIO client. In particular,
+<code>model.cpp</code> contains the event callbacks that are executed at instrumentation time,
+while <code>dispatcher.cpp</code> contains the body of the callbacks that are inserted
+by the DR client and are executed before every instruction at runtime. Finally, the <code>Dispatcher</code> object holds the state that is
+shared between instrumentation-time callbacks and execution-time callbacks.</p>
+<p>The following figure provides an overview of the implementation.</p>
+<p><a href="../../../assets/dr-instrumentation.png"><img alt="DynamoRIO Instrumentation Overview" src="../../../assets/dr-instrumentation.png" /></a></p>
+<ol>
+<li><code>dr_client_main()</code> is responsible of installing the initial instrumentation callbacks to hook all relevant DR events (<code>module_load</code>, <code>bb_translation</code>, exceptions and the <code>exit</code> event)</li>
+<li><code>dr_client_main()</code> also sets the name of the function to instrument (passed by <code>cli.cpp</code>)</li>
+<li>on <code>module_load</code>, the instrumentation checks for the presence of the target function in the loaded module. If found, the callback adds a <code>drwarp</code> callback (<code>event_instrumentation_start</code>) which will be executed at the start of the target function</li>
+<li>once a call to the target function is found, the <code>event_instrumentation_start</code> will save the return address in a global object (<code>instrumented_func</code>) and call <code>start()</code> on the dispatcher</li>
+<li>from that moment on, every translated basic block is instrumented by our client, in particular:<ul>
+<li>a <code>dispatch_callback()</code> is inserted before every instruction</li>
+<li>at the function exit point (i.e. the previously saved return addres) an <code>exit_callback</code> is inserted</li>
+</ul>
+</li>
+<li>these callbacks are executed at runtime with the following effects:<ul>
+<li>the <code>dispatch_callback()</code> implements the observation and execution clauses (see next section)</li>
+<li>the <code>exit_callback()</code> checks the current speculation state before exiting:<ul>
+<li>speculative exits cause a rollback</li>
+<li>architectural exit causes the instrumentation to stop</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+<p>Finally, exceptions and the <code>exit</code> event are also forwarded to the Dispatcher:</p>
+<ul>
+<li>Speculative <strong>exceptions</strong> will cause a rollback, while architectural ones are forwarded to the target program</li>
+<li>The <strong>exit</strong> event stops instrumentation and flushes all logs (in case the exit callback has not been executed architecturally)</li>
+</ul>
+<h3 id="instrumentation-components">Instrumentation Components</h3>
+<p>The instrumentation components modify the binary of the test case loader by adding a call to the function <code>dispatch_callback</code> before every instruction in the binary (or more specifically, every instruction in the <code>test_case_entry</code> function of the loader).</p>
+<p>The tool interacts with DynamoRIO through the <code>model.cpp</code> module.
+This module registers an event for entering the <code>test_case_entry</code>, which triggers the flush of the internal DynamoRIO code fragment cache and the start of instrumentation.
+The module also registers an event for every instruction in the <code>test_case_entry</code>, and the event in turn calls the <code>Dispatch::instrument_instruction()</code>. Finally, exceptions are hooked and passed to the dispatcher through <code>Dispatch::handle_exception()</code>, which can decide to either handle the signal (e.g. on speculative paths) or forward it to the test case (e.g. architectural exceptions).</p>
+<p>The <code>Dispatch</code> class implements the actual instrumentation logic.
+When the <code>instrument_instruction()</code> method is called, it inserts a clean call to the <code>dispatch_callback</code> function before the instruction.
+The call receives the PC and opcode of the instruction as arguments.
+DynamoRIO also automatically saves the complete register state before the call, thus making it available to <code>dispatch_callback</code>.</p>
+<h3 id="execution-time-components">Execution-Time Components</h3>
+<p>The execution-time components are responsible for implementing the contract logic, and are triggered by the <code>dispatch_callback</code> function.
+At the current state of the backend, the dispatch callback invokes only two classes, Tracer and Speculator, that implement the observation and execution clauses, respectively. Optionally, each component can log additional events, e.g.
+speculation rollbacks or the current register state, through a shared <code>Logger</code> component.</p>
+<p>Subclasses of <code>TracerABC</code> record contract-relevant information via <code>observe_instruction</code> and <code>observe_mem_access</code> methods.
+E.g., <code>TracerCT</code> implements <code>CT</code> observation clause by recording the PC of instructions upon <code>observe_instruction</code> and the address of memory accesses upon <code>observe_mem_access</code>. Currently, <code>observe_exception</code> simply adds a special entry to the trace to indicate that the program ended due to an (architectural) exception.</p>
+<p>Subclasses of <code>SpeculatorABC</code> implement the contract speculation logic.
+E.g., <code>SpeculatorCond</code> implements <code>speculate_instruction</code>.
+When this method is called with a branch instruction, the class takes a checkpoint of the process state, flips the branch condition (i.e., modified <code>FLAGS</code> register), and continues the execution.
+During the simulated speculation, each call to <code>speculate_instruction</code> counts the number of executed instructions, and when the number reaches the limit (e.g., 256), the class restores the checkpoint and continues the execution from the original state. (Actually, the algorithm is more complex, but this is the general idea.)</p>
+<p>When the instrumentation ends (according to <code>model.cpp</code>), the tracer's <code>tracing_finalized</code> method is called, during which any remaining traces are flushed into the trace file, together with an "End Of Trace" entry.
+The Python adapter will then read the trace file, decode it, and return the corresponding CTrace to Revizor.</p>
+<h3 id="standalone-usage">Standalone Usage</h3>
+<p>The DR tool can be used as a standalone tool to collect the runtime trace of any program, independently from the rest of Revizor's infrastructure.</p>
+<p>A typical usage is for example:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>~/.local/dynamorio/drrun<span class="w"> </span>-c<span class="w"> </span>~/.local/dynamorio/libdr_model.so<span class="w"> </span>--tracer<span class="w"> </span>&lt;observation-clause&gt;<span class="w"> </span>--speculator<span class="w"> </span>&lt;speculation-clause&gt;<span class="w"> </span>--<span class="w"> </span>ls<span class="w"> </span>/dev/null
+</code></pre></div>
+<p>By default, this will instrument <code>ls</code> starting from <code>__libc_start_main</code> until the end of the program, run it with <code>/dev/null</code> as an argument, and generate a binary file called <code>rvzr_trace.dat</code> that contains the collected trace. Other flags can be printed using <code>~/.local/dynamorio/drrun -c ~/.local/dynamorio/libdr_model.so -h</code></p>
+<p>The trace file location can be changed by adding <code>--trace-output &lt;PATH&gt;</code>. Additionally, the tool can also dump the trace in human-readable format to STDOUT using the <code>--print-trace</code> flag.</p>
+<p>To decode and analyze the trace file, downstream tools should always use the <code>TraceDecoder</code> class provided by <code>trace_decoder.py</code>. For internal usage, this module also provides a simple entrypoint for trace printing:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>python3<span class="w"> </span>trace_decoder.py<span class="w"> </span>rzvr_trace.dat
+</code></pre></div>
+<h4 id="debugging">Debugging</h4>
+<p>Attaching a debugger like GDB to the DR tool might not always be the best debugging option, as the program has three separate states:</p>
+<ol>
+<li>the state of the program being instrumented (e.g. <code>ls</code>)</li>
+<li>the state of the DR client (<code>libdr_model.so</code>) instrumentation</li>
+<li>the state of DynamoRIO itself (<code>drrun</code>)</li>
+</ol>
+<p>More information about debugging DR clients can be found <a href="https://dynamorio.org/page_debugging.html">here</a>.</p>
+<p>For our instrumentation, other (possibly simpler) options are available:</p>
+<ol>
+<li><strong>Inspecting Debug Traces</strong>: the DR tool can optionally log extra information, e.g. the complete state of the register file before each instruction, each value being read and written to memory, and speculation events like checkpoints are rollbacks, in a separate debug trace:<ul>
+<li>This option can be enabled using <code>--log-level &lt;N&gt;</code></li>
+<li>By default, the tool will dump debug entries to <code>rzvr_dbg_trace.dat</code> in binary format; to change the path of the debug trace file use <code>--debug-output &lt;PATH&gt;</code></li>
+<li><code>--print-debug-trace</code> can be used to pretty-print debug entries to STDOUT during execution</li>
+<li><code>trace_decoder.py</code> also provides a decoder for debug entries</li>
+<li><strong>WARNING:</strong> debug traces can become very big, especially for nested speculation</li>
+</ul>
+</li>
+<li><strong>Running DynamoRIO with logging</strong>: DynamoRIO can also produce logs (see DR documentation):</li>
+</ol>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>~/.local/dynamorio/drrun -debug -loglevel 3 -c ~/.local/dynamorio/libdr_model.so --tracer &lt;observation-clause&gt; --speculator &lt;speculation-clause&gt; -- ls /dev/null
+</code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
               </article>
             </div>
           
@@ -2900,10 +3155,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "/microsoft/sca-fuzzer/", "features": ["navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.tabs", "toc.integrate", "search.suggest", "search.highlight"], "search": "/microsoft/sca-fuzzer/assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.tabs", "toc.integrate", "search.suggest", "search.highlight"], "search": "../../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="/microsoft/sca-fuzzer/assets/javascripts/bundle.e71a0d61.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.e71a0d61.min.js"></script>
       
     
   </body>

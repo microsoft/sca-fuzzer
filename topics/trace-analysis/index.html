@@ -12,25 +12,31 @@
         <meta name="author" content="Microsoft">
       
       
+        <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/topics/trace-analysis/">
       
+      
+        <link rel="prev" href="../models/">
+      
+      
+        <link rel="next" href="../test-case-generation/">
       
       
         
       
       
-      <link rel="icon" href="/microsoft/sca-fuzzer/assets/ms_icon.png">
+      <link rel="icon" href="../../assets/ms_icon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
     
     
       
-        <title>Revizor</title>
+        <title>Trace Analysis - Revizor</title>
       
     
     
-      <link rel="stylesheet" href="/microsoft/sca-fuzzer/assets/stylesheets/main.618322db.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.618322db.min.css">
       
         
-        <link rel="stylesheet" href="/microsoft/sca-fuzzer/assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -49,9 +55,9 @@
       
     
     
-      <link rel="stylesheet" href="/microsoft/sca-fuzzer/stylesheets/extra.css">
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
     
-    <script>__md_scope=new URL("/microsoft/sca-fuzzer/",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -75,6 +81,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#trace-analysis" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -85,9 +96,9 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="/microsoft/sca-fuzzer/." title="Revizor" class="md-header__button md-logo" aria-label="Revizor" data-md-component="logo">
+    <a href="../.." title="Revizor" class="md-header__button md-logo" aria-label="Revizor" data-md-component="logo">
       
-  <img src="/microsoft/sca-fuzzer/assets/ms_icon.png" alt="logo">
+  <img src="../../assets/ms_icon.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -104,7 +115,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              
+              Trace Analysis
             
           </span>
         </div>
@@ -217,7 +228,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/microsoft/sca-fuzzer/." class="md-tabs__link">
+      <a href="../.." class="md-tabs__link">
         
   
   
@@ -236,7 +247,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/microsoft/sca-fuzzer/intro/00_start_here/" class="md-tabs__link">
+      <a href="../../intro/00_start_here/" class="md-tabs__link">
         
   
   
@@ -253,11 +264,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="/microsoft/sca-fuzzer/structure/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../structure/" class="md-tabs__link">
           
   
   
@@ -279,7 +292,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="/microsoft/sca-fuzzer/faq/general/" class="md-tabs__link">
+        <a href="../../faq/general/" class="md-tabs__link">
           
   
   
@@ -301,7 +314,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="/microsoft/sca-fuzzer/internals/" class="md-tabs__link">
+        <a href="../../internals/" class="md-tabs__link">
           
   
   
@@ -339,9 +352,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="/microsoft/sca-fuzzer/." title="Revizor" class="md-nav__button md-logo" aria-label="Revizor" data-md-component="logo">
+    <a href="../.." title="Revizor" class="md-nav__button md-logo" aria-label="Revizor" data-md-component="logo">
       
-  <img src="/microsoft/sca-fuzzer/assets/ms_icon.png" alt="logo">
+  <img src="../../assets/ms_icon.png" alt="logo">
 
     </a>
     Revizor
@@ -368,7 +381,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -395,7 +408,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/00_start_here/" class="md-nav__link">
+      <a href="../../intro/00_start_here/" class="md-nav__link">
         
   
   
@@ -419,8 +432,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -440,17 +455,20 @@
     
     
       
+        
+        
+      
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   
@@ -468,7 +486,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -486,7 +504,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/structure/" class="md-nav__link">
+      <a href="../../structure/" class="md-nav__link">
         
   
   
@@ -582,7 +600,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/01_overview/" class="md-nav__link">
+      <a href="../../intro/01_overview/" class="md-nav__link">
         
   
   
@@ -610,7 +628,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/02_install/" class="md-nav__link">
+      <a href="../../intro/02_install/" class="md-nav__link">
         
   
   
@@ -638,7 +656,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/03_primer/" class="md-nav__link">
+      <a href="../../intro/03_primer/" class="md-nav__link">
         
   
   
@@ -666,7 +684,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/04_tutorials_start/" class="md-nav__link">
+      <a href="../../intro/04_tutorials_start/" class="md-nav__link">
         
   
   
@@ -750,7 +768,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial1-first-fuzz/part1/" class="md-nav__link">
+      <a href="../../intro/tutorial1-first-fuzz/part1/" class="md-nav__link">
         
   
   
@@ -778,7 +796,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial1-first-fuzz/part2/" class="md-nav__link">
+      <a href="../../intro/tutorial1-first-fuzz/part2/" class="md-nav__link">
         
   
   
@@ -872,7 +890,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial2-first-vuln/part1/" class="md-nav__link">
+      <a href="../../intro/tutorial2-first-vuln/part1/" class="md-nav__link">
         
   
   
@@ -900,7 +918,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial2-first-vuln/part2/" class="md-nav__link">
+      <a href="../../intro/tutorial2-first-vuln/part2/" class="md-nav__link">
         
   
   
@@ -928,7 +946,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial2-first-vuln/part3/" class="md-nav__link">
+      <a href="../../intro/tutorial2-first-vuln/part3/" class="md-nav__link">
         
   
   
@@ -1022,7 +1040,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial3-faults/part1/" class="md-nav__link">
+      <a href="../../intro/tutorial3-faults/part1/" class="md-nav__link">
         
   
   
@@ -1050,7 +1068,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial3-faults/part2/" class="md-nav__link">
+      <a href="../../intro/tutorial3-faults/part2/" class="md-nav__link">
         
   
   
@@ -1078,7 +1096,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tutorial3-faults/part3/" class="md-nav__link">
+      <a href="../../intro/tutorial3-faults/part3/" class="md-nav__link">
         
   
   
@@ -1114,7 +1132,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/intro/tsa-sq/" class="md-nav__link">
+      <a href="../../intro/tsa-sq/" class="md-nav__link">
         
   
   
@@ -1216,7 +1234,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/choose-contract/" class="md-nav__link">
+      <a href="../../howto/choose-contract/" class="md-nav__link">
         
   
   
@@ -1244,7 +1262,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/design-campaign/" class="md-nav__link">
+      <a href="../../howto/design-campaign/" class="md-nav__link">
         
   
   
@@ -1272,7 +1290,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/interpret-results/" class="md-nav__link">
+      <a href="../../howto/interpret-results/" class="md-nav__link">
         
   
   
@@ -1300,7 +1318,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/minimize/" class="md-nav__link">
+      <a href="../../howto/minimize/" class="md-nav__link">
         
   
   
@@ -1328,7 +1346,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/root-cause-a-violation/" class="md-nav__link">
+      <a href="../../howto/root-cause-a-violation/" class="md-nav__link">
         
   
   
@@ -1356,7 +1374,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/use-templates/" class="md-nav__link">
+      <a href="../../howto/use-templates/" class="md-nav__link">
         
   
   
@@ -1384,7 +1402,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/howto/use-macros/" class="md-nav__link">
+      <a href="../../howto/use-macros/" class="md-nav__link">
         
   
   
@@ -1417,8 +1435,10 @@
                 
   
   
+    
   
   
+  
     
     
       
@@ -1439,11 +1459,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4" checked>
         
           
           <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="0">
@@ -1464,7 +1484,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3_4">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1482,7 +1502,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/contracts/" class="md-nav__link">
+      <a href="../contracts/" class="md-nav__link">
         
   
   
@@ -1510,7 +1530,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/models/" class="md-nav__link">
+      <a href="../models/" class="md-nav__link">
         
   
   
@@ -1535,10 +1555,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/trace-analysis/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Trace Analysis
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1554,6 +1601,81 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#contract-compliance-property" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Contract Compliance Property
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#problem-statement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Problem Statement
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deterministic-trace-comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deterministic Trace Comparison
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#statistical-trace-comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Statistical Trace Comparison
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#whats-next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What's Next?
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1566,7 +1688,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/test-case-generation/" class="md-nav__link">
+      <a href="../test-case-generation/" class="md-nav__link">
         
   
   
@@ -1594,7 +1716,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/topics/actors/" class="md-nav__link">
+      <a href="../actors/" class="md-nav__link">
         
   
   
@@ -1702,7 +1824,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/modes/" class="md-nav__link">
+      <a href="../../ref/modes/" class="md-nav__link">
         
   
   
@@ -1730,7 +1852,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/cli/" class="md-nav__link">
+      <a href="../../ref/cli/" class="md-nav__link">
         
   
   
@@ -1758,7 +1880,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/config/" class="md-nav__link">
+      <a href="../../ref/config/" class="md-nav__link">
         
   
   
@@ -1786,7 +1908,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/runtime-statistic/" class="md-nav__link">
+      <a href="../../ref/runtime-statistic/" class="md-nav__link">
         
   
   
@@ -1814,7 +1936,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/minimization-passes/" class="md-nav__link">
+      <a href="../../ref/minimization-passes/" class="md-nav__link">
         
   
   
@@ -1842,7 +1964,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/macros/" class="md-nav__link">
+      <a href="../../ref/macros/" class="md-nav__link">
         
   
   
@@ -1870,7 +1992,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/artifact-file-formats/" class="md-nav__link">
+      <a href="../../ref/artifact-file-formats/" class="md-nav__link">
         
   
   
@@ -1898,7 +2020,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/binary-formats/" class="md-nav__link">
+      <a href="../../ref/binary-formats/" class="md-nav__link">
         
   
   
@@ -1926,7 +2048,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/registers/" class="md-nav__link">
+      <a href="../../ref/registers/" class="md-nav__link">
         
   
   
@@ -1954,7 +2076,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/ref/sandbox/" class="md-nav__link">
+      <a href="../../ref/sandbox/" class="md-nav__link">
         
   
   
@@ -1990,7 +2112,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/glossary/" class="md-nav__link">
+      <a href="../../glossary/" class="md-nav__link">
         
   
   
@@ -2079,7 +2201,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/faq/general/" class="md-nav__link">
+      <a href="../../faq/general/" class="md-nav__link">
         
   
   
@@ -2143,7 +2265,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="/microsoft/sca-fuzzer/internals/" class="md-nav__link ">
+            <a href="../../internals/" class="md-nav__link ">
               
   
   
@@ -2245,7 +2367,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/contributing/guidelines-general/" class="md-nav__link">
+      <a href="../../internals/contributing/guidelines-general/" class="md-nav__link">
         
   
   
@@ -2273,7 +2395,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/contributing/guidelines-code-style/" class="md-nav__link">
+      <a href="../../internals/contributing/guidelines-code-style/" class="md-nav__link">
         
   
   
@@ -2301,7 +2423,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/contributing/guidelines-git/" class="md-nav__link">
+      <a href="../../internals/contributing/guidelines-git/" class="md-nav__link">
         
   
   
@@ -2337,7 +2459,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/code-structure/" class="md-nav__link">
+      <a href="../../internals/code-structure/" class="md-nav__link">
         
   
   
@@ -2437,7 +2559,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/overview/" class="md-nav__link">
+      <a href="../../internals/architecture/overview/" class="md-nav__link">
         
   
   
@@ -2465,7 +2587,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/fuzz/" class="md-nav__link">
+      <a href="../../internals/architecture/fuzz/" class="md-nav__link">
         
   
   
@@ -2493,7 +2615,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/isa/" class="md-nav__link">
+      <a href="../../internals/architecture/isa/" class="md-nav__link">
         
   
   
@@ -2521,7 +2643,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/code/" class="md-nav__link">
+      <a href="../../internals/architecture/code/" class="md-nav__link">
         
   
   
@@ -2549,7 +2671,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/data/" class="md-nav__link">
+      <a href="../../internals/architecture/data/" class="md-nav__link">
         
   
   
@@ -2577,7 +2699,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/exec/" class="md-nav__link">
+      <a href="../../internals/architecture/exec/" class="md-nav__link">
         
   
   
@@ -2605,7 +2727,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/model/" class="md-nav__link">
+      <a href="../../internals/architecture/model/" class="md-nav__link">
         
   
   
@@ -2633,7 +2755,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/analysis/" class="md-nav__link">
+      <a href="../../internals/architecture/analysis/" class="md-nav__link">
         
   
   
@@ -2661,7 +2783,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/mini/" class="md-nav__link">
+      <a href="../../internals/architecture/mini/" class="md-nav__link">
         
   
   
@@ -2689,7 +2811,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/architecture/logging/" class="md-nav__link">
+      <a href="../../internals/architecture/logging/" class="md-nav__link">
         
   
   
@@ -2781,7 +2903,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/model-backends/model-unicorn/" class="md-nav__link">
+      <a href="../../internals/model-backends/model-unicorn/" class="md-nav__link">
         
   
   
@@ -2809,7 +2931,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/microsoft/sca-fuzzer/internals/model-backends/model-dr/" class="md-nav__link">
+      <a href="../../internals/model-backends/model-dr/" class="md-nav__link">
         
   
   
@@ -2858,8 +2980,254 @@
               
               <article class="md-content__inner md-typeset">
                 
-  <h1>404 - Not found</h1>
+                  
 
+
+  
+  
+
+
+<h1 id="trace-analysis">Trace Analysis</h1>
+<p>This document describes Revizor's trace analysis techniques for detecting microarchitectural
+contract violations by comparing contract traces with hardware traces.</p>
+<p>Trace analysis is the core mechanism of Model-Based Relational Testing. It compares
+<a href="../../glossary/#contract-trace">contract traces</a> (predicted leakage from the model) with
+<a href="../../glossary/#hardware-trace">hardware traces</a> (observed leakage from real CPU) to detect
+microarchitectural <a href="../../glossary/#violation">contract violations</a>.</p>
+<h2 id="contract-compliance-property">Contract Compliance Property</h2>
+<p>The fundamental property being tested is <a href="../../glossary/#contract-compliance">contract compliance</a>:
+if two inputs produce the same contract trace, they must produce the same hardware trace for all
+microarchitectural states.</p>
+<p>Formally, a CPU complies with a speculation contract if, for all possible programs P, all input pairs (I₁, I₂), and all initial microarchitectural states Ctx:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>ContractTrace(P, I₁) = ContractTrace(P, I₂)
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  ⟹
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>HardwareTrace(P, I₁, Ctx) = HardwareTrace(P, I₂, Ctx)
+</code></pre></div>
+<p>If this property is violated, the CPU is leaking information beyond what the contract predicts.
+A violation indicates that the contract is incomplete or that the CPU has an unexpected side
+channel. See the <a href="../../intro/03_primer/#building-and-testing-speculation-contracts">primer</a> for
+theoretical foundations.</p>
+<p>Revizor approximates this property by randomly sampling the space of programs, inputs, and microarchitectural states, and checking for violations based on collected traces.
+The following sections describe how this check is implemented in practice.</p>
+<h2 id="problem-statement">Problem Statement</h2>
+<p>The trace analysis task boils down to the following problem:</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:1"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Given</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block"></div>
+</div>
+</div>
+<dl>
+<dd>
+<ul>
+<li>A test program P</li>
+<li>A sequence of inputs I₁ … Iₙ</li>
+<li>A sequence of contract traces CTrace₁ … CTraceₙ (one per input, produced by the model)</li>
+<li>A sequence of hardware traces HTrace₁ … HTraceₙ (one per input, produced by the executor)</li>
+</ul>
+</dd>
+</dl>
+<div></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="2:1"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Objective</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block"></div>
+</div>
+</div>
+<dl>
+<dd>Detect if there exist any input pairs (Iᵢ, Iⱼ) such that
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>CTraceᵢ = CTraceⱼ but HTraceᵢ ≠ HTraceⱼ
+</code></pre></div></dd>
+</dl>
+<h2 id="deterministic-trace-comparison">Deterministic Trace Comparison</h2>
+<p>To detect contract violations, we need to check the above property for all tested inputs.
+Checking each input pair separately would be extremely inefficient (O(N²) complexity). Instead,
+we use an equivalence-class-based algorithm that groups inputs by their contract traces and
+checks hardware trace consistency within each group:</p>
+<ol>
+<li><strong>Bundle measurements</strong>: Create tuples <code>(Input ID, Input, CTrace, HTrace)</code> for each execution</li>
+<li><strong>Group by contract trace</strong>: Partition measurements into contract equivalence classes where
+   all measurements share the same <code>CTrace</code></li>
+<li><strong>Check hardware traces</strong>: Within each contract equivalence class, verify all hardware traces
+   are identical</li>
+<li><strong>Report violations</strong>: If a contract equivalence class contains different hardware traces,
+   report a violation</li>
+</ol>
+<pre class="mermaid"><code>flowchart LR
+    B[Bundle measurements]
+    B --&gt; C[Group by CTrace&lt;br/&gt;]
+    C --&gt; D{For each EqClass}
+    D --&gt; E[Compare hardware traces]
+    E --&gt; F{All identical?}
+    F --&gt;|Yes| G[Mark class OK]
+    F --&gt;|No| H[Record violation]
+    G --&gt; I{More classes?}
+    H --&gt; I
+    I --&gt;|Yes| D
+    I --&gt;|No| J[End]
+
+    classDef good fill:#c3f3d9,stroke:#2b7b4b,color:#000;
+    classDef bad fill:#f9d5d5,stroke:#b61b1b,color:#000;
+    class G good
+    class H bad
+</code></pre>
+<div class="tabbed-set tabbed-alternate" data-tabs="3:1"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><div class="tabbed-labels"><label for="__tabbed_3_1">Example</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<p>Suppose we test 4 inputs and get:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>I0: CTrace=A, HTrace=X
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>I1: CTrace=A, HTrace=X
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>I2: CTrace=B, HTrace=Y
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>I3: CTrace=A, HTrace=Z
+</code></pre></div>
+<p>Contract equivalence classes:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>- Class [CTrace=A]: I0, I1, I3
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>- Class [CTrace=B]: I2
+</code></pre></div>
+<p>Analysis:</p>
+<ul>
+<li>Class <code>[CTrace=A]</code> contains three measurements with HTraces <code>{X, X, Z}</code></li>
+<li>Since X ≠ Z, this is a <strong>violation</strong></li>
+<li>Inputs <code>I0</code> and <code>I1</code> behaved identically (<code>HTrace=X</code>) but input <code>I3</code> behaved differently (<code>HTrace=Z</code>),
+despite having the same contract trace=A</li>
+<li>Accordingly, we found a violation: <code>I0</code> and <code>I3</code> have the same contract trace (<code>A = A</code>) while
+the hardware traces differ (<code>X ≠ Z</code>)</li>
+</ul>
+</div>
+</div>
+</div>
+<h2 id="statistical-trace-comparison">Statistical Trace Comparison</h2>
+<h3 id="the-problem-of-noise">The Problem of Noise</h3>
+<p>Real hardware measurements are noisy. Even if we execute the same program with the same input
+repeatedly, we might get different hardware traces each time, due to factors like timing variations
+ in microcode execution, cache state changes from uncontrollable sources, non-controlled
+ hardware optimizations, etc.</p>
+<p>These discrepancies may cause false positives if we directly use the deterministic algorithm,
+because the differences between the hardware traces may be caused by noise, not by genuine
+information leakage.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="4:1"><input checked="checked" id="__tabbed_4_1" name="__tabbed_4" type="radio" /><div class="tabbed-labels"><label for="__tabbed_4_1">Example</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<p>Suppose we test only two of the inputs from the previous example, but the second
+measurement produces a slightly different hardware trace due to noise:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>I0: CTrace=A, HTrace=X
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>I1: CTrace=A, HTrace=X&#39;
+</code></pre></div>
+<p>The resulting analysis will produce a false violation:</p>
+<ul>
+<li>Contract equivalence class <code>[CTrace=A]: I0, I1</code></li>
+<li>Hardware traces: <code>{X, X'}</code></li>
+<li>Since <code>X ≠ X'</code>, we incorrectly report a violation, even though both inputs are actually safe
+and the difference is just noise.</li>
+</ul>
+</div>
+</div>
+</div>
+<h3 id="solution-sampling-and-statistical-analysis">Solution: Sampling and Statistical Analysis</h3>
+<p>To address this, we treat hardware traces as samples from a distribution rather than single
+deterministic values. Instead of comparing individual hardware traces, we compare the distributions
+of hardware traces produced by each input. This replaces the deterministic equality check
+<code>HardwareTrace(P, I₁, Ctx) = HardwareTrace(P, I₂, Ctx)</code> with a statistical test that
+determines if two samples are drawn from the same distribution.</p>
+<p>To implement this, we modify the measurement process: instead of collecting one hardware trace
+per input, Revizor collects <strong>multiple samples</strong> per input. Each <code>HTrace</code> object contains an
+array of measurement samples. For example, with sample size N=10:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>I0: CTrace=A, HTrace=[X, X, X&#39;, X, X, X&#39;, X, X, X, X]
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>I1: CTrace=A, HTrace=[X, X&#39;, X, X, X, X, X&#39;, X, X, X]
+</code></pre></div>
+<p>Now we must compare <strong>distributions</strong> rather than individual values, and the question becomes: "Are these two samples drawn from the same distribution?"</p>
+<h3 id="chi-squared-test-for-categorical-data">Chi-Squared Test for Categorical Data</h3>
+<p>Hardware traces are categorical data (no natural ordering), so Revizor uses Pearson's χ²
+homogeneity test.</p>
+<p>Given two samples <code>t₁</code> and <code>t₂</code> of hardware traces, the test computes:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>χ² = Σ (obs₁(t) - expected(t))² / expected(t)
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>   + Σ (obs₂(t) - expected(t))² / expected(t)
+</code></pre></div>
+<p>where:</p>
+<ul>
+<li><code>obs₁(t)</code> = count of trace <code>t</code> in sample 1</li>
+<li><code>obs₂(t)</code> = count of trace <code>t</code> in sample 2</li>
+<li><code>expected(t) = (obs₁(t) + obs₂(t)) / 2</code> = average count</li>
+</ul>
+<p>The χ² statistic is normalized by total sample size to make it comparable across different
+sample sizes.</p>
+<p><strong>Decision rule</strong>: If <code>χ²/N &lt; threshold</code>, accept that the samples come from the same
+distribution (no violation).</p>
+<p>The threshold is configurable (default 0.05) and can be tuned based on expected noise levels via <a href="../../ref/config/#analyser_stat_threshold"><code>analyser_stat_threshold</code></a> config parameter.</p>
+<p>The following examples illustrate how the χ² test distinguishes between noise and real violations.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="5:2"><input checked="checked" id="__tabbed_5_1" name="__tabbed_5" type="radio" /><input id="__tabbed_5_2" name="__tabbed_5" type="radio" /><div class="tabbed-labels"><label for="__tabbed_5_1">No violation</label><label for="__tabbed_5_2">Real violation</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>I0: CTrace=A, HTrace=[X(8 times), X&#39;(2 times)]
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>I1: CTrace=A, HTrace=[X(7 times), X&#39;(3 times)]
+</code></pre></div>
+<p>The distributions are similar (mostly X with some noise X'). χ² test will show they're
+equivalent:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>obs₁(X) = 8, obs₁(X&#39;) = 2
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>obs₂(X) = 7, obs₂(X&#39;) = 3
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>expected(X) = (8 + 7) / 2 = 7.5
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>expected(X&#39;) = (2 + 3) / 2 = 2.5
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>χ² = (8 - 7.5)²/7.5 + (2 - 2.5)²/2.5 + (7 - 7.5)²/7.5 + (3 - 2.5)²/2.5
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>   = 0.2666
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>χ²/N = 0.2666/10 = 0.02666
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>χ²/N &lt; 0.05 → accept equivalence (no violation)
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>I0: CTrace=A, HTrace=[X(5 times), X&#39;(1 time), Y(4 times)]
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>I1: CTrace=A, HTrace=[X(5 times), X&#39;(1 time), Z(4 times)]
+</code></pre></div>
+<p>The distributions are clearly different (X vs Y). χ² test will reject equivalence → violation:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>obs₁(X) = 5, obs₁(X&#39;) = 1, obs₁(Y) = 4
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>obs₂(X) = 5, obs₂(X&#39;) = 1, obs₂(Z) = 4
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>expected(X) = (5 + 5) / 2 = 5
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>expected(X&#39;) = (1 + 1) / 2 = 1
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>expected(Y) = (4 + 0) / 2 = 2
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>expected(Z) = (0 + 4) / 2 = 2
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>χ² = (5 - 5)²/5 + (1 - 1)²/1 + (4 - 2)²/2 + (0 - 2)²/2
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>   + (5 - 5)²/5 + (1 - 1)²/1 + (0 - 2)²/2 + (4 - 2)²/2
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>   = 8
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>χ²/N = 8/10 = 0.8
+<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>χ²/N &gt; 0.05 → reject equivalence (violation)
+</code></pre></div></p>
+</div>
+</div>
+</div>
+<h3 id="adaptive-sample-sizing">Adaptive Sample Sizing</h3>
+<p>For performance reasons, Revizor does not immediately use a large sample size. Instead, it
+starts with a small sample, collects the traces, and checks if a violation is detected. If no
+violation is detected, the executor assumes that the test case is safe, and moves on to the next
+one. If a violation is detected, however, the executor tries to reproduce it with larger sample
+sizes.</p>
+<p>Example adaptive strategy:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">for</span> <span class="n">N</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">15</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">160</span><span class="p">,</span> <span class="mi">320</span><span class="p">]:</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>    <span class="n">collect</span> <span class="n">N</span> <span class="n">samples</span> <span class="n">per</span> <span class="nb">input</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>    <span class="k">if</span> <span class="n">violation</span> <span class="n">detected</span><span class="p">:</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>        <span class="k">continue</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>    <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>        <span class="k">return</span> <span class="s2">&quot;no violation&quot;</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="k">return</span> <span class="s2">&quot;violation detected&quot;</span>
+</code></pre></div>
+<p>The exact sample sizes and thresholds are configurable via <a href="../../ref/config/#executor_sample_sizes"><code>executor_sample_sizes</code></a> config parameter.</p>
+<h2 id="whats-next">What's Next?</h2>
+<ul>
+<li><a href="../../ref/config/">Configuration Options</a> - Configure analyzer parameters</li>
+<li><a href="../../intro/03_primer/">Model-Based Relational Testing</a> - Theoretical foundations</li>
+<li><a href="../../internals/architecture/analysis/">Analyser Architecture</a> - Implementation
+  details</li>
+</ul>
+<!-- empty line for spacing -->
+
+
+
+
+
+
+
+
+
+
+
+
+                
               </article>
             </div>
           
@@ -2900,10 +3268,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "/microsoft/sca-fuzzer/", "features": ["navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.tabs", "toc.integrate", "search.suggest", "search.highlight"], "search": "/microsoft/sca-fuzzer/assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.tabs", "toc.integrate", "search.suggest", "search.highlight"], "search": "../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="/microsoft/sca-fuzzer/assets/javascripts/bundle.e71a0d61.min.js"></script>
+      <script src="../../assets/javascripts/bundle.e71a0d61.min.js"></script>
       
     
   </body>
