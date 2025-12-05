@@ -3138,11 +3138,11 @@ The python version must be 3.9 or later.</p>
 <a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="c1">#   /dev/null</span>
 </code></pre></div>
 <h3 id="5-download-isa-spec">5. Download ISA spec</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>rvzr<span class="w"> </span>download_spec<span class="w"> </span>-a<span class="w"> </span>x86-64<span class="w"> </span>--extensions<span class="w"> </span>ALL_SUPPORTED<span class="w"> </span>--outfile<span class="w"> </span>base.json
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>./revizor.py<span class="w"> </span>download_spec<span class="w"> </span>-a<span class="w"> </span>x86-64<span class="w"> </span>--extensions<span class="w"> </span>ALL_SUPPORTED<span class="w"> </span>--outfile<span class="w"> </span>base.json
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1"># Alternatively, use the following command to include system instructions;</span>
 <a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># however, mind that testing these instructions may crash the system if misconfigured!</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1"># rvzr download_spec -a x86-64 --extensions ALL_AND_UNSAFE --outfile base.json</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1"># ./revizor.py download_spec -a x86-64 --extensions ALL_AND_UNSAFE --outfile base.json</span>
 </code></pre></div>
 <h3 id="6-test-the-installation">6. Test the Installation</h3>
 <p>To make sure that the installation was successful, run the following command:</p>

@@ -2,242 +2,242 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/glossary/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/structure/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/faq/general/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/howto/choose-contract/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/howto/design-campaign/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/howto/interpret-results/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/howto/minimize/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/howto/root-cause-a-violation/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/howto/use-macros/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/howto/use-templates/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/internals/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/internals/code-structure/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/internals/architecture/analysis/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/internals/architecture/code/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/internals/architecture/data/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/internals/architecture/exec/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/internals/architecture/fuzz/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/internals/architecture/isa/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/internals/architecture/logging/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/internals/architecture/mini/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/internals/architecture/model/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/internals/architecture/overview/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/internals/contributing/guidelines-code-style/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/internals/contributing/guidelines-general/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/internals/contributing/guidelines-git/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/internals/model-backends/model-dr/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/internals/model-backends/model-unicorn/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/intro/00_start_here/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/intro/01_overview/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/intro/02_install/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/intro/03_primer/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/intro/04_tutorials_start/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/intro/tsa-sq/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/intro/tutorial1-first-fuzz/part1/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/intro/tutorial1-first-fuzz/part2/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/intro/tutorial2-first-vuln/part1/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/intro/tutorial2-first-vuln/part2/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/intro/tutorial2-first-vuln/part3/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/intro/tutorial3-faults/part1/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/intro/tutorial3-faults/part2/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/intro/tutorial3-faults/part3/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/intro/tutorial4-isolation/part1/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/intro/tutorial5-extending/part1/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/ref/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/ref/artifact-file-formats/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/ref/binary-formats/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/ref/cli/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/ref/config/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/ref/macros/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/ref/minimization-passes/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/ref/modes/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/ref/registers/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/ref/runtime-statistic/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/ref/sandbox/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/topics/actors/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/topics/contracts/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/topics/models/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/topics/test-case-generation/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
     <url>
          <loc>https://github.com/microsoft/sca-fuzzer/topics/trace-analysis/</loc>
-         <lastmod>2025-12-04</lastmod>
+         <lastmod>2025-12-05</lastmod>
     </url>
 </urlset>
