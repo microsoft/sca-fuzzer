@@ -86,7 +86,6 @@ _generator_fault_to_fault_name: Dict[str, str] = {
     'div-by-zero': "DE",
     'div-overflow': "DE",
     'opcode-undefined': "UD",
-    'bounds-range-exceeded': "BR",
     'breakpoint': "BP",
     'debug-register': "DB",
     'non-canonical-access': "GP",

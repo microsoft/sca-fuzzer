@@ -182,10 +182,6 @@
     "popfq \n" \
     "lea rsp, [r14 + "xstr(LOCAL_RSP_OFFSET)"]\n" \
     "mov rbp, rsp \n" \
-    "bndmk bnd0, [r14 + 0x1000]\n" \
-    "bndmk bnd1, [r14 + 0x1000]\n" \
-    "bndmk bnd2, [r14 + 0x1000]\n" \
-    "bndmk bnd3, [r14 + 0x1000]\n" \
     ".att_syntax noprefix");
 
 #elif VENDOR_ID == 2 // AMD

@@ -206,8 +206,6 @@ def _update_instruction_list() -> None:
     """
     if 'opcode-undefined' not in CONF.generator_faults_allowlist:
         CONF.instruction_blocklist.extend(["ud", "ud2"])
-    if 'bounds-range-exceeded' not in CONF.generator_faults_allowlist:
-        CONF.instruction_blocklist.extend(['bound', 'bndcl', 'bndcu'])
     if 'breakpoint' not in CONF.generator_faults_allowlist:
         CONF.instruction_blocklist.extend(["int3"])
     if 'debug-register' not in CONF.generator_faults_allowlist:
@@ -225,10 +223,6 @@ def _check_instruction_list(instruction_set: InstructionSet) -> None:
     if 'div-overflow' in CONF.generator_faults_allowlist:
         if 'div' not in all_instruction_names and 'idiv' not in all_instruction_names:
             warning("fuzzer", "div-overflow enabled, but DIV/IDIV instructions are missing")
-    if 'bounds-range-exceeded' in CONF.generator_faults_allowlist:
-        if "bndcu" not in all_instruction_names:
-            warning("fuzzer", "bounds-range-exceeded enabled, but BNDCU instruction is missing")
-        assert "mpx" in cpu_flags
     if 'breakpoint' in CONF.generator_faults_allowlist:
         if 'int3' not in all_instruction_names:
             warning("fuzzer", "breakpoint enabled, but INT3 instruction is missing")

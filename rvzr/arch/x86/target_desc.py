@@ -45,8 +45,7 @@ class X86TargetDesc(TargetDesc):
              "r13d", "r14d", "r15d"],
         64: ["rax", "rbx", "rcx", "rdx", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13",
              "r14", "r15", "rsp", "rbp", "mm0", "mm1", "mm2", "mm3", "mm4", "mm5", "mm6", "mm7"],
-        128: ["bnd0", "bnd1", "bnd2", "bnd3",
-              "xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5", "xmm6", "xmm7"],
+        128: ["xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5", "xmm6", "xmm7"],
         256: ["ymm0", "ymm1", "ymm2", "ymm3", "ymm4", "ymm5", "ymm6", "ymm7"],
     }  # yapf: disable
 
@@ -70,7 +69,6 @@ class X86TargetDesc(TargetDesc):
         "rsp": "RSP",
         "CF": "CF", "PF": "PF", "AF": "AF", "ZF": "ZF", "SF": "SF", "TF": "TF", "IF": "IF",
         "DF": "DF", "OF": "OF", "AC": "AC",
-        "bnd0": "BND0", "bnd1": "BND1", "bnd2": "BND2", "bnd3": "BND3",
         "mm0": "MM0",
         "mm1": "MM1",
         "mm2": "MM2",

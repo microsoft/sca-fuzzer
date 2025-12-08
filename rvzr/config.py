@@ -335,7 +335,6 @@ class Conf:
             'div-by-zero',
             'div-overflow',
             'opcode-undefined',
-            'bounds-range-exceeded',
             'breakpoint',
             'debug-register',
             'non-canonical-access',

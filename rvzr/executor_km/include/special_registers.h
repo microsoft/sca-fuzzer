@@ -21,7 +21,6 @@ typedef struct {
     uint64_t lstar;
     uint64_t spec_ctrl;
     uint64_t prefetcher_ctrl;
-    uint64_t mpx_ctrl;
     uint64_t syscfg;
     uint64_t gs_base;
 #elif defined(ARCH_ARM)

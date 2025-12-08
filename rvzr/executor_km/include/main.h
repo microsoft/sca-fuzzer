@@ -38,8 +38,6 @@ extern char pre_run_flush;
 #define PRE_RUN_FLUSH_DEFAULT 1
 extern bool enable_hpa_gpa_collisions;
 #define HPA_GPA_COLLISIONS_DEFAULT false
-extern bool enable_mpx; // MPX - unused on AMD
-#define MPX_DEFAULT false
 extern bool dbg_gpr_mode;
 #define DBG_GPR_MODE_DEFAULT false
 

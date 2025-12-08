@@ -63,7 +63,6 @@ REG_SIZE = {
     'x87status': 16,
     'tsc': 64,
     "tscaux": 64,
-    "bnd0": 128,
     "fsbase": 64,
     "gsbase": 64,
 }
@@ -91,7 +90,6 @@ SAFE_EXTENSIONS = [
     "SSE4a",
     "CLFLUSHOPT",
     "CLFSH",
-    "MPX",
     "SSE",
     "RDTSCP",
     "LONGMODE",

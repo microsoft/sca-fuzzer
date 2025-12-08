@@ -221,19 +221,6 @@ function arm_only() {
     assert_no_violation "$fuzz_opt -t $ASM_DIR/fault_load.asm -c $CONF_DIR/meltdown-verif.yaml -i 5"
 }
 
-@test "Detection [meltdown-type]: #BR speculation (MPX)" {
-    x86_only
-    if ! grep "mpx" /proc/cpuinfo >/dev/null; then
-        skip
-    fi
-    if ! grep "bndcu" $ISA >/dev/null; then
-        skip "MPX instructions not found in $ISA"
-    fi
-    # Note: an arch. violation is expected here if MPX is disabled in the kernel
-    assert_violation_or_arch_fail "$fuzz_opt -t $ASM_DIR/fault_BR.asm -c $CONF_DIR/mpx.yaml -i 2"
-    assert_no_violation "$fuzz_opt -t $ASM_DIR/fault_BR.asm -c $CONF_DIR/mpx-verif.yaml -i 2"
-}
-
 @test "Sequential handling: #DB-instruction" {
     x86_only
     assert_no_violation "$fuzz_opt -t $ASM_DIR/fault_INT1.asm -c $CONF_DIR/exceptions.yaml -i 100"
