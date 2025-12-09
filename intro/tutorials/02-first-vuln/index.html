@@ -1,0 +1,2568 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A security-oriented tool for testing CPUs and detecting microarchitectural leaks like Spectre and Meltdown">
+      
+      
+        <meta name="author" content="Microsoft">
+      
+      
+        <link rel="canonical" href="https://github.com/microsoft/sca-fuzzer/intro/tutorials/02-first-vuln/">
+      
+      
+        <link rel="prev" href="../01-first-fuzz/">
+      
+      
+        <link rel="next" href="../03-faults/">
+      
+      
+      <link rel="icon" href="../../../assets/icon.png">
+      <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.30">
+    
+    
+      
+        <title>Tutorial 2 - First Vulnerability - Revizor</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.3cba04c6.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#tutorial-2-detecting-your-first-vulnerability" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="Revizor" class="md-header__button md-logo" aria-label="Revizor" data-md-component="logo">
+      
+  <img src="../../../assets/icon.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Revizor
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Tutorial 2 - First Vulnerability
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12c0-2.42-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/microsoft/sca-fuzzer" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    microsoft/sca-fuzzer
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../start-here/" class="md-tabs__link">
+        
+  
+    
+  
+  Start Here
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../../structure/" class="md-tabs__link">
+          
+  
+    
+  
+  Documentation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../faq/general/" class="md-tabs__link">
+          
+  
+    
+  
+  FAQ
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../internals/" class="md-tabs__link">
+          
+  
+    
+  
+  Contribute
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="Revizor" class="md-nav__button md-logo" aria-label="Revizor" data-md-component="logo">
+      
+  <img src="../../../assets/icon.png" alt="logo">
+
+    </a>
+    Revizor
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/microsoft/sca-fuzzer" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    microsoft/sca-fuzzer
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../start-here/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Start Here
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Documentation
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Documentation
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../structure/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Documentation Structure
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Getting Started
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            Getting Started
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Revizor at a Glance
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-install/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Installation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-primer/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deep Dive into Concepts
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-tutorials/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview of Tutorials
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01-first-fuzz/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Tutorial 1 - First Campaign
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Tutorial 2 - First Vulnerability
+  </span>
+  
+
+      </a>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03-faults/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Tutorial 3 - Testing Faults
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04-isolation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Tutorial 4 - Testing Isolation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05-extending/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Tutorial 5 - Extending Revizor
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tsa-sq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Extra Tutorial - Detecting TSA-SQ
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    How-To Guides
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            How-To Guides
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../howto/ask-a-question/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Ask a Question
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../howto/choose-contract/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Choose a Contract
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../howto/design-campaign/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Design a Campaign
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../howto/interpret-results/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Interpret Output
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../howto/minimize/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Minimize Violations
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../howto/root-cause-a-violation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Root-Cause a Violation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../howto/use-templates/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Use Templates
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../howto/use-macros/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Use Macros
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Topics
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            Topics
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../topics/contracts/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contracts
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../topics/models/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Leakage Models
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../topics/trace-analysis/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Trace Analysis
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../topics/test-case-generation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Test Case Generation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../topics/actors/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Actors
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Reference
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ref/modes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Modes of Operation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ref/cli/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Command Line Interface
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ref/config/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration Options
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ref/runtime-statistic/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Runtime Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ref/minimization-passes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Minimization Passes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ref/macros/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Macros
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ref/artifact-file-formats/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Artifact File Formats
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ref/binary-formats/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Internal Binary Formats
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ref/registers/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Registers
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ref/sandbox/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sandbox
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../glossary/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Glossary
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    FAQ
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            FAQ
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../faq/general/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    General Questions
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../internals/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Contribute
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Contribute
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Guidelines
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            Guidelines
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../internals/contributing/general/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    General Guidelines
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../internals/contributing/code-style/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Code Style
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../internals/contributing/git/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Git Workflow
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../internals/code-structure/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Code Structure
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_4" id="__nav_4_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Architecture
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_4">
+            <span class="md-nav__icon md-icon"></span>
+            Architecture
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../internals/architecture/overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../internals/architecture/fuzz/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Orchestration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../internals/architecture/isa/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ISA Specification
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../internals/architecture/code/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Test Case Code Generation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../internals/architecture/data/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Test Case Data Generation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../internals/architecture/exec/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Hardware Tracing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../internals/architecture/model/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contract Tracing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../internals/architecture/analysis/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Trace Analysis
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../internals/architecture/mini/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Minimization
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../internals/architecture/logging/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Logging
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_5" id="__nav_4_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Model Backends
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_5">
+            <span class="md-nav__icon md-icon"></span>
+            Model Backends
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../internals/model-backends/model-unicorn/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Unicorn Backend
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../internals/model-backends/model-dr/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    DynamoRIO Backend
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="tutorial-2-detecting-your-first-vulnerability">Tutorial 2: Detecting Your First Vulnerability</h1>
+<p>This tutorial is the first step into actual vulnerability detection. You'll learn how to set up a fuzzing campaign that tests conditional branches. And, most likely, it will end with a detection of Spectre V1.</p>
+<h3 id="testing-workflow">Testing Workflow</h3>
+<p>Before we begin with actual testing, let's take a step back and consider how a typical testing workflow looks like.</p>
+<p>The process of using Revizor normally constitutes of the following steps:</p>
+<ol>
+<li><strong>Design the campaign</strong> by selecting which instructions to test and choosing an appropriate contract that defines what behavior we consider a violation.</li>
+<li><strong>Create a configuration file</strong> that captures these decisions.</li>
+<li><strong>Run the fuzzer</strong> to generate and execute random test cases.</li>
+<li><strong>Validate the violation</strong> to ensure it's genuine and not a false positive.</li>
+<li><strong>Minimize the test case</strong> to remove unnecessary complexity, making it easier to understand.</li>
+<li><strong>Analyze the minimized program</strong> to identify the root cause of the vulnerability.</li>
+</ol>
+<p>In the following, we will go step-by-step through this workflow.</p>
+<h3 id="plan-the-campaign">Plan the campaign</h3>
+<p>Let's imagine we have a new CPU and want to determine if conditional branches produce any information leakage on it. These instructions are infamous for causing Spectre V1, therefore it is always useful to start with them when testing a new CPU.</p>
+<p>The first step is planning our fuzzing campaign strategically.</p>
+<p>For effective testing, we'll focus on a minimal instruction subset rather than the entire ISA. Spectre V1 requires only two capabilities: conditional branches (to trigger misprediction) and memory accesses (to leak information through side channels). By limiting our instruction set to just arithmetic operations and conditional branches, we accomplish two goals. First, the fuzzer will find violations faster because there are fewer instruction combinations to explore. Second, when we do find a violation, it will be much easier to analyze because the test case will be simpler.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Note that this focused approach is <em>not</em> representative of a real fuzzing campaign. This tutorial is intentionally simplified to help with understanding. In a real campaign, you'll need to find balance between having a broad scope (increases changes of finding unknown vulnerabilities) and having focus on specific CPU features (simplifies root-cause analysis). For more guidance on campaign design, see <a href="../../../howto/design-campaign/">How to Design a Fuzzing Campaign</a>.</p>
+</div>
+<p>We'll pair this minimal instruction set with the strictest possible contract—one that forbids any speculation whatsoever. This means Revizor will flag any speculative behavior as a violation. While this contract is more restrictive than what modern CPUs actually guarantee, it's perfect for our purposes. Since we're only testing conditional branches and simple arithmetic, any speculation we detect will almost certainly be Spectre V1.</p>
+<p>With this campaign plan, we are trying to answer a specific question: "Does this CPU leak information through conditional branches?"</p>
+<h3 id="create-the-configuration-file">Create the configuration file</h3>
+<p>Now that we've planned our campaign, let's translate it into a configuration file. Create a YAML file with the following content:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># tested instructions</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nt">instruction_categories</span><span class="p">:</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">BASE-BINARY</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">BASE-COND_BR</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="c1"># contract</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="nt">contract_observation_clause</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">loads+stores+pc</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="nt">contract_execution_clause</span><span class="p">:</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">no_speculation</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="c1"># enable perf. optimizations</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="nt">enable_speculation_filter</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="nt">enable_observation_filter</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="nt">enable_fast_path_model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</code></pre></div>
+<p>The <code>instruction_categories</code> section implements our decision to use a minimal instruction set. We're including <code>BASE-BINARY</code> for arithmetic operations like addition and comparison, and <code>BASE-COND_BR</code> for conditional branches like <code>jz</code> and <code>jne</code>. These two categories give the fuzzer everything it needs to express Spectre V1 patterns.</p>
+<p>The contract configuration consists of two clauses. The <code>contract_observation_clause</code> tells Revizor what microarchitectural side effects to track. We're using <code>loads+stores+pc</code>, which observes memory access addresses and the program counter—exactly what an attacker would monitor through cache timing attacks. The <code>contract_execution_clause</code> defines what execution behavior is allowed. By setting it to <code>no_speculation</code>, we're telling Revizor that any speculative execution is a violation.</p>
+<p>The performance optimization flags at the bottom significantly speed up fuzzing without affecting correctness. The <code>enable_speculation_filter</code> skips test cases that don't trigger speculation at all. The <code>enable_observation_filter</code> skips test cases that leave no observable traces. The <code>enable_fast_path_model</code> allows Revizor to reuse contract traces across similar inputs, reducing the model execution overhead.</p>
+<p>For a complete reference of all configuration options, see the <a href="../../../ref/config/">Configuration Reference</a>.</p>
+<h3 id="run-the-fuzzer">Run the fuzzer</h3>
+<p>Now we're ready to start fuzzing. Run Revizor with the following command:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>./revizor.py fuzz -s base.json -c config.yaml -n 1000 -i 10 -w .
+</code></pre></div>
+<p>This command tells Revizor to run 1000 test cases (<code>-n 1000</code>), with 10 inputs per test case (<code>-i 10</code>), using the ISA specification from <code>base.json</code> (<code>-s</code>) and our configuration file (<code>-c</code>). The <code>-w .</code> flag tells Revizor to save any violations it finds to the current directory.</p>
+<p>As the fuzzer runs, you'll see a continuously updating progress line:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>50    ( 5%)| Stats: Cls:10/10,In:20,R:7,SF:38,OF:6,Fst:6,CN:0,CT:0,P1:0,CS:0,P2:0,V:0
+</code></pre></div>
+<h3 id="view-the-detected-violation">View the detected violation</h3>
+<p>After a minute or so, you should see a violation.
+It will be reported in a format similar to this:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>================================ Violations detected ==========================
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>Violation Details:
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>-----------------------------------------------------------------------------------
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>                             HTrace                              | ID:4   | ID:14 |
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>-----------------------------------------------------------------------------------
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>^......^...^........^.................^...........^............. | 626    | 0     |
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>^......^...^........^........................................... | 1      | 18    |
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>^^.....^...^........^....^...................................... | 0      | 609   |
+</code></pre></div>
+<p>Excellent! We've successfully detected a contract violation. Let's understand what this violation report is telling us.</p>
+<p>The report shows us the violation details in a table format. The header row displays the input IDs that triggered the violation—in this case, inputs 4 and 14:</p>
+<p><code>| ID:4   | ID:14 |</code></p>
+<p>These are two inputs from our test case that the contract predicted would behave identically, but the hardware traces show they behaved differently.</p>
+<p>The three rows below show the different hardware traces that were observed:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>^......^...^........^.................^...........^.............
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>^......^...^........^...........................................
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>^^.....^...^........^....^......................................
+</code></pre></div>
+<p>Each row represents a distinct cache access pattern, visualized as a bitmap where <code>^</code> marks an accessed cache line and <code>.</code> marks an untouched cache line. We're using Prime+Probe cache side channel measurements (default), so each position in the bitmap corresponds to one of the 64 cache sets in the L1D cache. (A cache set is a group of cache lines that compete for the same position in the cache—when the CPU accesses memory at a particular address, the data goes into a specific cache set determined by the address bits.)</p>
+<p>For example, the first trace reads like this:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>Cache Set 0 accessed
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>|          Cache Set 11 accessed
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>|          |                          Cache set 38 accessed
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>|          |                          |
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>^......^...^........^.................^...........^.............
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>       |            |                             |
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>       |            |                             Cache Set 50 accessed
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>       |            Cache Set 20 accessed
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>       Cache Set 7 accessed
+</code></pre></div>
+<p>Finally, the numbers in the columns tell us how often each trace appeared for each input:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>... | 626    | 0     |
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>... | 1      | 18    |
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>... | 0      | 609   |
+</code></pre></div>
+<p>Looking at the first hardware trace we see it appeared 626 times for input 4 but never for input 14. The third trace shows the opposite pattern—0 times for input 4 but 609 times for input 14. This clear separation in the distributions confirms this is a genuine violation, not random noise.</p>
+<p>What we're seeing is a data-dependent cache access pattern. The test case accessed different cache lines depending on the input data, creating an observable side channel. We don't know yet what caused this channel, but we can already tell that it's likely to be caused by speculation; non-speculative cache accesses are permitted by our reference contract, so they wouldn't be reported as violations.</p>
+<p>For more details on interpreting violation reports, see <a href="../../../howto/interpret-results/">How to Interpret Violation Results</a>.</p>
+<h3 id="violation-artifact">Violation Artifact</h3>
+<p>The artifact for this violation is stored in a directory named <code>violation-&lt;timestamp&gt;</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>$<span class="w"> </span>ls<span class="w"> </span>-l<span class="w"> </span>violation-251203-103338
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>input_0000.bin<span class="w">  </span>input_0004.bin<span class="w">  </span>input_0008.bin<span class="w">  </span>input_0012.bin<span class="w">  </span>input_0016.bin<span class="w">  </span>minimize.yaml<span class="w">    </span>reproduce.yaml
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>input_0001.bin<span class="w">  </span>input_0005.bin<span class="w">  </span>input_0009.bin<span class="w">  </span>input_0013.bin<span class="w">  </span>input_0017.bin<span class="w">  </span>org-config.yaml
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>input_0002.bin<span class="w">  </span>input_0006.bin<span class="w">  </span>input_0010.bin<span class="w">  </span>input_0014.bin<span class="w">  </span>input_0018.bin<span class="w">  </span>program.asm
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>input_0003.bin<span class="w">  </span>input_0007.bin<span class="w">  </span>input_0011.bin<span class="w">  </span>input_0015.bin<span class="w">  </span>input_0019.bin<span class="w">  </span>report.txt
+</code></pre></div>
+<p>The <code>program.asm</code> file holds the test case program that triggered the violation. The <code>input_*.bin</code> files contain the input sequence that exposed the leak. The <code>report.txt</code> file provides additional details including hardware and contract traces. The configuration files include <code>org-config.yaml</code> (the original configuration), <code>reproduce.yaml</code> (for reproducing the violation), and <code>minimize.yaml</code> (for test case minimization).</p>
+<h3 id="validate-the-violation">Validate the violation</h3>
+<p>Let's verify this violation is genuine and reproducible. First, we'll move the violation artifacts to a simpler path:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>mv<span class="w"> </span>violation-251203-103338<span class="w"> </span>./violation
+</code></pre></div>
+<p>Now we'll reproduce the violation using the saved artifacts:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>./revizor.py<span class="w"> </span>reproduce<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>./violation/reproduce.yaml<span class="w"> </span>-t<span class="w"> </span>./violation/program.asm<span class="w"> </span>-i<span class="w"> </span>./violation/input*.bin
+</code></pre></div>
+<p>If the violation is genuine, we should see Revizor report it again:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>================================ Violations detected ==========================
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>Violation Details:
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>-----------------------------------------------------------------------------------
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>                             HTrace                              | ID:4   | ID:14 |
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>-----------------------------------------------------------------------------------
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>^......^...^........^.................^...........^............. | 626    | 0     |
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>^......^...^........^........................................... | 1      | 20    |
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>^^.....^...^........^....^...................................... | 0      | 607   |
+</code></pre></div>
+<p>Perfect! The hardware traces are roughly the same as before, confirming this is a stable, reproducible violation.</p>
+<div class="admonition tip">
+<p class="admonition-title">Dealing with False Positives</p>
+<p>In most cases, violations are genuine. However, if you're on a high-noise system, you might occasionally see non-reproducible violations. If this happens, adjust the noise tolerance by increasing <code>analyser_stat_threshold</code> or <code>executor_sample_sizes</code> in your configuration file (see the <a href="../../../ref/config/">Configuration Reference</a> for details), then rerun the fuzzer. Also, consider trying to mitigate the noise, for example by disabling hyperthreading or by turning prefetchers off.</p>
+</div>
+<h3 id="minimize-the-test-case">Minimize the test case</h3>
+<p>Now that we've confirmed the violation is real, let's simplify it for easier analysis. The minimizer will systematically remove unnecessary instructions while keeping the violation reproducible.</p>
+<p>Use the following command. We won't go into it's details now as they are irrelevant to this tutorial. If you're curious, check our <a href="../../../howto/minimize/">How to Minimize</a> guide.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>./revizor.py<span class="w"> </span>minimize<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">    </span>-c<span class="w"> </span>./violation/minimize.yaml<span class="w"> </span>-t<span class="w"> </span>./violation/program.asm<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">    </span>-o<span class="w"> </span>./violation/min.asm<span class="w"> </span>-i<span class="w"> </span><span class="m">10</span><span class="w"> </span>--num-attempts<span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">    </span>--enable-instruction-pass<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">    </span>--enable-simplification-pass<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">    </span>--enable-nop-pass<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="w">    </span>--enable-constant-pass<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="w">    </span>--enable-mask-pass<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="w">    </span>--enable-label-pass<span class="w"> </span><span class="m">1</span>
+</code></pre></div>
+<p>We'll see the minimization progress as it works through multiple passes:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>[PASS 1] Reproducing the violation
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>  &gt; Violation reproduced. Proceeding with minimization
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>  &gt; Violating input IDs: [4, 14]
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>[INFO] Minimization attempt 1/3
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>[PASS 2] Instruction Removal Pass
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>........---...--
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>[PASS 3] Instruction Simplification Pass
+<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>
+<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>--..-
+<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>[PASS 4] NOP Replacement Pass
+<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>
+<a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>(and so on...)
+</code></pre></div>
+<p>This process typically takes 5-10 minutes. Each <code>.</code> indicates a failed removal attempt (the violation disappeared), while each <code>-</code> shows a successful simplification (the violation persisted with fewer instructions). After it finishes, we'll find the minimized program in <code>./violation/min.asm</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="na">.intel_syntax</span><span class="w"> </span><span class="no">noprefix</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="na">.section</span><span class="w"> </span><span class="no">.data.main</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="nl">.function_0:</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="nl">.macro.measurement_start:</span><span class="w"> </span><span class="nf">nop</span><span class="w"> </span><span class="no">qword</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">rax</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="mi">0xff</span><span class="p">]</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="nf">add</span><span class="w"> </span><span class="no">al</span><span class="p">,</span><span class="w"> </span><span class="mi">-118</span><span class="w"> </span><span class="c1"># instrumentation</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="nf">and</span><span class="w"> </span><span class="no">rdi</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="no">b1111111111100</span><span class="w"> </span><span class="c1"># instrumentation</span>
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="nf">adc</span><span class="w"> </span><span class="no">al</span><span class="p">,</span><span class="w"> </span><span class="no">byte</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">r14</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="no">rdi</span><span class="p">]</span>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="nf">mov</span><span class="w"> </span><span class="no">rax</span><span class="p">,</span><span class="w"> </span><span class="mi">-1332388169</span>
+<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="nf">imul</span><span class="w"> </span><span class="no">eax</span><span class="p">,</span><span class="w"> </span><span class="no">eax</span><span class="p">,</span><span class="w"> </span><span class="mi">-75</span>
+<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="nf">and</span><span class="w"> </span><span class="no">rcx</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="no">b1111111111000</span><span class="w"> </span><span class="c1"># instrumentation</span>
+<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="nf">add</span><span class="w"> </span><span class="no">dword</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">r14</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="no">rcx</span><span class="p">],</span><span class="w"> </span><span class="no">eax</span>
+<a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a><span class="nf">and</span><span class="w"> </span><span class="no">rax</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="no">b1111111111000</span><span class="w"> </span><span class="c1"># instrumentation</span>
+<a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a><span class="nf">imul</span><span class="w"> </span><span class="no">qword</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">r14</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="no">rax</span><span class="p">]</span>
+<a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a><span class="nf">and</span><span class="w"> </span><span class="no">rcx</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="no">b1111111000000</span><span class="w"> </span><span class="c1"># instrumentation</span>
+<a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a><span class="na">lock</span><span class="w"> </span><span class="nf">inc</span><span class="w"> </span><span class="no">qword</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">r14</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="no">rcx</span><span class="p">]</span>
+<a id="__codelineno-13-16" name="__codelineno-13-16" href="#__codelineno-13-16"></a><span class="nf">and</span><span class="w"> </span><span class="no">rdi</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="no">b1111111111000</span><span class="w"> </span><span class="c1"># instrumentation</span>
+<a id="__codelineno-13-17" name="__codelineno-13-17" href="#__codelineno-13-17"></a><span class="nf">add</span><span class="w"> </span><span class="no">byte</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">r14</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="no">rdi</span><span class="p">],</span><span class="w"> </span><span class="no">al</span>
+<a id="__codelineno-13-18" name="__codelineno-13-18" href="#__codelineno-13-18"></a><span class="nf">sub</span><span class="w"> </span><span class="no">dl</span><span class="p">,</span><span class="w"> </span><span class="no">al</span>
+<a id="__codelineno-13-19" name="__codelineno-13-19" href="#__codelineno-13-19"></a><span class="nf">jp</span><span class="w"> </span><span class="no">.bb_0.1</span>
+<a id="__codelineno-13-20" name="__codelineno-13-20" href="#__codelineno-13-20"></a><span class="nf">jmp</span><span class="w"> </span><span class="no">.exit_0</span>
+<a id="__codelineno-13-21" name="__codelineno-13-21" href="#__codelineno-13-21"></a><span class="nl">.bb_0.1:</span>
+<a id="__codelineno-13-22" name="__codelineno-13-22" href="#__codelineno-13-22"></a><span class="nf">and</span><span class="w"> </span><span class="no">rbx</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="no">b1111111111000</span><span class="w"> </span><span class="c1"># instrumentation</span>
+<a id="__codelineno-13-23" name="__codelineno-13-23" href="#__codelineno-13-23"></a><span class="nf">cmp</span><span class="w"> </span><span class="no">dword</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">r14</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="no">rbx</span><span class="p">],</span><span class="w"> </span><span class="no">eax</span>
+<a id="__codelineno-13-24" name="__codelineno-13-24" href="#__codelineno-13-24"></a><span class="nf">and</span><span class="w"> </span><span class="no">rdi</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="no">b1111111111000</span><span class="w"> </span><span class="c1"># instrumentation</span>
+<a id="__codelineno-13-25" name="__codelineno-13-25" href="#__codelineno-13-25"></a><span class="nf">cmp</span><span class="w"> </span><span class="no">qword</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">r14</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="no">rdi</span><span class="p">],</span><span class="w"> </span><span class="no">rbx</span>
+<a id="__codelineno-13-26" name="__codelineno-13-26" href="#__codelineno-13-26"></a><span class="nf">and</span><span class="w"> </span><span class="no">rbx</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="no">b1111111000000</span><span class="w"> </span><span class="c1"># instrumentation</span>
+<a id="__codelineno-13-27" name="__codelineno-13-27" href="#__codelineno-13-27"></a><span class="na">lock</span><span class="w"> </span><span class="nf">sub</span><span class="w"> </span><span class="no">word</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">r14</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="no">rbx</span><span class="p">],</span><span class="w"> </span><span class="no">dx</span>
+<a id="__codelineno-13-28" name="__codelineno-13-28" href="#__codelineno-13-28"></a><span class="nf">and</span><span class="w"> </span><span class="no">rbx</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="no">b1111111111000</span><span class="w"> </span><span class="c1"># instrumentation</span>
+<a id="__codelineno-13-29" name="__codelineno-13-29" href="#__codelineno-13-29"></a><span class="nf">dec</span><span class="w"> </span><span class="no">word</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">r14</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="no">rbx</span><span class="p">]</span>
+<a id="__codelineno-13-30" name="__codelineno-13-30" href="#__codelineno-13-30"></a><span class="nf">and</span><span class="w"> </span><span class="no">rsi</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="no">b1111111111000</span><span class="w"> </span><span class="c1"># instrumentation</span>
+<a id="__codelineno-13-31" name="__codelineno-13-31" href="#__codelineno-13-31"></a><span class="nf">neg</span><span class="w"> </span><span class="no">qword</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">r14</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="no">rsi</span><span class="p">]</span>
+<a id="__codelineno-13-32" name="__codelineno-13-32" href="#__codelineno-13-32"></a><span class="nf">and</span><span class="w"> </span><span class="no">rbx</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="no">b1111111111000</span><span class="w"> </span><span class="c1"># instrumentation</span>
+<a id="__codelineno-13-33" name="__codelineno-13-33" href="#__codelineno-13-33"></a><span class="nf">adc</span><span class="w"> </span><span class="no">ax</span><span class="p">,</span><span class="w"> </span><span class="no">word</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">r14</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="no">rbx</span><span class="p">]</span>
+<a id="__codelineno-13-34" name="__codelineno-13-34" href="#__codelineno-13-34"></a><span class="nl">.exit_0:</span>
+<a id="__codelineno-13-35" name="__codelineno-13-35" href="#__codelineno-13-35"></a><span class="nl">.macro.measurement_end:</span><span class="w"> </span><span class="nf">nop</span><span class="w"> </span><span class="no">qword</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">rax</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="mi">0xff</span><span class="p">]</span>
+<a id="__codelineno-13-36" name="__codelineno-13-36" href="#__codelineno-13-36"></a><span class="na">.section</span><span class="w"> </span><span class="no">.data.main</span>
+<a id="__codelineno-13-37" name="__codelineno-13-37" href="#__codelineno-13-37"></a><span class="nl">.test_case_exit:</span><span class="nf">nop</span>
+</code></pre></div>
+<p>Let's verify the minimized program still triggers the violation:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>$<span class="w"> </span>./revizor.py<span class="w"> </span>reproduce<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>./violation/reproduce.yaml<span class="w"> </span>-t<span class="w"> </span>./violation/min.asm<span class="w"> </span>-i<span class="w"> </span>./violation/input*.bin
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>INFO:<span class="w"> </span><span class="o">[</span>prog_gen<span class="o">]</span><span class="w"> </span>Setting<span class="w"> </span>program_generator_seed<span class="w"> </span>to<span class="w"> </span>random<span class="w"> </span>value:<span class="w"> </span><span class="m">112509</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>INFO:<span class="w"> </span><span class="o">[</span>fuzzer<span class="o">]</span><span class="w"> </span>Starting<span class="w"> </span>at<span class="w"> </span><span class="m">11</span>:04:52
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>&gt;<span class="w"> </span>Entering<span class="w"> </span>slow<span class="w"> </span>path...&gt;<span class="w"> </span>Priming<span class="w">  </span><span class="m">1</span><span class="w">             </span>&gt;<span class="w"> </span>Increasing<span class="w"> </span>sample<span class="w"> </span>size...<span class="w"> </span>to<span class="w"> </span><span class="m">50</span>&gt;<span class="w"> </span>Increasing<span class="w"> </span>sample<span class="w"> </span>size...<span class="w"> </span>to<span class="w"> </span><span class="m">100</span>&gt;<span class="w"> </span>Increasing<span class="w"> </span>sample<span class="w"> </span>size...<span class="w"> </span>to<span class="w"> </span><span class="m">500</span>&gt;<span class="w"> </span>Priming<span class="w">  </span><span class="nv">1</span>
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="o">================================</span><span class="w"> </span>Violations<span class="w"> </span><span class="nv">detected</span><span class="w"> </span><span class="o">==========================</span>
+<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>Violation<span class="w"> </span>Details:
+<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a>
+<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a>-----------------------------------------------------------------------------------
+<a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a><span class="w">                             </span>HTrace<span class="w">                              </span><span class="p">|</span><span class="w"> </span>ID:5<span class="w">   </span><span class="p">|</span><span class="w"> </span>ID:15<span class="w"> </span><span class="p">|</span>
+<a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a>-----------------------------------------------------------------------------------
+<a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a>^^................^..^..........................................<span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="m">404</span><span class="w">    </span><span class="p">|</span><span class="w"> </span><span class="m">15</span><span class="w">    </span><span class="p">|</span>
+<a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a>^^.........^....^.^..^..........................................<span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="m">223</span><span class="w">    </span><span class="p">|</span><span class="w"> </span><span class="m">0</span><span class="w">     </span><span class="p">|</span>
+<a id="__codelineno-14-16" name="__codelineno-14-16" href="#__codelineno-14-16"></a>^^................^..^.......^....................^.............<span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="m">0</span><span class="w">      </span><span class="p">|</span><span class="w"> </span><span class="m">612</span><span class="w">   </span><span class="p">|</span>
+</code></pre></div>
+<p>Excellent! The violation still reproduces with the minimized program. We've successfully reduced the test case while preserving the vulnerability.</p>
+<p>The program is still fairly complex, though. Let's run input minimization to identify exactly which values are being leaked.</p>
+<h3 id="analyze-the-leak-through-input-minimization">Analyze the leak through input minimization</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>$<span class="w"> </span>revizor<span class="w"> </span>./revizor.py<span class="w"> </span>minimize<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>./violation/minimize.yaml<span class="w"> </span>-t<span class="w"> </span>./violation/min.asm<span class="w"> </span>-o<span class="w"> </span>./violation/min.asm<span class="w"> </span>-i<span class="w"> </span><span class="m">25</span><span class="w">  </span>--input-outdir<span class="w"> </span>./violation/min-inputs<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="w">    </span>--enable-input-diff-pass<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="w">    </span>--enable-input-seq-pass<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="w">    </span>--enable-instruction-pass<span class="w"> </span><span class="nb">false</span>
+</code></pre></div>
+<p>Among other information, the minimizer prints the leaked values:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>  &gt; Minimizing the difference between inputs 2 and 3
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>Address    +0x0     +0x40    +0x80    +0xc0    +0x100   +0x140   +0x180   +0x1c0
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>0x00000000 ........ ....=... ........ ........ ........ ........ ........ ........
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>0x00000200 ........ ........ ........ ........ ........ ........ ........ ........
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>0x00000400 ........ ........ ........ ........ ........ ........ ........ ........
+<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>0x00000600 ........ ........ ........ ........ ........ ........ ........ ........
+<a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a>0x00000800 ........ ........ ........ ........ ........ ........ ........ ........
+<a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a>0x00000a00 ........ ........ ........ ........ ........ ........ ........ ........
+<a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a>0x00000c00 ........ ........ ........ ........ ........ ........ ........ ........
+<a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a>0x00000e00 ........ ........ ........ ........ ........ ........ ........ ........
+<a id="__codelineno-16-12" name="__codelineno-16-12" href="#__codelineno-16-12"></a>0x00001000 ........ ........ ........ ........ ........ ........ ........ ........
+<a id="__codelineno-16-13" name="__codelineno-16-13" href="#__codelineno-16-13"></a>0x00001200 ........ ........ ........ ........ ........ ........ ........ ........
+<a id="__codelineno-16-14" name="__codelineno-16-14" href="#__codelineno-16-14"></a>0x00001400 ........ ........ ........ ........ ........ ........ ........ ........
+<a id="__codelineno-16-15" name="__codelineno-16-15" href="#__codelineno-16-15"></a>0x00001600 ........ ........ ........ ........ ........ ........ ........ ........
+<a id="__codelineno-16-16" name="__codelineno-16-16" href="#__codelineno-16-16"></a>0x00001800 ........ ........ ........ ........ ........ ........ ........ ........
+<a id="__codelineno-16-17" name="__codelineno-16-17" href="#__codelineno-16-17"></a>0x00001a00 ........ ........ ........ ........ ........ ........ ........ ........
+<a id="__codelineno-16-18" name="__codelineno-16-18" href="#__codelineno-16-18"></a>0x00001c00 ........ ........ ........ ........ ........ ........ ........ ........
+<a id="__codelineno-16-19" name="__codelineno-16-19" href="#__codelineno-16-19"></a>0x00001e00 ........ ........ ........ ........ ........ ........ ........ ........
+<a id="__codelineno-16-20" name="__codelineno-16-20" href="#__codelineno-16-20"></a>0x00002000 ....^...
+<a id="__codelineno-16-21" name="__codelineno-16-21" href="#__codelineno-16-21"></a>0x00002040 ........ ........ ........ ........
+<a id="__codelineno-16-22" name="__codelineno-16-22" href="#__codelineno-16-22"></a>  &gt; Result: Leaked 1 bytes
+<a id="__codelineno-16-23" name="__codelineno-16-23" href="#__codelineno-16-23"></a>  &gt; Addresses: [&#39;0x2020&#39;]
+</code></pre></div>
+<p>There are two bits of information that we learn from here:</p>
+<ul>
+<li>Most of the input has been successfully zeroed-out (<code>.</code>). This means it is likely irrelevant to the leak.</li>
+<li>The only non-zero byte is at address <code>0x2020</code> (marked with <code>^</code>). This is likely the leaked byte.</li>
+</ul>
+<p>To understand how this address maps to the test case, we need to look at the layout of the input: <a href="../../../ref/artifact-file-formats/">here</a>. We can see that the leak is within the GPR region of actor 0 (the only actor in this test case). Specifically, 0x2020 - 0x2000 = 0x20, is the offset used to initialize RSI (GPRs are ordered as: <code>rax</code>, <code>rbx</code>, <code>rcx</code>, <code>rdx</code>, <code>rsi</code>, <code>rdi</code>, <code>flags</code>, <code>rsp</code>).</p>
+<p>Now we just need to find how the test case uses RSI (possibly speculatively), and we will have a good idea of the root-cause of the leak.</p>
+<p>Let's inspect the minimized program in <code>./violation/min.asm</code>:</p>
+<div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-17-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-17-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-17-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-17-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-17-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-17-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-17-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-17-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-17-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-17-10">10</a></span>
+<span class="normal"><a href="#__codelineno-17-11">11</a></span>
+<span class="normal"><a href="#__codelineno-17-12">12</a></span>
+<span class="normal"><a href="#__codelineno-17-13">13</a></span>
+<span class="normal"><a href="#__codelineno-17-14">14</a></span>
+<span class="normal"><a href="#__codelineno-17-15">15</a></span>
+<span class="normal"><a href="#__codelineno-17-16">16</a></span>
+<span class="normal"><a href="#__codelineno-17-17">17</a></span>
+<span class="normal"><a href="#__codelineno-17-18">18</a></span>
+<span class="normal"><a href="#__codelineno-17-19">19</a></span>
+<span class="normal"><a href="#__codelineno-17-20">20</a></span>
+<span class="normal"><a href="#__codelineno-17-21">21</a></span>
+<span class="normal"><a href="#__codelineno-17-22">22</a></span>
+<span class="normal"><a href="#__codelineno-17-23">23</a></span>
+<span class="normal"><a href="#__codelineno-17-24">24</a></span>
+<span class="normal"><a href="#__codelineno-17-25">25</a></span>
+<span class="normal"><a href="#__codelineno-17-26">26</a></span>
+<span class="normal"><a href="#__codelineno-17-27">27</a></span>
+<span class="normal"><a href="#__codelineno-17-28">28</a></span>
+<span class="normal"><a href="#__codelineno-17-29">29</a></span>
+<span class="normal"><a href="#__codelineno-17-30">30</a></span>
+<span class="normal"><a href="#__codelineno-17-31">31</a></span>
+<span class="normal"><a href="#__codelineno-17-32">32</a></span>
+<span class="normal"><a href="#__codelineno-17-33">33</a></span>
+<span class="normal"><a href="#__codelineno-17-34">34</a></span>
+<span class="normal"><a href="#__codelineno-17-35">35</a></span>
+<span class="normal"><a href="#__codelineno-17-36">36</a></span>
+<span class="normal"><a href="#__codelineno-17-37">37</a></span>
+<span class="normal"><a href="#__codelineno-17-38">38</a></span>
+<span class="normal"><a href="#__codelineno-17-39">39</a></span>
+<span class="normal"><a href="#__codelineno-17-40">40</a></span>
+<span class="normal"><a href="#__codelineno-17-41">41</a></span>
+<span class="normal"><a href="#__codelineno-17-42">42</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1"></a><span class="na">.intel_syntax</span><span class="w"> </span><span class="no">noprefix</span>
+<a id="__codelineno-17-2" name="__codelineno-17-2"></a><span class="na">.section</span><span class="w"> </span><span class="no">.data.main</span>
+<a id="__codelineno-17-3" name="__codelineno-17-3"></a><span class="nl">.function_0:</span>
+<a id="__codelineno-17-4" name="__codelineno-17-4"></a><span class="nl">.macro.measurement_start:</span><span class="w"> </span><span class="nf">nop</span><span class="w"> </span><span class="no">qword</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">rax</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="mi">0xff</span><span class="p">]</span>
+<a id="__codelineno-17-5" name="__codelineno-17-5"></a><span class="nf">add</span><span class="w"> </span><span class="no">al</span><span class="p">,</span><span class="w"> </span><span class="mi">-118</span>
+<a id="__codelineno-17-6" name="__codelineno-17-6"></a><span class="nf">and</span><span class="w"> </span><span class="no">rdi</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="no">b1111111111100</span>
+<a id="__codelineno-17-7" name="__codelineno-17-7"></a><span class="nf">adc</span><span class="w"> </span><span class="no">al</span><span class="p">,</span><span class="w"> </span><span class="no">byte</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">r14</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="no">rdi</span><span class="p">]</span>
+<a id="__codelineno-17-8" name="__codelineno-17-8"></a><span class="c1"># mem access: [5] 0x1578 cl 21:56 | [15] 0x1578 cl 21:56</span>
+<a id="__codelineno-17-9" name="__codelineno-17-9"></a><span class="nf">mov</span><span class="w"> </span><span class="no">rax</span><span class="p">,</span><span class="w"> </span><span class="mi">-1332388169</span>
+<a id="__codelineno-17-10" name="__codelineno-17-10"></a><span class="nf">imul</span><span class="w"> </span><span class="no">eax</span><span class="p">,</span><span class="w"> </span><span class="no">eax</span><span class="p">,</span><span class="w"> </span><span class="mi">-75</span>
+<a id="__codelineno-17-11" name="__codelineno-17-11"></a><span class="nf">and</span><span class="w"> </span><span class="no">rcx</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="no">b1111111111000</span>
+<a id="__codelineno-17-12" name="__codelineno-17-12"></a><span class="nf">add</span><span class="w"> </span><span class="no">dword</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">r14</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="no">rcx</span><span class="p">],</span><span class="w"> </span><span class="no">eax</span>
+<a id="__codelineno-17-13" name="__codelineno-17-13"></a><span class="c1"># mem access: [5] 0x2498-0x2498 cl 18:24 | [15] 0x2498-0x2498 cl 18:24</span>
+<a id="__codelineno-17-14" name="__codelineno-17-14"></a><span class="nf">and</span><span class="w"> </span><span class="no">rax</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="no">b1111111111000</span>
+<a id="__codelineno-17-15" name="__codelineno-17-15"></a><span class="nf">imul</span><span class="w"> </span><span class="no">qword</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">r14</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="no">rax</span><span class="p">]</span>
+<a id="__codelineno-17-16" name="__codelineno-17-16"></a><span class="c1"># mem access: [5] 0x1060 cl 1:32 | [15] 0x1060 cl 1:32</span>
+<a id="__codelineno-17-17" name="__codelineno-17-17"></a><span class="nf">and</span><span class="w"> </span><span class="no">rcx</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="no">b1111111000000</span>
+<a id="__codelineno-17-18" name="__codelineno-17-18"></a><span class="na">lock</span><span class="w"> </span><span class="nf">inc</span><span class="w"> </span><span class="no">qword</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">r14</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="no">rcx</span><span class="p">]</span>
+<a id="__codelineno-17-19" name="__codelineno-17-19"></a><span class="c1"># mem access: [5] 0x2480-0x2480 cl 18:0 | [15] 0x2480-0x2480 cl 18:0</span>
+<a id="__codelineno-17-20" name="__codelineno-17-20"></a><span class="nf">and</span><span class="w"> </span><span class="no">rdi</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="no">b1111111111000</span>
+<a id="__codelineno-17-21" name="__codelineno-17-21"></a><span class="nf">add</span><span class="w"> </span><span class="no">byte</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">r14</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="no">rdi</span><span class="p">],</span><span class="w"> </span><span class="no">al</span>
+<a id="__codelineno-17-22" name="__codelineno-17-22"></a><span class="c1"># mem access: [5] 0x1578-0x1578 cl 21:56 | [15] 0x1578-0x1578 cl 21:56</span>
+<a id="__codelineno-17-23" name="__codelineno-17-23"></a><span class="nf">sub</span><span class="w"> </span><span class="no">dl</span><span class="p">,</span><span class="w"> </span><span class="no">al</span>
+<a id="__codelineno-17-24" name="__codelineno-17-24"></a><span class="nf">jp</span><span class="w"> </span><span class="no">.bb_0.1</span>
+<a id="__codelineno-17-25" name="__codelineno-17-25"></a><span class="nf">jmp</span><span class="w"> </span><span class="no">.exit_0</span>
+<a id="__codelineno-17-26" name="__codelineno-17-26"></a><span class="nl">.bb_0.1:</span>
+<a id="__codelineno-17-27" name="__codelineno-17-27"></a><span class="nf">and</span><span class="w"> </span><span class="no">rbx</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="no">b1111111111000</span>
+<a id="__codelineno-17-28" name="__codelineno-17-28"></a><span class="nf">cmp</span><span class="w"> </span><span class="no">dword</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">r14</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="no">rbx</span><span class="p">],</span><span class="w"> </span><span class="no">eax</span>
+<a id="__codelineno-17-29" name="__codelineno-17-29"></a><span class="nf">and</span><span class="w"> </span><span class="no">rdi</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="no">b1111111111000</span>
+<a id="__codelineno-17-30" name="__codelineno-17-30"></a><span class="nf">cmp</span><span class="w"> </span><span class="no">qword</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">r14</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="no">rdi</span><span class="p">],</span><span class="w"> </span><span class="no">rbx</span>
+<a id="__codelineno-17-31" name="__codelineno-17-31"></a><span class="nf">and</span><span class="w"> </span><span class="no">rbx</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="no">b1111111000000</span>
+<a id="__codelineno-17-32" name="__codelineno-17-32"></a><span class="na">lock</span><span class="w"> </span><span class="nf">sub</span><span class="w"> </span><span class="no">word</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">r14</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="no">rbx</span><span class="p">],</span><span class="w"> </span><span class="no">dx</span>
+<a id="__codelineno-17-33" name="__codelineno-17-33"></a><span class="nf">and</span><span class="w"> </span><span class="no">rbx</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="no">b1111111111000</span>
+<a id="__codelineno-17-34" name="__codelineno-17-34"></a><span class="nf">dec</span><span class="w"> </span><span class="no">word</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">r14</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="no">rbx</span><span class="p">]</span>
+<a id="__codelineno-17-35" name="__codelineno-17-35"></a><span class="nf">and</span><span class="w"> </span><span class="no">rsi</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="no">b1111111111000</span>
+<a id="__codelineno-17-36" name="__codelineno-17-36"></a><span class="nf">neg</span><span class="w"> </span><span class="no">qword</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">r14</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="no">rsi</span><span class="p">]</span><span class="w"> </span><span class="c1"># &lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt; HERE: RSI is used here</span>
+<a id="__codelineno-17-37" name="__codelineno-17-37"></a><span class="nf">and</span><span class="w"> </span><span class="no">rbx</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="no">b1111111111000</span>
+<a id="__codelineno-17-38" name="__codelineno-17-38"></a><span class="nf">adc</span><span class="w"> </span><span class="no">ax</span><span class="p">,</span><span class="w"> </span><span class="no">word</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">r14</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="no">rbx</span><span class="p">]</span>
+<a id="__codelineno-17-39" name="__codelineno-17-39"></a><span class="nl">.exit_0:</span>
+<a id="__codelineno-17-40" name="__codelineno-17-40"></a><span class="nl">.macro.measurement_end:</span><span class="w"> </span><span class="nf">nop</span><span class="w"> </span><span class="no">qword</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">rax</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="mi">0xff</span><span class="p">]</span>
+<a id="__codelineno-17-41" name="__codelineno-17-41"></a><span class="na">.section</span><span class="w"> </span><span class="no">.data.main</span>
+<a id="__codelineno-17-42" name="__codelineno-17-42"></a><span class="nl">.test_case_exit:</span><span class="nf">nop</span>
+</code></pre></div></td></tr></table></div>
+<p>We can see that RSI is used in the instruction at line 36:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="nf">neg</span><span class="w"> </span><span class="no">qword</span><span class="w"> </span><span class="no">ptr</span><span class="w"> </span><span class="p">[</span><span class="no">r14</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="no">rsi</span><span class="p">]</span>
+</code></pre></div>
+<p>That already gives most of the information we need. We can see a clear Spectre V1 pattern here:</p>
+<ol>
+<li>There is a conditional branch at line 24 (<code>jp .bb_0.1</code>)</li>
+<li>And a load of a previously-unused value on a mispredicted path (line 36)</li>
+</ol>
+<p>To verify that, let's inspect the actual value of RSI in the violating inputs (inputs 2 and 3 according to the minimizer output above). We can use <code>hexdump</code> for that:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>$<span class="w"> </span>hexdump<span class="w"> </span>-C<span class="w"> </span>./violation/min-inputs/min_input_0002.bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="m">2020</span>
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="m">00002020</span><span class="w">  </span><span class="m">93</span><span class="w"> </span><span class="m">22</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">93</span><span class="w"> </span><span class="m">22</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w">  </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w">  </span><span class="p">|</span>.<span class="s2">&quot;...&quot;</span>..........<span class="p">|</span>
+<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>$<span class="w"> </span>hexdump<span class="w"> </span>-C<span class="w"> </span>./violation/min-inputs/min_input_0003.bin<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="m">2020</span>
+<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="m">00002020</span><span class="w">  </span><span class="m">40</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">40</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w">  </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w"> </span><span class="m">00</span><span class="w">  </span><span class="p">|</span>@...@...........<span class="p">|</span>
+</code></pre></div>
+<p>So the value of RSI were:</p>
+<ul>
+<li>Input 2: <code>rsi=0x0000229300002293</code></li>
+<li>Input 3: <code>rsi=0x0000004000000040</code></li>
+</ul>
+<p>These values were masked by the instruction at line 35:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="nf">and</span><span class="w"> </span><span class="no">rsi</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="no">b1111111111000</span><span class="w"> </span><span class="c1"># instrumentation</span>
+</code></pre></div>
+<p>Which means that the values of RSI used in memory accesses at line 36 were:</p>
+<ul>
+<li>Input 2: <code>0x0000229300002293 &amp; 0b1111111111000 = 0x290</code></li>
+<li>Input 3: <code>0x0000004000000040 &amp; 0b1111111111000 = 0x040</code></li>
+</ul>
+<p>All memory accesses within the test case are relative to <code>r14</code>, which is page-aligned and points to the base of the sandbox memory.</p>
+<p>Therefore, we can calculate the ID of the cache lines accessed by the instruction at line 36 as follows:</p>
+<ul>
+<li>Input 2: cache line ID = <code>0x290 // 0x40 = 0xa = 10</code></li>
+<li>Input 3: cache line ID = <code>0x040 // 0x40 = 0x1 = 1</code></li>
+</ul>
+<p>So, if our hypothesis is correct, we should see that in the hardware trace of the violation, cache lines 10 and 1 were accessed when executing inputs 2 and 3. Let's verify it by running rvzr in the reproduce mode:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>$ ./revizor.py reproduce -s base.json -c ./violation/reproduce.yaml -t ./violation/min.asm -i ./violation/min-inputs/min_input_*.bin
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>
+<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>-----------------------------------------------------------------------------------
+<a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>                             HTrace                              | ID:2   | ID:3  |
+<a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a>-----------------------------------------------------------------------------------
+<a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a>^^........^..................................................... | 626    | 0     |
+<a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a>^^.............................................................. | 1      | 627   |
+</code></pre></div>
+<p>The first hardware trace (dominant for input 2) is:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>^^........^.....................................................
+<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>||        |
+<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>||        Cache set 10 accessed
+<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>|Cache set 1
+<a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a>Cache set 0 accessed
+</code></pre></div>
+<p>The second hardware trace (dominant for input 3) is:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>^^..............................................................
+<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>||
+<a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>| Cache set 1 accessed
+<a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>Cache set 0 accessed
+</code></pre></div>
+<p>Indeed, we see that our hypothesis is correct! The instruction at line 36 accessed different cache lines depending on the value of RSI, which was influenced by speculative execution after the conditional branch at line 24.</p>
+<p>This tells us that the root-cause of the leak was misprediction of a conditional branch that led to speculative leak of a value (RSI) through a data access.</p>
+<h3 id="summary">Summary</h3>
+<p>Congratulations! We've successfully detected and analyzed a Spectre V1 vulnerability from start to finish.</p>
+<div class="admonition success">
+<p class="admonition-title">What We've Learned</p>
+<p>In this section, we've walked through the complete workflow for detecting speculative execution vulnerabilities:</p>
+<ul>
+<li><strong>Strategic planning</strong>: Choosing a minimal instruction set and appropriate contract focused our search</li>
+<li><strong>Violation detection</strong>: Revizor found the vulnerability automatically in under two minutes</li>
+<li><strong>Validation</strong>: Reproduction confirmed the violation was genuine and stable</li>
+<li><strong>Minimization</strong>: We reduced a complex test case to its essential components</li>
+<li><strong>Root-cause analysis</strong>: By examining register values and cache access patterns, we identified the exact mechanism of the leak</li>
+</ul>
+<p>This same workflow applies to discovering and analyzing any speculative execution vulnerability.</p>
+</div>
+<h3 id="whats-next">What's Next?</h3>
+<p>Proceed to <a href="../03-faults/">Tutorial 3</a> to see how the same principles can be applied to detect more complex vulnerabilities based on CPU exceptions and faults.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2025 Microsoft
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.tabs", "toc.integrate", "search.suggest", "search.highlight"], "search": "../../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.fe8b6f2b.min.js"></script>
+      
+    
+  </body>
+</html>
