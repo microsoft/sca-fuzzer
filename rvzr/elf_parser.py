@@ -197,7 +197,7 @@ class _ObjdumpOutputParser:
             section_name = last_word[:-1]
             section_name = section_name.split(".")[2]
             return _ObjdumpSectionDesc(section_name, False)
-        except ValueError as e:
+        except (ValueError, IndexError) as e:
             raise _ParsingError(
                 "Failed to parse objdump output (section_name):\n"
                 f"Issue: Invalid actor label or undefined actor: {last_word}") from e
