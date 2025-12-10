@@ -7,8 +7,7 @@ SPDX-License-Identifier: MIT
 from __future__ import annotations
 import json
 from copy import deepcopy
-from typing import Dict, List, Optional, Any
-from typing_extensions import get_args
+from typing import Dict, List, Optional, Any, get_args
 
 from .instruction_spec import OT, XOT, OperandSpec, InstructionSpec
 from .config import CONF

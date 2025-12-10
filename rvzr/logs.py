@@ -222,9 +222,9 @@ class FuzzLogger:
 
     def start(self, iterations: int, start_time: datetime) -> None:
         """ Print the start message of the fuzzer (namely, the start time) """
+        self.reset(iterations, start_time)
         if not self._conf.info:
             return
-        self.reset(iterations, start_time)
         inform("fuzzer", start_time.strftime('Starting at %H:%M:%S'))
 
     def start_round(self, round_id: int) -> None:

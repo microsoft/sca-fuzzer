@@ -112,7 +112,7 @@ static ssize_t test_case_store(struct kobject *kobj, struct kobj_attribute *attr
 static struct kobj_attribute test_case_attribute = __ATTR(test_case, 0666, NULL, test_case_store);
 
 static ssize_t test_case_bin_read(struct file *file, struct kobject *kobj,
-                                  struct bin_attribute *bin_attr, char *to, loff_t pos,
+                                  const struct bin_attribute *bin_attr, char *to, loff_t pos,
                                   size_t count);
 static struct bin_attribute test_case_bin_attribute = __BIN_ATTR_RO(test_case_bin, 0);
 
@@ -324,7 +324,7 @@ static ssize_t test_case_store(struct kobject *kobj, struct kobj_attribute *attr
 }
 
 static ssize_t test_case_bin_read(struct file *file, struct kobject *kobj,
-                                  struct bin_attribute *bin_attr, char *to, loff_t pos,
+                                  const struct bin_attribute *bin_attr, char *to, loff_t pos,
                                   size_t count)
 {
     loff_t max_pos = n_actors * sizeof(actor_code_t);
