@@ -175,8 +175,8 @@ class TestHTrace(unittest.TestCase):
         # TSC traces
         trace1 = HTrace(np.array([(256, 0, 0, 0, 0, 0)], dtype=RawHTraceSample), "tsc")
         trace2 = HTrace(np.array([(512, 0, 0, 0, 0, 0)], dtype=RawHTraceSample), "tsc")
-        expected = "00000256 [1      | 0     ]\n"\
-                   "00000512 [0      | 1     ]\n"
+        expected = "00000256 | 1      | 0      |\n"\
+                   "00000512 | 0      | 1      |\n"
         self.assertEqual(trace1.full_pair_str(trace2), expected)
 
         # architectural traces
