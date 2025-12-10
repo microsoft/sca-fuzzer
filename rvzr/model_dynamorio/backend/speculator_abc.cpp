@@ -230,7 +230,7 @@ static bool is_supported_reg(const reg_id_t reg)
            (reg >= DR_REG_START_ZMM && reg <= DR_REG_STOP_ZMM);
 }
 
-std::pair<instr_t *, byte *> get_load_inst(void *dc, byte *pc, Decoder &decoder)
+static std::pair<instr_t *, byte *> get_load_inst(void *dc, byte *pc, Decoder &decoder)
 {
     // Decode the instruction and get its next PC
     instr_t *cur_instr = decoder.get_decoded_instr(dc, pc);

@@ -9,7 +9,6 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import List, Tuple, Optional, Set, TYPE_CHECKING, Final, Dict, Type
 
-import re
 import numpy as np
 
 import unicorn as uc

@@ -23,7 +23,7 @@ using dynamorio::droption::droption_t;
 
 static bool validate_tracer(cli_args_t *parsed_args);
 static bool validate_speculator(cli_args_t *parsed_args);
-bool validate_taint_tracker(cli_args_t *parsed_args);
+static bool validate_taint_tracker(cli_args_t *parsed_args);
 
 static const int max_reasonable_nesting = 100;
 static const int max_reasonable_spec_window = 1000;
@@ -247,7 +247,7 @@ bool validate_speculator(cli_args_t *parsed_args)
     return true;
 }
 
-bool validate_taint_tracker(cli_args_t *parsed_args)
+static bool validate_taint_tracker(cli_args_t *parsed_args)
 {
     // Taint tracker is only available for backend mode
     if (parsed_args->enable_taint_tracker and parsed_args->mode != Mode::RVZR_BACKEND) {

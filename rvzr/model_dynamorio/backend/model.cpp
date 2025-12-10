@@ -152,11 +152,11 @@ class InstrumentationStateMachine
     bool exit_found = false;
 };
 
-/// @brief Global state machine instance
+/// @brief State machine instance
 /// @note We have to use a global pointer since it is the only way to make it accessible from
 ///       DynamoRIO callbacks. This is the reason for NOLINT as well.
 /// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-std::unique_ptr<InstrumentationStateMachine> instrumentation_state_machine = nullptr;
+static std::unique_ptr<InstrumentationStateMachine> instrumentation_state_machine = nullptr;
 
 // =================================================================================================
 // Event callbacks
