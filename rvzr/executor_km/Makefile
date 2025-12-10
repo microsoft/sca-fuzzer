@@ -68,28 +68,36 @@ $(NAME)-objs += $(SRC_:.c=.o) $(ASM_:.S=.o)
 # Flags
 # ==================================================================================================
 # Common build flags
-EXTRA_CFLAGS += -I$(src)/include
-EXTRA_CFLAGS += -std=gnu11 -Wno-declaration-after-statement -Wno-comment
-EXTRA_CFLAGS += -g -DDEBUG
-EXTRA_CFLAGS += -DVENDOR_ID=$(VENDOR_ID)
-EXTRA_CFLAGS += -DFORCE_SMAP_OFF
-EXTRA_CFLAGS += -DPHYSICAL_WIDTH=$(PHYSICAL_WIDTH)
-EXTRA_CFLAGS += -DL1D_ASSOCIATIVITY=$(L1D_ASSOCIATIVITY)
-EXTRA_CFLAGS += -DL1D_SIZE_KB=$(L1D_SIZE_KB)
+COMMON_CFLAGS := -I$(src)/include
+COMMON_CFLAGS += -std=gnu11 -Wno-declaration-after-statement -Wno-comment
+COMMON_CFLAGS += -g -DDEBUG
+COMMON_CFLAGS += -DVENDOR_ID=$(VENDOR_ID)
+COMMON_CFLAGS += -DFORCE_SMAP_OFF
+COMMON_CFLAGS += -DPHYSICAL_WIDTH=$(PHYSICAL_WIDTH)
+COMMON_CFLAGS += -DL1D_ASSOCIATIVITY=$(L1D_ASSOCIATIVITY)
+COMMON_CFLAGS += -DL1D_SIZE_KB=$(L1D_SIZE_KB)
 
 ifeq ($(VENDOR_ID), 1)
-EXTRA_CFLAGS += -msse2
+COMMON_CFLAGS += -msse2
 else ifeq ($(VENDOR_ID), 2)
-EXTRA_CFLAGS += -msse2
+COMMON_CFLAGS += -msse2
 endif
 
 ifdef VMBUILD
-EXTRA_CFLAGS += -DVMBUILD
+COMMON_CFLAGS += -DVMBUILD
 endif
 
-EXTRA_AFLAGS += -I$(src)/include
-EXTRA_AFLAGS += -DVENDOR_ID=$(VENDOR_ID) -DPHYSICAL_WIDTH=$(PHYSICAL_WIDTH)
-EXTRA_AFLAGS += -DL1D_ASSOCIATIVITY=$(L1D_ASSOCIATIVITY) -DL1D_SIZE_KB=$(L1D_SIZE_KB)
+# Set both EXTRA_CFLAGS (old kernels) and ccflags-y (new kernels) for compatibility
+EXTRA_CFLAGS += $(COMMON_CFLAGS)
+ccflags-y += $(COMMON_CFLAGS)
+
+COMMON_AFLAGS := -I$(src)/include
+COMMON_AFLAGS += -DVENDOR_ID=$(VENDOR_ID) -DPHYSICAL_WIDTH=$(PHYSICAL_WIDTH)
+COMMON_AFLAGS += -DL1D_ASSOCIATIVITY=$(L1D_ASSOCIATIVITY) -DL1D_SIZE_KB=$(L1D_SIZE_KB)
+
+# Set both EXTRA_AFLAGS (old kernels) and asflags-y (new kernels) for compatibility
+EXTRA_AFLAGS += $(COMMON_AFLAGS)
+asflags-y += $(COMMON_AFLAGS)
 
 # ==================================================================================================
 # Workarounds

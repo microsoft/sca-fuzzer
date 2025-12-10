@@ -33,9 +33,6 @@ class X86IntelExecutor(Executor):
     def _set_vendor_specific_features(self) -> None:
         _set_x86_common_features()
 
-        handled_faults = CONF._handled_faults  # pylint: disable=protected-access  # FIXME
-        km_write("1" if "BR" in handled_faults else "0", "/sys/rvzr_executor/enable_mpx")
-
 
 class X86AMDExecutor(Executor):
     """ AMD-specific implementation of the executor """

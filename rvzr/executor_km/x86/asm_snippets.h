@@ -173,31 +173,27 @@
 #define SET_REGISTER_FROM_INPUT()\
     asm volatile("\n.intel_syntax noprefix\n" \
     "lea rsp, [r14 + "xstr(REG_INIT_OFFSET)"]\n" \
-    "popq rax \n" \
-    "popq rbx \n" \
-    "popq rcx \n" \
-    "popq rdx \n" \
-    "popq rsi \n" \
-    "popq rdi \n" \
+    "pop rax \n" \
+    "pop rbx \n" \
+    "pop rcx \n" \
+    "pop rdx \n" \
+    "pop rsi \n" \
+    "pop rdi \n" \
     "popfq \n" \
     "lea rsp, [r14 + "xstr(LOCAL_RSP_OFFSET)"]\n" \
     "mov rbp, rsp \n" \
-    "bndmk bnd0, [r14 + 0x1000]\n" \
-    "bndmk bnd1, [r14 + 0x1000]\n" \
-    "bndmk bnd2, [r14 + 0x1000]\n" \
-    "bndmk bnd3, [r14 + 0x1000]\n" \
     ".att_syntax noprefix");
 
 #elif VENDOR_ID == 2 // AMD
 #define SET_REGISTER_FROM_INPUT()\
     asm volatile("\n.intel_syntax noprefix\n" \
     "lea rsp, [r14 + "xstr(REG_INIT_OFFSET)"]\n" \
-    "popq rax \n" \
-    "popq rbx \n" \
-    "popq rcx \n" \
-    "popq rdx \n" \
-    "popq rsi \n" \
-    "popq rdi \n" \
+    "pop rax \n" \
+    "pop rbx \n" \
+    "pop rcx \n" \
+    "pop rdx \n" \
+    "pop rsi \n" \
+    "pop rdi \n" \
     "popfq \n" \
     "lea rsp, [r14 + "xstr(LOCAL_RSP_OFFSET)"]\n" \
     "mov rbp, rsp \n" \

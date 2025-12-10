@@ -6,7 +6,6 @@ SPDX-License-Identifier: MIT
 """
 from __future__ import annotations
 
-from subprocess import run
 from typing import List, Generator, TYPE_CHECKING
 from contextlib import contextmanager
 import tempfile
@@ -206,8 +205,6 @@ def _update_instruction_list() -> None:
     """
     if 'opcode-undefined' not in CONF.generator_faults_allowlist:
         CONF.instruction_blocklist.extend(["ud", "ud2"])
-    if 'bounds-range-exceeded' not in CONF.generator_faults_allowlist:
-        CONF.instruction_blocklist.extend(['bound', 'bndcl', 'bndcu'])
     if 'breakpoint' not in CONF.generator_faults_allowlist:
         CONF.instruction_blocklist.extend(["int3"])
     if 'debug-register' not in CONF.generator_faults_allowlist:
@@ -216,8 +213,6 @@ def _update_instruction_list() -> None:
 
 def _check_instruction_list(instruction_set: InstructionSet) -> None:
     """ Check if the instruction set contains the instructions required for the faults """
-    cpu_flags = run(
-        "grep 'flags' /proc/cpuinfo", shell=True, capture_output=True, check=True).stdout.decode()
     all_instruction_names = {i.name for i in instruction_set.instructions}
     if 'div-by-zero' in CONF.generator_faults_allowlist:
         if 'div' not in all_instruction_names and 'idiv' not in all_instruction_names:
@@ -225,10 +220,6 @@ def _check_instruction_list(instruction_set: InstructionSet) -> None:
     if 'div-overflow' in CONF.generator_faults_allowlist:
         if 'div' not in all_instruction_names and 'idiv' not in all_instruction_names:
             warning("fuzzer", "div-overflow enabled, but DIV/IDIV instructions are missing")
-    if 'bounds-range-exceeded' in CONF.generator_faults_allowlist:
-        if "bndcu" not in all_instruction_names:
-            warning("fuzzer", "bounds-range-exceeded enabled, but BNDCU instruction is missing")
-        assert "mpx" in cpu_flags
     if 'breakpoint' in CONF.generator_faults_allowlist:
         if 'int3' not in all_instruction_names:
             warning("fuzzer", "breakpoint enabled, but INT3 instruction is missing")

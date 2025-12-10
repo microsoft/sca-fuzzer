@@ -108,7 +108,7 @@ _option_values = {
         # Misc
         "CLFLUSHOPT-CLFLUSHOPT",
         "CLFSH-MISC",
-        "MPX-MPX",
+        # "MPX-MPX",  # no longer supported
         "SMX-SYSTEM",
         "VTX-VTX",
         "XSAVE-XSAVE",
@@ -311,7 +311,6 @@ _generator_fault_to_fault_name = {
     'div-by-zero': "DE",
     'div-overflow': "DE",
     'opcode-undefined': "UD",
-    'bounds-range-exceeded': "BR",
     'breakpoint': "BP",
     'debug-register': "DB",
     'non-canonical-access': "GP",

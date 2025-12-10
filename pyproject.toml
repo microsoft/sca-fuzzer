@@ -27,7 +27,7 @@ dependencies = [
     "mypy",
     "pylint",
     "flake8",
-    "setuptools",
+    "setuptools<80",  # To avoid deprecation warnings cased by Unicorn
     "cffi",
     "types-cffi",
 ]

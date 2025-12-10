@@ -24,6 +24,11 @@
 // =================================================================================================
 #if defined(ARCH_X86_64)
 
+// Kernel Constant Compatibility
+#ifndef VMX_BASIC_MEM_TYPE_WB
+#define VMX_BASIC_MEM_TYPE_WB 6LLU
+#endif
+
 // Memory layout within the guest memory
 typedef struct {
     pte_t_ l1[ENTRIES_PER_PAGE];  // PT

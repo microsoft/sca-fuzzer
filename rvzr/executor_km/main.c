@@ -75,7 +75,6 @@ bool quick_and_dirty_mode = false;
 long uarch_reset_rounds = UARCH_RESET_ROUNDS_DEFAULT;
 bool enable_ssbp_patch = SSBP_PATCH_DEFAULT;
 bool enable_prefetchers = PREFETCHER_DEFAULT;
-bool enable_mpx = MPX_DEFAULT; // unused on AMD
 char pre_run_flush = PRE_RUN_FLUSH_DEFAULT;
 bool enable_hpa_gpa_collisions = HPA_GPA_COLLISIONS_DEFAULT;
 measurement_mode_e measurement_mode = MEASUREMENT_MODE_DEFAULT;
@@ -113,7 +112,7 @@ static ssize_t test_case_store(struct kobject *kobj, struct kobj_attribute *attr
 static struct kobj_attribute test_case_attribute = __ATTR(test_case, 0666, NULL, test_case_store);
 
 static ssize_t test_case_bin_read(struct file *file, struct kobject *kobj,
-                                  struct bin_attribute *bin_attr, char *to, loff_t pos,
+                                  const struct bin_attribute *bin_attr, char *to, loff_t pos,
                                   size_t count);
 static struct bin_attribute test_case_bin_attribute = __BIN_ATTR_RO(test_case_bin, 0);
 
@@ -170,15 +169,6 @@ static ssize_t enable_hpa_gpa_collisions_store(struct kobject *kobj, struct kobj
 static struct kobj_attribute enable_hpa_gpa_collisions_attribute =
     __ATTR(enable_hpa_gpa_collisions, 0666, NULL, enable_hpa_gpa_collisions_store);
 
-/// Vendor-specific features
-#if VENDOR_ID == 1 // Intel
-// MPX control
-static ssize_t enable_mpx_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf,
-                                size_t count);
-static struct kobj_attribute enable_mpx_attribute =
-    __ATTR(enable_mpx, 0666, NULL, enable_mpx_store);
-#endif
-
 /// Measurement template selector
 ///
 static ssize_t measurement_mode_store(struct kobject *kobj, struct kobj_attribute *attr,
@@ -226,9 +216,6 @@ static struct attribute *sysfs_attributes[] = {
     &dbg_dump_attribute.attr,
     &dbg_guest_page_tables_attribute.attr,
     &enable_hpa_gpa_collisions_attribute.attr,
-#if VENDOR_ID == 1 // Intel
-    &enable_mpx_attribute.attr,
-#endif
     NULL, /* need to NULL terminate the list of attributes */
 };
 
@@ -337,7 +324,7 @@ static ssize_t test_case_store(struct kobject *kobj, struct kobj_attribute *attr
 }
 
 static ssize_t test_case_bin_read(struct file *file, struct kobject *kobj,
-                                  struct bin_attribute *bin_attr, char *to, loff_t pos,
+                                  const struct bin_attribute *bin_attr, char *to, loff_t pos,
                                   size_t count)
 {
     loff_t max_pos = n_actors * sizeof(actor_code_t);
@@ -428,18 +415,6 @@ static ssize_t enable_hpa_gpa_collisions_store(struct kobject *kobj, struct kobj
     enable_hpa_gpa_collisions = (value == 0) ? false : true;
     return count;
 }
-
-#if VENDOR_ID == 1 // Intel
-// This function is unused on AMD
-static ssize_t enable_mpx_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf,
-                                size_t count)
-{
-    unsigned value = 0;
-    sscanf(buf, "%u", &value);
-    enable_mpx = (value == 0) ? false : true;
-    return count;
-}
-#endif // VENDOR_ID == 1
 
 static ssize_t measurement_mode_store(struct kobject *kobj, struct kobj_attribute *attr,
                                       const char *buf, size_t count)
@@ -535,7 +510,6 @@ static ssize_t dbg_dump_show(struct kobject *kobj, struct kobj_attribute *attr, 
     len += sprintf(&buf[len], "enable_ssbp_patch: %d\n", enable_ssbp_patch);
     len += sprintf(&buf[len], "enable_prefetchers: %d\n", enable_prefetchers);
     len += sprintf(&buf[len], "pre_run_flush: %d\n", pre_run_flush);
-    len += sprintf(&buf[len], "enable_mpx: %d\n", enable_mpx);
     return len;
 }
 

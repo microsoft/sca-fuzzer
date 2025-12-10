@@ -33,7 +33,13 @@
 
 // MSR access
 #if defined(ARCH_X86_64)
+// Kernel 6.16+ changed native_write_msr signature from (msr, low, high) to (msr, val)
+#include <linux/version.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 16, 0)
+#define wrmsr64(msr, value) native_write_msr(msr, value)
+#else
 #define wrmsr64(msr, value) native_write_msr(msr, (uint32_t)value, (uint32_t)(value >> 32))
+#endif
 #define rdmsr64(msr)        native_read_msr(msr)
 #elif defined(ARCH_ARM)
 #define write_msr(NAME, VALUE) asm volatile("msr " NAME ", %0\n isb\n" ::"r"(VALUE));

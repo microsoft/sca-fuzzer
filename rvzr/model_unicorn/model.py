@@ -9,7 +9,6 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import List, Tuple, Optional, Set, TYPE_CHECKING, Final, Dict, Type
 
-import re
 import numpy as np
 
 import unicorn as uc
@@ -614,22 +613,6 @@ class X86UnicornModel(UnicornModel):
                 continue
         for i, simd_value in enumerate(simd_values):
             em.reg_write(self._uc_target_desc.usable_simd128_registers[i], simd_value)
-
-    def instruction_callback(self, address: int, size: int) -> None:
-        super().instruction_callback(address, size)
-
-        # workaround for Unicorn not enabling MPX
-        inst = self.state.current_instruction
-        if inst.name == "bndcu":
-            mem_op = inst.get_agen_operands()[0]
-            mem_regs = re.split(r'\+|-|\*', mem_op.value)
-            assert len(mem_regs) == 2 and "r14" in mem_regs[0].lower(), "Invalid format of BNDCU"
-            offset_reg = self._uc_target_desc.reg_str_to_constant.get(mem_regs[1].lower().strip(),
-                                                                      None)
-            if offset_reg and self.emulator.reg_read(offset_reg) > 0x1000:  # type: ignore
-                self.do_soft_fault(13)
-            elif re.match("(0[bx])?[0-9]+", mem_regs[1]) and int(mem_regs[1]) > 0x1000:
-                self.do_soft_fault(13)
 
     def print_registers(self, oneline: bool = False) -> None:
 
