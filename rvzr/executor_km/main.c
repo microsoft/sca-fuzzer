@@ -42,6 +42,9 @@
 #include <asm/cpufeature.h>
 #endif
 
+// =================================================================================================
+// Kernel compatibility handling
+
 // Version-dependent includes
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 6)
 #ifdef ARCH_X86_64
@@ -66,6 +69,13 @@ int (*set_memory_nx)(unsigned long, int) = 0;
 struct mm_struct init_mm = {0};
 #else
 #include <linux/set_memory.h>
+#endif
+
+// Version-dependent definitions
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 11, 0)
+#define bin_attr_t const struct bin_attribute
+#else
+#define bin_attr_t struct bin_attribute
 #endif
 
 // =================================================================================================
@@ -111,9 +121,8 @@ static ssize_t test_case_store(struct kobject *kobj, struct kobj_attribute *attr
                                size_t count);
 static struct kobj_attribute test_case_attribute = __ATTR(test_case, 0666, NULL, test_case_store);
 
-static ssize_t test_case_bin_read(struct file *file, struct kobject *kobj,
-                                  const struct bin_attribute *bin_attr, char *to, loff_t pos,
-                                  size_t count);
+static ssize_t test_case_bin_read(struct file *file, struct kobject *kobj, bin_attr_t *bin_attr,
+                                  char *to, loff_t pos, size_t count);
 static struct bin_attribute test_case_bin_attribute = __BIN_ATTR_RO(test_case_bin, 0);
 
 /// Loading inputs
@@ -323,9 +332,8 @@ static ssize_t test_case_store(struct kobject *kobj, struct kobj_attribute *attr
     return consumed_bytes;
 }
 
-static ssize_t test_case_bin_read(struct file *file, struct kobject *kobj,
-                                  const struct bin_attribute *bin_attr, char *to, loff_t pos,
-                                  size_t count)
+static ssize_t test_case_bin_read(struct file *file, struct kobject *kobj, bin_attr_t *bin_attr,
+                                  char *to, loff_t pos, size_t count)
 {
     loff_t max_pos = n_actors * sizeof(actor_code_t);
     if (pos > max_pos)
