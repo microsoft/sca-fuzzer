@@ -1,0 +1,35 @@
+# This workflow will build the kernel module on multiple Ubuntu versions
+name: Kmodule Build
+
+on:
+  push:
+    branches:
+      - main
+      - main-fixes
+      - pre-release
+      - dev
+  pull_request:
+    branches:
+      - main
+      - main-fixes
+      - pre-release
+      - dev
+
+jobs:
+  km_build_latest:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build kernel module
+      run: cd rvzr/executor_km && make
+  km_build_backward_compatible:
+    runs-on: ubuntu-18.04
+    strategy:
+      fail-fast: false
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build kernel module
+      run: cd rvzr/executor_km && make
