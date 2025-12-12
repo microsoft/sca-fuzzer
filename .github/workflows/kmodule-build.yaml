@@ -16,46 +16,31 @@ on:
       - dev
 
 jobs:
-  km_build_x86_latest:
-    runs-on: ubuntu-latest
+  km_build:
     strategy:
       fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            name: x86_latest
+          - runner: ubuntu-22.04
+            name: x86_backward_compatible
+          - runner: ubuntu-24.04-arm
+            name: arm_latest
+          - runner: ubuntu-22.04-arm
+            name: arm_backward_compatible
+    runs-on: ${{ matrix.runner }}
+    name: km_build_${{ matrix.name }}
     steps:
     - uses: actions/checkout@v4
     - name: Install kernel headers
       run: sudo apt-get update && sudo apt-get install -y linux-headers-$(uname -r) linux-headers-generic
     - name: Build kernel module
-      run: cd rvzr/executor_km && make VMBUILD=1
-
-  km_build_x86_backward_compatible:
-    runs-on: ubuntu-20.04
-    strategy:
-      fail-fast: false
-    steps:
-    - uses: actions/checkout@v4
-    - name: Install kernel headers
-      run: sudo apt-get update && sudo apt-get install -y linux-headers-$(uname -r) linux-headers-generic
-    - name: Build kernel module
-      run: cd rvzr/executor_km && make VMBUILD=1
-
-  km_build_arm_latest:
-    runs-on: ubuntu-24.04-arm
-    strategy:
-      fail-fast: false
-    steps:
-    - uses: actions/checkout@v4
-    - name: Install kernel headers
-      run: sudo apt-get update && sudo apt-get install -y linux-headers-$(uname -r) linux-headers-generic
-    - name: Build kernel module
-      run: cd rvzr/executor_km && make VMBUILD=1
-
-  km_build_arm_backward_compatible:
-    runs-on: ubuntu-22.04-arm
-    strategy:
-      fail-fast: false
-    steps:
-    - uses: actions/checkout@v4
-    - name: Install kernel headers
-      run: sudo apt-get update && sudo apt-get install -y linux-headers-$(uname -r) linux-headers-generic
-    - name: Build kernel module
-      run: cd rvzr/executor_km && make VMBUILD=1
+      run: |
+        set -o pipefail
+        cd rvzr/executor_km
+        make VMBUILD=1 2>&1 | tee build.log
+        if grep -q "Error" build.log; then
+          echo "Build failed"
+          exit 1
+        fi
