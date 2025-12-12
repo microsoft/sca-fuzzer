@@ -72,7 +72,7 @@ struct mm_struct init_mm = {0};
 #endif
 
 // Version-dependent definitions
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 11, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 14, 0)
 #define bin_attr_t const struct bin_attribute
 #else
 #define bin_attr_t struct bin_attribute
