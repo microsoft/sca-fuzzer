@@ -23,13 +23,17 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    - name: Install kernel headers
+      run: sudo apt-get update && sudo apt-get install -y linux-headers-$(uname -r) linux-headers-generic
     - name: Build kernel module
-      run: cd rvzr/executor_km && make
+      run: cd rvzr/executor_km && make VMBUILD=1
   km_build_backward_compatible:
     runs-on: ubuntu-18.04
     strategy:
       fail-fast: false
     steps:
     - uses: actions/checkout@v4
+    - name: Install kernel headers
+      run: sudo apt-get update && sudo apt-get install -y linux-headers-$(uname -r) linux-headers-generic
     - name: Build kernel module
-      run: cd rvzr/executor_km && make
+      run: cd rvzr/executor_km && make VMBUILD=1
