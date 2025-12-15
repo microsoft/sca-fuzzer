@@ -203,27 +203,27 @@ def _update_instruction_list() -> None:
     This functionality is implemented as a module-level function
     to avoid code duplication between X86Fuzzer and X86ArchitecturalFuzzer
     """
-    if 'opcode-undefined' not in CONF.generator_faults_allowlist:
+    if 'opcode-undefined' not in CONF.faults_allowlist:
         CONF.instruction_blocklist.extend(["ud", "ud2"])
-    if 'breakpoint' not in CONF.generator_faults_allowlist:
+    if 'breakpoint' not in CONF.faults_allowlist:
         CONF.instruction_blocklist.extend(["int3"])
-    if 'debug-register' not in CONF.generator_faults_allowlist:
+    if 'debug-register' not in CONF.faults_allowlist:
         CONF.instruction_blocklist.extend(["int1"])
 
 
 def _check_instruction_list(instruction_set: InstructionSet) -> None:
     """ Check if the instruction set contains the instructions required for the faults """
     all_instruction_names = {i.name for i in instruction_set.instructions}
-    if 'div-by-zero' in CONF.generator_faults_allowlist:
+    if 'div-by-zero' in CONF.faults_allowlist:
         if 'div' not in all_instruction_names and 'idiv' not in all_instruction_names:
             warning("fuzzer", "div-by-zero enabled, but DIV/IDIV instructions are missing")
-    if 'div-overflow' in CONF.generator_faults_allowlist:
+    if 'div-overflow' in CONF.faults_allowlist:
         if 'div' not in all_instruction_names and 'idiv' not in all_instruction_names:
             warning("fuzzer", "div-overflow enabled, but DIV/IDIV instructions are missing")
-    if 'breakpoint' in CONF.generator_faults_allowlist:
+    if 'breakpoint' in CONF.faults_allowlist:
         if 'int3' not in all_instruction_names:
             warning("fuzzer", "breakpoint enabled, but INT3 instruction is missing")
-    if 'debug-register' in CONF.generator_faults_allowlist:
+    if 'debug-register' in CONF.faults_allowlist:
         if 'int1' not in all_instruction_names:
             warning("fuzzer", "debug-register enabled, but INT1 instruction is missing")
 

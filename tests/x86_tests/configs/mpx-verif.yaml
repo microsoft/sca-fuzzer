@@ -1,5 +1,5 @@
 file: !include common.yaml
 file: !include ct-deh.yaml
 
-generator_faults_allowlist:
+faults_allowlist:
   - bounds-range-exceeded

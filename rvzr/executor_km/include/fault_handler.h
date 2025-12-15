@@ -23,9 +23,8 @@ struct idt_data {
 
 #include <../arch/x86/include/asm/traps.h>
 
-#define HANDLED_FAULTS_DEFAULT                                                                     \
-    ((1 << X86_TRAP_DE) + (1 << X86_TRAP_DB) + (1 << X86_TRAP_BP) + (1 << X86_TRAP_BR) +           \
-     (1 << X86_TRAP_UD) + (1 << X86_TRAP_GP) + (1 << X86_TRAP_PF) + (1 << X86_TRAP_AC))
+// By default, we handle General Protection Fault and Page Fault
+#define HANDLED_FAULTS_DEFAULT ((1 << X86_TRAP_GP) | (1 << X86_TRAP_PF))
 
 #elif defined(ARCH_ARM)
 

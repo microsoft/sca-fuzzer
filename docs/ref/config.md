@@ -342,13 +342,13 @@ This option is helps a lot with readability, but may produce corrupted output wh
     === "Available Options"
         Any register supported by the target CPU.
 
-#### `generator_faults_allowlist`
+#### `faults_allowlist`
 
 :   <span class="inline-box" title="Default Value">:material-water: `[]`</span> By default, the generator will produce programs that never trigger exceptions. This option modifies this behavior by permitting the generator to produce 'unsafe' instruction sequences that could potentially trigger an exception. The model and executor will also be configured to handle these exceptions gracefully.
 
     === "Syntax"
         ```yaml
-        generator_faults_allowlist:
+        faults_allowlist:
           - <fault1>
           - <fault2>
           ...
@@ -517,7 +517,7 @@ The following options are available for each actor:
 :   For example, when using `user-to-kernel-access`, you typically want to add it to the kernel actor's `fault_blocklist` to prevent the kernel from accessing its own memory (which would not be a cross-privilege access).
 
     !!! info "Priority"
-        This list has priority over the global `generator_faults_allowlist` and modifies the fault-inducing instrumentation for the specific actor.
+        This list has priority over the global `faults_allowlist` and modifies the fault-inducing instrumentation for the specific actor.
 
     === "Syntax"
         ```yaml
@@ -529,7 +529,7 @@ The following options are available for each actor:
                 ...
         ```
     === "Available Options"
-        See [`generator_faults_allowlist`](#generator_faults_allowlist) for the list of available faults.
+        See [`faults_allowlist`](#faults_allowlist) for the list of available faults.
 
 
 ## <a name="data-generator"></a> Data Generator Configuration

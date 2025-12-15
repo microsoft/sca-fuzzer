@@ -192,6 +192,14 @@ static ssize_t enable_quick_and_dirty_mode(struct kobject *kobj, struct kobj_att
 static struct kobj_attribute enable_quick_and_dirty_mode_attribute =
     __ATTR(enable_quick_and_dirty_mode, 0666, NULL, enable_quick_and_dirty_mode);
 
+/// Setting which faults should be handled within the test case
+///
+static ssize_t handled_faults_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf);
+static ssize_t handled_faults_store(struct kobject *kobj, struct kobj_attribute *attr,
+                                    const char *buf, size_t count);
+static struct kobj_attribute handled_faults_attribute =
+    __ATTR(handled_faults, 0666, handled_faults_show, handled_faults_store);
+
 /// Debug GPR mode selector
 ///
 static ssize_t enable_dbg_gpr_mode(struct kobject *kobj, struct kobj_attribute *attr,
@@ -222,6 +230,7 @@ static struct attribute *sysfs_attributes[] = {
     &measurement_mode_attribute.attr,
     &enable_quick_and_dirty_mode_attribute.attr,
     &enable_dbg_gpr_mode_attribute.attr,
+    &handled_faults_attribute.attr,
     &dbg_dump_attribute.attr,
     &dbg_guest_page_tables_attribute.attr,
     &enable_hpa_gpa_collisions_attribute.attr,
@@ -492,6 +501,22 @@ static ssize_t enable_dbg_gpr_mode(struct kobject *kobj, struct kobj_attribute *
     unsigned value = 0;
     sscanf(buf, "%u", &value);
     dbg_gpr_mode = (value == 0) ? false : true;
+    return count;
+}
+
+static ssize_t handled_faults_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+{
+    return sprintf(buf, "0x%llx\n", (unsigned long long)handled_faults);
+}
+
+static ssize_t handled_faults_store(struct kobject *kobj, struct kobj_attribute *attr,
+                                    const char *buf, size_t count)
+{
+    unsigned long long value;
+    if (sscanf(buf, "%lld", &value) != 1)
+        return -EINVAL;
+
+    handled_faults = value | HANDLED_FAULTS_DEFAULT;
     return count;
 }
 

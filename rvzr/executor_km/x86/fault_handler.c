@@ -459,7 +459,6 @@ __attribute__((unused)) void run_experiment_handler_wrapper(void)
 // =================================================================================================
 int init_fault_handler(void)
 {
-    handled_faults = HANDLED_FAULTS_DEFAULT;
     fault_handler = (void *)fallback_handler;
 
     bubble_idt = CHECKED_ZALLOC(sizeof(gate_desc) * 256);

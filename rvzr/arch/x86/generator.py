@@ -41,10 +41,10 @@ class _FaultFilter:
     """ Local service class that identifies which faults are allowed in test cases. """
 
     def __init__(self) -> None:
-        self.div_by_zero: bool = 'div-by-zero' in CONF.generator_faults_allowlist
-        self.div_overflow: bool = 'div-overflow' in CONF.generator_faults_allowlist
-        self.non_canonical_access: bool = 'non-canonical-access' in CONF.generator_faults_allowlist
-        self.u2k_access: bool = 'user-to-kernel-access' in CONF.generator_faults_allowlist
+        self.div_by_zero: bool = 'div-by-zero' in CONF.faults_allowlist
+        self.div_overflow: bool = 'div-overflow' in CONF.faults_allowlist
+        self.non_canonical_access: bool = 'non-canonical-access' in CONF.faults_allowlist
+        self.u2k_access: bool = 'user-to-kernel-access' in CONF.faults_allowlist
 
 
 # ==================================================================================================

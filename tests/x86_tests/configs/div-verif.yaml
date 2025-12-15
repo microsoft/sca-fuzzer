@@ -3,6 +3,6 @@ file: !include common.yaml
 contract_execution_clause:
   - vspec-ops-div
 
-generator_faults_allowlist:
+faults_allowlist:
   - div-by-zero
   - div-overflow

@@ -17,7 +17,7 @@ instruction_categories:
   - BASE-WIDENOP
 
 
-generator_faults_allowlist:
+faults_allowlist:
   - user-to-kernel-access
 
 actors:

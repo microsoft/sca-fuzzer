@@ -29,10 +29,10 @@ For fine-grained control over the instruction set, see the [Configuration Refere
 
 ## Configure Exception Testing
 
-Enable exception testing using the `generator_faults_allowlist` option:
+Enable exception testing using the `faults_allowlist` option:
 
 ```yaml
-generator_faults_allowlist:
+faults_allowlist:
   - div-by-zero              # division by zero exceptions
 ```
 
@@ -48,7 +48,7 @@ actors:
         writable: false    # trigger write protection faults
 ```
 
-See the [Sandbox Reference](../ref/sandbox.md) for details on memory permissions and the [Configuration Reference](../ref/config.md#generator_faults_allowlist) for all exception handling options.
+See the [Sandbox Reference](../ref/sandbox.md) for details on memory permissions and the [Configuration Reference](../ref/config.md#faults_allowlist) for all exception handling options.
 
 ## Configure Actors for Multi-Domain Testing
 
@@ -166,7 +166,7 @@ instruction_categories:
   - BASE-BINARY
 
 # Exception handling
-generator_faults_allowlist:
+faults_allowlist:
   - div-by-zero
 
 # Contract

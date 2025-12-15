@@ -248,7 +248,7 @@ To do this, we will use a generator pass that is specifically designed for this 
 Update the configuration file to include this generator pass:
 
 ```yaml
-generator_faults_allowlist:
+faults_allowlist:
   - user-to-kernel-access
 
 # actor configuration

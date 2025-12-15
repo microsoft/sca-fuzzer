@@ -17,7 +17,9 @@
 #include <../arch/x86/include/asm/desc.h>
 #endif
 
+// =================================================================================================
 // Strings and assembly
+// =================================================================================================
 #define STRINGIFY(...) #__VA_ARGS__
 
 #define xstr(s) _str(s)
@@ -31,7 +33,9 @@
                  ".att_syntax noprefix\n")
 // clang-format on
 
+// =================================================================================================
 // MSR access
+// =================================================================================================
 #if defined(ARCH_X86_64)
 // Kernel 6.16+ changed native_write_msr signature from (msr, low, high) to (msr, val)
 #include <linux/version.h>
@@ -40,16 +44,20 @@
 #else
 #define wrmsr64(msr, value) native_write_msr(msr, (uint32_t)value, (uint32_t)(value >> 32))
 #endif
-#define rdmsr64(msr)        native_read_msr(msr)
+#define rdmsr64(msr) native_read_msr(msr)
 #elif defined(ARCH_ARM)
 #define write_msr(NAME, VALUE) asm volatile("msr " NAME ", %0\n isb\n" ::"r"(VALUE));
 #define read_msr(NAME, VAR)    asm volatile("mrs %0, " NAME "\n isb\n" : "=r"(VAR));
 #endif
 
+// =================================================================================================
 // Bit manipulation
+// =================================================================================================
 #define BIT_(x) (1ULL << x)
 
-// Printing
+// =================================================================================================
+// Logging and error handling
+// =================================================================================================
 #define PRINT_ERR(msg, ...)       printk(KERN_ERR "[rvzr_executor] " msg, ##__VA_ARGS__);
 #define PRINT_ERRS(src, msg, ...) printk(KERN_ERR "[rvzr_executor:" src "] " msg, ##__VA_ARGS__);
 
@@ -57,7 +65,6 @@
 #define PRINT_WARNS(src, msg, ...)                                                                 \
     printk(KERN_WARNING "[rvzr_executor:" src "] " msg, ##__VA_ARGS__);
 
-// Error handling
 #define ASSERT(condition, src)                                                                     \
     if (!(condition)) {                                                                            \
         PRINT_ERRS(src, "Assertion failed: " xstr(condition) "\n");                                \
@@ -92,7 +99,9 @@
     PRINT_ERRS(src, "Unimplemented\n");                                                            \
     return -ENOSYS;
 
+// =================================================================================================
 // Memory management
+// =================================================================================================
 #define CHECKED_MALLOC(x)                                                                          \
     ({                                                                                             \
         void *ptr = kmalloc(x, GFP_KERNEL);                                                        \
@@ -148,7 +157,9 @@
         x = NULL;                                                                                  \
     }
 
+// =================================================================================================
 // Fault handling
+// =================================================================================================
 #define CALL_16_TIMES(macro, arg, id)                                                              \
     macro(arg, id##0) macro(arg, id##1) macro(arg, id##2) macro(arg, id##3) macro(arg, id##4)      \
         macro(arg, id##5) macro(arg, id##6) macro(arg, id##7) macro(arg, id##8) macro(arg, id##9)  \
@@ -187,7 +198,9 @@
 #define MULTI_ENTRY_HANDLER_LIST_ID(name, id) name##_##id,
 #define MULTI_ENTRY_HANDLER_LIST(name)        CALL_256_TIMES(MULTI_ENTRY_HANDLER_LIST_ID, name)
 
+// =================================================================================================
 // Address translation
+
 static inline uint64_t vmalloc_to_phys(void *hva)
 {
     struct page *page = vmalloc_to_page(hva);

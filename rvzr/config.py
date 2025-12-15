@@ -203,8 +203,8 @@ class Conf:
     """ register_blocklist: list of registers that will NOT be used for generating programs;
      has lower priority than register_allowlist.
      The resulting list is: (all registers - register_blocklist) + register_allowlist """
-    generator_faults_allowlist: List[str] = []
-    """ generator_faults_allowlist: by default, generator will produce programs that never
+    faults_allowlist: List[str] = []
+    """ faults_allowlist: by default, generator will produce programs that never
     trigger exceptions. This option modifies this behavior by permitting the generator to produce
     'unsafe' instruction sequences that could potentially trigger an exception. Model and executor
      will also be configured to handle these exceptions gracefully """
@@ -331,7 +331,7 @@ class Conf:
             'TSC',
             # 'GPR' is intentionally left out
         ],
-        'generator_faults_allowlist': [
+        'faults_allowlist': [
             'div-by-zero',
             'div-overflow',
             'opcode-undefined',
@@ -409,7 +409,7 @@ class Conf:
         # set the rest of the options
         for var, value in config_update.items():
             # print(f"CONF: setting {var} to {value}")
-            if var == "generator_faults_allowlist":
+            if var == "faults_allowlist":
                 self.update_handled_faults_with_generator_faults(value)
                 self.safe_set(var, value)
                 continue
@@ -511,7 +511,7 @@ class Conf:
             raise ConfigException("ISA-specific config.py must define _option_values")
 
         for name, value in config_defaults.items():
-            if name == "generator_faults_allowlist":
+            if name == "faults_allowlist":
                 self.update_handled_faults_with_generator_faults(value)
                 continue
             if name == "_actor_default":

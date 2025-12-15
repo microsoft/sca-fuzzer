@@ -11,8 +11,8 @@
 #include "actor.h"
 #include "shortcuts.h"
 
-#include "main.h"
 #include "fault_handler.h"
+#include "main.h"
 #include "page_tables_guest.h"
 #include "special_registers.h"
 #include "vmx.h"

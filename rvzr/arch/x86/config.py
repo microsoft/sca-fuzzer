@@ -315,6 +315,7 @@ _generator_fault_to_fault_name = {
     'debug-register': "DB",
     'non-canonical-access': "GP",
     'user-to-kernel-access': "PF",
+    'page-fault': "PF"
 }
 
 _actor_default = {
