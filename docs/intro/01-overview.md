@@ -19,7 +19,7 @@ Specifically, Revizor addresses several key challenges:
 To illustrate how Revizor works, consider a simple fuzzing campaign that will lead to a detection of a known vulnerability in most modern CPUs, namely Spectre V1.
 
 !!! info "Prerequisites"
-    Before running this example, ensure you have Revizor installed and set up correctly. Follow the [Installation Guide](02_install.md) if you haven't done so already.
+    Before running this example, ensure you have Revizor installed and set up correctly. Follow the [Installation Guide](02-install.md) if you haven't done so already.
 
 We will use a configuration file in `demo/detecting-v1.yaml`. This config file tells Revizor to test a small subset of x86-64 ISA (arithmetic instructions + conditional branches) against a contract that states that the CPU should not speculate and should only leak information about loads, stores, and the program counter. As most modern CPUs implement branch prediction, we expect to see a violation of this contract.
 
@@ -112,7 +112,7 @@ The power of this approach is that Revizor doesn't need to know the specific vul
 
 Now that you understand what Revizor is and what it does, here are your next steps:
 
-* **Dive Deeper into Concepts**: For a more detailed explanation of the information flow analysis used in Revizor, the concepts of leakage contracts, and other related topics, see the [Core Concepts Guide](03_primer.md).
-* **Follow a Tutorial**: Our [step-by-step tutorial series](tutorial1-first-fuzz/part1.md) guides you through detecting your first vulnerability, understanding the results, and designing effective fuzzing campaigns.
+* **Dive Deeper into Concepts**: For a more detailed explanation of the information flow analysis used in Revizor, the concepts of leakage contracts, and other related topics, see the [Core Concepts Guide](03-primer.md).
+* **Follow a Tutorial**: Our [step-by-step tutorial series](./04-tutorials.md) guides you through detecting your first vulnerability, understanding the results, and designing effective fuzzing campaigns.
 * **Explore the Glossary**: Familiarize yourself with key terms and definitions in the [Glossary](../glossary.md) to better understand Revizor's terminology (we have quite a few unique terms!).
-* **Get Help**: If you run into issues or have questions, visit our [FAQ](../faq/general.md) for common questions, or join the discussion on our [GitHub Discussions page](https://github.com/microsoft/sca-fuzzer/discussions).
+* **Get Help**: If you run into issues or have questions, visit our [FAQ](../faq/general.md) for common questions, or [ask a question](../howto/ask-a-question.md) to reach out to the community.

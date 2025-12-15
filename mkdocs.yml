@@ -38,9 +38,8 @@ theme:
     - toc.integrate
     - search.suggest
     - search.highlight
-  custom_dir: mkdocs-overrides
-  logo: assets/ms_icon.png
-  favicon: assets/ms_icon.png
+  logo: assets/icon.svg
+  favicon: assets/favicon.svg
 
 extra_css:
   - stylesheets/extra.css
@@ -63,6 +62,7 @@ markdown_extensions:
   - abbr
   - admonition
   - attr_list
+  - md_in_html
   - def_list
   - footnotes
   - meta
@@ -100,32 +100,22 @@ markdown_extensions:
 
 
 nav:
-  - Home: index.md
-  - Start Here: intro/00_start_here.md
+  - Start Here: intro/start-here.md
   - Documentation:
     - Documentation Structure: structure.md
     - Getting Started:
-      - Revizor at a Glance: intro/01_overview.md
-      - Installation: intro/02_install.md
-      - Deep Dive into Concepts: intro/03_primer.md
-      - Overview of Tutorials: intro/04_tutorials_start.md
-      - Tutorial 1 - First Campaign:
-        - Part 1: intro/tutorial1-first-fuzz/part1.md
-        - Part 2: intro/tutorial1-first-fuzz/part2.md
-      - Tutorial 2 - First Vulnerability:
-        - Part 1: intro/tutorial2-first-vuln/part1.md
-        - Part 2: intro/tutorial2-first-vuln/part2.md
-        - Part 3: intro/tutorial2-first-vuln/part3.md
-      - Tutorial 3 - Testing Faults:
-        - Part 1: intro/tutorial3-faults/part1.md
-        - Part 2: intro/tutorial3-faults/part2.md
-        - Part 3: intro/tutorial3-faults/part3.md
-      - Tutorial 4 - Testing Isolation:
-        - Part 1: intro/tutorial4-isolation/part1.md
-      - Tutorial 5 - Extending Revizor:
-        - Part 1: intro/tutorial5-extending/part1.md
-      - Extra Tutorial - Detecting TSA-SQ: intro/tsa-sq.md
+      - Revizor at a Glance: intro/01-overview.md
+      - Installation: intro/02-install.md
+      - Deep Dive into Concepts: intro/03-primer.md
+      - Overview of Tutorials: intro/04-tutorials.md
+      - Tutorial 1 - First Campaign: intro/tutorials/01-first-fuzz.md
+      - Tutorial 2 - First Vulnerability: intro/tutorials/02-first-vuln.md
+      - Tutorial 3 - Testing Faults: intro/tutorials/03-faults.md
+      - Tutorial 4 - Testing Isolation: intro/tutorials/04-isolation.md
+      - Tutorial 5 - Extending Revizor: intro/tutorials/05-extending.md
+      - Extra Tutorial - Detecting TSA-SQ: intro/tutorials/tsa-sq.md
     - How-To Guides:
+      - Ask a Question: howto/ask-a-question.md
       - Choose a Contract: howto/choose-contract.md
       - Design a Campaign: howto/design-campaign.md
       - Interpret Output: howto/interpret-results.md
@@ -151,14 +141,16 @@ nav:
       - Registers: ref/registers.md
       - Sandbox: ref/sandbox.md
     - Glossary: glossary.md
+    - Academic Research: ref/papers.md
   - FAQ:
     - General Questions: faq/general.md
   - Contribute:
     - Index: internals/index.md
+    - Guide to Contributing: internals/contributing/overview.md
     - Guidelines:
-      - General Guidelines: internals/contributing/guidelines-general.md
-      - Code Style: internals/contributing/guidelines-code-style.md
-      - Git Workflow: internals/contributing/guidelines-git.md
+      - General Guidelines: internals/contributing/general.md
+      - Code Style: internals/contributing/code-style.md
+      - Git Workflow: internals/contributing/git.md
     - Code Structure: internals/code-structure.md
     - Architecture:
       - Overview: internals/architecture/overview.md

@@ -6,10 +6,10 @@ Everything you need to know about using, understanding, and contributing to Revi
 
 Are you new to Revizor? Start here:
 
-* [Revizor at a Glance](intro/01_overview.md): Understand what Revizor is, what problems it solves, and see a quick example of violation detection.
-* [Installation Guide](intro/02_install.md): Get Revizor installed on your system and verify your setup.
-* [Your First Fuzzing Campaign](intro/tutorial1-first-fuzz/part1.md): Follow a hands-on tutorial that walks you through running your first test, detecting a violation, and understanding the results.
-* [Core Concepts](intro/03_primer.md): Learn about contracts, traces, speculation, and other fundamental concepts needed to use Revizor effectively.
+* [Revizor at a Glance](intro/01-overview.md): Understand what Revizor is, what problems it solves, and see a quick example of violation detection.
+* [Installation Guide](intro/02-install.md): Get Revizor installed on your system and verify your setup.
+* [Your First Fuzzing Campaign](intro/tutorials/01-first-fuzz.md): Follow a hands-on tutorial that walks you through running your first test, detecting a violation, and understanding the results.
+* [Core Concepts](intro/03-primer.md): Learn about contracts, traces, speculation, and other fundamental concepts needed to use Revizor effectively.
 * [Glossary](glossary.md): A quick reference for key terms used throughout the documentation.
 
 ---
@@ -22,7 +22,7 @@ Stuck? Need clarification? Here's where to get help.
 * [GitHub Discussions](https://github.com/microsoft/sca-fuzzer/discussions) - Ask questions, share experiences, discuss ideas
 * [GitHub Issues](https://github.com/microsoft/sca-fuzzer/issues) - Report bugs or request features
 * [Contributing Guide](https://github.com/microsoft/sca-fuzzer/blob/main/CONTRIBUTING.md) - Help improve Revizor
-* [Zulip Chat](https://rvzr.zulipchat.com/join/yc2rwy4kr4lamdocl6w33l74/) - Real-time community support
+* [Zulip Chat](https://rvzr.zulipchat.com/) - Real-time community support
 
 ---
 
@@ -34,8 +34,8 @@ Revizor's documentation is organized into five distinct categories based on your
 
 Tutorials take you by the hand through a series of steps to complete a project. They are designed for newcomers who want to get started with Revizor. Start here if you're learning.
 
-* [Main Tutorial Series](intro/04_tutorials_start.md): Follow a series of hands-on tutorials that walk you through running your first tests, detecting violations, and rump up all the way to root-cause analysis and design of custom campaigns.
-* [How TSA-SQ Was Detected](intro/tsa-sq.md): A practical case study showing how Revizor was used to discover the TSA-SQ vulnerability. For those interested in how Revizor is used in the real world.
+* [Main Tutorial Series](intro/04-tutorials.md): Follow a series of hands-on tutorials that walk you through running your first tests, detecting violations, and rump up all the way to root-cause analysis and design of custom campaigns.
+* [How TSA-SQ Was Detected](intro/tutorials/tsa-sq.md): A practical case study showing how Revizor was used to discover the TSA-SQ vulnerability. For those interested in how Revizor is used in the real world.
 
 ---
 
@@ -87,21 +87,14 @@ Development guides help contributors understand the codebase, architecture, and 
 
 * [Developer Index](internals/index.md)
 * [Architecture Overview](internals/architecture/overview.md)
-* [Code Style Guidelines](internals/contributing/guidelines-code-style.md)
-* [Git Conventions](internals/contributing/guidelines-git.md)
+* [Code Style Guidelines](internals/contributing/code-style.md)
+* [Git Conventions](internals/contributing/git.md)
 
 ---
 
 ## Research and Background
 
-Revizor is built on peer-reviewed research in hardware security and formal methods:
-
-1. Original paper that introduced the concept of Model-based Relation Testing as well as the Revizor tool: "[Revizor: Testing Black-box CPUs against Speculation Contracts](https://www.microsoft.com/en-us/research/publication/revizor-testing-black-box-cpus-against-speculation-contracts/)"
-2. Theoretical foundations of leakage contract: "[Hardware-software contracts for secure speculation](https://www.microsoft.com/en-us/research/publication/hardware-software-contracts-for-secure-speculation/)"
-3. Accessible summary of the two papers above, in a journal format: "Revizor: Testing Black-box CPUs against Speculation Contracts". In IEEE Micro, 2023.
-4. Paper that introduced speculation filtering, observation filtering, and contract-based input generation: "[Hide and Seek with Spectres: Efficient discovery of speculative information leaks with random testing](https://www.microsoft.com/en-us/research/publication/hide-and-seek-with-spectres-efficient-discovery-of-speculative-information-leaks-with-random-testing/)"
-5. Paper that introduced exception-based testing (i.e., focus on Meltdown, Foreshadow) into Revizor: "[Speculation at Fault: Modeling and Testing Microarchitectural Leakage of CPU Exceptions.](https://www.usenix.org/conference/usenixsecurity23/presentation/hofmann)"
-6. Paper that introduced testing of cross-VM and user-kernel leaks in Revizor, as well as presented TSA attacks on AMD CPUs: "[Enter, Exit, Page Fault, Leak: Testing Isolation Boundaries for Microarchitectural Leaks](https://www.microsoft.com/en-us/research/wp-content/uploads/2025/07/Enter-Exit-SP26.pdf)"
+Revizor is built on peer-reviewed research in hardware security and formal methods. All papers related to Revizor are listed in the [Research Papers](ref/papers.md) section.
 
 ---
 

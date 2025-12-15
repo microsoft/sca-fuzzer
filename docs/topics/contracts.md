@@ -176,5 +176,5 @@ deployment of ineffective patches that provide false security.
 
 ## What's Next?
 
-* See the [primer](../intro/03_primer.md) for a deeper dive into non-interference and contract-based testing.
+* See the [primer](../intro/03-primer.md) for a deeper dive into non-interference and contract-based testing.
 * See the [model documentation](models.md) for details on how Revizor implements contracts.

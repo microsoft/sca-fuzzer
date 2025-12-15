@@ -25,7 +25,7 @@ $ rvzr fuzz [OPTIONS]
 ```
 
 :   Main fuzzing mode of Revizor.
-In this mode, Revizor randomly generates test cases and executes them on the target CPU and the model, records the corresponding traces, and checks if the hardware traces contain the same (or less) information as the contract traces. That is, it implements [Model-Based Relational Testing](../intro/03_primer.md#model-based-relational-testing-and-revizor) approach.
+In this mode, Revizor randomly generates test cases and executes them on the target CPU and the model, records the corresponding traces, and checks if the hardware traces contain the same (or less) information as the contract traces. That is, it implements [Model-Based Relational Testing](../intro/03-primer.md#model-based-relational-testing-and-revizor) approach.
 
 :   **Use case:** Broad testing of CPU behavior against contract specifications.
 

@@ -8,8 +8,8 @@ You can reproduce this campaign using the provided configuration and template fi
     To follow this tutorial, you should have:
 
     - Non-virtualized access to an AMD Zen4 processor for testing
-    - A working installation of Revizor. See [installation guide](02_install.md) for setup instructions.
-    - Basic understanding of Revizor's fuzzing framework, in particular the concepts of [model-based relational testing](03_primer.md), [actors](../topics/actors.md), [templates](../howto/use-templates.md), [macros](../ref/macros.md).
+    - A working installation of Revizor. See [installation guide](../02-install.md) for setup instructions.
+    - Basic understanding of Revizor's fuzzing framework, in particular the concepts of [model-based relational testing](../03-primer.md), [actors](../../topics/actors.md), [templates](../../howto/use-templates.md), [macros](../../ref/macros.md).
     - Familiarity with microarchitectural vulnerabilities and side-channel attacks
 
 
@@ -47,7 +47,7 @@ The `main` actor represents the victim kernel, while the `user` actor represents
 
 The template structure follows the typical flow of a microarchitectural side-channel attack, specifically implementing a Flush+Reload pattern across privilege transitions.
 
-![tsa-sq-template.png](../assets/tsa-sq-template.png)
+![tsa-sq-template.png](../../assets/tsa-sq-template.png)
 
 You can find the complete template in [`template.asm`](https://github.com/microsoft/sca-fuzzer/blob/main/demo/tsa-sq/template.asm).
 
@@ -152,5 +152,5 @@ To confirm that a detected violation is genuine, reproduce it using:
 
 A genuine violation will reproduce consistently across multiple runs with the same statistical pattern, confirming that the timing differences represent a real microarchitectural information leak.
 
-The next step is to do root-cause analysis of the violation, which is beyond the scope of this tutorial. See [Root-Causing a Violation Detected by Revizor](../howto/root-cause-a-violation.md) for details on this process.
+The next step is to do root-cause analysis of the violation, which is beyond the scope of this tutorial. See [Root-Causing a Violation Detected by Revizor](../../howto/root-cause-a-violation.md) for details on this process.
 

@@ -14,7 +14,7 @@
 
 :   Most of the existing hardware fuzzers focus on finding functional bugs, such as incorrect instruction execution or crashes. Revizor, on the other hand, is specifically designed to find security vulnerabilities related to microarchitectural side channels. It uses a model-based approach to define what information is allowed to leak and tests whether the CPU adheres to these specifications.
 
-:   See [Revizor at a Glance](../intro/01_overview.md) for a more detailed introduction.
+:   See [Revizor at a Glance](../intro/01-overview.md) for a more detailed introduction.
 
 #### How is Revizor different from constant-time testing tools (e.g., Microwalk)? {#how-does-revizor-differ-from-ct-testing-tools}
 
@@ -32,7 +32,15 @@
 
 ---
 
-## Running Revizor
+## Installing Revizor
+
+#### What operating system is required to run Revizor? {#required-os}
+
+:   You will need Linux.
+
+#### Do I need a specific Linux distribution/version? {#specific-linux-distro}
+
+:    No, Revizor should work on any reasonably recent Linux. If you encounter issues, that's most likely a bug that we would like to hear about. Please report any problems on our [GitHub Issues page](https://github.com/microsoft/sca-fuzzer/issues).
 
 #### Does Revizor require root or administrator privileges? {#requires-root}
 
@@ -41,6 +49,10 @@
 #### Can I run Revizor in a virtual machines? {#run-on-vms}
 
 :   Unfortunately, not. Revizor requires direct access to the CPU's PMU to accurately measure side-channel leakage. Running Revizor inside a virtual machine would introduce additional layers of abstraction and interference that could distort the measurements and lead to inaccurate results. You need to run Revizor on a bare-metal installation of Linux.
+
+---
+
+## Running Revizor
 
 #### Can Revizor affect system stability? {#safety}
 

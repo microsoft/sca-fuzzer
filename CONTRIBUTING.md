@@ -16,18 +16,6 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
 contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
-## Reporting Issues
+## Contribution Guidelines
 
-To submit a bug or a feature request, use Github [issues](https://github.com/microsoft/sca-fuzzer/issues).
-
-If you have a question or need help, please use [Github Discussions](https://github.com/microsoft/sca-fuzzer/discussions) and tag the maintainer (@OleksiiOleksenko) for visibility.
-
-## Submitting Patches
-
-To submit a patch, use the following procedure:
-* Fork Revizor on github (https://docs.github.com/en/github/getting-started-with-github/fork-a-repo)
-* Create a topic branch (`git checkout -b my_branch`)
-* Make sure all tests pass (`./tests/runtests.sh <target_ISA>`) and that the code is formatted accordingly to the [Code Style](docs/development.md).
-* Push to your branch (`git push origin my_branch`)
-* Initiate a pull request on github (https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests/creating-a-pull-request)
-* Wait for the PR to get reviewed and merged
+Please refer to the [Guide to Contributing](https://microsoft.github.io/sca-fuzzer/internals/contributing/overview/) for an overview of how to contribute.

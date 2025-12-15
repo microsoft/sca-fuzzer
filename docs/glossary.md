@@ -8,8 +8,8 @@ This glossary defines key terms used throughout the Revizor documentation. The e
 : A formal property that captures perfect confidentiality, stating that changes in secret data have no observable effect on public outputs. A program satisfies noninterference if variations in secret inputs cause no differences in public outputs. In Revizor's context, this property is checked with respect to side-channel observations and speculation contracts.
 
 !!! info "Related Documentation"
-    - [Primer: Information-Flow Properties](intro/03_primer.md#information-flow-properties)
-    - [Primer: Noninterference Definition](intro/03_primer.md#noninterference-definition-and-examples)
+    - [Primer: Information-Flow Properties](intro/03-primer.md#information-flow-properties)
+    - [Primer: Noninterference Definition](intro/03-primer.md#noninterference-definition-and-examples)
 
 ---
 
@@ -17,8 +17,8 @@ This glossary defines key terms used throughout the Revizor documentation. The e
 : The movement of data through a computation. Information-flow security is concerned with how data moves through a system and how it can be observed by an attacker. For example, if a program contains a data-dependent memory access `array[secret_index]`, the value of `secret_index` influences which memory location is accessed. In turn, if the attacker can observe the cache lines being accessed by this program, the execution of the array access will reveal (leak) information about `secret_index` through side channels. This creates an information flow from the secret data (`secret_index`) to the attacker's observations (cache state).
 
 !!! info "Related Documentation"
-    - [Primer: Information-Flow Properties](intro/03_primer.md#information-flow-properties)
-    - [Primer: Side Channels](intro/03_primer.md#beyond-direct-outputs-side-channels)
+    - [Primer: Information-Flow Properties](intro/03-primer.md#information-flow-properties)
+    - [Primer: Side Channels](intro/03-primer.md#beyond-direct-outputs-side-channels)
 
 ---
 
@@ -27,7 +27,7 @@ This glossary defines key terms used throughout the Revizor documentation. The e
 
 !!! info "Related Documentation"
     - [Topic: Contracts](topics/contracts.md)
-    - [Primer: Speculation Contracts](intro/03_primer.md#speculation-contracts-dealing-with-the-complexity-of-modern-hardware)
+    - [Primer: Speculation Contracts](intro/03-primer.md#speculation-contracts-dealing-with-the-complexity-of-modern-hardware)
     - [How-to: Choose a Contract](howto/choose-contract.md)
 
 ---
@@ -37,7 +37,7 @@ This glossary defines key terms used throughout the Revizor documentation. The e
 
 !!! info "Related Documentation"
     - [Topic: Contracts - Contract Structure](topics/contracts.md#contract-structure)
-    - [Primer: Speculation Contracts](intro/03_primer.md#speculation-contracts-dealing-with-the-complexity-of-modern-hardware)
+    - [Primer: Speculation Contracts](intro/03-primer.md#speculation-contracts-dealing-with-the-complexity-of-modern-hardware)
 
 ---
 
@@ -46,7 +46,7 @@ This glossary defines key terms used throughout the Revizor documentation. The e
 
 !!! info "Related Documentation"
     - [Topic: Contracts - Contract Structure](topics/contracts.md#contract-structure)
-    - [Primer: Speculation Contracts](intro/03_primer.md#speculation-contracts-dealing-with-the-complexity-of-modern-hardware)
+    - [Primer: Speculation Contracts](intro/03-primer.md#speculation-contracts-dealing-with-the-complexity-of-modern-hardware)
 
 ---
 
@@ -122,7 +122,7 @@ This glossary defines key terms used throughout the Revizor documentation. The e
 : The core methodology of Revizor. It involves randomly generating test programs and inputs to them, executing them with the executor and the model, collecting the corresponding hardware and contract traces, identifying the information flows in both, and comparing them to find unexpected leaks.
 
 !!! info "Related Documentation"
-    - [Primer: Model-Based Relational Testing](intro/03_primer.md#model-based-relational-testing-and-revizor)
+    - [Primer: Model-Based Relational Testing](intro/03-primer.md#model-based-relational-testing-and-revizor)
     - [Topic: Trace Analysis](topics/trace-analysis.md)
     - [Internals: Fuzzer Architecture](internals/architecture/fuzz.md)
 
@@ -133,7 +133,7 @@ This glossary defines key terms used throughout the Revizor documentation. The e
 
 !!! info "Related Documentation"
     - [Topic: Trace Analysis](topics/trace-analysis.md)
-    - [Primer: Contract Violation](intro/03_primer.md#building-and-testing-speculation-contracts)
+    - [Primer: Contract Violation](intro/03-primer.md#building-and-testing-speculation-contracts)
     - [How-to: Root-Cause a Violation](howto/root-cause-a-violation.md)
 
 ---
@@ -184,7 +184,7 @@ The priming test mitigates this problem by re-executing the violating inputs in 
 !!! info "Related Documentation"
     - [Topic: Trace Analysis - Contract Compliance Property](topics/trace-analysis.md#contract-compliance-property)
     - [Topic: Contracts - Contract Compliance](topics/contracts.md#contract-compliance)
-    - [Primer: Contract Compliance](intro/03_primer.md#building-and-testing-speculation-contracts)
+    - [Primer: Contract Compliance](intro/03-primer.md#building-and-testing-speculation-contracts)
 
 ---
 

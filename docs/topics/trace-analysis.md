@@ -24,7 +24,7 @@ HardwareTrace(P, I₁, Ctx) = HardwareTrace(P, I₂, Ctx)
 
 If this property is violated, the CPU is leaking information beyond what the contract predicts.
 A violation indicates that the contract is incomplete or that the CPU has an unexpected side
-channel. See the [primer](../intro/03_primer.md#building-and-testing-speculation-contracts) for
+channel. See the [primer](../intro/03-primer.md#building-and-testing-speculation-contracts) for
 theoretical foundations.
 
 Revizor approximates this property by randomly sampling the space of programs, inputs, and microarchitectural states, and checking for violations based on collected traces.
@@ -258,6 +258,6 @@ The exact sample sizes and thresholds are configurable via [`executor_sample_siz
 ## What's Next?
 
 - [Configuration Options](../ref/config.md) - Configure analyzer parameters
-- [Model-Based Relational Testing](../intro/03_primer.md) - Theoretical foundations
+- [Model-Based Relational Testing](../intro/03-primer.md) - Theoretical foundations
 - [Analyser Architecture](../internals/architecture/analysis.md) - Implementation
   details

@@ -7,13 +7,16 @@ Make sure you're not running Revizor on a production machine, and that you have 
 
 ### 1. Requirements
 
-* Architecture: Revizor supports Intel and AMD x86-64 CPUs.
-We have experimental support for ARM CPUs (see `arm-port` branch) but it is at very early stages, so use it on your own peril.
+**Hardware**: x86-64 or ARM64 CPU. Specifically:
 
-* No virtualization: You will need a bare-metal OS installation.
+* All Intel and AMD x86-64 CPUs are supported.
+* Some ARM CPUs are also supported, namely Microsoft Cobalt and Raspberry Pi. Other ARM CPUs may work, but are not officially supported.
+
+**No virtualization**:
+You will need a bare-metal OS installation.
 Testing from inside a VM is not supported.
 
-* OS: The target machine has to be running Linux v4.15 or later.
+**OS**: The target machine has to be running Linux v4.15 or later.
 
 ### 2. Python Package
 

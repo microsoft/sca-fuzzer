@@ -1,6 +1,194 @@
-# Tutorial 2: Detecting Your First Vulnerability (Part 3)
+# Tutorial 2: Detecting Your First Vulnerability
 
-This tutorial picks up where [part 2](part2.md) left off. We will minimize and root-cause the violation.
+This tutorial is the first step into actual vulnerability detection. You'll learn how to set up a fuzzing campaign that tests conditional branches. And, most likely, it will end with a detection of Spectre V1.
+
+### Testing Workflow
+
+Before we begin with actual testing, let's take a step back and consider how a typical testing workflow looks like.
+
+The process of using Revizor normally constitutes of the following steps:
+
+1. **Design the campaign** by selecting which instructions to test and choosing an appropriate contract that defines what behavior we consider a violation.
+2. **Create a configuration file** that captures these decisions.
+3. **Run the fuzzer** to generate and execute random test cases.
+4. **Validate the violation** to ensure it's genuine and not a false positive.
+5. **Minimize the test case** to remove unnecessary complexity, making it easier to understand.
+6. **Analyze the minimized program** to identify the root cause of the vulnerability.
+
+In the following, we will go step-by-step through this workflow.
+
+### Plan the campaign
+
+Let's imagine we have a new CPU and want to determine if conditional branches produce any information leakage on it. These instructions are infamous for causing Spectre V1, therefore it is always useful to start with them when testing a new CPU.
+
+The first step is planning our fuzzing campaign strategically.
+
+For effective testing, we'll focus on a minimal instruction subset rather than the entire ISA. Spectre V1 requires only two capabilities: conditional branches (to trigger misprediction) and memory accesses (to leak information through side channels). By limiting our instruction set to just arithmetic operations and conditional branches, we accomplish two goals. First, the fuzzer will find violations faster because there are fewer instruction combinations to explore. Second, when we do find a violation, it will be much easier to analyze because the test case will be simpler.
+
+!!! warning
+    Note that this focused approach is *not* representative of a real fuzzing campaign. This tutorial is intentionally simplified to help with understanding. In a real campaign, you'll need to find balance between having a broad scope (increases changes of finding unknown vulnerabilities) and having focus on specific CPU features (simplifies root-cause analysis). For more guidance on campaign design, see [How to Design a Fuzzing Campaign](../../howto/design-campaign.md).
+
+We'll pair this minimal instruction set with the strictest possible contract—one that forbids any speculation whatsoever. This means Revizor will flag any speculative behavior as a violation. While this contract is more restrictive than what modern CPUs actually guarantee, it's perfect for our purposes. Since we're only testing conditional branches and simple arithmetic, any speculation we detect will almost certainly be Spectre V1.
+
+With this campaign plan, we are trying to answer a specific question: "Does this CPU leak information through conditional branches?"
+
+### Create the configuration file
+
+Now that we've planned our campaign, let's translate it into a configuration file. Create a YAML file with the following content:
+
+```yaml
+# tested instructions
+instruction_categories:
+  - BASE-BINARY
+  - BASE-COND_BR
+
+# contract
+contract_observation_clause: loads+stores+pc
+contract_execution_clause:
+  - no_speculation
+
+# enable perf. optimizations
+enable_speculation_filter: true
+enable_observation_filter: true
+enable_fast_path_model: true
+```
+
+The `instruction_categories` section implements our decision to use a minimal instruction set. We're including `BASE-BINARY` for arithmetic operations like addition and comparison, and `BASE-COND_BR` for conditional branches like `jz` and `jne`. These two categories give the fuzzer everything it needs to express Spectre V1 patterns.
+
+The contract configuration consists of two clauses. The `contract_observation_clause` tells Revizor what microarchitectural side effects to track. We're using `loads+stores+pc`, which observes memory access addresses and the program counter—exactly what an attacker would monitor through cache timing attacks. The `contract_execution_clause` defines what execution behavior is allowed. By setting it to `no_speculation`, we're telling Revizor that any speculative execution is a violation.
+
+The performance optimization flags at the bottom significantly speed up fuzzing without affecting correctness. The `enable_speculation_filter` skips test cases that don't trigger speculation at all. The `enable_observation_filter` skips test cases that leave no observable traces. The `enable_fast_path_model` allows Revizor to reuse contract traces across similar inputs, reducing the model execution overhead.
+
+For a complete reference of all configuration options, see the [Configuration Reference](../../ref/config.md).
+
+### Run the fuzzer
+
+Now we're ready to start fuzzing. Run Revizor with the following command:
+
+```
+./revizor.py fuzz -s base.json -c config.yaml -n 1000 -i 10 -w .
+```
+
+This command tells Revizor to run 1000 test cases (`-n 1000`), with 10 inputs per test case (`-i 10`), using the ISA specification from `base.json` (`-s`) and our configuration file (`-c`). The `-w .` flag tells Revizor to save any violations it finds to the current directory.
+
+As the fuzzer runs, you'll see a continuously updating progress line:
+
+```
+50    ( 5%)| Stats: Cls:10/10,In:20,R:7,SF:38,OF:6,Fst:6,CN:0,CT:0,P1:0,CS:0,P2:0,V:0
+```
+
+### View the detected violation
+
+After a minute or so, you should see a violation.
+It will be reported in a format similar to this:
+
+```
+================================ Violations detected ==========================
+Violation Details:
+
+-----------------------------------------------------------------------------------
+                             HTrace                              | ID:4   | ID:14 |
+-----------------------------------------------------------------------------------
+^......^...^........^.................^...........^............. | 626    | 0     |
+^......^...^........^........................................... | 1      | 18    |
+^^.....^...^........^....^...................................... | 0      | 609   |
+
+```
+
+Excellent! We've successfully detected a contract violation. Let's understand what this violation report is telling us.
+
+
+The report shows us the violation details in a table format. The header row displays the input IDs that triggered the violation—in this case, inputs 4 and 14:
+
+`| ID:4   | ID:14 |`
+
+These are two inputs from our test case that the contract predicted would behave identically, but the hardware traces show they behaved differently.
+
+The three rows below show the different hardware traces that were observed:
+
+```
+^......^...^........^.................^...........^.............
+^......^...^........^...........................................
+^^.....^...^........^....^......................................
+```
+
+Each row represents a distinct cache access pattern, visualized as a bitmap where `^` marks an accessed cache line and `.` marks an untouched cache line. We're using Prime+Probe cache side channel measurements (default), so each position in the bitmap corresponds to one of the 64 cache sets in the L1D cache. (A cache set is a group of cache lines that compete for the same position in the cache—when the CPU accesses memory at a particular address, the data goes into a specific cache set determined by the address bits.)
+
+For example, the first trace reads like this:
+
+```
+Cache Set 0 accessed
+|          Cache Set 11 accessed
+|          |                          Cache set 38 accessed
+|          |                          |
+^......^...^........^.................^...........^.............
+       |            |                             |
+       |            |                             Cache Set 50 accessed
+       |            Cache Set 20 accessed
+       Cache Set 7 accessed
+```
+
+Finally, the numbers in the columns tell us how often each trace appeared for each input:
+
+```
+... | 626    | 0     |
+... | 1      | 18    |
+... | 0      | 609   |
+```
+
+Looking at the first hardware trace we see it appeared 626 times for input 4 but never for input 14. The third trace shows the opposite pattern—0 times for input 4 but 609 times for input 14. This clear separation in the distributions confirms this is a genuine violation, not random noise.
+
+What we're seeing is a data-dependent cache access pattern. The test case accessed different cache lines depending on the input data, creating an observable side channel. We don't know yet what caused this channel, but we can already tell that it's likely to be caused by speculation; non-speculative cache accesses are permitted by our reference contract, so they wouldn't be reported as violations.
+
+For more details on interpreting violation reports, see [How to Interpret Violation Results](../../howto/interpret-results.md).
+
+### Violation Artifact
+
+The artifact for this violation is stored in a directory named `violation-<timestamp>`:
+
+```bash
+$ ls -l violation-251203-103338
+input_0000.bin  input_0004.bin  input_0008.bin  input_0012.bin  input_0016.bin  minimize.yaml    reproduce.yaml
+input_0001.bin  input_0005.bin  input_0009.bin  input_0013.bin  input_0017.bin  org-config.yaml
+input_0002.bin  input_0006.bin  input_0010.bin  input_0014.bin  input_0018.bin  program.asm
+input_0003.bin  input_0007.bin  input_0011.bin  input_0015.bin  input_0019.bin  report.txt
+```
+
+The `program.asm` file holds the test case program that triggered the violation. The `input_*.bin` files contain the input sequence that exposed the leak. The `report.txt` file provides additional details including hardware and contract traces. The configuration files include `org-config.yaml` (the original configuration), `reproduce.yaml` (for reproducing the violation), and `minimize.yaml` (for test case minimization).
+
+### Validate the violation
+
+Let's verify this violation is genuine and reproducible. First, we'll move the violation artifacts to a simpler path:
+
+```bash
+mv violation-251203-103338 ./violation
+```
+
+Now we'll reproduce the violation using the saved artifacts:
+
+```bash
+./revizor.py reproduce -s base.json -c ./violation/reproduce.yaml -t ./violation/program.asm -i ./violation/input*.bin
+```
+
+If the violation is genuine, we should see Revizor report it again:
+
+```
+================================ Violations detected ==========================
+Violation Details:
+
+-----------------------------------------------------------------------------------
+                             HTrace                              | ID:4   | ID:14 |
+-----------------------------------------------------------------------------------
+^......^...^........^.................^...........^............. | 626    | 0     |
+^......^...^........^........................................... | 1      | 20    |
+^^.....^...^........^....^...................................... | 0      | 607   |
+```
+
+Perfect! The hardware traces are roughly the same as before, confirming this is a stable, reproducible violation.
+
+!!! tip "Dealing with False Positives"
+    In most cases, violations are genuine. However, if you're on a high-noise system, you might occasionally see non-reproducible violations. If this happens, adjust the noise tolerance by increasing `analyser_stat_threshold` or `executor_sample_sizes` in your configuration file (see the [Configuration Reference](../../ref/config.md) for details), then rerun the fuzzer. Also, consider trying to mitigate the noise, for example by disabling hyperthreading or by turning prefetchers off.
+
 
 ### Minimize the test case
 
@@ -294,4 +482,4 @@ Congratulations! We've successfully detected and analyzed a Spectre V1 vulnerabi
 
 ### What's Next?
 
-Proceed to [Tutorial 3](../tutorial3-faults/part1.md) to see how the same principles can be applied to detect more complex vulnerabilities based on CPU exceptions and faults.
+Proceed to [Tutorial 3](./03-faults.md) to see how the same principles can be applied to detect more complex vulnerabilities based on CPU exceptions and faults.

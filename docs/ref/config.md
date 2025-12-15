@@ -359,7 +359,6 @@ This option is helps a lot with readability, but may produce corrupted output wh
         * `div-by-zero` - generate divisions with unmasked divisor, which can cause a division by zero exception.
         * `div-overflow` - generate divisions with unmasked dividend, which can cause an overflow exception.
         * `opcode-undefined` - generate undefined opcodes, which can cause an undefined opcode exception.
-        * `bounds-range-exceeded` - apply MPX instructions for random bounds checks. This is possible only if MPX is included in the tested instruction set.
         * `breakpoint` - generate breakpoints, which can cause INT3 exceptions.
         * `debug-register` - generate instructions that cause INT1 exceptions.
         * `non-canonical-access` - randomly select a memory access in a generated program and instrument it to access a non-canonical address.

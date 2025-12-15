@@ -302,6 +302,6 @@ As a result, you should obtain a minimized test case that contains a typical Mel
 
 ### What's Next?
 
-This concludes our tutorials on using Revizor for security testing. Note that all examples in the tutorials were simplified for clarity. If you wish to explore more realistic scenarios, refer to our guide on [Design a Campaign](../../howto/design-campaign.md) or check an advanced tutorial on [Detecting TSA-SQ](../tsa-sq.md).
+This concludes our tutorials on using Revizor for security testing. Note that all examples in the tutorials were simplified for clarity. If you wish to explore more realistic scenarios, refer to our guide on [Design a Campaign](../../howto/design-campaign.md) or check an advanced tutorial on [Detecting TSA-SQ](./tsa-sq.md).
 
-Proceed to [Tutorial 5](../tutorial5-extending/part1.md) to learn how you can extend various components of Revizor to fit your research needs.
+Proceed to [Tutorial 5](./05-extending.md) to learn how you can extend various components of Revizor to fit your research needs.
