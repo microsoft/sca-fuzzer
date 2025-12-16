@@ -36,6 +36,65 @@ __attribute__((unused)) void run_experiment_handler_wrapper(void);
 __attribute__((unused)) void fallback_handler_wrapper(void);
 __attribute__((unused)) void nmi_handler_wrapper(void);
 
+// =================================================================================================
+// Macro magic to automatically generate 256 handler declarations and lists
+// =================================================================================================
+
+// Exceptions that push an error code: 8, 10, 11, 12, 13, 14, 17, 21, 29, 30
+// For exceptions WITHOUT error code, we push a dummy 0 to normalize the stack layout
+#define MULTI_ENTRY_HANDLER_ID_NO_ERRCODE(name, id)                                                \
+    asm volatile(".global " #name "_" #id "\n"                                                     \
+                 "" #name "_" #id ":\n"                                                            \
+                 "pushq $0\n"                                                                      \
+                 "mov $0x" #id ", %%r13\n"                                                         \
+                 "jmp " #name "\n" ::                                                              \
+                     : "memory");
+#define MULTI_ENTRY_HANDLER_ID_ERRCODE(name, id)                                                   \
+    asm volatile(".global " #name "_" #id "\n"                                                     \
+                 "" #name "_" #id ":\n"                                                            \
+                 "mov $0x" #id ", %%r13\n"                                                         \
+                 "jmp " #name "\n" ::                                                              \
+                     : "memory");
+
+// Generate handlers for all 256 interrupt vectors
+// Vectors 0x08, 0x0a-0x0e, 0x11, 0x15, 0x1d, 0x1e have error codes; others don't
+#define FIRST_16_HANDLERS(macro_no_err, macro_err, arg)                                            \
+    macro_no_err(arg, 00) macro_no_err(arg, 01) macro_no_err(arg, 02) macro_no_err(arg, 03)        \
+        macro_no_err(arg, 04) macro_no_err(arg, 05) macro_no_err(arg, 06) macro_no_err(arg, 07)    \
+            macro_err(arg, 08) macro_no_err(arg, 09) macro_err(arg, 0a) macro_err(arg, 0b)         \
+                macro_err(arg, 0c) macro_err(arg, 0d) macro_err(arg, 0e) macro_no_err(arg, 0f)
+#define SECOND_16_HANDLERS(macro_no_err, macro_err, arg)                                           \
+    macro_no_err(arg, 10) macro_err(arg, 11) macro_no_err(arg, 12) macro_no_err(arg, 13)           \
+        macro_no_err(arg, 14) macro_err(arg, 15) macro_no_err(arg, 16) macro_no_err(arg, 17)       \
+            macro_no_err(arg, 18) macro_no_err(arg, 19) macro_no_err(arg, 1a)                      \
+                macro_no_err(arg, 1b) macro_no_err(arg, 1c) macro_err(arg, 1d) macro_err(arg, 1e)  \
+                    macro_no_err(arg, 1f)
+
+#define MULTI_ENTRY_HANDLER(name)                                                                  \
+    FIRST_16_HANDLERS(MULTI_ENTRY_HANDLER_ID_NO_ERRCODE, MULTI_ENTRY_HANDLER_ID_ERRCODE, name)     \
+    SECOND_16_HANDLERS(MULTI_ENTRY_HANDLER_ID_NO_ERRCODE, MULTI_ENTRY_HANDLER_ID_ERRCODE, name)    \
+    CALL_16_TIMES(MULTI_ENTRY_HANDLER_ID_NO_ERRCODE, name, 2)                                      \
+    CALL_16_TIMES(MULTI_ENTRY_HANDLER_ID_NO_ERRCODE, name, 3)                                      \
+    CALL_16_TIMES(MULTI_ENTRY_HANDLER_ID_NO_ERRCODE, name, 4)                                      \
+    CALL_16_TIMES(MULTI_ENTRY_HANDLER_ID_NO_ERRCODE, name, 5)                                      \
+    CALL_16_TIMES(MULTI_ENTRY_HANDLER_ID_NO_ERRCODE, name, 6)                                      \
+    CALL_16_TIMES(MULTI_ENTRY_HANDLER_ID_NO_ERRCODE, name, 7)                                      \
+    CALL_16_TIMES(MULTI_ENTRY_HANDLER_ID_NO_ERRCODE, name, 8)                                      \
+    CALL_16_TIMES(MULTI_ENTRY_HANDLER_ID_NO_ERRCODE, name, 9)                                      \
+    CALL_16_TIMES(MULTI_ENTRY_HANDLER_ID_NO_ERRCODE, name, a)                                      \
+    CALL_16_TIMES(MULTI_ENTRY_HANDLER_ID_NO_ERRCODE, name, b)                                      \
+    CALL_16_TIMES(MULTI_ENTRY_HANDLER_ID_NO_ERRCODE, name, c)                                      \
+    CALL_16_TIMES(MULTI_ENTRY_HANDLER_ID_NO_ERRCODE, name, d)                                      \
+    CALL_16_TIMES(MULTI_ENTRY_HANDLER_ID_NO_ERRCODE, name, e)                                      \
+    CALL_16_TIMES(MULTI_ENTRY_HANDLER_ID_NO_ERRCODE, name, f)
+
+#define MULTI_ENTRY_HANDLER_DECLARATIONS_ID(name, id) void name##_##id(void);
+#define MULTI_ENTRY_HANDLER_DECLARATIONS(name)                                                     \
+    CALL_256_TIMES(MULTI_ENTRY_HANDLER_DECLARATIONS_ID, name)
+
+#define MULTI_ENTRY_HANDLER_LIST_ID(name, id) name##_##id,
+#define MULTI_ENTRY_HANDLER_LIST(name)        CALL_256_TIMES(MULTI_ENTRY_HANDLER_LIST_ID, name)
+
 MULTI_ENTRY_HANDLER_DECLARATIONS(fallback_handler);
 static void *fallback_handlers[] = {
     MULTI_ENTRY_HANDLER_LIST(fallback_handler) NULL,

@@ -158,7 +158,7 @@
     }
 
 // =================================================================================================
-// Fault handling
+// Call sequences
 // =================================================================================================
 #define CALL_16_TIMES(macro, arg, id)                                                              \
     macro(arg, id##0) macro(arg, id##1) macro(arg, id##2) macro(arg, id##3) macro(arg, id##4)      \
@@ -183,20 +183,6 @@
     CALL_16_TIMES(macro, arg, e)                                                                   \
     CALL_16_TIMES(macro, arg, f)
 
-#define MULTI_ENTRY_HANDLER_ID(name, id)                                                           \
-    asm volatile(".global " #name "_" #id "\n"                                                     \
-                 "" #name "_" #id ":\n"                                                            \
-                 "mov $0x" #id ", %%r13\n"                                                         \
-                 "jmp " #name "\n" ::                                                              \
-                     : "memory");
-#define MULTI_ENTRY_HANDLER(name) CALL_256_TIMES(MULTI_ENTRY_HANDLER_ID, name)
-
-#define MULTI_ENTRY_HANDLER_DECLARATIONS_ID(name, id) void name##_##id(void);
-#define MULTI_ENTRY_HANDLER_DECLARATIONS(name)                                                     \
-    CALL_256_TIMES(MULTI_ENTRY_HANDLER_DECLARATIONS_ID, name)
-
-#define MULTI_ENTRY_HANDLER_LIST_ID(name, id) name##_##id,
-#define MULTI_ENTRY_HANDLER_LIST(name)        CALL_256_TIMES(MULTI_ENTRY_HANDLER_LIST_ID, name)
 
 // =================================================================================================
 // Address translation
