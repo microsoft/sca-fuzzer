@@ -3,9 +3,9 @@
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include <asm/msr-index.h>
 #include <linux/kernel.h>
 #include <linux/types.h>
-#include <asm/msr-index.h>
 
 #include "main.h"
 #include "shortcuts.h"
@@ -110,16 +110,16 @@ static int get_pfc_config_by_name(pfc_name_e pfc_name, struct pfc_config *config
         case UOPS_ISSUED_ANY:
             // Dispatched ops
             switch (family) {
-                case 0x17:
-                    // there's no reliable counter of dispatched ops on this family (at least that
-                    // I know of), so we use a dummy counter that always returns zero; this way,
-                    // we effectively disable the speculation filter
-                    config->evt_num = 0x00;
-                    config->umask = 0x00;
-                    break;
-                default:
-                    config->evt_num = 0xAB;
-                    config->umask = 0xff;
+            case 0x17:
+                // there's no reliable counter of dispatched ops on this family (at least that
+                // I know of), so we use a dummy counter that always returns zero; this way,
+                // we effectively disable the speculation filter
+                config->evt_num = 0x00;
+                config->umask = 0x00;
+                break;
+            default:
+                config->evt_num = 0xAB;
+                config->umask = 0xff;
             }
             break;
         case UOPS_RETIRED_ANY:
@@ -153,7 +153,7 @@ static int get_pfc_config_by_name(pfc_name_e pfc_name, struct pfc_config *config
 /// @return 0 on success, -1 on failure
 static int pfc_write(unsigned int id, struct pfc_config *config, unsigned int usr, unsigned int os)
 {
-    uint64_t perf_configuration;
+    uint64_t perf_configuration = 0;
 #if VENDOR_ID == 1
     uint64_t global_ctrl = native_read_msr(MSR_CORE_PERF_GLOBAL_CTRL);
     global_ctrl |= ((uint64_t)7 << 32) | 15;

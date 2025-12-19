@@ -14,7 +14,7 @@
 
 // layout of util_t
 #define UTIL_VARS_MAX         4096
-#define L1D_PRIMING_AREA_SIZE (L1D_SIZE_KB * 1024)
+#define L1D_PRIMING_AREA_SIZE (L1D_SIZE_KB * 1024ULL)
 #define STORED_RSP_SIZE       SIZE_UINT64
 #define MEASUREMENT_SIZE      56ULL  // see measurement.h
 #define NESTED_FAULT_SIZE     SIZE_UINT64
@@ -28,8 +28,8 @@
 #define OVERFLOW_PAD_SIZE  (4096 - REG_INIT_AREA_SIZE)
 
 // Section sizes
-#define MAX_EXPANDED_SECTION_SIZE (0x1000 * 2)
-#define MAX_EXPANDED_MACROS_SIZE  (0x1000)
+#define MAX_EXPANDED_SECTION_SIZE (0x1000ULL * 2)
+#define MAX_EXPANDED_MACROS_SIZE  (0x1000ULL)
 
 // offsets w.r.t. the base of util_t (r15 will be initialized to point there)
 #define L1D_PRIMING_OFFSET  (0)
@@ -53,8 +53,8 @@
 #define LOCAL_RSP_OFFSET       (FAULTY_AREA_OFFSET - 8)
 
 // area page IDs
-#define MAIN_PAGE_ID   (MACRO_STACK_SIZE + UNDERFLOW_PAD_SIZE) / 4096
-#define FAULTY_PAGE_ID (MACRO_STACK_SIZE + UNDERFLOW_PAD_SIZE + MAIN_AREA_SIZE) / 4096
+#define MAIN_PAGE_ID   ((MACRO_STACK_SIZE + UNDERFLOW_PAD_SIZE) / 4096)
+#define FAULTY_PAGE_ID ((MACRO_STACK_SIZE + UNDERFLOW_PAD_SIZE + MAIN_AREA_SIZE) / 4096)
 
 // number of pages for each component
 #define N_UTIL_PAGES           (sizeof(util_t) / 4096)

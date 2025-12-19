@@ -12,7 +12,7 @@
 
 #include "fault_handler.h"
 
-#if defined(ARCH_X86_64)
+#ifdef ARCH_X86_64
 #include "x86/entry_exit_points.h"
 #elif defined(ARCH_ARM)
 #include "arm64/entry_exit_points.h"
@@ -28,10 +28,10 @@
 uint8_t *loaded_test_case_entry = NULL; // global
 
 static int load_section_main(void);
-static int load_section(int segment_id);
+static int load_section(uint64_t section_id);
 static tc_symbol_entry_t *get_section_macros_start(uint64_t section_id);
-static int64_t expand_section(uint64_t section_id, uint8_t *dest, uint8_t *macros_dest,
-                              size_t *size_section, size_t *size_macros);
+static int expand_section(uint64_t section_id, uint8_t *dest, uint8_t *macros_dest,
+                          size_t *size_section, size_t *size_macros);
 
 // =================================================================================================
 // Code Loader logic
@@ -54,11 +54,11 @@ int load_sandbox_code(void)
     return err;
 }
 
-static int load_section(int section_id)
+static int load_section(uint64_t section_id)
 {
     uint8_t *section = sandbox->code[section_id].section;
     uint8_t *macros = sandbox->code[section_id].macros;
-    size_t size_section, size_macros = 0;
+    size_t size_section = 0, size_macros = 0;
     int err = expand_section(section_id, section, macros, &size_section, &size_macros);
     CHECK_ERR("load_section");
 
@@ -106,7 +106,7 @@ static int load_section_main(void)
     set_main_prologue_size(dest_cursor);
 
     // copy the test case into the template and expand macros
-    size_t size_section, size_macros = 0;
+    size_t size_section = 0, size_macros = 0;
     err = expand_section(0, &dest[dest_cursor], macro_dest, &size_section, &size_macros);
     CHECK_ERR("load_section_main");
     dest_cursor += size_section;
@@ -162,7 +162,7 @@ static int load_section_main(void)
 static tc_symbol_entry_t *get_section_macros_start(uint64_t section_id)
 {
     tc_symbol_entry_t *entry = test_case->symbol_table;
-    tc_symbol_entry_t *end = entry + test_case->symbol_table_size / sizeof(*entry);
+    tc_symbol_entry_t *end = entry + (test_case->symbol_table_size / sizeof(*entry));
     while (entry->owner != section_id || entry->id == 0) {
         entry++;
         if (entry >= end)
@@ -178,8 +178,8 @@ static tc_symbol_entry_t *get_section_macros_start(uint64_t section_id)
 /// @param[out] size_section Size of the expanded section
 /// @param[out] size_macros Size of the expanded macros
 /// @return 0 on success, -1 on failure
-static int64_t expand_section(uint64_t section_id, uint8_t *dest, uint8_t *macros_dest,
-                              size_t *size_section, size_t *size_macros)
+static int expand_section(uint64_t section_id, uint8_t *dest, uint8_t *macros_dest,
+                          size_t *size_section, size_t *size_macros)
 {
     int err = 0;
     uint64_t src_cursor = 0;

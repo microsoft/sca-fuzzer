@@ -292,7 +292,7 @@ static int check_test_case_compat(void)
 {
     int err = 0;
 
-#if defined(ARCH_X86_64)
+#ifdef ARCH_X86_64
     if (test_case->features.includes_user_actors) {
 #ifndef FORCE_SMAP_OFF
         // ensure that SMAP and SMEP are disabled

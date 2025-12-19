@@ -6,9 +6,9 @@
 #ifndef _FAULT_HANDLER_H_
 #define _FAULT_HANDLER_H_
 
+#include "hardware_desc.h"
 #include <linux/interrupt.h>
 #include <linux/version.h>
-#include "hardware_desc.h"
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0)
 struct idt_data {

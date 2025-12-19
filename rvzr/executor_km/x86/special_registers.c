@@ -22,31 +22,21 @@ special_registers_t *orig_special_registers_state = NULL; // global
 
 static inline unsigned long _read_cr0(void)
 {
-    // return read_cr0();
-    unsigned long v;
-    asm volatile("mov %%cr0, %0\n" : "=r"(v));
-    return v;
+    unsigned long val = 0;
+    asm volatile("mov %%cr0, %0\n" : "=r"(val));
+    return val;
 }
 
-static inline void _write_cr0(unsigned long v)
-{
-    // write_cr0(v);
-    asm volatile("mov %0, %%cr0\n" : : "r"(v));
-}
+static inline void _write_cr0(unsigned long val) { asm volatile("mov %0, %%cr0\n" : : "r"(val)); }
 
 static inline unsigned long _read_cr4(void)
 {
-    unsigned long v;
-    asm volatile("mov %%cr4, %0\n" : "=r"(v));
-    return v;
-    // return __read_cr4();
+    unsigned long val = 0;
+    asm volatile("mov %%cr4, %0\n" : "=r"(val));
+    return val;
 }
 
-static inline void _write_cr4(unsigned long v)
-{
-    // __write_cr4(v);
-    asm volatile("mov %0, %%cr4\n" : : "r"(v));
-}
+static inline void _write_cr4(unsigned long val) { asm volatile("mov %0, %%cr4\n" : : "r"(val)); }
 
 // =================================================================================================
 // Private implementation of special register management
@@ -198,7 +188,7 @@ static int apply_msr_mask(uint64_t msr_id, uint64_t msr_mask, bool enable)
 int set_special_registers(void)
 {
     int err = 0;
-    uint64_t msr_id, msr_mask;
+    uint64_t msr_id = 0, msr_mask = 0;
 
     err = store_orig_msr_state();
     CHECK_ERR("store_orig_msr_state");
@@ -261,7 +251,7 @@ static int store_orig_msr_state(void)
 
 void restore_special_registers(void)
 {
-    uint64_t msr_id, msr_mask;
+    uint64_t msr_id = 0, msr_mask = 0;
 
     // note: the if-zero statements are necessary because the MSR initialization might have failed
     // midway through the process, in which case the MSR state was only partially initialized

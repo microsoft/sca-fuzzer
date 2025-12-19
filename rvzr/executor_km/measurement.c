@@ -18,12 +18,12 @@
 #include "test_case_parser.h"
 
 #include "fault_handler.h"
-#include "page_tables_host.h"
 #include "page_tables_guest.h"
+#include "page_tables_host.h"
 #include "perf_counters.h"
 #include "special_registers.h"
 
-#if defined(ARCH_X86_64)
+#ifdef ARCH_X86_64
 #include <asm/msr-index.h>
 #include <asm/msr.h>
 #include <asm/spec-ctrl.h>
@@ -72,7 +72,7 @@ static int check_test_case_entry(void)
     if (!tc_pte || !pte_present(*tc_pte)) {
         return -1;
     }
-#if defined(ARCH_X86_64)
+#ifdef ARCH_X86_64
     if (!pte_exec(*tc_pte)) {
         return -1;
     }
@@ -135,7 +135,7 @@ static int pre_run(unsigned long *irq_flags)
     CHECK_ERR("trace_test_case:pfc_configure");
 
     // Enable FPU - just in case, we might use it within the test case
-#if defined(ARCH_X86_64)
+#ifdef ARCH_X86_64
     kernel_fpu_begin();
 #endif
 
@@ -162,7 +162,7 @@ static inline void post_run(unsigned long *irq_flags)
 
     put_cpu();
 
-#if defined(ARCH_X86_64)
+#ifdef ARCH_X86_64
     kernel_fpu_end();
 #endif
 }
@@ -180,7 +180,7 @@ static int set_execution_environment(void)
     CHECK_ERR("set_execution_environment:set_special_registers");
 
     // If necessary, enable VM operation
-#if defined(ARCH_X86_64)
+#ifdef ARCH_X86_64
     if (test_case->features.includes_vm_actors) {
         if (cpuinfo->x86_vendor == X86_VENDOR_INTEL) {
             err = start_vmx_operation();
@@ -212,7 +212,7 @@ static int set_execution_environment(void)
 void recover_orig_state(void)
 {
     // restore VMX state
-#if defined(ARCH_X86_64)
+#ifdef ARCH_X86_64
     if (test_case->features.includes_vm_actors) {
         if (cpuinfo->x86_vendor == X86_VENDOR_INTEL) {
             // if (vmx_is_on)
@@ -326,7 +326,7 @@ cleanup:
 int trace_test_case(void)
 {
     int err = 0;
-    unsigned long irq_flags;
+    unsigned long irq_flags = 0;
 
     err = alloc_measurements();
     CHECK_ERR("alloc_measurements");

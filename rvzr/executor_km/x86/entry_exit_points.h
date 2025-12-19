@@ -9,8 +9,8 @@
 // Some of the registers are reserved for a specific purpose and should never be overwritten.
 // See ./docs/registers.md and registers.h for more information.
 
-#ifndef _ENTRY_EXIT_H_
-#define _ENTRY_EXIT_H_
+#ifndef RVZR_ENTRY_EXIT_H
+#define RVZR_ENTRY_EXIT_H
 
 #include "hardware_desc.h"
 
@@ -200,4 +200,4 @@ static void main_segment_template_dbg_gpr(void)
     asm volatile(".quad " xstr(TEMPLATE_END));
 }
 
-#endif // _ENTRY_EXIT_H_
+#endif // RVZR_ENTRY_EXIT_H

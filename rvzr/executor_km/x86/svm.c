@@ -8,9 +8,9 @@
 #include "actor.h"
 #include "shortcuts.h"
 
-#include "main.h"
 #include "fault_handler.h"
 #include "hardware_desc.h"
+#include "main.h"
 #include "page_tables_guest.h"
 #include "special_registers.h"
 #include "svm.h"

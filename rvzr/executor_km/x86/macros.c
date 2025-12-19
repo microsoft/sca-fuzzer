@@ -6,10 +6,10 @@
 
 #include "asm_snippets.h"
 #include "fault_handler.h"
-#include "page_tables_host.h"
 #include "macro_expansion.h"
 #include "main.h"
 #include "page_tables_guest.h"
+#include "page_tables_host.h"
 #include "sandbox_manager.h"
 #include "shortcuts.h"
 #include "svm.h"
@@ -54,7 +54,7 @@
 /// @param section_id ID of the section
 /// @param function_id ID of the function
 /// @return Virtual address of the function
-static uint64_t get_function_addr(int section_id, int function_id)
+static uint64_t get_function_addr(uint64_t section_id, uint64_t function_id)
 {
     uint64_t section_base = 0;
 
@@ -79,9 +79,9 @@ static uint64_t get_function_addr(int section_id, int function_id)
 /// @param dest Pointer to the destination of the code sequence
 /// @param cursor Current position in the destination buffer
 /// @return Number of bytes written to the destination buffer
-static uint64_t update_r14(int section_id, uint8_t *dest, uint64_t cursor)
+static uint64_t update_r14(uint64_t section_id, uint8_t *dest, uint64_t cursor)
 {
-    int old_cursor = cursor;
+    uint64_t old_cursor = cursor;
 
     // calculate the new R14 value
     uint64_t new_r14 = 0;
@@ -104,9 +104,9 @@ static uint64_t update_r14(int section_id, uint8_t *dest, uint64_t cursor)
 /// @param dest Pointer to the destination of the code sequence
 /// @param cursor Current position in the destination buffer
 /// @return Number of bytes written to the destination buffer
-static uint64_t update_mem_base_and_sp(int section_id, uint8_t *dest, uint64_t cursor)
+static uint64_t update_mem_base_and_sp(uint64_t section_id, uint8_t *dest, uint64_t cursor)
 {
-    int old_cursor = cursor;
+    uint64_t old_cursor = cursor;
     cursor += update_r14(section_id, dest, cursor);
 
     // calculate the new RSP value
@@ -130,9 +130,9 @@ static uint64_t update_mem_base_and_sp(int section_id, uint8_t *dest, uint64_t c
 /// @param dest Pointer to the destination of the code sequence
 /// @param cursor Current position in the destination buffer
 /// @return Number of bytes written to the destination buffer
-static uint64_t update_r15(int section_id, uint8_t *dest, uint64_t cursor)
+static uint64_t update_r15(uint64_t section_id, uint8_t *dest, uint64_t cursor)
 {
-    int old_cursor = cursor;
+    uint64_t old_cursor = cursor;
 
     // calculate the new R15 value
     uint64_t new_r15 = 0;
@@ -398,7 +398,7 @@ static inline size_t start_macro_set_k2u_target(macro_args_t args, uint8_t *dest
 }
 
 // MACRO_SWITCH_K2U --------------------------------------------------------------------------------
-static inline size_t start_macro_switch_k2u(macro_args_t args, uint8_t *dest) { return 0; }
+static inline size_t start_macro_switch_k2u(macro_args_t /*args*/, uint8_t * /*dest*/) { return 0; }
 
 static void __attribute__((noipa)) body_macro_switch_k2u(void)
 {
@@ -677,7 +677,8 @@ static inline size_t start_macro_set_data_permissions(macro_args_t args, uint8_t
     uint16_t mask_clear = args.arg3;
 
     // get the target PTE
-    int page_id = args.arg1 * N_DATA_PAGES_PER_ACTOR + FAULTY_PAGE_ID;
+    uint64_t actor_id = args.arg1;
+    uint64_t page_id = (actor_id * N_DATA_PAGES_PER_ACTOR) + FAULTY_PAGE_ID;
     pte_t_ *ptep = sandbox_pteps->data_pteps[page_id];
     ASSERT(ptep != NULL, "start_macro_set_data_permissions");
 

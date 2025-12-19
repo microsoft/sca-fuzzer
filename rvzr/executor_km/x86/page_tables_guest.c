@@ -18,36 +18,36 @@
 
 #define INIT_PTE(PTE, PADDR, P, W, US, PWT, PCD, XD, A)                                            \
     {                                                                                              \
-        PTE.present = P;                                                                           \
-        PTE.write_access = W;                                                                      \
-        PTE.user_supervisor = US;                                                                  \
-        PTE.page_write_through = PWT;                                                              \
-        PTE.page_cache_disable = PCD;                                                              \
-        PTE.paddr = PADDR >> 12;                                                                   \
-        PTE.execute_disable = XD;                                                                  \
-        PTE.accessed = A;                                                                          \
+        (PTE).present = P;                                                                         \
+        (PTE).write_access = W;                                                                    \
+        (PTE).user_supervisor = US;                                                                \
+        (PTE).page_write_through = PWT;                                                            \
+        (PTE).page_cache_disable = PCD;                                                            \
+        (PTE).paddr = (PADDR) >> 12;                                                               \
+        (PTE).execute_disable = XD;                                                                \
+        (PTE).accessed = A;                                                                        \
     }
 
 #if VENDOR_ID == VENDOR_INTEL_
 #define INIT_EPTE(PTE, PADDR, P, W, X, A)                                                          \
     {                                                                                              \
-        PTE.read_access = P;                                                                       \
-        PTE.write_access = W;                                                                      \
-        PTE.execute_access = X;                                                                    \
-        PTE.paddr = PADDR >> 12;                                                                   \
-        PTE.accessed = A;                                                                          \
+        (PTE).read_access = P;                                                                     \
+        (PTE).write_access = W;                                                                    \
+        (PTE).execute_access = X;                                                                  \
+        (PTE).paddr = (PADDR) >> 12;                                                               \
+        (PTE).accessed = A;                                                                        \
     }
 #else // AMD
 #define INIT_EPTE(PTE, PADDR, P, W, X, A)                                                          \
     {                                                                                              \
-        PTE.present = P;                                                                           \
-        PTE.write_access = W;                                                                      \
-        PTE.user_supervisor = 1;                                                                   \
-        PTE.page_write_through = 0;                                                                \
-        PTE.page_cache_disable = 0;                                                                \
-        PTE.paddr = PADDR >> 12;                                                                   \
-        PTE.execute_disable = X ^ 1;                                                               \
-        PTE.accessed = A;                                                                          \
+        (PTE).present = P;                                                                         \
+        (PTE).write_access = W;                                                                    \
+        (PTE).user_supervisor = 1;                                                                 \
+        (PTE).page_write_through = 0;                                                              \
+        (PTE).page_cache_disable = 0;                                                              \
+        (PTE).paddr = (PADDR) >> 12;                                                               \
+        (PTE).execute_disable = X ^ 1;                                                             \
+        (PTE).accessed = A;                                                                        \
     }
 #endif
 
@@ -74,16 +74,16 @@
 
 eptp_t *ept_ptr = NULL; // global
 
-static actor_page_table_t *_allocated_page_tables = NULL;
-static actor_ept_t *_allocated_extended_page_tables = NULL;
-static actor_gdt_t *_allocated_guest_gdts = NULL;
-static guest_memory_translations_t *_guest_memory_translations = NULL;
-static uint8_t *_vmlaunch_page = NULL;
+static actor_page_table_t *allocated_page_tables = NULL;
+static actor_ept_t *allocated_extended_page_tables = NULL;
+static actor_gdt_t *allocated_guest_gdts = NULL;
+static guest_memory_translations_t *guest_memory_translations = NULL;
+static uint8_t *vmlaunch_page = NULL;
 static pte_t_ *faulty_ptes = NULL;
 static epte_t_ *faulty_eptes = NULL;
 
-static bool _guest_pt_set = false;
-static bool _ept_set = false;
+static bool guest_pt_is_set = false;
+static bool ept_is_set = false;
 
 // =================================================================================================
 // Helper functions
@@ -95,7 +95,7 @@ static bool _ept_set = false;
 /// @return Host virtual address in high memory
 static void *phys_to_vmalloc(uint64_t hpa, int actor_id)
 {
-    hgpa_t *flat_translations = (hgpa_t *)&_guest_memory_translations[actor_id];
+    hgpa_t *flat_translations = (hgpa_t *)&guest_memory_translations[actor_id];
     for (int i = 0; i < sizeof(guest_memory_translations_t) / sizeof(hgpa_t); i++) {
         if (flat_translations[i].hpa == hpa) {
             return flat_translations[i].hva;
@@ -174,7 +174,7 @@ static int set_guest_page_tables(void)
     uint64_t vaddr = 0;
     uint64_t paddr = 0;
 
-    static int old_n_actors = 0;
+    static size_t old_n_actors = 0;
     if (n_actors > old_n_actors) {
         SAFE_FREE(faulty_ptes);
         SAFE_FREE(faulty_eptes);
@@ -193,13 +193,13 @@ static int set_guest_page_tables(void)
         // get a type that represents the guest memory
         guest_memory_t *guest_v_memory = (guest_memory_t *)(GUEST_V_MEMORY_START);
         guest_memory_t *guest_p_memory = (guest_memory_t *)(GUEST_P_MEMORY_START);
-        guest_memory_translations_t *translations = &_guest_memory_translations[actor_id];
+        guest_memory_translations_t *translations = &guest_memory_translations[actor_id];
 
         // Set the first three levels of the page table
         // For convenience, we set GPA of the page tables to the same value as their GVA
         // Also, since the actor's sandbox is fairly small, the first three levels are identical
         // for all addresses within the actor memory
-        actor_page_table_t *page_table = &_allocated_page_tables[actor_id];
+        actor_page_table_t *page_table = &allocated_page_tables[actor_id];
         actor_page_table_t *page_table_gpa = &guest_p_memory->guest_page_tables;
         translations->guest_page_tables[3].gpa = (uint64_t)&page_table_gpa->l4;
 
@@ -261,7 +261,7 @@ static int set_guest_page_tables(void)
         }
     }
 
-    _guest_pt_set = true;
+    guest_pt_is_set = true;
     return 0;
 }
 
@@ -276,7 +276,7 @@ static int set_extended_page_tables(void)
 
     ASSERT(actors != NULL, "set_extended_page_tables");
     ASSERT(sandbox != NULL, "set_extended_page_tables");
-    ASSERT(_guest_pt_set, "set_extended_page_tables");
+    ASSERT(guest_pt_is_set, "set_extended_page_tables");
 
     for (int actor_id = 0; actor_id < n_actors; actor_id++) {
         // skip non-guest actors
@@ -284,8 +284,8 @@ static int set_extended_page_tables(void)
         if (actor->mode != MODE_GUEST) {
             continue;
         }
-        actor_ept_t *ept_base = &_allocated_extended_page_tables[actor_id];
-        guest_memory_translations_t *translations = &_guest_memory_translations[actor_id];
+        actor_ept_t *ept_base = &allocated_extended_page_tables[actor_id];
+        guest_memory_translations_t *translations = &guest_memory_translations[actor_id];
 
         // get addresses of the last three levels
         uint64_t l3_hpa = vmalloc_to_phys((void *)ept_base->l3);
@@ -311,12 +311,12 @@ static int set_extended_page_tables(void)
             CHECK_ERR("set_extended_page_tables");
         }
         { // indent for readability
-            void *hva = (void *)&_allocated_guest_gdts[actor_id];
+            void *hva = (void *)&allocated_guest_gdts[actor_id];
             err = set_ept_entry(ept_base, &translations->gdt[0], l3_hpa, l2_hpa, l1_hpa, hva);
             CHECK_ERR("set_extended_page_tables");
         }
         { // indent for readability
-            void *hva = (void *)&_vmlaunch_page[0];
+            void *hva = (void *)&vmlaunch_page[0];
             err = set_ept_entry(ept_base, &translations->vmlaunch_page[0], l3_hpa, l2_hpa, l1_hpa,
                                 hva);
             CHECK_ERR("set_extended_page_tables");
@@ -324,14 +324,14 @@ static int set_extended_page_tables(void)
 
         // map guest page tables
         for (int i = 0; i < sizeof(actor_page_table_t) / PAGE_SIZE; i += 1) {
-            void *hva = (void *)&_allocated_page_tables[actor_id] + (i * PAGE_SIZE);
+            void *hva = (void *)&allocated_page_tables[actor_id] + (i * PAGE_SIZE);
             err = set_ept_entry(ept_base, &translations->guest_page_tables[i], l3_hpa, l2_hpa,
                                 l1_hpa, hva);
             CHECK_ERR("set_extended_page_tables");
         }
     }
 
-    _ept_set = true;
+    ept_is_set = true;
     return 0;
 }
 
@@ -341,11 +341,11 @@ static int set_extended_page_tables(void)
 /// @return 0 on success, -1 on failure
 static int update_eptp(void)
 {
-    ASSERT(_ept_set, "update_eptp");
+    ASSERT(ept_is_set, "update_eptp");
     SAFE_FREE(ept_ptr);
     ept_ptr = CHECKED_ZALLOC(sizeof(eptp_t) * n_actors);
     for (int actor_id = 0; actor_id < n_actors; actor_id++) {
-        actor_ept_t *actor_ept_base = &_allocated_extended_page_tables[actor_id];
+        actor_ept_t *actor_ept_base = &allocated_extended_page_tables[actor_id];
         ept_ptr[actor_id].memory_type = VMX_BASIC_MEM_TYPE_WB;
         ept_ptr[actor_id].page_walk_length = 3;
         ept_ptr[actor_id].ad_enabled = 1; // native_read_msr(MSR_IA32_VMX_EPT_VPID_CAP) &0x00200000;
@@ -359,9 +359,9 @@ static int update_eptp(void)
 int map_sandbox_to_guest_memory(void)
 {
     int err = 0;
-    ASSERT(_allocated_page_tables != NULL, "map_sandbox_to_guest_memory");
-    ASSERT(_allocated_extended_page_tables != NULL, "map_sandbox_to_guest_memory");
-    ASSERT(_allocated_guest_gdts != NULL, "map_sandbox_to_guest_memory");
+    ASSERT(allocated_page_tables != NULL, "map_sandbox_to_guest_memory");
+    ASSERT(allocated_extended_page_tables != NULL, "map_sandbox_to_guest_memory");
+    ASSERT(allocated_guest_gdts != NULL, "map_sandbox_to_guest_memory");
 
     err = set_guest_page_tables();
     CHECK_ERR("set_guest_page_tables");
@@ -392,7 +392,7 @@ void set_faulty_page_guest_permissions(void)
         uint64_t mask_set = pte_mask & MODIFIABLE_PTE_BITS;
         uint64_t mask_clear = pte_mask | ~MODIFIABLE_PTE_BITS;
 
-        pte_t_ *ptep = &_allocated_page_tables[actor_id].l1[index];
+        pte_t_ *ptep = &allocated_page_tables[actor_id].l1[index];
         faulty_ptes[actor_id] = *ptep;
 
         uint64_t org_pte = *(uint64_t *)ptep;
@@ -415,7 +415,7 @@ void restore_faulty_page_guest_permissions(void)
         if (actor->mode != MODE_GUEST)
             continue;
 
-        _allocated_page_tables[actor_id].l1[index] = faulty_ptes[actor_id];
+        allocated_page_tables[actor_id].l1[index] = faulty_ptes[actor_id];
     }
 }
 
@@ -428,7 +428,7 @@ void set_faulty_page_ept_permissions(void)
         if (actor->mode != MODE_GUEST)
             continue;
 
-        guest_memory_translations_t *translations = &_guest_memory_translations[actor_id];
+        guest_memory_translations_t *translations = &guest_memory_translations[actor_id];
         uint64_t gpa = translations->data[FAULTY_PAGE_ID].gpa;
         size_t index = PT_INDEX(gpa);
 
@@ -436,7 +436,7 @@ void set_faulty_page_ept_permissions(void)
         uint64_t mask_set = pte_mask & MODIFIABLE_EPTE_BITS;
         uint64_t mask_clear = pte_mask | ~MODIFIABLE_EPTE_BITS;
 
-        epte_t_ *ptep = &_allocated_extended_page_tables[actor_id].l1[index];
+        epte_t_ *ptep = &allocated_extended_page_tables[actor_id].l1[index];
         faulty_eptes[actor_id] = *ptep;
 
         uint64_t org_pte = *(uint64_t *)ptep;
@@ -455,11 +455,11 @@ void restore_faulty_page_ept_permissions(void)
         if (actor->mode != MODE_GUEST)
             continue;
 
-        guest_memory_translations_t *translations = &_guest_memory_translations[actor_id];
+        guest_memory_translations_t *translations = &guest_memory_translations[actor_id];
         uint64_t gpa = translations->data[FAULTY_PAGE_ID].gpa;
         size_t index = PT_INDEX(gpa);
 
-        _allocated_extended_page_tables[actor_id].l1[index] = faulty_eptes[actor_id];
+        allocated_extended_page_tables[actor_id].l1[index] = faulty_eptes[actor_id];
     }
 }
 
@@ -477,8 +477,8 @@ int dbg_dump_guest_page_tables(int actor_id)
     //   tables as we have only one PT per actor. However, this implementation is more future-proof,
     //   so we have a traditional page walk, and just check the number of entries with asserts
     printk(KERN_INFO "------- Page table dump for actor %d ---------------\n", actor_id);
-    actor_page_table_t *page_table = &_allocated_page_tables[actor_id];
-    guest_memory_translations_t *translations = &_guest_memory_translations[actor_id];
+    actor_page_table_t *page_table = &allocated_page_tables[actor_id];
+    guest_memory_translations_t *translations = &guest_memory_translations[actor_id];
 
     // L4 traversal
     pml4e_t *l4 = page_table->l4;
@@ -548,7 +548,7 @@ int dbg_dump_guest_page_tables(int actor_id)
 int dbg_dump_ept(int actor_id)
 {
     printk(KERN_INFO "------- EPT dump -----------------------------------\n");
-    actor_ept_t *actor_ept_base = &_allocated_extended_page_tables[actor_id];
+    actor_ept_t *actor_ept_base = &allocated_extended_page_tables[actor_id];
 
     // L4 traversal
     epml4e_t *l4 = actor_ept_base->l4;
@@ -589,7 +589,7 @@ int dbg_dump_ept(int actor_id)
                     // if HPA-GPA collisions are enabled, we will have multiple translations per
                     // physical address; hence, filter out the unused GPAs
                     if (enable_hpa_gpa_collisions &&
-                        !gpa_is_valid((hgpa_t *)&_guest_memory_translations[actor_id], gpa)) {
+                        !gpa_is_valid((hgpa_t *)&guest_memory_translations[actor_id], gpa)) {
                         continue;
                     }
 
@@ -616,58 +616,57 @@ int allocate_guest_page_tables()
 {
     ASSERT(n_actors < 64, "allocate_guest_page_tables");
 
-    static int old_n_actors = 0;
+    static size_t old_n_actors = 0;
     if (n_actors <= old_n_actors) {
-        memset(_allocated_page_tables, 0, n_actors * sizeof(actor_page_table_t));
-        memset(_allocated_extended_page_tables, 0, n_actors * sizeof(actor_ept_t));
-        memset(_allocated_guest_gdts, 0, n_actors * sizeof(actor_gdt_t));
-        memset(_guest_memory_translations, 0, n_actors * sizeof(guest_memory_translations_t));
+        memset(allocated_page_tables, 0, n_actors * sizeof(actor_page_table_t));
+        memset(allocated_extended_page_tables, 0, n_actors * sizeof(actor_ept_t));
+        memset(allocated_guest_gdts, 0, n_actors * sizeof(actor_gdt_t));
+        memset(guest_memory_translations, 0, n_actors * sizeof(guest_memory_translations_t));
         return 0;
     }
     old_n_actors = n_actors;
-    SAFE_VFREE(_allocated_page_tables);
-    SAFE_VFREE(_allocated_extended_page_tables);
-    SAFE_VFREE(_allocated_guest_gdts);
-    SAFE_FREE(_guest_memory_translations);
-    SAFE_FREE(_vmlaunch_page);
+    SAFE_VFREE(allocated_page_tables);
+    SAFE_VFREE(allocated_extended_page_tables);
+    SAFE_VFREE(allocated_guest_gdts);
+    SAFE_FREE(guest_memory_translations);
+    SAFE_FREE(vmlaunch_page);
 
     // Guest page tables
-    _allocated_page_tables =
+    allocated_page_tables =
         (actor_page_table_t *)CHECKED_VMALLOC(n_actors * sizeof(actor_page_table_t));
-    memset(_allocated_page_tables, 0, n_actors * sizeof(actor_page_table_t));
+    memset(allocated_page_tables, 0, n_actors * sizeof(actor_page_table_t));
 
     // EPTs
-    _allocated_extended_page_tables =
-        (actor_ept_t *)CHECKED_VMALLOC(n_actors * sizeof(actor_ept_t));
-    memset(_allocated_extended_page_tables, 0, n_actors * sizeof(actor_ept_t));
+    allocated_extended_page_tables = (actor_ept_t *)CHECKED_VMALLOC(n_actors * sizeof(actor_ept_t));
+    memset(allocated_extended_page_tables, 0, n_actors * sizeof(actor_ept_t));
 
-    _allocated_guest_gdts = CHECKED_VMALLOC(n_actors * sizeof(actor_gdt_t));
+    allocated_guest_gdts = CHECKED_VMALLOC(n_actors * sizeof(actor_gdt_t));
 
     // Fast translations
-    _guest_memory_translations = CHECKED_ZALLOC(n_actors * sizeof(guest_memory_translations_t));
+    guest_memory_translations = CHECKED_ZALLOC(n_actors * sizeof(guest_memory_translations_t));
 
     // A page with a single VMCALL instruction; used to put the VM into launched state
-    _vmlaunch_page = CHECKED_ZALLOC(PAGE_SIZE);
-    _vmlaunch_page[0] = 0x0f;
-    _vmlaunch_page[1] = 0x01;
-    _vmlaunch_page[2] = 0xc1;
+    vmlaunch_page = CHECKED_ZALLOC(PAGE_SIZE);
+    vmlaunch_page[0] = 0x0f;
+    vmlaunch_page[1] = 0x01;
+    vmlaunch_page[2] = 0xc1;
 
     faulty_ptes = (pte_t_ *)CHECKED_ZALLOC(sizeof(pte_t_));
     faulty_eptes = (epte_t_ *)CHECKED_ZALLOC(sizeof(epte_t_));
 
-    _guest_pt_set = false;
-    _ept_set = false;
+    guest_pt_is_set = false;
+    ept_is_set = false;
     return 0;
 }
 
 void free_guest_page_tables(void)
 {
-    SAFE_VFREE(_allocated_page_tables);
-    SAFE_VFREE(_allocated_extended_page_tables);
-    SAFE_VFREE(_allocated_guest_gdts);
-    SAFE_FREE(_guest_memory_translations);
+    SAFE_VFREE(allocated_page_tables);
+    SAFE_VFREE(allocated_extended_page_tables);
+    SAFE_VFREE(allocated_guest_gdts);
+    SAFE_FREE(guest_memory_translations);
     SAFE_FREE(ept_ptr);
-    SAFE_FREE(_vmlaunch_page);
+    SAFE_FREE(vmlaunch_page);
     SAFE_FREE(faulty_ptes);
     SAFE_FREE(faulty_eptes);
 }

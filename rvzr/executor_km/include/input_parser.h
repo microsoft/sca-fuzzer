@@ -31,10 +31,9 @@ typedef struct {
     input_fragment_t *data;
 } input_batch_t;
 
-#define MAX_INPUTS        (1024 * 1024)
-#define BATCH_HEADER_SIZE 16 // sizeof(n_actors) + sizeof(n_inputs)
-#define FRAGMENT_SIZE_ALIGNED                                                                      \
-    (MAIN_AREA_SIZE + FAULTY_AREA_SIZE + REG_INIT_AREA_SIZE_ALIGNED)
+#define MAX_INPUTS            (1024 * 1024)
+#define BATCH_HEADER_SIZE     16 // sizeof(n_actors) + sizeof(n_inputs)
+#define FRAGMENT_SIZE_ALIGNED (MAIN_AREA_SIZE + FAULTY_AREA_SIZE + REG_INIT_AREA_SIZE_ALIGNED)
 
 extern input_batch_t *inputs;
 extern size_t n_inputs;

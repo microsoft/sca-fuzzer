@@ -3,8 +3,8 @@
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#ifndef _SHORTCUTS_H_
-#define _SHORTCUTS_H_
+#ifndef KM_SHORTCUTS_H
+#define KM_SHORTCUTS_H
 
 #include "hardware_desc.h"
 #include <asm/io.h>
@@ -13,7 +13,7 @@
 #include <linux/slab.h>    // kfree, kmalloc
 #include <linux/vmalloc.h> // vfree, vmalloc
 
-#if defined(ARCH_X86_64)
+#ifdef ARCH_X86_64
 #include <../arch/x86/include/asm/desc.h>
 #endif
 
@@ -36,13 +36,13 @@
 // =================================================================================================
 // MSR access
 // =================================================================================================
-#if defined(ARCH_X86_64)
+#ifdef ARCH_X86_64
 // Kernel 6.16+ changed native_write_msr signature from (msr, low, high) to (msr, val)
 #include <linux/version.h>
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 16, 0)
 #define wrmsr64(msr, value) native_write_msr(msr, value)
 #else
-#define wrmsr64(msr, value) native_write_msr(msr, (uint32_t)value, (uint32_t)(value >> 32))
+#define wrmsr64(msr, value) native_write_msr(msr, (uint32_t)(value), (uint32_t)((value) >> 32))
 #endif
 #define rdmsr64(msr) native_read_msr(msr)
 #elif defined(ARCH_ARM)
@@ -53,13 +53,30 @@
 // =================================================================================================
 // Bit manipulation
 // =================================================================================================
-#define BIT_(x) (1ULL << x)
+#define BIT_(x) (1ULL << (x))
 
 // =================================================================================================
 // Logging and error handling
 // =================================================================================================
-#define PRINT_ERR(msg, ...)       printk(KERN_ERR "[rvzr_executor] " msg, ##__VA_ARGS__);
-#define PRINT_ERRS(src, msg, ...) printk(KERN_ERR "[rvzr_executor:" src "] " msg, ##__VA_ARGS__);
+// Flush printk buffer to ensure output is visible before potential crashes
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
+#define _PRINTK_FLUSH() pr_flush(100, true)
+#else
+#define _PRINTK_FLUSH()                                                                            \
+    do {                                                                                           \
+    } while (0)
+#endif
+
+#define PRINT_ERR(msg, ...)                                                                        \
+    do {                                                                                           \
+        printk(KERN_ERR "[rvzr_executor] " msg, ##__VA_ARGS__);                                    \
+        _PRINTK_FLUSH();                                                                           \
+    } while (0)
+#define PRINT_ERRS(src, msg, ...)                                                                  \
+    do {                                                                                           \
+        printk(KERN_ERR "[rvzr_executor:" src "] " msg, ##__VA_ARGS__);                            \
+        _PRINTK_FLUSH();                                                                           \
+    } while (0)
 
 #define PRINT_WARN(msg, ...) printk(KERN_WARNING "[rvzr_executor] " msg, ##__VA_ARGS__);
 #define PRINT_WARNS(src, msg, ...)                                                                 \
@@ -102,6 +119,8 @@
 // =================================================================================================
 // Memory management
 // =================================================================================================
+// NOLINTBEGIN(bugprone-macro-parentheses)
+
 #define CHECKED_MALLOC(x)                                                                          \
     ({                                                                                             \
         void *ptr = kmalloc(x, GFP_KERNEL);                                                        \
@@ -157,6 +176,8 @@
         x = NULL;                                                                                  \
     }
 
+// NOLINTEND(bugprone-macro-parentheses)
+
 // =================================================================================================
 // Call sequences
 // =================================================================================================
@@ -183,9 +204,9 @@
     CALL_16_TIMES(macro, arg, e)                                                                   \
     CALL_16_TIMES(macro, arg, f)
 
-
 // =================================================================================================
 // Address translation
+// =================================================================================================
 
 static inline uint64_t vmalloc_to_phys(void *hva)
 {
@@ -196,15 +217,15 @@ static inline uint64_t vmalloc_to_phys(void *hva)
     return hpa;
 }
 
-static inline void native_page_invalidate(uint64_t va)
+static inline void native_page_invalidate(uint64_t hva)
 {
-#if defined(ARCH_X86_64)
-    asm volatile("invlpg (%0)" ::"r"(va) : "memory");
+#ifdef ARCH_X86_64
+    asm volatile("invlpg (%0)" ::"r"(hva) : "memory");
 #elif defined(ARCH_ARM)
-    va >>= 12;
-    va &= 0xfffffffffffULL;
-    asm volatile("dsb ishst\n tlbi vale1is, %0\n dsb ish\n" ::"r"(va) : "memory");
+    hva >>= 12;
+    hva &= 0xfffffffffffULL;
+    asm volatile("dsb ishst\n tlbi vale1is, %0\n dsb ish\n" ::"r"(hva) : "memory");
 #endif
 }
 
-#endif // _SHORTCUTS_H_
+#endif // KM_SHORTCUTS_H

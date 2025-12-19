@@ -38,8 +38,7 @@ vector_table_t *orig_vector_table_ptr = NULL;
 // =================================================================================================
 static inline vector_table_t *vbar_el1_read(void)
 {
-    vector_table_t *vbar_el1;
-
+    vector_table_t *vbar_el1 = NULL;
     asm volatile("mrs %0, vbar_el1" : "=r"(vbar_el1));
     return vbar_el1;
 }
