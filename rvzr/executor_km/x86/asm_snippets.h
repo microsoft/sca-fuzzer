@@ -3,23 +3,18 @@
 // Copyright (C) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
-#ifndef _X86_ASM_SNIPPETS_H_
-#define _X86_ASM_SNIPPETS_H_
+#ifndef X86_ASM_SNIPPETS_H_
+#define X86_ASM_SNIPPETS_H_
 // clang-format off
 
 #include "hardware_desc.h"
 #include "measurement.h"
+#include "registers.h"
 #include <asm/msr-index.h>
 
 #ifndef VENDOR_ID
 #error "VENDOR_ID is not defined! Make sure to include this header late enough."
 #endif
-
-/// Reserved registers
-#define STATUS_REGISTER        "r12"
-#define STATUS_REGISTER_32     "r12d"
-#define STATUS_REGISTER_8      "r12b"
-#define HTRACE_REGISTER        "r13"
 
 /// State machine of the tracing process
 #define SET_SR_STARTED()       "mov "STATUS_REGISTER_8", "xstr(STATUS_STARTED)" \n"
@@ -46,28 +41,28 @@
 /// Accessors to Performance Counters
 ///
 // clobber: rax, rcx, rdx
-#define READ_PFC_ONE(ID) \
+#define READ_ONE_PFC(ID) \
         "mov rcx, "ID" \n"      \
         "lfence; rdpmc; lfence \n" \
         "shl rdx, 32; or rdx, rax \n"
 
 // clobber: rax, rcx, rdx
 #define READ_PFC_START() \
-        READ_PFC_ONE("1") \
-        "sub r10, rdx \n" \
-        READ_PFC_ONE("2") \
-        "sub r9, rdx \n" \
-        READ_PFC_ONE("3") \
-        "sub r8, rdx \n"
+        READ_ONE_PFC("1") \
+        "sub "PFC0", rdx \n" \
+        READ_ONE_PFC("2") \
+        "sub "PFC1", rdx \n" \
+        READ_ONE_PFC("3") \
+        "sub "PFC2", rdx \n"
 
 // clobber: rax, rcx, rdx
 #define READ_PFC_END() \
-        READ_PFC_ONE("1") \
-        "add r10, rdx \n" \
-        READ_PFC_ONE("2") \
-        "add r9, rdx \n" \
-        READ_PFC_ONE("3") \
-        "add r8, rdx \n"
+        READ_ONE_PFC("1") \
+        "add "PFC0", rdx \n" \
+        READ_ONE_PFC("2") \
+        "add "PFC1", rdx \n" \
+        READ_ONE_PFC("3") \
+        "add "PFC2", rdx \n"
 
 
 /// Detection of System Management Interrupts (SMIs)
@@ -172,7 +167,7 @@
 #if VENDOR_ID == 1 // Intel
 #define SET_REGISTER_FROM_INPUT()\
     asm volatile("\n.intel_syntax noprefix\n" \
-    "lea rsp, [r14 + "xstr(REG_INIT_OFFSET)"]\n" \
+    "lea rsp, ["MEMORY_BASE_REG" + "xstr(REG_INIT_OFFSET)"]\n" \
     "pop rax \n" \
     "pop rbx \n" \
     "pop rcx \n" \
@@ -180,14 +175,14 @@
     "pop rsi \n" \
     "pop rdi \n" \
     "popfq \n" \
-    "lea rsp, [r14 + "xstr(LOCAL_RSP_OFFSET)"]\n" \
+    "lea rsp, ["MEMORY_BASE_REG" + "xstr(LOCAL_RSP_OFFSET)"]\n" \
     "mov rbp, rsp \n" \
     ".att_syntax noprefix");
 
 #elif VENDOR_ID == 2 // AMD
 #define SET_REGISTER_FROM_INPUT()\
     asm volatile("\n.intel_syntax noprefix\n" \
-    "lea rsp, [r14 + "xstr(REG_INIT_OFFSET)"]\n" \
+    "lea rsp, ["MEMORY_BASE_REG" + "xstr(REG_INIT_OFFSET)"]\n" \
     "pop rax \n" \
     "pop rbx \n" \
     "pop rcx \n" \
@@ -195,7 +190,7 @@
     "pop rsi \n" \
     "pop rdi \n" \
     "popfq \n" \
-    "lea rsp, [r14 + "xstr(LOCAL_RSP_OFFSET)"]\n" \
+    "lea rsp, ["MEMORY_BASE_REG" + "xstr(LOCAL_RSP_OFFSET)"]\n" \
     "mov rbp, rsp \n" \
     ".att_syntax noprefix");
 #endif
@@ -307,10 +302,10 @@
         "xor "OFFSET", "OFFSET"                     \n" \
         "1: lfence                                  \n" \
         "   xor "TMP", "TMP"                        \n" \
-            READ_PFC_ONE("0")                           \
+            READ_ONE_PFC("0")                           \
         "   sub "TMP", rdx                          \n" \
             PROBE_ONE_SET(BASE, OFFSET)                 \
-            READ_PFC_ONE("0")                           \
+            READ_ONE_PFC("0")                           \
         "   add "TMP", rdx                          \n" \
         "   cmp "TMP", "xstr(L1D_ASSOCIATIVITY)"    \n" \
         "   jl 2f                                   \n" \
@@ -329,10 +324,10 @@
         "xor "OFFSET", "OFFSET"                     \n" \
         "1: lfence                                  \n" \
         "   xor "TMP", "TMP"                        \n" \
-            READ_PFC_ONE("0")                           \
+            READ_ONE_PFC("0")                           \
         "   sub "TMP", rdx                          \n" \
             PROBE_ONE_SET(BASE, OFFSET)                 \
-            READ_PFC_ONE("0")                           \
+            READ_ONE_PFC("0")                           \
         "   add "TMP", rdx                          \n" \
         "   cmp "TMP", 0; jg 2f                     \n" \
         "      shl "DEST", 1                        \n" \
@@ -384,10 +379,10 @@
         "xor "OFFSET", "OFFSET"                     \n" \
         "1:                                         \n" \
         "   xor "TMP", "TMP"                        \n" \
-            READ_PFC_ONE("0")                           \
+            READ_ONE_PFC("0")                           \
         "   sub "TMP", rdx                          \n" \
         "   mov rax, qword ptr ["BASE" + "OFFSET"]  \n" \
-            READ_PFC_ONE("0")                           \
+            READ_ONE_PFC("0")                           \
         "   add "TMP", rdx                          \n" \
         "   cmp "TMP", 0; jne 2f                    \n" \
         "      shl "DEST", 1                        \n" \
@@ -405,10 +400,10 @@
         "xor "OFFSET", "OFFSET"                     \n" \
         "1:                                         \n" \
         "   xor "TMP", "TMP"                        \n" \
-            READ_PFC_ONE("0")                           \
+            READ_ONE_PFC("0")                           \
         "   sub "TMP", rdx                          \n" \
         "   mov rax, qword ptr ["BASE" + "OFFSET"]  \n" \
-            READ_PFC_ONE("0")                           \
+            READ_ONE_PFC("0")                           \
         "   add "TMP", rdx                          \n" \
         "   cmp "TMP", 0; je 2f                     \n" \
         "      shl "DEST", 1                        \n" \
@@ -432,8 +427,8 @@
 /// @brief A sequence of instructions that switches the stack pointer to the macro stack
 ///        and pushes the flags and registers RAX, RBX, RCX, RDX
 #define MACRO_PROLOGUE()                                                                           \
-    "mov qword ptr [r14 - " xstr(MACRO_STACK_TOP_OFFSET) " - 8], rsp\n"                            \
-    "lea rsp, [r14 - " xstr(MACRO_STACK_TOP_OFFSET) " - 8]\n"                                      \
+    "mov qword ptr ["MEMORY_BASE_REG" - " xstr(MACRO_STACK_TOP_OFFSET) " - 8], rsp\n"                            \
+    "lea rsp, ["MEMORY_BASE_REG" - " xstr(MACRO_STACK_TOP_OFFSET) " - 8]\n"                                      \
     "push rax\n"                                                                                   \
     "push rbx\n"                                                                                   \
     "push rcx\n"                                                                                   \
@@ -456,4 +451,4 @@
     "pop rsp\n"
 
 // clang-format on
-#endif // _X86_ASM_SNIPPETS_H_
+#endif // X86_ASM_SNIPPETS_H_

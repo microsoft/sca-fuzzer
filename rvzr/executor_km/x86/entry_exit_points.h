@@ -7,7 +7,7 @@
 // -----------------------------------------------------------------------------------------------
 // Note on registers.
 // Some of the registers are reserved for a specific purpose and should never be overwritten.
-// See ./docs/registers.md for more information.
+// See ./docs/registers.md and registers.h for more information.
 
 #ifndef _ENTRY_EXIT_H_
 #define _ENTRY_EXIT_H_
@@ -15,6 +15,7 @@
 #include "hardware_desc.h"
 
 #include "asm_snippets.h"
+#include "registers.h"
 #include "sandbox_manager.h"
 #include "shortcuts.h"
 
@@ -40,14 +41,15 @@ static inline void prologue(void)
         "push r15\n"
         "pushfq\n"
 
-        // r14 = main_area of actor 0 (passed in rdi, the first argument of measurement_code)
-        "mov r14, rdi\n"
+        // MEMORY_BASE_REG = main_area of actor 0
+        // (passed in rdi, the first argument of measurement_code)
+        "mov "MEMORY_BASE_REG", rdi\n"
 
-        // r15 = sandbox->util
-        "lea r15, [r14 - "xstr(UTIL_REL_TO_MAIN)"]\n"
+        // UTIL_BASE_REG = sandbox->util
+        "lea "UTIL_BASE_REG", ["MEMORY_BASE_REG" - "xstr(UTIL_REL_TO_MAIN)"]\n"
 
         // sandbox->util->stored_rsp = rsp
-        "mov qword ptr [r15 + "xstr(STORED_RSP_OFFSET)"], rsp\n"
+        "mov qword ptr ["UTIL_BASE_REG" + "xstr(STORED_RSP_OFFSET)"], rsp\n"
 
         // clear the rest of the registers
         "mov rax, 0\n"
@@ -83,7 +85,7 @@ static inline void epilogue(void)
         READ_SMI_END()
 
         // rax <- &latest_measurement
-        "lea rax, [r15 + "xstr(MEASUREMENT_OFFSET)"]\n"
+        "lea rax, ["UTIL_BASE_REG" + "xstr(MEASUREMENT_OFFSET)"]\n"
 
         // Store the results
         "mov qword ptr [rax + 0x00], "HTRACE_REGISTER" \n"  // HTrace
@@ -95,7 +97,7 @@ static inline void epilogue(void)
         "mov qword ptr [rax + 0x30], "STATUS_REGISTER" \n"  // Measurement status
 
         // rsp = sandbox->util->stored_rsp
-        "mov rsp, qword ptr [r15 + "xstr(STORED_RSP_OFFSET)"]\n"
+        "mov rsp, qword ptr ["UTIL_BASE_REG" + "xstr(STORED_RSP_OFFSET)"]\n"
 
         // restore registers
         "popfq\n"
@@ -120,7 +122,7 @@ static inline void epilogue_dbg_gpr(void)
     asm_volatile_intel(
         // r14 <- &latest_measurement
         // clobber r14; not in use anymore
-        "lea r14, [r15 + "xstr(MEASUREMENT_OFFSET)"]\n"
+        "lea r14, ["UTIL_BASE_REG" + "xstr(MEASUREMENT_OFFSET)"]\n"
 
         // Store the results
         "mov qword ptr [r14 + 0x00], rax\n"
@@ -132,7 +134,7 @@ static inline void epilogue_dbg_gpr(void)
         "mov qword ptr [r14 + 0x30], "STATUS_REGISTER"\n"
 
         // rsp = sandbox->util->stored_rsp
-        "mov rsp, qword ptr [r15 + "xstr(STORED_RSP_OFFSET)"]\n"
+        "mov rsp, qword ptr ["UTIL_BASE_REG" + "xstr(STORED_RSP_OFFSET)"]\n"
 
         // restore registers
         "popfq\n"

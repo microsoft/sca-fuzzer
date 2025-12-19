@@ -54,7 +54,7 @@
     "add " DEST ", " DEST ", x16 \n"
 
 // clobber: x16 (dest)
-#define READ_PFC_ONE(ID, DEST)                                                                     \
+#define READ_ONE_PFC(ID, DEST)                                                                     \
     "mov " DEST ", " ID " \n"                                                                      \
     "msr pmselr_el0, " DEST " \n"                                                                  \
     "mrs " DEST ", pmxevcntr_el0 \n"
@@ -66,17 +66,17 @@
         "mov " PFC0 ", #0 \n" \
         "mov " PFC1 ", #0 \n" \
         "mov " PFC2 ", #0 \n" \
-        READ_PFC_ONE("1", "x16") \
+        READ_ONE_PFC("1", "x16") \
         "sub " PFC0 ", " PFC0 ", x16 \n" \
-        READ_PFC_ONE("2", "x16") \
+        READ_ONE_PFC("2", "x16") \
         "sub " PFC1 ", " PFC1 ", x16 \n"
 
 // clobber: rax, rcx, rdx
 #define READ_PFC_END() \
         SPEC_FENCE() \
-        READ_PFC_ONE("1", "x16") \
+        READ_ONE_PFC("1", "x16") \
         "add " PFC0 ", " PFC0 ", x16 \n" \
-        READ_PFC_ONE("2", "x16") \
+        READ_ONE_PFC("2", "x16") \
         "add " PFC1 ", " PFC1 ", x16 \n"
 // clang-format on
 
@@ -206,11 +206,11 @@
     "sub "OFFSET", "OFFSET", #64 \n" \
     "1: \n" \
         SPEC_FENCE() \
-        READ_PFC_ONE("0", EVICT_COUNT) \
+        READ_ONE_PFC("0", EVICT_COUNT) \
         SPEC_FENCE() \
         PRIME_ONE_SET(BASE, OFFSET, TMP, DEPENDENCY_REGISTER) \
         SPEC_FENCE() \
-        READ_PFC_ONE("0", TMP) \
+        READ_ONE_PFC("0", TMP) \
         "cmp "TMP", "EVICT_COUNT" \n" \
         "b.eq 2f \n" \
         "  orr "TRACE", "TRACE", #1 \n" \
@@ -244,12 +244,12 @@
     "mov "TRACE", 0 \n" \
     "1: \n" \
         SPEC_FENCE() \
-        READ_PFC_ONE("0", EVICT_COUNT) \
+        READ_ONE_PFC("0", EVICT_COUNT) \
         SPEC_FENCE() \
         "add "TMP", "BASE", "OFFSET" \n" \
         "ldr "TMP", ["TMP"] \n" \
         SPEC_FENCE() \
-        READ_PFC_ONE("0", TMP) \
+        READ_ONE_PFC("0", TMP) \
         "mov "TRACE", "TRACE", lsl #1 \n" \
         "cmp "TMP", "EVICT_COUNT" \n" \
         "b.ne 2f \n" \
