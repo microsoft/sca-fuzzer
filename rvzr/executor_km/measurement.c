@@ -228,11 +228,9 @@ void recover_orig_state(void)
     }
 #endif
 
+    restore_faulty_page_permissions();
     restore_special_registers();
     restore_orig_sandbox_page_tables();
-
-    // restores original IDT regardless of the current IDTR value
-    unset_outer_fault_handlers();
 }
 
 // =================================================================================================

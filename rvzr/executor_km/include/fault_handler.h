@@ -33,18 +33,16 @@ struct idt_data {
 
 #endif
 
-
 extern char *fault_handler;
 extern uint32_t handled_faults;
 
 // x86-only globals
-extern uint64_t pre_bubble_rsp;
 extern struct desc_ptr test_case_idtr;
 
-int set_outer_fault_handlers(void);
-int unset_outer_fault_handlers(void);
-int set_inner_fault_handlers(void);
-int unset_inner_fault_handlers(void);
+void set_outer_fault_handlers(void);
+void unset_outer_fault_handlers(void);
+void set_inner_fault_handlers(void);
+void unset_inner_fault_handlers(void);
 
 int init_fault_handler(void);
 void free_fault_handler(void);

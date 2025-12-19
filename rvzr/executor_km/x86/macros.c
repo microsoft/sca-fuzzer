@@ -10,10 +10,14 @@
 #include "main.h"
 #include "page_tables_guest.h"
 #include "page_tables_host.h"
+#include "registers.h"
 #include "sandbox_manager.h"
 #include "shortcuts.h"
 #include "svm.h"
 #include "vmx.h"
+
+extern uint64_t is_nested_fault; // defined in fault_handlers.S
+void nested_fault_handler(void); // defined in fault_handlers.S
 
 // =================================================================================================
 // Convenience shortcuts for writing constants to memory
@@ -45,6 +49,25 @@
             dest[cursor++] = bytes[i];                                                             \
         }                                                                                          \
     }
+
+// =================================================================================================
+// Instruction opcodes
+// =================================================================================================
+static inline void movabs(uint8_t *dest, size_t *cursor_, uint8_t reg_id, uint64_t value)
+{
+    size_t cursor = *cursor_;
+
+    // REX prefix
+    APPEND_U8_TO_DEST(reg_id >= REX_BOUNDARY ? 0x49 : 0x48);
+
+    // ModRM byte
+    reg_id = reg_id & 0x7;
+    APPEND_U8_TO_DEST(0xb8 + reg_id);
+
+    // Immediate value
+    APPEND_U64_TO_DEST(value);
+    *cursor_ = cursor;
+}
 
 // =================================================================================================
 // Helper functions
@@ -328,8 +351,6 @@ static void __attribute__((noipa)) body_macro_tsc_end(void)
 static inline size_t start_macro_fault_handler(macro_args_t args, uint8_t *dest)
 {
     size_t cursor = 0;
-
-    ASSERT(NESTED_FAULT_OFFSET < (1 << 16), "inject_macro_configurable_part");
     ASSERT(args.owner == 0, "inject_macro_configurable_part");
 
     // Set new global address to the fault handler
@@ -339,21 +360,24 @@ static inline size_t start_macro_fault_handler(macro_args_t args, uint8_t *dest)
     cursor += update_mem_base_and_sp(0, dest, cursor);
     cursor += update_r15(0, dest, cursor);
 
-    // Check for nested faults; if so, explicitly crash the executor by calling INT 0x20
-    //   ASM: cmp byte ptr [r15 + NESTED_FAULT_OFFSET], 0
-    APPEND_BYTES_TO_DEST(0x49, 0x83, 0xbf);
-    APPEND_U16_TO_DEST(NESTED_FAULT_OFFSET);
-    APPEND_BYTES_TO_DEST(0x0, 0x0, 0x0);
-    //   ASM: je [RIP + 9]
-    APPEND_BYTES_TO_DEST(0x74, 0x09);
-    //   ASM: dec byte ptr [r15 + NESTED_FAULT_OFFSET]
-    APPEND_BYTES_TO_DEST(0x49, 0xff, 0x8f);
-    APPEND_BYTES_TO_DEST(NESTED_FAULT_OFFSET & 0xFF, NESTED_FAULT_OFFSET >> 8, 0x00, 0x00);
-    //   ASM: int 0x20
-    APPEND_BYTES_TO_DEST(0xcd, 0x20);
-    //   ASM: inc byte ptr [r15 + NESTED_FAULT_OFFSET]
-    APPEND_BYTES_TO_DEST(0x49, 0xff, 0x87);
-    APPEND_BYTES_TO_DEST(NESTED_FAULT_OFFSET & 0xFF, NESTED_FAULT_OFFSET >> 8, 0x00, 0x00);
+    // Check for nested faults; if so, jump to `test_case_handler`
+    uint64_t is_nested_fault_addr = (uint64_t)&is_nested_fault;
+    uint64_t test_case_handler_addr = (uint64_t)nested_fault_handler;
+    //   ASM: movabs TMP_REG, is_nested_fault_addr
+    movabs(dest, &cursor, TMP_REG_ID, is_nested_fault_addr);
+    //   ASM: cmp byte ptr [TMP_REG], 0
+    APPEND_BYTES_TO_DEST(0x41, 0x80, 0x3b, 0x00);
+    //   ASM: je no_nested_fault
+    APPEND_BYTES_TO_DEST(0x74, 0x10);
+    //   ASM: lfence
+    APPEND_BYTES_TO_DEST(0x0f, 0xae, 0xe8);
+    //   ASM: movabs TMP_REG, test_case_handler_addr
+    movabs(dest, &cursor, TMP_REG_ID, test_case_handler_addr);
+    //   ASM: jmp TMP_REG
+    APPEND_BYTES_TO_DEST(0x41, 0xff, 0xe3);
+    //   ASM: no_nested_fault:
+    //   ASM: incb byte ptr [TMP_REG]
+    APPEND_BYTES_TO_DEST(0x41, 0xfe, 0x03);
     return cursor;
 }
 

@@ -22,8 +22,8 @@
 typedef struct {
     uint64_t stored_rsp;              // stores the stack pointer before calling the test case
     measurement_t latest_measurement; // measurement results
-    uint64_t nested_fault;            // non-zero if a fault occurs during a fault handler
-#if defined(ARCH_X86_64)
+    uint64_t unused1;
+#ifdef ARCH_X86_64
     uint8_t unused[UTIL_VARS_MAX - sizeof(measurement_t) - (2 * sizeof(uint64_t))];
 #elif defined(ARCH_ARM)
     uint64_t k2u_target_address; // target address for k2u switches

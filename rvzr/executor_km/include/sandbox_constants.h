@@ -16,7 +16,7 @@
 #define UTIL_VARS_MAX         4096
 #define L1D_PRIMING_AREA_SIZE (L1D_SIZE_KB * 1024ULL)
 #define STORED_RSP_SIZE       SIZE_UINT64
-#define MEASUREMENT_SIZE      56ULL  // see measurement.h
+#define MEASUREMENT_SIZE      56ULL // see measurement.h
 #define NESTED_FAULT_SIZE     SIZE_UINT64
 
 // layout of actor_data_t
@@ -32,13 +32,13 @@
 #define MAX_EXPANDED_MACROS_SIZE  (0x1000ULL)
 
 // offsets w.r.t. the base of util_t (r15 will be initialized to point there)
-#define L1D_PRIMING_OFFSET  (0)
-#define UTIL_VARS_OFFSET    (L1D_PRIMING_OFFSET + L1D_PRIMING_AREA_SIZE)
-#define STORED_RSP_OFFSET   (UTIL_VARS_OFFSET + 0)
-#define MEASUREMENT_OFFSET  (STORED_RSP_OFFSET + STORED_RSP_SIZE)
-#define NESTED_FAULT_OFFSET (MEASUREMENT_OFFSET + MEASUREMENT_SIZE)
-#define K2U_TARGET_OFFSET   (NESTED_FAULT_OFFSET + NESTED_FAULT_SIZE)
-#define U2K_TARGET_OFFSET   (K2U_TARGET_OFFSET + SIZE_UINT64)
+#define L1D_PRIMING_OFFSET (0)
+#define UTIL_VARS_OFFSET   (L1D_PRIMING_OFFSET + L1D_PRIMING_AREA_SIZE)
+#define STORED_RSP_OFFSET  (UTIL_VARS_OFFSET + 0)
+#define MEASUREMENT_OFFSET (STORED_RSP_OFFSET + STORED_RSP_SIZE)
+#define UNUSED1_OFFSET     (MEASUREMENT_OFFSET + MEASUREMENT_SIZE)
+#define K2U_TARGET_OFFSET  (UNUSED1_OFFSET + NESTED_FAULT_SIZE)
+#define U2K_TARGET_OFFSET  (K2U_TARGET_OFFSET + SIZE_UINT64)
 
 // offsets of util_t w.r.t. the base of main_area of the main actor
 #define UTIL_REL_TO_MAIN                                                                           \

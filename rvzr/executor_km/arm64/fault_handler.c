@@ -48,35 +48,28 @@ static inline void vbar_el1_write(vector_table_t *vbar_el1)
     asm volatile("msr vbar_el1, %0" ::"r"(vbar_el1));
 }
 
-int set_outer_fault_handlers(void)
+void set_outer_fault_handlers(void)
 {
     // Save the original vector table
     orig_vector_table_ptr = vbar_el1_read();
 
     // Set VBAR to point to our custom vector table
     vbar_el1_write(&outer_vector_table);
-    return 0;
 }
 
-int unset_outer_fault_handlers(void)
+void unset_outer_fault_handlers(void)
 {
     // Restore the original vector table
     vbar_el1_write(orig_vector_table_ptr);
-    return 0;
 }
 
-int set_inner_fault_handlers(void)
+void set_inner_fault_handlers(void)
 {
     is_nested_fault = 0;
     vbar_el1_write(&inner_vector_table);
-    return 0;
 }
 
-int unset_inner_fault_handlers(void)
-{
-    vbar_el1_write(&outer_vector_table);
-    return 0;
-}
+void unset_inner_fault_handlers(void) { vbar_el1_write(&outer_vector_table); }
 
 // =================================================================================================
 int init_fault_handler(void)
