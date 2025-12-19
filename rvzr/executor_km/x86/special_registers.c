@@ -242,7 +242,14 @@ static int store_orig_msr_state(void)
     orig_special_registers_state->cr4 = _read_cr4();
     orig_special_registers_state->lstar = rdmsr64(MSR_LSTAR);
     orig_special_registers_state->efer = rdmsr64(MSR_EFER);
+    orig_special_registers_state->fs_base = rdmsr64(MSR_FS_BASE);
     orig_special_registers_state->gs_base = rdmsr64(MSR_GS_BASE);
+
+    struct desc_ptr gdtr;
+    asm volatile("sgdt %0" : "=m"(gdtr));
+    orig_special_registers_state->gdtr_base = gdtr.address;
+    orig_special_registers_state->gdtr_limit = gdtr.size;
+
 #if VENDOR_ID == VENDOR_AMD_ // AMD
     orig_special_registers_state->syscfg = rdmsr64(MSR_SYSCFG);
 #endif
@@ -278,8 +285,19 @@ void restore_special_registers(void)
         wrmsr64(msr_id, orig_special_registers_state->prefetcher_ctrl);
     }
 
-    if (orig_special_registers_state->gs_base != 0)
+    if (orig_special_registers_state->fs_base != 0) {
+        wrmsr64(MSR_FS_BASE, orig_special_registers_state->fs_base);
+    }
+
+    if (orig_special_registers_state->gs_base != 0) {
         wrmsr64(MSR_GS_BASE, orig_special_registers_state->gs_base);
+    }
+
+    if (orig_special_registers_state->gdtr_base != 0) {
+        struct desc_ptr gdtr = {.address = orig_special_registers_state->gdtr_base,
+                                .size = orig_special_registers_state->gdtr_limit};
+        asm volatile("lgdt %0" : : "m"(gdtr));
+    }
 
 #if VENDOR_ID == VENDOR_AMD_ // AMD
     if (orig_special_registers_state->syscfg != 0)

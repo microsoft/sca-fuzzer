@@ -22,7 +22,10 @@ typedef struct {
     uint64_t spec_ctrl;
     uint64_t prefetcher_ctrl;
     uint64_t syscfg;
+    uint64_t fs_base;
     uint64_t gs_base;
+    uint64_t gdtr_base;
+    uint16_t gdtr_limit;
 #elif defined(ARCH_ARM)
     uint64_t spsr_el1;
     uint64_t sp_el0;
