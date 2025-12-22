@@ -2,3 +2,7 @@ file: !include common.yaml
 
 data_generator_seed: 400
 x86_executor_enable_ssbp_patch: false
+
+logging_modes:
+  - dbg_dump_htraces
+  - dbg_dump_ctraces

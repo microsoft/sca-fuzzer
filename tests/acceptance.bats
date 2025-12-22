@@ -88,6 +88,12 @@ function intel_only() {
     fi
 }
 
+function amd_only() {
+    if [ "$VENDOR" != "AuthenticAMD" ]; then
+        skip "AMD-specific test"
+    fi
+}
+
 function x86_only() {
     if [ "$ARCH" != "x86_64" ]; then
         skip "x86-specific test"
@@ -164,7 +170,7 @@ function arm_only() {
 
 @test "Detection [spectre-type]: Spectre V2 (BTI)" {
     x86_only
-    assert_violation "$fuzz_opt -t $ASM_DIR/spectre_v2.asm -c $CONF_DIR/ct-seq.yaml -i 20"
+    assert_violation "$fuzz_opt -t $ASM_DIR/spectre_v2.asm -c $CONF_DIR/ct-seq.yaml -i 10 -n 100"
 }
 
 @test "Detection [spectre-type]: Spectre V4 (SSBP)" {
@@ -252,10 +258,10 @@ function arm_only() {
 }
 
 @test "Architectural Test: Fault Handling" {
-    assert_no_violation "$fuzz_opt -t $ASM_DIR/macro_fault_handler.asm -c $CONF_DIR/arch.yaml -i 20"
+    assert_no_violation "$fuzz_opt -t $ASM_DIR/macro_fault_handler.asm -c $CONF_DIR/arch-faults.yaml -i 20"
 }
 
-@test "Feature: Macro fault handler" {
+@test "Feature: Fault Handling" {
     local cmd="$fuzz_opt -t $ASM_DIR/macro_fault_handler.asm -c $CONF_DIR/fault-handler.yaml -i 1"
     run bash -c "$cmd"
     echo "Command: $cmd"
@@ -264,9 +270,9 @@ function arm_only() {
     [[ "$status" -eq 0 && "$output" = *"^.......^...^..................................................^"* ]]
 }
 
-@test "Feature: VM test case" {
-    skip  # see https://github.com/microsoft/sca-fuzzer/issues/122
+@test "Feature: VMX/SVM" {
     x86_only
+    amd_only  # see https://github.com/microsoft/sca-fuzzer/issues/122
     if cat /proc/cpuinfo | grep -e "vmx" -e "svm" >/dev/null; then
         echo "1" >/sys/rvzr_executor/enable_hpa_gpa_collisions
         assert_no_violation "$fuzz_opt -t $ASM_DIR/vm_switch.asm -c $CONF_DIR/vm-switch.yaml -i 20"

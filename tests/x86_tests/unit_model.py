@@ -165,7 +165,7 @@ class _SharedX86Model(unittest.TestCase):
         model = self._get_model(obs_clause, exec_clause, data_bases, enable_mismatch_check)
         tc = test_case.to_test_case()
         if pte_mask != 0:
-            tc.find_actor(name="main").data_properties = pte_mask  # type: ignore
+            tc.find_actor(name="main").data_properties &= pte_mask  # type: ignore
         model.load_test_case(tc)
         ctraces = model.trace_test_case(input_data, nesting=nesting)
         return ctraces

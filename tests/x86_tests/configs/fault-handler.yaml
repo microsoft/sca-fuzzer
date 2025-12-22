@@ -9,3 +9,6 @@ actors:
 executor_mode: F+R
 logging_modes:
   - dbg_dump_htraces
+
+faults_allowlist:
+  - opcode-undefined

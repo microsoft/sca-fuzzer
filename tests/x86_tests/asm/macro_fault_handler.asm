@@ -3,7 +3,7 @@
 .function_main_0:
 
 mov rbx, qword ptr [r14 + 0x300]
-mov rax, qword ptr [r14 + 0x1000]
+ud2
 lfence
 
 .macro.fault_handler:
