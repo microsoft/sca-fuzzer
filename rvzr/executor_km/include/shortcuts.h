@@ -58,24 +58,13 @@
 // =================================================================================================
 // Logging and error handling
 // =================================================================================================
-// Flush printk buffer to ensure output is visible before potential crashes
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
-#define _PRINTK_FLUSH() pr_flush(100, true)
-#else
-#define _PRINTK_FLUSH()                                                                            \
-    do {                                                                                           \
-    } while (0)
-#endif
-
 #define PRINT_ERR(msg, ...)                                                                        \
     do {                                                                                           \
         printk(KERN_ERR "[rvzr_executor] " msg, ##__VA_ARGS__);                                    \
-        _PRINTK_FLUSH();                                                                           \
     } while (0)
 #define PRINT_ERRS(src, msg, ...)                                                                  \
     do {                                                                                           \
         printk(KERN_ERR "[rvzr_executor:" src "] " msg, ##__VA_ARGS__);                            \
-        _PRINTK_FLUSH();                                                                           \
     } while (0)
 
 #define PRINT_WARN(msg, ...) printk(KERN_WARNING "[rvzr_executor] " msg, ##__VA_ARGS__);
