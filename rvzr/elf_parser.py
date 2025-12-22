@@ -6,6 +6,7 @@ SPDX-License-Identifier: MIT
 """
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING, Dict, List, Tuple, TypedDict, NamedTuple, Final
 from subprocess import run
 from elftools.elf.elffile import ELFFile, SymbolTableSection  # type: ignore
@@ -192,15 +193,15 @@ class _ObjdumpOutputParser:
         if ".data." not in line:
             return _ObjdumpSectionDesc("", False)
 
-        last_word = line.split()[-1]
-        try:
-            section_name = last_word[:-1]
-            section_name = section_name.split(".")[2]
-            return _ObjdumpSectionDesc(section_name, False)
-        except (ValueError, IndexError) as e:
-            raise _ParsingError(
-                "Failed to parse objdump output (section_name):\n"
-                f"Issue: Invalid actor label or undefined actor: {last_word}") from e
+        # Use regex to find .data.<section_name> pattern anywhere in the line
+        match = re.search(r'\.data\.(\w+)', line)
+        if match:
+            section_name = match.group(1)
+            return _ObjdumpSectionDesc(section_name, False)\
+
+        # no match found
+        raise _ParsingError("Failed to parse objdump output (section_name)\n"
+                            f"       Could not find .data.<section_name> pattern in: '{line}'")
 
 
 # ==================================================================================================
