@@ -22,7 +22,9 @@ Vendor = Literal["Intel", "AMD", "ARM", "Unknown"]
 RegName = str
 RegNormalizedName = str
 RegUnicornID = int
-PTEBitName = str
+PTEBitName = Literal["present", "writable", "non_writable", "user", "write-through",
+                     "cache-disable", "accessed", "dirty", "reserved_bit", "executable",
+                     "non_executable", "valid"]
 PTEBitOffset = int
 PTEBitNameMapper = Dict[PagePropertyName, Tuple[PTEBitName, bool]]
 

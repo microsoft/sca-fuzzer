@@ -4,12 +4,13 @@ File: x86-specific constants and lists
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
-from typing import List, Dict, Final
+from typing import List, Dict, Final, Tuple
 import re
 import unicorn.x86_const as ucc  # type: ignore
 
 from rvzr.tc_components.instruction import Instruction
-from rvzr.target_desc import TargetDesc, CPUDesc, UnicornTargetDesc, PTEBitNameMapper
+from rvzr.target_desc import TargetDesc, CPUDesc, UnicornTargetDesc, PTEBitNameMapper, \
+    PTEBitOffset, PTEBitName
 
 
 class X86TargetDesc(TargetDesc):
@@ -180,7 +181,7 @@ class X86TargetDesc(TargetDesc):
         "reserved_bit": ("reserved_bit", False),
     }
 
-    pte_bits = {
+    pte_bits: Dict[PTEBitName, Tuple[PTEBitOffset, bool]] = {
         # NAME: (position, default value)
         "present": (0, True),
         "writable": (1, True),
@@ -203,7 +204,7 @@ class X86TargetDesc(TargetDesc):
         "reserved_bit": ("reserved_bit", False),
     }
 
-    _epte_bits_intel = {
+    _epte_bits_intel: Dict[PTEBitName, Tuple[PTEBitOffset, bool]] = {
         # NAME: (position, default value)
         "present": (0, True),
         "writable": (1, True),
@@ -224,7 +225,7 @@ class X86TargetDesc(TargetDesc):
         "reserved_bit": ("reserved_bit", False),
     }
 
-    _npte_bits_amd = {
+    _npte_bits_amd: Dict[PTEBitName, Tuple[PTEBitOffset, bool]] = {
         # NAME: (position, default value)
         "present": (0, True),
         "writable": (1, True),
