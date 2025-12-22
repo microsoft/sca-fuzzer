@@ -49,6 +49,7 @@ static int set_vmcs_exec_control(int actor_id);
 static int set_vmcs_exit_control(void);
 static int set_vmcs_entry_control(void);
 static int make_vmcs_launched(int actor_id);
+static void print_vmlaunch_error_info(int err_inv, int err_val, int actor_id);
 
 // =================================================================================================
 // Error decoding
@@ -314,6 +315,10 @@ void stop_vmx_operation(void)
 
     // Run VMXOFF
     if (vmx_is_on && !orig_vmxon_state) {
+        // Flush all EPT TLB entries before vmxoff to ensure no stale EPT translations remain
+        uint64_t invept_desc[2] = {0, 0};
+        asm volatile("invept %0, %1" : : "m"(invept_desc), "r"(2ULL) : "cc", "memory");
+
         vmxoff(&err_inv, &err_val);
         orig_vmxon_state = false;
     }
@@ -370,6 +375,7 @@ int set_vmcs_state(void)
     uint8_t err_inv = 0, err_val = 0;
 
     // if necessary, allocate additional memory for VMCSs
+    ASSERT(n_actors <= MAX_ACTORS, "set_vmcs_state:n_actors exceeds MAX_ACTORS");
     static unsigned old_n_actors = 0;
     if (n_actors > old_n_actors) {
         SAFE_VFREE(vmcss);
@@ -386,6 +392,7 @@ int set_vmcs_state(void)
 
         vmcs_t *vmcs_hva = &vmcss[actor_id];
         uint64_t vmcs_hpa = vmalloc_to_phys(vmcs_hva);
+        ASSERT(vmcs_hpa != 0, "set_vmcs_state:vmalloc_to_phys");
         vmcs_hpas[actor_id] = vmcs_hpa;
 
         // initialize VMCS revision identifier
@@ -667,30 +674,45 @@ static int make_vmcs_launched(int actor_id)
     CHECK_VMFAIL("make_vmcs_launched:vmptrld");
 
     // 2. Launch VM
+    //
+    // Note 1: HOST_RIP and HOST_RSP must be set in assembly to capture the correct
+    // return address and stack pointer for VM exit. After VM exit, guest may have
+    // modified any general-purpose registers, so we clobber all caller-saved regs.
+    //
+    // Note 2: If vmlaunch succeeds, it transfers control to guest and the setc/setz
+    // instructions are skipped. On VM exit, we return to label 1 with err flags = 0.
+    // If vmlaunch fails, setc/setz execute and we jump to label 1 with error flags set.
     asm volatile(""
-                 "lea (1f), %%rax\n"
-                 "mov $0x00006c16, %%rcx\n"
+                 "xor %[inval], %[inval]\n"
+                 "xor %[val], %[val]\n"
+                 "lea 1f(%%rip), %%rax\n"
+                 "mov %[host_rip], %%rcx\n"
                  "vmwrite %%rax, %%rcx\n"
                  "mov %%rsp, %%rax\n"
-                 "mov $0x00006c14, %%rcx\n"
+                 "mov %[host_rsp], %%rcx\n"
                  "vmwrite %%rax, %%rcx\n"
                  "vmlaunch\n"
                  "setc %[inval]\n"
                  "setz %[val]\n"
                  "1:\n"
-                 : [val] "=rm"(err_val), [inval] "=rm"(err_inv)
-                 :
-                 : "cc", "memory", "rax", "rcx");
+                 : [val] "+rm"(err_val), [inval] "+rm"(err_inv)
+                 : [host_rip] "i"((uint64_t)HOST_RIP), [host_rsp] "i"((uint64_t)HOST_RSP)
+                 : "cc", "memory", "rax", "rcx", "rdx", "rsi", "rdi", "r8", "r9", "r10", "r11");
+
+    // 3. If vmlaunch failed, print error info
+    if (err_inv || err_val) {
+        print_vmlaunch_error_info(err_inv, err_val, actor_id);
+    }
+    CHECK_VMFAIL("make_vmcs_launched:vmlaunch");
 
     // 4. Check that the launch was successful (abort indicator check)
+    ASSERT(vmcss[actor_id].abort_indicator == 0, "make_vmcs_launched:abort_indicator");
     uint64_t exit_reason = 0;
     vmread(VM_EXIT_REASON, &exit_reason, &err_inv, &err_val);
     CHECK_VMFAIL("make_vmcs_launched:VM_EXIT_REASON");
-    ASSERT((exit_reason == 0x12 || exit_reason == 0x34), "make_vmcs_launched");
-
-    PRINT_ERR("make_vmcs_launched: exited with VMfailInvalid=%d, VMfailValid=%d\n", err_inv,
-    err_val);
-    print_vmx_exit_info();
+    // Expected exit reasons after initial vmlaunch: VMCALL (guest code) or timeout
+    ASSERT((exit_reason == EXIT_REASON_VMCALL || exit_reason == EXIT_REASON_PREEMPTION_TIMER),
+           "make_vmcs_launched:unexpected exit reason");
 
     // 5. Finalize VMCS fields
     guest_memory_t *guest_v_memory = (guest_memory_t *)(GUEST_V_MEMORY_START);
@@ -702,7 +724,19 @@ static int make_vmcs_launched(int actor_id)
     return 0;
 }
 
-// gdb-multiarch -ex "add-symbol-file rvzr_executor.dbg 0xffffffffc0a7f000" -ex "target remote localhost:1234" -ex "set substitute-path /home/alex /home/t-oleksenkoo" -ex "b fallback_handler" -ex "b nmi_handler" -ex "b run_experiment_handler" -ex "b vmx.c:700" -ex "b vmx.c:355" -ex "b measurement.c:313" -ex "b measurement.c:313" -ex "b fault_handler.c:354" -ex "c"
+static void print_vmlaunch_error_info(int err_inv, int err_val, int actor_id)
+{
+    PRINT_ERR("vmlaunch failed: VMfailInvalid=%d, VMfailValid=%d\n", err_inv, err_val);
+    if (err_val) {
+        uint64_t instr_error = 0;
+        uint8_t tmp_inv = 0, tmp_val = 0;
+        vmread(VM_INSTRUCTION_ERROR, &instr_error, &tmp_inv, &tmp_val);
+        PRINT_ERR("VM_INSTRUCTION_ERROR: %llu\n", instr_error);
+        if (instr_error > 0 && instr_error < 26)
+            PRINT_ERR("  decoded: %s\n", vmx_instruction_error_to_str[instr_error]);
+    }
+    PRINT_ERR("VMCS abort indicator: %d\n", vmcss[actor_id].abort_indicator);
+}
 
 int print_vmx_exit_info(void)
 {
