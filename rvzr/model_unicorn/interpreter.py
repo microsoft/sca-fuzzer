@@ -116,11 +116,7 @@ class X86ExtraInterpreter(ExtraInterpreter):
 
     def interpret_mem_access(self, access: int, address: int, size: int, value: int) -> None:
         super().interpret_mem_access(access, address, size, value)
-        # emulate page faults
-        if self._model.state.current_actor.privilege_level == ActorPL.USER:
-            target_actor = self._model.layout.data_addr_to_actor_id(address)
-            if target_actor != self._model.state.current_actor.get_id():
-                self._model.do_soft_fault(12)
+        self._fault_interpreter.induce_user_faults(self._model.state.current_actor, address)
 
     def _interpret_macro(self, macro: Instruction, pc: int) -> None:
         self._macro_interpreter.interpret(macro, pc)
@@ -544,6 +540,8 @@ class _FaultInterpreterCommon(ABC):
 
     _faulty_page_readable: Dict[ActorID, bool]
     _faulty_page_writable: Dict[ActorID, bool]
+    _faulty_page_user_accessible: Dict[ActorID, bool]
+    _main_page_user_accessible: Dict[ActorID, bool]
 
     def __init__(self, model: UnicornModel, target_desc: TargetDesc):
         self._model = model
@@ -555,17 +553,22 @@ class _FaultInterpreterCommon(ABC):
         self._test_case = test_case
         self._faulty_page_readable = {}
         self._faulty_page_writable = {}
+        self._faulty_page_user_accessible = {}
+        self._main_page_user_accessible = {}
         for actor in test_case.get_actors(sorted_=True):
             aid = actor.get_id()
 
             pte: PTEMask = actor.data_properties
             self._faulty_page_readable[aid] = self._page_is_readable(pte)
             self._faulty_page_writable[aid] = self._page_is_writable(pte)
+            self._faulty_page_user_accessible[aid] = self._page_is_user_accessible(pte)
+            self._main_page_user_accessible[aid] = actor.privilege_level == ActorPL.USER
 
             if actor.mode == ActorMode.GUEST:
                 epte: PTEMask = actor.data_ept_properties
                 self._faulty_page_readable[aid] &= self._extended_page_is_readable(epte)
                 self._faulty_page_writable[aid] &= self._extended_page_is_writable(epte)
+                # NOTE: EPT user-accessible bit is not supported yet
 
         # make the permissions available to other components of the model
         self._model.state.page_permissions = {}
@@ -584,6 +587,28 @@ class _FaultInterpreterCommon(ABC):
             elif not self._faulty_page_writable[actor_id]:
                 self._model.set_faulty_area_rw(actor_id, True, False)
 
+    def induce_user_faults(self, current_actor: Actor, address: int) -> None:
+        """
+        Induce page faults for user/kernel access based on the page permissions
+        and the current execution mode
+        """
+        # identify the target page privilege level
+        target_aid = self._model.layout.data_addr_to_actor_id(address)
+        faulty_area_start = self._model.layout.get_data_addr(DataArea.FAULTY, target_aid)
+        is_faulty_page = (address & 0xFFFFFFFFFFFFF000) == faulty_area_start
+        target_page_is_user = self._faulty_page_user_accessible[target_aid] \
+            if is_faulty_page else self._main_page_user_accessible[target_aid]
+
+        # user actors produce faults when accessing data from kernel space
+        if current_actor.privilege_level == ActorPL.USER and not target_page_is_user:
+            self._model.do_soft_fault(13)
+            return
+
+        # kernel actors produce faults when accessing data of user actors
+        # NOTE: this code assumes that SMAP is enabled, which may or may not be the case in practice
+        if current_actor.privilege_level == ActorPL.KERNEL and target_page_is_user:
+            self._model.do_soft_fault(13)
+
     @abstractmethod
     def _page_is_readable(self, pet: PTEMask) -> bool:
         """ Check if the page is readable according to the PTE bits """
@@ -591,6 +616,10 @@ class _FaultInterpreterCommon(ABC):
     @abstractmethod
     def _page_is_writable(self, pet: PTEMask) -> bool:
         """ Check if the page is writable according to the PTE bits """
+
+    @abstractmethod
+    def _page_is_user_accessible(self, pet: PTEMask) -> bool:
+        """ Check if the page is user-accessible according to the PTE bits """
 
     @abstractmethod
     def _extended_page_is_readable(self, epet: PTEMask) -> bool:
@@ -619,6 +648,12 @@ class _X86FaultInterpreter(_FaultInterpreterCommon):
         if (pet & (1 << pte_desc["writable"][0])) == 0:
             return False
         if (pet & (1 << pte_desc["dirty"][0])) == 0:
+            return False
+        return True
+
+    def _page_is_user_accessible(self, pet: PTEMask) -> bool:
+        pte_desc = self._target_desc.pte_bits
+        if (pet & (1 << pte_desc["user"][0])) == 0:
             return False
         return True
 
@@ -655,6 +690,9 @@ class _ARM64FaultInterpreter(_FaultInterpreterCommon):
         if (pet & (1 << pte_desc["non_writable"][0])) != 0:
             return False
         return True
+
+    def _page_is_user_accessible(self, pet: PTEMask) -> bool:
+        return True  # FIXME: implement user/supervisor bit check
 
     def _extended_page_is_readable(self, epet: PTEMask) -> bool:
         return True
