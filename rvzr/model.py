@@ -10,10 +10,11 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import List, Tuple, TYPE_CHECKING, Any
 
+from .traces import CTrace
+from .tc_components.test_case_data import InputData, InputTaint
+
 if TYPE_CHECKING:
-    from .traces import CTrace
     from .sandbox import SandboxLayout, BaseAddrTuple
-    from .tc_components.test_case_data import InputData, InputTaint
     from .tc_components.test_case_code import TestCaseProgram
 
 
@@ -81,6 +82,7 @@ class DummyModel(Model):
     This model is useful for testing purposes or for cases where it's necessary to
     run the fuzzer without a model (e.g., for standalone hardware tracing).
     """
+    is_speculative: bool = False
 
     def __init__(self,
                  bases: BaseAddrTuple,
