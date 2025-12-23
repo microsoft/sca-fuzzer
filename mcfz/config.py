@@ -203,7 +203,7 @@ class Config:
     # AFL++ parameters
     afl_root: str = "~/.local/afl/"
     _help += """\n\n afl_root (~/.local/afl/)
-    th to the directory containing the installation of AFL++. """
+    Path to the directory containing the installation of AFL++. """
 
     afl_seed_dir: Optional[str] = None
     _help += """\n\n afl_seed_dir (None)
