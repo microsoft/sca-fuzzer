@@ -46,7 +46,7 @@ TEST_TRACE: List[Dict[str, Any]] = [
     },
 ]
 # Format string to parse a trace entry
-TRACE_FMT = "<QIBxxx"
+TRACE_FMT = "<QHB"
 
 # ------------------------------------------------------------------------------
 # Debug trace representation
