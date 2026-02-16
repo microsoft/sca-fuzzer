@@ -88,6 +88,24 @@ def _parse_args() -> Any:  # pylint: disable=r0915
         help="[Debug option] Process only the first N traces (default: 0, meaning all traces)",
     )
 
+    # ==============================================================================================
+    # Post-fuzzing: Diving deep into specific bugs
+    details = subparsers.add_parser('details', add_help=True, parents=[common_parser])
+    details.add_argument(
+        "--pc",
+        "-p",
+        type=lambda x: int(x, 0),
+        required=True,
+        help="Program counter value (accepts decimal or hex, e.g., 12345 or 0x3039)",
+    )
+    details.add_argument(
+        "--output-dir",
+        "-o",
+        type=str,
+        required=True,
+        help="Path to the directory to store the report with detailed information about\n"
+        "the given violation as well as temporary files",
+    )
 
     args = parser.parse_args()
 
@@ -128,6 +146,14 @@ def main() -> int:
         print(Config.help())
         return 0
 
+    # Non-fuzzing modes:
+    if args.subparser_name == 'details':
+        config = Config(args.config, None)
+        driller = Driller(config=config, output_dir=args.output_dir)
+        driller.drill_down(pc_=args.pc)
+        return 0
+
+    # Fuzzing modes:
     assert args.subparser_name in get_args(TestingStages)
     config = Config(args.config, args.subparser_name)
     fuzzer = FuzzerCore(config)
