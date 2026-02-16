@@ -443,12 +443,18 @@ class _Analyser:
 # ==================================================================================================
 # Reporting of the analysis results
 # ==================================================================================================
-class _HexEncoder(json.JSONEncoder):
-
-    def encode(self, o: Any) -> str:
-        if isinstance(o, int):
-            return hex(o)
-        return super().encode(o)
+def _convert_int_keys_to_hex(o: Any) -> Any:
+    """Recursively convert all integer dictionary keys to hex strings."""
+    if isinstance(o, dict):
+        return {
+            (hex(k) if isinstance(k, int) else k): _convert_int_keys_to_hex(v)
+            for k, v in o.items()
+        }
+    if isinstance(o, list):
+        return [_convert_int_keys_to_hex(item) for item in o]
+    if isinstance(o, int):
+        return hex(o)
+    return o
 
 
 class _ReportPrinter:
@@ -488,8 +494,9 @@ class _ReportPrinter:
         }
         """
         report_dict = {'seq': leakage_line_map}
+        report_dict = _convert_int_keys_to_hex(report_dict)
         with open(report_file, "w") as f:
-            json.dump(report_dict, f, indent=4, sort_keys=True, cls=_HexEncoder)
+            json.dump(report_dict, f, indent=4, sort_keys=True)
 
     def _group_by_code_line(self, leakage_map: LeakageMap,
                             verbosity: ReportVerbosity) -> LeakageLineMap:
