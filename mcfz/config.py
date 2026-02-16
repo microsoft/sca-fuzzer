@@ -188,6 +188,23 @@ class Config:
 
     # internal working directories for each stage of the fuzzing process
     # (cannot be set directly from the config YAML file)
+    target_cmd: List[str]
+    _help += """\n\n target_cmd (required)
+    Command to invoke the target binary, as a string.
+    Use '@#' as a placeholder for the target binary (replaced with afl_bin or native_bin depending
+    on the stage) and '@@' as a placeholder for the generated driver input file.
+    Example: "@# -d @@ -p policy.txt" """
+
+    afl_bin: Optional[str] = None
+    _help += """\n\n afl_bin (None)
+    Path to an AFL++-instrumented binary to be used during the fuzzing-based input generation stage.
+    Replaces the @# placeholder in the target command. """
+
+    native_bin: Optional[str] = None
+    _help += """\n\n native_bin (None)
+    Path to a native (non-AFL-instrumented) binary to be used during the tracing stage.
+    Replaces the @# placeholder in the target command. """
+
     stage1_wd: str
     stage2_wd: str
     stage3_wd: str
@@ -385,4 +402,28 @@ class Config:
             raise _ConfigException(
                 "compression_tool",
                 "compression_tool must be one of: gzip, bzip2, none."
+            )
+
+        if self.afl_bin is None:
+            raise _ConfigException("afl_bin", "afl_bin is a required field in the config file.")
+        if not pathlib.Path(self.afl_bin).is_file():
+            raise _ConfigException("afl_bin", f"{self.afl_bin} does not exist.")
+
+        if self.native_bin is None:
+            raise _ConfigException(
+                "native_bin", "native_bin is a required field in the config file.")
+        if not pathlib.Path(self.native_bin).is_file():
+            raise _ConfigException("native_bin", f"{self.native_bin} does not exist.")
+
+        if self.target_cmd.count("@@") != 1:
+            raise _ConfigException(
+                "target_cmd",
+                "target_cmd must contain exactly one occurrence of '@@' as "
+                "a placeholder for the driver input file."
+            )
+        if self.target_cmd.count("@#") != 1:
+            raise _ConfigException(
+                "target_cmd",
+                "target_cmd must contain exactly one occurrence of '@#' as "
+                "a placeholder for the binary-under-test."
             )

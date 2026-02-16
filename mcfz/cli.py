@@ -14,10 +14,7 @@ from typing_extensions import get_args
 
 from .config import Config, TestingStages
 from .fuzzer import FuzzerCore
-
-CMD_HELP =\
-    "Command to execute (e.g., 'openssl-driver -d @@ -p policy.txt').\n" \
-    "NOTE: use '@@' as a placeholder for generated driver input files."
+from .driller import Driller
 
 
 def _parse_args() -> Any:  # pylint: disable=r0915
@@ -37,7 +34,7 @@ def _parse_args() -> Any:  # pylint: disable=r0915
         "-c",
         "--config",
         type=str,
-        required=False,
+        required=True,
         help="Path to the configuration file (YAML) that will be used during fuzzing.",
     )
 
@@ -50,18 +47,6 @@ def _parse_args() -> Any:  # pylint: disable=r0915
         type=int,
         default=10,
         help="Fuzzing timeout, in seconds (default: 10)",
-    )
-    all_phases.add_argument(
-        "--native-bin",
-        type=str,
-        required=True,
-        help="Path to a native binary; to be used on the tracing stage instead of the AFL build.",
-    )
-    # everything after '--' is saved into 'target_cmd' argument
-    all_phases.add_argument(
-        "target_cmd",
-        nargs="+",
-        help=CMD_HELP,
     )
 
     # ==============================================================================================
@@ -82,13 +67,6 @@ def _parse_args() -> Any:  # pylint: disable=r0915
     #     help="Target coverage to achieve, in percentage (default: 10)",
     # )
 
-    # everything after '--' is saved into 'target_cmd' argument
-    fuzz_gen.add_argument(
-        "target_cmd",
-        nargs="+",
-        help=CMD_HELP,
-    )
-
     # ==============================================================================================
     # Stage 2: Boosting - generate public-equivalent variants
     _ = subparsers.add_parser('boost', add_help=True, parents=[common_parser])
@@ -96,19 +74,20 @@ def _parse_args() -> Any:  # pylint: disable=r0915
 
     # ==============================================================================================
     # Stage 3: Collection of contract traces
-    trace = subparsers.add_parser('trace', add_help=True, parents=[common_parser])
-
-    # everything after '--' is saved into 'target_cmd' argument
-    trace.add_argument(
-        "target_cmd",
-        nargs="+",
-        help=CMD_HELP,
-    )
+    _ = subparsers.add_parser('trace', add_help=True, parents=[common_parser])
+    # no arguments for now
 
     # ==============================================================================================
     # Stage 4: Analysis of traces and reporting of leaks
-    _ = subparsers.add_parser('report', add_help=True, parents=[common_parser])
-    # no arguments for now
+    report = subparsers.add_parser('report', add_help=True, parents=[common_parser])
+    report.add_argument(
+        "--num-traces",
+        "-n",
+        type=int,
+        default=0,
+        help="[Debug option] Process only the first N traces (default: 0, meaning all traces)",
+    )
+
 
     args = parser.parse_args()
 
@@ -156,7 +135,6 @@ def main() -> int:
     # Start the fuzzer in the mode requested by the user
     if args.subparser_name == 'fuzz_gen':
         fuzzer.fuzz_gen(
-            cmd=args.target_cmd,
             target_cov=0,  # TODO: will be replaced with args.target_cov when implemented
             timeout_s=args.timeout,
         )
@@ -167,17 +145,15 @@ def main() -> int:
         return 0
 
     if args.subparser_name == 'trace':
-        fuzzer.trace(cmd=args.target_cmd)
+        fuzzer.trace()
         return 0
 
     if args.subparser_name == 'report':
-        fuzzer.report()
+        fuzzer.report(num_traces=args.num_traces)
         return 0
 
     if args.subparser_name == 'fuzz':
         fuzzer.all(
-            cmd=args.target_cmd,
-            native_bin=args.native_bin,
             target_cov=0,  # TODO: will be replaced with args.target_cov when implemented
             timeout_s=args.timeout,
         )
