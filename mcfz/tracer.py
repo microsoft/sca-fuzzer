@@ -12,7 +12,7 @@ import subprocess
 from tqdm import tqdm
 
 from rvzr.model_dynamorio.trace_decoder import TraceDecoder
-from .logger import Logger
+from .util.logger import Logger
 from .util.compressor import Compressor
 
 if TYPE_CHECKING:
@@ -21,7 +21,10 @@ if TYPE_CHECKING:
 DirName = str
 FileName = str
 FilePath = str
-InputGroups = Dict[DirName, List[FileName]]
+WorkDirMap = Dict[DirName, List[FileName]]
+
+TemplateCmd = List[str]
+ExpandedCmd = str
 
 
 class ProgramException(Exception):
@@ -54,15 +57,14 @@ class Tracer:
             f"-c {config.model_root}/libdr_model.so " \
             f"--tracer {config.contract_observation_clause} " \
             f"--speculator {config.contract_execution_clause} " \
-            f"--store-mappings {config.stage3_wd}/mappings.txt " \
-            "--instrumented-func start_driver --trace-output {trace_file} -- {cmd}"
+            "{mappings_flag} --instrumented-func start_driver --trace-output {trace_file} -- {cmd}"
+        self._mappings_written = False
 
-    def collect_traces(self, cmd: List[str]) -> int:
+    def collect_traces(self) -> int:
         """
         Iterate over all previously-generated public-private input pairs and collect contract traces
         for each pair.
 
-        :param cmd: Command to run the target binary, with placeholder @@ for input files
         :return: 0 if successful, 1 if error occurs
         """
         # Check if the stage2 working directory exists and contains inputs
@@ -74,76 +76,59 @@ class Tracer:
                 f"Stage 2 working directory '{self._config.stage2_wd}' is empty.")
 
         # Check if the traces are deterministic; abort if they are not
-        if not self._check_determinism(self._config.stage2_wd, cmd):
+        if not self._check_determinism(self._config.stage2_wd):
             return 1
 
-        input_groups = self._get_input_groups()
-        self._process_inputs(input_groups, cmd)
+        input_groups = self._build_directory_map()
+        self._collect_all_traces(input_groups)
 
         return 0
 
-    def _get_input_groups(self) -> InputGroups:
+    def _build_directory_map(self) -> WorkDirMap:
         """
-        Build a todo-list for the tracer - a map of all input groups that need to be processed,
+        Build a todo-list for the tracer - a map of all stage2 subdirs that need to be processed,
         as well as the valid inputs in each group.
-
-        :return: Map of input groups
         """
-        # Get a list of input groups
-        input_group_dirs = []
-        for input_group in os.listdir(self._config.stage2_wd):
-            input_group_dir = os.path.join(self._config.stage2_wd, input_group)
-            if not os.path.isdir(input_group_dir):
+        input_map: WorkDirMap = {}
+        for subdir_name in os.listdir(self._config.stage2_wd):
+            subdir = os.path.join(self._config.stage2_wd, subdir_name)
+            if not os.path.isdir(subdir):
                 continue
-            input_group_dirs.append(input_group_dir)
 
-        # Iterate over all input groups and build a map of inputs to be traced
-        input_groups: Dict[str, List[str]] = {}
-        for input_group_dir in input_group_dirs:
-            input_groups[input_group_dir] = []
-
-            # Get a list of all inputs in this group
-            inputs_found = False
-            for input_name in os.listdir(input_group_dir):
+            file_list = []
+            for input_name in os.listdir(subdir):
                 if ".bin" not in input_name:
                     continue
-                inputs_found = True
-                input_groups[input_group_dir].append(input_name)
+                file_list.append(input_name)
+            if file_list:
+                input_map[subdir] = file_list
 
-            # Skip this input group if no inputs were found
-            if not inputs_found:
-                del input_groups[input_group_dir]
+        return input_map
 
-        return input_groups
-
-    def _process_inputs(self, input_groups: InputGroups, cmd: List[str]) -> None:
+    def _collect_all_traces(self, input_map: WorkDirMap) -> None:
         """
-        Process a list of input files by executing the target binary on each input
-        and collecting the corresponding traces.
-
-        :param input_groups: Map of input groups to process
-        :param cmd: Command to run the target binary, with placeholder @@ for input files
-        :return: None
+        Collect contract traces for all inputs in the input map by executing the target binary
+        on the leakage model.
         """
         # Initialize a progress bar to track the progress of the tracing process
-        n_inputs = sum(len(v) for v in input_groups.values())
+        n_inputs = sum(len(v) for v in input_map.values())
         progress_bar = tqdm(total=n_inputs)
 
         # Process all inputs
-        for input_group_dir, input_files in input_groups.items():
+        for input_group_dir, input_files in input_map.items():
             trace_files = []
             for input_name in input_files:
-                input_path = os.path.join(input_group_dir, input_name)
-
-                # Expand the command with the public and private inputs
-                expanded_cmd = self._expand_cmd(cmd, input_path)
-
                 # Get the destination path for the trace in stage3_wd
-                output_base = self._get_output_path(input_path)
+                input_path = os.path.join(input_group_dir, input_name)
+                output_base = self._get_output_base_path(input_path)
+
+                # Create a command based on the command template
+                expanded_cmd = self._expand_template_cmd(self._config.target_cmd, input_path)
 
                 # Execute the target binary and collect traces
                 try:
                     self._collect_trace(expanded_cmd, output_base)
+                    self._mappings_written = True
                 except InstrException:
                     # Mark this test as failed by creating a .failed file
                     with open(f"{output_base}.failed", "w") as failed_log:
@@ -153,104 +138,87 @@ class Tracer:
                 # execution;
                 # this is expected and does not affect the correctness of the fuzzing process
                 except ProgramException:
+                    progress_bar.update()
                     continue
 
                 trace_files.append(f"{output_base}.trace")
                 progress_bar.update()
 
-            # If configured, discard collected traces in the group if all of them are identical
-            traced_discarded = False
-            if self._config.discard_non_leaky_traces:
-                ref_trace = trace_files[0]
-                for trace_file in trace_files[1:]:
-                    if not self._traces_are_identical(ref_trace, trace_file):
-                        break
-                else:
-                    self._discard_group_traces(trace_files)
-                    traced_discarded = True
+            # If `discard_non_leaky_traces` is set and all traces are identical, discard them
+            traces_discarded = False
+            if self._config.discard_non_leaky_traces and trace_files:
+                traces_discarded = self._discard_if_not_leaky(trace_files)
 
             # If configured, compress all collected traces in this input group
-            if self._config.compression_tool != "none" and not traced_discarded:
-                for trace_file in trace_files:
-                    self._compressor.compress(trace_file)
+            if self._config.compression_tool != "none" and not traces_discarded:
+                self._compressor.compress_file_list(trace_files)
 
         # We're done; close the progress bar
         progress_bar.close()
 
-    def _get_output_path(self, input_path: str) -> str:
-        """
-        Convert an input path from stage2_wd to the corresponding output path in stage3_wd.
-
-        :param input_path: Path to the input file in stage2_wd
-        :return: Base path for output files in stage3_wd (without extension)
-        """
-        # Get the relative path from stage2_wd
+    def _get_output_base_path(self, input_path: FileName) -> FileName:
+        """ Get the base filename for all tracer output files that correspond to the given input """
         rel_path = os.path.relpath(input_path, self._config.stage2_wd)
-
-        # Construct the output path in stage3_wd
         output_path = os.path.join(self._config.stage3_wd, rel_path)
-
-        # Create the output directory if it doesn't exist
-        output_dir = os.path.dirname(output_path)
-        os.makedirs(output_dir, exist_ok=True)
-
-        # Remove the .bin extension to get the base path
         base = output_path.rstrip(".bin")
         return base
 
-    def _expand_cmd(self, cmd: List[str], input_: str) -> str:
-        """
-        Replace the placeholders in the command with the actual public and private inputs.
-        """
-        expanded_cmd = cmd
+    def _expand_template_cmd(self, cmd: TemplateCmd, input_: FileName) -> ExpandedCmd:
+        """ Replace the placeholders in the command with the actual binary and input file. """
+        assert self._config.native_bin is not None  # enforced by config validation
+        expanded_cmd = [self._config.native_bin if s == "@#" else s for s in cmd]
         expanded_cmd = [s if s != "@@" else input_ for s in expanded_cmd]
         expanded_str = " ".join(expanded_cmd)
         return expanded_str
 
-    def _collect_trace(self, expanded_str: str, output_base: FilePath) -> None:
-        """
-        Execute the target binary on the leakage model with the given public and private inputs.
+    def _expand_dr_cmd(self, expanded_cmd: ExpandedCmd, trace_file: FilePath) -> ExpandedCmd:
+        """ Expand the DynamoRIO command with the given command and trace file path. """
+        mappings_flag = f"--store-mappings {self._config.stage3_wd}/mappings.txt " \
+            if not self._mappings_written else ""
+        dr_cmd = self._drrun_cmd.format(
+            cmd=expanded_cmd, trace_file=trace_file, mappings_flag=mappings_flag)
+        return dr_cmd
 
-        :param expanded_str: Command to run the target binary, with public and private inputs
-        :param output_base: Base path for the output files (trace and log) in stage3_wd
-        :return: None
+    def _collect_trace(self, expanded_cmd: ExpandedCmd, output_base_path: FilePath) -> None:
+        """
+        Execute the target binary on the leakage model and collect a contract trace.
         :raise: InstrException, ProgramException
         """
-        trace_file = f"{output_base}.trace"
-        log_file = f"{output_base}.log"
+        # Create the output directory and define paths for the trace and log files
+        dir_ = os.path.dirname(output_base_path)
+        os.makedirs(dir_, exist_ok=True)
+        trace_file = f"{output_base_path}.trace"
+        log_file = f"{output_base_path}.log"
 
-        complete_cmd = self._drrun_cmd.format(cmd=expanded_str, trace_file=trace_file)
-        # print(complete_cmd, flush=True); exit(1)
-        error: Optional[Exception] = None
+        # Build the full tracing command
+        tracing_cmd = self._expand_dr_cmd(expanded_cmd, trace_file)
+        # print(tracing_cmd, flush=True); exit(1)
+
+        # Execute the tracing command and capture output in the log file
         try:
             with open(log_file, "a") as f:
-                f.write("$> " + complete_cmd + "\n")
-                subprocess.check_call(complete_cmd, shell=True, stdout=f, stderr=f)
-        except subprocess.CalledProcessError:
+                f.write("$> " + tracing_cmd + "\n")
+                subprocess.check_call(tracing_cmd, shell=True, stdout=f, stderr=f)
+        except subprocess.CalledProcessError as e:
             if TraceDecoder().is_trace_corrupted(trace_file):
-                error = InstrException()
+                raise InstrException() from e
             else:
-                error = ProgramException()
-        if error:
-            raise error
+                raise ProgramException() from e
 
-    def _check_determinism(self, wd: DirName, cmd: List[str]) -> bool:
+    def _check_determinism(self, stage2_wd: DirName) -> bool:
         """
         Check if the traces are deterministic by running the target binary multiple times
         with the same inputs and comparing the outputs.
-        :param wd: Working directory containing the input pairs
-        :param cmd: Command to run the target binary, with placeholders for public (@@)
-                    and private (@#) inputs
+        :param stage2_wd: Path to the stage2 working directory where inputs can be found
         :return: True if the traces are deterministic, False otherwise
-        :raise: AssertionError if no input pairs are found
+        :raise: AssertionError if no input files are found
         """
         # find an arbitrary input in the working directory that does not produce an error
         # and construct a command to run it
-        found: bool = False
         expanded_cmd = ""
         ref_input = ""
-        for input_group in os.listdir(wd):
-            input_group_dir = os.path.join(wd, input_group)
+        for input_group in os.listdir(stage2_wd):
+            input_group_dir = os.path.join(stage2_wd, input_group)
             if not os.path.isdir(input_group_dir):
                 continue
 
@@ -260,17 +228,15 @@ class Tracer:
                 continue
 
             # try running the target binary with the reference input
-            expanded_cmd = self._expand_cmd(cmd, ref_input)
-            output_base = self._get_output_path(ref_input)
+            expanded_cmd = self._expand_template_cmd(self._config.target_cmd, ref_input)
+            output_base = self._get_output_base_path(ref_input)
             try:
                 self._collect_trace(expanded_cmd, output_base)
             except (InstrException, ProgramException):
-                # if the target binary throws an exception, skip this input group
                 print(f"[Determinism check] skipping input causing exception: {ref_input}")
                 continue
-            found = True
             break
-        if not found:
+        else:
             raise AssertionError("No valid inputs found in the working directory; aborting")
 
         # execute the target binary twice and collect traces
@@ -299,22 +265,34 @@ class Tracer:
         os.remove(os.path.join(output_dir, "determinism_check_1.trace"))
         return True
 
-    def _traces_are_identical(self, trace1: FileName, trace2: FileName) -> bool:
-        """ Check if two trace files are identical. """
-        # use diff tool as it is extremely fast for this purpose
-        diff_cmd = f"diff -q {trace1} {trace2}"
-        result = subprocess.run(diff_cmd, shell=True, stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE)
-        return result.returncode == 0
+    def _discard_if_not_leaky(self, trace_files: List[FileName]) -> bool:
+        """ Discard all traces in the group if they are identical. """
+        discarded = False
 
-    def _discard_group_traces(self, trace_files: List[FileName]) -> None:
-        """ Discard all traces in the given list of trace files. """
-        # All traces are identical; discard them
-        for trace_file in trace_files:
-            os.remove(trace_file)
-        # leave a marker file to indicate that the traces were collected successfully
-        # but discarded due to lack of leakage
-        base = self._get_output_path(trace_files[0])
-        dir_name = os.path.dirname(base)
-        with open(f"{dir_name}/noleak", "w") as no_leak_f:
-            no_leak_f.write("")
+        # Check if there are any non-identical traces in the group
+        all_identical = True
+        ref_trace = trace_files[0]
+        for trace_file in trace_files[1:]:
+            # use diff tool for comparing traces as it is extremely fast for large files
+            diff_cmd = f"diff -q {ref_trace} {trace_file}"
+            result = subprocess.run(diff_cmd, shell=True, stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE)
+            if result.returncode != 0:
+                all_identical = False
+                break
+
+        # If all traces are identical, discard them
+        if all_identical:
+            for trace_file in trace_files:
+                os.remove(trace_file)
+            discarded = True
+
+        # After discarding,leave a marker file to indicate that the traces were collected
+        # successfully but discarded due to lack of leakage
+        if discarded:
+            base = self._get_output_base_path(ref_trace)
+            dir_name = os.path.dirname(base)
+            with open(f"{dir_name}/noleak", "w") as no_leak_f:
+                no_leak_f.write("")
+
+        return discarded
