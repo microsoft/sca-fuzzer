@@ -279,7 +279,7 @@ class Config:
     If set, the report will only include lines of code that are not in this list.
     This is useful for filtering out known leaks or false positives. """
 
-    def __init__(self, config_yaml: str, stage: TestingStages) -> None:
+    def __init__(self, config_yaml: str, stage: Optional[TestingStages]) -> None:
         if Config.__config_instantiated:
             raise RuntimeError("Config class should be instantiated only once.")
         Config.__config_instantiated = True
@@ -289,9 +289,11 @@ class Config:
         self._set_from_yaml(yaml_data)
         self._validate_config()
 
-        # Ensure that the working directory is managed properly
-        wd_manager = _WorkingDirManager(self)
-        wd_manager.set_working_dirs(stage)
+        # If we're in the fuzzing mode (or one of its sub-stages),
+        # set up the working directories
+        if stage is not None:
+            wd_manager = _WorkingDirManager(self)
+            wd_manager.set_working_dirs(stage)
 
     @classmethod
     def help(cls) -> str:
@@ -322,6 +324,17 @@ class Config:
         Set configuration values from the parsed YAML data.
         :param yaml_data: Parsed configuration data as a dictionary
         """
+        target_cmd_str = yaml_data.get("target_cmd", "")
+        try:
+            self.target_cmd = target_cmd_str.split()
+        except Exception:
+            raise _ConfigException(
+                "target_cmd",
+                "target_cmd must be a string containing the command to invoke the target binary, "
+                "with '@#' as a placeholder for the target binary and '@@' as a placeholder for "
+                "the generated driver input file."
+            )
+
         self.working_dir = yaml_data.get("working_dir", None)
         if self.working_dir is None:
             raise _ConfigException("working_dir",
@@ -343,6 +356,14 @@ class Config:
         self.model_root = yaml_data.get("model_root", self.model_root)
         if not self.model_root.startswith("/"):
             self.model_root = str(pathlib.Path(self.model_root).expanduser())
+
+        self.afl_bin = yaml_data.get("afl_bin", self.afl_bin)
+        if self.afl_bin is not None:
+            self.afl_bin = str(pathlib.Path(self.afl_bin).expanduser())
+
+        self.native_bin = yaml_data.get("native_bin", self.native_bin)
+        if self.native_bin is not None:
+            self.native_bin = str(pathlib.Path(self.native_bin).expanduser())
 
         self.discard_non_leaky_traces = yaml_data.get("discard_non_leaky_traces",
                                                       self.discard_non_leaky_traces)
