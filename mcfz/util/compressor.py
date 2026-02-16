@@ -52,13 +52,19 @@ class Compressor:
         cmd = self._compress_cmd.format(file=file_path)
         run(cmd, shell=True, check=True)
 
+    def compress_file_list(self, file_paths: list[str]) -> None:
+        if self._tool == "none":
+            return
+        for file_ in file_paths:
+            self.compress(file_)
+
     def decompress(self, file_path: str) -> None:
         if self._tool == "none":
             return
         cmd = self._decompress_cmd.format(file=file_path)
         run(cmd, shell=True, check=True)
 
-    def decompress_universal(self, file_path: str, keep: bool = False) -> None:
+    def decompress_universal(self, file_path: str, keep: bool = False) -> str:
         """
         Decompress a file regardless of its compression type based on its extension.
         Supported extensions: .gz (gzip), .bz2 (bzip2)
@@ -66,11 +72,13 @@ class Compressor:
         keep_flag = "-k" if keep else ""
 
         if file_path.endswith(".gz"):
-            cmd = f"gzip {keep_flag} -d {file_path}"
+            cmd = f"gzip {keep_flag} -d -f {file_path}"
             run(cmd, shell=True, check=True)
+            return file_path[:-3]
         elif file_path.endswith(".bz2"):
-            cmd = f"bzip2 {keep_flag} -d {file_path}"
+            cmd = f"bzip2 {keep_flag} -d -f {file_path}"
             run(cmd, shell=True, check=True)
+            return file_path[:-4]
         else:
             # No known compression extension; assume uncompressed
-            return
+            return file_path

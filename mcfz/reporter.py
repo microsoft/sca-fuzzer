@@ -192,6 +192,14 @@ class _Trace:
         self.instructions['num_mem_accesses'] = next_offsets - \
             self.instructions['mem_accesses_offset']
 
+    @classmethod
+    def empty(cls) -> _Trace:
+        """ Create an empty trace instance. """
+        trace = cls.__new__(cls)
+        trace.instructions = np.zeros(0, dtype=TracedInstructionDType)
+        trace.mem_accesses = np.zeros(0, dtype=np.uint64)
+        return trace
+
     def __len__(self) -> int:
         return len(self.instructions)
 
@@ -222,25 +230,34 @@ class _Analyser:
         Analyse all leaks stored in the given directory after a completed fuzzing campaign.
         """
         leakage_map: LeakageMap = {'I': {}, 'D': {}}
-        inputs = self._build_directory_map(stage3_dir)
+        stage3_dir_map = self._build_directory_map(stage3_dir)
 
         # Initialize a progress bar to track the progress of the analysis
         progress_bar = tqdm(
-            total=sum(len(traces) for traces in inputs.values()),
+            total=sum(len(trace_files) for trace_files in stage3_dir_map.values()),
             colour='green',
         )
 
         # Collect traces for each pair and check for leaks
-        for subdir, trace_files in inputs.items():
-            reference_trace_file = self._find_reference_trace(trace_files)
+        for trace_files in stage3_dir_map.values():
+            try:
+                reference_trace_file = self._find_reference_trace(trace_files)
+            except ValueError as e:
+                self._logger.warning(str(e) + " Skipping this set of traces.")
+                for _ in trace_files:
+                    progress_bar.update()
+                continue
             reference_trace = self._parse_trace_file(reference_trace_file)
+            if len(reference_trace) == 0:
+                continue  # gracefully handle corrupted/missing traces
 
             for trace_file in trace_files:
                 progress_bar.update()
                 trace = self._parse_trace_file(trace_file)
-                leaky_instructions = self._identify_leaks(reference_trace, trace)
+                if len(trace) == 0:
+                    continue  # gracefully handle corrupted/missing traces
 
-                # nothing to do if there are no leaky instructions
+                leaky_instructions = self._identify_leaks(reference_trace, trace)
                 if leaky_instructions.size == 0:
                     continue
 
@@ -284,9 +301,15 @@ class _Analyser:
         for trace_file in trace_files:
             if os.path.basename(trace_file).startswith("000.trace"):
                 return trace_file
-        raise ValueError("Reference trace file (000.trace) not found in the given list.")
+        raise ValueError(
+            f"Reference trace file (000.trace) not found in the given list. {trace_files}")
 
     def _parse_trace_file(self, trace_file: str) -> _Trace:
+        if not os.path.isfile(trace_file):
+            self._logger.warning(f"File {trace_file} not found. "
+                                 "Either tracing failed or is incomplete. Skipping")
+            return _Trace.empty()
+
         # If the file is not compressed, parse it directly
         if trace_file.endswith(".trace"):
             raw_trace = self.trace_decoder.decode_trace_file(trace_file)
@@ -295,8 +318,7 @@ class _Analyser:
 
         # If the file is compressed, decompress and parse it
         if trace_file.endswith(".gz") or trace_file.endswith(".bz2"):
-            self._compressor.decompress_universal(trace_file, keep=True)
-            decompressed_file = trace_file.rsplit('.', 1)[0]
+            decompressed_file = self._compressor.decompress_universal(trace_file, keep=True)
             raw_trace = self.trace_decoder.decode_trace_file(decompressed_file)
             trace = _Trace(trace_file, raw_trace)
             os.remove(decompressed_file)
