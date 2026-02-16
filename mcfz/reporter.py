@@ -225,7 +225,7 @@ class _Analyser:
         self._compressor = Compressor(config)
         self._logger = Logger("Analyser")
 
-    def build_leakage_map(self, stage3_dir: str) -> LeakageMap:
+    def build_leakage_map(self, stage3_dir: str, num_traces: int) -> LeakageMap:
         """
         Analyse all leaks stored in the given directory after a completed fuzzing campaign.
         """
@@ -239,6 +239,7 @@ class _Analyser:
         )
 
         # Collect traces for each pair and check for leaks
+        traces_processed = 0
         for trace_files in stage3_dir_map.values():
             try:
                 reference_trace_file = self._find_reference_trace(trace_files)
@@ -263,6 +264,13 @@ class _Analyser:
 
                 # add the leaky instructions to the global map
                 self._update_global_map(leakage_map, leaky_instructions, trace_file)
+                traces_processed += 1
+
+            # If num_traces is set, stop after processing the specified number of traces
+            if num_traces > 0 and traces_processed >= num_traces:
+                self._logger.info(f"Reached the limit of {num_traces} traces processed."
+                                  " Stopping analysis.")
+                break
 
         progress_bar.close()
         return leakage_map
@@ -610,10 +618,13 @@ class Reporter:
                 f"'{self._config.stage3_wd}'."
             )
 
-    def analyze(self) -> None:
+    def analyze(self, num_traces: int) -> None:
         """
         Analyze the results of the fuzzing campaign and identify the uncovered
         leaks in the target binary.
+
+        :param num_traces: Process only the first N traces (for debugging purposes);
+               if 0, process all traces
         """
         # check that stage3 working directory exists and is not empty
         if not os.path.isdir(self._config.stage3_wd):
@@ -624,7 +635,7 @@ class Reporter:
                 f"Stage 3 working directory '{self._config.stage3_wd}' is empty.")
 
         analyser = _Analyser(self._config)
-        self._leakage_map = analyser.build_leakage_map(self._config.stage3_wd)
+        self._leakage_map = analyser.build_leakage_map(self._config.stage3_wd, num_traces)
 
     def generate_report(self) -> None:
         """
