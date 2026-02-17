@@ -234,3 +234,50 @@ class TestReporter(unittest.TestCase):
         self.assertEqual(leaks[0]['pc'], 0x1000)
         self.assertEqual(leaks[1]['leak_type'], 'I')
         self.assertEqual(leaks[1]['pc'], 0x1004)
+
+
+class TestAllowlistMatching(unittest.TestCase):
+
+    def test_exact_match(self):
+        self.assertTrue(_ReportPrinter._matches_allowlist_entry("filename.c:123", "filename.c:123"))
+
+    def test_full_path_match(self):
+        self.assertTrue(_ReportPrinter._matches_allowlist_entry(
+            "/path/to/filename.c:123", "filename.c:123"))
+
+    def test_partial_path_match(self):
+        self.assertTrue(_ReportPrinter._matches_allowlist_entry(
+            "/path/to/lib/file.c:42", "lib/file.c:42"))
+
+    def test_no_false_positive_different_filename(self):
+        # 'file.c:123' must not match 'otherfile.c:123'
+        self.assertFalse(_ReportPrinter._matches_allowlist_entry(
+            "/path/to/otherfile.c:123", "file.c:123"))
+
+    def test_no_false_positive_different_line(self):
+        self.assertFalse(_ReportPrinter._matches_allowlist_entry(
+            "/path/to/filename.c:456", "filename.c:123"))
+
+    def test_full_absolute_path_entry(self):
+        self.assertTrue(_ReportPrinter._matches_allowlist_entry(
+            "/full/path/to/some/file.c:34232", "/full/path/to/some/file.c:34232"))
+
+    def test_no_match_unrelated_path(self):
+        self.assertFalse(_ReportPrinter._matches_allowlist_entry(
+            "/path/to/somefile.c:123", "otherfile.c:123"))
+
+    def test_filter_allowlist_vrb1(self):
+        leakage_line_map = {'I': ['somefile.c:123', '/other/path/keep.c:1'], 'D': []}
+        allowlist = {'somefile.c:123'}
+        printer = object.__new__(_ReportPrinter)
+        result = printer._is_allowlisted('somefile.c:123', allowlist)
+        self.assertTrue(result)
+        result = printer._is_allowlisted('/other/path/keep.c:1', allowlist)
+        self.assertFalse(result)
+
+    def test_filter_allowlist_removes_suffix_match(self):
+        # Allowlist entry 'somefile.c:123' should remove '/path/to/somefile.c:123'
+        allowlist = {'somefile.c:123'}
+        printer = object.__new__(_ReportPrinter)
+        self.assertTrue(printer._is_allowlisted('/path/to/somefile.c:123', allowlist))
+        self.assertFalse(printer._is_allowlisted('/path/to/somefile.c:456', allowlist))

@@ -44,7 +44,7 @@ class FuzzerCore:
         self.trace()
         print("\033[32m[ORCHESTRATOR] Tracing completed.\033[0m")
         print("\033[32m[ORCHESTRATOR] Starting report construction...\033[0m")
-        self.report()
+        self.report(0)
         print("\033[32m[ORCHESTRATOR] Report construction completed.\033[0m")
 
     def fuzz_gen(self, target_cov: int, timeout_s: int) -> None:

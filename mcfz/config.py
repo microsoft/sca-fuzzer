@@ -38,7 +38,7 @@ class _WorkingDirManager:
     def __init__(self, config: Config) -> None:
         self.config = config
 
-    def set_working_dirs(self, stage: TestingStages) -> None:
+    def create_working_dirs(self, stage: TestingStages) -> None:
         """
         Ensure that the working directory is set up correctly.
 
@@ -163,13 +163,15 @@ class Config:
 
     _internal_opts: Final[List[str]] = ["stage1_wd", "stage2_wd", "stage3_wd", "stage4_wd"]
     _help: str = ""
+    _required_opts: List[str] = []
 
     # ==============================================================================================
     # Fuzzing directories
     working_dir: Optional[str] = None
-    _help += """\n\n working_dir (None)
+    _help += """\n\n working_dir (required)
     Working directory for the fuzzer. It will contain all fuzzing artifacts as well as
     log files and fuzzing reports. """
+    _required_opts.append("working_dir")
 
     archive_dir: Optional[str] = None
     _help += """\n\n archive_dir (None)
@@ -186,25 +188,28 @@ class Config:
         * If set to False, the fuzzer will refuse to run if the working directory is not empty and
           the `archive_dir` is not set. """
 
-    # internal working directories for each stage of the fuzzing process
-    # (cannot be set directly from the config YAML file)
-    target_cmd: List[str]
-    _help += """\n\n target_cmd (required)
+    template_cmd: List[str]
+    _help += """\n\n template_cmd (required)
     Command to invoke the target binary, as a string.
-    Use '@#' as a placeholder for the target binary (replaced with afl_bin or native_bin depending
-    on the stage) and '@@' as a placeholder for the generated driver input file.
+    Use '@#' as a placeholder for the target binary (replaced with bin_instrumented or bin_native
+    depending on the stage) and '@@' as a placeholder for the generated driver input file.
     Example: "@# -d @@ -p policy.txt" """
+    _required_opts.append("template_cmd")
 
-    afl_bin: Optional[str] = None
-    _help += """\n\n afl_bin (None)
+    bin_instrumented: str = ""
+    _help += """\n\n bin_instrumented (required)
     Path to an AFL++-instrumented binary to be used during the fuzzing-based input generation stage.
     Replaces the @# placeholder in the target command. """
+    _required_opts.append("bin_instrumented")
 
-    native_bin: Optional[str] = None
-    _help += """\n\n native_bin (None)
+    bin_native: str = ""
+    _help += """\n\n bin_native (required)
     Path to a native (non-AFL-instrumented) binary to be used during the tracing stage.
     Replaces the @# placeholder in the target command. """
+    _required_opts.append("bin_native")
 
+    # internal working directories for each stage of the fuzzing process
+    # (cannot be set directly from the config YAML file)
     stage1_wd: str
     stage2_wd: str
     stage3_wd: str
@@ -242,15 +247,20 @@ class Config:
     Tool used to compress the collected traces.\n
     Options: gzip, bzip2, none. """
 
+    num_workers: int = 4
+    _help += """\n\n num_workers (4)
+    Number of parallel workers to use for trace collection. """
+
     # ==============================================================================================
     # AFL++ parameters
     afl_root: str = "~/.local/afl/"
     _help += """\n\n afl_root (~/.local/afl/)
     Path to the directory containing the installation of AFL++. """
 
-    afl_seed_dir: Optional[str] = None
-    _help += """\n\n afl_seed_dir (None)
+    afl_seed_dir: str = ""
+    _help += """\n\n afl_seed_dir (required)
     Path to the directory containing the seed corpus for AFL++. """
+    _required_opts.append("afl_seed_dir")
 
     afl_exec_timeout_ms: int = 100
     _help += """\n\n afl_exec_timeout_ms (100)
@@ -272,8 +282,8 @@ class Config:
         * 2 - also include PC of the instructions that cause the leaks;
         * 3 - also include the file names of the traces that contain the leaks """
 
-    report_allowlist: Optional[str] = None
-    _help += """\n\n report_allowlist (None)
+    allowlist: Optional[str] = None
+    _help += """\n\n allowlist (None)
     Path to a file containing a list of allowed lines of code, in the format:
     <file_path>:<line_number>
     If set, the report will only include lines of code that are not in this list.
@@ -287,13 +297,16 @@ class Config:
         # Parse the config YAML file and ensure that it is set up correctly
         yaml_data = self._parse_yaml(config_yaml)
         self._set_from_yaml(yaml_data)
+        self._check_required_opts()
+        self._expand_user_paths()
+        self._set_stage_dirs()
         self._validate_config()
 
         # If we're in the fuzzing mode (or one of its sub-stages),
         # set up the working directories
         if stage is not None:
             wd_manager = _WorkingDirManager(self)
-            wd_manager.set_working_dirs(stage)
+            wd_manager.create_working_dirs(stage)
 
     @classmethod
     def help(cls) -> str:
@@ -324,59 +337,36 @@ class Config:
         Set configuration values from the parsed YAML data.
         :param yaml_data: Parsed configuration data as a dictionary
         """
-        target_cmd_str = yaml_data.get("target_cmd", "")
+        template_cmd_str = yaml_data.get("template_cmd", None)
+        if template_cmd_str is None:
+            raise _ConfigException("template_cmd",
+                                   "template_cmd is a required field in the config file.")
         try:
-            self.target_cmd = target_cmd_str.split()
+            self.template_cmd = template_cmd_str.split()
         except Exception:
             raise _ConfigException(
-                "target_cmd",
-                "target_cmd must be a string containing the command to invoke the target binary, "
+                "template_cmd",
+                "template_cmd must be a string containing the command to invoke the target binary, "
                 "with '@#' as a placeholder for the target binary and '@@' as a placeholder for "
-                "the generated driver input file."
-            )
+                "the generated driver input file.")
 
-        self.working_dir = yaml_data.get("working_dir", None)
-        if self.working_dir is None:
-            raise _ConfigException("working_dir",
-                                   "working_dir is a required field in the config file.")
+        self.bin_native = yaml_data.get("bin_native", self.bin_native)
+        self.bin_instrumented = yaml_data.get("bin_instrumented", self.bin_instrumented)
 
-        self.working_dir = str(pathlib.Path(self.working_dir).expanduser())
-        self.stage1_wd = os.path.join(self.working_dir, "stage1")
-        self.stage2_wd = os.path.join(self.working_dir, "stage2")
-        self.stage3_wd = os.path.join(self.working_dir, "stage3")
-        self.stage4_wd = os.path.join(self.working_dir, "stage4")
-
-        self.archive_dir = yaml_data.get("archive_dir", None)
-        if self.archive_dir is not None:
-            self.archive_dir = str(pathlib.Path(self.archive_dir).expanduser())
-
+        self.working_dir = yaml_data.get("working_dir", self.working_dir)
+        self.archive_dir = yaml_data.get("archive_dir", self.archive_dir)
         self.force_working_dir_overwrite = yaml_data.get("force_working_dir_overwrite",
                                                          self.force_working_dir_overwrite)
 
         self.model_root = yaml_data.get("model_root", self.model_root)
-        if not self.model_root.startswith("/"):
-            self.model_root = str(pathlib.Path(self.model_root).expanduser())
-
-        self.afl_bin = yaml_data.get("afl_bin", self.afl_bin)
-        if self.afl_bin is not None:
-            self.afl_bin = str(pathlib.Path(self.afl_bin).expanduser())
-
-        self.native_bin = yaml_data.get("native_bin", self.native_bin)
-        if self.native_bin is not None:
-            self.native_bin = str(pathlib.Path(self.native_bin).expanduser())
 
         self.discard_non_leaky_traces = yaml_data.get("discard_non_leaky_traces",
                                                       self.discard_non_leaky_traces)
         self.compression_tool = yaml_data.get("compression_tool", self.compression_tool)
+        self.num_workers = yaml_data.get("num_workers", self.num_workers)
 
         self.afl_root = yaml_data.get("afl_root", self.afl_root)
-        if not self.afl_root.startswith("/"):
-            self.afl_root = str(pathlib.Path(self.afl_root).expanduser())
-
         self.afl_seed_dir = yaml_data.get("afl_seed_dir", self.afl_seed_dir)
-        if self.afl_seed_dir is not None:
-            self.afl_seed_dir = str(pathlib.Path(self.afl_seed_dir).expanduser())
-
         self.afl_exec_timeout_ms = yaml_data.get("afl_exec_timeout_ms", self.afl_exec_timeout_ms)
         self.afl_quiet = yaml_data.get("afl_quiet", self.afl_quiet)
 
@@ -385,11 +375,11 @@ class Config:
         self.contract_execution_clause = yaml_data.get("contract_execution_clause",
                                                        self.contract_execution_clause)
 
-        self.num_secrets_per_class = yaml_data.get(
-            "num_secrets_per_class", self.num_secrets_per_class)
+        self.num_secrets_per_class = yaml_data.get("num_secrets_per_class",
+                                                   self.num_secrets_per_class)
 
         self.report_verbosity = yaml_data.get("report_verbosity", self.report_verbosity)
-        self.report_allowlist = yaml_data.get("report_allowlist", self.report_allowlist)
+        self.allowlist = yaml_data.get("allowlist", self.allowlist)
 
         # check for attempts to set internal config variables
         for opt in self._internal_opts:
@@ -398,53 +388,82 @@ class Config:
                     opt, f"Option {opt} is for internal use only and should not be set in"
                     " the user config; use working_dir instead.")
 
+    def _expand_user_paths(self) -> None:
+        """ Iterate over all config variables and expand user paths (i.e., paths containing ~) """
+        for var_name, var_value in self.__dict__.items():
+            if isinstance(var_value, str):
+                if var_value.startswith("~/"):
+                    setattr(self, var_name, os.path.expanduser(var_value))
+
+        # special handling for target_cmd, as it is a list of strings
+        if self.template_cmd is not None:
+            expanded_cmd = []
+            for part in self.template_cmd:
+                if part.startswith("~/"):
+                    expanded_cmd.append(os.path.expanduser(part))
+                else:
+                    expanded_cmd.append(part)
+            self.template_cmd = expanded_cmd
+
+    def _check_required_opts(self) -> None:
+        """ Check that all required options are set in the config """
+        for opt in self._required_opts:
+            val = getattr(self, opt, None)
+            if val is None or val == "":
+                raise _ConfigException(opt, f"{opt} is a required option and must be set.")
+
     def _validate_config(self) -> None:
         """
         Validate the configuration values.
         """
-        if not pathlib.Path(self.model_root).expanduser().is_dir():
+        # Validate existence of directories and files
+        if not pathlib.Path(self.model_root).is_dir():
             raise _ConfigException("model_root", f"{self.model_root} does not exist.")
-        if not pathlib.Path(self.afl_root).expanduser().is_dir():
+        if not pathlib.Path(self.afl_root).is_dir():
             raise _ConfigException("afl_root", f"{self.afl_root} does not exist.")
-        if self.afl_seed_dir is None:
-            raise _ConfigException("afl_seed_dir", "Seed directory is not set.")
-        if not pathlib.Path(self.afl_seed_dir).expanduser().is_dir():
+        if not pathlib.Path(self.afl_seed_dir).is_dir():
             raise _ConfigException("afl_seed_dir", f"{self.afl_seed_dir} does not exist.")
+        if self.allowlist is not None and not pathlib.Path(self.allowlist).is_file():
+            raise _ConfigException(
+                "allowlist", f"Allowlist file {self.allowlist} does not exist. \n"
+                "Please create it or remove the allowlist option from the config file.")
 
+        # Other option-specific properties
         if self.num_secrets_per_class < 2:
-            raise _ConfigException("num_secrets_per_class",
-                                   "num_secrets_per_class must be at least 2."
-                                   "(fuzzing is meaningless otherwise).")
+            raise _ConfigException(
+                "num_secrets_per_class", "num_secrets_per_class must be at least 2."
+                "(fuzzing is meaningless otherwise).")
         if self.num_secrets_per_class > 10:
             print("[WARNING] num_secrets_per_class is set to a high value;"
                   " this may lead to very long fuzzing times.")
 
         if self.compression_tool not in ["gzip", "bzip2", "none"]:
-            raise _ConfigException(
-                "compression_tool",
-                "compression_tool must be one of: gzip, bzip2, none."
-            )
+            raise _ConfigException("compression_tool",
+                                   "compression_tool must be one of: gzip, bzip2, none.")
+        if self.num_workers < 1:
+            raise _ConfigException("num_workers", "num_workers must be at least 1.")
+        if self.num_workers > 100:
+            print("[WARNING] num_workers is > 100; are you sure about this??")
 
-        if self.afl_bin is None:
-            raise _ConfigException("afl_bin", "afl_bin is a required field in the config file.")
-        if not pathlib.Path(self.afl_bin).is_file():
-            raise _ConfigException("afl_bin", f"{self.afl_bin} does not exist.")
+        if not pathlib.Path(self.bin_native).is_file():
+            raise _ConfigException("bin_native", f"{self.bin_native} does not exist.")
+        if not pathlib.Path(self.bin_instrumented).is_file():
+            raise _ConfigException("bin_instrumented", f"{self.bin_instrumented} does not exist.")
 
-        if self.native_bin is None:
+        if self.template_cmd.count("@@") != 1:
             raise _ConfigException(
-                "native_bin", "native_bin is a required field in the config file.")
-        if not pathlib.Path(self.native_bin).is_file():
-            raise _ConfigException("native_bin", f"{self.native_bin} does not exist.")
+                "template_cmd", "template_cmd must contain exactly one occurrence of '@@' as "
+                "a placeholder for the driver input file.")
+        if self.template_cmd.count("@#") != 1:
+            raise _ConfigException(
+                "template_cmd", "template_cmd must contain exactly one occurrence of '@#' as "
+                "a placeholder for the binary-under-test.")
 
-        if self.target_cmd.count("@@") != 1:
-            raise _ConfigException(
-                "target_cmd",
-                "target_cmd must contain exactly one occurrence of '@@' as "
-                "a placeholder for the driver input file."
-            )
-        if self.target_cmd.count("@#") != 1:
-            raise _ConfigException(
-                "target_cmd",
-                "target_cmd must contain exactly one occurrence of '@#' as "
-                "a placeholder for the binary-under-test."
-            )
+    def _set_stage_dirs(self) -> None:
+        """ Set the internal stage working directories based on the main working directory """
+        assert self.working_dir is not None, \
+            "working_dir must be set before setting stage directories."
+        self.stage1_wd = os.path.join(self.working_dir, "stage1")
+        self.stage2_wd = os.path.join(self.working_dir, "stage2")
+        self.stage3_wd = os.path.join(self.working_dir, "stage3")
+        self.stage4_wd = os.path.join(self.working_dir, "stage4")

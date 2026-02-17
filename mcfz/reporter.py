@@ -455,8 +455,7 @@ def _convert_int_keys_to_hex(o: Any) -> Any:
     """Recursively convert all integer dictionary keys to hex strings."""
     if isinstance(o, dict):
         return {
-            (hex(k) if isinstance(k, int) else k): _convert_int_keys_to_hex(v)
-            for k, v in o.items()
+            (hex(k) if isinstance(k, int) else k): _convert_int_keys_to_hex(v) for k, v in o.items()
         }
     if isinstance(o, list):
         return [_convert_int_keys_to_hex(item) for item in o]
@@ -569,25 +568,35 @@ class _ReportPrinter:
             code_line_list.sort()
         return leakage_line_map
 
+    @staticmethod
+    def _matches_allowlist_entry(code_line: str, entry: str) -> bool:
+        """Return True if code_line matches an allowlist entry via suffix comparison """
+        return code_line == entry or code_line.endswith('/' + entry)
+
+    def _is_allowlisted(self, code_line: str, allowlist: set) -> bool:
+        return any(self._matches_allowlist_entry(code_line, entry) for entry in allowlist)
+
     def _filter_allowlist(self, leakage_line_map: LeakageLineMap) -> LeakageLineMap:
         """
         Filter the leakage line map by the allowlist of source code lines.
-        The allowlist is a list of source code lines that should be included in the report.
+        The allowlist is a list of source code lines that should be excluded from the report.
+        Entries support partial path matching: ``filename.c:123`` in the allowlist will match
+        ``/path/to/filename.c:123`` in the leakage map.
         """
-        allowlist_file = self._config.report_allowlist
+        allowlist_file = self._config.allowlist
         if not allowlist_file:
             return leakage_line_map
 
         # Read the allowlist file and create a set of allowed source code lines
         with open(allowlist_file, "r") as f:
-            allowlist_lines = {line.strip() for line in f if line.strip()}
+            allowlist = {line.strip() for line in f if line.strip()}
 
         # Filter the leakage line map by the allowlist
         filtered_leakage_line_map: LeakageLineMap = deepcopy(leakage_line_map)
         for leak_type in leakage_line_map:
             per_type_map = leakage_line_map[leak_type]
             for code_line in per_type_map:
-                if code_line in allowlist_lines:
+                if self._is_allowlisted(code_line, allowlist):
                     filtered_per_type_map = filtered_leakage_line_map[leak_type]
                     if isinstance(filtered_per_type_map, list):  # Verbosity 1
                         filtered_per_type_map.remove(code_line)
@@ -615,8 +624,7 @@ class Reporter:
         if not os.path.isfile(os.path.join(self._config.stage3_wd, "mappings.txt")):
             raise FileNotFoundError(
                 "Module mappings file 'mappings.txt' not found in stage 3 working directory "
-                f"'{self._config.stage3_wd}'."
-            )
+                f"'{self._config.stage3_wd}'.")
 
     def analyze(self, num_traces: int) -> None:
         """
