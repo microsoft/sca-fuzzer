@@ -31,7 +31,7 @@ class FuzzGen:
         self._afl_bin = os.path.join(config.afl_root, "afl-fuzz")
         self._libcompcov = os.path.join(config.afl_root, "libcompcov.so")
 
-    def generate(self, target_cov: int, timeout_s: int) -> None:
+    def generate(self, _: int, timeout_s: int) -> None:
         """
         Generate diverse inputs for the target binary invoked with the given command.
         The generation continues until either the target coverage is achieved or
@@ -41,22 +41,18 @@ class FuzzGen:
         :param timeout_s: Timeout for the fuzzing process
         :return: 0 if the target coverage or timeout is reached, 1 if error occurs
         """
-        self._start_afl_fuzz(target_cov, timeout_s)
-
-    def _start_afl_fuzz(self, _: int, timeout_s: int) -> None:
-        """
-        Starts the AFL++ fuzzing process.
-        """
         assert self._config.afl_seed_dir is not None, "AFL seed directory not set."
-        assert self._config.afl_bin is not None  # enforced by config validation
+        assert self._config.bin_instrumented is not None  # enforced by config validation
 
         # Replace the binary placeholder with the AFL-instrumented binary
-        patched_cmd = [self._config.afl_bin if s == "@#" else s for s in self._config.target_cmd]
+        patched_cmd = [
+            self._config.bin_instrumented if s == "@#" else s for s in self._config.template_cmd
+        ]
 
         # configure the AFL++ environment
         env = os.environ.copy()
         env["AFL_COMPCOV_LEVEL"] = "2"
-        env["AFL_PRELOAD"] = self._libcompcov
+        # env["AFL_PRELOAD"] = self._libcompcov
         env["AFL_KEEP_TRACES"] = "1"
         env["AFL_SKIP_CPUFREQ"] = "1"
         env["AFL_QUIET"] = "1" if self._config.afl_quiet else "0"
@@ -64,7 +60,8 @@ class FuzzGen:
         afl_flags = [
             "-V",
             str(timeout_s), "-c", patched_cmd[0], "-i", self._config.afl_seed_dir, "-o", self._wd,
-            "-t", str(self._config.afl_exec_timeout_ms)
+            "-t",
+            str(self._config.afl_exec_timeout_ms)
         ]
 
         cmd = [self._afl_bin] + afl_flags + ["--"] + patched_cmd

@@ -20,8 +20,8 @@ from subprocess import run, PIPE
 
 
 class _LeakInfo:
-    def __init__(self, leak_type: str, code_line: str,
-                 pc_hex: str, location_in_trace: str) -> None:
+
+    def __init__(self, leak_type: str, code_line: str, pc_hex: str, location_in_trace: str) -> None:
         self.leak_type = leak_type
         self.code_line = CodeLine(code_line)
         self.pc = PC(int(pc_hex, 16))
@@ -34,7 +34,7 @@ class _LeakInfo:
         self._bin = FileName("")
         self.input_path: FileName = FileName('')
         self.trace_path: FileName = FileName('')
-        self.org_target_cmd: List[str] = []
+        self.org_template_cmd: List[str] = []
         self.gdb_cmd: str = ""
         self.pc_occurrence: int = 0
         self.pc_gdb: int = 0  # Translated PC address for gdb
@@ -65,11 +65,11 @@ class _LeakInfo:
         return FileName(input_path)
 
     def _set_gdb_cmd(self) -> None:
-        assert self.org_target_cmd, "Original target command not set."
+        assert self.org_template_cmd, "Original template command not set."
 
         # Build command for target input
         modified_cmd = [self._bin] + [
-            arg.replace('@@', str(self.input_path)) for arg in self.org_target_cmd[1:]
+            arg.replace('@@', str(self.input_path)) for arg in self.org_template_cmd[1:]
         ]
         modified_cmd_str = " ".join(modified_cmd)
 
@@ -88,9 +88,8 @@ class _LeakInfo:
 
         # Build command for reference input (000.bin)
         ref_input_path = os.path.join(os.path.dirname(self.input_path), "000.bin")
-        ref_cmd = [self._bin] + [
-            arg.replace('@@', ref_input_path) for arg in self.org_target_cmd[1:]
-        ]
+        ref_cmd = [self._bin] + \
+                  [arg.replace('@@', ref_input_path) for arg in self.org_template_cmd[1:]]
         ref_cmd_str = " ".join(ref_cmd)
 
         # Build gdb command for reference input (pane 0)
@@ -169,9 +168,9 @@ class Driller:
     def __init__(self, config: Config, output_dir: str) -> None:
         self._config = config
         self._output_dir = output_dir
-        assert config.native_bin is not None  # enforced by config validation
-        self._target_bin = config.native_bin
-        self._target_cmd = [config.native_bin if s == "@#" else s for s in config.target_cmd]
+        assert config.bin_native is not None  # enforced by config validation
+        self._target_bin = config.bin_native
+        self._template_cmd = [config.bin_native if s == "@#" else s for s in config.template_cmd]
 
     def drill_down(self, pc_: int) -> None:
         """
@@ -273,10 +272,12 @@ class Driller:
         gdb_cmd = [
             'gdb',
             '--batch',
-            '-ex', 'starti',
-            '-ex', 'info proc mappings',
+            '-ex',
+            'starti',
+            '-ex',
+            'info proc mappings',
             '--args',
-        ] + self._target_cmd
+        ] + self._template_cmd
 
         result = run(gdb_cmd, stdout=PIPE, stderr=PIPE, text=True)
 
@@ -357,4 +358,4 @@ class Driller:
         leak_info.input_path = input_dest
         leak_info.trace_path = trace_dest_
         leak_info._bin = bin_dest
-        leak_info.org_target_cmd = self._target_cmd
+        leak_info.org_template_cmd = self._template_cmd
