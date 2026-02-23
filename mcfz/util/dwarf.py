@@ -13,6 +13,8 @@ from dataclasses import dataclass
 from elftools.elf.elffile import ELFFile, ELFError  # type: ignore
 from elftools.dwarf.dwarfinfo import DWARFInfo  # type: ignore
 
+from mcfz.util.logger import Logger
+
 
 @dataclass
 class _ModuleEntry:
@@ -39,6 +41,7 @@ class ModulesInfo:
         """
         self._modules: List[_ModuleEntry] = []
         self._open_files: List[Any] = []
+        self._log = Logger("ModulesInfo")
         self._load_mappings(mappings_file)
 
     def _load_mappings(self, mappings_file: str) -> None:
@@ -63,18 +66,18 @@ class ModulesInfo:
         """Try to find and load DWARF info for a module."""
         if not os.path.isfile(module_name):
             if module_name != "[vdso]":  # vDSO is expected to not have a file
-                print("[Reporter] WARNING: Module file not found:", module_name)
+                self._log.warning(f"Module file not found: {module_name}")
             return None
 
         with open(module_name, "rb") as f:
             elf = ELFFile(f)
             if not elf.has_dwarf_info():
-                print("[Reporter] WARNING: No DWARF info in module", module_name)
+                self._log.warning(f"No DWARF info in module {module_name}")
                 return None
             try:
                 info: DWARFInfo = elf.get_dwarf_info()
             except ELFError:
-                print("[Reporter] WARNING: Failed to load DWARF info from", module_name)
+                self._log.warning(f"Failed to load DWARF info from {module_name}")
                 return None
 
             return info
@@ -92,11 +95,11 @@ class ModulesInfo:
         for module in self._modules:
             if address >= module.start_addr:
                 if module.dwarf_info is None:
-                    print("[Reporter] WARNING: No DWARF info for module", module.name)
+                    self._log.warning(f"No DWARF info for module {module.name}")
                     return "undefined:0"
                 offset = address - module.start_addr
                 return self._lookup_dwarf(module.dwarf_info, offset)
-        print("[Reporter] WARNING: Address not found in any module:", hex(address))
+        self._log.warning(f"Address not found in any module: {hex(address)}")
         return "undefined:0"
 
     def _lookup_dwarf(self, dwarf_info: DWARFInfo, address: int) -> str:
@@ -127,5 +130,5 @@ class ModulesInfo:
                     prevstate = None
                 else:
                     prevstate = entry.state
-        print("[Reporter] WARNING: Address not found in DWARF info:", hex(address))
+        self._log.warning(f"Address not found in DWARF info: {hex(address)}")
         return "undefined:0"
