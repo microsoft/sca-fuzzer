@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 from .fuzz_gen import FuzzGen
 from .boost import Boost
 from .tracer import Tracer
+from .leak_detector import LeakDetector
 from .reporter import Reporter
 
 if TYPE_CHECKING:
@@ -84,6 +85,8 @@ class FuzzerCore:
         :param num_traces: Process only the first N traces (for debugging purposes);
                if 0, process all traces
         """
+        detector = LeakDetector(self._config)
+        leakage_map = detector.build_leakage_map(self._config.stage3_wd, num_traces)
+
         reporter = Reporter(self._config)
-        reporter.analyze(num_traces)
-        reporter.generate_report()
+        reporter.generate_report(leakage_map)

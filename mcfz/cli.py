@@ -117,7 +117,7 @@ def _parse_args() -> Any:  # pylint: disable=r0915
     return args
 
 
-def _validate_args(args: Any) -> bool:
+def _validate_args(_: Any) -> bool:
     """
     Validate the command-line arguments, beyond the basic checks done by argparse.
     :param args: parsed CLI arguments

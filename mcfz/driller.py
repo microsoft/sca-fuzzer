@@ -6,17 +6,21 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 from __future__ import annotations
-from typing import List, Dict, Tuple
+from typing import Any, List, Dict, Tuple
 
 import os
 import json
 import shutil
 
-from .reporter import PC, FileName, CodeLine
+from subprocess import run, PIPE
+
+from rvzr.model_dynamorio.trace_decoder import TraceDecoder
+
+from .leak_detector import PC, FileName
+from .reporter import CodeLine
 from .config import Config
 from .util.compressor import Compressor
-from rvzr.model_dynamorio.trace_decoder import TraceDecoder
-from subprocess import run, PIPE
+from .leak_detector import _Trace
 
 
 class _LeakInfo:
@@ -28,10 +32,9 @@ class _LeakInfo:
         trace_file, loc_id, _ = self._parse_location_in_trace(location_in_trace)
         self.org_trace_path = trace_file
         self.trace_line_id = loc_id
-        self.org_input_path: FileName = self._get_input_path()
 
         # set later
-        self._bin = FileName("")
+        self.bin_path = FileName("")
         self.input_path: FileName = FileName('')
         self.trace_path: FileName = FileName('')
         self.org_template_cmd: List[str] = []
@@ -64,11 +67,17 @@ class _LeakInfo:
 
         return FileName(input_path)
 
-    def _set_gdb_cmd(self) -> None:
+    @property
+    def org_input_path(self) -> FileName:
+        """Compute the input file path from the trace path."""
+        return self._get_input_path()
+
+    def build_gdb_cmd(self) -> None:
+        """Generate a debug shell script that opens two gdb sessions in tmux."""
         assert self.org_template_cmd, "Original template command not set."
 
         # Build command for target input
-        modified_cmd = [self._bin] + [
+        modified_cmd = [self.bin_path] + [
             arg.replace('@@', str(self.input_path)) for arg in self.org_template_cmd[1:]
         ]
         modified_cmd_str = " ".join(modified_cmd)
@@ -88,7 +97,7 @@ class _LeakInfo:
 
         # Build command for reference input (000.bin)
         ref_input_path = os.path.join(os.path.dirname(self.input_path), "000.bin")
-        ref_cmd = [self._bin] + \
+        ref_cmd = [self.bin_path] + \
                   [arg.replace('@@', ref_input_path) for arg in self.org_template_cmd[1:]]
         ref_cmd_str = " ".join(ref_cmd)
 
@@ -164,6 +173,7 @@ tmux new-session -s mysession \\; \\
 
 
 class Driller:
+    """Investigates specific findings from fuzzing by drilling down into violations."""
 
     def __init__(self, config: Config, output_dir: str) -> None:
         self._config = config
@@ -192,7 +202,7 @@ class Driller:
         self._copy_files(leak_info)
         leak_info.pc_occurrence = self._find_pc_occurrence(leak_info)
         leak_info.pc_gdb = self._translate_pc_to_gdb(leak_info.pc)
-        leak_info._set_gdb_cmd()
+        leak_info.build_gdb_cmd()
 
         # Pretty print the details
         print(leak_info)
@@ -208,7 +218,7 @@ class Driller:
         if not os.path.exists(report_file):
             raise FileNotFoundError(f"Report file not found: {report_file}.")
 
-    def _find_pc_in_report(self, report_data: Dict, pc_hex: str) -> _LeakInfo:
+    def _find_pc_in_report(self, report_data: Dict[str, Any], pc_hex: str) -> _LeakInfo:
         assert "seq" in report_data, "No 'seq' section in the report data."
         seq_data = report_data['seq']
 
@@ -237,10 +247,16 @@ class Driller:
         :param pc: Absolute PC address from the trace
         :return: Translated PC address for use in gdb
         """
-        # Step 1: Find trace base address from mappings.txt
+        trace_base, module_path = self._get_trace_base(pc)
+        module_basename = os.path.basename(module_path)
+        gdb_base = self._get_gdb_base(module_basename)
+
+        offset = pc - trace_base
+        return gdb_base + offset
+
+    def _get_trace_base(self, pc: int) -> Tuple[int, str]:
+        """Find the trace base address and module path from mappings.txt."""
         mappings_file = os.path.join(self._config.stage3_wd, "mappings.txt")
-        trace_base = None
-        module_path = None
 
         with open(mappings_file, "r") as f:
             modules = []
@@ -255,20 +271,16 @@ class Driller:
                 start_addr = int(addr_str, 16)
                 modules.append((module_name, start_addr))
 
-            # Sort by start address descending
+            # Sort by start address descending and find module containing the PC
             modules.sort(key=lambda m: m[1], reverse=True)
-
-            # Find module containing the PC
             for module_name, start_addr in modules:
                 if pc >= start_addr:
-                    trace_base = start_addr
-                    module_path = module_name
-                    break
+                    return start_addr, module_name
 
-        assert module_path is not None, f"Module path for PC {pc:#x} not found in mappings.txt"
-        assert trace_base is not None, f"Module for PC {pc:#x} not found in mappings.txt"
+        assert False, f"Module for PC {pc:#x} not found in mappings.txt"
 
-        # Step 2: Run dummy gdb session to get memory mappings under gdb
+    def _get_gdb_base(self, module_basename: str) -> int:
+        """Run a dummy gdb session and find the module's base address under gdb."""
         gdb_cmd = [
             'gdb',
             '--batch',
@@ -279,28 +291,15 @@ class Driller:
             '--args',
         ] + self._template_cmd
 
-        result = run(gdb_cmd, stdout=PIPE, stderr=PIPE, text=True)
-
-        # Step 3: Parse gdb mappings to find gdb base address
-        gdb_base = None
-        module_basename = os.path.basename(module_path)
+        result = run(gdb_cmd, stdout=PIPE, stderr=PIPE, text=True, check=False)
 
         for line in result.stdout.split('\n'):
-            # Look for first occurrence of the module (should be the base address)
             if module_basename in line:
                 parts = line.split()
                 if len(parts) >= 1 and parts[0].startswith('0x'):
-                    gdb_base = int(parts[0], 16)
-                    break
+                    return int(parts[0], 16)
 
-        assert gdb_base is not None, \
-            f"Module {module_basename} not found in gdb mappings output"
-
-        # Step 4: Translate the PC
-        offset = pc - trace_base
-        gdb_pc = gdb_base + offset
-
-        return gdb_pc
+        assert False, f"Module {module_basename} not found in gdb mappings output"
 
     def _find_pc_occurrence(self, leak_info: _LeakInfo) -> int:
         """
@@ -312,8 +311,6 @@ class Driller:
         :param leak_info: Information about the leak
         :return: The occurrence number (1-indexed) of the PC in the trace
         """
-        from .reporter import _Trace
-
         # Parse the trace file
         trace_decoder = TraceDecoder()
         raw_trace = trace_decoder.decode_trace_file(str(leak_info.trace_path))
@@ -357,5 +354,5 @@ class Driller:
         # Save the updated paths in the leak_info for further use
         leak_info.input_path = input_dest
         leak_info.trace_path = trace_dest_
-        leak_info._bin = bin_dest
+        leak_info.bin_path = bin_dest
         leak_info.org_template_cmd = self._template_cmd
