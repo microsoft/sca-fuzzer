@@ -24,24 +24,25 @@ class Compressor:
         tool = config.compression_tool
         assert tool in get_args(_Tool), f"Unsupported compression tool: {tool}"
         self._tool: _Tool = cast(_Tool, tool)
+        self._config = config
 
         self._compress_cmd = self._build_compress_cmd()
         self._decompress_cmd = self._build_decompress_cmd()
 
     def _build_compress_cmd(self) -> str:
         if self._tool == "gzip":
-            return "gzip -9 {file}"
+            return "gzip -5 '{file}'"
         if self._tool == "bzip2":
-            return "bzip2 -z -9 {file}"
+            return "bzip2 -z -5 '{file}'"
         if self._tool == "none":
             return ""
         assert_never(self._tool)
 
     def _build_decompress_cmd(self) -> str:
         if self._tool == "gzip":
-            return "gzip -d {file}.gz"
+            return "gzip -d '{file}.gz'"
         if self._tool == "bzip2":
-            return "bzip2 -d {file}.bz2"
+            return "bzip2 -d '{file}.bz2'"
         if self._tool == "none":
             return ""
         assert_never(self._tool)
@@ -49,6 +50,7 @@ class Compressor:
     def compress(self, file_path: str) -> None:
         if self._tool == "none":
             return
+        file_path = self._quote_parentheses(file_path)
         cmd = self._compress_cmd.format(file=file_path)
         run(cmd, shell=True, check=True)
 
@@ -61,6 +63,7 @@ class Compressor:
     def decompress(self, file_path: str) -> None:
         if self._tool == "none":
             return
+        file_path = self._quote_parentheses(file_path)
         cmd = self._decompress_cmd.format(file=file_path)
         run(cmd, shell=True, check=True)
 
@@ -70,6 +73,7 @@ class Compressor:
         Supported extensions: .gz (gzip), .bz2 (bzip2)
         """
         keep_flag = "-k" if keep else ""
+        file_path = self._quote_parentheses(file_path)
 
         if file_path.endswith(".gz"):
             cmd = f"gzip {keep_flag} -d -f {file_path}"
@@ -82,3 +86,9 @@ class Compressor:
         else:
             # No known compression extension; assume uncompressed
             return file_path
+
+    @staticmethod
+    def _quote_parentheses(str_: str) -> str:
+        """ replace all ( and ) with their quoted versions,
+        to prevent issues when these characters are in file paths """
+        return str_.replace("(", "\\(").replace(")", "\\)")
