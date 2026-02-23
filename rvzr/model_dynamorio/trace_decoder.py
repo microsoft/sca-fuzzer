@@ -57,7 +57,7 @@ class TraceEntryType:
 
 
 # numpy dtype for trace entries
-TraceEntryDType: Final[np.dtype] = np.dtype([
+TraceEntryDType: Final[np.dtype[np.void]] = np.dtype([
     ('addr', np.uint64),   # trace_entry_t.addr in trace.hpp
     ('size', np.uint16),       # trace_entry_t.size in trace.hpp
     ('type', np.uint8),        # trace_entry_t.type in trace.hpp

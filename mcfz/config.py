@@ -216,6 +216,20 @@ class Config:
     stage4_wd: str
 
     # ==============================================================================================
+    # Multiprocessing parameters
+    num_workers_fuzz_gen: int = 1
+    _help += """\n\n num_workers_fuzz_gen (1)
+    Number of parallel workers to use for fuzzing-based input generation. """
+
+    num_workers_tracer: int = 1
+    _help += """\n\n num_workers_tracer (1)
+    Number of parallel workers to use for tracing. """
+
+    num_workers_detector: int = 1
+    _help += """\n\n num_workers_detector (1)
+    Number of parallel workers to use for leak detection. """
+
+    # ==============================================================================================
     # Fuzzing parameters
     contract_observation_clause: str = "ct"
     _help += """\n\n contract_observation_clause (ct)"""
@@ -246,10 +260,6 @@ class Config:
     _help += """\n\n compression_tool (gzip)
     Tool used to compress the collected traces.\n
     Options: gzip, bzip2, none. """
-
-    num_workers: int = 4
-    _help += """\n\n num_workers (4)
-    Number of parallel workers to use for trace collection. """
 
     # ==============================================================================================
     # AFL++ parameters
@@ -300,6 +310,7 @@ class Config:
         self._check_required_opts()
         self._expand_user_paths()
         self._set_stage_dirs()
+        self._validate_paths()
         self._validate_config()
 
         # If we're in the fuzzing mode (or one of its sub-stages),
@@ -363,7 +374,10 @@ class Config:
         self.discard_non_leaky_traces = yaml_data.get("discard_non_leaky_traces",
                                                       self.discard_non_leaky_traces)
         self.compression_tool = yaml_data.get("compression_tool", self.compression_tool)
-        self.num_workers = yaml_data.get("num_workers", self.num_workers)
+
+        self.num_workers_fuzz_gen = yaml_data.get("num_workers_fuzz_gen", self.num_workers_fuzz_gen)
+        self.num_workers_tracer = yaml_data.get("num_workers_tracer", self.num_workers_tracer)
+        self.num_workers_detector = yaml_data.get("num_workers_detector", self.num_workers_detector)
 
         self.afl_root = yaml_data.get("afl_root", self.afl_root)
         self.afl_seed_dir = yaml_data.get("afl_seed_dir", self.afl_seed_dir)
@@ -412,11 +426,8 @@ class Config:
             if val is None or val == "":
                 raise _ConfigException(opt, f"{opt} is a required option and must be set.")
 
-    def _validate_config(self) -> None:
-        """
-        Validate the configuration values.
-        """
-        # Validate existence of directories and files
+    def _validate_paths(self) -> None:
+        """ Validate existence of directories and files """
         if not pathlib.Path(self.model_root).is_dir():
             raise _ConfigException("model_root", f"{self.model_root} does not exist.")
         if not pathlib.Path(self.afl_root).is_dir():
@@ -428,7 +439,9 @@ class Config:
                 "allowlist", f"Allowlist file {self.allowlist} does not exist. \n"
                 "Please create it or remove the allowlist option from the config file.")
 
-        # Other option-specific properties
+    def _validate_config(self) -> None:
+        """ Validate the configuration values """
+
         if self.num_secrets_per_class < 2:
             raise _ConfigException(
                 "num_secrets_per_class", "num_secrets_per_class must be at least 2."
@@ -440,10 +453,15 @@ class Config:
         if self.compression_tool not in ["gzip", "bzip2", "none"]:
             raise _ConfigException("compression_tool",
                                    "compression_tool must be one of: gzip, bzip2, none.")
-        if self.num_workers < 1:
-            raise _ConfigException("num_workers", "num_workers must be at least 1.")
-        if self.num_workers > 100:
-            print("[WARNING] num_workers is > 100; are you sure about this??")
+
+        if self.num_workers_fuzz_gen < 1:
+            raise _ConfigException("num_workers_fuzz_gen",
+                                   "num_workers_fuzz_gen must be at least 1.")
+        if self.num_workers_tracer < 1:
+            raise _ConfigException("num_workers_tracer", "num_workers_tracer must be at least 1.")
+        if self.num_workers_detector < 1:
+            raise _ConfigException("num_workers_detector",
+                                   "num_workers_detector must be at least 1.")
 
         if not pathlib.Path(self.bin_native).is_file():
             raise _ConfigException("bin_native", f"{self.bin_native} does not exist.")

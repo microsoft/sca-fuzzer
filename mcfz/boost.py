@@ -5,7 +5,7 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 from __future__ import annotations
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, List, Tuple
 
 import os
 
@@ -74,6 +74,32 @@ class Boost:
             with open(dest_path, 'wb') as dest_file:
                 dest_file.write(config_data + priv_data + pub_data)
 
+    def _collect_reference_inputs(self) -> List[Tuple[str, str]]:
+        """
+        Collect all reference input files from the minimized corpus directory.
+
+        Reads from ``<stage1_wd>/minimized``, which is produced by
+        :py:meth:`FuzzGen.minimize` after fuzzing.
+
+        :return: List of (filename, absolute_path) for each reference input
+        :raises FileNotFoundError: If the minimized directory does not exist
+        """
+        minimized_dir = os.path.join(self._config.stage1_wd, "minimized")
+
+        if not os.path.isdir(minimized_dir):
+            raise FileNotFoundError(
+                f"Minimized corpus directory not found at {minimized_dir}. "
+                "Did the fuzzing stage complete successfully?"
+            )
+
+        inputs: List[Tuple[str, str]] = []
+        for fname in sorted(os.listdir(minimized_dir)):
+            fpath = os.path.join(minimized_dir, fname)
+            if os.path.isfile(fpath):
+                inputs.append((fname, fpath))
+
+        return inputs
+
     def generate(self) -> None:
         """
         Generate public-equivalent variants for each reference input generated during fuzzing.
@@ -86,15 +112,12 @@ class Boost:
         :raises OSError: If there is an error creating directories or files
         """
 
-        afl_dir = self._config.stage1_wd + "/default/queue/"
-        ref_inputs = [f for f in os.listdir(afl_dir) if os.path.isfile(os.path.join(afl_dir, f))]
-        for ref_input in ref_inputs:
-            # Create a directory for each reference input
-            ref_input_path = os.path.join(afl_dir, ref_input)
+        ref_inputs = self._collect_reference_inputs()
+
+        for ref_input, ref_input_path in ref_inputs:
             dest_dir = os.path.join(self._config.stage2_wd, ref_input)
             os.makedirs(dest_dir, exist_ok=True)
 
-            # Try generating more public-equivalent inputs from the reference input
             try:
                 self._generate_from_reference(dest_dir, ref_input_path)
             except ValueError as ve:

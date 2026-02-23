@@ -266,6 +266,8 @@ function mcfz_unit_test() {
     echo "===== mcfz unit tests ====="
     cd $SCRIPT_DIR/.. || exit
     python3 -m unittest tests.mcfz.unit_config -v
+    echo "-------------"
+    python3 -m unittest tests.mcfz.unit_reporter -v
     cd - >/dev/null || exit
 }
 

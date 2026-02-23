@@ -22,11 +22,11 @@ class Logger:
 
     def error(self, message: str) -> None:
         """Log an error message with the logger's name."""
-        print(f"[ERROR] {self._name}: {message}")
+        print(f"[ERROR] {self._name}: {message}", flush=True)
 
     def warning(self, message: str) -> None:
         """Log a warning message with the logger's name."""
-        print(f"[WARNING] {self._name}: {message}")
+        print(f"[WARNING] {self._name}: {message}", flush=True)
 
     def info(self, message: str) -> None:
         """Log an informational message with the logger's name."""

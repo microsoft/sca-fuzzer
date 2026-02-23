@@ -347,7 +347,7 @@ class _TraceReader:
         entry_list: List[CTraceEntry] = []
 
         # iterate over the binary trace and parse the entries
-        raw_trace: np.ndarray = self._decoder.decode_trace_file(trace_path)
+        raw_trace: NDArray[np.void] = self._decoder.decode_trace_file(trace_path)
         for entry in raw_trace:
             type_ = entry['type']
             if type_ == TraceEntryType.ENTRY_EOT:

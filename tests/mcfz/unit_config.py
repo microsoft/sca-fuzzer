@@ -5,6 +5,7 @@ SPDX-License-Identifier: MIT
 # pylint: disable=missing-function-docstring
 # pylint: disable=missing-class-docstring
 # pylint: disable=protected-access
+from typing import Dict, Collection
 
 import os
 import tempfile
@@ -40,14 +41,16 @@ class TestConfig(unittest.TestCase):
         os.makedirs(self.afl_root)
         os.makedirs(self.afl_seed_dir)
 
+        # Create dummy binary files for bin_native and bin_instrumented
+        self.bin_native = os.path.join(self.temp_dir, "bin_native")
+        self.bin_instrumented = os.path.join(self.temp_dir, "bin_instrumented")
+        with open(self.bin_native, "w") as f:
+            f.write("dummy")
+        with open(self.bin_instrumented, "w") as f:
+            f.write("dummy")
+
         # Basic valid config
-        self.valid_config = f"""
-working_dir: {self.working_dir}
-archive_dir: {self.archive_dir}
-model_root: {self.model_root}
-afl_root: {self.afl_root}
-afl_seed_dir: {self.afl_seed_dir}
-"""
+        self.valid_config = self._make_config()
 
     def tearDown(self) -> None:
         # Clean up temporary directories
@@ -57,6 +60,27 @@ afl_seed_dir: {self.afl_seed_dir}
     def _reset_config_instantiation(self) -> None:
         # Helper method to reset the Config instantiation flag
         Config._Config__config_instantiated = False  # type: ignore
+
+    def _make_config(self, *, exclude: Collection[str] = (), **overrides: object) -> str:
+        """Build a YAML config string from defaults with optional overrides and field exclusions.
+
+        Use ``exclude`` to remove fields entirely (e.g., exclude=["afl_seed_dir"]).
+        Use keyword arguments to override or add fields (e.g., model_root="/other/path").
+        """
+        defaults: Dict[str, object] = {
+            "working_dir": self.working_dir,
+            "archive_dir": self.archive_dir,
+            "model_root": self.model_root,
+            "afl_root": self.afl_root,
+            "afl_seed_dir": self.afl_seed_dir,
+            "template_cmd": "@# @@ @#_output",
+            "bin_native": self.bin_native,
+            "bin_instrumented": self.bin_instrumented,
+        }
+        defaults.update(overrides)
+        for key in exclude:
+            defaults.pop(key, None)
+        return yaml.dump(defaults, default_flow_style=False)
 
     # ==============================================================================================
     # Tests
@@ -89,8 +113,17 @@ afl_seed_dir: {self.afl_seed_dir}
     def test_config_missing_required_fields(self) -> None:
         # Test that missing required fields raises _ConfigException
         with patch("os.path.exists", return_value=True):
-            # working_dir
+            # template_cmd is checked first in _set_from_yaml, before _check_required_opts
             config_data = "some_other_field: value"
+            with patch("builtins.open", mock_open(read_data=config_data)):
+                with self.assertRaises(_ConfigException) as cm:
+                    Config("config.yaml", "fuzz")
+                self.assertIn("template_cmd", str(cm.exception))
+
+            self._reset_config_instantiation()
+
+            # working_dir (requires template_cmd to be present so _set_from_yaml succeeds)
+            config_data = self._make_config(exclude=["working_dir"])
             with patch("builtins.open", mock_open(read_data=config_data)):
                 with self.assertRaises(_ConfigException) as cm:
                     Config("config.yaml", "fuzz")
@@ -109,12 +142,7 @@ afl_seed_dir: {self.afl_seed_dir}
 
     def test_config_nonexistent_working_dir(self) -> None:
         # Test that nonexistent working directory raises exception
-        config_data = f"""
-working_dir: /nonexistent/directory
-model_root: {self.model_root}
-afl_root: {self.afl_root}
-afl_seed_dir: {self.afl_seed_dir}
-"""
+        config_data = self._make_config(working_dir="/nonexistent/directory")
         with patch("os.path.exists", return_value=True):
             with patch("builtins.open", mock_open(read_data=config_data)):
                 with self.assertRaises(_ConfigException):
@@ -128,13 +156,7 @@ afl_seed_dir: {self.afl_seed_dir}
         with open(test_file, "w") as f:
             f.write("test")
 
-        config_data = f"""
-working_dir: {self.working_dir}
-force_working_dir_overwrite: true
-model_root: {self.model_root}
-afl_root: {self.afl_root}
-afl_seed_dir: {self.afl_seed_dir}
-"""
+        config_data = self._make_config(force_working_dir_overwrite=True)
         with patch("os.path.exists", return_value=True):
             with patch("builtins.open", mock_open(read_data=config_data)):
                 Config("config.yaml", "fuzz")
@@ -174,12 +196,7 @@ afl_seed_dir: {self.afl_seed_dir}
         with open(test_file, "w") as f:
             f.write("test")
 
-        config_data = f"""
-working_dir: {self.working_dir}
-model_root: {self.model_root}
-afl_root: {self.afl_root}
-afl_seed_dir: {self.afl_seed_dir}
-"""
+        config_data = self._make_config(exclude=["archive_dir"])
 
         with patch("os.path.exists", return_value=True):
             with patch("builtins.open", mock_open(read_data=config_data)):
@@ -188,12 +205,7 @@ afl_seed_dir: {self.afl_seed_dir}
 
     def test_config_invalid_model_root(self) -> None:
         # Test that invalid model_root raises exception
-        config_data = f"""
-working_dir: {self.working_dir}
-model_root: /nonexistent/model
-afl_root: {self.afl_root}
-afl_seed_dir: {self.afl_seed_dir}
-"""
+        config_data = self._make_config(model_root="/nonexistent/model")
         with patch("os.path.exists", return_value=True):
             with patch("builtins.open", mock_open(read_data=config_data)):
                 with self.assertRaises(_ConfigException) as cm:
@@ -202,12 +214,7 @@ afl_seed_dir: {self.afl_seed_dir}
 
     def test_config_invalid_afl_root(self) -> None:
         # Test that invalid afl_root raises exception
-        config_data = f"""
-working_dir: {self.working_dir}
-model_root: {self.model_root}
-afl_root: /nonexistent/afl
-afl_seed_dir: {self.afl_seed_dir}
-"""
+        config_data = self._make_config(afl_root="/nonexistent/afl")
         with patch("os.path.exists", return_value=True):
             with patch("builtins.open", mock_open(read_data=config_data)):
                 with self.assertRaises(_ConfigException) as cm:
@@ -216,11 +223,7 @@ afl_seed_dir: {self.afl_seed_dir}
 
     def test_config_missing_afl_seed_dir(self) -> None:
         # Test that missing afl_seed_dir raises exception
-        config_data = f"""
-working_dir: {self.working_dir}
-model_root: {self.model_root}
-afl_root: {self.afl_root}
-"""
+        config_data = self._make_config(exclude=["afl_seed_dir"])
         with patch("os.path.exists", return_value=True):
             with patch("builtins.open", mock_open(read_data=config_data)):
                 with self.assertRaises(_ConfigException) as cm:
@@ -229,13 +232,7 @@ afl_root: {self.afl_root}
 
     def test_config_internal_option_rejection(self) -> None:
         # Test that internal options cannot be set via YAML
-        config_data = f"""
-working_dir: {self.working_dir}
-stage1_wd: /some/path
-model_root: {self.model_root}
-afl_root: {self.afl_root}
-afl_seed_dir: {self.afl_seed_dir}
-"""
+        config_data = self._make_config(stage1_wd="/some/path")
         with patch("os.path.exists", return_value=True):
             with patch("builtins.open", mock_open(read_data=config_data)):
                 with self.assertRaises(_ConfigException) as cm:
