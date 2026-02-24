@@ -4,20 +4,20 @@ current_dir = $(dir $(mkfile_path))
 dr_path := $(HOME)/.local/dynamorio/
 model_path := $(HOME)/.local/dynamorio/model/
 
-release := 11.2.0
+release := 11.3.0-1
+dr_url := https://github.com/DynamoRIO/dynamorio/releases/download/release_11.3.0-1/DynamoRIO-Linux-11.3.0.tar.gz
 
 CMAKE_FLAGS := -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
 .PHONY: all download_dr backend adapter clean-backend clean-adapter clean
 
 all: download_dr backend adapter
-
 download_dr: $(dr_path)/drrun
 	@echo "DynamoRIO is downloaded and ready to use."
 
 $(dr_path)/drrun:
 	mkdir -p $(dr_path)
-	wget https://github.com/DynamoRIO/dynamorio/releases/download/release_$(release)/DynamoRIO-Linux-$(release).tar.gz -O $(dr_path)/DynamoRIO-Linux-$(release).tar.gz
+	wget $(dr_url) -O $(dr_path)/DynamoRIO-Linux-$(release).tar.gz
 	tar xf $(dr_path)/DynamoRIO-Linux-$(release).tar.gz -C $(dr_path)
 	rm $(dr_path)/DynamoRIO-Linux-$(release).tar.gz
 	echo "#!/usr/bin/env bash" > $(dr_path)/drrun
