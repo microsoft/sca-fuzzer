@@ -242,9 +242,10 @@ class Tracer:
             expanded_cmd = self._expand_template_cmd(self._config.template_cmd, ref_input)
             output_base = self._get_output_base_path(ref_input)
             try:
-                self._collect_one_trace(expanded_cmd, output_base, timeout=3, store_mappings=True)
-            except (InstrException, ProgramException, subprocess.TimeoutExpired):
+                self._collect_one_trace(expanded_cmd, output_base, timeout=30, store_mappings=True)
+            except (InstrException, ProgramException, subprocess.TimeoutExpired) as e:
                 print(f"[Det. check] skipping input causing exception or timeout: {ref_input}")
+                print(str(e))
                 continue
             break
         else:
