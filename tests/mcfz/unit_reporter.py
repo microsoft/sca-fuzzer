@@ -25,6 +25,11 @@ def _make_test_config() -> MagicMock:
     return config
 
 
+def _t(entries: list) -> np.ndarray:
+    """ Shorthand: build a trace-entry array from a list of tuples """
+    return np.array(entries, dtype=TraceEntryDType)
+
+
 class TestReporter(unittest.TestCase):
 
     def test_trace_parsing(self) -> None:
@@ -88,12 +93,12 @@ class TestReporter(unittest.TestCase):
         analyzer = _LeakDetectionWorker(_make_test_config())
 
         # Case 1: No divergence
-        trace1 = _Trace("", np.array([
+        trace1 = _Trace("", _t([
             (0x1000, 4, TraceEntryType.ENTRY_PC),
-        ], dtype=TraceEntryDType))
-        trace2 = _Trace("", np.array([
+        ]))
+        trace2 = _Trace("", _t([
             (0x1000, 4, TraceEntryType.ENTRY_PC),
-        ], dtype=TraceEntryDType))
+        ]))
         end_id = len(trace1)
         leak, first_divergence = analyzer._find_i_type_leak(trace1.instructions,
                                                             trace2.instructions, end_id)
@@ -101,12 +106,12 @@ class TestReporter(unittest.TestCase):
         self.assertEqual(first_divergence, end_id)
 
         # Case 2: Divergence at fist instruction
-        trace1 = _Trace("", np.array([
+        trace1 = _Trace("", _t([
             (0x1000, 4, TraceEntryType.ENTRY_PC),
-        ], dtype=TraceEntryDType))
-        trace2 = _Trace("", np.array([
+        ]))
+        trace2 = _Trace("", _t([
             (0x2000, 4, TraceEntryType.ENTRY_PC),
-        ], dtype=TraceEntryDType))
+        ]))
         end_id = len(trace1)
         leak, first_divergence = analyzer._find_i_type_leak(trace1.instructions,
                                                             trace2.instructions, end_id)
@@ -115,19 +120,15 @@ class TestReporter(unittest.TestCase):
 
         # Case 3: Divergence at a later instruction
         trace1 = _Trace(
-            "",
-            np.array([
+            "", _t([
                 (0x1000, 4, TraceEntryType.ENTRY_PC),
                 (0x1004, 4, TraceEntryType.ENTRY_PC),
-            ],
-                     dtype=TraceEntryDType))
+            ]))
         trace2 = _Trace(
-            "",
-            np.array([
+            "", _t([
                 (0x1000, 4, TraceEntryType.ENTRY_PC),
                 (0x1008, 4, TraceEntryType.ENTRY_PC),
-            ],
-                     dtype=TraceEntryDType))
+            ]))
         end_id = len(trace1)
         leak, first_divergence = analyzer._find_i_type_leak(trace1.instructions,
                                                             trace2.instructions, end_id)
@@ -140,37 +141,29 @@ class TestReporter(unittest.TestCase):
 
         # Case 1: No leaks
         trace1 = _Trace(
-            "",
-            np.array([
+            "", _t([
                 (0x1000, 4, TraceEntryType.ENTRY_PC),
                 (0x2000, 8, TraceEntryType.ENTRY_READ),
-            ],
-                     dtype=TraceEntryDType))
+            ]))
         trace2 = _Trace(
-            "",
-            np.array([
+            "", _t([
                 (0x1000, 4, TraceEntryType.ENTRY_PC),
                 (0x2000, 8, TraceEntryType.ENTRY_READ),
-            ],
-                     dtype=TraceEntryDType))
+            ]))
         indices = analyzer._find_d_leaks_bulk(trace1, trace2, trace1.instructions)
         self.assertEqual(len(indices), 0)
 
         # Case 2: One leak on the first mem. access
         trace1 = _Trace(
-            "",
-            np.array([
+            "", _t([
                 (0x1000, 4, TraceEntryType.ENTRY_PC),
                 (0x2000, 8, TraceEntryType.ENTRY_READ),
-            ],
-                     dtype=TraceEntryDType))
+            ]))
         trace2 = _Trace(
-            "",
-            np.array([
+            "", _t([
                 (0x1000, 4, TraceEntryType.ENTRY_PC),
                 (0x3000, 8, TraceEntryType.ENTRY_READ),
-            ],
-                     dtype=TraceEntryDType))
+            ]))
         indices = analyzer._find_d_leaks_bulk(trace1, trace2, trace1.instructions)
         self.assertEqual(len(indices), 1)
         self.assertEqual(indices[0], 0)
@@ -178,20 +171,18 @@ class TestReporter(unittest.TestCase):
         # Case 2: One leak on a later mem. access
         trace1 = _Trace(
             "",
-            np.array([
+            _t([
                 (0x1000, 4, TraceEntryType.ENTRY_PC),
                 (0x2000, 8, TraceEntryType.ENTRY_READ),
                 (0x2000, 8, TraceEntryType.ENTRY_WRITE),
-            ],
-                     dtype=TraceEntryDType))
+            ]))
         trace2 = _Trace(
             "",
-            np.array([
+            _t([
                 (0x1000, 4, TraceEntryType.ENTRY_PC),
                 (0x2000, 8, TraceEntryType.ENTRY_READ),
                 (0x3000, 8, TraceEntryType.ENTRY_WRITE),
-            ],
-                     dtype=TraceEntryDType))
+            ]))
         indices = analyzer._find_d_leaks_bulk(trace1, trace2, trace1.instructions)
         self.assertEqual(len(indices), 1)
         self.assertEqual(indices[0], 0)
@@ -199,22 +190,20 @@ class TestReporter(unittest.TestCase):
         # Case 3: Multiple leaks
         trace1 = _Trace(
             "",
-            np.array([
+            _t([
                 (0x1000, 4, TraceEntryType.ENTRY_PC),
                 (0x2000, 8, TraceEntryType.ENTRY_READ),
                 (0x1004, 4, TraceEntryType.ENTRY_PC),
                 (0x2000, 8, TraceEntryType.ENTRY_WRITE),
-            ],
-                     dtype=TraceEntryDType))
+            ]))
         trace2 = _Trace(
             "",
-            np.array([
+            _t([
                 (0x1000, 4, TraceEntryType.ENTRY_PC),
                 (0x2001, 8, TraceEntryType.ENTRY_READ),
                 (0x1004, 4, TraceEntryType.ENTRY_PC),
                 (0x2001, 8, TraceEntryType.ENTRY_WRITE),
-            ],
-                     dtype=TraceEntryDType))
+            ]))
         indices = analyzer._find_d_leaks_bulk(trace1, trace2, trace1.instructions)
         self.assertEqual(len(indices), 2)
         self.assertEqual(indices[0], 0)
@@ -228,38 +217,30 @@ class TestReporter(unittest.TestCase):
 
         # Case 1: No leaks
         trace1 = _Trace(
-            "",
-            np.array([
+            "", _t([
                 (0x1000, 4, TraceEntryType.ENTRY_PC),
                 (0x2000, 8, TraceEntryType.ENTRY_READ),
-            ],
-                     dtype=TraceEntryDType))
+            ]))
         trace2 = _Trace(
-            "",
-            np.array([
+            "", _t([
                 (0x1000, 4, TraceEntryType.ENTRY_PC),
                 (0x2000, 8, TraceEntryType.ENTRY_READ),
-            ],
-                     dtype=TraceEntryDType))
+            ]))
         leaks = analyzer._find_d_type_leaks(trace1, trace2, trace1.instructions,
                                             trace2.instructions)
         self.assertEqual(len(leaks), 0)
 
         # Case 2: One leak
         trace1 = _Trace(
-            "",
-            np.array([
+            "", _t([
                 (0x1000, 4, TraceEntryType.ENTRY_PC),
                 (0x2000, 8, TraceEntryType.ENTRY_READ),
-            ],
-                     dtype=TraceEntryDType))
+            ]))
         trace2 = _Trace(
-            "",
-            np.array([
+            "", _t([
                 (0x1000, 4, TraceEntryType.ENTRY_PC),
                 (0x3000, 8, TraceEntryType.ENTRY_READ),
-            ],
-                     dtype=TraceEntryDType))
+            ]))
         leaks = analyzer._find_d_type_leaks(trace1, trace2, trace1.instructions,
                                             trace2.instructions)
         self.assertEqual(len(leaks), 1)
@@ -274,22 +255,20 @@ class TestReporter(unittest.TestCase):
         # Case: Both i-type and d-type leaks
         trace1 = _Trace(
             "",
-            np.array([
+            _t([
                 (0x1000, 4, TraceEntryType.ENTRY_PC),
                 (0x2000, 8, TraceEntryType.ENTRY_READ),
                 (0x1004, 4, TraceEntryType.ENTRY_PC),
                 (0x1008, 4, TraceEntryType.ENTRY_PC),
-            ],
-                     dtype=TraceEntryDType))
+            ]))
         trace2 = _Trace(
             "",
-            np.array([
+            _t([
                 (0x1000, 4, TraceEntryType.ENTRY_PC),
                 (0x2001, 8, TraceEntryType.ENTRY_READ),
                 (0x1004, 4, TraceEntryType.ENTRY_PC),
                 (0x100a, 4, TraceEntryType.ENTRY_PC),
-            ],
-                     dtype=TraceEntryDType))
+            ]))
         leaks = analyzer._identify_leaks(trace1, trace2)
         self.assertEqual(len(leaks), 2)
         self.assertEqual(leaks[0]['leak_type'], 'D')
