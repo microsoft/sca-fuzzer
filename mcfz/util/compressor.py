@@ -6,7 +6,8 @@ SPDX-License-Identifier: MIT
 """
 from __future__ import annotations
 
-from typing import Literal, get_args, cast, assert_never
+from typing import Literal, get_args, cast
+from typing_extensions import assert_never
 from subprocess import run
 
 from ..config import Config

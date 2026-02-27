@@ -6,8 +6,8 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 from __future__ import annotations
-from typing import (TYPE_CHECKING, Any, List, Tuple, Dict, Iterator, NewType, Literal, Final,
-                    TypeAlias, cast)
+from typing import (TYPE_CHECKING, Any, List, Tuple, Dict, Iterator, NewType, Literal, Final, cast)
+from typing_extensions import TypeAlias
 
 import os
 import numpy as np
