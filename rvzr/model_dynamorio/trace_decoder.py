@@ -6,7 +6,8 @@ SPDX-License-Identifier: MIT
 """
 
 from enum import Enum
-from typing import Any, Final, List, Literal, TypeAlias, Union, cast
+from typing import Any, Final, List, Literal, Union, cast
+from typing_extensions import TypeAlias
 from io import BufferedReader
 import sys
 import os
@@ -58,14 +59,13 @@ class TraceEntryType:
 
 # numpy dtype for trace entries
 TraceEntryDType: Final[np.dtype[np.void]] = np.dtype([
-    ('addr', np.uint64),   # trace_entry_t.addr in trace.hpp
-    ('size', np.uint16),       # trace_entry_t.size in trace.hpp
-    ('type', np.uint8),        # trace_entry_t.type in trace.hpp
+    ('addr', np.uint64),  # trace_entry_t.addr in trace.hpp
+    ('size', np.uint16),  # trace_entry_t.size in trace.hpp
+    ('type', np.uint8),  # trace_entry_t.type in trace.hpp
 ])
 
 # Type alias for arrays of TraceEntryDType
 TraceEntryArray: TypeAlias = npt.NDArray[np.void]
-
 
 # ==================================================================================================
 # Debug Trace types
@@ -203,8 +203,8 @@ class TraceDecoder:
         num_entries = (file_size - self._marker_size) // self._trace_entry_size
         if num_entries <= 0:
             return np.empty((0,), dtype=TraceEntryDType)
-        traces = np.fromfile(file, dtype=TraceEntryDType,
-                             count=num_entries, offset=self._marker_size)
+        traces = np.fromfile(
+            file, dtype=TraceEntryDType, count=num_entries, offset=self._marker_size)
         return traces
 
     def decode_debug_trace_file(self, file: str) -> List[List[Any]]:
