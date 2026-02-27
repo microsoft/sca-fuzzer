@@ -23,7 +23,8 @@ class TracerCT : public TracerABC
     /// @param mc unused
     /// @param dc unused
     /// @return void
-    void observe_instruction(instr_obs_t instr, dr_mcontext_t *mc, void *dc) override;
+    void observe_instruction(instr_obs_t instr, dr_mcontext_t *mc, void *dc,
+                             unsigned int spec_level) override;
 
     /// @brief Record the memory access
     /// @param type The type of the memory access (read or write)

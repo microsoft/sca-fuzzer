@@ -45,14 +45,14 @@ class TestReporter(unittest.TestCase):
             # The order we'll use: PC, READ, WRITE, EXCEPTION, IND, EOT
             test_entries = np.array(
                 [
-                    (0x1000, 4, TraceEntryType.ENTRY_PC),  # PC entry
-                    (0x2000, 8, TraceEntryType.ENTRY_READ),  # READ entry
-                    (0x3000, 8, TraceEntryType.ENTRY_WRITE),  # WRITE entry
-                    (0x4000, 0, TraceEntryType.ENTRY_EXCEPTION),  # EXCEPTION entry
-                    (0x5000, 8, TraceEntryType.ENTRY_IND),  # IND entry
-                    (0x0000, 0, TraceEntryType.ENTRY_EOT),  # EOT entry
-                ],
-                dtype=TraceEntryDType)
+                    (0x1000, 4, 0, TraceEntryType.ENTRY_PC),  # PC entry
+                    (0x2000, 8, 0, TraceEntryType.ENTRY_READ),  # READ entry
+                    (0x3000, 8, 0, TraceEntryType.ENTRY_WRITE),  # WRITE entry
+                    # EXCEPTION entry
+                    (0x4000, 0, 0, TraceEntryType.ENTRY_EXCEPTION),
+                    (0x5000, 8, 0, TraceEntryType.ENTRY_IND),  # IND entry
+                    (0x0000, 0, 0, TraceEntryType.ENTRY_EOT),  # EOT entry
+                ], dtype=TraceEntryDType)
 
             # Write the entries to the file
             test_entries.tofile(f)
@@ -94,10 +94,10 @@ class TestReporter(unittest.TestCase):
 
         # Case 1: No divergence
         trace1 = _Trace("", _t([
-            (0x1000, 4, TraceEntryType.ENTRY_PC),
+            (0x1000, 4, 0, TraceEntryType.ENTRY_PC),
         ]))
         trace2 = _Trace("", _t([
-            (0x1000, 4, TraceEntryType.ENTRY_PC),
+            (0x1000, 4, 0, TraceEntryType.ENTRY_PC),
         ]))
         end_id = len(trace1)
         leak, first_divergence = analyzer._find_i_type_leak(trace1.instructions,
@@ -107,10 +107,10 @@ class TestReporter(unittest.TestCase):
 
         # Case 2: Divergence at fist instruction
         trace1 = _Trace("", _t([
-            (0x1000, 4, TraceEntryType.ENTRY_PC),
+            (0x1000, 4, 0, TraceEntryType.ENTRY_PC),
         ]))
         trace2 = _Trace("", _t([
-            (0x2000, 4, TraceEntryType.ENTRY_PC),
+            (0x2000, 4, 0, TraceEntryType.ENTRY_PC),
         ]))
         end_id = len(trace1)
         leak, first_divergence = analyzer._find_i_type_leak(trace1.instructions,
@@ -121,13 +121,13 @@ class TestReporter(unittest.TestCase):
         # Case 3: Divergence at a later instruction
         trace1 = _Trace(
             "", _t([
-                (0x1000, 4, TraceEntryType.ENTRY_PC),
-                (0x1004, 4, TraceEntryType.ENTRY_PC),
+                (0x1000, 4, 0, TraceEntryType.ENTRY_PC),
+                (0x1004, 4, 0, TraceEntryType.ENTRY_PC),
             ]))
         trace2 = _Trace(
             "", _t([
-                (0x1000, 4, TraceEntryType.ENTRY_PC),
-                (0x1008, 4, TraceEntryType.ENTRY_PC),
+                (0x1000, 4, 0, TraceEntryType.ENTRY_PC),
+                (0x1008, 4, 0, TraceEntryType.ENTRY_PC),
             ]))
         end_id = len(trace1)
         leak, first_divergence = analyzer._find_i_type_leak(trace1.instructions,
@@ -142,29 +142,31 @@ class TestReporter(unittest.TestCase):
         # Case 1: No leaks
         trace1 = _Trace(
             "", _t([
-                (0x1000, 4, TraceEntryType.ENTRY_PC),
-                (0x2000, 8, TraceEntryType.ENTRY_READ),
+                (0x1000, 4, 0, TraceEntryType.ENTRY_PC),
+                (0x2000, 8, 0, TraceEntryType.ENTRY_READ),
             ]))
         trace2 = _Trace(
             "", _t([
-                (0x1000, 4, TraceEntryType.ENTRY_PC),
-                (0x2000, 8, TraceEntryType.ENTRY_READ),
+                (0x1000, 4, 0, TraceEntryType.ENTRY_PC),
+                (0x2000, 8, 0, TraceEntryType.ENTRY_READ),
             ]))
-        indices = analyzer._find_d_leaks_bulk(trace1, trace2, trace1.instructions)
+        indices = analyzer._find_d_leaks_bulk(
+            trace1, trace2, trace1.instructions)
         self.assertEqual(len(indices), 0)
 
         # Case 2: One leak on the first mem. access
         trace1 = _Trace(
             "", _t([
-                (0x1000, 4, TraceEntryType.ENTRY_PC),
-                (0x2000, 8, TraceEntryType.ENTRY_READ),
+                (0x1000, 4, 0, TraceEntryType.ENTRY_PC),
+                (0x2000, 8, 0, TraceEntryType.ENTRY_READ),
             ]))
         trace2 = _Trace(
             "", _t([
-                (0x1000, 4, TraceEntryType.ENTRY_PC),
-                (0x3000, 8, TraceEntryType.ENTRY_READ),
+                (0x1000, 4, 0, TraceEntryType.ENTRY_PC),
+                (0x3000, 8, 0, TraceEntryType.ENTRY_READ),
             ]))
-        indices = analyzer._find_d_leaks_bulk(trace1, trace2, trace1.instructions)
+        indices = analyzer._find_d_leaks_bulk(
+            trace1, trace2, trace1.instructions)
         self.assertEqual(len(indices), 1)
         self.assertEqual(indices[0], 0)
 
@@ -172,18 +174,19 @@ class TestReporter(unittest.TestCase):
         trace1 = _Trace(
             "",
             _t([
-                (0x1000, 4, TraceEntryType.ENTRY_PC),
-                (0x2000, 8, TraceEntryType.ENTRY_READ),
-                (0x2000, 8, TraceEntryType.ENTRY_WRITE),
+                (0x1000, 4, 0, TraceEntryType.ENTRY_PC),
+                (0x2000, 8, 0, TraceEntryType.ENTRY_READ),
+                (0x2000, 8, 0, TraceEntryType.ENTRY_WRITE),
             ]))
         trace2 = _Trace(
             "",
             _t([
-                (0x1000, 4, TraceEntryType.ENTRY_PC),
-                (0x2000, 8, TraceEntryType.ENTRY_READ),
-                (0x3000, 8, TraceEntryType.ENTRY_WRITE),
+                (0x1000, 4, 0, TraceEntryType.ENTRY_PC),
+                (0x2000, 8, 0, TraceEntryType.ENTRY_READ),
+                (0x3000, 8, 0, TraceEntryType.ENTRY_WRITE),
             ]))
-        indices = analyzer._find_d_leaks_bulk(trace1, trace2, trace1.instructions)
+        indices = analyzer._find_d_leaks_bulk(
+            trace1, trace2, trace1.instructions)
         self.assertEqual(len(indices), 1)
         self.assertEqual(indices[0], 0)
 
@@ -191,20 +194,21 @@ class TestReporter(unittest.TestCase):
         trace1 = _Trace(
             "",
             _t([
-                (0x1000, 4, TraceEntryType.ENTRY_PC),
-                (0x2000, 8, TraceEntryType.ENTRY_READ),
-                (0x1004, 4, TraceEntryType.ENTRY_PC),
-                (0x2000, 8, TraceEntryType.ENTRY_WRITE),
+                (0x1000, 4, 0, TraceEntryType.ENTRY_PC),
+                (0x2000, 8, 0, TraceEntryType.ENTRY_READ),
+                (0x1004, 4, 0, TraceEntryType.ENTRY_PC),
+                (0x2000, 8, 0, TraceEntryType.ENTRY_WRITE),
             ]))
         trace2 = _Trace(
             "",
             _t([
-                (0x1000, 4, TraceEntryType.ENTRY_PC),
-                (0x2001, 8, TraceEntryType.ENTRY_READ),
-                (0x1004, 4, TraceEntryType.ENTRY_PC),
-                (0x2001, 8, TraceEntryType.ENTRY_WRITE),
+                (0x1000, 4, 0, TraceEntryType.ENTRY_PC),
+                (0x2001, 8, 0, TraceEntryType.ENTRY_READ),
+                (0x1004, 4, 0, TraceEntryType.ENTRY_PC),
+                (0x2001, 8, 0, TraceEntryType.ENTRY_WRITE),
             ]))
-        indices = analyzer._find_d_leaks_bulk(trace1, trace2, trace1.instructions)
+        indices = analyzer._find_d_leaks_bulk(
+            trace1, trace2, trace1.instructions)
         self.assertEqual(len(indices), 2)
         self.assertEqual(indices[0], 0)
         self.assertEqual(indices[1], 1)
@@ -218,13 +222,13 @@ class TestReporter(unittest.TestCase):
         # Case 1: No leaks
         trace1 = _Trace(
             "", _t([
-                (0x1000, 4, TraceEntryType.ENTRY_PC),
-                (0x2000, 8, TraceEntryType.ENTRY_READ),
+                (0x1000, 4, 0, TraceEntryType.ENTRY_PC),
+                (0x2000, 8, 0, TraceEntryType.ENTRY_READ),
             ]))
         trace2 = _Trace(
             "", _t([
-                (0x1000, 4, TraceEntryType.ENTRY_PC),
-                (0x2000, 8, TraceEntryType.ENTRY_READ),
+                (0x1000, 4, 0, TraceEntryType.ENTRY_PC),
+                (0x2000, 8, 0, TraceEntryType.ENTRY_READ),
             ]))
         leaks = analyzer._find_d_type_leaks(trace1, trace2, trace1.instructions,
                                             trace2.instructions)
@@ -233,13 +237,13 @@ class TestReporter(unittest.TestCase):
         # Case 2: One leak
         trace1 = _Trace(
             "", _t([
-                (0x1000, 4, TraceEntryType.ENTRY_PC),
-                (0x2000, 8, TraceEntryType.ENTRY_READ),
+                (0x1000, 4, 0, TraceEntryType.ENTRY_PC),
+                (0x2000, 8, 0, TraceEntryType.ENTRY_READ),
             ]))
         trace2 = _Trace(
             "", _t([
-                (0x1000, 4, TraceEntryType.ENTRY_PC),
-                (0x3000, 8, TraceEntryType.ENTRY_READ),
+                (0x1000, 4, 0, TraceEntryType.ENTRY_PC),
+                (0x3000, 8, 0, TraceEntryType.ENTRY_READ),
             ]))
         leaks = analyzer._find_d_type_leaks(trace1, trace2, trace1.instructions,
                                             trace2.instructions)
@@ -256,18 +260,18 @@ class TestReporter(unittest.TestCase):
         trace1 = _Trace(
             "",
             _t([
-                (0x1000, 4, TraceEntryType.ENTRY_PC),
-                (0x2000, 8, TraceEntryType.ENTRY_READ),
-                (0x1004, 4, TraceEntryType.ENTRY_PC),
-                (0x1008, 4, TraceEntryType.ENTRY_PC),
+                (0x1000, 4, 0, TraceEntryType.ENTRY_PC),
+                (0x2000, 8, 0, TraceEntryType.ENTRY_READ),
+                (0x1004, 4, 0, TraceEntryType.ENTRY_PC),
+                (0x1008, 4, 0, TraceEntryType.ENTRY_PC),
             ]))
         trace2 = _Trace(
             "",
             _t([
-                (0x1000, 4, TraceEntryType.ENTRY_PC),
-                (0x2001, 8, TraceEntryType.ENTRY_READ),
-                (0x1004, 4, TraceEntryType.ENTRY_PC),
-                (0x100a, 4, TraceEntryType.ENTRY_PC),
+                (0x1000, 4, 0, TraceEntryType.ENTRY_PC),
+                (0x2001, 8, 0, TraceEntryType.ENTRY_READ),
+                (0x1004, 4, 0, TraceEntryType.ENTRY_PC),
+                (0x100a, 4, 0, TraceEntryType.ENTRY_PC),
             ]))
         leaks = analyzer._identify_leaks(trace1, trace2)
         self.assertEqual(len(leaks), 2)
@@ -288,7 +292,8 @@ class TestAllowlistMatching(unittest.TestCase):
         self.assertTrue(self._check("filename.c:123", "filename.c:123"))
 
     def test_full_path_match(self) -> None:
-        self.assertTrue(self._check("/path/to/filename.c:123", "filename.c:123"))
+        self.assertTrue(self._check(
+            "/path/to/filename.c:123", "filename.c:123"))
 
     def test_partial_path_match(self) -> None:
         self.assertTrue(self._check("/path/to/lib/file.c:42", "lib/file.c:42"))
@@ -298,14 +303,16 @@ class TestAllowlistMatching(unittest.TestCase):
         self.assertFalse(self._check("/path/to/otherfile.c:123", "file.c:123"))
 
     def test_no_false_positive_different_line(self) -> None:
-        self.assertFalse(self._check("/path/to/filename.c:456", "filename.c:123"))
+        self.assertFalse(self._check(
+            "/path/to/filename.c:456", "filename.c:123"))
 
     def test_full_absolute_path_entry(self) -> None:
         self.assertTrue(
             self._check("/full/path/to/some/file.c:34232", "/full/path/to/some/file.c:34232"))
 
     def test_no_match_unrelated_path(self) -> None:
-        self.assertFalse(self._check("/path/to/somefile.c:123", "otherfile.c:123"))
+        self.assertFalse(self._check(
+            "/path/to/somefile.c:123", "otherfile.c:123"))
 
     def test_filter_allowlist_vrb1(self) -> None:
         allowlist = {'somefile.c:123'}
@@ -319,5 +326,7 @@ class TestAllowlistMatching(unittest.TestCase):
         # Allowlist entry 'somefile.c:123' should remove '/path/to/somefile.c:123'
         allowlist = {'somefile.c:123'}
         printer = object.__new__(_ReportPrinter)
-        self.assertTrue(printer._is_allowlisted('/path/to/somefile.c:123', allowlist))
-        self.assertFalse(printer._is_allowlisted('/path/to/somefile.c:456', allowlist))
+        self.assertTrue(printer._is_allowlisted(
+            '/path/to/somefile.c:123', allowlist))
+        self.assertFalse(printer._is_allowlisted(
+            '/path/to/somefile.c:456', allowlist))

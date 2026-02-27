@@ -45,7 +45,9 @@ struct trace_entry_t {
     // pc for instructions; address for memory accesses; target for indirect calls
     uint64_t addr;
     // instruction size for instructions; memory access size for memory accesses
-    uint16_t size;
+    uint8_t size;
+    // Nested speculation (0 is architectural)
+    uint8_t spec_level;
     // see trace_entry_type_t
     trace_entry_type_t type;
 
@@ -55,6 +57,10 @@ struct trace_entry_t {
     /// @brief Pretty-printing for tracer output
     void dump(std::ostream &out) const
     {
+        if (spec_level > 0)
+            out << "[SPEC_" << std::dec << (uint)spec_level << "]";
+        else
+            out << "[SEQ]";
         out << "[" << to_string(type) << "]";
 
         switch (type) {
