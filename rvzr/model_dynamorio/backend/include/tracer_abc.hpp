@@ -49,6 +49,9 @@ class TracerABC
     /// @return void
     virtual void enable();
 
+    /// @brief Disable tracing.
+    virtual void disable();
+
     /// @brief Finalizes the tracing process for a wrapped function
     /// @return void
     virtual void finalize();

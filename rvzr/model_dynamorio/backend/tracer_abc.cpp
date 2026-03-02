@@ -59,6 +59,8 @@ void TracerABC::enable()
     tracing_finalized = false;
 }
 
+void TracerABC::disable() { tracing_on = false; }
+
 void TracerABC::finalize()
 {
     if (tracing_finalized) {

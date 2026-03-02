@@ -261,6 +261,9 @@ class Config:
     Tool used to compress the collected traces.\n
     Options: gzip, bzip2, none. """
 
+    tracing_ignorelist: str = "ignorelist.txt"
+    _help += """\n\n file containing a list of symbols for which instrumentation is paused. """
+
     # ==============================================================================================
     # AFL++ parameters
     afl_root: str = "~/.local/afl/"
@@ -374,6 +377,7 @@ class Config:
         self.discard_non_leaky_traces = yaml_data.get("discard_non_leaky_traces",
                                                       self.discard_non_leaky_traces)
         self.compression_tool = yaml_data.get("compression_tool", self.compression_tool)
+        self.tracing_ignorelist = yaml_data.get("tracing_ignorelist", self.tracing_ignorelist)
 
         self.num_workers_fuzz_gen = yaml_data.get("num_workers_fuzz_gen", self.num_workers_fuzz_gen)
         self.num_workers_tracer = yaml_data.get("num_workers_tracer", self.num_workers_tracer)
