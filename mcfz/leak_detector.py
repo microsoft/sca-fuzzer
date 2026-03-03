@@ -6,13 +6,14 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 from __future__ import annotations
+
+import os
+
 from typing import (TYPE_CHECKING, Any, List, Tuple, Dict, Iterator, NewType, Literal, Final, cast)
 from typing_extensions import TypeAlias
 
-import os
 import numpy as np
 from numpy.typing import NDArray
-
 from tqdm import tqdm
 
 from rvzr.model_dynamorio.trace_decoder import TraceDecoder, TraceEntryType, TraceEntryArray

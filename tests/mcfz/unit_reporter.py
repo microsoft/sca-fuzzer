@@ -10,6 +10,7 @@ import os
 import tempfile
 import unittest
 from unittest.mock import MagicMock
+from typing import List, Any
 
 import numpy as np
 from mcfz.leak_detector import _LeakDetectionWorker, _Trace
@@ -25,7 +26,7 @@ def _make_test_config() -> MagicMock:
     return config
 
 
-def _t(entries: list) -> np.ndarray:
+def _t(entries: List[Any]) -> np.ndarray:
     """ Shorthand: build a trace-entry array from a list of tuples """
     return np.array(entries, dtype=TraceEntryDType)
 

@@ -5,17 +5,16 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 
-from enum import Enum
-from typing import Any, Final, List, Literal, Union, cast
-from typing_extensions import TypeAlias
-from io import BufferedReader
 import sys
 import os
+from enum import Enum
+from io import BufferedReader
+from typing import Any, Final, List, Literal, Union, cast
+from typing_extensions import TypeAlias, get_args, assert_never
 
 import numpy as np
 import numpy.typing as npt
 from cffi import FFI
-from typing_extensions import get_args, assert_never
 
 _MarkerType = Literal["T", "D"]
 
