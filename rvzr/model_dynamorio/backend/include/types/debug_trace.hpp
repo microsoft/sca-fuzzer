@@ -127,7 +127,7 @@ struct debug_trace_entry_t {
     {
         // Arch or spec
         if (nesting_level == 0)
-            out << "[ARCH] ";
+            out << "[SEQ] ";
         else
             out << "[SPEC_" << std::dec << (uint)nesting_level << "] ";
         // Print entry type

@@ -24,5 +24,6 @@ class TracerInd : public TracerABC
     /// @param mc the instructions's memory context
     /// @param dc the instructions's DR context
     /// @return void
-    void observe_instruction(instr_obs_t instr, dr_mcontext_t *mc, void *dc) override;
+    void observe_instruction(instr_obs_t instr, dr_mcontext_t *mc, void *dc,
+                             unsigned int spec_level) override;
 };

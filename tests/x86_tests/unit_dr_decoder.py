@@ -22,31 +22,36 @@ TEST_TRACE: List[Dict[str, Any]] = [
     {
         "addr": 0x0,
         "size": 8,
+        "spec_level": 0,
         "type": TraceEntryType.ENTRY_PC
     },
     {
         "addr": 0xdeadbeef,
         "size": 4,
+        "spec_level": 0,
         "type": TraceEntryType.ENTRY_READ
     },
     {
         "addr": 0xcafecafe,
         "size": 8,
+        "spec_level": 0,
         "type": TraceEntryType.ENTRY_WRITE
     },
     {
         "addr": 11,
         "size": 0,
+        "spec_level": 0,
         "type": TraceEntryType.ENTRY_EXCEPTION
     },
     {
         "addr": 0x0,
         "size": 0x0,
+        "spec_level": 0,
         "type": TraceEntryType.ENTRY_EOT
     },
 ]
 # Format string to parse a trace entry
-TRACE_FMT = "<QHB"
+TRACE_FMT = "<QBBB"
 
 # ------------------------------------------------------------------------------
 # Debug trace representation
@@ -152,12 +157,14 @@ class DRTraceDecodeTest(unittest.TestCase):
         raise ValueError(f"No entry for type {t}")
 
     def _encode_from_dict(self, entry: dict[str, Any]) -> bytes:
-        return struct.pack(TRACE_FMT, entry["addr"], entry["size"], entry["type"])
+        return struct.pack(TRACE_FMT, entry["addr"], entry["size"], entry["spec_level"],
+                           entry["type"])
 
     def _check_trace_equivalence(self, expected: dict[str, Any], decoded: Any) -> None:
         self.assertEqual(expected["addr"], decoded['addr'])
         self.assertEqual(expected["size"], decoded['size'])
         self.assertEqual(expected["type"], decoded['type'])
+        self.assertEqual(expected["spec_level"], decoded['spec_level'])
 
     # --------------------------------------------------------------------------
     # Test cases

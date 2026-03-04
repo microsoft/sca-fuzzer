@@ -12,11 +12,9 @@
 #include <array>
 #include <cstdint>
 #include <fstream>
-#include <iostream>
 #include <sstream>
 
-const size_t DEFAULT_FILE_BUFFER_SIZE = 8 * 1024 * 1024; // 8 MB
-
+const uint64_t DEFAULT_FILE_BUFFER_SIZE = 8ULL * 1024 * 1024; // 8 MB
 
 /// @brief A buffer backed by a file: once the buffer reaches a given threshold, it gets
 /// automatically spilled into the backing file. Entries can only be appended to the buffer.

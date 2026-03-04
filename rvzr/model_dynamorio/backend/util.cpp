@@ -106,5 +106,5 @@ void flush_bb_cache()
 
     // NOTE: This is very conservative, but avoids any potentially expensive analysis of
     // the target function
-    dr_delay_flush_region((byte *)flush_begin, flush_size, /*flush_id*/ 0, /*callback*/ nullptr);
+    dr_unlink_flush_region((byte *)flush_begin, flush_size);
 }
