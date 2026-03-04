@@ -80,9 +80,10 @@ static std::optional<mbr_info_t> get_mbr_info(instr_obs_t instr, dr_mcontext_t *
 // Class implementation
 // =================================================================================================
 
-void TracerInd::observe_instruction(instr_obs_t instr, dr_mcontext_t *mc, void *dc)
+void TracerInd::observe_instruction(instr_obs_t instr, dr_mcontext_t *mc, void *dc,
+                                    unsigned int spec_level)
 {
-    TracerABC::observe_instruction(instr, mc, dc);
+    TracerABC::observe_instruction(instr, mc, dc, spec_level);
 
     // Nothing to do if tracing is off
     if (not tracing_on) {
@@ -96,17 +97,13 @@ void TracerInd::observe_instruction(instr_obs_t instr, dr_mcontext_t *mc, void *
     if (not mbr_info)
         return;
 
-    // FIXME: refactor to use similar pattern as in record_pc and record_mem_access
     // Log source
-    trace.push_back({
-        .addr = mbr_info->src,
-        .size = 0,
-        .type = trace_entry_type_t::ENTRY_PC,
-    });
+    record_pc(instr, spec_level);
     // Log destination
     trace.push_back({
         .addr = mbr_info->target,
         .size = 0,
+        .spec_level = (uint8_t)cur_spec_level,
         .type = trace_entry_type_t::ENTRY_IND,
     });
 }

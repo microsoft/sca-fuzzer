@@ -21,6 +21,7 @@ struct cli_args_t {
     Mode mode;
     std::string tracer_type;
     std::string instrumented_func;
+    std::string ignore_list_path;
     std::string trace_output;
     bool print_trace;
     int log_level;

@@ -6,13 +6,14 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 from __future__ import annotations
+
+import os
+
 from typing import (TYPE_CHECKING, Any, List, Tuple, Dict, Iterator, NewType, Literal, Final, cast)
 from typing_extensions import TypeAlias
 
-import os
 import numpy as np
 from numpy.typing import NDArray
-
 from tqdm import tqdm
 
 from rvzr.model_dynamorio.trace_decoder import TraceDecoder, TraceEntryType, TraceEntryArray
@@ -95,6 +96,7 @@ WorkDirMap = Dict[DirName, List[FileName]]
 # ==================================================================================================
 TracedInstructionDType: Final[np.dtype[np.void]] = np.dtype([
     ('pc', np.uint64),  # PC of the instruction
+    ('spec_level', np.uint8),  # Level of nested speculation (0 = architectural)
     ('mem_accesses_offset', np.int32),  # Offset in the mem_accesses array
     ('num_mem_accesses', np.int16),  # Number of memory accesses
     ('org_trace_entry_id', np.int32),  # Entry ID in the original (raw) trace
@@ -153,6 +155,7 @@ class _Trace:
         is_pc = raw_trace['type'] == TraceEntryType.ENTRY_PC
         pc_indices = np.flatnonzero(is_pc)
         self.instructions['pc'] = raw_trace['addr'][is_pc]
+        self.instructions['spec_level'] = raw_trace['spec_level'][is_pc]
         del is_pc  # free N-byte boolean array
 
         self.instructions['org_trace_entry_id'] = pc_indices

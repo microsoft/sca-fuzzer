@@ -6,12 +6,12 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 from __future__ import annotations
-from typing import Any, List, Dict, Tuple
 
 import os
 import json
 import shutil
 
+from typing import Any, List, Dict, Tuple
 from subprocess import run, PIPE
 
 from rvzr.model_dynamorio.trace_decoder import TraceDecoder
@@ -23,15 +23,132 @@ from .util.compressor import Compressor
 from .leak_detector import _Trace
 
 
+class _DebugCmdBuilder:
+    """
+    Helper class used to construct the commands used to inspect the violation (tmux + gdb).
+    """
+
+    def __init__(self) -> None:
+        pass
+
+    @staticmethod
+    def _create_gdb_script(leak_info: _LeakInfo, path: str) -> None:
+        """
+        Create a gdb script that reaches the violation described in leak_info
+        and save it to the given path.
+        """
+        lvl = 0
+        n_break = 0
+        cmd = []
+
+        def _add_break(pc: int) -> int:
+            nonlocal n_break
+            cmd.append(f"break *{pc:#x}")
+            n_break += 1
+            return n_break
+
+        def _prompt(message: str) -> None:
+            # cmd.append("frame")
+            cmd.append(f'shell read -p "[MCFZ] {message}. Press [Enter] to continue..."')
+
+        for win in leak_info.spec_windows:
+            # Reach start
+            b_num = _add_break(win.start_pc_gdb)
+            if lvl == 0:
+                # First arch instruction, we need to start gdb to reach it
+                cmd.append("run")
+                _prompt("Reached first architectural instruction")
+            else:
+                # Spec window start, we manually jump to simulate misprediction
+                cmd.append(f"jump *{win.start_pc_gdb:#x}")
+                _prompt(f'Reached start of spec window (level: {lvl}, pc: {win.start_pc_gdb:#x})')
+            cmd.append(f"del {b_num}")
+            # Reach target
+            b_num = _add_break(win.pc_gdb)
+            cmd.append("continue")
+            if win.pc_occurrence > 0:
+                cmd.append(f"ignore {b_num} {win.pc_occurrence}")
+                cmd.append("continue")
+
+            if lvl == len(leak_info.spec_windows) - 1:
+                _prompt(f'Reached leak instruction (level: {lvl}, pc: {win.pc_gdb:#x})')
+            else:
+                _prompt(f'Reached end of spec window (level: {lvl}, pc: {win.pc_gdb:#x})')
+                cmd.append(f"del {b_num}")
+
+            lvl += 1
+
+        with open(path, 'w') as f:
+            f.write("\n".join(cmd))
+
+    @classmethod
+    def build_gdb_command(cls, leak_info: _LeakInfo, script_path: str, ref_cmd: str) -> str:
+        """
+        Create the gdb script that reaches the violation and return the command to run it with gdb.
+        """
+        cls._create_gdb_script(leak_info, script_path)
+        return f'gdb -x {script_path} --args {ref_cmd}'
+
+    @staticmethod
+    def build_tmux_command(script_path: str, ref_gdb_cmd: str, target_gdb_cmd: str, input_path: str,
+                           pc: int) -> None:
+        """
+        Create a bash script with the tmux command. This command opens two gdb sessions
+        side-by-side in tmux, one for the reference input and one for the target input.
+        """
+
+        script_content = f"""#!/bin/bash
+# Debug script for violation at PC {pc:#x}
+# Opens two gdb sessions side-by-side using tmux:
+#   Left pane (0):  Reference input (000.bin)
+#   Right pane (1): Target input ({os.path.basename(input_path)})
+
+# Kill any existing session with the same name
+tmux kill-session -t mysession 2>/dev/null
+
+# Create new tmux session with two panes and labeled borders
+tmux new-session -s mysession \\; \\
+    set-option -g pane-border-status top \\; \\
+    set-option -g pane-border-format " #{{pane_title}} " \\; \\
+    split-window -h \\; \\
+    select-pane -t 0 -T "000.bin" \\; \\
+    select-pane -t 1 -T "{os.path.basename(input_path)}" \\; \\
+    send-keys -t 0 '{ref_gdb_cmd}' C-m \\; \\
+    send-keys -t 1 '{target_gdb_cmd}' C-m
+"""
+
+        with open(script_path, 'w') as f:
+            f.write(script_content)
+        # Make script executable
+        os.chmod(script_path, 0o755)
+
+
+class _SpecWinInfo:
+
+    def __init__(self) -> None:
+        self.start_pc: PC
+        self.start_trace_line_id: int
+        self.start_pc_gdb: int
+
+        self.pc: PC
+        self.trace_line_id: int
+        self.pc_gdb: int
+        self.pc_occurrence: int
+
+
 class _LeakInfo:
 
     def __init__(self, leak_type: str, code_line: str, pc_hex: str, location_in_trace: str) -> None:
+        # original info from the report
         self.leak_type = leak_type
         self.code_line = CodeLine(code_line)
-        self.pc = PC(int(pc_hex, 16))
+        self.org_pc = PC(int(pc_hex, 16))
         trace_file, loc_id, _ = self._parse_location_in_trace(location_in_trace)
         self.org_trace_path = trace_file
-        self.trace_line_id = loc_id
+        self.org_trace_line_id = loc_id
+
+        # spec windows info
+        self.spec_windows: List[_SpecWinInfo] = []
 
         # set later
         self.bin_path = FileName("")
@@ -39,8 +156,6 @@ class _LeakInfo:
         self.trace_path: FileName = FileName('')
         self.org_template_cmd: List[str] = []
         self.gdb_cmd: str = ""
-        self.pc_occurrence: int = 0
-        self.pc_gdb: int = 0  # Translated PC address for gdb
 
     def _parse_location_in_trace(self, location_in_trace_str: str) -> Tuple[FileName, int, int]:
         # Input: "trace_file_path:target_line:ref_line"
@@ -73,95 +188,80 @@ class _LeakInfo:
         return self._get_input_path()
 
     def build_gdb_cmd(self) -> None:
-        """Generate a debug shell script that opens two gdb sessions in tmux."""
+        """
+        Generate a debug shell script that opens two gdb sessions in tmux.
+        """
         assert self.org_template_cmd, "Original template command not set."
-
-        # Build command for target input
-        modified_cmd = [self.bin_path] + [
-            arg.replace('@@', str(self.input_path)) for arg in self.org_template_cmd[1:]
-        ]
-        modified_cmd_str = " ".join(modified_cmd)
-
-        # Build gdb command for target input (pane 1)
-        gdb_parts = ['gdb']
-        gdb_parts.append(f'-ex "break *{self.pc_gdb:#x}"')
-
-        # Add ignore count if PC occurs multiple times
-        if self.pc_occurrence > 1:
-            ignore_count = self.pc_occurrence - 1
-            gdb_parts.append(f'-ex "ignore 1 {ignore_count}"')
-
-        gdb_parts.append('-ex "run"')
-        gdb_parts.append('--args ' + modified_cmd_str)
-        target_gdb_cmd = " ".join(gdb_parts)
+        output_dir = os.path.dirname(self.input_path)
 
         # Build command for reference input (000.bin)
-        ref_input_path = os.path.join(os.path.dirname(self.input_path), "000.bin")
+        ref_input_path = os.path.join(output_dir, "000.bin")
         ref_cmd = [self.bin_path] + \
-                  [arg.replace('@@', ref_input_path) for arg in self.org_template_cmd[1:]]
+                  [arg.replace('@@', ref_input_path)
+                   for arg in self.org_template_cmd[1:]]
         ref_cmd_str = " ".join(ref_cmd)
-
         # Build gdb command for reference input (pane 0)
-        ref_gdb_parts = ['gdb']
-        ref_gdb_parts.append(f'-ex "break *{self.pc_gdb:#x}"')
+        ref_gdb_script_path = os.path.join(output_dir, "debug_ref.gdb")
+        ref_gdb_cmd = _DebugCmdBuilder.build_gdb_command(self,
+                                                         ref_gdb_script_path,
+                                                         ref_cmd_str)
 
-        # Add ignore count if PC occurs multiple times
-        if self.pc_occurrence > 1:
-            ignore_count = self.pc_occurrence - 1
-            ref_gdb_parts.append(f'-ex "ignore 1 {ignore_count}"')
+        # Build command for target input
+        modified_cmd = [self.bin_path] + \
+            [arg.replace('@@', str(self.input_path))
+             for arg in self.org_template_cmd[1:]]
+        modified_cmd_str = " ".join(modified_cmd)
+        # Build gdb command for reference input (pane)
+        target_gdb_script_path = os.path.join(output_dir, "debug_target.gdb")
+        target_gdb_cmd = _DebugCmdBuilder.build_gdb_command(self,
+                                                            target_gdb_script_path,
+                                                            modified_cmd_str)
 
-        ref_gdb_parts.append('-ex "run"')
-        ref_gdb_parts.append('--args ' + ref_cmd_str)
-        ref_gdb_cmd = " ".join(ref_gdb_parts)
-
-        # Create a bash script with the tmux command
-        output_dir = os.path.dirname(self.input_path)
-        script_path = os.path.join(output_dir, "debug.sh")
-
-        script_content = f"""#!/bin/bash
-# Debug script for violation at PC {self.pc:#x}
-# Opens two gdb sessions side-by-side using tmux:
-#   Left pane (0):  Reference input (000.bin)
-#   Right pane (1): Target input ({os.path.basename(self.input_path)})
-
-# Kill any existing session with the same name
-tmux kill-session -t mysession 2>/dev/null
-
-# Create new tmux session with two panes and labeled borders
-tmux new-session -s mysession \\; \\
-    set-option -g pane-border-status top \\; \\
-    set-option -g pane-border-format " #{{pane_title}} " \\; \\
-    split-window -h \\; \\
-    select-pane -t 0 -T "000.bin" \\; \\
-    select-pane -t 1 -T "{os.path.basename(self.input_path)}" \\; \\
-    send-keys -t 0 '{ref_gdb_cmd}' C-m \\; \\
-    send-keys -t 1 '{target_gdb_cmd}' C-m
-"""
-
-        with open(script_path, 'w') as f:
-            f.write(script_content)
-
-        # Make script executable
-        os.chmod(script_path, 0o755)
-
-        self.gdb_cmd = script_path
+        # Choose name of the script
+        tmux_script_path = os.path.join(output_dir, "debug.sh")
+        _DebugCmdBuilder.build_tmux_command(tmux_script_path,
+                                            ref_gdb_cmd,
+                                            target_gdb_cmd,
+                                            self.input_path,
+                                            self.org_pc)
+        self.gdb_cmd = tmux_script_path
 
     def __str__(self) -> str:
         # Determine violation type description
         violation_type = f"SEQ, {self.leak_type}"
-        violation_desc = "I-type" if self.leak_type == 'I' \
-            else "D-type"
+        violation_desc = "I-type" if self.leak_type == 'I' else "D-type"
 
         # Print the details
         s = ""
         s += "=" * 80 + "\n"
-        s += f"Violation Details for PC {self.pc:x}\n"
+        s += f"Violation Details for PC {self.org_pc:x}\n"
         s += "\n"
         s += f"Source Code Location:  {self.code_line}\n"
         s += f"Violation Type:        {violation_type} ({violation_desc})\n"
         s += f"Orig. Input File:      {self.org_input_path}\n"
         s += f"Orig. Trace File:      {self.org_trace_path}\n"
-        s += f"  Target Trace Line:   {self.trace_line_id}\n"
+        s += f"  Target Trace Line:   {self.org_trace_line_id}\n"
+        s += "=" * 80 + "\n"
+
+        lvl = 0
+        prefix = ""
+        for win in self.spec_windows:
+            if lvl == 0:
+                s += prefix + \
+                    f"Architectural execution starts at pc {win.start_pc:#x}:\n"
+            else:
+                s += prefix + \
+                    f"├── Start of spec window at PC {win.start_pc:#x}:\n"
+
+            if lvl == len(self.spec_windows) - 1:
+                s += prefix + \
+                    f"└── LEAK! At line {win.trace_line_id} (PC: {win.pc:#x})\n"
+            else:
+                s += prefix + \
+                    f"└── MISPREDICTION at line {win.trace_line_id} (PC: {win.pc:#x})\n"
+            prefix += "    "
+            lvl += 1
+
         s += "=" * 80 + "\n"
 
         # gdb command to reproduce the bug
@@ -180,7 +280,8 @@ class Driller:
         self._output_dir = output_dir
         assert config.bin_native is not None  # enforced by config validation
         self._target_bin = config.bin_native
-        self._template_cmd = [config.bin_native if s == "@#" else s for s in config.template_cmd]
+        self._template_cmd = [config.bin_native if s == "@#" else s
+                              for s in config.template_cmd]
 
     def drill_down(self, pc_: int) -> None:
         """
@@ -200,8 +301,10 @@ class Driller:
 
         # Populate additional fields in leak_info
         self._copy_files(leak_info)
-        leak_info.pc_occurrence = self._find_pc_occurrence(leak_info)
-        leak_info.pc_gdb = self._translate_pc_to_gdb(leak_info.pc)
+        leak_info.spec_windows = self._find_spec_windows(leak_info)
+        for spec_win in leak_info.spec_windows:
+            spec_win.start_pc_gdb = self._translate_pc_to_gdb(spec_win.start_pc)
+            spec_win.pc_gdb = self._translate_pc_to_gdb(spec_win.pc)
         leak_info.build_gdb_cmd()
 
         # Pretty print the details
@@ -301,31 +404,57 @@ class Driller:
 
         assert False, f"Module {module_basename} not found in gdb mappings output"
 
-    def _find_pc_occurrence(self, leak_info: _LeakInfo) -> int:
-        """
-        Find which occurrence of the PC in the trace corresponds to the given trace line ID.
-
-        This is useful because the same PC can be hit multiple times (e.g., in a loop),
-        and we need to know which specific hit corresponds to the violation.
-
-        :param leak_info: Information about the leak
-        :return: The occurrence number (1-indexed) of the PC in the trace
-        """
+    def _find_spec_windows(self, leak_info: _LeakInfo) -> List[_SpecWinInfo]:
         # Parse the trace file
         trace_decoder = TraceDecoder()
         raw_trace = trace_decoder.decode_trace_file(str(leak_info.trace_path))
         trace = _Trace(str(leak_info.trace_path), raw_trace)
 
-        # Find all instructions with the matching PC
-        matching_mask = trace.instructions['pc'] == leak_info.pc
-        matching_pcs = trace.instructions[matching_mask]
+        def at_line(line_id: int) -> Any:
+            return trace.instructions['org_trace_entry_id'] == line_id
 
-        # Find which occurrence has the matching trace_line_id
-        for occurrence, instr in enumerate(matching_pcs, start=1):
-            if instr['org_trace_entry_id'] == leak_info.trace_line_id:
-                return occurrence
+        # Find the spec level of the target line
+        cur_target_id = leak_info.org_trace_line_id
+        cur_spec_level = trace.instructions[at_line(cur_target_id)]['spec_level']
 
-        assert False, "PC occurrence not found in the trace."
+        # Populate the spec windows info by traversing nested speculation windows backwards
+        # until we reach architectural execution
+        spec_windows: List[_SpecWinInfo] = []
+        while True:
+            spec_win_info = _SpecWinInfo()
+
+            # Save target (end) of the current window
+            spec_win_info.trace_line_id = cur_target_id
+            spec_win_info.pc = trace.instructions[at_line(cur_target_id)]['pc'][0]
+
+            # Find start of the current window
+            if cur_spec_level == 0:
+                start_id = 0
+            else:
+                mispred_mask = trace.instructions['spec_level'] == cur_spec_level - 1
+                mispred_mask &= (trace.instructions['org_trace_entry_id'] < cur_target_id)
+                last_mispred_id = trace.instructions[mispred_mask][-1]['org_trace_entry_id']
+                start_id = last_mispred_id + 1
+            spec_win_info.start_trace_line_id = start_id
+            spec_win_info.start_pc = trace.instructions[at_line(start_id)]['pc'][0]
+
+            # Find occurrences of the target PC in the current window
+            cur_win_mask = trace.instructions['org_trace_entry_id'] >= start_id
+            cur_win_mask &= (trace.instructions['org_trace_entry_id'] < cur_target_id)
+            cur_win_mask &= (trace.instructions['spec_level'] == cur_spec_level)
+            is_target_pc = trace.instructions['pc'] == spec_win_info.pc
+            spec_win_info.pc_occurrence = len(trace.instructions[cur_win_mask & is_target_pc])
+
+            spec_windows.append(spec_win_info)
+            if cur_spec_level == 0:
+                break
+            # Go down in the speculation hierarchy
+            cur_spec_level -= 1
+            cur_target_id = start_id - 1
+
+        # Reverse to get the order from outermost (architectural) to innermost speculation window
+        spec_windows.reverse()
+        return spec_windows
 
     def _copy_files(self, leak_info: _LeakInfo) -> None:
         # Copy all relevant files into the output directory (clear if exists)

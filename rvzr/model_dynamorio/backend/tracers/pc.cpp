@@ -17,14 +17,15 @@
 #include "tracers/pc.hpp"
 #include "util.hpp"
 
-void TracerPC::observe_instruction(instr_obs_t instr, dr_mcontext_t *mc, void *dc)
+void TracerPC::observe_instruction(instr_obs_t instr, dr_mcontext_t *mc, void *dc,
+                                   unsigned int spec_level)
 {
-    TracerABC::observe_instruction(instr, mc, dc);
+    TracerABC::observe_instruction(instr, mc, dc, spec_level);
 
     // Nothing to do if tracing is off
     if (not tracing_on) {
         return;
     }
 
-    record_pc(instr);
+    record_pc(instr, spec_level);
 }

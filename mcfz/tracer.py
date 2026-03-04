@@ -59,6 +59,7 @@ class Tracer:
             f"-c {config.model_root}/libdr_model.so " \
             f"--tracer {config.contract_observation_clause} " \
             f"--speculator {config.contract_execution_clause} " \
+            f"--ignorelist {config.tracing_ignorelist} " \
             "{mappings_flag} --instrumented-func start_driver --trace-output {trace_file} -- {cmd}"
 
     def collect_traces(self) -> int:
@@ -242,9 +243,10 @@ class Tracer:
             expanded_cmd = self._expand_template_cmd(self._config.template_cmd, ref_input)
             output_base = self._get_output_base_path(ref_input)
             try:
-                self._collect_one_trace(expanded_cmd, output_base, timeout=3, store_mappings=True)
-            except (InstrException, ProgramException, subprocess.TimeoutExpired):
+                self._collect_one_trace(expanded_cmd, output_base, timeout=30, store_mappings=True)
+            except (InstrException, ProgramException, subprocess.TimeoutExpired) as e:
                 print(f"[Det. check] skipping input causing exception or timeout: {ref_input}")
+                print(str(e))
                 continue
             break
         else:
