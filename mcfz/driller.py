@@ -276,13 +276,46 @@ class _LeakInfo:
 class Driller:
     """Investigates specific findings from fuzzing by drilling down into violations."""
 
+    def _get_gdb_mappings(self, template_cmd: List[str], seed_dir: str, entrypoint: str) \
+            -> List[str]:
+        """Run a dummy gdb session and find where modules are mapped under gdb."""
+
+        # Create a string representing a valid driver invocation by replacing the input placeholder
+        # with the path of a random seed from the corpus. This is needed just to make sure that the
+        # command is able to reach at least the driving entrypoint, we don't care about the content.
+        seed_path = seed_dir + '/' + next(os.scandir(seed_dir)).name
+        dummy_cmd = [seed_path if s == "@@" else s for s in template_cmd]
+
+        gdb_cmd = [
+            'gdb',
+            '--batch',
+            '-ex',
+            f'b {entrypoint}',
+            '-ex',
+            'run',
+            '-ex',
+            'info proc mappings',
+            '--args',
+        ] + dummy_cmd
+        result = run(gdb_cmd, stdout=PIPE, stderr=PIPE, text=True, check=False)
+
+        mappings = []
+        for line in result.stdout.split('\n'):
+            parts = line.split()
+            if len(parts) >= 1 and parts[0].startswith('0x'):
+                mappings.append(line)
+
+        return mappings
+
     def __init__(self, config: Config, output_dir: str) -> None:
         self._config = config
         self._output_dir = output_dir
         assert config.bin_native is not None  # enforced by config validation
         self._target_bin = config.bin_native
-        self._template_cmd = [config.bin_native if s == "@#" else s
-                              for s in config.template_cmd]
+        self._template_cmd = [config.bin_native if s == "@#" else s for s in config.template_cmd]
+        self._gdb_mappings = self._get_gdb_mappings(self._template_cmd,
+                                                    config.afl_seed_dir,
+                                                    config.tracing_entrypoint)
 
     def drill_down(self, pc_: int) -> None:
         """
@@ -324,8 +357,8 @@ class Driller:
 
     def _find_pc_in_report(self, report_data: Dict[str, Any], pc_hex: str) -> _LeakInfo:
         # Search all clauses (seq and cond)
-        for clause_type in ['seq', 'cond']:
-            data = report_data[clause_type]
+        for clause in ['seq', 'cond']:
+            data = report_data[clause]
             # Search in both I (instruction) and D (data) leak types
             for leak_type in ['I', 'D']:
                 if leak_type not in data:
@@ -333,7 +366,8 @@ class Driller:
                 per_type_map = data[leak_type]
                 for code_line, pc_map in per_type_map.items():
                     if pc_hex in pc_map:
-                        leak_info = _LeakInfo(clause_type, leak_type, code_line, pc_hex, pc_map[pc_hex][0])
+                        loc = pc_map[pc_hex][0]
+                        leak_info = _LeakInfo(clause, leak_type, code_line, pc_hex, loc)
                         return leak_info
         assert False, f"PC {pc_hex} not found in the report."
 
@@ -384,24 +418,10 @@ class Driller:
         assert False, f"Module for PC {pc:#x} not found in mappings.txt"
 
     def _get_gdb_base(self, module_basename: str) -> int:
-        """Run a dummy gdb session and find the module's base address under gdb."""
-        gdb_cmd = [
-            'gdb',
-            '--batch',
-            '-ex',
-            'starti',
-            '-ex',
-            'info proc mappings',
-            '--args',
-        ] + self._template_cmd
-
-        result = run(gdb_cmd, stdout=PIPE, stderr=PIPE, text=True, check=False)
-
-        for line in result.stdout.split('\n'):
+        """Return the base address of a given module as reported by gdb."""
+        for line in self._gdb_mappings:
             if module_basename in line:
-                parts = line.split()
-                if len(parts) >= 1 and parts[0].startswith('0x'):
-                    return int(parts[0], 16)
+                return int(line.split()[0], 16)
 
         assert False, f"Module {module_basename} not found in gdb mappings output"
 
