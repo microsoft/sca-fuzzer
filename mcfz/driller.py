@@ -138,8 +138,10 @@ class _SpecWinInfo:
 
 class _LeakInfo:
 
-    def __init__(self, leak_type: str, code_line: str, pc_hex: str, location_in_trace: str) -> None:
+    def __init__(self, clause_type: str, leak_type: str, code_line: str, pc_hex: str,
+                 location_in_trace: str) -> None:
         # original info from the report
+        self.clause_type = clause_type
         self.leak_type = leak_type
         self.code_line = CodeLine(code_line)
         self.org_pc = PC(int(pc_hex, 16))
@@ -228,8 +230,7 @@ class _LeakInfo:
 
     def __str__(self) -> str:
         # Determine violation type description
-        violation_type = f"SEQ, {self.leak_type}"
-        violation_desc = "I-type" if self.leak_type == 'I' else "D-type"
+        violation_type = f"{self.clause_type} ({self.leak_type}-type)"
 
         # Print the details
         s = ""
@@ -237,7 +238,7 @@ class _LeakInfo:
         s += f"Violation Details for PC {self.org_pc:x}\n"
         s += "\n"
         s += f"Source Code Location:  {self.code_line}\n"
-        s += f"Violation Type:        {violation_type} ({violation_desc})\n"
+        s += f"Violation Type:        {violation_type}\n"
         s += f"Orig. Input File:      {self.org_input_path}\n"
         s += f"Orig. Trace File:      {self.org_trace_path}\n"
         s += f"  Target Trace Line:   {self.org_trace_line_id}\n"
@@ -322,18 +323,18 @@ class Driller:
             raise FileNotFoundError(f"Report file not found: {report_file}.")
 
     def _find_pc_in_report(self, report_data: Dict[str, Any], pc_hex: str) -> _LeakInfo:
-        assert "seq" in report_data, "No 'seq' section in the report data."
-        seq_data = report_data['seq']
-
-        # Search in both I (instruction) and D (data) leak types
-        for leak_type in ['I', 'D']:
-            if leak_type not in seq_data:
-                continue
-            per_type_map = seq_data[leak_type]
-            for code_line, pc_map in per_type_map.items():
-                if pc_hex in pc_map:
-                    leak_info = _LeakInfo(leak_type, code_line, pc_hex, pc_map[pc_hex][0])
-                    return leak_info
+        # Search all clauses (seq and cond)
+        for clause_type in ['seq', 'cond']:
+            data = report_data[clause_type]
+            # Search in both I (instruction) and D (data) leak types
+            for leak_type in ['I', 'D']:
+                if leak_type not in data:
+                    continue
+                per_type_map = data[leak_type]
+                for code_line, pc_map in per_type_map.items():
+                    if pc_hex in pc_map:
+                        leak_info = _LeakInfo(clause_type, leak_type, code_line, pc_hex, pc_map[pc_hex][0])
+                        return leak_info
         assert False, f"PC {pc_hex} not found in the report."
 
     def _translate_pc_to_gdb(self, pc: int) -> int:
