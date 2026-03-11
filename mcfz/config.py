@@ -264,6 +264,9 @@ class Config:
     tracing_ignorelist: str = "ignorelist.txt"
     _help += """\n\n file containing a list of symbols for which instrumentation is paused. """
 
+    tracing_entrypoint: str = "start_driver"
+    _help += """\n\n name of the instrumented function in the driver. """
+
     # ==============================================================================================
     # AFL++ parameters
     afl_root: str = "~/.local/afl/"
@@ -378,6 +381,7 @@ class Config:
                                                       self.discard_non_leaky_traces)
         self.compression_tool = yaml_data.get("compression_tool", self.compression_tool)
         self.tracing_ignorelist = yaml_data.get("tracing_ignorelist", self.tracing_ignorelist)
+        self.tracing_entrypoint = yaml_data.get("tracing_entrypoint", self.tracing_entrypoint)
 
         self.num_workers_fuzz_gen = yaml_data.get("num_workers_fuzz_gen", self.num_workers_fuzz_gen)
         self.num_workers_tracer = yaml_data.get("num_workers_tracer", self.num_workers_tracer)

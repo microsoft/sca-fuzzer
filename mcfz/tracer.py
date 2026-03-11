@@ -60,7 +60,8 @@ class Tracer:
             f"--tracer {config.contract_observation_clause} " \
             f"--speculator {config.contract_execution_clause} " \
             f"--ignorelist {config.tracing_ignorelist} " \
-            "{mappings_flag} --instrumented-func start_driver --trace-output {trace_file} -- {cmd}"
+            f"--instrumented-func {config.tracing_entrypoint}" \
+            "{mappings_flag} --trace-output {trace_file} -- {cmd}"
 
     def collect_traces(self) -> int:
         """
