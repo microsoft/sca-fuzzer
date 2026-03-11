@@ -33,9 +33,12 @@ extern std::unique_ptr<Dispatcher> glob_dispatcher; // NOLINT
 // Debug Helpers
 // =================================================================================================
 
-/// @brief Print name of the current function for each PC and the level of nested speculation.
-static void print_func_name(app_pc pc, int nesting_level)
+/// @brief Print the name of the current function for a given PC at the given level of nesting.
+static void print_func_name(app_pc pc, unsigned int spec_level, unsigned int function_level)
 {
+    const unsigned int max_func_level = 30;
+    const unsigned int prefix_len =
+        function_level < max_func_level ? function_level : max_func_level;
     module_data_t *mod = dr_lookup_module(pc);
     if (mod != nullptr) {
         drsym_info_t sym_info;
@@ -47,21 +50,61 @@ static void print_func_name(app_pc pc, int nesting_level)
         sym_info.name_size = sizeof(name);
         sym_info.file = nullptr; // We don't need the source file name here
 
-        // Translate the PC to a module-relative offset
+        // Print prefix
+        for (int i = 0; i < prefix_len; i++)
+            dr_printf("    ");
+        if (spec_level == 0)
+            dr_printf("[SEQ]");
+        else
+            dr_printf("[SPEC]");
+        // Print function name
         const size_t offset = pc - mod->start;
-
-        const std::string pre = nesting_level == 0 ? "[SEQ]" : "[SPEC]";
-
         if (drsym_lookup_address(mod->full_path, offset, &sym_info, DRSYM_DEFAULT_FLAGS) ==
             DRSYM_SUCCESS) {
-            dr_printf((pre + "PC %p is in function: %s\n").c_str(), pc, sym_info.name);
+            dr_printf("%p: %s\n", pc, sym_info.name);
         } else {
-            dr_printf((pre + "PC %p (module %s) - symbol not found\n").c_str(), pc,
-                      dr_module_preferred_name(mod));
+            dr_printf("PC %p (module %s) - symbol not found\n", pc, dr_module_preferred_name(mod));
         }
         dr_free_module_data(mod);
     }
 }
+
+unsigned int function_level = 0;
+unsigned int n_instr = 0;
+bool transition = false;
+
+/// @brief Very heavy instrumentation that prints the current function for each
+/// PC -- use only for debugging!
+static void dbg_print_function(uint64_t opcode, app_pc pc, unsigned int spec_level)
+{
+    if (spec_level == 0) {
+        // Found call: up a level
+        if (opcode == OP_call || opcode == OP_call_ind || opcode == OP_call_far ||
+            opcode == OP_call_far_ind) {
+            transition = true;
+            print_func_name(pc, spec_level, function_level);
+            function_level++;
+            return;
+        }
+        // Found ret: down a level
+        if (opcode == OP_ret || opcode == OP_ret_far || opcode == OP_iret) {
+            transition = true;
+            dr_printf("[omitted %d]\n", n_instr);
+            n_instr = 0;
+            print_func_name(pc, spec_level, function_level);
+            function_level--;
+            return;
+        }
+    }
+
+    if (transition) {
+        // Previous inst was a call or a ret.
+        print_func_name(pc, spec_level, function_level);
+        transition = false;
+    }
+    n_instr++;
+}
+
 /// @brief Print state name.
 static const char *to_string(const dispatcher_state_t &state)
 {
@@ -243,6 +286,7 @@ static void dispatch_callback(uint64_t opcode, uint64_t pc, uint64_t has_mem_ref
     // don't do anything id we're OFF or PAUSED
     if (not dispatcher->is_instrumentation_on())
         return;
+    // dbg_print_function(opcode, (app_pc)pc, dispatcher->speculator->get_nesting_level());
 
     // get current context
     void *drcontext = dr_get_current_drcontext();
@@ -333,13 +377,13 @@ bool Dispatcher::instrument_instruction(void *drcontext, instrlist_t *bb, instr_
 
 void Dispatcher::instrument_entry(void *drcontext, instrlist_t *bb, instr_t *instr) const
 {
-    dr_printf("[DISPATCHER] Instrumenting ENTRY function\n");
+    // dr_printf("[DISPATCHER] Instrumenting ENTRY function\n");
     dr_insert_clean_call(drcontext, bb, instr, (void *)entry_callback, false, 0);
 }
 
 void Dispatcher::instrument_pause(void *drcontext, instrlist_t *bb, instr_t *instr) const
 {
-    dr_printf("[DISPATCHER] Instrumenting PAUSE function\n");
+    // dr_printf("[DISPATCHER] Instrumenting PAUSE function\n");
     dr_insert_clean_call(drcontext, bb, instr, (void *)pause_callback, false, 0);
 }
 
@@ -432,7 +476,7 @@ std::optional<dispatcher_state_t> Dispatcher::handle_event(dispatcher_event_t ev
         // We can encounter the exit event both in ON and PAUSED states, depending on whether the
         // exit function is an architectural exit or an exception.
         if (state == dispatcher_state_t::ON or state == dispatcher_state_t::PAUSED) {
-            dr_printf("[DISPATCHER] State Machine Transition: %s → OFF\n", to_string(state));
+            // dr_printf("[DISPATCHER] State Machine Transition: %s → OFF\n", to_string(state));
             stop();
             state = dispatcher_state_t::OFF;
             return state;
