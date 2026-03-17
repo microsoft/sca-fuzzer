@@ -173,9 +173,12 @@ static void entry_callback()
     DR_ASSERT_MSG(dispatcher != nullptr, "[ERROR] glob_dispatcher is null\n");
     DR_ASSERT_MSG(not dispatcher->speculator->in_speculation,
                   "[ERROR] Entering instrumented function during speculation!\n");
-    // Register the return address of the instrumented function, to know when to stop the
-    // instrumentation
-    dispatcher->register_exit_pc(get_return_address());
+
+    if (not dispatcher->has_exit_pc()) {
+        // Register the return address of the instrumented function, to know when to stop the
+        // instrumentation
+        dispatcher->register_exit_pc(get_return_address());
+    }
     // Advance state machine
     dispatcher->handle_event(dispatcher_event_t::EV_ENTRY);
     // Flush DynamoRIO's code cache. This is necessary to ensure that the instrumentation is applied

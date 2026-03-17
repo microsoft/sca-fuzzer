@@ -53,7 +53,11 @@ static void dr_model_del() noexcept;
 struct syms_to_instrument_t {
     std::string entry_sym;
     std::vector<std::string> ignored_syms;
+    bool use_inst_markers = false;
 } syms_to_instrument; // NOLINT
+
+static constexpr const char *entry_marker = "_mcfz_start_inst";
+static constexpr const char *exit_marker = "_mcfz_stop_inst";
 
 // =================================================================================================
 // Memory layout tracking
@@ -129,13 +133,22 @@ static void event_module_load(void * /*drcontext*/, const module_data_t *module_
     };
 
     size_t offset = 0;
-    // Check if the module contains the function to instrument.
-    const char *target_func = syms_to_instrument.entry_sym.c_str();
-    if (find_symbol_pc(target_func, &offset)) {
-        // dr_printf("[MODULE_LOAD] Found ENTRY %s in module %s (pc: %p)\n", target_func,
-        //           module_->full_path, module_->start + offset);
-        glob_dispatcher->register_entry_pc(module_->start + offset);
+    if (syms_to_instrument.use_inst_markers) {
+        // Check the presence of instrumentation markers
+        if (find_symbol_pc(entry_marker, &offset))
+            glob_dispatcher->register_entry_pc(module_->start + offset);
+        if (find_symbol_pc(exit_marker, &offset))
+            glob_dispatcher->register_exit_pc(module_->start + offset);
+    } else {
+        // Check if the module contains the function to instrument.
+        const char *target_func = syms_to_instrument.entry_sym.c_str();
+        if (find_symbol_pc(target_func, &offset)) {
+            // dr_printf("[MODULE_LOAD] Found ENTRY %s in module %s (pc: %p)\n", target_func,
+            //           module_->full_path, module_->start + offset);
+            glob_dispatcher->register_entry_pc(module_->start + offset);
+        }
     }
+
     // Check if the module contains aby of the ignored functions.
     for (const auto &sym : syms_to_instrument.ignored_syms) {
         if (find_symbol_pc(sym.c_str(), &offset)) {
@@ -332,6 +345,7 @@ DR_EXPORT void dr_client_main(client_id_t /* client_id */, int argc, const char 
     // Save symbols to instrument
     dr_model::syms_to_instrument.entry_sym = parsed_args.instrumented_func;
     dr_model::syms_to_instrument.ignored_syms = parse_ignore_list(parsed_args.ignore_list_path);
+    dr_model::syms_to_instrument.use_inst_markers = parsed_args.use_inst_markers;
 
     // Create a dispatcher instance
     glob_dispatcher = std::make_unique<Dispatcher>(&parsed_args);
