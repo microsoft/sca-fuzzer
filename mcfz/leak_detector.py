@@ -265,8 +265,12 @@ class _LeakDetectionWorker:
         # If the file is not compressed, parse it directly
         if trace_file.endswith(".trace"):
             raw_trace = self.trace_decoder.decode_trace_file(trace_file)
-            trace = _Trace(trace_file, raw_trace)
-            return trace
+            try:
+                trace = _Trace(trace_file, raw_trace)
+                return trace
+            except IndexError:
+                print(f"Trace {trace_file} is likely corrupted! (len: {len(raw_trace)})")
+                return _Trace.empty()
 
         # If the file is compressed, decompress and parse it
         if trace_file.endswith(".gz") or trace_file.endswith(".bz2"):
