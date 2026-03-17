@@ -261,11 +261,17 @@ class Config:
     Tool used to compress the collected traces.\n
     Options: gzip, bzip2, none. """
 
-    tracing_ignorelist: str = "ignorelist.txt"
-    _help += """\n\n file containing a list of symbols for which instrumentation is paused. """
+    tracing_ignorelist: Optional[str] = None
+    _help += """\n\n tracing_ignorelist (optional)
+    File containing a list of symbols for which instrumentation should be paused. """
 
     tracing_entrypoint: str = "start_driver"
-    _help += """\n\n name of the instrumented function in the driver. """
+    _help += """\n\n tracing_entrypoint (start_driver)
+    Name of the function that triggers instrumentation start. """
+
+    max_spec_window: Optional[int] = None
+    _help += """\n\n max_spec_windown (optional)
+    Maximum size of the speculation window. """
 
     # ==============================================================================================
     # AFL++ parameters
@@ -382,6 +388,7 @@ class Config:
         self.compression_tool = yaml_data.get("compression_tool", self.compression_tool)
         self.tracing_ignorelist = yaml_data.get("tracing_ignorelist", self.tracing_ignorelist)
         self.tracing_entrypoint = yaml_data.get("tracing_entrypoint", self.tracing_entrypoint)
+        self.max_spec_window = yaml_data.get("max_spec_window", self.max_spec_window)
 
         self.num_workers_fuzz_gen = yaml_data.get("num_workers_fuzz_gen", self.num_workers_fuzz_gen)
         self.num_workers_tracer = yaml_data.get("num_workers_tracer", self.num_workers_tracer)

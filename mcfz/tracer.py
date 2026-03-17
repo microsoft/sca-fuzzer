@@ -55,13 +55,18 @@ class Tracer:
         self._compressor = Compressor(config)
 
         self._config = config
-        self._drrun_cmd = f"{config.model_root}/drrun " \
+        cmd = f"{config.model_root}/drrun " \
             f"-c {config.model_root}/libdr_model.so " \
+            f"--instrumented-func {config.tracing_entrypoint} " \
             f"--tracer {config.contract_observation_clause} " \
-            f"--speculator {config.contract_execution_clause} " \
-            f"--ignorelist {config.tracing_ignorelist} " \
-            f"--instrumented-func {config.tracing_entrypoint}" \
-            "{mappings_flag} --trace-output {trace_file} -- {cmd}"
+            f"--speculator {config.contract_execution_clause} "
+        if config.tracing_ignorelist is not None:
+            cmd += f"--ignorelist {config.tracing_ignorelist} "
+        if config.max_spec_window is not None:
+            cmd += f"--max-spec-window {config.max_spec_window} "
+
+        cmd += "{mappings_flag} --trace-output {trace_file} -- {cmd}"
+        self._drrun_cmd = cmd
 
     def collect_traces(self) -> int:
         """
