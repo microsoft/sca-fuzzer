@@ -14,7 +14,7 @@ from copy import deepcopy
 
 from typing_extensions import assert_never
 
-from .leak_detector import LeakageMap, LeakType, PC, LinesInTracePair
+from .leak_detector import LeakageMap, LeakType, ClauseType, PC, LinesInTracePair
 from .util.dwarf import ModulesInfo
 
 if TYPE_CHECKING:
@@ -31,14 +31,17 @@ CodeLine = NewType('CodeLine', str)
 """
 
 LeakageLineMapVrb3 = Dict[
-    LeakType,
+    ClauseType,
     Dict[
-        CodeLine,
+        LeakType,
         Dict[
-            PC,
-            List[LinesInTracePair],
+            CodeLine,
+            Dict[
+                PC,
+                List[LinesInTracePair],
+            ],
         ],
-    ],
+    ]
 ]
 """ Map of unique leaky lines of code, indexed by leak type and code line.
     The value is a map of PCs where the leak was found, and a list of locations
@@ -46,17 +49,23 @@ LeakageLineMapVrb3 = Dict[
 """
 
 LeakageLineMapVrb2 = Dict[
-    LeakType,
+    ClauseType,
     Dict[
-        CodeLine,
-        List[PC],
-    ],
+        LeakType,
+        Dict[
+            CodeLine,
+            List[PC],
+        ],
+    ]
 ]
 """ A variant of LeakageLineMap for the lower verbosity level (verbosity 2). """
 
 LeakageLineMapVrb1 = Dict[
-    LeakType,
-    List[CodeLine],
+    ClauseType,
+    Dict[
+        LeakType,
+        List[CodeLine],
+    ]
 ]
 """ A variant of LeakageLineMap for the lowest verbosity level (verbosity 1). """
 
@@ -117,11 +126,18 @@ class _ReportPrinter:
                 "D": {
                     ...
                 }
+            },
+            "cond": {
+                "I": {
+                    ...
+                },
+                "D": {
+                    ...
+                }
             }
         }
         """
-        report_dict = {'seq': leakage_line_map}
-        report_dict = _convert_int_keys_to_hex(report_dict)
+        report_dict = _convert_int_keys_to_hex(leakage_line_map)
         with open(report_file, "w") as f:
             json.dump(report_dict, f, indent=4, sort_keys=True)
 
@@ -148,44 +164,77 @@ class _ReportPrinter:
         assert_never(verbosity)
 
     def _iter_leaks_with_code_lines(self, leakage_map: LeakageMap) \
-            -> Iterator[Tuple[LeakType, CodeLine, PC, List[LinesInTracePair]]]:
+            -> Iterator[Tuple[ClauseType, LeakType, CodeLine, PC, List[LinesInTracePair]]]:
         """Yield (leak_type, code_line, pc, trace_locations) for each leak in the map."""
-        for leak_type in leakage_map:
-            per_type_map = leakage_map[leak_type]
-            for pc in per_type_map:
-                source_code_line = CodeLine(self._modules_info.resolve_address(pc))
-                yield leak_type, source_code_line, pc, per_type_map[pc]
+        for clause_type in leakage_map:
+            for leak_type in leakage_map[clause_type]:
+                per_type_map = leakage_map[clause_type][leak_type]
+                for pc in per_type_map:
+                    source_code_line = CodeLine(self._modules_info.resolve_address(pc))
+                    yield clause_type, leak_type, source_code_line, pc, per_type_map[pc]
+
+    def _filter_cond(self, leakage_line_map: Dict[ClauseType, Any], leak_type: LeakType) \
+            -> Dict[CodeLine, Any]:
+        """Remove all COND violations that were also found architecturally (SEQ)"""
+        # Calculate the set difference between cond violations and seq violations
+        seq_violations = leakage_line_map['seq'][leak_type].keys()
+        cond_violations = leakage_line_map['cond'][leak_type].keys()
+        diff = set(cond_violations) - set(seq_violations)
+        # Keep only entries that are part of the set difference
+        old_entries = leakage_line_map['cond'][leak_type]
+        filtered = {diff_code_line: old_entries[diff_code_line] for diff_code_line in diff}
+        return filtered
 
     def _group_by_code_line_vrb3(self, leakage_map: LeakageMap) -> LeakageLineMapVrb3:
-        leakage_line_map: LeakageLineMapVrb3 = {'I': {}, 'D': {}}
-        for leak_type, code_line, pc, locations in self._iter_leaks_with_code_lines(leakage_map):
-            per_line_map = leakage_line_map[leak_type].setdefault(code_line, {})
-            per_line_map.setdefault(pc, []).extend(locations)
+        leakage_line_map: LeakageLineMapVrb3 = {}
+        for clause, leak_type, code_line, pc, locs in self._iter_leaks_with_code_lines(leakage_map):
+            per_type_map = leakage_line_map.setdefault(clause, {}).setdefault(leak_type, {})
+            per_line_map = per_type_map.setdefault(code_line, {})
+            per_line_map.setdefault(pc, []).extend(locs)
+        # Remove COND violations that were also found with SEQ
+        for leak_type in leakage_line_map.get('seq', {}).keys():
+            if leak_type in leakage_line_map.get('cond', {}).keys():
+                leakage_line_map['cond'][leak_type] = self._filter_cond(leakage_line_map, leak_type)
         # Sort all trace location lists
-        for per_type in leakage_line_map.values():
-            for per_line in per_type.values():
-                for loc_list in per_line.values():
-                    loc_list.sort()
+        for per_clause in leakage_line_map.values():
+            for per_type in per_clause.values():
+                for per_line in per_type.values():
+                    for loc_list in per_line.values():
+                        loc_list.sort()
+
         return leakage_line_map
 
     def _group_by_code_line_vrb2(self, leakage_map: LeakageMap) -> LeakageLineMapVrb2:
-        leakage_line_map: LeakageLineMapVrb2 = {'I': {}, 'D': {}}
-        for leak_type, code_line, pc, _ in self._iter_leaks_with_code_lines(leakage_map):
-            leakage_line_map[leak_type].setdefault(code_line, []).append(pc)
+        leakage_line_map: LeakageLineMapVrb2 = {}
+        # Insert all violations
+        for clause, leak_type, code_line, pc, _ in self._iter_leaks_with_code_lines(leakage_map):
+            per_type_map = leakage_line_map.setdefault(clause, {}).setdefault(leak_type, {})
+            per_type_map.setdefault(code_line, []).append(pc)
+        # Remove COND violations that were also found with SEQ
+        for leak_type in leakage_line_map.get('seq', {}).keys():
+            if leak_type in leakage_line_map.get('cond', {}).keys():
+                leakage_line_map['cond'][leak_type] = self._filter_cond(leakage_line_map, leak_type)
         # Sort all PC lists
-        for per_type in leakage_line_map.values():
-            for pc_list in per_type.values():
-                pc_list.sort()
+        for per_clause in leakage_line_map.values():
+            for per_type in per_clause.values():
+                for pc_list in per_type.values():
+                    pc_list.sort()
+
         return leakage_line_map
 
     def _group_by_code_line_vrb1(self, leakage_map: LeakageMap) -> LeakageLineMapVrb1:
-        leakage_line_map: LeakageLineMapVrb1 = {'I': [], 'D': []}
-        for leak_type, code_line, _, _ in self._iter_leaks_with_code_lines(leakage_map):
-            if code_line not in leakage_line_map[leak_type]:
-                leakage_line_map[leak_type].append(code_line)
-        # Sort code line lists
-        for code_line_list in leakage_line_map.values():
-            code_line_list.sort()
+        leakage_line_map: LeakageLineMapVrb1 = {}
+        # Insert all violations
+        for clause, leak_type, code_line, _, _ in self._iter_leaks_with_code_lines(leakage_map):
+            leakage_line_map.setdefault(clause, {}).setdefault(leak_type, []).append(code_line)
+        # Remove COND violations that were also found with SEQ
+        for leak_type in leakage_line_map.get('seq', {}).keys():
+            if leak_type in leakage_line_map.get('cond', {}).keys():
+                cond: list[CodeLine] = leakage_line_map.get('cond', {}).get(leak_type, [])
+                seq: list[CodeLine] = leakage_line_map.get('seq', {}).get(leak_type, [])
+                diff = set(cond) - set(seq)
+                leakage_line_map['cond'][leak_type] = sorted(diff)
+
         return leakage_line_map
 
     def _is_allowlisted(self, code_line: str, allowlist: Set[str]) -> bool:

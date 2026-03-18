@@ -52,6 +52,10 @@ const droption_t<string> op_instrumented_func(DROPTION_SCOPE_CLIENT,
                         "instrumented-func", "__libc_start_main",
                         "Name of the function to instrument.",
                         "Name of the function to instrument.");
+const droption_t<bool> op_use_inst_markers(DROPTION_SCOPE_CLIENT,
+                        "use-inst-markers", false,
+                        "Use `mcfz_start_inst` and `mcfz_stop_inst` calls to know when to start (and stop) instrumentation.",
+                        "Use `mcfz_start_inst` and `mcfz_stop_inst` calls to know when to start (and stop) instrumentation.");
 const droption_t<string> op_ignore_list_path(DROPTION_SCOPE_CLIENT,
                         "ignorelist", "/dev/null",
                         "Path of the file containing names of the functions to pause instrumentation on.",
@@ -159,6 +163,7 @@ void parse_cli(int argc, const char **argv, DR_PARAM_OUT cli_args_t &parsed_args
     // Set the parsed arguments
     parsed_args.tracer_type = op_tracer_name.get_value();
     parsed_args.instrumented_func = op_instrumented_func.get_value();
+    parsed_args.use_inst_markers = op_use_inst_markers.get_value();
     parsed_args.ignore_list_path = op_ignore_list_path.get_value();
     parsed_args.trace_output = op_trace_output.get_value();
     parsed_args.print_trace = op_print_trace.get_value();

@@ -39,6 +39,12 @@ LeakType = Literal['I', 'D']
     'D' for data leaks (e.g., secret dependent memory access).
 """
 
+ClauseType = Literal['seq', 'cond']
+""" Type of the leak:
+    'seq' for architectural leaks (happen under SEQ execution clause),
+    'cond' for speculative leaks under the COND execution clause.
+"""
+
 TraceEntryId = NewType('TraceEntryId', int)
 """ Entry ID in the original (raw) trace file, used to locate the leak. """
 
@@ -47,6 +53,7 @@ LeakyInstrDType: Final[np.dtype[np.void]] = np.dtype([
     ('leak_type', 'U1'),  # 'I' or 'D' as single Unicode character
     ('target_trace_entry_id', np.int64),
     ('ref_trace_entry_id', np.int64),
+    ('spec_level', np.uint8),
 ])
 """ Numpy dtype for a leaky instruction:
     * pc: the program counter (PC) of the instruction,
@@ -77,11 +84,14 @@ LinesInTracePair = NewType('LinesInTracePair', str)
 """
 
 LeakageMap = Dict[
-    LeakType,
+    ClauseType,
     Dict[
-        PC,
-        List[LinesInTracePair],
-    ],
+        LeakType,
+        Dict[
+            PC,
+            List[LinesInTracePair],
+        ],
+    ]
 ]
 """ Map of leaks found in the traces, indexed by leak type and PC.
     The value is a list of trace file names where the leak was found.
@@ -255,8 +265,12 @@ class _LeakDetectionWorker:
         # If the file is not compressed, parse it directly
         if trace_file.endswith(".trace"):
             raw_trace = self.trace_decoder.decode_trace_file(trace_file)
-            trace = _Trace(trace_file, raw_trace)
-            return trace
+            try:
+                trace = _Trace(trace_file, raw_trace)
+                return trace
+            except IndexError:
+                print(f"Trace {trace_file} is likely corrupted! (len: {len(raw_trace)})")
+                return _Trace.empty()
 
         # If the file is compressed, decompress and parse it
         if trace_file.endswith(".gz") or trace_file.endswith(".bz2"):
@@ -313,8 +327,8 @@ class _LeakDetectionWorker:
 
         # The instruction before divergence caused the branch
         prev = ref_instr[first_diverge - 1]
-        leak = np.array([(prev['pc'], 'I', prev['org_trace_entry_id'], prev['org_trace_entry_id'])],
-                        dtype=LeakyInstrDType)
+        leak = np.array([(prev['pc'], 'I', prev['org_trace_entry_id'], prev['org_trace_entry_id'],
+                          prev['spec_level'])], dtype=LeakyInstrDType)
         return leak, first_diverge
 
     def _find_d_type_leaks(self, ref_trace: _Trace, target_trace: _Trace, ref_instr: InstrArray,
@@ -339,6 +353,7 @@ class _LeakDetectionWorker:
         leaks['leak_type'] = 'D'
         leaks['target_trace_entry_id'] = tgt_instr['org_trace_entry_id'][indices]
         leaks['ref_trace_entry_id'] = ref_instr['org_trace_entry_id'][indices]
+        leaks['spec_level'] = ref_instr['spec_level'][indices]
         return leaks
 
     def _find_d_leaks_bulk(self, ref_trace: _Trace, target_trace: _Trace,
@@ -392,7 +407,7 @@ class LeakDetector:
         """
         Analyse all leaks stored in the given directory after a completed fuzzing campaign.
         """
-        leakage_map: LeakageMap = {'I': {}, 'D': {}}
+        leakage_map: LeakageMap = {}
         stage3_dir_map = self._get_directory_map(stage3_dir)
 
         # Initialize a progress bar to track the progress of the analysis
@@ -468,11 +483,12 @@ class LeakDetector:
             for leaky_instr in leaky_instructions:
                 # Unpack the leaky instruction from numpy structured array
                 leak_type: LeakType = leaky_instr['leak_type']
+                clauseType: ClauseType = 'seq' if leaky_instr['spec_level'] == 0 else 'cond'
                 pc = PC(int(leaky_instr['pc']))
                 ref_entry_id = int(leaky_instr['ref_trace_entry_id'])
                 tgt_entry_id = int(leaky_instr['target_trace_entry_id'])
 
-                per_type_map = leakage_map[leak_type]
+                per_type_map = leakage_map.setdefault(clauseType, {}).setdefault(leak_type, {})
 
                 # Create a new leakage location and append it to the map
                 leakage_location = LinesInTracePair(f"{source}:{tgt_entry_id}:{ref_entry_id}")
