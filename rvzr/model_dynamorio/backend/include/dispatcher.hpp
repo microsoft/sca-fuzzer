@@ -100,6 +100,7 @@ class Dispatcher
     {
         return entry_pc.has_value() and entry_pc.value() == pc;
     }
+    [[nodiscard]] bool has_exit_pc() const { return exit_pc.has_value(); }
     bool is_exit_pc(const_app_pc pc) const { return exit_pc.has_value() and exit_pc.value() == pc; }
     bool is_pause_pc(const_app_pc pc) const { return pause_pcs.find(pc) != pause_pcs.end(); }
     bool is_resume_pc(const_app_pc pc) const { return resume_pc.has_value() and resume_pc == pc; }

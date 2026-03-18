@@ -138,8 +138,10 @@ class _SpecWinInfo:
 
 class _LeakInfo:
 
-    def __init__(self, leak_type: str, code_line: str, pc_hex: str, location_in_trace: str) -> None:
+    def __init__(self, clause_type: str, leak_type: str, code_line: str, pc_hex: str,
+                 location_in_trace: str) -> None:
         # original info from the report
+        self.clause_type = clause_type
         self.leak_type = leak_type
         self.code_line = CodeLine(code_line)
         self.org_pc = PC(int(pc_hex, 16))
@@ -228,8 +230,7 @@ class _LeakInfo:
 
     def __str__(self) -> str:
         # Determine violation type description
-        violation_type = f"SEQ, {self.leak_type}"
-        violation_desc = "I-type" if self.leak_type == 'I' else "D-type"
+        violation_type = f"{self.clause_type} ({self.leak_type}-type)"
 
         # Print the details
         s = ""
@@ -237,7 +238,7 @@ class _LeakInfo:
         s += f"Violation Details for PC {self.org_pc:x}\n"
         s += "\n"
         s += f"Source Code Location:  {self.code_line}\n"
-        s += f"Violation Type:        {violation_type} ({violation_desc})\n"
+        s += f"Violation Type:        {violation_type}\n"
         s += f"Orig. Input File:      {self.org_input_path}\n"
         s += f"Orig. Trace File:      {self.org_trace_path}\n"
         s += f"  Target Trace Line:   {self.org_trace_line_id}\n"
@@ -275,13 +276,46 @@ class _LeakInfo:
 class Driller:
     """Investigates specific findings from fuzzing by drilling down into violations."""
 
+    def _get_gdb_mappings(self, template_cmd: List[str], seed_dir: str, entrypoint: str) \
+            -> List[str]:
+        """Run a dummy gdb session and find where modules are mapped under gdb."""
+
+        # Create a string representing a valid driver invocation by replacing the input placeholder
+        # with the path of a random seed from the corpus. This is needed just to make sure that the
+        # command is able to reach at least the driving entrypoint, we don't care about the content.
+        seed_path = seed_dir + '/' + next(os.scandir(seed_dir)).name
+        dummy_cmd = [seed_path if s == "@@" else s for s in template_cmd]
+
+        gdb_cmd = [
+            'gdb',
+            '--batch',
+            '-ex',
+            f'b {entrypoint}',
+            '-ex',
+            'run',
+            '-ex',
+            'info proc mappings',
+            '--args',
+        ] + dummy_cmd
+        result = run(gdb_cmd, stdout=PIPE, stderr=PIPE, text=True, check=False)
+
+        mappings = []
+        for line in result.stdout.split('\n'):
+            parts = line.split()
+            if len(parts) >= 1 and parts[0].startswith('0x'):
+                mappings.append(line)
+
+        return mappings
+
     def __init__(self, config: Config, output_dir: str) -> None:
         self._config = config
         self._output_dir = output_dir
         assert config.bin_native is not None  # enforced by config validation
         self._target_bin = config.bin_native
-        self._template_cmd = [config.bin_native if s == "@#" else s
-                              for s in config.template_cmd]
+        self._template_cmd = [config.bin_native if s == "@#" else s for s in config.template_cmd]
+        self._gdb_mappings = self._get_gdb_mappings(self._template_cmd,
+                                                    config.afl_seed_dir,
+                                                    config.tracing_entrypoint)
 
     def drill_down(self, pc_: int) -> None:
         """
@@ -322,18 +356,19 @@ class Driller:
             raise FileNotFoundError(f"Report file not found: {report_file}.")
 
     def _find_pc_in_report(self, report_data: Dict[str, Any], pc_hex: str) -> _LeakInfo:
-        assert "seq" in report_data, "No 'seq' section in the report data."
-        seq_data = report_data['seq']
-
-        # Search in both I (instruction) and D (data) leak types
-        for leak_type in ['I', 'D']:
-            if leak_type not in seq_data:
-                continue
-            per_type_map = seq_data[leak_type]
-            for code_line, pc_map in per_type_map.items():
-                if pc_hex in pc_map:
-                    leak_info = _LeakInfo(leak_type, code_line, pc_hex, pc_map[pc_hex][0])
-                    return leak_info
+        # Search all clauses (seq and cond)
+        for clause in ['seq', 'cond']:
+            data = report_data[clause]
+            # Search in both I (instruction) and D (data) leak types
+            for leak_type in ['I', 'D']:
+                if leak_type not in data:
+                    continue
+                per_type_map = data[leak_type]
+                for code_line, pc_map in per_type_map.items():
+                    if pc_hex in pc_map:
+                        loc = pc_map[pc_hex][0]
+                        leak_info = _LeakInfo(clause, leak_type, code_line, pc_hex, loc)
+                        return leak_info
         assert False, f"PC {pc_hex} not found in the report."
 
     def _translate_pc_to_gdb(self, pc: int) -> int:
@@ -383,24 +418,10 @@ class Driller:
         assert False, f"Module for PC {pc:#x} not found in mappings.txt"
 
     def _get_gdb_base(self, module_basename: str) -> int:
-        """Run a dummy gdb session and find the module's base address under gdb."""
-        gdb_cmd = [
-            'gdb',
-            '--batch',
-            '-ex',
-            'starti',
-            '-ex',
-            'info proc mappings',
-            '--args',
-        ] + self._template_cmd
-
-        result = run(gdb_cmd, stdout=PIPE, stderr=PIPE, text=True, check=False)
-
-        for line in result.stdout.split('\n'):
+        """Return the base address of a given module as reported by gdb."""
+        for line in self._gdb_mappings:
             if module_basename in line:
-                parts = line.split()
-                if len(parts) >= 1 and parts[0].startswith('0x'):
-                    return int(parts[0], 16)
+                return int(line.split()[0], 16)
 
         assert False, f"Module {module_basename} not found in gdb mappings output"
 
