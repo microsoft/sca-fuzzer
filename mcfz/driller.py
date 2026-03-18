@@ -65,10 +65,9 @@ class _DebugCmdBuilder:
             cmd.append(f"del {b_num}")
             # Reach target
             b_num = _add_break(win.pc_gdb)
-            cmd.append("continue")
             if win.pc_occurrence > 0:
                 cmd.append(f"ignore {b_num} {win.pc_occurrence}")
-                cmd.append("continue")
+            cmd.append("continue")
 
             if lvl == len(leak_info.spec_windows) - 1:
                 _prompt(f'Reached leak instruction (level: {lvl}, pc: {win.pc_gdb:#x})')
