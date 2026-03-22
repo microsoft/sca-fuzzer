@@ -226,14 +226,16 @@ class _ReportPrinter:
         leakage_line_map: LeakageLineMapVrb1 = {}
         # Insert all violations
         for clause, leak_type, code_line, _, _ in self._iter_leaks_with_code_lines(leakage_map):
-            leakage_line_map.setdefault(clause, {}).setdefault(leak_type, []).append(code_line)
-        # Remove COND violations that were also found with SEQ
+            leakage_line_map.setdefault(clause, {}).setdefault(leak_type, set()).add(code_line)
+        # Order them
         for leak_type in leakage_line_map.get('seq', {}).keys():
+            seq: set[CodeLine] = leakage_line_map.get('seq', {}).get(leak_type, set())
+            # Of the COND violations, only keep the ones that are not also SEQ violations
             if leak_type in leakage_line_map.get('cond', {}).keys():
-                cond: list[CodeLine] = leakage_line_map.get('cond', {}).get(leak_type, [])
-                seq: list[CodeLine] = leakage_line_map.get('seq', {}).get(leak_type, [])
-                diff = set(cond) - set(seq)
-                leakage_line_map['cond'][leak_type] = sorted(diff)
+                cond: set[CodeLine] = leakage_line_map.get('cond', {}).get(leak_type, set())
+                leakage_line_map['cond'][leak_type] = sorted(list(cond - seq))
+            # For
+            leakage_line_map['seq'][leak_type] = sorted(list(seq))
 
         return leakage_line_map
 
@@ -257,16 +259,18 @@ class _ReportPrinter:
 
         # Filter the leakage line map by the allowlist
         filtered_leakage_line_map: LeakageLineMap = deepcopy(leakage_line_map)
-        for leak_type in leakage_line_map:
-            per_type_map = leakage_line_map[leak_type]
-            for code_line in per_type_map:
-                if self._is_allowlisted(code_line, allowlist):
-                    filtered_per_type_map = filtered_leakage_line_map[leak_type]
-                    if isinstance(filtered_per_type_map, list):  # Verbosity 1
-                        filtered_per_type_map.remove(code_line)
-                        continue
-                    if isinstance(filtered_per_type_map, dict):  # Verbosity 2 or 3
-                        filtered_per_type_map.pop(code_line)
+        for clause in leakage_line_map:
+            per_clause_map = leakage_line_map[clause]
+            for leak_type in per_clause_map:
+                per_type_map = per_clause_map[leak_type]
+                for code_line in per_type_map:
+                    if self._is_allowlisted(code_line, allowlist):
+                        filtered_per_type_map = filtered_leakage_line_map[clause][leak_type]
+                        if isinstance(filtered_per_type_map, list):  # Verbosity 1
+                            filtered_per_type_map.remove(code_line)
+                            continue
+                        if isinstance(filtered_per_type_map, dict):  # Verbosity 2 or 3
+                            filtered_per_type_map.pop(code_line)
 
         return filtered_leakage_line_map
 
