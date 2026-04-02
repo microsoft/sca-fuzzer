@@ -106,6 +106,19 @@ def _parse_args() -> Any:  # pylint: disable=r0915
         help="Path to the directory to store the report with detailed information about\n"
         "the given violation as well as temporary files",
     )
+    details.add_argument(
+        "--fast",
+        action='store_true',
+        default=False,
+        help="Skip intermediate gdb prompts (architectural and spec window starts)",
+    )
+    details.add_argument(
+        "--single-step",
+        action='store_true',
+        default=False,
+        help="Drop to interactive gdb at the first speculative instruction, with breakpoints\n"
+        "set at all remaining points of interest (use ni/si to single-step)",
+    )
 
     args = parser.parse_args()
 
@@ -149,8 +162,13 @@ def main() -> int:
     # Non-fuzzing modes:
     if args.subparser_name == 'details':
         config = Config(args.config, None)
-        driller = Driller(config=config, output_dir=args.output_dir)
-        driller.drill_down(pc_=args.pc)
+        driller = Driller(
+            config=config,
+            output_dir=args.output_dir,
+            fast=args.fast,
+            single_step=args.single_step,
+        )
+        driller.drill_down(pc=args.pc)
         return 0
 
     # Fuzzing modes:

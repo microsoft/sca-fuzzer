@@ -44,6 +44,9 @@ clean-adapter:
 
 clean:  clean-backend clean-adapter
 
+uninstall-dr:
+	rm -rf $(dr_path)/DynamoRIO-Linux-*.tar.gz $(dr_path)/drrun
+
 # * build dr_model
 
 # ```

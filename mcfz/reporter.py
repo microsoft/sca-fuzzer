@@ -30,43 +30,34 @@ CodeLine = NewType('CodeLine', str)
     * line_number is the line number in the source file.
 """
 
-LeakageLineMapVrb3 = Dict[
-    ClauseType,
+LeakageLineMapVrb3 = Dict[ClauseType, Dict[
+    LeakType,
     Dict[
-        LeakType,
+        CodeLine,
         Dict[
-            CodeLine,
-            Dict[
-                PC,
-                List[LinesInTracePair],
-            ],
+            PC,
+            List[LinesInTracePair],
         ],
-    ]
-]
+    ],
+]]
 """ Map of unique leaky lines of code, indexed by leak type and code line.
     The value is a map of PCs where the leak was found, and a list of locations
     where the leak was found in the trace files.
 """
 
-LeakageLineMapVrb2 = Dict[
-    ClauseType,
+LeakageLineMapVrb2 = Dict[ClauseType, Dict[
+    LeakType,
     Dict[
-        LeakType,
-        Dict[
-            CodeLine,
-            List[PC],
-        ],
-    ]
-]
+        CodeLine,
+        List[PC],
+    ],
+]]
 """ A variant of LeakageLineMap for the lower verbosity level (verbosity 2). """
 
-LeakageLineMapVrb1 = Dict[
-    ClauseType,
-    Dict[
-        LeakType,
-        List[CodeLine],
-    ]
-]
+LeakageLineMapVrb1 = Dict[ClauseType, Dict[
+    LeakType,
+    List[CodeLine],
+]]
 """ A variant of LeakageLineMap for the lowest verbosity level (verbosity 1). """
 
 LeakageLineMap = Union[
@@ -259,18 +250,20 @@ class _ReportPrinter:
 
         # Filter the leakage line map by the allowlist
         filtered_leakage_line_map: LeakageLineMap = deepcopy(leakage_line_map)
-        for clause in leakage_line_map:
-            per_clause_map = leakage_line_map[clause]
-            for leak_type in per_clause_map:
-                per_type_map = per_clause_map[leak_type]
-                for code_line in per_type_map:
-                    if self._is_allowlisted(code_line, allowlist):
-                        filtered_per_type_map = filtered_leakage_line_map[clause][leak_type]
-                        if isinstance(filtered_per_type_map, list):  # Verbosity 1
-                            filtered_per_type_map.remove(code_line)
-                            continue
-                        if isinstance(filtered_per_type_map, dict):  # Verbosity 2 or 3
-                            filtered_per_type_map.pop(code_line)
+        for clause_type in leakage_line_map:
+            for leak_type in leakage_line_map[clause_type]:
+                per_type_map = leakage_line_map[clause_type][leak_type]
+                filtered_per_type = filtered_leakage_line_map[clause_type][leak_type]
+                if isinstance(per_type_map, list) and isinstance(filtered_per_type, list):
+                    # Verbosity 1: remove allowlisted entries from the list
+                    for cl in per_type_map:
+                        if self._is_allowlisted(cl, allowlist):
+                            filtered_per_type.remove(cl)
+                elif isinstance(per_type_map, dict) and isinstance(filtered_per_type, dict):
+                    # Verbosity 2 or 3: remove allowlisted entries from the dict
+                    for code_line in per_type_map:
+                        if self._is_allowlisted(code_line, allowlist):
+                            filtered_per_type.pop(code_line)
 
         return filtered_leakage_line_map
 
