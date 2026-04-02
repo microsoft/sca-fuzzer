@@ -107,7 +107,7 @@ class FuzzGen:
             errors: List[str] = []
             for proc in procs:
                 try:
-                    proc.wait(timeout=timeout_s)
+                    proc.wait(timeout=timeout_s + 20)  # +20 to account for minor delays
                 except subprocess.TimeoutExpired:
                     proc.terminate()
                     proc.wait()
