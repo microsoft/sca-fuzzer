@@ -6,6 +6,7 @@
 
 #include <linux/kernel.h>
 #include <linux/mm.h>
+#include <linux/vmalloc.h>
 
 #include "actor.h"
 #include "hardware_desc.h"
@@ -20,7 +21,7 @@ sandbox_pteps_t *sandbox_pteps;
 static sandbox_ptes_t *orig_ptes;
 static pte_t_ *faulty_ptes = NULL;
 
-extern struct mm_struct init_mm;
+extern pgd_t *kernel_pgd_ptr;
 
 pte_t *get_pte(uint64_t hva)
 {
@@ -31,7 +32,7 @@ pte_t *get_pte(uint64_t hva)
     }
 
     // Do a page walk
-    pgd_t *pgdp = pgd_offset_k(hva);
+    pgd_t *pgdp = pgd_offset_pgd(kernel_pgd_ptr, hva);
     pgd_t pgd = READ_ONCE(*pgdp);
     if (pgd_none(pgd)) {
         PRINT_ERR("get_pte: pgd_none");
@@ -290,6 +291,27 @@ void restore_faulty_page_host_permissions(void)
 }
 
 // =================================================================================================
+/// @brief Verify get_pte() can walk the kernel page tables for a known-mapped
+/// vmalloc VA. Catches misconfigured kernel_pgd_ptr at module-load time
+/// rather than crashing inside get_pte() on the first sandbox allocation.
+/// @return 0 on success, negative errno on failure
+static int self_test_page_walk(void)
+{
+    void *probe_va = vmalloc(PAGE_SIZE);
+    if (!probe_va) {
+        PRINT_ERR("self_test_page_walk: probe vmalloc failed\n");
+        return -ENOMEM;
+    }
+    pte_t *probe = get_pte((uint64_t)probe_va);
+    vfree(probe_va);
+    if (!probe) {
+        PRINT_ERR("self_test_page_walk: page-table walk failed "
+                  "(kernel_pgd_ptr=%p)\n", kernel_pgd_ptr);
+        return -ENODEV;
+    }
+    return 0;
+}
+
 int init_page_table_manager(void)
 {
     orig_ptes = CHECKED_ZALLOC(sizeof(sandbox_ptes_t));
@@ -303,7 +325,8 @@ int init_page_table_manager(void)
     sandbox_pteps->util_pteps = CHECKED_ZALLOC(N_UTIL_PAGES * sizeof(pte_t *));
 
     faulty_ptes = (pte_t_ *)CHECKED_ZALLOC(sizeof(pte_t_));
-    return 0;
+
+    return self_test_page_walk();
 }
 
 void free_page_table_manager(void)
