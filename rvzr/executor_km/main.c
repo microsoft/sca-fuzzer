@@ -70,9 +70,6 @@ int (*set_memory_nx)(unsigned long, int) = 0;
 #include <linux/set_memory.h>
 #endif
 
-// Kernel top-level page-table base; used by get_pte() in page_tables_host.c.
-pgd_t *kernel_pgd_ptr = NULL;
-
 // Version-dependent definitions
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 14, 0)
 #define bin_attr_t const struct bin_attribute
@@ -568,7 +565,8 @@ static ssize_t dbg_guest_page_tables_show(struct kobject *kobj, struct kobj_attr
 // Initialization and Memory Management
 // =================================================================================================
 
-/// @brief Get symbols for missing kernel functions
+/// @brief Resolve kernel function symbols that are not exported to modules
+///        on recent kernels.
 /// @param void
 /// @return 0 on success, negative errno on failure
 static inline int _get_required_kernel_functions(void)
@@ -586,28 +584,14 @@ static inline int _get_required_kernel_functions(void)
     }
 #endif // KPROBE_LOOKUP
 
-    // Memory permission functions (used in sandbox_manager.c)
     set_memory_x = (void *)kallsyms_lookup_name("set_memory_x");
     set_memory_nx = (void *)kallsyms_lookup_name("set_memory_nx");
-
-    // Kernel page-table root (used in page_tables_host.c).
-    // Note: On x86_64 the kernel-mode page-table root is `init_top_pgt`
-    //      (`swapper_pg_dir` is a macro alias of it). On arm64 it is the
-    //      exported symbol `swapper_pg_dir`.
-#if defined(ARCH_X86_64)
-    kernel_pgd_ptr = (pgd_t *)kallsyms_lookup_name("init_top_pgt");
-#else
-    kernel_pgd_ptr = (pgd_t *)kallsyms_lookup_name("swapper_pg_dir");
-#endif
-
-    if (!set_memory_x || !set_memory_nx || !kernel_pgd_ptr) {
+    if (!set_memory_x || !set_memory_nx) {
         PRINT_ERR("Failed to resolve required kernel symbols "
-                  "(set_memory_x=%p, set_memory_nx=%p, kernel_pgd_ptr=%p)\n",
-                  set_memory_x, set_memory_nx, kernel_pgd_ptr);
+                  "(set_memory_x=%p, set_memory_nx=%p)\n",
+                  set_memory_x, set_memory_nx);
         return -ENODEV;
     }
-#else
-    kernel_pgd_ptr = swapper_pg_dir;
 #endif // LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0)
     return 0;
 }

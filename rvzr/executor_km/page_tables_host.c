@@ -16,29 +16,140 @@
 #include "page_tables_common.h"
 #include "page_tables_host.h"
 
+#if defined(ARCH_X86_64)
+#include <asm/pgtable_types.h> // _PAGE_PSE
+#include <asm/special_insns.h> // read_cr3_pa()
+#elif defined(ARCH_ARM)
+#include <asm/pgtable-hwdef.h> // PUD_TYPE_TABLE, PMD_TYPE_TABLE
+#endif
+
+#if defined(ARCH_X86_64)
+#define IS_PUD_LEAF(pud) ((pud_val(pud) & _PAGE_PSE) != 0)
+#define IS_PMD_LEAF(pmd) ((pmd_val(pmd) & _PAGE_PSE) != 0)
+#elif defined(ARCH_ARM)
+#define IS_PUD_LEAF(pud) ((pud_val(pud) & PUD_TYPE_MASK) != PUD_TYPE_TABLE)
+#define IS_PMD_LEAF(pmd) ((pmd_val(pmd) & PMD_TYPE_MASK) != PMD_TYPE_TABLE)
+#endif
+
 sandbox_pteps_t *sandbox_pteps;
 
 static sandbox_ptes_t *orig_ptes;
 static pte_t_ *faulty_ptes = NULL;
 
-extern pgd_t *kernel_pgd_ptr;
+// =================================================================================================
+// Kernel top-level page-table base resolution
+//
+// `get_pte()` walks the kernel/vmalloc half of the address space and therefore
+// needs the kernel's top-level page-table (pgd) base. How that base is obtained
+// — and whether it can be cached — differs fundamentally between the two
+// supported architectures.
+//
+// We intentionally avoid reading symbols like `swapper_pg_dir` / `init_mm` via
+// kallsyms: kernels built with CONFIG_KALLSYMS_ALL=n do not expose data
+// symbols to modules, and the layout of `struct mm_struct` is not part of any
+// stable ABI either.
+// =================================================================================================
 
+#if defined(ARCH_ARM)
+// On arm64 the CPU consults two separate registers for translation: TTBR0_EL1
+// for user VAs and TTBR1_EL1 for kernel/vmalloc VAs. TTBR1_EL1 is installed
+// once at boot to point at `swapper_pg_dir`, a statically allocated page that
+// lives for the lifetime of the system and is never replaced on context switch
+// (only TTBR0_EL1 changes). So the value is stable and safe to cache.
+static pgd_t *arm64_kernel_pgd = NULL;
+
+static int init_kernel_pgd_base(void)
+{
+    unsigned long ttbr1;
+    phys_addr_t pa;
+
+    asm volatile("mrs %0, ttbr1_el1" : "=r"(ttbr1));
+
+    // Reverse the kernel's `phys_to_ttbr` encoding. With FEAT_LPA active
+    // (CONFIG_ARM64_PA_BITS_52), PA[51:48] is packed into TTBR[5:2] while
+    // PA[47:12] remains in TTBR[47:12]. Otherwise the PA sits in [47:12]
+    // directly.
+#ifdef CONFIG_ARM64_PA_BITS_52
+    pa = (ttbr1 & GENMASK_ULL(47, PAGE_SHIFT)) | ((ttbr1 & GENMASK_ULL(5, 2)) << 46);
+#else
+    pa = ttbr1 & GENMASK_ULL(47, PAGE_SHIFT);
+#endif
+
+    arm64_kernel_pgd = (pgd_t *)phys_to_virt(pa);
+    if (!arm64_kernel_pgd) {
+        PRINT_ERR("init_kernel_pgd_base: failed to decode TTBR1_EL1=0x%lx\n", ttbr1);
+        return -ENODEV;
+    }
+    return 0;
+}
+
+static inline pgd_t *get_kernel_pgd_base(void) { return arm64_kernel_pgd; }
+
+#elif defined(ARCH_X86_64)
+// On x86_64 there is no dedicated kernel page-table register: a single CR3
+// holds the pgd for *both* halves of the address space, and it is reloaded on
+// every context switch to point at the currently scheduled task's `mm->pgd`.
+// Two consequences:
+//
+//   1. Lifetime: the pgd page is owned by some task's mm_struct. When that
+//      task exits and its last mm reference drops, `pgd_free()` returns the
+//      page to the allocator. A pointer captured at `init_module()` time
+//      would dangle — typically the insmod task itself exits shortly after
+//      loading the module.
+//   2. Identity: which pgd is active depends on the task scheduled on the
+//      CPU at call time, so a single cached pointer cannot represent "the"
+//      kernel pgd.
+//
+// Reading CR3 on every call sidesteps both: the kernel keeps the upper-half
+// (kernel/vmalloc) entries of every pgd synchronized, so walking whichever
+// pgd is live yields the correct PTE for a kernel VA regardless of context.
+static inline int init_kernel_pgd_base(void) { return 0; }
+
+static inline pgd_t *get_kernel_pgd_base(void) { return (pgd_t *)__va(read_cr3_pa()); }
+
+#else
+#error "Unsupported architecture: cannot determine kernel pgd base"
+#endif
+
+
+/// @brief Walk the kernel page tables for a kernel/vmalloc VA and return a
+///        pointer to its leaf PTE.
+///
+/// The returned pointer aliases the live page-table entry; writes through
+/// it modify the mapping directly and the caller is responsible for any
+/// required TLB invalidation.
+///
+/// @param hva  Kernel VA to translate. Must lie in the vmalloc or direct-map
+///             (kmalloc) range; other addresses are rejected.
+/// @return Pointer to the leaf PTE, or NULL if the address is out of range,
+///         the pgd base is uninitialized, or the walk hits an unmapped or
+///         malformed entry.
 pte_t *get_pte(uint64_t hva)
 {
+    pgd_t *pgd_base;
+
     // Make sure we are in vmalloc area
     if (!is_vmalloc_addr((void *)hva) && !virt_addr_valid((void *)hva)) {
         PRINT_ERR("get_pte: address not in vmalloc or kmalloc area");
         return NULL;
     }
 
+    pgd_base = get_kernel_pgd_base();
+    if (!pgd_base) {
+        PRINT_ERR("get_pte: kernel pgd base not initialized");
+        return NULL;
+    }
+
     // Do a page walk
-    pgd_t *pgdp = pgd_offset_pgd(kernel_pgd_ptr, hva);
+    // - Level 0
+    pgd_t *pgdp = pgd_offset_pgd(pgd_base, hva);
     pgd_t pgd = READ_ONCE(*pgdp);
     if (pgd_none(pgd)) {
         PRINT_ERR("get_pte: pgd_none");
         return NULL;
     }
 
+    // - Level 1
     p4d_t *p4dp = p4d_offset(pgdp, hva);
     p4d_t p4d = READ_ONCE(*p4dp);
     if (p4d_none(p4d)) {
@@ -46,10 +157,17 @@ pte_t *get_pte(uint64_t hva)
         return NULL;
     }
 
+    // - Level 2
     pud_t *pudp = pud_offset(p4dp, hva);
     pud_t pud = READ_ONCE(*pudp);
     if (pud_none(pud)) {
         PRINT_ERR("get_pte: pud_none");
+        return NULL;
+    }
+    // Reject huge (1 GiB) leaf mappings: descending past a block entry would
+    // synthesize a bogus PMD pointer.
+    if (IS_PUD_LEAF(pud)) {
+        PRINT_ERR("get_pte: pud is a huge (1 GiB) leaf mapping\n");
         return NULL;
     }
     if (pud_bad(pud)) {
@@ -57,10 +175,16 @@ pte_t *get_pte(uint64_t hva)
         return NULL;
     }
 
+    // - Level 3
     pmd_t *pmdp = pmd_offset(pudp, hva);
     pmd_t pmd = READ_ONCE(*pmdp);
     if (pmd_none(pmd)) {
         PRINT_ERR("get_pte: pmd_none");
+        return NULL;
+    }
+    // Reject large (2 MiB) leaf mappings.
+    if (IS_PMD_LEAF(pmd)) {
+        PRINT_ERR("get_pte: pmd is a large (2 MiB) leaf mapping\n");
         return NULL;
     }
     if (pmd_bad(pmd)) {
@@ -68,6 +192,7 @@ pte_t *get_pte(uint64_t hva)
         return NULL;
     }
 
+    // - Level 4 (leaf)
     pte_t *pte = pte_offset_kernel(pmdp, hva);
     ASSERT_ENULL(pte_present(*pte), "get_pte");
 
@@ -291,9 +416,10 @@ void restore_faulty_page_host_permissions(void)
 }
 
 // =================================================================================================
-/// @brief Verify get_pte() can walk the kernel page tables for a known-mapped
-/// vmalloc VA. Catches misconfigured kernel_pgd_ptr at module-load time
-/// rather than crashing inside get_pte() on the first sandbox allocation.
+/// @brief Verify get_pte() can walk the kernel page tables for a
+/// known-mapped vmalloc VA. Catches a misconfigured kernel pgd base at
+/// module-load time rather than crashing inside get_pte() on the first
+/// sandbox allocation.
 /// @return 0 on success, negative errno on failure
 static int self_test_page_walk(void)
 {
@@ -305,8 +431,7 @@ static int self_test_page_walk(void)
     pte_t *probe = get_pte((uint64_t)probe_va);
     vfree(probe_va);
     if (!probe) {
-        PRINT_ERR("self_test_page_walk: page-table walk failed "
-                  "(kernel_pgd_ptr=%p)\n", kernel_pgd_ptr);
+        PRINT_ERR("self_test_page_walk: page-table walk failed\n");
         return -ENODEV;
     }
     return 0;
@@ -314,32 +439,47 @@ static int self_test_page_walk(void)
 
 int init_page_table_manager(void)
 {
+    int err = init_kernel_pgd_base();
+    if (err)
+        return err;
+
     orig_ptes = CHECKED_ZALLOC(sizeof(sandbox_ptes_t));
-    orig_ptes->data_ptes = CHECKED_ZALLOC(N_DATA_PAGES_PER_ACTOR * sizeof(pte_t));
-    orig_ptes->code_ptes = CHECKED_ZALLOC(N_CODE_PAGES_PER_ACTOR * sizeof(pte_t));
-    orig_ptes->util_ptes = CHECKED_ZALLOC(N_UTIL_PAGES * sizeof(pte_t));
+    orig_ptes->data_ptes = CHECKED_ZALLOC(N_DATA_PAGES_PER_ACTOR * sizeof(pte_t_));
+    orig_ptes->code_ptes = CHECKED_ZALLOC(N_CODE_PAGES_PER_ACTOR * sizeof(pte_t_));
+    orig_ptes->util_ptes = CHECKED_ZALLOC(N_UTIL_PAGES * sizeof(pte_t_));
 
     sandbox_pteps = CHECKED_ZALLOC(sizeof(sandbox_pteps_t));
-    sandbox_pteps->data_pteps = CHECKED_ZALLOC(N_DATA_PAGES_PER_ACTOR * sizeof(pte_t *));
-    sandbox_pteps->code_pteps = CHECKED_ZALLOC(N_CODE_PAGES_PER_ACTOR * sizeof(pte_t *));
-    sandbox_pteps->util_pteps = CHECKED_ZALLOC(N_UTIL_PAGES * sizeof(pte_t *));
+    sandbox_pteps->data_pteps = CHECKED_ZALLOC(N_DATA_PAGES_PER_ACTOR * sizeof(pte_t_ *));
+    sandbox_pteps->code_pteps = CHECKED_ZALLOC(N_CODE_PAGES_PER_ACTOR * sizeof(pte_t_ *));
+    sandbox_pteps->util_pteps = CHECKED_ZALLOC(N_UTIL_PAGES * sizeof(pte_t_ *));
 
     faulty_ptes = (pte_t_ *)CHECKED_ZALLOC(sizeof(pte_t_));
 
-    return self_test_page_walk();
+    err = self_test_page_walk();
+    if (err) {
+        free_page_table_manager();
+        return err;
+    }
+    return 0;
 }
 
 void free_page_table_manager(void)
 {
-    SAFE_FREE(sandbox_pteps->data_pteps);
-    SAFE_FREE(sandbox_pteps->code_pteps);
-    SAFE_FREE(sandbox_pteps->util_pteps);
-    SAFE_FREE(sandbox_pteps);
+    // Tolerate partial initialization: init_page_table_manager() may have
+    // failed mid-way, leaving some pointers NULL
+    if (sandbox_pteps) {
+        SAFE_FREE(sandbox_pteps->data_pteps);
+        SAFE_FREE(sandbox_pteps->code_pteps);
+        SAFE_FREE(sandbox_pteps->util_pteps);
+        SAFE_FREE(sandbox_pteps);
+    }
 
-    SAFE_FREE(orig_ptes->data_ptes);
-    SAFE_FREE(orig_ptes->code_ptes);
-    SAFE_FREE(orig_ptes->util_ptes);
-    SAFE_FREE(orig_ptes);
+    if (orig_ptes) {
+        SAFE_FREE(orig_ptes->data_ptes);
+        SAFE_FREE(orig_ptes->code_ptes);
+        SAFE_FREE(orig_ptes->util_ptes);
+        SAFE_FREE(orig_ptes);
+    }
 
     SAFE_FREE(faulty_ptes);
 }
