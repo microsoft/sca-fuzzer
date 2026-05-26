@@ -66,7 +66,6 @@ static struct kprobe kp = {.symbol_name = "kallsyms_lookup_name"};
 #include <linux/kallsyms.h>
 int (*set_memory_x)(unsigned long, int) = 0;
 int (*set_memory_nx)(unsigned long, int) = 0;
-struct mm_struct init_mm = {0};
 #else
 #include <linux/set_memory.h>
 #endif
@@ -566,10 +565,11 @@ static ssize_t dbg_guest_page_tables_show(struct kobject *kobj, struct kobj_attr
 // Initialization and Memory Management
 // =================================================================================================
 
-/// @brief Get symbols for missing kernel functions
+/// @brief Resolve kernel function symbols that are not exported to modules
+///        on recent kernels.
 /// @param void
-/// @return void
-static inline void _get_required_kernel_functions(void)
+/// @return 0 on success, negative errno on failure
+static inline int _get_required_kernel_functions(void)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0)
 #ifdef KPROBE_LOOKUP
@@ -578,11 +578,22 @@ static inline void _get_required_kernel_functions(void)
     register_kprobe(&kp);
     kallsyms_lookup_name = (kallsyms_lookup_name_t)kp.addr;
     unregister_kprobe(&kp);
+    if (!kallsyms_lookup_name) {
+        PRINT_ERR("Failed to resolve kallsyms_lookup_name via kprobe\n");
+        return -ENODEV;
+    }
 #endif // KPROBE_LOOKUP
+
     set_memory_x = (void *)kallsyms_lookup_name("set_memory_x");
     set_memory_nx = (void *)kallsyms_lookup_name("set_memory_nx");
-    init_mm = *(struct mm_struct *)kallsyms_lookup_name("init_mm");
+    if (!set_memory_x || !set_memory_nx) {
+        PRINT_ERR("Failed to resolve required kernel symbols "
+                  "(set_memory_x=%p, set_memory_nx=%p)\n",
+                  set_memory_x, set_memory_nx);
+        return -ENODEV;
+    }
 #endif // LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0)
+    return 0;
 }
 
 /// @brief Get a description of the CPU
@@ -644,6 +655,8 @@ static int check_cpu_compat(void)
 
 static int __init executor_init(void)
 {
+    int err = 0;
+
     // Get CPU information and store in a global variable for future references
     cpuinfo = get_cpuinfo();
     if (!cpuinfo) {
@@ -657,10 +670,12 @@ static int __init executor_init(void)
     }
 
     // Make sure that we have all requirements
-    _get_required_kernel_functions();
+    err = _get_required_kernel_functions();
+    if (err) {
+        return err;
+    }
 
     // Initialize modules
-    int err = 0;
     err |= init_measurements();
     err |= init_sandbox_manager();
     err |= init_code_loader();
