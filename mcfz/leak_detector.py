@@ -9,7 +9,8 @@ from __future__ import annotations
 
 import os
 
-from typing import (TYPE_CHECKING, Any, List, Tuple, Dict, Iterator, NewType, Literal, Final, cast)
+from typing import (TYPE_CHECKING, Any, List, Tuple, Dict, Iterator, NewType, Literal, Final,
+                    cast, get_args, Optional)
 from typing_extensions import TypeAlias
 
 import numpy as np
@@ -29,6 +30,9 @@ if TYPE_CHECKING:
 # ==================================================================================================
 PC = NewType('PC', int)
 """ Program Counter, used to identify instructions in the trace. """
+
+FilePath = str
+""" String representing a path """
 
 TraceFileName = NewType('TraceFileName', str)
 """ Name of the trace file, used to link leaks back the trace file they were found in. """
@@ -198,6 +202,56 @@ class _Trace:
         return cast(np.void, self.instructions[item])
 
 
+class _ChoppedTrace:
+    """
+    A trace of the execution divided into subtraces, each corresponding to a (nested) speculation
+    level. Subtraces are built lazily on iteration so that only one _Trace segment is live at a
+    time; the previous segment is freed before the next one is constructed.
+    """
+    _file_name: TraceFileName
+    _raw_trace: TraceEntryArray
+    _boundaries: IndexArray
+
+    def __init__(self, file_name: str, raw_trace: TraceEntryArray) -> None:
+        self._file_name = TraceFileName(file_name)
+        self._raw_trace = raw_trace
+
+        if len(raw_trace) == 0:
+            self._boundaries = np.empty(0, dtype=np.intp)
+            return
+
+        # Compute segment boundaries: one boundary pair per contiguous run of the same spec_level.
+        spec_levels = raw_trace['spec_level']
+        change_points = np.flatnonzero(np.diff(spec_levels)) + 1
+        self._boundaries = np.concatenate([[0], change_points, [len(raw_trace)]])
+
+    @classmethod
+    def empty(cls) -> _ChoppedTrace:
+        """ Create an empty trace instance. """
+        trace = cls.__new__(cls)
+        trace._file_name = TraceFileName('')
+        trace._boundaries = np.empty(0, dtype=np.intp)
+        return trace
+
+    def __len__(self) -> int:
+        return max(0, len(self._boundaries) - 1)
+
+    def __iter__(self) -> Iterator[_Trace]:
+        for i in range(len(self._boundaries) - 1):
+            start = int(self._boundaries[i])
+            end = int(self._boundaries[i + 1])
+            segment = self._raw_trace[start:end]
+
+            # Segments with no PC entries carry no instructions; skip them.
+            if not np.any(segment['type'] == TraceEntryType.ENTRY_PC):
+                continue
+
+            trace = _Trace(self._file_name, segment)
+            # _Trace stores segment-relative indices; make them absolute so that
+            # leak localization (LinesInTracePair) can reference the original file.
+            trace.instructions['org_trace_entry_id'] += start
+            yield trace
+
 # ==================================================================================================
 # Trace parsing and leakage analysis
 # ==================================================================================================
@@ -256,33 +310,34 @@ class _LeakDetectionWorker:
         raise ValueError(
             f"Reference trace file (000.trace) not found in the given list. {trace_files}")
 
-    def _parse_trace_file(self, trace_file: str) -> _Trace:
+    def _parse_trace_file(self, trace_file: str) -> _ChoppedTrace:
         if not os.path.isfile(trace_file):
             self._logger.warning(f"File {trace_file} not found.\n    "
                                  "Either tracing failed or is incomplete. Skipping")
-            return _Trace.empty()
+            return _ChoppedTrace.empty()
 
         # If the file is not compressed, parse it directly
         if trace_file.endswith(".trace"):
             raw_trace = self.trace_decoder.decode_trace_file(trace_file)
             try:
-                trace = _Trace(trace_file, raw_trace)
+                trace = _ChoppedTrace(trace_file, raw_trace)
                 return trace
             except IndexError:
                 print(f"Trace {trace_file} is likely corrupted! (len: {len(raw_trace)})")
-                return _Trace.empty()
+                return _ChoppedTrace.empty()
 
         # If the file is compressed, decompress and parse it
         if trace_file.endswith(".gz") or trace_file.endswith(".bz2"):
             decompressed_file = self._compressor.decompress_universal(trace_file, keep=True)
             raw_trace = self.trace_decoder.decode_trace_file(decompressed_file)
-            trace = _Trace(trace_file, raw_trace)
+            trace = _ChoppedTrace(trace_file, raw_trace)
             os.remove(decompressed_file)
             return trace
 
         raise ValueError(f"Unsupported trace file format: {trace_file}")
 
-    def _identify_leaks(self, ref_trace: _Trace, target_trace: _Trace) -> LeakyInstrArray:
+    def _identify_leaks(self, ref_trace: _ChoppedTrace,
+                        target_trace: _ChoppedTrace) -> LeakyInstrArray:
         """
         Check traces for violations of the non-interference property.
 
@@ -292,6 +347,57 @@ class _LeakDetectionWorker:
 
         FIXME: Rewind to merge point not implemented; stops at first I-type leak.
         """
+        all_leaks: List[LeakyInstrArray] = []
+        cur_level = 0
+        i_leak_level = None
+        prev_level = 0
+        last_insts = {0: None}
+
+        # Inspect each chunk of the trace
+        for ref_sub, tgt_sub in zip(ref_trace, target_trace):
+            cur_level = int(ref_sub.instructions['spec_level'][0])
+
+            # If we have found an I-Leak ...
+            if i_leak_level is not None:
+                # ... skip this chunk if it's affected by the I-Leak
+                if cur_level >= i_leak_level:
+                    continue
+                # ... keep looking for violations if we exited the I-Leak's window
+                else:
+                    i_leak_level = None
+
+            # Get the relevant preceding instruction
+            if cur_level >= prev_level:
+                last_inst = last_insts.setdefault(prev_level, None)
+            else:
+                last_inst = last_insts.setdefault(cur_level, None)
+            prev_level = cur_level
+            last_insts[cur_level] = ref_sub.instructions[-1]
+
+            # Check for violations (D-Leaks and I-Leaks)
+            leaks = self._identify_leaks_in_subtrace(ref_sub, tgt_sub, last_inst)
+            if leaks.size == 0:
+                continue
+            all_leaks.append(leaks)
+            #  Handle I-Leaks
+            if np.any(leaks['leak_type'] == 'I'):
+                # If the I-Leak is architectural, stop here
+                # TODO: implement resume point
+                if cur_level == 0:
+                    break
+                else:
+                    i_leak_level = cur_level
+
+        if not all_leaks:
+            return np.array([], dtype=LeakyInstrDType)
+        return np.concatenate(all_leaks) if len(all_leaks) > 1 else all_leaks[0]
+
+    def _identify_leaks_in_subtrace(self, ref_trace: _Trace, target_trace: _Trace,
+                                    last_ref: Optional[TracedInstruction]) -> LeakyInstrArray:
+        """
+        Check a pair of subtraces that contain instructions of the same speculation level
+        for non-interference violations.
+        """
         end_id = min(len(ref_trace), len(target_trace))
         if end_id == 0:
             return np.array([], dtype=LeakyInstrDType)
@@ -300,7 +406,7 @@ class _LeakDetectionWorker:
         tgt_instr = target_trace.instructions[:end_id]
 
         # Detect I-type leak (PC divergence)
-        i_leak, analysis_end = self._find_i_type_leak(ref_instr, tgt_instr, end_id)
+        i_leak, analysis_end = self._find_i_type_leak(ref_instr, tgt_instr, end_id, last_ref)
         if analysis_end == 0:
             return i_leak
 
@@ -314,19 +420,22 @@ class _LeakDetectionWorker:
             return np.array([], dtype=LeakyInstrDType)
         return np.concatenate(non_empty) if len(non_empty) > 1 else non_empty[0]
 
-    def _find_i_type_leak(self, ref_instr: InstrArray, tgt_instr: InstrArray,
-                          end_id: int) -> Tuple[LeakyInstrArray, int]:
+    def _find_i_type_leak(self, ref_instr: InstrArray, tgt_instr: InstrArray, end_id: int,
+                          last_ref: Optional[TracedInstruction]) -> Tuple[LeakyInstrArray, int]:
         """ Find first I-type leak (PC divergence) and return analysis boundary. """
         pc_mismatch = ref_instr['pc'] != tgt_instr['pc']
         if not pc_mismatch.any():
             return np.array([], dtype=LeakyInstrDType), end_id
 
-        first_diverge = int(np.argmax(pc_mismatch))
-        if first_diverge == 0:
-            return np.array([], dtype=LeakyInstrDType), 0  # Can't blame previous instruction
-
         # The instruction before divergence caused the branch
-        prev = ref_instr[first_diverge - 1]
+        first_diverge = int(np.argmax(pc_mismatch))
+        if first_diverge > 0:
+            prev = ref_instr[first_diverge - 1]
+        elif last_ref is not None:
+            prev = last_ref  # Previous instruction is from another speculative window
+        else:
+            return np.array([], dtype=LeakyInstrDType), 0  # No previous instruction to blame
+
         leak = np.array([(prev['pc'], 'I', prev['org_trace_entry_id'], prev['org_trace_entry_id'],
                           prev['spec_level'])], dtype=LeakyInstrDType)
         return leak, first_diverge
