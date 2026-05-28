@@ -83,6 +83,13 @@ def _convert_int_keys_to_hex(o: Any) -> Any:
     return o
 
 
+def set_default_serialization(obj: Any) -> Any:
+    """ Special-case for serializing sets to JSON """
+    if isinstance(obj, set):
+        return list(obj)
+    raise TypeError
+
+
 class _ReportPrinter:
     """
     Class responsible for printing the analysis results to a report file.
@@ -130,7 +137,7 @@ class _ReportPrinter:
         """
         report_dict = _convert_int_keys_to_hex(leakage_line_map)
         with open(report_file, "w") as f:
-            json.dump(report_dict, f, indent=4, sort_keys=True)
+            json.dump(report_dict, f, indent=4, sort_keys=True, default=set_default_serialization)
 
     def _group_by_code_line(self, leakage_map: LeakageMap,
                             verbosity: ReportVerbosity) -> LeakageLineMap:
@@ -217,16 +224,17 @@ class _ReportPrinter:
         leakage_line_map: LeakageLineMapVrb1 = {}
         # Insert all violations
         for clause, leak_type, code_line, _, _ in self._iter_leaks_with_code_lines(leakage_map):
-            leakage_line_map.setdefault(clause, {}).setdefault(leak_type, set()).add(code_line)
+            if code_line not in leakage_line_map.setdefault(clause, {}).setdefault(leak_type, []):
+                leakage_line_map[clause][leak_type].append(code_line)
         # Order them
         for leak_type in leakage_line_map.get('seq', {}).keys():
-            seq: set[CodeLine] = leakage_line_map.get('seq', {}).get(leak_type, set())
+            seq = leakage_line_map.get('seq', {}).get(leak_type, [])
             # Of the COND violations, only keep the ones that are not also SEQ violations
             if leak_type in leakage_line_map.get('cond', {}).keys():
-                cond: set[CodeLine] = leakage_line_map.get('cond', {}).get(leak_type, set())
-                leakage_line_map['cond'][leak_type] = sorted(list(cond - seq))
+                cond = leakage_line_map.get('cond', {}).get(leak_type, [])
+                leakage_line_map['cond'][leak_type] = sorted(list(set(cond) - set(seq)))
             # For
-            leakage_line_map['seq'][leak_type] = sorted(list(seq))
+            leakage_line_map['seq'][leak_type] = sorted(seq)
 
         return leakage_line_map
 
