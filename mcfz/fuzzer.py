@@ -6,6 +6,7 @@ SPDX-License-Identifier: MIT
 """
 from __future__ import annotations
 from typing import TYPE_CHECKING
+from pathlib import Path
 
 from .fuzz_gen import FuzzGen
 from .boost import Boost
@@ -86,7 +87,16 @@ class FuzzerCore:
                if 0, process all traces
         """
         detector = LeakDetector(self._config)
-        leakage_map = detector.build_leakage_map(self._config.stage3_wd, num_traces)
+        if self._config.use_fast_detector:
+            # TODO: find a nicer way to find the fast detector binary
+            fast_reporter_dir = Path(__file__).parent.absolute() / "fast-detector"
+            leak_detector_path = fast_reporter_dir / "leak_detector"
+            merger_path = fast_reporter_dir / "merger"
+            leakage_map = detector.build_leakage_map_fast(self._config.stage3_wd, num_traces,
+                                                          str(leak_detector_path),
+                                                          str(merger_path))
+        else:
+            leakage_map = detector.build_leakage_map(self._config.stage3_wd, num_traces)
 
         reporter = Reporter(self._config)
         reporter.generate_report(leakage_map)
