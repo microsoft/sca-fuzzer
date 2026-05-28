@@ -343,7 +343,8 @@ class _LeakDetectionWorker:
             indices = self._find_d_leaks_bulk(ref_trace, target_trace, ref_instr)
         else:
             print("WARNING: slow path for D-leak detection not implemented\nSkipping")
-            return np.array([], dtype=LeakyInstrDType)
+            indices = self._find_insts_with_different_accesses(ref_instr, tgt_instr)
+
         if len(indices) == 0:
             return np.array([], dtype=LeakyInstrDType)
 
@@ -355,6 +356,12 @@ class _LeakDetectionWorker:
         leaks['ref_trace_entry_id'] = ref_instr['org_trace_entry_id'][indices]
         leaks['spec_level'] = ref_instr['spec_level'][indices]
         return leaks
+
+    def _find_insts_with_different_accesses(self, ref_instr: InstrArray,
+                                            tgt_instr: InstrArray) -> IndexArray:
+        # Find instructions that have a different number of accesses
+        mem_mismatch = ref_instr['num_mem_accesses'] != tgt_instr['num_mem_accesses']
+        return np.flatnonzero(mem_mismatch)
 
     def _find_d_leaks_bulk(self, ref_trace: _Trace, target_trace: _Trace,
                            ref_instr: InstrArray) -> IndexArray:
@@ -373,7 +380,6 @@ class _LeakDetectionWorker:
         # Filter to valid range with non-zero memory accesses
         valid = (leak_indices < len(ref_instr)) & (ref_instr['num_mem_accesses'][leak_indices] > 0)
         return leak_indices[valid]
-
 
 def _analyse_group_worker(args: Tuple[Config, List[FileName]]) \
         -> Tuple[List[Tuple[LeakyInstrArray, str]], int]:

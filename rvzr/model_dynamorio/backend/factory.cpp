@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "factory.hpp"
+#include "include/tracers/ss.hpp"
 #include "logger.hpp"
 #include "speculator_abc.hpp"
 #include "speculators/cond.hpp"
@@ -21,6 +22,7 @@
 #include "tracers/ct.hpp"
 #include "tracers/ind.hpp"
 #include "tracers/pc.hpp"
+#include "tracers/ss.hpp"
 #include "types/decoder.hpp"
 
 using std::function;
@@ -54,7 +56,24 @@ const std::unordered_map<string, function<unique_ptr<TracerABC>(const string &, 
                Decoder &decoder, bool print) {
                 return std::make_unique<TracerInd>(out_path, logger, taint_tracker, decoder, print);
             },
-        }};
+        },
+        {
+            "ss",
+            [](const string &out_path, Logger &logger, TaintTracker &taint_tracker,
+               Decoder &decoder, bool print) {
+                return std::make_unique<TracerSilentStore>(out_path, logger, taint_tracker, decoder,
+                                                           print, std::nullopt);
+            },
+        },
+        {
+            "ss0",
+            [](const string &out_path, Logger &logger, TaintTracker &taint_tracker,
+               Decoder &decoder, bool print) {
+                return std::make_unique<TracerSilentStore>(out_path, logger, taint_tracker, decoder,
+                                                           print, 0);
+            },
+        },
+};
 
 const std::unordered_map<string,
                          function<unique_ptr<SpeculatorABC>(int, int, Logger &, TaintTracker &,

@@ -80,7 +80,7 @@ class TracerABC
 
     /// @brief Record an architectural exception with a special marker in the trace.
     /// @param siginfo Information about the exception coming from DynamoRIO.
-    void observe_exception(dr_siginfo_t *siginfo) const;
+    virtual void observe_exception(dr_siginfo_t *siginfo);
 
   protected:
     // ---------------------------------------------------------------------------------------------
