@@ -416,17 +416,29 @@ class Driller:
 
         assert False, f"Module for PC {pc:#x} not found in mappings.txt"
 
+    def _create_valid_driver_invocation(self) -> List[str]:
+        """
+        Create a valid driver invocation command by replacing the input placeholder with a real seed
+        """
+        first_seed = next(os.scandir(self._config.afl_seed_dir)).name
+        seed_path = os.path.join(self._config.afl_seed_dir, first_seed)
+        return [seed_path if s == "@@" else s for s in self._template_cmd]
+
     def _get_gdb_base(self, module_basename: str) -> int:
         """ Run a dummy gdb session and find the module's base address under gdb """
+
+        dummy_cmd = self._create_valid_driver_invocation()
         gdb_cmd = [
             'gdb',
             '--batch',
             '-ex',
-            'start',
+            f'b {self._config.tracing_entrypoint}',  # break on the entrypoint
+            '-ex',
+            'run',  # run the program to load all modules
             '-ex',
             'info proc mappings',
             '--args',
-        ] + self._template_cmd
+        ] + dummy_cmd
 
         result = run(gdb_cmd, stdout=PIPE, stderr=PIPE, text=True, check=False)
 
