@@ -70,6 +70,7 @@ class _WorkingDirManager:
                 os.makedirs(self.config.stage1_wd, exist_ok=True)
                 os.makedirs(self.config.stage2_wd, exist_ok=True)
                 os.makedirs(self.config.stage3_wd, exist_ok=True)
+                os.makedirs(self.config.stage4_wd, exist_ok=True)
             return
 
         # Identify the target directory for the given stage
