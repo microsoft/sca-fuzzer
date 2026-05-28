@@ -40,25 +40,12 @@ def _parse_args() -> Any:  # pylint: disable=r0915
 
     # ==============================================================================================
     # All Phases Together: Fuzzing-based generation, boosting, tracing, and reporting
-    all_phases = subparsers.add_parser('fuzz', add_help=True, parents=[common_parser])
-    all_phases.add_argument(
-        "-t",
-        "--timeout",
-        type=int,
-        default=10,
-        help="Fuzzing timeout, in seconds (default: 10)",
-    )
+    _ = subparsers.add_parser('fuzz', add_help=True, parents=[common_parser])
 
     # ==============================================================================================
     # Stage 1: Fuzzing-based input generation (AFL++ interface)
-    fuzz_gen = subparsers.add_parser('fuzz_gen', add_help=True, parents=[common_parser])
-    fuzz_gen.add_argument(
-        "-t",
-        "--timeout",
-        type=int,
-        default=10,
-        help="Fuzzing timeout, in seconds (default: 10)",
-    )
+    _ = subparsers.add_parser('fuzz_gen', add_help=True, parents=[common_parser])
+
     # TODO: target-cov is not used yet, but it will be used in the future to control the coverage
     # fuzz_gen.add_argument(
     #     "--target-cov",
@@ -180,7 +167,7 @@ def main() -> int:
     if args.subparser_name == 'fuzz_gen':
         fuzzer.fuzz_gen(
             target_cov=0,  # TODO: will be replaced with args.target_cov when implemented
-            timeout_s=args.timeout,
+            timeout_s=config.fuzzing_timeout_s,
         )
         return 0
 
@@ -199,7 +186,7 @@ def main() -> int:
     if args.subparser_name == 'fuzz':
         fuzzer.all(
             target_cov=0,  # TODO: will be replaced with args.target_cov when implemented
-            timeout_s=args.timeout,
+            timeout_s=config.fuzzing_timeout_s,
         )
         return 0
 

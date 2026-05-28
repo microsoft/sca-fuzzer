@@ -273,6 +273,14 @@ class Config:
     _help += """\n\n max_spec_windown (optional)
     Maximum size of the speculation window. """
 
+    tracing_total_timeout_s: int = 60 * 60 * 10
+    _help += """\n\n tracing_total_timeout_s (optional)
+    Maximum time to spend for each worker. """
+
+    tracing_timeout_s: int = 60 * 5
+    _help += """\n\n tracing_timeout_s (optional)
+    Maximum time to spend on each input. """
+
     # ==============================================================================================
     # AFL++ parameters
     afl_root: str = "~/.local/afl/"
@@ -287,6 +295,10 @@ class Config:
     afl_exec_timeout_ms: int = 100
     _help += """\n\n afl_exec_timeout_ms (100)
     Timeout for AFL++ execution, in milliseconds. """
+
+    fuzzing_timeout_s: int = 3600
+    _help += """\n\n fuzzing_timeout_s (3600)
+    Timeout for fuzzing, in seconds. """
 
     afl_quiet: bool = True
     _help += """\n\n afl_quiet (True)
@@ -389,6 +401,11 @@ class Config:
         self.tracing_ignorelist = yaml_data.get("tracing_ignorelist", self.tracing_ignorelist)
         self.tracing_entrypoint = yaml_data.get("tracing_entrypoint", self.tracing_entrypoint)
         self.max_spec_window = yaml_data.get("max_spec_window", self.max_spec_window)
+
+        self.tracing_total_timeout_s = yaml_data.get("tracing_total_timeout_s",
+                                                     self.tracing_total_timeout_s)
+        self.tracing_timeout_s = yaml_data.get("tracing_timeout_s", self.tracing_timeout_s)
+        self.fuzzing_timeout_s = yaml_data.get("fuzzing_timeout_s", self.fuzzing_timeout_s)
 
         self.num_workers_fuzz_gen = yaml_data.get("num_workers_fuzz_gen", self.num_workers_fuzz_gen)
         self.num_workers_tracer = yaml_data.get("num_workers_tracer", self.num_workers_tracer)
