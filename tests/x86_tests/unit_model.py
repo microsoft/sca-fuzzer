@@ -4,12 +4,6 @@ File: Collection of unit tests for x86 model backends.
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
-# pylint: disable=too-many-arguments
-# pylint: disable=too-few-public-methods
-# pylint: disable=too-many-public-methods
-# pylint: disable=protected-access
-# pylint: disable=missing-function-docstring
-
 import unittest
 from typing import Callable, List, Optional, Tuple, Union, Any, Dict
 from copy import deepcopy
@@ -954,7 +948,7 @@ class X86DRModelTest(_SharedX86Model):
         self._restore_conf()
 
 
-class UnicornModelTest(_SharedX86Model):  # pylint: disable=too-many-public-methods
+class UnicornModelTest(_SharedX86Model):
     """Unit tests for the x86 Unicorn backend adaptor."""
 
     def __init__(self, methodName: str) -> None:

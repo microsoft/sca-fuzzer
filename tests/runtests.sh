@@ -4,7 +4,6 @@ AVAILABLE_STAGES=("type_check" "code_style_check" "core_unit_tests" "package_ins
     "km_tests" "arch_unit_tests" "acceptance_tests")
 
 function parse_args() {
-    POSITIONAL_ARGS=()
     IGNORE_ERRORS=false
     STRICT=false
     SKIP_KM_TESTS=false
@@ -32,14 +31,14 @@ function parse_args() {
             STAGE="$2"
             shift 2
             ;;
-        -* | --*)
+        -*)
             echo "Unknown option $1"
             exit 1
             ;;
         esac
     done
 
-    if [[ -n "$STAGE" && ! " ${AVAILABLE_STAGES[@]} " =~ " ${STAGE} " ]]; then
+    if [[ -n "$STAGE" ]] && [[ " ${AVAILABLE_STAGES[*]} " != *" ${STAGE} "* ]]; then
         echo "Invalid stage: $STAGE"
         echo "Available stages: ${AVAILABLE_STAGES[*]}"
         exit 1
@@ -52,72 +51,24 @@ function parse_args() {
 # ==================================================================================================
 function type_check() {
     local enable_strict=$1
+    local strict_flag=""
+    [ "$enable_strict" = true ] && strict_flag="--strict"
 
-    echo ""
-    echo "===== MyPy ====="
-    cd $SCRIPT_DIR/.. || exit
-    MYPYPATH=rvzr/ python3 -m mypy --strict $ALL_PY --no-warn-unused-ignores --untyped-calls-exclude=elftools
-    cd - >/dev/null || exit
-
-    if [ "$enable_strict" = true ]; then
-        echo ""
-        cd $SCRIPT_DIR/.. || exit
-        echo "===== STRICT CHECK: MyPy (Unit Tests) ====="
-        MYPYPATH=rvzr/ python3 -m mypy --strict tests/unit_*.py --no-warn-unused-ignores --untyped-calls-exclude=elftools
-        MYPYPATH=rvzr/ python3 -m mypy --strict tests/x86_tests/unit_*.py --no-warn-unused-ignores --untyped-calls-exclude=elftools
-        MYPYPATH=rvzr/ python3 -m mypy --strict tests/arm64/unit_*.py --no-warn-unused-ignores --untyped-calls-exclude=elftools
-        cd - >/dev/null || exit
-    fi
-
+    "$SCRIPT_DIR"/style-check.sh --type-check $strict_flag
 }
 
 function code_style_check() {
     local enable_strict=$1
+    local strict_flag=""
+    [ "$enable_strict" = true ] && strict_flag="--strict"
 
-    echo ""
-    echo "===== Code Style Checking with flake8 ====="
-    cd $SCRIPT_DIR/.. || exit
-    python3 -m flake8 --max-line-length 100 --ignore E402,W503 . --count --show-source --statistics
-    cd - >/dev/null || exit
-
-    if [ "$enable_strict" = true ]; then
-        echo ""
-        cd $SCRIPT_DIR/.. || exit
-        echo "===== STRICT CHECK: PyLint ====="
-        python3 -m pylint --rcfile=.pylintrc $ALL_PY
-        cd - >/dev/null || exit
-    fi
-
-    echo ""
-    echo "===== [DR] Code Style & Linting with clang-tidy ====="
-    cd $SCRIPT_DIR/../rvzr/model_dynamorio || exit
-
-    if [ -d "adapter/build" ] || [ -d "backend/build" ]; then
-        # this test requires that libstd++-*-dev is installed on the system;
-        versions=($(dpkg -l | grep libstdc++- | grep dev | awk '{print $2}' | sed 's/libstdc++-//;s/-dev//'))
-        if [ ${#versions[@]} -eq 0 ]; then
-            echo "[DR] No libstdc++-*-dev package found; skipping clang-tidy check"
-            cd - >/dev/null || exit
-            return
-        fi
-
-        if [ -d "adapter/build" ]; then
-            find . -name "*.c" -or -name "*.h" | grep -v "CMakeFiles" | xargs clang-tidy --quiet -p adapter/build/ --config-file=adapter/.clang-tidy
-        fi
-        if [ -d "backend/build" ]; then
-            find backend -name "*.cpp" -or -name "*.hpp" | grep -v "CMakeFiles" | xargs clang-tidy --quiet --use-color -p backend/build --config-file=backend/.clang-tidy
-        fi
-    else
-        echo "[DR] No build directory for DR backend found; skipping clang-tidy check"
-    fi
-
-    cd - >/dev/null || exit
+    "$SCRIPT_DIR"/style-check.sh --code-style $strict_flag
 }
 
 function core_unit_tests() {
     echo ""
     echo "===== Core Unit Tests ====="
-    cd $SCRIPT_DIR/.. || exit
+    cd "$SCRIPT_DIR"/.. || exit
     python3 -m unittest tests.unit_fuzzer -v
     echo "-------------"
     python3 -m unittest tests.unit_analyser -v
@@ -131,7 +82,7 @@ function core_unit_tests() {
     python3 -m unittest tests.unit_tc_components
     echo "-------------"
     python3 -m unittest tests.unit_traces
-    cd - >/dev/null || exit
+    cd - > /dev/null || exit
 }
 
 function package_install_test() {
@@ -139,17 +90,17 @@ function package_install_test() {
     echo "===== Package installation ====="
 
     # skip if no internet connection
-    if ! ping -c 1 8.8.8.8 &>/dev/null; then
+    if ! ping -c 1 8.8.8.8 &> /dev/null; then
         echo "No internet connection, skipping package installation test"
         return
     fi
 
-    cd $SCRIPT_DIR/.. || exit
+    cd "$SCRIPT_DIR"/.. || exit
     python3 -m pip uninstall revizor-fuzzer -y
     python3 -m build
     python3 -m pip install dist/*.whl
-    cd - >/dev/null || exit
-    cd $SCRIPT_DIR/ || exit
+    cd - > /dev/null || exit
+    cd "$SCRIPT_DIR"/ || exit
     set +e
     out=$(python3 -c "import rvzr; rvzr.cli.main()" 2>&1)
     set -e
@@ -159,16 +110,16 @@ function package_install_test() {
     else
         echo "> Package installation test passed"
     fi
-    cd - >/dev/null || exit
+    cd - > /dev/null || exit
 }
 
 function km_tests() {
     if [ "$SKIP_KM_TESTS" != true ]; then
         echo ""
         echo "===== Executor kernel module ====="
-        cd $SCRIPT_DIR || exit
+        cd "$SCRIPT_DIR" || exit
         ./kernel_module.bats
-        cd - >/dev/null || exit
+        cd - > /dev/null || exit
     fi
 }
 
@@ -179,7 +130,7 @@ function arch_unit_tests() {
     if [ "$ARCH" == "x86_64" ]; then
         echo ""
         echo "===== x86 unit tests ====="
-        cd $SCRIPT_DIR/.. || exit
+        cd "$SCRIPT_DIR"/.. || exit
         python3 -m unittest tests.x86_tests.unit_isa_loader -v
         echo "-------------"
         python3 -m unittest tests.x86_tests.unit_generators -v
@@ -190,13 +141,13 @@ function arch_unit_tests() {
         echo "-------------"
         python3 -m unittest tests.x86_tests.unit_dr_decoder -v
         echo "-------------"
-        cd - >/dev/null || exit
+        cd - > /dev/null || exit
         # exit
     else
         echo ""
         echo "===== arm64 unit tests ====="
-        cd $SCRIPT_DIR/.. || exit
-        cd $SCRIPT_DIR/.. || exit
+        cd "$SCRIPT_DIR"/.. || exit
+        cd "$SCRIPT_DIR"/.. || exit
         python3 -m unittest tests.arm64.unit_isa_loader -v
         echo "-------------"
         python3 -m unittest tests.arm64.unit_generators -v
@@ -205,7 +156,7 @@ function arch_unit_tests() {
         # echo "-------------"
         # python3 -m unittest tests.arm64.unit_taint_tracker -v
         # echo "-------------"
-        cd - >/dev/null || exit
+        cd - > /dev/null || exit
         # exit
     fi
 }
@@ -214,9 +165,9 @@ function acceptance_tests() {
     if [ "$SKIP_KM_TESTS" != true ]; then
         echo ""
         echo "===== Acceptance tests ====="
-        cd $SCRIPT_DIR || exit
+        cd "$SCRIPT_DIR" || exit
         ./acceptance.bats
-        cd - >/dev/null || exit
+        cd - > /dev/null || exit
     fi
 }
 
@@ -256,7 +207,7 @@ function run_one_stage() {
 }
 
 function main() {
-    parse_args $@
+    parse_args "$@"
 
     if [ "$IGNORE_ERRORS" != "true" ]; then
         set -e
@@ -266,11 +217,9 @@ function main() {
         echo "Including optional tests"
     fi
 
-    VENDOR="$(lscpu | grep Vendor | awk '{print $3}')"
     ARCH="$(lscpu | grep Architecture | awk '{print $2}')"
 
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
-    ALL_PY=$(find rvzr/ -name "*.py" | grep -v "config" | grep -v "fuzzer")
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
 
     # if STAGE is set, run only that stage
     if [[ -n "$STAGE" ]]; then
@@ -287,4 +236,4 @@ function main() {
     acceptance_tests
 }
 
-main $@
+main "$@"

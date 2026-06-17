@@ -4,11 +4,6 @@ File: Collection of unit tests for rvzr/traces.py
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
-
-# Note: We relax the pylint rules in unit tests to allow for more introspection, and also
-#       because test readability is less critical.
-# pylint: disable=missing-function-docstring,missing-class-docstring,too-many-public-methods
-
 from __future__ import annotations
 
 import unittest

@@ -131,7 +131,7 @@ class _CodeMapBuilder:
 
     def _get_line_type(self, line: _ASMLine) -> str:
         # pylint: disable=too-many-return-statements
-        # NOTE: This is a selector, so it is expected to have many returns
+        # justification: This is a selector, so it is expected to have many returns
 
         line_str = line.clean_str
         if line_str[0] != ".":
@@ -845,7 +845,7 @@ class AsmParser(ABC):
     def _check_landing_sites(self, test_case: TestCaseProgram) -> None:
         """ check that all actor switch macros have landing sites """
         # pylint: disable=too-many-branches
-        # NOTE: there are many checks to be performed on the set_* family of macros, so
+        # justification: there are many checks to be performed on the set_* family of macros, so
         # having many branches is expected
 
         switch_labels = [".set_k2u_target", ".set_u2k_target", ".set_h2g_target", ".set_g2h_target"]

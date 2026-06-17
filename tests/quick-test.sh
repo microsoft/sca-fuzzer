@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 
 function assert_violation() {
-    local cmd="$@"
+    local cmd="$*"
     log=$(mktemp)
 
-    bash -c "$cmd" > $log
+    bash -c "$cmd" > "$log"
     status=$?
-    output=$(cat $log)
+    output=$(cat "$log")
     if [[ "$status" -eq 1 && "$output" = *"=== Violations detected ==="* ]]; then
         echo "Detection: OK"
     else
@@ -19,13 +19,13 @@ function assert_violation() {
 }
 
 function assert_no_violation() {
-    local cmd="$@"
+    local cmd="$*"
 
     log=$(mktemp)
 
-    bash -c "$cmd" > $log
+    bash -c "$cmd" > "$log"
     status=$?
-    output=$(cat $log)
+    output=$(cat "$log")
     if [[ "$status" -eq 0 && "$output" != *"=== Violations detected ==="* ]]; then
         echo "Filtering: OK"
     else
@@ -37,7 +37,7 @@ function assert_no_violation() {
     fi
 }
 
-SCRIPT_DIR=$(dirname $(realpath $0))
+SCRIPT_DIR=$(dirname "$(realpath "$0")")
 
 cmd="./revizor.py fuzz -s $SCRIPT_DIR/../base.json --save-violations f -I $SCRIPT_DIR/x86_tests/configs -t $SCRIPT_DIR/x86_tests/asm/spectre_v1.asm -c $SCRIPT_DIR/x86_tests/configs/ct-seq.yaml -i 20"
 assert_violation "$cmd"

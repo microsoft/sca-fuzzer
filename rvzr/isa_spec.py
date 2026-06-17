@@ -135,7 +135,7 @@ def _reduce(isa: InstructionSet, include_categories: Optional[List[str]]) -> Non
 
     def is_supported(spec: InstructionSpec) -> bool:
         # pylint: disable=too-many-return-statements
-        # This is justified as it is a filtering function
+        # justification: this is a filtering function
 
         if not CONF.is_generation_enabled():
             # if we use an existing test case, then instruction filtering is irrelevant

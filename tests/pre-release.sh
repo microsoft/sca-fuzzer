@@ -6,8 +6,8 @@
 set -o errexit -o pipefail -o noclobber -o nounset
 trap exit INT
 
-SCRIPT=$(realpath $0)
-SCRIPT_DIR=$(dirname $SCRIPT)
+SCRIPT=$(realpath "$0")
+SCRIPT_DIR=$(dirname "$SCRIPT")
 
 red='\033[0;31m'
 green='\033[0;32m'
@@ -31,7 +31,7 @@ function print_help() {
 
 function read_args() {
     # check for availability of getopt
-    getopt --test >/dev/null && true
+    getopt --test > /dev/null && true
     if [[ $? -ne 4 ]]; then
         echo 'ERROR: getopt is not available'
         exit 1
@@ -80,7 +80,7 @@ function read_args() {
     fi
 
     # Globals
-    work_dir=$(realpath $work_dir)
+    work_dir=$(realpath "$work_dir")
     revizor="$revizor_dir/revizor.py"
     instructions="$revizor_dir/base.json"
     conf_dir="$revizor_dir/demo/"
@@ -108,13 +108,13 @@ function make_verification_conf() {
     local repro_conf=$2
     local verif_conf=$3
 
-    cp $repro_conf $verif_conf
+    cp "$repro_conf" "$verif_conf"
     if [[ ! -v verif_patches[$name] ]]; then
-        printf "${yellow}NO VERIFICATION PATCH AVAILABLE${reset}\n"
+        printf '%sNO VERIFICATION PATCH AVAILABLE%s\n' "$yellow" "$reset"
         return 1
     fi
     local patch=${verif_patches[$name]}
-    echo -e "$patch" >>$verif_conf
+    echo -e "$patch" >> "$verif_conf"
     return 0
 }
 
@@ -122,16 +122,15 @@ function disable_stat_logging() {
     local config=$1
 
     # disable statistics logging to avoid polluting the output
-    echo "logging_modes:" >>$config
-    echo "  - info" >>$config
+    echo "logging_modes:" >> "$config"
+    echo "  - info" >> "$config"
 }
-
 
 function disable_all_logging() {
     local config=$1
 
     # disable all logging to avoid polluting the output
-    echo "logging_modes: []" >>$config
+    echo "logging_modes: []" >> "$config"
 }
 
 # ==================================================================================================
@@ -141,8 +140,8 @@ function prep_files_for_run() {
     local name=$1
 
     # remove leftovers from previous runs
-    rm -rf $work_dir &>/dev/null || true
-    mkdir -p $work_dir
+    rm -rf "$work_dir" &> /dev/null || true
+    mkdir -p "$work_dir"
 
     # check that the configuration file exists
     org_config="$conf_dir/${name}.yaml"
@@ -157,12 +156,12 @@ function prep_files_for_run() {
 
     # make a copy of the configuration file and patch it
     config="$work_dir/conf.yaml"
-    cp $org_config $config
-    disable_stat_logging $config
+    cp "$org_config" "$config"
+    disable_stat_logging "$config"
 
     # create a log file
     log="$work_dir/${name}-log.txt"
-    rm $log &>/dev/null || true
+    rm "$log" &> /dev/null || true
 }
 
 function check_results() {
@@ -179,56 +178,54 @@ function check_results() {
     ok="${green}PASSED${reset}"
 
     # check for errors
-    if grep "ERROR" $log &>/dev/null; then
-        printf "$error\n"
+    if grep "ERROR" "$log" &> /dev/null; then
+        printf '%s\n' "$error"
         return 1
     fi
-    if grep "Error" $log &>/dev/null; then
-        printf "$error\n"
+    if grep "Error" "$log" &> /dev/null; then
+        printf '%s\n' "$error"
         return 1
     fi
-    if grep "Errno" $log &>/dev/null; then
-        printf "$error\n"
+    if grep "Errno" "$log" &> /dev/null; then
+        printf '%s\n' "$error"
         return 1
     fi
 
     # if no violations were found, the test failed
-    if [ $exit_code -ne $expected ]; then
-        printf "$fail [exit code %s != %s]\n" "$exit_code" "$expected"
+    if [ "$exit_code" -ne "$expected" ]; then
+        printf '%s [exit code %s != %s]\n' "$fail" "$exit_code" "$expected"
         return 1
     fi
 
     # parse the output
-    duration=$(awk '/Duration/{print $2}' $log)
-    printf "$ok [%s sec]\n" "$duration"
+    duration=$(awk '/Duration/{print $2}' "$log")
+    printf '%s [%s sec]\n' "$ok" "$duration"
     return 0
 }
-
 
 function run() {
     local name=$1
     local templated=${2:-0}
 
-    prep_files_for_run $name
+    prep_files_for_run "$name"
 
     # Print the header
     echo ""
-    printf "${yellow}============================= $name =============================${reset}\n"
+    printf '%s============================= %s =============================%s\n' "$yellow" "$name" "$reset"
 
     # run the test
-    printf "${green}+ Detect ...  ${reset}\n"
+    printf '%s+ Detect ...  %s\n' "$green" "$reset"
     set +e
-    if [ $verbose -eq 1 ]; then set -x; fi
-    if [ $templated -eq 0 ]; then
-        python ${revizor} fuzz -s $instructions -c $config -I $conf_dir -i $NUM_INPUTS -n $NUM_PROGS --timeout $TIMEOUT -w "$work_dir" 2>&1 | tee "$log"
+    if [ "$verbose" -eq 1 ]; then set -x; fi
+    if [ "$templated" -eq 0 ]; then
+        python "$revizor" fuzz -s "$instructions" -c "$config" -I "$conf_dir" -i "$NUM_INPUTS" -n "$NUM_PROGS" --timeout "$TIMEOUT" -w "$work_dir" 2>&1 | tee "$log"
     else
         template="$conf_dir/$name/template.asm"
-        python ${revizor} tfuzz -s $instructions -t $template -c $config -I $conf_dir -i $NUM_INPUTS -n $NUM_PROGS --timeout $TIMEOUT -w "$work_dir" 2>&1 | tee "$log"
+        python "$revizor" tfuzz -s "$instructions" -t "$template" -c "$config" -I "$conf_dir" -i "$NUM_INPUTS" -n "$NUM_PROGS" --timeout "$TIMEOUT" -w "$work_dir" 2>&1 | tee "$log"
     fi
     exit_code=$?
-    if [ $verbose -eq 1 ]; then set +x; fi
-    check_results $log $exit_code 1
-    if [ $? -ne 0 ]; then return 0; fi
+    if [ "$verbose" -eq 1 ]; then set +x; fi
+    if ! check_results "$log" "$exit_code" 1; then return 0; fi
     set -e
 
     # move the violation into a dedicated dir
@@ -239,30 +236,27 @@ function run() {
     fi
 
     # reproduce the violations
-    printf "${green}+ Reproduce ...  ${reset}\n"
+    printf '%s+ Reproduce ...  %s\n' "$green" "$reset"
     repro_conf="$vdir/reproduce.yaml"
-    disable_all_logging $repro_conf
+    disable_all_logging "$repro_conf"
     set +e
-    if [ $verbose -eq 1 ]; then set -x; fi
-    python ${revizor} reproduce -s $instructions -c $repro_conf -I $conf_dir -t $vdir/program.asm -i $(ls $vdir/input*.bin) 2>&1 | tee "$log"
+    if [ "$verbose" -eq 1 ]; then set -x; fi
+    python "$revizor" reproduce -s "$instructions" -c "$repro_conf" -I "$conf_dir" -t "$vdir/program.asm" -i "$vdir"/input*.bin 2>&1 | tee "$log"
     exit_code=$?
-    if [ $verbose -eq 1 ]; then set +x; fi
-    check_results $log $exit_code 1
-    if [ $? -ne 0 ]; then return 0; fi
+    if [ "$verbose" -eq 1 ]; then set +x; fi
+    if ! check_results "$log" "$exit_code" 1; then return 0; fi
     set -e
 
     # verify that the violation has the expected root cause
-    printf "${green}+ Verify ...  ${reset}\n"
+    printf '%s+ Verify ...  %s\n' "$green" "$reset"
     verif_conf="$work_dir/verif.yaml"
     set +e
-    make_verification_conf $name $repro_conf $verif_conf
-    if [ $? -ne 0 ]; then return 0; fi
-    if [ $verbose -eq 1 ]; then set -x; fi
-    python ${revizor} reproduce -s $instructions -c $verif_conf -I $conf_dir -t $vdir/program.asm -i $(ls $vdir/input*.bin) 2>&1 | tee "$log"
+    if ! make_verification_conf "$name" "$repro_conf" "$verif_conf"; then return 0; fi
+    if [ "$verbose" -eq 1 ]; then set -x; fi
+    python "$revizor" reproduce -s "$instructions" -c "$verif_conf" -I "$conf_dir" -t "$vdir/program.asm" -i "$vdir"/input*.bin 2>&1 | tee "$log"
     exit_code=$?
-    if [ $verbose -eq 1 ]; then set +x; fi
-    check_results $log $exit_code 0
-    if [ $? -ne 0 ]; then return 0; fi
+    if [ "$verbose" -eq 1 ]; then set +x; fi
+    if ! check_results "$log" "$exit_code" 0; then return 0; fi
     set -e
 }
 
@@ -275,7 +269,7 @@ TIMEOUT=$((10 * 60 * 60))         # seconds
 read_args "$@"
 
 # Measurements
-printf "Starting at $(date '+%H:%M:%S on %d.%m.%Y')\n"
+printf 'Starting at %s\n' "$(date '+%H:%M:%S on %d.%m.%Y')"
 
 run "detect-v1"
 run "detect-v1-store"

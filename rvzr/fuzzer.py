@@ -5,6 +5,7 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 # pylint: disable=too-many-instance-attributes
+# justification: FIXME pending
 
 from __future__ import annotations
 
@@ -138,9 +139,8 @@ class _RoundManager:
 
     def execute_stage(self, stage: RoundStage) -> None:
         """ Run a given stage of the fuzzing round """
-        # pylint: disable=too-many-return-statements
-        # pylint: disable=too-many-branches
-        # NOTE: This a selector function, so the large number of returns is justified
+        # pylint: disable=too-many-return-statements,too-many-branches
+        # justification: This is a selector function, so the large number of returns is justified
 
         if stage == "fast":
             assert self.conf.is_initial, "Fast path can be run only in the first round"
@@ -565,6 +565,7 @@ class Fuzzer:
         :return: the first detected violation or None if no violations were found
         """
         # pylint: disable=too-many-return-statements
+        # justification: multi-stage check that returns early at each stage
 
         # Initialize the round manager and load the test case
         round_manager = _RoundManager(self, test_case, inputs)

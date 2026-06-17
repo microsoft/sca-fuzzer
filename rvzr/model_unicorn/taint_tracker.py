@@ -267,7 +267,7 @@ class UnicornTaintTracker:
         :return: an InputTaint object
         """
         # pylint: disable=too-many-locals
-        # NOTE: justified, because we have many variable that define area boundaries
+        # justification: because we have many variable that define area boundaries
 
         if not self._enable_tracking:
             self._tracking_in_progress = False

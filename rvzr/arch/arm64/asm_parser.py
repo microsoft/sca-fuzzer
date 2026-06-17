@@ -89,8 +89,8 @@ class _ARM646LineParser(AsmLineParser):
 
     def _check_if_spec_matches(self, spec: InstructionSpec, operands_raw: List[str]) -> bool:
         """ Check if the given spec matches the given list of operand strings """
-        # pylint: disable=too-many-return-statements  # justified for selectors
-        # pylint: disable=too-many-branches  # justified for selectors
+        # pylint: disable=too-many-return-statements  # justification: selector
+        # pylint: disable=too-many-branches  # justification: selector
         # print(spec.name, operands_raw, spec.operands)
 
         if len(spec.operands) != len(operands_raw):

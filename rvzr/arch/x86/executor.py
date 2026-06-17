@@ -54,6 +54,7 @@ class X86Executor(Executor):
     def _identify_handled_faults(self) -> int:
         handled_faults_bitmap = 0
         for fault in CONF._handled_faults:  # type: ignore  # pylint: disable=protected-access
+            # justification: FIXME - the type issues are due to bad design of CONF; should be fixed
             if fault in FAULT_IDS:
                 handled_faults_bitmap |= (1 << FAULT_IDS[fault])
         return handled_faults_bitmap

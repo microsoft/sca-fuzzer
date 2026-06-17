@@ -18,4 +18,10 @@ dbg/
 site
 dist/
 .cache/
-.claude/
+
+.local-instructions.md
+.github/agents/
+.github/scripts/
+.github/instructions/
+.github/copilot-instructions.md
+remote-run.sh

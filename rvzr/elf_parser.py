@@ -248,7 +248,7 @@ class ELFParser:
     def _assign_bin_metadata(self, obj_file: str,
                              test_case_code: TestCaseProgram) -> Tuple[SymbolTable, InstructionMap]:
         # pylint: disable=too-many-locals
-        # NOTE: the check is disabled because I haven't found a way to reduce the number of locals
+        # justification: the check is disabled because I haven't found a way around the issue
 
         # Initialize data structures
         symbol_table: SymbolTable = []
@@ -371,7 +371,7 @@ class ELFParser:
         """
 
         # pylint: disable=too-many-locals
-        # NOTE: the check is disabled because I haven't found a way to reduce the number of locals
+        # justification: the check is disabled because I haven't found a way around the issue
 
         def section_name_to_id(name: str) -> int:
             for entry in sections_data:

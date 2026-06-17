@@ -4,6 +4,7 @@ File: x86-specific Configuration Options
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
+# pylint: disable=duplicate-code  # justification: intentionally shared with the arm64 config
 from typing import List
 
 _option_values = {
@@ -150,7 +151,6 @@ _option_values = {
         "LONGMODE-SEMAPHORE",
         "LONGMODE-SYSCALL",
         "LONGMODE-SYSRET",
-
         "3DNOW_PREFETCH-PREFETCH",
         "ADOX_ADCX-ADOX_ADCX",
         "BASE-BINARY",

@@ -4,6 +4,9 @@ File: x86-specific constants and lists
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
+# pylint: disable=too-few-public-methods
+# justification: this is a collection of descriptor classes
+
 from typing import List, Dict, Final, Tuple
 import re
 import unicorn.x86_const as ucc  # type: ignore
@@ -297,7 +300,7 @@ class X86TargetDesc(TargetDesc):
         return CPUDesc(vendor, model, family, stepping)
 
 
-class X86UnicornTargetDesc(UnicornTargetDesc):  # pylint: disable=too-few-public-methods
+class X86UnicornTargetDesc(UnicornTargetDesc):
     """ x86 target description in the context of a Unicorn-based model. """
 
     usable_registers: List[int] = [

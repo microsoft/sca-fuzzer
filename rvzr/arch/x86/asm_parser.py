@@ -136,7 +136,7 @@ class _X86IntelLineParser(AsmLineParser):
 
     def _check_if_spec_matches(self, spec: InstructionSpec, operands_raw: List[str]) -> bool:
         """ Check if the given spec matches the given list of operand strings """
-        # pylint: disable=too-many-return-statements  # justified for selectors
+        # pylint: disable=too-many-return-statements  # justification: selector function
 
         if len(spec.operands) != len(operands_raw):
             return False

@@ -724,14 +724,14 @@ class _OperandGenerator:
 
     def _generate_flags_operand(self, spec: OperandSpec, parent: Instruction) -> FlagsOp:
         # pylint: disable=too-many-branches
-        # NOTE: there are many options for COND flags, so many branches are needed
+        # justification: there are many options for COND flags, so many branches are needed
 
         cond_op = parent.get_cond_operand()
         if not cond_op:
             return FlagsOp(spec.values)
         raise NotImplementedError("COND operand is not yet supported")
         # pylint: disable=unreachable
-        # NOTE: the code below is temporary disabled
+        # justification: the code below is temporary disabled
 
         flag_values = self.target_desc.branch_conditions[cond_op.value]
         if not spec.values:

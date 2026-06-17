@@ -6,8 +6,8 @@
 #ifndef _MSR_H_
 #define _MSR_H_
 
-#include <linux/types.h>
 #include "hardware_desc.h"
+#include <linux/types.h>
 
 /// @brief Structure to hold the state of special registers (MSRs and other system registers)
 ///        that need to be preserved by the kernel module. This ensures that the host system
@@ -41,6 +41,5 @@ void restore_special_registers(void);
 
 int init_special_register_manager(void);
 void free_special_register_manager(void);
-
 
 #endif // _MSR_H_

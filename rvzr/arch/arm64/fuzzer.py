@@ -84,6 +84,8 @@ class ARM64Fuzzer(Fuzzer):
         :param org_htraces: list of HTrace objects collected while executing the test case
         :return: True if the test case should be filtered out; False otherwise
         """
+        # pylint: disable=duplicate-code  # justification: intentionally shared with the x86 fuzzer
+
         if not CONF.enable_observation_filter:
             return False
 

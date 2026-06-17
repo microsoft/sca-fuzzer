@@ -4,9 +4,6 @@ File: Selection of unit tests for the data container classes
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
-# pylint: disable=missing-function-docstring  # no need in tests
-# pylint: disable=missing-class-docstring  # no need in tests
-
 import os
 import random
 import unittest
@@ -198,7 +195,7 @@ class OperandTest(unittest.TestCase):
         for type_ in [OT.REG, OT.MEM, OT.IMM, OT.LABEL, OT.AGEN, OT.FLAGS, OT.COND]:
             values = ["val"] if type_ != OT.FLAGS else ["", "", "", "", "", "", "", "", ""]
             val = "val" if type_ != OT.FLAGS else "flags"
-            src = True if type_ != OT.FLAGS else False  # pylint: disable=simplifiable-if-expression
+            src = type_ != OT.FLAGS
 
             # Create an OperandSpec object
             operand_spec = OperandSpec(values=values, type_=type_, src=src, dest=False, width=8)
@@ -408,8 +405,6 @@ class InstructionTest(unittest.TestCase):
         self.assertEqual(instruction.get_reg_operands(True), [])
 
     def test_copy_with_modification(self) -> None:
-        # pylint: disable=protected-access
-
         # Create an Instruction object
         org_instruction = Instruction(
             "MOV", "MOV", is_control_flow=False, is_instrumentation=False, is_noremove=False)

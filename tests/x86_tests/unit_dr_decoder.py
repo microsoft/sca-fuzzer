@@ -4,12 +4,6 @@ File: Collection of unit tests for DynamoRIO backend adaptor.
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
-# pylint: disable=too-many-arguments
-# pylint: disable=too-few-public-methods
-# pylint: disable=too-many-public-methods
-# pylint: disable=protected-access
-# pylint: disable=missing-function-docstring
-
 import unittest
 import struct
 import os
@@ -255,6 +249,9 @@ class DRDebugTraceDecodeTest(unittest.TestCase):
         return struct.pack(fmt, *to_pack)
 
     def _check_dbg_trace_equivalence(self, expected: dict[str, Any], decoded: Any) -> None:
+        # pylint: disable=too-many-statements
+        # justification: see below; it's self-explanatory
+
         type_ = DebugTraceEntryType(decoded.type)
 
         if type_ == DebugTraceEntryType.ENTRY_REG_DUMP:

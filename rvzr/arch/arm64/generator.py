@@ -118,7 +118,7 @@ class _ARM64SandboxPass(Pass):
     """
 
     # pylint: disable=R0801
-    # NOTE: there's an overlap between this class and it's equivalent in x86/generator.py
+    # justification: there's an overlap between this class and it's equivalent in x86/generator.py
     # This is acceptable for now as functions are different enough so that deduplication
     # would hurt readability
 

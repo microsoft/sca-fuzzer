@@ -2,9 +2,6 @@
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
-# pylint: disable=missing-function-docstring
-# pylint: disable=missing-class-docstring
-
 import unittest
 import tempfile
 import subprocess
@@ -94,19 +91,15 @@ class X86GeneratorTest(unittest.TestCase):
         self.assertEqual(gen.__class__, X86Generator)
 
     def _test_all_instructions(self, instruction_set: InstructionSet) -> None:
-        # pylint: disable=protected-access
-        # Note: This function tests internals of the generator, which is why we
-        # have to disable the protected-access warning.
-
         asm_file = tempfile.NamedTemporaryFile("w", delete=False)
         obj_file = tempfile.NamedTemporaryFile("w", delete=False)
 
         generator = get_program_generator(CONF.program_generator_seed, instruction_set)
-        function_generator = generator._function_generator
         tc = TestCaseProgram(asm_file.name)
         tc.assign_obj(obj_file.name)
 
-        func = function_generator.generate_empty(".function_0", tc.find_section(name="main"))
+        func = generator._function_generator\
+            .generate_empty(".function_0", tc.find_section(name="main"))
         printer = _X86Printer(X86TargetDesc())
         all_instructions = ['.intel_syntax noprefix\n']
 
@@ -126,19 +119,15 @@ class X86GeneratorTest(unittest.TestCase):
             asm_file.write(i)
 
         # check if the generated instructions are valid
-        assembly_failed = False
         try:
             assemble(tc)
         except subprocess.CalledProcessError:
-            assembly_failed = True
+            self.fail("Generated invalid instruction(s)")
         else:
             obj_file.close()
-            os.unlink(obj_file.name)
-        asm_file.close()
-        os.unlink(asm_file.name)
-
-        if assembly_failed:
-            self.fail("Generated invalid instruction(s)")
+        finally:
+            asm_file.close()
+            os.unlink(asm_file.name)
 
     def test_x86_all_instructions_reduced(self) -> None:
         instruction_set = InstructionSet((test_dir / "min_x86.json").absolute().as_posix(),

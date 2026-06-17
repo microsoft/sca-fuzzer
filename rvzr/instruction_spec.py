@@ -23,7 +23,7 @@ class OT(Enum):
     COND = 7  # Condition Operand
 
     def __str__(self) -> str:
-        return str(self._name_)  # pylint: disable=no-member  # This is an intended private use
+        return str(self._name_)  # pylint: disable=no-member  # justification: intended private use
 
 
 XOT = Literal["f64", "f32", "f16", "2f16", "bf16", "int", "i64", "i32", "i16", "i8", "u256", "u128",

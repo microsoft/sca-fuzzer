@@ -4,9 +4,6 @@ File: Unit tests for rvzr/fuzzer.py
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
-# pylint: disable=missing-function-docstring,missing-class-docstring,protected-access
-# pylint: disable=too-many-instance-attributes,too-many-public-methods
-
 from __future__ import annotations
 
 import unittest
@@ -78,18 +75,14 @@ class _MockSetup:
         self.inputs = inputs
         self.boosted_inputs = inputs * 2
         self.ctraces = [_mk_ctrace(1), _mk_ctrace(1), _mk_ctrace(1), _mk_ctrace(1)]
-        self.htraces = [
-            _mk_htrace(0x100), _mk_htrace(0x100), _mk_htrace(0x200), _mk_htrace(0x200)
-        ]
+        self.htraces = [_mk_htrace(0x100), _mk_htrace(0x100), _mk_htrace(0x200), _mk_htrace(0x200)]
 
-    def configure_mocks(
-        self,
-        data_gen: MagicMock,
-        model: MagicMock,
-        executor: MagicMock,
-        analyser: MagicMock,
-        violations: List[Violation] | None = None
-    ) -> None:
+    def configure_mocks(self,
+                        data_gen: MagicMock,
+                        model: MagicMock,
+                        executor: MagicMock,
+                        analyser: MagicMock,
+                        violations: List[Violation] | None = None) -> None:
         """Configure standard mock returns for a typical fuzzing round"""
         data_gen.generate_boosted.return_value = self.boosted_inputs
         model.trace_test_case_with_taints.return_value = (self.ctraces[:2], [None, None])
@@ -98,7 +91,9 @@ class _MockSetup:
         analyser.filter_violations.return_value = violations if violations is not None else []
 
 
-class FuzzerRoundTest(unittest.TestCase):
+class FuzzerRoundTest(unittest.TestCase):  # pylint: disable=too-many-instance-attributes
+    # justification: this class mocks many components to isolate fuzzing_round behavior
+
     """
     Comprehensive tests for the fuzzing_round method and its multi-stage violation detection.
     This test exercises the main fuzzing loop which has the lowest coverage in fuzzer.py.
@@ -188,10 +183,8 @@ class FuzzerRoundTest(unittest.TestCase):
             # Setup: return violations through all stages
             violation = _mk_violation(4)
             mock_setup = _MockSetup(self.inputs)
-            mock_setup.configure_mocks(
-                self.mock_data_gen, self.mock_model, self.mock_executor,
-                self.mock_analyser, [violation]
-            )
+            mock_setup.configure_mocks(self.mock_data_gen, self.mock_model, self.mock_executor,
+                                       self.mock_analyser, [violation])
 
             # Architectural mismatch check should pass (no mismatch) - same register values
             # get_untyped() returns the first 6 values for comparison
@@ -215,9 +208,8 @@ class FuzzerRoundTest(unittest.TestCase):
         # Test that false positives due to insufficient nesting are filtered out
         violation = _mk_violation(4)
         mock_setup = _MockSetup(self.inputs)
-        mock_setup.configure_mocks(
-            self.mock_data_gen, self.mock_model, self.mock_executor, self.mock_analyser
-        )
+        mock_setup.configure_mocks(self.mock_data_gen, self.mock_model, self.mock_executor,
+                                   self.mock_analyser)
 
         # First call (fast path) returns violation, second call (nesting) returns no violation
         self.mock_analyser.filter_violations.side_effect = [[violation], []]
@@ -257,10 +249,8 @@ class FuzzerRoundTest(unittest.TestCase):
         # Test that false positives due to cross-talk between inputs are filtered by priming"""
         violation = _mk_violation(4)
         mock_setup = _MockSetup(self.inputs)
-        mock_setup.configure_mocks(
-            self.mock_data_gen, self.mock_model, self.mock_executor,
-            self.mock_analyser, [violation]
-        )
+        mock_setup.configure_mocks(self.mock_data_gen, self.mock_model, self.mock_executor,
+                                   self.mock_analyser, [violation])
 
         # Priming check: traces are NOT equivalent (false positive)
         self.mock_analyser.htraces_are_equivalent.return_value = False
@@ -312,10 +302,8 @@ class FuzzerRoundTest(unittest.TestCase):
         with _temp_conf_override(enable_priming=False):
             violation = _mk_violation(4)
             mock_setup = _MockSetup(self.inputs)
-            mock_setup.configure_mocks(
-                self.mock_data_gen, self.mock_model, self.mock_executor,
-                self.mock_analyser, [violation]
-            )
+            mock_setup.configure_mocks(self.mock_data_gen, self.mock_model, self.mock_executor,
+                                       self.mock_analyser, [violation])
 
             # Architectural mismatch: model and executor return different register values
             # Hardware returns specific register values
@@ -344,9 +332,8 @@ class FuzzerRoundTest(unittest.TestCase):
         # Test that IOErrors from executor are handled gracefully"""
         mock_setup = _MockSetup(self.inputs)
         self.mock_data_gen.generate_boosted.return_value = mock_setup.boosted_inputs
-        self.mock_model.trace_test_case_with_taints.return_value = (
-            mock_setup.ctraces[:2], [None, None]
-        )
+        self.mock_model.trace_test_case_with_taints.return_value = (mock_setup.ctraces[:2],
+                                                                    [None, None])
         self.mock_model.trace_test_case.return_value = mock_setup.ctraces
 
         # Executor raises IOError
@@ -361,9 +348,8 @@ class FuzzerRoundTest(unittest.TestCase):
     def test_fuzzing_round_with_ignore_list(self) -> None:
         # Test that starting ignore list is properly set in executor"""
         mock_setup = _MockSetup(self.inputs)
-        mock_setup.configure_mocks(
-            self.mock_data_gen, self.mock_model, self.mock_executor, self.mock_analyser
-        )
+        mock_setup.configure_mocks(self.mock_data_gen, self.mock_model, self.mock_executor,
+                                   self.mock_analyser)
 
         # Execute with ignore list
         ignore_list = [0, 1]
@@ -407,9 +393,8 @@ class FuzzerRoundTest(unittest.TestCase):
     def test_round_manager_stage_execution_order(self) -> None:
         # Test that round manager executes stages in the correct order"""
         mock_setup = _MockSetup(self.inputs)
-        mock_setup.configure_mocks(
-            self.mock_data_gen, self.mock_model, self.mock_executor, self.mock_analyser
-        )
+        mock_setup.configure_mocks(self.mock_data_gen, self.mock_model, self.mock_executor,
+                                   self.mock_analyser)
 
         # Create round manager
         round_mgr = _RoundManager(self.fuzzer, self.test_case, self.inputs)
