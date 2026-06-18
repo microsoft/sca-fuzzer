@@ -600,9 +600,9 @@ class Fuzzer:
         #     the violation is still present
         prev_ctraces = list(round_manager.ctraces)
         round_manager.execute_stage("taint_mistake")
+        if round_manager.ctraces != prev_ctraces:  # this triggers on taint analysis bugs
+            self._report_bug_tainting(round_manager)
         if not round_manager.violations:
-            if round_manager.ctraces != prev_ctraces:  # this should not normally happen
-                self._report_bug_tainting(round_manager)
             STAT.fp_taint_mistakes += 1
             round_manager.finalize()
             return None
@@ -732,12 +732,21 @@ class Fuzzer:
             assert_never(f"Unknown fuzzing mode: {type_}")
 
     @staticmethod
-    def _create_timestamped_dir(path: str) -> str:
+    def _create_timestamped_dir(path: str, prefix: str = "violation") -> str:
+        parent = Path(path)
+        parent.mkdir(exist_ok=True)
+
         timestamp = datetime.today().strftime('%y%m%d-%H%M%S')
-        violation_dir = f"{path}/violation-{timestamp}"
-        Path(path).mkdir(exist_ok=True)
-        Path(violation_dir).mkdir()
-        return violation_dir
+        new_dir = parent / f"{prefix}-{timestamp}"
+
+        # if the directory already exists, append a counter to keep the name unique
+        counter = 1
+        while new_dir.exists():
+            new_dir = parent / f"{prefix}-{timestamp}-{counter}"
+            counter += 1
+
+        new_dir.mkdir()
+        return str(new_dir)
 
     def _store_violation_artifact(self, violation: Violation, path: str) -> None:
         """
@@ -838,21 +847,24 @@ class Fuzzer:
 
     def _report_bug_tainting(self, round_manager: _RoundManager) -> None:
         warning("fuzzer", "Fast path contract traces do not match the full traces")
-        if self._work_dir and CONF.is_generation_enabled():
-            warning("fuzzer", f"Storing the bug into {self._work_dir}/bugs/")
+        if not self._work_dir or not CONF.is_generation_enabled():
+            return
 
-            # note that we don't use _store_violation_artifact here because there is no actual
-            # violation - we just want to store the test case and inputs
-            violation_dir = self._create_timestamped_dir(f"{self._work_dir}/bugs/")
-            round_manager.test_case.save(f"{violation_dir}/program.asm")
-            for i, input_ in enumerate(round_manager.org_inputs):
-                input_.save(f"{violation_dir}/input_{i:04}.bin")
+        # note that we don't use _store_violation_artifact here because there is no actual
+        # violation - we just want to store the test case and inputs
+        bugs_dir = f"{self._work_dir}/bugs"
+        warning("fuzzer", f"Storing the bug into {bugs_dir}/")
+        bug_dir = self._create_timestamped_dir(bugs_dir, prefix="taint-bug")
+        round_manager.test_case.save(f"{bug_dir}/program.asm")
+        for i, input_ in enumerate(round_manager.org_inputs):
+            input_.save(f"{bug_dir}/input_{i:04}.bin")
 
     def _report_bug_arch(self, round_manager: _RoundManager) -> None:
         warning("fuzzer", "Architectural mismatch between model and executor detected")
-        if self._work_dir and CONF.is_generation_enabled():
-            warning("fuzzer", f"Storing the bug into {self._work_dir}/bugs/")
-            self._store_violation_artifact(round_manager.violations[0], f"{self._work_dir}/bugs/")
+        if not self._work_dir or not CONF.is_generation_enabled():
+            return
+        warning("fuzzer", f"Storing the bug into {self._work_dir}/bugs/")
+        self._store_violation_artifact(round_manager.violations[0], f"{self._work_dir}/bugs/")
 
     # ----------------------------------------------------------------------------------------------
     # Private: Subclass hooks for ISA-specific customization

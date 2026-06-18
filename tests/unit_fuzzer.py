@@ -6,6 +6,8 @@ SPDX-License-Identifier: MIT
 """
 from __future__ import annotations
 
+import os
+import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
 from typing import List, Any, Iterator
@@ -93,7 +95,6 @@ class _MockSetup:
 
 class FuzzerRoundTest(unittest.TestCase):  # pylint: disable=too-many-instance-attributes
     # justification: this class mocks many components to isolate fuzzing_round behavior
-
     """
     Comprehensive tests for the fuzzing_round method and its multi-stage violation detection.
     This test exercises the main fuzzing loop which has the lowest coverage in fuzzer.py.
@@ -244,6 +245,39 @@ class FuzzerRoundTest(unittest.TestCase):  # pylint: disable=too-many-instance-a
 
         # Verify: violation should be filtered out after taint_mistake stage
         self.assertIsNone(result)
+
+    def test_fuzzing_round_taint_bug_artifact_not_named_violation(self) -> None:
+        # When the taint-tracker fast path disagrees with full tracing, fuzzing_round stores a
+        # diagnostic artifact
+        boosted_inputs = self.inputs * 2
+        ctraces_fast = [_mk_ctrace(1), _mk_ctrace(1), _mk_ctrace(1), _mk_ctrace(1)]
+        ctraces_full = [_mk_ctrace(1), _mk_ctrace(2), _mk_ctrace(1), _mk_ctrace(2)]
+        htraces = [_mk_htrace(0x100), _mk_htrace(0x100), _mk_htrace(0x200), _mk_htrace(0x200)]
+
+        # Emulate a tain tracking bug:
+        # 1. Create a fake violation
+        violation = _mk_violation(4)
+        self.mock_data_gen.generate_boosted.return_value = boosted_inputs
+        self.mock_model.trace_test_case_with_taints.return_value = (ctraces_fast[:2], [None, None])
+        # 2. Full tracing (taint_mistake stage) produces ctraces that differ from the fast-path
+        # ctraces, which signals a taint-tracker bug
+        self.mock_model.trace_test_case.return_value = ctraces_full
+        self.mock_executor.trace_test_case.return_value = htraces
+        # 3. Violation appears on fast path, survives nesting,
+        # disappears once ctraces are recomputed
+        self.mock_analyser.filter_violations.side_effect = [[violation], [violation], []]
+
+        # Use a mock test case so storing the artifact doesn't depend on a backing .asm file
+        test_case = MagicMock()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            self.fuzzer._work_dir = tmp
+            result = self.fuzzer.fuzzing_round(test_case, self.inputs, [])
+
+            self.assertIsNone(result)
+            bug_dirs = os.listdir(os.path.join(tmp, "bugs"))
+            self.assertEqual(len(bug_dirs), 1)
+            self.assertTrue(bug_dirs[0].startswith("taint-bug-"))
 
     def test_fuzzing_round_fp_filtered_by_priming(self) -> None:
         # Test that false positives due to cross-talk between inputs are filtered by priming"""
