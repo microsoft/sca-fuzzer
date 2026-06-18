@@ -455,6 +455,7 @@ class Fuzzer:
     _work_dir: str
     _input_paths: List[str]
     _generation_function: Callable[[str], TestCaseProgram]
+    _taint_bug_seen: bool = False
 
     def __init__(self,
                  instruction_set_spec: str,
@@ -849,6 +850,12 @@ class Fuzzer:
         warning("fuzzer", "Fast path contract traces do not match the full traces")
         if not self._work_dir or not CONF.is_generation_enabled():
             return
+
+        # only store the artifact for the first occurrence; subsequent saves are near-identical
+        # and carry no additional diagnostic value, so we skip them to avoid wasting disk space
+        if self._taint_bug_seen:
+            return
+        self._taint_bug_seen = True
 
         # note that we don't use _store_violation_artifact here because there is no actual
         # violation - we just want to store the test case and inputs
