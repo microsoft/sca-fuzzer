@@ -89,18 +89,18 @@ class _SymtabParser:
 
             # get addresses of functions and macros
             symtab: SymbolTableSection = data.get_section_by_name(".symtab")  # type: ignore
-            for s in symtab.iter_symbols():
-                if s.name.startswith(".function"):
+            for sym in symtab.iter_symbols():
+                if sym.name.startswith(".function"):
                     f_entry: _FunctionData = {
                         "id_": -1,  # will be assigned later
-                        "name": s.name,
-                        "offset": s.entry.st_value
+                        "name": sym.name,
+                        "offset": sym.entry.st_value
                     }
-                    s_id = s['st_shndx']
-                    elf_data["section_data"][s_id]["functions"][s.name] = f_entry
+                    s_id = sym['st_shndx']
+                    elf_data["section_data"][s_id]["functions"][sym.name] = f_entry
 
-                if ".test_case_exit" in s.name:
-                    elf_data["exit_addr"] = s.entry.st_value
+                if ".test_case_exit" in sym.name:
+                    elf_data["exit_addr"] = sym.entry.st_value
         assert elf_data["exit_addr"] != -1, "Failed to find exit address"
         return elf_data
 
