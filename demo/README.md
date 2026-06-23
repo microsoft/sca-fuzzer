@@ -84,3 +84,50 @@ Note: only AMD CPUs vulnerable to TSA.
 rvzr tfuzz -s base.json -c demo/tsa-l1d/config.yaml -t demo/tsa-l1d/template.asm -i 50 -n 10000
 ``
 Expected duration - several minutes.
+
+# ARM64 (Raspberry Pi 4b)
+
+The `demo/arm64/` directory contains ARM64 ports of the demos for the
+vulnerabilities that affect ARM CPUs, in particular the Cortex-A72 found in the
+Raspberry Pi 4b. The Intel/AMD-specific demos (MDS, ZDI, SCO, Foreshadow, TSA)
+are not ported, as those vulnerabilities do not apply to this CPU.
+
+The commands below assume that the ARM64 ISA spec (downloaded via
+`rvzr download_spec`) is stored in `base-arm.json`.
+
+## Spectre V1 (ARM64)
+
+```
+rvzr fuzz -s base-arm.json -c demo/arm64/detect-v1.yaml -i 50 -n 10000
+```
+Expected duration - several seconds.
+
+## Spectre V1, store variant (ARM64)
+
+```
+rvzr fuzz -s base-arm.json -c demo/arm64/detect-v1-store.yaml -i 50 -n 10000
+```
+Expected duration - several seconds.
+
+## Spectre V1-Var (ARM64)
+
+```
+rvzr fuzz -s base-arm.json -c demo/arm64/detect-v1-var.yaml -i 50 -n 10000
+```
+Expected duration - several hours.
+
+## Spectre V4 (ARM64)
+
+```
+rvzr fuzz -s base-arm.json -c demo/arm64/detect-v4.yaml -i 50 -n 10000
+```
+Expected duration - 5-20 minutes.
+
+## Broad fuzzing campaign (ARM64)
+
+A general-purpose, non-vulnerability-specific config for broad fuzzing of an
+ARM64 CPU.
+
+```
+rvzr fuzz -s base-arm.json -c demo/arm64/big-fuzz.yaml -i 100 -n 100000
+```

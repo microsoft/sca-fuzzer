@@ -272,7 +272,9 @@ class FuzzerRoundTest(unittest.TestCase):  # pylint: disable=too-many-instance-a
 
         with tempfile.TemporaryDirectory() as tmp:
             self.fuzzer._work_dir = tmp
-            result = self.fuzzer.fuzzing_round(test_case, self.inputs, [])
+            # Suppress the diagnostic warnings emitted while storing the artifact
+            with patch("rvzr.fuzzer.warning"):
+                result = self.fuzzer.fuzzing_round(test_case, self.inputs, [])
 
             self.assertIsNone(result)
             bug_dirs = os.listdir(os.path.join(tmp, "bugs"))

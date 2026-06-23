@@ -270,7 +270,7 @@
       {"dest": false, "src": true, "comment": "label to be branched to (field imm19)", "type_": "LABEL", "values": [], "width": 0}
     ],
     "implicit_operands": [
-      {"values": ["pc"], "type_": "REG", "width": 64, "src": true, "dest": false}
+      {"values": ["pc"], "type_": "REG", "width": 64, "src": false, "dest": true}
     ]
   },
   {"name": "b.", "category": "general-cond_branch", "is_control_flow": true,
@@ -279,7 +279,7 @@
       {"dest": false, "src": true, "comment": "label to be conditionally branched to (field imm19)", "type_": "LABEL", "values": [], "width": 0}
     ],
     "implicit_operands": [
-      {"values": ["pc"], "type_": "REG", "width": 64, "src": true, "dest": false},
+      {"values": ["pc"], "type_": "REG", "width": 64, "src": false, "dest": true},
       {"type_": "FLAGS", "width": 0, "src": false, "dest": false, "values": ["r", "", "", "r", "r", "", "", "", "r"]}
     ]
   },
@@ -287,14 +287,16 @@
     "operands": [
       {"dest": false, "src": true, "comment": "rn", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"]}
     ],
-    "implicit_operands": []
+    "implicit_operands": [
+      {"values": ["pc"], "type_": "REG", "width": 64, "src": false, "dest": true}
+    ]
   },
   {"name": "bl", "category": "general-call", "is_control_flow": true,
     "operands": [
       {"dest": false, "src": true, "comment": "addr_pcrel26", "type_": "LABEL", "width": 0, "values": []}
     ],
     "implicit_operands": [
-      {"dest": false, "src": true, "type_": "REG", "width": 64, "values": ["pc"]},
+      {"dest": true, "src": false, "type_": "REG", "width": 64, "values": ["pc"]},
       {"dest": true, "src": false, "type_": "REG", "width": 64, "values": ["x30"]}
     ]
   },
@@ -302,7 +304,9 @@
     "operands": [
       {"dest": false, "src": true, "comment": "rn", "type_": "REG", "width": 64, "values": ["x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"]}
     ],
-    "implicit_operands": []
+    "implicit_operands": [
+      {"values": ["pc"], "type_": "REG", "width": 64, "src": false, "dest": true}
+    ]
   },
   {"name": "mrs", "category": "system-dataxfer", "is_control_flow": false,
     "operands": [

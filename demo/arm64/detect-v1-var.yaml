@@ -1,0 +1,8 @@
+file: !include detect-v1.yaml
+
+contract_execution_clause:
+  - cond
+
+program_size: 32
+avg_mem_accesses: 16
+inputs_per_class: 2

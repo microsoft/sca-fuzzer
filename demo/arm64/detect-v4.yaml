@@ -1,0 +1,25 @@
+# contract
+contract_observation_clause: ct
+contract_execution_clause:
+  - seq
+
+# tested instructions
+# Note: ARM is a load-store ISA, so general-dataxfer is required to generate the
+# stores and loads that the speculative store bypass relies on.
+instruction_categories:
+  - general-bitwise
+  - general-condsel
+  - general-dataxfer
+
+# fuzzing configuration
+enable_speculation_filter: true
+enable_observation_filter: true
+program_size: 20
+avg_mem_accesses: 10
+inputs_per_class: 2
+
+# reduce entropy (not strictly required for detection, but makes the demo finish faster)
+data_generator_entropy_bits: 10
+
+program_generator_seed: 1000000
+

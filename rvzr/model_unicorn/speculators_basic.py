@@ -232,12 +232,17 @@ class ARM64CondSpeculator(UnicornSpeculator):
         if not target_offset:
             return
 
+        # ARM64 branch offsets are encoded in units of 4 bytes and are relative to the
+        # branch instruction itself
+        branch_target = address + (target_offset << 2)
+        fall_through = address + size
+
         # Take a checkpoint
-        next_instr = address + size + target_offset if will_jump else address + size
+        next_instr = branch_target if will_jump else fall_through
         self._checkpoint(next_instr)
 
         # Simulate misprediction
-        target_addr = address + size if will_jump else address + size + target_offset
+        target_addr = fall_through if will_jump else branch_target
         self._emulator.reg_write(self._uc_target_desc.pc_register, target_addr)
 
     def decode(self, code: bytearray, flags: int) -> Tuple[int, bool]:

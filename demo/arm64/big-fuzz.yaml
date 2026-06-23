@@ -1,0 +1,59 @@
+instruction_set: arm64
+
+# Model
+contract_observation_clause: ct
+contract_execution_clause:
+  - seq
+  # - bpas
+
+# Actors
+actors:
+  - main:
+    - data_properties:
+      - present: true
+
+# Executor
+executor_mode: P+P
+
+# Program generator
+program_size: 64
+avg_mem_accesses: 16
+max_bb_per_function: 1  # straight-line code only
+min_bb_per_function: 1
+min_successors_per_bb: 1
+max_successors_per_bb: 1
+
+instruction_categories:
+  - general-arithmetic
+  - general-bitwise
+  - general-comparison
+  - general-condsel
+  - general-cond_branch
+  - general-dataxfer
+  - general-misc
+
+# Input generator
+data_generator_entropy_bits: 24
+inputs_per_class: 2
+
+# Fuzzer
+enable_speculation_filter: true
+enable_observation_filter: true
+enable_fast_path_model: true
+coverage_type: model_instructions
+
+# Output
+color: true
+logging_modes:
+  - info
+  - stat
+  - dbg_generator
+  # - dbg_timestamp
+  # - dbg_violation
+  # - dbg_dump_htraces
+  # - dbg_dump_ctraces
+  # - dbg_dump_traces_unlimited
+  # - dbg_model
+  - dbg_coverage
+  # - dbg_priming
+  # - dbg_executor_raw

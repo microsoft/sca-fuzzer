@@ -603,8 +603,9 @@ class Fuzzer:
         round_manager.execute_stage("taint_mistake")
         if round_manager.ctraces != prev_ctraces:  # this triggers on taint analysis bugs
             self._report_bug_tainting(round_manager)
+        if not round_manager.violations and round_manager.ctraces != prev_ctraces:
+            STAT.fp_taint_mistakes += 1  # separate branch because not all tain bugs are violations
         if not round_manager.violations:
-            STAT.fp_taint_mistakes += 1
             round_manager.finalize()
             return None
 
