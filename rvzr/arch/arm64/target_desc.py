@@ -4,6 +4,9 @@ File: arm64-specific constants and lists
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
+# pylint: disable=too-few-public-methods
+# justification: this is a collection of descriptor classes
+
 from typing import List
 import re
 import unicorn.arm64_const as ucc  # type: ignore
@@ -154,7 +157,7 @@ class ARM64TargetDesc(TargetDesc):
         return CPUDesc(vendor, model, family, stepping)
 
 
-class ARM64UnicornTargetDesc(UnicornTargetDesc):  # pylint: disable=too-few-public-methods
+class ARM64UnicornTargetDesc(UnicornTargetDesc):
     """ arm64 target description in the context of a Unicorn-based model. """
 
     usable_registers: List[int] = [

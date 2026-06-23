@@ -111,7 +111,6 @@ static inline pgd_t *get_kernel_pgd_base(void) { return (pgd_t *)__va(read_cr3_p
 #error "Unsupported architecture: cannot determine kernel pgd base"
 #endif
 
-
 /// @brief Walk the kernel page tables for a kernel/vmalloc VA and return a
 ///        pointer to its leaf PTE.
 ///

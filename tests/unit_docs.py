@@ -44,15 +44,9 @@ def parse_config_options_from_docs(doc_lines: List[str]) -> Dict[str, List[Union
 
         # Parse option name from heading
         if _is_option_name(line):
-            end_idx = line.index("`", 6)
-            option_name = line[6:end_idx]
-
+            option_name = line[6:line.index("`", 6)]
             # Add actor_ prefix if in actor section
-            if in_actor_section:
-                curr_name = f"actor_{option_name}"
-            else:
-                curr_name = option_name
-
+            curr_name = f"actor_{option_name}" if in_actor_section else option_name
             doc_options[curr_name] = ["", []]
             in_available_options = False
 
@@ -62,7 +56,7 @@ def parse_config_options_from_docs(doc_lines: List[str]) -> Dict[str, List[Union
                 # Find backtick-quoted value after :material-water:
                 parts = line.split("`")
                 for j in range(1, len(parts), 2):
-                    if j > 0 and DEFAULT_VALUE_PREFIX in parts[j - 1]:
+                    if DEFAULT_VALUE_PREFIX in parts[j - 1]:
                         doc_options[curr_name][0] = parts[j]
                         break
             elif AUTODETECTED_PREFIX in line:
@@ -78,13 +72,10 @@ def parse_config_options_from_docs(doc_lines: List[str]) -> Dict[str, List[Union
             options_line = line.strip()
             if options_line.startswith("`"):
                 # Split by | and extract values between backticks
-                parts = options_line.split("|")
-                options = []
-                for part in parts:
-                    part = part.strip()
-                    if part.startswith("`") and part.endswith("`"):
-                        options.append(part.strip("`"))
-                doc_options[curr_name][1] = options
+                parts = [p.strip() for p in options_line.split("|")]
+                doc_options[curr_name][1] = [
+                    p.strip("`") for p in parts if p.startswith("`") and p.endswith("`")
+                ]
             in_available_options = False
 
     return doc_options
@@ -129,7 +120,7 @@ class DocumentationTest(unittest.TestCase):
             k for k in inspect.getmembers(CONF, lambda x: not inspect.isroutine(x))
             if not k[0].startswith("_")
         ]
-        alternatives = CONF._option_values  # pylint: disable=protected-access
+        alternatives = CONF._option_values
 
         # check if all alternatives and defaults are documented
         for name, default_ in options:

@@ -31,7 +31,9 @@ def _arg2bool(arg: Any) -> bool:
     raise ArgumentTypeError('Boolean value expected.')
 
 
-def _parse_args() -> Any:  # pylint: disable=r0915
+def _parse_args() -> Any:
+    # pylint: disable=r0915
+    # justification: builds the argparse parser
     parser = ArgumentParser(add_help=False)
     subparsers = parser.add_subparsers(dest='subparser_name')
     subparsers.required = True
@@ -370,7 +372,8 @@ def _parse_args() -> Any:  # pylint: disable=r0915
     return parser.parse_args()
 
 
-def main() -> int:  # pylint: disable=r0911,r0912,r0915  # this function is necessarily complex
+def main() -> int:  # pylint: disable=r0911,r0912,r0915
+    # justification: this function is necessarily complex
     """
     Parse command-line arguments and launch the fuzzer in the requested mode.
     """

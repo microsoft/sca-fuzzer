@@ -129,7 +129,6 @@ typedef struct {
     vmcb_save_t save;
 } __attribute__((packed)) vmcb_t;
 
-
 // =================================================================================================
 // Module interface
 #define VMCB_RIP_OFFSET offsetof(vmcb_t, save.rip)

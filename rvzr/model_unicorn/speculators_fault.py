@@ -153,7 +153,7 @@ class UnicornDEH(FaultSpeculator, ABC):
         on a faulting instruction
         """
         # pylint: disable=too-many-branches
-        # FIXME: refactor this method to reduce complexity;
+        # justification: needs FIXME - refactor this method to reduce complexity;
         # for now, it's left as is, because this contract is not a priority
         super()._speculate_instruction(address, size)
 
@@ -248,6 +248,7 @@ class X86UnicornDEH(UnicornDEH):
                                           old_dependencies: List[str],
                                           reg_dest_operands: List[str]) -> None:
         # pylint: disable=too-many-branches
+        # justification: handles many ISA-specific corner cases
 
         # special case 1 - cmpxchg does not always taint RAX
         name = instruction.name

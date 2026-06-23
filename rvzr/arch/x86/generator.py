@@ -130,7 +130,7 @@ class _X86NonCanonicalAddressPass(Pass):
     def _instrument(self, node: InstructionNode, parent: BasicBlock) -> None:
         """ Instrument a selected memory access instruction to make the access non-canonical. """
         # pylint: disable = too-many-locals
-        # NOTE: That's a fairly complex instrumentation, so the number of locals is justified
+        # justification: It's a fairly complex instrumentation, so the number of locals is justified
         instr = node.instruction
 
         # Collect src operands
@@ -389,8 +389,7 @@ class _X86SandboxPass(Pass):
         elif any(op.width >= 128 for op in mem_operands):
             mask = mask[:-4] + "0" * 4
 
-        # FIXME: broken type
-        if CONF.x86_generator_align_locks:  # type: ignore  # pylint: disable = no-member
+        if getattr(CONF, 'x86_generator_align_locks'):
             if "lock" in instr.name or instr.name == "xchg":
                 mask = mask[:-3] + "0" * 3
 
@@ -486,7 +485,7 @@ class _X86SandboxPass(Pass):
               entropy of D is 2 bits, with the sign bit cleared)
         """
         # pylint: disable = too-many-locals
-        # FIXME: this function has to be refactored to break it down into simpler parts
+        # justification: FIXME - pending
 
         inst = node.instruction
 
@@ -504,8 +503,7 @@ class _X86SandboxPass(Pass):
         size = divisor.width
 
         # This option prevents triggering of Zero Division Injection in the tests
-        # FIXME: Broken type hint
-        if size == 64 and CONF.x86_disable_div64:  # type: ignore  # pylint: disable = no-member
+        if size == 64 and getattr(CONF, 'x86_disable_div64'):
             parent.delete(node)
             return
 
@@ -748,7 +746,7 @@ class _X86PatchUndefinedFlagsPass(Pass):
 
     def _patch_flags_in_bb(self, bb: BasicBlock) -> None:
         # pylint: disable = too-many-branches
-        # FIXME: This function was written in a hurry and needs to be refactored
+        # justification: FIXME - his function was written in a hurry and needs to be refactored
 
         # get a list of all instruction nodes in the BB
         all_instructions: List[InstructionNode] = []

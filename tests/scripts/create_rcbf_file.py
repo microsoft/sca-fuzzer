@@ -11,9 +11,10 @@ SPDX-License-Identifier: MIT
 import sys
 import os
 import subprocess
+from typing import BinaryIO, Sequence
 
 
-def write_actor_metadata(f, entry):
+def write_actor_metadata(f: BinaryIO, entry: Sequence[int]) -> None:
     f.write((entry[0]).to_bytes(8, byteorder='little'))  # id
     f.write((entry[1]).to_bytes(8, byteorder='little'))  # mode
     f.write((entry[2]).to_bytes(8, byteorder='little'))  # pl
@@ -22,33 +23,33 @@ def write_actor_metadata(f, entry):
     f.write((entry[5]).to_bytes(8, byteorder='little'))  # code permissions
 
 
-def write_st_entry(f, entry):
+def write_st_entry(f: BinaryIO, entry: Sequence[int]) -> None:
     f.write((entry[0]).to_bytes(8, byteorder='little'))  # owner
     f.write((entry[1]).to_bytes(8, byteorder='little'))  # offset
     f.write((entry[2]).to_bytes(8, byteorder='little'))  # id
     f.write((entry[3]).to_bytes(8, byteorder='little'))  # args
 
 
-def write_metadata_entry(f, entry):
+def write_metadata_entry(f: BinaryIO, entry: Sequence[int]) -> None:
     f.write((entry[0]).to_bytes(8, byteorder='little'))  # owner
     f.write((entry[1]).to_bytes(8, byteorder='little'))  # size
     f.write((entry[2]).to_bytes(8, byteorder='little'))  # reserved
 
 
-def write_nop(f, arch: str):
+def write_nop(f: BinaryIO, arch: str) -> None:
     if arch == 'x86':
         f.write(b'\x0f\x1f\x84\x00\xff\x00\x00\x00')
     elif arch == 'arm64':
         f.write(b'\x1f\x20\x03\xd5\x1f\x20\x03\xd5\x1f\x20\x03\xd5')
 
 
-def get_macro_placeholder_size(arch: str):
+def get_macro_placeholder_size(arch: str) -> int:
     if arch == 'x86':
         return 8
     return 12
 
 
-def main(asm_file: str, obj_file: str, arch: str):
+def main(asm_file: str, obj_file: str, arch: str) -> int:
     n_actors = 1
     n_symbols = 3
 
@@ -88,14 +89,16 @@ def main(asm_file: str, obj_file: str, arch: str):
             f.write(code)
         write_nop(f, arch)
 
+    return 0
+
 
 if __name__ == '__main__':
     if len(sys.argv) != 4:
-        print("Usage: %s <asm_file> <dest_file> <x86|arm64>" % sys.argv[0])
+        print(f"Usage: {sys.argv[0]} <asm_file> <dest_file> <x86|arm64>")
         sys.exit(1)
 
     if sys.argv[3] not in ['x86', 'arm64']:
-        print("Invalid architecture: %s" % sys.argv[3])
+        print(f"Invalid architecture: {sys.argv[3]}")
         sys.exit(1)
 
     sys.exit(main(sys.argv[1], sys.argv[2], sys.argv[3]))

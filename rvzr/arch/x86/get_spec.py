@@ -274,7 +274,7 @@ class XMLSpecParser:
 
         # Parse all nodes in the tree
         for instruction_node in self._tree.iter('instruction'):
-            instruction_spec = self._parse_node(instruction_node)  # pylint: disable=e1128
+            instruction_spec = self._parse_node(instruction_node)
             if instruction_spec is not None:
                 self._instructions.append(instruction_spec)
 
@@ -286,7 +286,7 @@ class XMLSpecParser:
             f.write(json_str)
 
     def _parse_node(self, node: ET.Element) -> Optional[_XMLInstructionSpec]:
-        # pylint: disable=too-many-branches  # Justified because it's a parser
+        # pylint: disable=too-many-branches  # justification: this is a parser
 
         # Check if the node should be skipped
         if self._node_is_not_supported(node):
@@ -455,6 +455,7 @@ class XMLSpecParser:
         return spec
 
     def add_missing(self) -> None:  # pylint: disable=too-many-statements
+        # justification: sequentially constructs the many specs missing from the XML file
         """ Adds the instructions specs that are missing from the XML file we use """
         extensions = self.extensions
         if not extensions or "CLFSH" in extensions:

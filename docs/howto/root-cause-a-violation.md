@@ -66,7 +66,7 @@ In this example, the minimizer found that this test case leaks one byte at addre
 !!! tip "Minimizer Behavior"
     Ideally, the minimizer should be able to reduce the leakage to a single byte. If more then a couple bytes leak, it typically indicates that the violation is non-deterministic, and it might be a good idea to re-run the program minimizer or to change the configuration to increase the number of attempts/increase the noise threshold. If *no* bytes leak, this is a certain sign that something went wrong; re-run the minimizer.
 
-## Step 3: Add Comments to Minimized Program
+## Add Comments to the Minimized Program
 
 Run the minimizer again with the `comment` pass enabled to annotate the minimized program with memory access information. This will help you map hardware traces to specific instructions in the program.
 
@@ -86,12 +86,12 @@ rvzr minimize -s base.json -c ./violation-0000-0000/minimize.yaml \
     --enable-fence-pass 1
 ```
 
-This pass with attempt to insert an `LFENCE` after every instruction in the program and check if the violation still occurs.
+This pass will attempt to insert a speculation barrier after every instruction in the program and check if the violation still occurs. The barrier is architecture-specific: `LFENCE` on x86-64 and `dsb sy; isb` on arm64.
 
 In the resulting file (`fenced.asm`) the region *without* fences is the one that causes the violation. The remaining instructions are just setting up the data for the violation, and are likely irrelevant.
 
 !!! warning "Unexpected Fence Insertion Results"
-    If an `LFENCE` is inserted after *every* instruction in the test case and the violation still occurs, this is most likely due to a bug in the model or the executor. If you are using a custom model, consider checking the model for correctness. If you haven't made changes to the Revizor source code, please, open an issue in the [bug tracker](https://github.com/microsoft/side-channel-fuzzer/issues).
+    If a barrier is inserted after *every* instruction in the test case and the violation still occurs, this is most likely due to a bug in the model or the executor. If you are using a custom model, consider checking the model for correctness. If you haven't made changes to the Revizor source code, please, open an issue in the [bug tracker](https://github.com/microsoft/side-channel-fuzzer/issues).
 
 ## Map Hardware Traces to Minimized Program and Data
 
@@ -116,6 +116,9 @@ rvzr reproduce -s base.json -c ./violation-0000-0000/reproduce.yaml \
 
 !!! tip "Input IDs"
     If in your case the input IDs have changed after minimization, you can either exclude some of the inputs from the arguments of the `reproduce` command, or re-run the minimizer with fewer passes.
+
+!!! tip "Inputs must stay grouped into classes"
+    Reproduction only works when the inputs are grouped into contract-equivalence classes of two or more, because the violating pair must share a class to be compared. If `reproduce` reports `Effective Cls: 0.0` and finds no violation, the inputs collapsed into singleton classes; check that the config's `inputs_per_class` is at least `2`. Note that the auto-generated `reproduce.yaml` may override it to `1`, in which case reproducing through the minimizer's first pass (with `minimize.yaml`) is more reliable.
 
 We see that the hardware traces have been significantly simplified compared to the original violation, and now there are at most two accessed cache sets in each trace: 0 and 48 for input #1, and 0 and 15 for input #11. This is a good sign: the minimization was successful.
 

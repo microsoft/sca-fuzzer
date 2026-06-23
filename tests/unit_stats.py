@@ -4,9 +4,6 @@ File: Unit tests for stats.py
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
-# pylint: disable=missing-function-docstring  # no need in tests
-# pylint: disable=missing-class-docstring  # no need in tests
-
 import unittest
 
 from rvzr.stats import FuzzingStats

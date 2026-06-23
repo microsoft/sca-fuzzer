@@ -1,0 +1,25 @@
+# contract
+contract_observation_clause: loads+stores+pc
+contract_execution_clause:
+  - no_speculation
+
+# tested instructions
+# Note: ARM is a load-store ISA, so general-dataxfer is required to generate
+# the memory accesses (ldr/str) that the leak relies on.
+instruction_categories:
+  - general-arithmetic
+  - general-bitwise
+  - general-comparison
+  - general-condsel
+  - general-cond_branch
+  - general-dataxfer
+  - general-misc
+
+# fuzzing configuration
+enable_speculation_filter: true
+enable_observation_filter: true
+program_size: 16
+avg_mem_accesses: 8
+inputs_per_class: 2
+
+program_generator_seed: 100

@@ -4,6 +4,7 @@ File: arm64-specific Configuration Options
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
+# pylint: disable=duplicate-code  # justification: intentionally shared with the x86 config
 from typing import List, Dict
 
 _option_values = {

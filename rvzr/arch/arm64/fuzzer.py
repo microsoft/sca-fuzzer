@@ -84,6 +84,8 @@ class ARM64Fuzzer(Fuzzer):
         :param org_htraces: list of HTrace objects collected while executing the test case
         :return: True if the test case should be filtered out; False otherwise
         """
+        # pylint: disable=duplicate-code  # justification: intentionally shared with the x86 fuzzer
+
         if not CONF.enable_observation_filter:
             return False
 
@@ -155,8 +157,23 @@ def _create_fenced_test_case(original_asm: str, fenced_asm: str, asm_parser: Asm
             for line in f:
                 fenced_file.write(line)
                 line = line.strip().lower()
-                if line and line[0] not in ["/", ".", "b"] \
-                        and "macro" not in line:
-                    fenced_file.write('dsb SY\n isb\n')
+
+                # no need to add fences after empty lines and comments
+                if not line or line[0] == "/":
+                    continue
+
+                # don't add fences after assembler directives or macros
+                if line[0] == "." or "macro" in line:
+                    continue
+
+                # adding a fence after a control-flow instruction breaks assumptions of our asm
+                # parser (a terminator must be the last instruction of a basic block); this is an
+                # issue in the parser, and this check is a workaround
+                mnemonic = line.split()[0]
+                if mnemonic[0] == "b" or mnemonic in ("cbz", "cbnz", "tbz", "tbnz", "ret"):
+                    continue
+
+                # add fences after all other instructions
+                fenced_file.write('dsb SY\n isb\n')
     fenced_test_case = asm_parser.parse_file(fenced_asm, generator, elf_parser)
     return fenced_test_case

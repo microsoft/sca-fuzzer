@@ -4,9 +4,10 @@ File: Collection of unknown value speculation speculators for the Unicorn backen
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
-# FIXME: pylint is disabled for this file because it is currently not maintained
 # pylint: disable=too-many-instance-attributes, too-many-locals
+# justification: pylint is disabled for this file because it is currently not maintained
 # pylint: disable=too-many-branches, too-many-statements
+# justification: pylint is disabled for this file because it is currently not maintained
 
 from __future__ import annotations
 

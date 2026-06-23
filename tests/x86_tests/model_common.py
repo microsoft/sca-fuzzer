@@ -164,8 +164,8 @@ class InstList:
 
         if self.backend == "dr":
             return self._adjust_order_for_dr(execution_order, last_org_id, last_actual_id)
-        else:  # uc
-            return self._adjust_order_for_uc(execution_order, last_org_id, last_actual_id)
+        # uc
+        return self._adjust_order_for_uc(execution_order, last_org_id, last_actual_id)
 
     def _adjust_order_for_dr(self, execution_order: List[int], last_org_id: int,
                              last_actual_id: int) -> List[int]:

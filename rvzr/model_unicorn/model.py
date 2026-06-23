@@ -175,8 +175,8 @@ class UnicornModel(Model, ABC):
     """
 
     # pylint: disable=too-many-instance-attributes
-    # This is a management class that connects many services together, so having many attributes
-    # is a necessary evil
+    # justification: This is a management class that connects many services together, so having
+    # many attributes is a necessary evil
 
     # Service objects
     emulator: Uc

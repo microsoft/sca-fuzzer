@@ -49,7 +49,9 @@ STAT = FuzzingStats()
 # ==================================================================================================
 # Private: Logging configuration
 # ==================================================================================================
-class _LoggingConfig:  # pylint: disable=too-few-public-methods  # because this is a data class
+class _LoggingConfig:
+    # pylint: disable=too-few-public-methods
+    # justification: data class
     """
     A global object responsible for keeping track of how stuff should be printed.
     This object is shared among all modules (via Borg pattern)

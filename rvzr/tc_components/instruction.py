@@ -48,6 +48,7 @@ class Operand(ABC):
 
     @classmethod
     def from_fixed_spec(cls, spec: OperandSpec) -> AnyOperand:  # pylint: disable=r1710,r0911
+        # justification: see NOTE below the docstring
         """
         Create an Operand instance from a fixed operand specification.
         Fixed means that the specification does not have any multiple-option fields
@@ -272,9 +273,9 @@ class Instruction:
     """ Instruction in a test case program """
 
     # pylint: disable=too-many-instance-attributes
-    # NOTE: This is a data container class, so it is expected to have many attributes
+    # justification: This is a data container class, so it is expected to have many attributes
     # pylint: disable=too-many-public-methods
-    # NOTE: This contains separate accessors for each operand type,
+    # justification: This contains separate accessors for each operand type,
     # so it is expected to have many methods
 
     name: Final[str]
@@ -638,9 +639,12 @@ def copy_inst_with_modification(instruction: Instruction,
     new_inst.is_macro_placeholder = instruction.is_macro_placeholder
     new_inst.operands.extend(instruction.operands.copy())
     new_inst.implicit_operands.extend(instruction.implicit_operands.copy())
-    new_inst._section_id = instruction._section_id  # pylint: disable=protected-access
-    new_inst._section_offset = instruction._section_offset  # pylint: disable=protected-access
-    new_inst._size = instruction._size  # pylint: disable=protected-access
-    new_inst._line_num = instruction._line_num  # pylint: disable=protected-access
+
+    # pylint: disable=protected-access
+    # justification: copying private state into a new instance of the same class
+    new_inst._section_id = instruction._section_id
+    new_inst._section_offset = instruction._section_offset
+    new_inst._size = instruction._size
+    new_inst._line_num = instruction._line_num
 
     return new_inst

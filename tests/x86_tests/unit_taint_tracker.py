@@ -4,10 +4,6 @@ File: collection of tests for the taint tracking logic in all model backends
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
-# pylint: disable=missing-function-docstring
-# pylint: disable=missing-class-docstring
-# pylint: disable=too-many-public-methods
-
 import unittest
 from abc import ABC
 from typing import List, Tuple, Union
@@ -218,7 +214,7 @@ class X86DRTaintTrackerTest(_SharedTaintTrackerTest):
         self._skip_if_not_installed()
 
 
-class UnicornTaintTrackerTest(_SharedTaintTrackerTest):  # pylint: disable=too-many-public-methods
+class UnicornTaintTrackerTest(_SharedTaintTrackerTest):
     """Unit tests for the x86 Unicorn backend adaptor."""
 
     _backend: Backend = "uc"

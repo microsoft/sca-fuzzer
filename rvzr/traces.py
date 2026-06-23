@@ -251,7 +251,7 @@ class HTrace:
             return self._full_arch_str(line_prefix)
 
         assert_never(self.type_)
-        return ""  # pylint: disable=unreachable
+        return ""  # pylint: disable=unreachable  # justification: mypy workaround
 
     def _full_arch_str(self, line_prefix: str) -> str:
         """ Return a string representation of an architectural trace.
@@ -323,7 +323,7 @@ class HTrace:
             raise NotImplementedError("Cannot compare architectural traces")
 
         assert_never(self.type_)
-        return ""  # pylint: disable=unreachable
+        return ""  # pylint: disable=unreachable  # justification: mypy workaround
 
     def _full_tsc_pair_str(self, other: HTrace) -> str:
         """ Return a string representation of two TSC sample distributions side-by-side
@@ -387,6 +387,7 @@ class HTrace:
         :return: A new HTrace object that contains all samples from both objects
         """
         samples = np.concatenate([self._raw, other._raw])  # pylint: disable=protected-access
+        # justification: other is also an HTrace, so accessing its private _raw is same-class access
         return HTrace(samples, self.type_)
 
     def is_empty(self) -> bool:

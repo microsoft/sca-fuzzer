@@ -212,8 +212,8 @@ class TaintTracker
     /// @brief Collect all source dependencies from a tracked instruction
     /// @param tracked_inst The instruction to collect dependencies from
     /// @return Set of all labels that the instruction's sources depend on
-    std::set<tracked_label_t> collect_source_dependencies(
-        const TrackedInstruction *tracked_inst) const;
+    std::set<tracked_label_t>
+    collect_source_dependencies(const TrackedInstruction *tracked_inst) const;
 
     /// @brief Propagate source dependencies to a destination in the dependency map
     /// @tparam LabelT The type of label (register or memory)

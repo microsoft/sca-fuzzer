@@ -2,9 +2,6 @@
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
-# pylint: disable=missing-function-docstring
-# pylint: disable=missing-class-docstring
-
 import unittest
 import tempfile
 import subprocess
@@ -66,20 +63,16 @@ class ARM64GeneratorTest(unittest.TestCase):
         self.assertEqual(gen.__class__, ARM64Generator)
 
     def test_arm64_all_instructions(self) -> None:
-        # pylint: disable=protected-access
-        # Note: This function tests internals of the generator, which is why we
-        # have to disable the protected-access warning.
-
         asm_file = tempfile.NamedTemporaryFile("w", delete=False)
         obj_file = tempfile.NamedTemporaryFile("w", delete=False)
 
         instruction_set = InstructionSet((test_dir / "min_arm64.json").absolute().as_posix())
         generator = get_program_generator(CONF.program_generator_seed, instruction_set)
-        function_generator = generator._function_generator
         tc = TestCaseProgram(asm_file.name)
         tc.assign_obj(obj_file.name)
 
-        func = function_generator.generate_empty(".function_0", tc.find_section(name="main"))
+        func = generator._function_generator\
+            .generate_empty(".function_0", tc.find_section(name="main"))
         tc.find_section(name="main").append(func)
         printer = _ARM64Printer(ARM64TargetDesc())
         all_instructions = ['']
@@ -104,18 +97,15 @@ class ARM64GeneratorTest(unittest.TestCase):
         generator._printer.print(tc)
 
         # check if the generated instructions are valid
-        assembly_failed = False
         try:
             assemble(tc)
         except subprocess.CalledProcessError:
-            assembly_failed = True
+            self.fail("Generated invalid instruction(s)")
         else:
             obj_file.close()
             os.unlink(obj_file.name)
-        os.unlink(asm_file.name)
-
-        if assembly_failed:
-            self.fail("Generated invalid instruction(s)")
+        finally:
+            os.unlink(asm_file.name)
 
     def test_arm64_asm_parsing_basic(self) -> None:
         instruction_set = InstructionSet((test_dir / "min_arm64.json").absolute().as_posix())

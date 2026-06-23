@@ -103,7 +103,7 @@ int allocate_sandbox(uint64_t n_actors)
         return -1;
     }
 
-    sandbox->code = (code_section_t *) test_case_entry;
+    sandbox->code = (code_section_t *)test_case_entry;
     mprotect(sandbox->code, n_actors * sizeof(code_section_t), PROT_READ | PROT_WRITE | PROT_EXEC);
 
     return 0;

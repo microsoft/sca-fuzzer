@@ -2,10 +2,6 @@
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
-# pylint: disable=missing-function-docstring
-# pylint: disable=missing-class-docstring
-# pylint: disable=protected-access
-
 import os
 import unittest
 import tempfile

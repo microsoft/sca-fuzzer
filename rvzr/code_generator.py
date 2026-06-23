@@ -724,18 +724,15 @@ class _OperandGenerator:
 
     def _generate_flags_operand(self, spec: OperandSpec, parent: Instruction) -> FlagsOp:
         # pylint: disable=too-many-branches
-        # NOTE: there are many options for COND flags, so many branches are needed
+        # justification: there are many options for COND flags, so many branches are needed
 
         cond_op = parent.get_cond_operand()
         if not cond_op:
             return FlagsOp(spec.values)
-        raise NotImplementedError("COND operand is not yet supported")
-        # pylint: disable=unreachable
-        # NOTE: the code below is temporary disabled
 
         flag_values = self.target_desc.branch_conditions[cond_op.value]
         if not spec.values:
-            return FlagsOp(flag_values)
+            return FlagsOp(tuple(flag_values))
 
         # combine implicit flags with the condition
         merged_flags = []
@@ -758,7 +755,7 @@ class _OperandGenerator:
                 merged_flags.append("r")
             else:
                 merged_flags.append("")
-        return FlagsOp(merged_flags)
+        return FlagsOp(tuple(merged_flags))
 
     def _generate_cond_operand(self, _: OperandSpec, __: Instruction) -> CondOp:
         cond = random.choice(list(self.target_desc.branch_conditions))

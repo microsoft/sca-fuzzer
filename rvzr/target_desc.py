@@ -5,6 +5,9 @@ such as register sizes, register names, and CPU description.
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
+# pylint: disable=too-few-public-methods
+# justification: this is a collection of descriptor classes
+
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Dict, List, Tuple, NamedTuple, Literal, TYPE_CHECKING
@@ -49,7 +52,7 @@ class MacroSpec(NamedTuple):
     args: Tuple[str, str, str, str]
 
 
-class UnicornTargetDesc:  # pylint: disable=too-few-public-methods
+class UnicornTargetDesc:
     """ Target description in the context of a Unicorn-based model """
 
     usable_registers: List[RegUnicornID]

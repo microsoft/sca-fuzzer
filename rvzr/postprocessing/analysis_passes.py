@@ -44,8 +44,8 @@ def _get_seq_model(data_start: int, code_start: int) -> uc_model.UnicornModel:
         assert_never(CONF.instruction_set)
 
     bases = (data_start, code_start)
-    model = model_cls(bases, target_desc, uc_speculator.SeqSpeculator,
-                      uc_tracer.CTTracer, interpreter)
+    model = model_cls(bases, target_desc, uc_speculator.SeqSpeculator, uc_tracer.CTTracer,
+                      interpreter)
     return model
 
 
@@ -61,9 +61,8 @@ class AddViolationCommentsPass(BaseInstructionMinimizationPass):
         self.violation = violation
 
     def run(self, test_case: TestCaseProgram, inputs: List[InputData]) -> TestCaseProgram:
-        # pylint: disable=too-many-locals
-        # pylint: disable=too-many-branches
-        # FIXME: this function was written in a hurry and needs to be refactored
+        # pylint: disable=too-many-branches, too-many-locals
+        # justification: needs FIXME - this function was written in a hurry and needs refactoring
 
         # reproduce the violation to get violating input IDs
         v_inputs = [m.input_ for m in self.violation.measurements[:2]]

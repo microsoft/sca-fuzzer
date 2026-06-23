@@ -5,4 +5,4 @@ AllowShortIfStatementsOnASingleLine: false
 AlignConsecutiveMacros:
   Enabled: true
   AcrossEmptyLines: false
-  AcrossComments: false
+  AcrossComments: true
