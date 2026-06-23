@@ -9,21 +9,21 @@ The commands below assume that the ISA spec (downloaded via `rvzr download_spec`
 ## [Spectre V1](https://meltdownattack.com/)
 
 ```
-rvzr fuzz -s base.json -c demo/detect-v1.yaml -i 50 -n 10000
+rvzr fuzz -s base.json -c demo/x86/detect-v1.yaml -i 50 -n 10000
 ```
 Expected duration - several seconds.
 
 ## Spectre V1 (store variant)
 
 ```
-rvzr fuzz -s base.json -c demo/detect-v1-store.yaml -i 50 -n 10000
+rvzr fuzz -s base.json -c demo/x86/detect-v1-store.yaml -i 50 -n 10000
 ```
 Expected duration - several seconds.
 
 ## Spectre V1-Var ([description](https://dl.acm.org/doi/10.1145/3503222.3507729) and [here](https://eprint.iacr.org/2022/715.pdf))
 
 ```
-rvzr fuzz -s base.json -c demo/detect-v1-var.yaml -i 50 -n 10000
+rvzr fuzz -s base.json -c demo/x86/detect-v1-var.yaml -i 50 -n 10000
 ```
 Expected duration - several hours.
 
@@ -32,13 +32,13 @@ Expected duration - several hours.
 Note: only Intel CPUs.
 
 ```
-rvzr fuzz -s base.json -c demo/detect-mds.yaml -i 50 -n 10000
+rvzr fuzz -s base.json -c demo/x86/detect-mds.yaml -i 50 -n 10000
 ```
 Expected duration - several minutes.
 
 ## Spectre V4 ([description](https://www.cyberus-technology.de/posts/2018-05-22-intel-store-load-spectre-vulnerability.html))
 ```
-rvzr fuzz -s base.json -c demo/detect-v4.yaml -i 50 -n 10000
+rvzr fuzz -s base.json -c demo/x86/detect-v4.yaml -i 50 -n 10000
 ```
 Expected duration - 5-20 minutes.
 
@@ -47,14 +47,14 @@ Expected duration - 5-20 minutes.
 Note: only Intel CPUs.
 
 ```
-rvzr fuzz -s base.json -c demo/detect-zdi.yaml -i 50 -n 10000
+rvzr fuzz -s base.json -c demo/x86/detect-zdi.yaml -i 50 -n 10000
 ```
 Expected duration - several minutes.
 
 ## String Comparison Overrun (SCO)
 
 ```
-rvzr fuzz -s base.json -c demo/detect-sco.yaml -i 50 -n 10000
+rvzr fuzz -s base.json -c demo/x86/detect-sco.yaml -i 50 -n 10000
 ```
 Expected duration - several minutes.
 
@@ -63,7 +63,7 @@ Expected duration - several minutes.
 Note: only Intel CPUs.
 
 ```
-rvzr fuzz -s base.json -c demo/detect-foreshadow.yaml -i 50 -n 10000
+rvzr fuzz -s base.json -c demo/x86/detect-foreshadow.yaml -i 50 -n 10000
 ```
 Expected duration - several minutes.
 
@@ -72,7 +72,7 @@ Expected duration - several minutes.
 Note: only AMD CPUs vulnerable to TSA.
 
 ```
-rvzr tfuzz -s base.json -c demo/tsa-sq/config.yaml -t demo/tsa-sq/template.asm -i 50 -n 10000
+rvzr tfuzz -s base.json -c demo/x86/tsa-sq/config.yaml -t demo/x86/tsa-sq/template.asm -i 50 -n 10000
 ```
 Expected duration - several minutes.
 
@@ -81,7 +81,7 @@ Expected duration - several minutes.
 Note: only AMD CPUs vulnerable to TSA.
 
 ```
-rvzr tfuzz -s base.json -c demo/tsa-l1d/config.yaml -t demo/tsa-l1d/template.asm -i 50 -n 10000
+rvzr tfuzz -s base.json -c demo/x86/tsa-l1d/config.yaml -t demo/x86/tsa-l1d/template.asm -i 50 -n 10000
 ``
 Expected duration - several minutes.
 
@@ -99,13 +99,6 @@ The commands below assume that the ARM64 ISA spec (downloaded via
 
 ```
 rvzr fuzz -s base-arm.json -c demo/arm64/detect-v1.yaml -i 50 -n 10000
-```
-Expected duration - several seconds.
-
-## Spectre V1, store variant (ARM64)
-
-```
-rvzr fuzz -s base-arm.json -c demo/arm64/detect-v1-store.yaml -i 50 -n 10000
 ```
 Expected duration - several seconds.
 

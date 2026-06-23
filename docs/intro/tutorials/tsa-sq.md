@@ -2,7 +2,7 @@
 
 This tutorial demonstrates how we used Revizor to detect TSA-SQ (Transient Scheduler Attack - Store Queue), a microarchitectural vulnerability discovered in AMD Zen4 processors. We'll walk through the design rationale behind the fuzzing campaign configuration and template, explaining how each component contributes to successful vulnerability detection.
 
-You can reproduce this campaign using the provided configuration and template files, which are available in the Revizor repository under `demo/tsa-sq/`.
+You can reproduce this campaign using the provided configuration and template files, which are available in the Revizor repository under `demo/x86/tsa-sq/`.
 
 !!! info "Prerequisites"
     To follow this tutorial, you should have:
@@ -49,7 +49,7 @@ The template structure follows the typical flow of a microarchitectural side-cha
 
 ![tsa-sq-template.png](../../assets/tsa-sq-template.png)
 
-You can find the complete template in [`template.asm`](https://github.com/microsoft/side-channel-fuzzer/blob/main/demo/tsa-sq/template.asm).
+You can find the complete template in [`template.asm`](https://github.com/microsoft/side-channel-fuzzer/blob/main/demo/x86/tsa-sq/template.asm).
 
 Let's examine each phase:
 

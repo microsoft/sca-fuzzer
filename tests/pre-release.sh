@@ -83,7 +83,7 @@ function read_args() {
     work_dir=$(realpath "$work_dir")
     revizor="$revizor_dir/revizor.py"
     instructions="$revizor_dir/base.json"
-    conf_dir="$revizor_dir/demo/"
+    conf_dir="$revizor_dir/demo/x86/"
 
 }
 
