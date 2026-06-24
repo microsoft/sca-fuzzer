@@ -477,31 +477,33 @@ class _LeakDetectionWorker:
         any address (at the same position). This catches divergences that the count-only check
         misses, e.g. equal access counts but different addresses.
         """
-        ref_offsets = ref_instr['mem_accesses_offset']
-        tgt_offsets = tgt_instr['mem_accesses_offset']
         ref_counts = ref_instr['num_mem_accesses']
-        tgt_counts = tgt_instr['num_mem_accesses']
+        count_mismatch = ref_counts != tgt_instr['num_mem_accesses']
 
         # Instructions whose access counts differ are leaks: their ordered sequences differ in
         # length, so they can never be equal regardless of addresses.
-        count_leaks = np.flatnonzero(ref_counts != tgt_counts)
+        count_leaks = np.flatnonzero(count_mismatch)
 
         # For the remaining (equal-count) instructions with at least one access, gather both
         # traces' addresses into flat arrays and compare element-wise. Offsets differ between the
         # two traces, so each instruction's accesses are gathered from its own offset.
-        equal_count = np.flatnonzero((ref_counts == tgt_counts) & (ref_counts > 0))
+        equal_count = np.flatnonzero(~count_mismatch & (ref_counts > 0))
         addr_leaks = np.array([], dtype=np.intp)
         if equal_count.size > 0:
-            counts = ref_counts[equal_count].astype(np.intp)  # == tgt_counts[equal_count]
-            # Exclusive prefix sum gives each instruction's start in the gathered array.
-            block_start = np.repeat(np.cumsum(counts) - counts, counts)
-            within = np.arange(int(counts.sum()), dtype=np.intp) - block_start
-            ref_gather = np.repeat(ref_offsets[equal_count].astype(np.intp), counts) + within
-            tgt_gather = np.repeat(tgt_offsets[equal_count].astype(np.intp), counts) + within
+            counts = ref_counts[equal_count].astype(np.intp)
+            # Position of each gathered access within its instruction (0..count-1), obtained by
+            # subtracting each instruction's start (exclusive prefix sum) from a flat index.
+            pos = np.arange(int(counts.sum()), dtype=np.intp) \
+                - np.repeat(np.cumsum(counts) - counts, counts)
+            ref_gather = \
+                np.repeat(ref_instr['mem_accesses_offset'][equal_count].astype(np.intp), counts) \
+                + pos
+            tgt_gather = \
+                np.repeat(tgt_instr['mem_accesses_offset'][equal_count].astype(np.intp), counts) \
+                + pos
             diff = ref_trace.mem_accesses[ref_gather] != target_trace.mem_accesses[tgt_gather]
             if diff.any():
-                instr_of_access = np.repeat(equal_count, counts)
-                addr_leaks = np.unique(instr_of_access[diff])
+                addr_leaks = np.unique(np.repeat(equal_count, counts)[diff])
 
         if count_leaks.size == 0:
             return addr_leaks
