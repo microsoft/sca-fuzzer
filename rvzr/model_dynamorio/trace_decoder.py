@@ -200,11 +200,22 @@ class TraceDecoder:
     def decode_trace_file(self, file: str) -> TraceEntryArray:
         """ Read a set of traces from a file. """
         file_size = os.stat(file).st_size
-        num_entries = (file_size - self._marker_size) // self._trace_entry_size
-        if num_entries <= 0:
-            return np.empty((0,), dtype=TraceEntryDType)
-        traces = np.fromfile(
-            file, dtype=TraceEntryDType, count=num_entries, offset=self._marker_size)
+        with open(file, "rb") as f:
+            marker = self.read_trace_marker(f)
+            if marker == "":  # empty file
+                return np.empty((0,), dtype=TraceEntryDType)
+            assert marker == "T", f"Expected Normal trace (T), got {marker}"
+
+            # Check that the trace data is aligned to the trace entry size
+            data_size = file_size - self._marker_size
+            if data_size % self._trace_entry_size != 0:
+                raise ValueError(f"Trace file size is not aligned to the trace entry size: "
+                                 f"{data_size} bytes is not a multiple of {self._trace_entry_size}")
+
+            num_entries = data_size // self._trace_entry_size
+            if num_entries <= 0:
+                return np.empty((0,), dtype=TraceEntryDType)
+            traces = np.fromfile(f, dtype=TraceEntryDType, count=num_entries)
         return traces
 
     def decode_debug_trace_file(self, file: str) -> List[List[Any]]:
