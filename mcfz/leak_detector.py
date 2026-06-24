@@ -20,7 +20,6 @@ from typing_extensions import TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
-from tqdm import tqdm
 
 from rvzr.model_dynamorio.trace_decoder import TraceDecoder, TraceEntryType, TraceEntryArray
 from .util.compressor import Compressor, is_compressed

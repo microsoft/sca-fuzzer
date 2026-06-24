@@ -17,8 +17,7 @@ from .fuzzer import FuzzerCore
 from .driller import Driller
 
 
-# justification: argument parser defines many arguments
-def _parse_args() -> Any:  # pylint: disable=r0915
+def _parse_args() -> Any:
     parser = ArgumentParser(add_help=True)
     subparsers = parser.add_subparsers(dest='subparser_name', help="Subcommand to run")
 
@@ -46,14 +45,6 @@ def _parse_args() -> Any:  # pylint: disable=r0915
     # ==============================================================================================
     # Stage 1: Fuzzing-based input generation (AFL++ interface)
     _ = subparsers.add_parser('fuzz_gen', add_help=True, parents=[common_parser])
-
-    # TODO: target-cov is not used yet, but it will be used in the future to control the coverage
-    # fuzz_gen.add_argument(
-    #     "--target-cov",
-    #     type=int,
-    #     default=10,
-    #     help="Target coverage to achieve, in percentage (default: 10)",
-    # )
 
     # ==============================================================================================
     # Stage 2: Boosting - generate public-equivalent variants
@@ -132,10 +123,6 @@ def _validate_args(_: Any) -> bool:
 def main() -> int:
     """ Main function for the CLI """
 
-    # pylint: disable=too-many-return-statements,too-many-branches
-    # justification: this function is the main entry point and it naturally has many
-    #                branches and returns due to different subcommands
-
     args = _parse_args()
     if args is None:
         return 1
@@ -166,10 +153,7 @@ def main() -> int:
 
     # Start the fuzzer in the mode requested by the user
     if args.subparser_name == 'fuzz_gen':
-        fuzzer.fuzz_gen(
-            target_cov=0,  # TODO: will be replaced with args.target_cov when implemented
-            timeout_s=config.fuzzing_timeout_s,
-        )
+        fuzzer.fuzz_gen(timeout_s=config.fuzzing_timeout_s)
         return 0
 
     if args.subparser_name == 'boost':
@@ -185,10 +169,7 @@ def main() -> int:
         return 0
 
     if args.subparser_name == 'fuzz':
-        fuzzer.all(
-            target_cov=0,  # TODO: will be replaced with args.target_cov when implemented
-            timeout_s=config.fuzzing_timeout_s,
-        )
+        fuzzer.all(timeout_s=config.fuzzing_timeout_s)
         return 0
 
     print("ERROR: Unknown subcommand")

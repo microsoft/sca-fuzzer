@@ -5,7 +5,7 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 from __future__ import annotations
-from typing import TYPE_CHECKING, List, Final, Dict
+from typing import TYPE_CHECKING, List, Final, Dict, Tuple
 
 import os
 import subprocess

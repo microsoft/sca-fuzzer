@@ -29,7 +29,7 @@ class FuzzerCore:
     def __init__(self, config: Config) -> None:
         self._config = config
 
-    def all(self, target_cov: int, timeout_s: int) -> None:
+    def all(self, timeout_s: int) -> None:
         """
         Run all fuzzing stages: fuzzing-based generation, boosting, tracing, and reporting.
 
@@ -42,17 +42,17 @@ class FuzzerCore:
         self.report(0)
         console.success(f"All stages complete. Reports are in {self._config.stage4_wd}")
 
-    def fuzz_gen(self, target_cov: int, timeout_s: int) -> None:
+    def fuzz_gen(self, timeout_s: int) -> None:
         """
         Fuzzing Stage 1:
             Generate diverse inputs via fuzzing
 
-        :param target_cov: Target coverage to achieve
         :param timeout_s: Timeout for the fuzzing process
         :return: 0 if the target coverage or timeout is reached, 1 if error occurs
         """
         console.section("Stage 1/4 \u00b7 Fuzzing-based input generation")
         fuzz_gen = FuzzGen(self._config)
+        fuzz_gen.generate(timeout_s)
         console.success("Input generation complete.")
 
     def boost(self) -> None:
