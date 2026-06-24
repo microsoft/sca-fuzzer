@@ -14,8 +14,8 @@ import json
 import shutil
 import glob
 
-from typing import (TYPE_CHECKING, Any, List, Tuple, Dict, Iterator, NewType, Literal, Final,
-                    cast, get_args, Optional)
+from typing import (TYPE_CHECKING, Any, List, Tuple, Dict, Iterator, NewType, Literal, Final, cast,
+                    get_args, Optional)
 from typing_extensions import TypeAlias
 
 import numpy as np
@@ -92,16 +92,13 @@ LinesInTracePair = NewType('LinesInTracePair', str)
         (000.trace, which is the same for all leaks).
 """
 
-LeakageMap = Dict[
-    ClauseType,
+LeakageMap = Dict[ClauseType, Dict[
+    LeakType,
     Dict[
-        LeakType,
-        Dict[
-            PC,
-            List[LinesInTracePair],
-        ],
-    ]
-]
+        PC,
+        List[LinesInTracePair],
+    ],
+]]
 """ Map of leaks found in the traces, indexed by leak type and PC.
     The value is a list of trace file names where the leak was found.
 """
@@ -267,8 +264,7 @@ def _find_reference_trace(trace_files: List[FileName]) -> FileName:
     for trace_file in trace_files:
         if os.path.basename(trace_file).startswith("000.trace"):
             return trace_file
-    raise ValueError(
-        f"Reference trace file (000.trace) not found in the given list. {trace_files}")
+    raise ValueError(f"Reference trace file (000.trace) not found in the given list. {trace_files}")
 
 
 class _LeakDetectionWorker:
@@ -444,7 +440,8 @@ class _LeakDetectionWorker:
             return np.array([], dtype=LeakyInstrDType), 0  # No previous instruction to blame
 
         leak = np.array([(prev['pc'], 'I', prev['org_trace_entry_id'], prev['org_trace_entry_id'],
-                          prev['spec_level'])], dtype=LeakyInstrDType)
+                          prev['spec_level'])],
+                        dtype=LeakyInstrDType)
         return leak, first_diverge
 
     def _find_d_type_leaks(self, ref_trace: _Trace, target_trace: _Trace, ref_instr: InstrArray,
@@ -511,8 +508,7 @@ class _FastLeakDetectionWorker():
         self._logger = Logger("LeakDetectionWorker")
         self.leak_detector_path = leak_detector_path
 
-    def identify_all_leaks_in_group(
-            self, trace_files: List[FileName]) -> None:
+    def identify_all_leaks_in_group(self, trace_files: List[FileName]) -> None:
         """
         Identify all leaks in a group of traces that share the same reference trace.
         This version uses a fast C++ reporter that writes each trace's leak to a file.
@@ -539,9 +535,10 @@ class _FastLeakDetectionWorker():
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
             # Run the reporter
             try:
-                cmd = [self.leak_detector_path,
-                       reference_trace_file_uncompressed,
-                       trace_file, output_path]
+                cmd = [
+                    self.leak_detector_path, reference_trace_file_uncompressed, trace_file,
+                    output_path
+                ]
                 # print(cmd)
                 subprocess.run(cmd, capture_output=True, check=True, text=True)
             except subprocess.CalledProcessError as e:
@@ -650,8 +647,8 @@ class LeakDetector:
         progress_bar.close()
         return leakage_map
 
-    def build_leakage_map_fast(self, stage3_dir: str, num_groups: int,
-                               leak_detector_path: str, merger_path: str) -> LeakageMap:
+    def build_leakage_map_fast(self, stage3_dir: str, num_groups: int, leak_detector_path: str,
+                               merger_path: str) -> LeakageMap:
         """
         Analyse all traces in stage3_dir with the fast (C++) leak detector.
         """
@@ -685,12 +682,10 @@ class LeakDetector:
         progress_bar.close()
 
         # Merge all .leaks files into a single report
-        result = subprocess.run(
-            [merger_path, self._config.stage4_wd],
-            capture_output=True,
-            text=True,
-            check=True
-        )
+        result = subprocess.run([merger_path, self._config.stage4_wd],
+                                capture_output=True,
+                                text=True,
+                                check=True)
         output_dir = Path(self._config.stage4_wd)
         # Print merged report to a json file
         with open(output_dir / "fast_report.json", "w") as f:
@@ -797,7 +792,7 @@ class LeakDetector:
                         if not os.path.isfile(filename):
                             filename = filename + ".bz2"
                         if not os.path.isfile(filename):
-                            filename = filename.replace(".bz2",".gz")
+                            filename = filename.replace(".bz2", ".gz")
                         if not os.path.isfile(filename):
                             print(f"WARNING: trace file not found {filename}")
                         # Append to leakage map
