@@ -157,7 +157,7 @@ class Config:
           other modules by reference.
     """
     # pylint: disable=too-few-public-methods,too-many-instance-attributes
-    # NOTE: disabling is justified here, as this class is a configuration holder
+    # justification: this class is a configuration holder
 
     __config_instantiated: bool = False
     """ Class-local flag that allows us to detect attempts to instantiate Config more than once. """

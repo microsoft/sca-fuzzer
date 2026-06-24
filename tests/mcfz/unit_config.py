@@ -2,9 +2,9 @@
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
-# pylint: disable=missing-function-docstring
-# pylint: disable=missing-class-docstring
-# pylint: disable=protected-access
+# pylint: disable=missing-function-docstring  # justification: test conventions
+# pylint: disable=missing-class-docstring  # justification: test conventions
+# pylint: disable=protected-access  # justification: tests inspect internal state
 from typing import Dict, Collection
 
 import os

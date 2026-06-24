@@ -239,10 +239,7 @@ void TaintTracker::enable()
     sandbox_base = 0; // Will be set on first instruction
 }
 
-void TaintTracker::disable()
-{
-    enabled = false;
-}
+void TaintTracker::disable() { enabled = false; }
 
 void TaintTracker::finalize()
 {

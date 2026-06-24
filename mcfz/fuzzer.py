@@ -93,8 +93,7 @@ class FuzzerCore:
             leak_detector_path = fast_reporter_dir / "leak_detector"
             merger_path = fast_reporter_dir / "merger"
             leakage_map = detector.build_leakage_map_fast(self._config.stage3_wd, num_traces,
-                                                          str(leak_detector_path),
-                                                          str(merger_path))
+                                                          str(leak_detector_path), str(merger_path))
         else:
             leakage_map = detector.build_leakage_map(self._config.stage3_wd, num_traces)
 

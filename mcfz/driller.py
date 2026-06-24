@@ -44,11 +44,11 @@ class _GdbScriptBuilder:
         Note that we cannot simply use "skip" since it will continue counting hits to the
         breakpoint.
         """
-        disable_output = ["    set logging file /dev/null",
-                          "    set logging redirect on",
-                          "    set logging enabled on"]
-        enable_output = ["     set logging enabled off",
-                         "     set logging redirect off"]
+        disable_output = [
+            "    set logging file /dev/null", "    set logging redirect on",
+            "    set logging enabled on"
+        ]
+        enable_output = ["     set logging enabled off", "     set logging redirect off"]
 
         # Define `skip_current_func` to simply reach the end of the current function
         self._commands.extend([
@@ -65,7 +65,7 @@ class _GdbScriptBuilder:
             "end",
             "",
             "define hookpost-skip_current_func",
-            "    enable",   # Re-enable breakpoints
+            "    enable",  # Re-enable breakpoints
             "    continue",
             "end",
         ])
@@ -178,8 +178,8 @@ class _GdbScriptBuilder:
 
             if not fast:
                 builder.shell_prompt(
-                    "Reached first architectural instruction" if is_first
-                    else f'Reached start of spec window (level: {lvl}, pc: {win.start_pc_gdb:#x})')
+                    "Reached first architectural instruction" if is_first else
+                    f'Reached start of spec window (level: {lvl}, pc: {win.start_pc_gdb:#x})')
 
             # Reach target instruction
             b_num = builder.breakpoint(win.pc_gdb)
@@ -327,7 +327,9 @@ class _LeakInfo:
         input_file = input_file.replace('.trace', '.bin')
         return FileName(os.path.join(input_dir, input_file))
 
-    def build_gdb_cmd(self, fast: bool = False, single_step: bool = False,
+    def build_gdb_cmd(self,
+                      fast: bool = False,
+                      single_step: bool = False,
                       ignored_funcs: Optional[List[str]] = None) -> None:
         """
         Generate a debug shell script that opens two gdb sessions in tmux.
@@ -425,8 +427,8 @@ class Driller:
                 ignored_funcs = [line.strip() for line in f if line.strip()]
 
         # Build the GDB command
-        leak_info.build_gdb_cmd(fast=self._fast, single_step=self._single_step,
-                                ignored_funcs=ignored_funcs)
+        leak_info.build_gdb_cmd(
+            fast=self._fast, single_step=self._single_step, ignored_funcs=ignored_funcs)
 
         # Pretty print the details
         print(leak_info)

@@ -17,6 +17,7 @@ from .fuzzer import FuzzerCore
 from .driller import Driller
 
 
+# justification: argument parser defines many arguments
 def _parse_args() -> Any:  # pylint: disable=r0915
     parser = ArgumentParser(add_help=True)
     subparsers = parser.add_subparsers(dest='subparser_name', help="Subcommand to run")
@@ -132,8 +133,8 @@ def main() -> int:
     """ Main function for the CLI """
 
     # pylint: disable=too-many-return-statements,too-many-branches
-    # NOTE: disabling is justified here, as this function is the main entry point
-    #       and it naturally has many branches due to different subcommands
+    # justification: this function is the main entry point and it naturally has many
+    #                branches and returns due to different subcommands
 
     args = _parse_args()
     if args is None:

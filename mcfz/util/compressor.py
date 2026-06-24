@@ -6,9 +6,10 @@ SPDX-License-Identifier: MIT
 """
 from __future__ import annotations
 
-from typing import Literal, get_args, cast
-from typing_extensions import assert_never
 from subprocess import run
+from typing import Literal, get_args, cast
+
+from typing_extensions import assert_never
 
 from ..config import Config
 
@@ -49,6 +50,7 @@ class Compressor:
         assert_never(self._tool)
 
     def compress(self, file_path: str) -> None:
+        """ Compress a single file in place using the configured tool. """
         if self._tool == "none":
             return
         file_path = self._quote_parentheses(file_path)
@@ -56,12 +58,14 @@ class Compressor:
         run(cmd, shell=True, check=True)
 
     def compress_file_list(self, file_paths: list[str]) -> None:
+        """ Compress each file in the given list in place. """
         if self._tool == "none":
             return
         for file_ in file_paths:
             self.compress(file_)
 
     def decompress(self, file_path: str) -> None:
+        """ Decompress a single file in place using the configured tool. """
         if self._tool == "none":
             return
         file_path = self._quote_parentheses(file_path)
@@ -80,13 +84,12 @@ class Compressor:
             cmd = f"gzip {keep_flag} -d -f {file_path}"
             run(cmd, shell=True, check=True)
             return file_path[:-3]
-        elif file_path.endswith(".bz2"):
+        if file_path.endswith(".bz2"):
             cmd = f"bzip2 {keep_flag} -d -f {file_path}"
             run(cmd, shell=True, check=True)
             return file_path[:-4]
-        else:
-            # No known compression extension; assume uncompressed
-            return file_path
+        # No known compression extension; assume uncompressed
+        return file_path
 
     @staticmethod
     def _quote_parentheses(str_: str) -> str:

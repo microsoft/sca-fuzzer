@@ -2,9 +2,9 @@
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
-# pylint: disable=missing-function-docstring
-# pylint: disable=missing-class-docstring
-# pylint: disable=protected-access
+# pylint: disable=missing-function-docstring  # justification: test conventions
+# pylint: disable=missing-class-docstring  # justification: test conventions
+# pylint: disable=protected-access  # justification: tests inspect internal state
 
 import os
 import tempfile
@@ -67,7 +67,7 @@ class TestReporter(unittest.TestCase):
 
             # Verify that the returned _Trace object contains all expected entries.
             # All entries here share spec_level=0, so there is exactly one subtrace.
-            traces = [trace for trace in chopped_trace]
+            traces = list(chopped_trace)
             self.assertEqual(len(traces), 1)
             subtrace = traces[0]
 
@@ -85,7 +85,8 @@ class TestReporter(unittest.TestCase):
             self.assertEqual(subtrace.mem_accesses[0], 0x2000)  # READ
             self.assertEqual(subtrace.mem_accesses[1], 0x3000)  # WRITE
             self.assertEqual(subtrace.mem_accesses[2], 0x5000)  # IND
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            # justification: any failure while parsing should fail the test with a clear message
             self.fail(f"Trace parsing raised an exception: {e}")
 
         finally:

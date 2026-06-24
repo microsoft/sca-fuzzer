@@ -40,7 +40,7 @@ class TraceEntryType:
     @classmethod
     def to_str(cls, entry_type: int) -> str:
         """ Convert entry type to string """
-        # pylint: disable=too-many-return-statements
+        # pylint: disable=too-many-return-statements  # justification: one return per entry type
         if entry_type == cls.ENTRY_EOT:
             return "EOT"
         if entry_type == cls.ENTRY_PC:
@@ -58,10 +58,10 @@ class TraceEntryType:
 
 # numpy dtype for trace entries
 TraceEntryDType: Final[np.dtype[np.void]] = np.dtype([
-    ('addr', np.uint64),        # trace_entry_t.addr in trace.hpp
-    ('size', np.uint8),         # trace_entry_t.size in trace.hpp
-    ('spec_level', np.uint8),   # trace_entry_t.spec_level in trace.hpp
-    ('type', np.uint8),         # trace_entry_t.type in trace.hpp
+    ('addr', np.uint64),  # trace_entry_t.addr in trace.hpp
+    ('size', np.uint8),  # trace_entry_t.size in trace.hpp
+    ('spec_level', np.uint8),  # trace_entry_t.spec_level in trace.hpp
+    ('type', np.uint8),  # trace_entry_t.type in trace.hpp
 ])
 
 # Type alias for arrays of TraceEntryDType
@@ -241,8 +241,7 @@ class TraceDecoder:
                 if eof and len(entries) > 0:
                     last_entry = entries[-1]
                     if DebugTraceEntryType(last_entry.type) != DebugTraceEntryType.ENTRY_EOT:
-                        raise ValueError(
-                            "Trace file does not end with an EOT entry")
+                        raise ValueError("Trace file does not end with an EOT entry")
 
         return traces
 
@@ -267,8 +266,7 @@ class TraceDecoder:
 
                 # Decode last entry
                 f.seek(-entry_sz, os.SEEK_END)
-                last_entry = np.frombuffer(
-                    f.read(entry_sz), dtype=TraceEntryDType)[0]
+                last_entry = np.frombuffer(f.read(entry_sz), dtype=TraceEntryDType)[0]
 
                 # Check its type
                 return bool(last_entry['type'] != TraceEntryType.ENTRY_EOT)
@@ -280,8 +278,7 @@ class TraceDecoder:
 
                 # Decode last entry
                 f.seek(-entry_sz, os.SEEK_END)
-                last_dbg_entry = self._decode_debug_trace_entry(
-                    f.read(entry_sz))
+                last_dbg_entry = self._decode_debug_trace_entry(f.read(entry_sz))
 
                 # Check its type
                 last_dbg_entry_type = DebugTraceEntryType(last_dbg_entry.type)
@@ -304,8 +301,7 @@ class TraceDecoder:
         try:
             DebugTraceEntryType(entry.type)
         except Exception:
-            raise ValueError(
-                f"Error: Unknown debug entry type {str(entry.type)}")
+            raise ValueError(f"Error: Unknown debug entry type {str(entry.type)}")
 
         return entry
 

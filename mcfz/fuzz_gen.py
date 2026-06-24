@@ -74,7 +74,7 @@ class FuzzGen:
 
         :param timeout_s: Timeout for the fuzzing process
         """
-        # pylint: disable=consider-using-with
+        # pylint: disable=consider-using-with  # justification: the process outlives this scope
         assert self._config.afl_seed_dir is not None, "AFL seed directory not set."
         assert self._config.bin_instrumented is not None  # enforced by config validation
 
