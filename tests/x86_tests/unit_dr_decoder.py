@@ -219,6 +219,29 @@ class DRTraceDecodeTest(unittest.TestCase):
 
             os.remove(f.name)
 
+    def test_is_corrupted_truncated(self) -> None:
+        decoder = TraceDecoder()
+
+        # Encode the special marker
+        marker = struct.pack("c", "T".encode('utf-8'))
+        marker += b'\x00' * 7  # Padding to ensure the marker is 8 bytes long
+        eot = self._encode_from_dict(self._find_entry_of_type(TraceEntryType.ENTRY_EOT))
+
+        # Truncated files (header only, or header + partial/misaligned entry) are corrupted
+        truncated = [
+            marker,  # marker only, no entries
+            marker + eot[:5],  # marker + partial entry
+            marker + eot + eot[:3],  # marker + full entry + partial (misaligned) entry
+        ]
+
+        for data in truncated:
+            with NamedTemporaryFile("wb", delete=False) as f:
+                f.write(data)
+                f.close()
+
+            self.assertTrue(decoder.is_trace_corrupted(f.name))
+            os.remove(f.name)
+
 
 class DRDebugTraceDecodeTest(unittest.TestCase):
     """

@@ -272,7 +272,9 @@ class TraceDecoder:
             # Decode based on the type
             if trace_type == "T":
                 entry_sz = self._trace_entry_size
-                if os.stat(trace_path).st_size < entry_sz:
+                data_size = os.stat(trace_path).st_size - self._marker_size
+                # Need at least one full entry, aligned to the entry size
+                if data_size < entry_sz or data_size % entry_sz != 0:
                     return True
 
                 # Decode last entry
@@ -284,7 +286,9 @@ class TraceDecoder:
 
             if trace_type == "D":
                 entry_sz = self._ffi.sizeof(_DEBUG_TRACE_ENTRY_T)
-                if os.stat(trace_path).st_size < entry_sz:
+                data_size = os.stat(trace_path).st_size - self._marker_size
+                # Need at least one full entry, aligned to the entry size
+                if data_size < entry_sz or data_size % entry_sz != 0:
                     return True
 
                 # Decode last entry
