@@ -5,14 +5,19 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 from __future__ import annotations
-from typing import TYPE_CHECKING, Final, List, Tuple
+from typing import TYPE_CHECKING, Callable, Final, List, Tuple
 
 import os
+import random
 
 if TYPE_CHECKING:
     from .config import Config
 
 CONF_SIZE: Final[int] = 0x10  # Size of the config data in bytes
+
+
+class _BoostError(Exception):
+    """Custom exception for errors during the boosting process."""
 
 
 class Boost:
@@ -23,6 +28,15 @@ class Boost:
     def __init__(self, config: Config) -> None:
         self._config = config
         self._boosting_factor = config.num_secrets_per_class
+
+        # Source of randomness for the secret (private) data. When a seed is configured,
+        # use a seeded PRNG so that boosting is reproducible; otherwise fall back to the
+        # unseeded, cryptographically secure os.urandom.
+        self._random_bytes: Callable[[int], bytes]
+        if config.boost_seed is None:
+            self._random_bytes = os.urandom
+        else:
+            self._random_bytes = random.Random(config.boost_seed).randbytes
 
     def _generate_from_reference(self, wd: str, reference_input: str) -> None:
         """
@@ -52,14 +66,11 @@ class Boost:
         with open(reference_input, 'rb') as f:
             ref_data = f.read()
 
-        if len(ref_data) < CONF_SIZE + 2:  # Public and private data must be present
-            raise ValueError("Reference input is too small to contain config and data sections.")
-
         data_size = len(ref_data) - CONF_SIZE
         priv_size = (ref_data[2] * data_size) // 256
         pub_size = data_size - priv_size
-        if len(ref_data) < (CONF_SIZE + pub_size):
-            raise ValueError("Reference input is too small for the calculated public data size.")
+        if priv_size <= 0 or pub_size <= 0:
+            raise _BoostError("Both public and private data must be present")
 
         # Copy the reference input to the working directory
         with open(os.path.join(wd, "000.bin"), 'wb') as dest_file:
@@ -69,7 +80,7 @@ class Boost:
         config_data = ref_data[:CONF_SIZE]
         pub_data = ref_data[CONF_SIZE + priv_size:CONF_SIZE + priv_size + pub_size]
         for i in range(1, self._boosting_factor):
-            priv_data = os.urandom(priv_size)
+            priv_data = self._random_bytes(priv_size)
             dest_path = os.path.join(wd, f"{i:03}.bin")
             with open(dest_path, 'wb') as dest_file:
                 dest_file.write(config_data + priv_data + pub_data)
@@ -87,10 +98,8 @@ class Boost:
         minimized_dir = os.path.join(self._config.stage1_wd, "minimized")
 
         if not os.path.isdir(minimized_dir):
-            raise FileNotFoundError(
-                f"Minimized corpus directory not found at {minimized_dir}. "
-                "Did the fuzzing stage complete successfully?"
-            )
+            raise FileNotFoundError(f"Minimized corpus directory not found at {minimized_dir}. "
+                                    "Did the fuzzing stage complete successfully?")
 
         inputs: List[Tuple[str, str]] = []
         for fname in sorted(os.listdir(minimized_dir)):
@@ -116,10 +125,12 @@ class Boost:
 
         for ref_input, ref_input_path in ref_inputs:
             dest_dir = os.path.join(self._config.stage2_wd, ref_input)
+            created = not os.path.exists(dest_dir)
             os.makedirs(dest_dir, exist_ok=True)
 
             try:
                 self._generate_from_reference(dest_dir, ref_input_path)
-            except ValueError as ve:
+            except _BoostError as ve:
                 print(f"[Boosting] Skipping input '{ref_input}': {ve}")
-                os.rmdir(dest_dir)
+                if created:
+                    os.rmdir(dest_dir)

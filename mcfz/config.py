@@ -246,6 +246,13 @@ class Config:
     will be generated during Stage 2, such that the public values in the two inputs are identical,
     but the secret values differ. """
 
+    boost_seed: Optional[int] = None
+    _help += """\n\n boost_seed (None)
+    Seed for the random generation of secret (private) data during the boosting stage.
+    If set to an integer, the secret data is generated deterministically, making the boosting
+    stage reproducible. If None (the default), the secret data is generated using an unseeded
+    cryptographically secure random source (os.urandom). """
+
     # ==============================================================================================
     # Tracing parameters
     model_root: str = "~/.local/dynamorio/"
@@ -432,6 +439,7 @@ class Config:
 
         self.num_secrets_per_class = yaml_data.get("num_secrets_per_class",
                                                    self.num_secrets_per_class)
+        self.boost_seed = yaml_data.get("boost_seed", self.boost_seed)
 
         self.report_verbosity = yaml_data.get("report_verbosity", self.report_verbosity)
         self.allowlist = yaml_data.get("allowlist", self.allowlist)
