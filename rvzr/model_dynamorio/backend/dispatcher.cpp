@@ -440,10 +440,15 @@ void Dispatcher::finalize_trace()
 }
 void Dispatcher::finalize()
 {
-    DR_ASSERT_MSG(state == dispatcher_state_t::OFF, "[ERROR] Finalizing while not off.");
+    // Sanity check against state-machine logic bugs: reaching finalize() while still ON means
+    // event_exit() failed to dispatch EV_EXIT despite instrumentation being on. OFF (normal exit),
+    // INSTRUMENTED (entry PC discovered but never executed), and PAUSED (exited inside an ignored
+    // function) are all legitimate terminal states; only ON is invalid.
+    DR_ASSERT_MSG(state != dispatcher_state_t::ON, "[ERROR] Finalizing while instrumentation on.");
     // Finalize any trace still in progress (e.g., the instrumented function was entered but never
     // architecturally exited). This is a no-op if stop() already finalized the last trace.
     finalize_trace();
+    state = dispatcher_state_t::OFF;
 }
 
 // State machine implementation
