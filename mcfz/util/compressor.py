@@ -7,13 +7,20 @@ SPDX-License-Identifier: MIT
 from __future__ import annotations
 
 from subprocess import run
-from typing import Literal, get_args, cast
+from typing import Literal, get_args, cast, Final
 
 from typing_extensions import assert_never
 
 from ..config import Config
 
 _Tool = Literal["gzip", "bzip2", "none"]
+
+COMPRESSED_SUFFIXES: Final = (".gz", ".bz2")
+
+
+def is_compressed(path: str) -> bool:
+    """ Return True if the path names a file compressed by a supported tool. """
+    return path.endswith(COMPRESSED_SUFFIXES)
 
 
 class Compressor:

@@ -330,7 +330,7 @@ class _LeakDetectionWorker:
                 return _ChoppedTrace.empty()
 
         # If the file is compressed, decompress and parse it
-        if trace_file.endswith(".gz") or trace_file.endswith(".bz2"):
+        if is_compressed(trace_file):
             decompressed_file = self._compressor.decompress_universal(trace_file, keep=True)
             raw_trace = self.trace_decoder.decode_trace_file(decompressed_file)
             trace = _ChoppedTrace(trace_file, raw_trace)
@@ -544,10 +544,10 @@ class _FastLeakDetectionWorker():
                     f.write(e.stdout)
                     f.write(e.stderr)
             # Remove decompressed file to save disk space
-            if original_trace_file.endswith(".gz") or original_trace_file.endswith(".bz2"):
+            if is_compressed(original_trace_file):
                 os.remove(trace_file)
         # Remove decompressed reference trace to save disk space
-        if reference_trace_file.endswith(".gz") or reference_trace_file.endswith(".bz2"):
+        if is_compressed(reference_trace_file):
             os.remove(reference_trace_file_uncompressed)
 
     def _get_output_base_path(self, input_path: FilePath) -> FilePath:
@@ -563,7 +563,7 @@ class _FastLeakDetectionWorker():
                                  "Either tracing failed or is incomplete. Skipping")
             return None
         # If the file is compressed, decompress it
-        if trace_file.endswith(".gz") or trace_file.endswith(".bz2"):
+        if is_compressed(trace_file):
             decompressed_file = self._compressor.decompress_universal(trace_file, keep=True)
             return decompressed_file
         return trace_file
