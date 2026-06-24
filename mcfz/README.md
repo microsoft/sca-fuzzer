@@ -1,76 +1,98 @@
-# Software Leakage Fuzzer
+# McFuzz — Model-based Constant-time Fuzzer
 
-Note: This module is at the experimental stage of development and its interfaces
-        may (and likely will) change in the future.
+> **Status:** This module is experimental. Its interfaces, configuration keys,
+> and the harness contract may (and likely will) change.
 
-This module leverages a leakage model to detect side-channel information leaks
-in software binaries. The leakage model is the same one as used by the hardware fuzzer,
-and it is assumed to be already tested against the target CPU. The software fuzzer uses
-this model to collect contract traces for the target binary.
+McFuzz (`mcfz`) detects software side-channel leaks (constant-time violations)
+in compiled binaries. It checks the **non-interference** property: the
+microarchitectural *contract trace* of a program must not depend on its secret
+(private) inputs. If two executions with identical public inputs but different
+secret inputs produce different traces, McFuzz reports a leak.
 
-The software fuzzer takes as input a target binary and a grammar describing the format of
-the binary's inputs. The grammar must specify which parts of the input are public and which
-are private.
-FIXME: the current prototype doesn't actually use a grammar, but instead assumes
-that the target binary takes two files as input: one for public data and one for private data.
+McFuzz reuses the same leakage model as the hardware fuzzer (Revizor),
+implemented as a DynamoRIO client (see `rvzr/model_dynamorio`). The model is
+assumed to have already been validated against the target CPU, so a trace
+divergence is attributed to the *software* under test rather than to the model.
 
-The goal of the software fuzzer is to identify cases where contract traces depend on
-the private data, which is a sign of information leakage. To this end, the fuzzer checks
-traces for the non-interference property: if two executions of the binary with different
-private values but identical public data produce different traces, then the binary is
-leaking information.
+McFuzz does not test arbitrary programs directly. It drives a **harness** — a
+small wrapper around the code under test that exposes a fixed interface (a data
+blob `-d` and a policy file `-p`) and a named entry function where tracing
+begins. The policy file classifies each input field as public or private.
 
-The fuzzer operates in four stages:
+> 📖 **For the full guide** — concepts, prerequisites, the harness contract, the
+> complete configuration reference, the working-directory layout, how to read a
+> report, and troubleshooting — see [docs/mcfz-usage.md](../docs/mcfz-usage.md).
 
-## Stage 1: Fuzzing-based Input Generation
+---
 
-The fuzzer uses AFL++ to generate a diverse set of inputs (containing both public and secret data)
-that cover a wide range of execution paths in the target binary.
+## Pipeline
 
-Example:
+McFuzz runs in four stages, each backed by a CLI subcommand:
+
+1. **`fuzz_gen`** — AFL++ generates a diverse corpus of inputs that exercises
+   many code paths in the instrumented binary.
+2. **`boost`** — For each corpus input, McFuzz creates variants that keep the
+   public bytes intact but randomize the private bytes, forming
+   public-equivalence classes.
+3. **`trace`** — Each input is executed under the DynamoRIO leakage model on the
+   native binary to collect contract traces.
+4. **`report`** — Within each equivalence class, traces are compared; divergences
+   are mapped back to source lines via DWARF debug info and written to JSON.
+
+The `fuzz` subcommand runs all four stages in sequence. The `details` subcommand
+drills down into a specific reported violation.
+
+---
+
+## Configuration
+
+All run parameters — the target command, the binary paths, timeouts, the working
+directory, etc. — are specified in a YAML configuration file passed via `-c`. The
+CLI subcommands take no other run parameters.
+
+Key required options:
+
+- `working_dir` — directory for all fuzzing artifacts, logs, and reports.
+- `template_cmd` — command template for invoking the harness, using `@#` as the
+  placeholder for the binary and `@@` for the generated input file
+  (e.g. `"@# -d @@ -p policy.txt"`).
+- `bin_instrumented` — AFL++-instrumented harness build (used in `fuzz_gen`).
+- `bin_native` — native (non-instrumented) harness build (used in `trace`).
+- `afl_seed_dir` — seed corpus directory for AFL++.
+
+Print the full list of options and their defaults with:
+
 ```
-./mcfz.py fuzz_gen -c config.yaml -t 60 -- /usr/bin/openssl enc -e -aes256 -out enc.bin -in @@ -pbkdf2 -pass @#
+./mcfz.py --help-config
 ```
 
-## Stage 2: Boosting
+---
 
-The second stage takes each input generated during the fuzzing stage and creates public-equivalent
-variants. Each variant contains the same public data as the original input, but with randomly
-generated secret values. This creates equivalence classes for non-interference testing.
+## Usage
 
-Example:
-```
-./mcfz.py boost -c config.yaml
-```
-
-## Stage 3: Tracing
-
-The third stage collects contract traces for each input using the DynamoRIO-based leakage model
-backend of Revizor (see `rvzr/model_dynamorio/backend`).
-
-Example:
-```
-./mcfz.py trace -c config.yaml -- /usr/bin/openssl enc -e -aes256 -out enc.bin -in @@ -pbkdf2 -pass @#
-```
-
-## Stage 4: Leakage Analysis & Reporting
-
-The final stage analyzes the traces collected in the previous stage to detect violations of
-non-interference and reports any information leaks.
-
-Example:
-```
-./mcfz.py report -c config.yaml -b /usr/bin/openssl
-```
-
-
-## Complete Example
+Disable ASLR first so addresses are deterministic across runs:
 
 ```
 echo 0 | sudo tee /proc/sys/kernel/randomize_va_space
+```
 
-./mcfz.py fuzz_gen -c dbg/mcfz.yaml -t 30 -- ~/openssl/openssl-driver -d @@ -p policy.txt
-./mcfz.py boost -c dbg/mcfz.yaml
-./mcfz.py trace -c dbg/mcfz.yaml -- ~/openssl/openssl-driver -d @@ -p policy.txt
-./mcfz.py report -c dbg/mcfz.yaml -b ~/openssl/openssl-driver
+Run the whole pipeline at once:
+
+```
+./mcfz.py fuzz -c config.yaml
+```
+
+Or run the stages individually:
+
+```
+./mcfz.py fuzz_gen -c config.yaml   # Stage 1: AFL++ input generation
+./mcfz.py boost    -c config.yaml   # Stage 2: public-equivalent variants
+./mcfz.py trace    -c config.yaml   # Stage 3: contract tracing
+./mcfz.py report   -c config.yaml   # Stage 4: non-interference analysis
+```
+
+Drill down into a specific violation (e.g. at program counter `0x3039`):
+
+```
+./mcfz.py details -c config.yaml --pc 0x3039 --output-dir ./drill
 ```
