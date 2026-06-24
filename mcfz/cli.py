@@ -5,6 +5,10 @@ File: Function definitions for using Model-based Constant-time Fuzzer (McFuzz) a
 Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
+# pylint: disable=too-many-return-statements,too-many-branches
+# justification: this module is the main entry point and it naturally has many
+#                branches and returns due to different subcommands
+
 from __future__ import annotations
 
 from typing import Any

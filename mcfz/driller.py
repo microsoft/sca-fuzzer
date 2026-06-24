@@ -447,7 +447,9 @@ class Driller:
     def _find_pc_in_report(self, report_data: Dict[str, Any], pc_hex: str) -> _LeakInfo:
         # Search all clauses (seq and cond)
         for clause in ['seq', 'cond']:
-            data = report_data[clause]
+            data = report_data.get(clause)
+            if data is None:
+                continue
             # Search in both I (instruction) and D (data) leak types
             for leak_type in ['I', 'D']:
                 if leak_type not in data:
@@ -458,7 +460,7 @@ class Driller:
                         loc = pc_map[pc_hex][0]
                         leak_info = _LeakInfo(clause, leak_type, code_line, pc_hex, loc)
                         return leak_info
-        assert False, f"PC {pc_hex} not found in the report."
+        raise ValueError(f"PC {pc_hex} not found in the report.")
 
     def _translate_pc_to_gdb(self, pc: int) -> int:
         """
@@ -495,7 +497,7 @@ class Driller:
             if pc >= start_addr:
                 return start_addr, module_name
 
-        assert False, f"Module for PC {pc:#x} not found in mappings.txt"
+        raise RuntimeError(f"Module for PC {pc:#x} not found in mappings.txt")
 
     def _create_valid_driver_invocation(self) -> List[str]:
         """
@@ -527,7 +529,7 @@ class Driller:
             if module_basename in line:
                 return int(line.split()[0], 16)
 
-        assert False, f"Module {module_basename} not found in gdb mappings output"
+        raise RuntimeError(f"Module {module_basename} not found in gdb mappings output")
 
     def _find_spec_windows(self, leak_info: _LeakInfo) -> List[_SpecWinInfo]:
         # Parse the trace file

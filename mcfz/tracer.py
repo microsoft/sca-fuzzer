@@ -232,20 +232,19 @@ class Tracer:
             cmd=expanded_cmd, trace_file=trace_file, mappings_flag=mappings_flag)
         return dr_cmd
 
-    def _check_determinism(self, stage2_wd: DirName) -> bool:
+    def _find_reference_input(self, stage2_wd: DirName) -> Tuple[str, str]:
         """
-        Check if the traces are deterministic by running the target binary multiple times
-        with the same inputs and comparing the outputs.
+        Find an arbitrary input that the target can trace without error, to use as the
+        reference for the determinism check.
 
-        NOTE: this function also has a side-effect of writing the mappings.txt file
+        Inputs that raise an exception or time out are skipped; a single summary line is
+        emitted if any were skipped before a usable reference was found.
+
         :param stage2_wd: Path to the stage2 working directory where inputs can be found
-        :return: True if the traces are deterministic, False otherwise
-        :raise: AssertionError if no input files are found
+        :return: Tuple of (expanded command, reference input path)
+        :raise AssertionError: If no valid input is found
         """
-        # find an arbitrary input in the working directory that does not produce an error
-        # and construct a command to run it
-        expanded_cmd = ""
-        ref_input = ""
+        n_skipped = 0
         for input_group in os.listdir(stage2_wd):
             input_group_dir = os.path.join(stage2_wd, input_group)
             if not os.path.isdir(input_group_dir):
@@ -265,13 +264,29 @@ class Tracer:
                     output_base,
                     timeout=self._config.tracing_timeout_s,
                     store_mappings=True)
-            except (InstrException, ProgramException, subprocess.TimeoutExpired) as e:
-                print(f"[Det. check] skipping input causing exception or timeout: {ref_input}")
-                print(str(e))
+            except (InstrException, ProgramException, subprocess.TimeoutExpired):
+                n_skipped += 1
                 continue
-            break
-        else:
-            raise AssertionError("No valid inputs found in the working directory; aborting")
+
+            if n_skipped:
+                console.info(f"Skipped {n_skipped} input(s) before finding a traceable "
+                             "reference for the determinism check.")
+            return expanded_cmd, ref_input
+
+        raise AssertionError("No valid inputs found in the working directory; aborting")
+
+    def _check_determinism(self, stage2_wd: DirName) -> bool:
+        """
+        Check if the traces are deterministic by running the target binary multiple times
+        with the same inputs and comparing the outputs.
+
+        NOTE: this function also has a side-effect of writing the mappings.txt file
+        :param stage2_wd: Path to the stage2 working directory where inputs can be found
+        :return: True if the traces are deterministic, False otherwise
+        :raise: AssertionError if no input files are found
+        """
+        # find an arbitrary input in the working directory that does not produce an error
+        expanded_cmd, ref_input = self._find_reference_input(stage2_wd)
 
         # execute the target binary twice and collect traces
         # Get the relative path for the determinism check files

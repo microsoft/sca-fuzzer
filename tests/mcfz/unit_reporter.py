@@ -220,6 +220,67 @@ class TestReporter(unittest.TestCase):
         self.assertEqual(indices[0], 0)
         self.assertEqual(indices[1], 1)
 
+    def test_find_d_leaks_slow(self) -> None:
+        # Test the slow path, taken when the per-instruction memory-access layout differs
+        # between the reference and target traces. The slow path compares each instruction's
+        # accesses as ordered sequences.
+        analyzer = _LeakDetectionWorker(_make_test_config())
+
+        # Case 1: a differing access count flags that instruction, but a later equal-count
+        # instruction with identical addresses is NOT a leak.
+        trace1 = _Trace(
+            "",
+            _t([
+                (0x1000, 4, 0, TraceEntryType.ENTRY_PC),
+                (0x2000, 8, 0, TraceEntryType.ENTRY_READ),
+                (0x1004, 4, 0, TraceEntryType.ENTRY_PC),
+                (0x4000, 8, 0, TraceEntryType.ENTRY_READ),
+            ]))
+        trace2 = _Trace(
+            "",
+            _t([
+                (0x1000, 4, 0, TraceEntryType.ENTRY_PC),
+                (0x2000, 8, 0, TraceEntryType.ENTRY_READ),
+                (0x2008, 8, 0, TraceEntryType.ENTRY_READ),
+                (0x1004, 4, 0, TraceEntryType.ENTRY_PC),
+                (0x4000, 8, 0, TraceEntryType.ENTRY_READ),
+            ]))
+        indices = analyzer._find_d_leaks_slow(trace1, trace2, trace1.instructions,
+                                              trace2.instructions)
+        self.assertEqual(list(indices), [0])
+
+        # Case 2: regression case for the old count-only logic. Instruction 0 differs in access
+        # count (shifting offsets), and instruction 1 has an equal count but a different address.
+        # The old slow path missed instruction 1; the ordered-sequence comparison must flag both.
+        trace1 = _Trace(
+            "",
+            _t([
+                (0x1000, 4, 0, TraceEntryType.ENTRY_PC),
+                (0x2000, 8, 0, TraceEntryType.ENTRY_READ),
+                (0x1004, 4, 0, TraceEntryType.ENTRY_PC),
+                (0x4000, 8, 0, TraceEntryType.ENTRY_READ),
+            ]))
+        trace2 = _Trace(
+            "",
+            _t([
+                (0x1000, 4, 0, TraceEntryType.ENTRY_PC),
+                (0x2000, 8, 0, TraceEntryType.ENTRY_READ),
+                (0x2008, 8, 0, TraceEntryType.ENTRY_READ),
+                (0x1004, 4, 0, TraceEntryType.ENTRY_PC),
+                (0x5000, 8, 0, TraceEntryType.ENTRY_READ),
+            ]))
+        indices = analyzer._find_d_leaks_slow(trace1, trace2, trace1.instructions,
+                                              trace2.instructions)
+        self.assertEqual(list(indices), [0, 1])
+
+        # Case 3: routing through _find_d_type_leaks selects the slow path (differing layout)
+        # and reports both leaks with the correct PCs.
+        leaks = analyzer._find_d_type_leaks(trace1, trace2, trace1.instructions,
+                                            trace2.instructions)
+        self.assertEqual(len(leaks), 2)
+        self.assertEqual(list(leaks['pc']), [0x1000, 0x1004])
+        self.assertTrue(all(leaks['leak_type'] == 'D'))
+
     def test_find_d_type_leaks(self) -> None:
         # Test detection of D-type leaks
         # NOTE: this test assumes that the d-leak detection uses the fast path and

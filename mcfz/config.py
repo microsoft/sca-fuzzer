@@ -14,6 +14,8 @@ import shutil
 import yaml
 from typing_extensions import assert_never
 
+from .util import console
+
 TestingStages = Literal["fuzz", "fuzz_gen", "boost", "trace", "report"]
 YAMLData = Dict[str, Any]
 ReportVerbosity = Literal[1, 2, 3]
@@ -67,10 +69,7 @@ class _WorkingDirManager:
         # Empty working directory? No risk of overwriting anything
         if not os.listdir(self.config.working_dir):
             if stage == "fuzz":
-                os.makedirs(self.config.stage1_wd, exist_ok=True)
-                os.makedirs(self.config.stage2_wd, exist_ok=True)
-                os.makedirs(self.config.stage3_wd, exist_ok=True)
-                os.makedirs(self.config.stage4_wd, exist_ok=True)
+                self._create_all_stage_dirs()
             return
 
         # Identify the target directory for the given stage
@@ -126,10 +125,13 @@ class _WorkingDirManager:
         shutil.rmtree(stage_dir)
         os.makedirs(stage_dir, exist_ok=True)
         if stage == "fuzz":
-            os.makedirs(self.config.stage1_wd, exist_ok=True)
-            os.makedirs(self.config.stage2_wd, exist_ok=True)
-            os.makedirs(self.config.stage3_wd, exist_ok=True)
-            os.makedirs(self.config.stage4_wd, exist_ok=True)
+            self._create_all_stage_dirs()
+
+    def _create_all_stage_dirs(self) -> None:
+        """ Create the four per-stage working directories (used for the 'fuzz' stage). """
+        for stage_wd in (self.config.stage1_wd, self.config.stage2_wd, self.config.stage3_wd,
+                         self.config.stage4_wd):
+            os.makedirs(stage_wd, exist_ok=True)
 
     def _get_stage_dir(self, stage: TestingStages) -> str:
         if stage == "fuzz":
@@ -392,14 +394,13 @@ class Config:
         if template_cmd_str is None:
             raise _ConfigException("template_cmd",
                                    "template_cmd is a required field in the config file.")
-        try:
-            self.template_cmd = template_cmd_str.split()
-        except Exception:
+        if not isinstance(template_cmd_str, str):
             raise _ConfigException(
                 "template_cmd",
                 "template_cmd must be a string containing the command to invoke the target binary, "
                 "with '@#' as a placeholder for the target binary and '@@' as a placeholder for "
                 "the generated driver input file.")
+        self.template_cmd = template_cmd_str.split()
 
         self.bin_native = yaml_data.get("bin_native", self.bin_native)
         self.bin_instrumented = yaml_data.get("bin_instrumented", self.bin_instrumented)

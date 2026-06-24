@@ -12,7 +12,6 @@ import subprocess
 from pathlib import Path
 import json
 import shutil
-import glob
 
 from typing import (TYPE_CHECKING, Any, List, Tuple, Dict, Iterator, NewType, Literal, Final, cast,
                     get_args, Optional)
@@ -453,8 +452,7 @@ class _LeakDetectionWorker:
         if fast_path_possible:
             indices = self._find_d_leaks_bulk(ref_trace, target_trace, ref_instr)
         else:
-            print("WARNING: slow path for D-leak detection not implemented\nSkipping")
-            indices = self._find_insts_with_different_accesses(ref_instr, tgt_instr)
+            indices = self._find_d_leaks_slow(ref_trace, target_trace, ref_instr, tgt_instr)
 
         if len(indices) == 0:
             return np.array([], dtype=LeakyInstrDType)
@@ -468,11 +466,48 @@ class _LeakDetectionWorker:
         leaks['spec_level'] = ref_instr['spec_level'][indices]
         return leaks
 
-    def _find_insts_with_different_accesses(self, ref_instr: InstrArray,
-                                            tgt_instr: InstrArray) -> IndexArray:
-        # Find instructions that have a different number of accesses
-        mem_mismatch = ref_instr['num_mem_accesses'] != tgt_instr['num_mem_accesses']
-        return np.flatnonzero(mem_mismatch)
+    def _find_d_leaks_slow(self, ref_trace: _Trace, target_trace: _Trace, ref_instr: InstrArray,
+                           tgt_instr: InstrArray) -> IndexArray:
+        """
+        Find all D-leaks when the per-instruction memory-access layout differs between the
+        reference and target traces (the structures-don't-match slow path).
+
+        Each instruction's accesses are compared as ordered sequences: instruction ``i`` is a
+        D-leak if its reference access slice differs from its target access slice in length or in
+        any address (at the same position). This catches divergences that the count-only check
+        misses, e.g. equal access counts but different addresses.
+        """
+        ref_offsets = ref_instr['mem_accesses_offset']
+        tgt_offsets = tgt_instr['mem_accesses_offset']
+        ref_counts = ref_instr['num_mem_accesses']
+        tgt_counts = tgt_instr['num_mem_accesses']
+
+        # Instructions whose access counts differ are leaks: their ordered sequences differ in
+        # length, so they can never be equal regardless of addresses.
+        count_leaks = np.flatnonzero(ref_counts != tgt_counts)
+
+        # For the remaining (equal-count) instructions with at least one access, gather both
+        # traces' addresses into flat arrays and compare element-wise. Offsets differ between the
+        # two traces, so each instruction's accesses are gathered from its own offset.
+        equal_count = np.flatnonzero((ref_counts == tgt_counts) & (ref_counts > 0))
+        addr_leaks = np.array([], dtype=np.intp)
+        if equal_count.size > 0:
+            counts = ref_counts[equal_count].astype(np.intp)  # == tgt_counts[equal_count]
+            # Exclusive prefix sum gives each instruction's start in the gathered array.
+            block_start = np.repeat(np.cumsum(counts) - counts, counts)
+            within = np.arange(int(counts.sum()), dtype=np.intp) - block_start
+            ref_gather = np.repeat(ref_offsets[equal_count].astype(np.intp), counts) + within
+            tgt_gather = np.repeat(tgt_offsets[equal_count].astype(np.intp), counts) + within
+            diff = ref_trace.mem_accesses[ref_gather] != target_trace.mem_accesses[tgt_gather]
+            if diff.any():
+                instr_of_access = np.repeat(equal_count, counts)
+                addr_leaks = np.unique(instr_of_access[diff])
+
+        if count_leaks.size == 0:
+            return addr_leaks
+        if addr_leaks.size == 0:
+            return count_leaks
+        return np.unique(np.concatenate([count_leaks, addr_leaks]))
 
     def _find_d_leaks_bulk(self, ref_trace: _Trace, target_trace: _Trace,
                            ref_instr: InstrArray) -> IndexArray:
@@ -690,7 +725,7 @@ class LeakDetector:
             f.write(result.stdout)
         # Log all failed reporter runs (if any)
         with open(output_dir / "failed.txt", "w") as f:
-            for path in sorted(glob.glob("**/*.failed", recursive=True)):
+            for path in sorted(str(p) for p in output_dir.rglob("*.failed")):
                 f.write(path + "\n")
 
         # Remove individual .leaks folders to save disk space

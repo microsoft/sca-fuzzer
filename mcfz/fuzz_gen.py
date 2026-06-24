@@ -8,6 +8,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Final, List, Dict, Any
 
 import os
+import re
 import shutil
 import sys
 import subprocess
@@ -46,8 +47,8 @@ class FuzzGen:
         env["AFL_QUIET"] = "1" if self._config.afl_quiet else "0"
         return env
 
-    def _build_cmd(self, patched_cmd: List[str], timeout_s: int, node_flag: str,
-                   node_name: str) -> List[str]:
+    def _build_cmd(self, patched_cmd: List[str], timeout_s: int, node_flag: str, node_name: str,
+                   seed_dir: str) -> List[str]:
         """
         Build the full afl-fuzz command for a single instance.
 
@@ -55,17 +56,17 @@ class FuzzGen:
         :param timeout_s: Timeout for the fuzzing process
         :param node_flag: Either '-M' (main) or '-S' (secondary)
         :param node_name: Name of this fuzzer node (e.g. 'fuzzer00')
+        :param seed_dir: Directory holding the (minimized) input seeds for afl-fuzz '-i'
         :return: Complete command list
         """
         afl_flags = [
             "-V",
-            str(timeout_s), "-c", patched_cmd[0], "-i", self._config.afl_seed_dir, "-o", self._wd,
-            "-t",
+            str(timeout_s), "-c", patched_cmd[0], "-i", seed_dir, "-o", self._wd, "-t",
             str(self._config.afl_exec_timeout_ms), node_flag, node_name
         ]
         return [self._afl_bin] + afl_flags + ["--"] + patched_cmd
 
-    def generate(self, _: int, timeout_s: int) -> None:
+    def generate(self, timeout_s: int) -> None:
         """
         Generate diverse inputs for the target binary using parallel AFL++ instances.
 
@@ -73,6 +74,10 @@ class FuzzGen:
         and the rest as secondary nodes (`-S fuzzer01`, `-S fuzzer02`, …).
         All instances share the same output directory so AFL++ synchronises their
         findings automatically.
+
+        The user-provided seed corpus is first minimized with afl-cmin so that AFL++
+        starts from a coverage-preserving subset (this avoids the "no new instrumentation
+        output" warnings caused by redundant seeds).
 
         :param timeout_s: Timeout for the fuzzing process
         """
@@ -84,19 +89,21 @@ class FuzzGen:
             self._config.bin_instrumented if s == "@#" else s for s in self._config.template_cmd
         ]
 
+        seed_dir = self._minimize_seeds(patched_cmd)
+
         env = self._build_env()
         num_workers = self._config.num_workers_fuzz_gen
         procs: List[subprocess.Popen[Any]] = []
 
         try:
             # Main node (output visible on stdout)
-            main_cmd = self._build_cmd(patched_cmd, timeout_s, "-M", "fuzzer00")
+            main_cmd = self._build_cmd(patched_cmd, timeout_s, "-M", "fuzzer00", seed_dir)
             procs.append(subprocess.Popen(main_cmd, env=env, shell=False))
 
             # Secondary nodes (output suppressed)
             for i in range(1, num_workers):
                 node_name = f"fuzzer{i:02d}"
-                sec_cmd = self._build_cmd(patched_cmd, timeout_s, "-S", node_name)
+                sec_cmd = self._build_cmd(patched_cmd, timeout_s, "-S", node_name, seed_dir)
                 procs.append(
                     subprocess.Popen(
                         sec_cmd,
@@ -133,6 +140,23 @@ class FuzzGen:
 
         self.minimize(patched_cmd)
 
+    def _minimize_seeds(self, patched_cmd: List[str]) -> str:
+        """
+        Minimize the user-provided seed corpus with afl-cmin before fuzzing.
+
+        Produces a coverage-preserving subset in ``<stage1_wd>/seeds_min`` and returns its
+        path so that afl-fuzz can be pointed at it via ``-i``. The original seed directory
+        (``config.afl_seed_dir``) is left untouched.
+
+        :param patched_cmd: Target command with binary placeholder resolved
+        :return: Path to the directory holding the minimized seeds
+        """
+        seeds_min_dir = os.path.join(self._wd, "seeds_min")
+        seed_cmin_log = os.path.join(self._wd, "seed_cmin.log")
+        self._run_cmin(self._config.afl_seed_dir, seeds_min_dir, patched_cmd, seed_cmin_log,
+                       "Seed corpus")
+        return seeds_min_dir
+
     def minimize(self, patched_cmd: List[str]) -> None:
         """
         Minimize the generated corpus using afl-cmin.
@@ -159,22 +183,67 @@ class FuzzGen:
                     dst = os.path.join(all_inputs_dir, f"{entry}_{fname}")
                     shutil.copy2(src, dst)
 
-        # Run afl-cmin.py
-        os.makedirs(minimized_dir, exist_ok=True)
+        cmin_log = os.path.join(stage1, "cmin.log")
+        try:
+            self._run_cmin(all_inputs_dir, minimized_dir, patched_cmd, cmin_log, "Corpus")
+        finally:
+            # Clean up the temporary directory
+            shutil.rmtree(all_inputs_dir, ignore_errors=True)
+
+    def _run_cmin(self, input_dir: str, output_dir: str, patched_cmd: List[str], log_path: str,
+                  label: str) -> None:
+        """
+        Run afl-cmin to minimize ``input_dir`` into ``output_dir``.
+
+        The (very chatty) afl-cmin output is captured into ``log_path`` and replaced on
+        the terminal with a single concise summary line. Aborts the process if afl-cmin fails.
+
+        :param input_dir: Directory of inputs to minimize
+        :param output_dir: Destination directory for the minimized corpus
+        :param patched_cmd: Target command with binary placeholder resolved
+        :param log_path: File to write the full afl-cmin output to
+        :param label: Human-readable label for the summary line (e.g. 'Seed corpus')
+        """
+        os.makedirs(output_dir, exist_ok=True)
         cmd = [
-            self._afl_cmin, "-i", all_inputs_dir, "-o", minimized_dir, "-T",
+            self._afl_cmin, "-i", input_dir, "-o", output_dir, "-T",
             str(self._config.num_workers_fuzz_gen), "-t",
             str(self._config.afl_exec_timeout_ms), "--"
         ] + patched_cmd
 
-        try:
-            subprocess.check_call(cmd, shell=False)
-        except subprocess.CalledProcessError as e:
-            print(f"[AFL-CMIN ERROR]: {e}")
-            exit(1)
-        finally:
-            # Clean up the temporary directory
-            shutil.rmtree(all_inputs_dir, ignore_errors=True)
+        result = subprocess.run(
+            cmd,
+            shell=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            check=False)
+        with open(log_path, "w") as log_file:
+            log_file.write(result.stdout)
+
+        if result.returncode != 0:
+            console.error(f"afl-cmin failed (exit code {result.returncode}); "
+                          f"see {log_path} for details.")
+            sys.exit(1)
+
+        self._summarize_minimization(result.stdout, log_path, label)
+
+    @staticmethod
+    def _summarize_minimization(output: str, log_path: str, label: str) -> None:
+        """
+        Emit a one-line summary of an afl-cmin run, parsed from its captured output.
+
+        :param output: Full captured stdout/stderr of the afl-cmin invocation
+        :param log_path: Path to the file where the full output was saved
+        :param label: Human-readable label for the summary line (e.g. 'Seed corpus')
+        """
+        total_match = re.search(r"Found (\d+) input files", output)
+        final_match = re.search(r"narrowed down to (\d+) files", output)
+        if total_match and final_match:
+            console.info(f"{label} minimized: {total_match.group(1)} \u2192 "
+                         f"{final_match.group(1)} inputs (full log: {log_path}).")
+        else:
+            console.info(f"{label} minimization complete (full log: {log_path}).")
 
     @staticmethod
     def _restore_terminal() -> None:
