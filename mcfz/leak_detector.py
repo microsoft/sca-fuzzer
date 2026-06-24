@@ -507,7 +507,7 @@ class _LeakDetectionWorker:
             return addr_leaks
         if addr_leaks.size == 0:
             return count_leaks
-        return np.unique(np.concatenate([count_leaks, addr_leaks]))
+        return cast(IndexArray, np.unique(np.concatenate([count_leaks, addr_leaks])))
 
     def _find_d_leaks_bulk(self, ref_trace: _Trace, target_trace: _Trace,
                            ref_instr: InstrArray) -> IndexArray:
