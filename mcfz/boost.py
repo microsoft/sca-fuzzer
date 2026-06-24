@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING, Callable, Final, List, Tuple
 import os
 import random
 
+from .util import console
+
 if TYPE_CHECKING:
     from .config import Config
 
@@ -123,6 +125,7 @@ class Boost:
 
         ref_inputs = self._collect_reference_inputs()
 
+        skipped: List[Tuple[str, str]] = []
         for ref_input, ref_input_path in ref_inputs:
             dest_dir = os.path.join(self._config.stage2_wd, ref_input)
             created = not os.path.exists(dest_dir)
@@ -131,6 +134,16 @@ class Boost:
             try:
                 self._generate_from_reference(dest_dir, ref_input_path)
             except _BoostError as ve:
-                print(f"[Boosting] Skipping input '{ref_input}': {ve}")
+                skipped.append((ref_input, str(ve)))
                 if created:
                     os.rmdir(dest_dir)
+
+        n_boosted = len(ref_inputs) - len(skipped)
+        console.info(f"Boosted {n_boosted}/{len(ref_inputs)} reference inputs "
+                     f"(\u00d7{self._boosting_factor} variants each).")
+        if skipped:
+            log_path = os.path.join(self._config.stage2_wd, "skipped_inputs.log")
+            with open(log_path, "w") as log_file:
+                for name, reason in skipped:
+                    log_file.write(f"{name}: {reason}\n")
+            console.warn(f"{len(skipped)} input(s) skipped; details in {log_path}")

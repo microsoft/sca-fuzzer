@@ -12,6 +12,8 @@ import shutil
 import sys
 import subprocess
 
+from .util import console
+
 if TYPE_CHECKING:
     from .config import Config
 
@@ -117,8 +119,8 @@ class FuzzGen:
                         f"AFL++ process (pid={proc.pid}) exited with code {proc.returncode}")
 
             if errors:
-                print("[AFL ERROR]: " + "; ".join(errors))
-                exit(1)
+                console.error("AFL++ failure: " + "; ".join(errors))
+                sys.exit(1)
 
         except Exception:
             for proc in procs:

@@ -23,9 +23,10 @@ from numpy.typing import NDArray
 from tqdm import tqdm
 
 from rvzr.model_dynamorio.trace_decoder import TraceDecoder, TraceEntryType, TraceEntryArray
-from .util.compressor import Compressor
+from .util.compressor import Compressor, is_compressed
 from .util.logger import Logger
 from .util.worker_pool import send_to_worker_pool
+from .util import console
 
 if TYPE_CHECKING:
     from .config import Config
@@ -326,7 +327,7 @@ class _LeakDetectionWorker:
                 trace = _ChoppedTrace(trace_file, raw_trace)
                 return trace
             except IndexError:
-                print(f"Trace {trace_file} is likely corrupted! (len: {len(raw_trace)})")
+                console.warn(f"Trace {trace_file} is likely corrupted! (len: {len(raw_trace)})")
                 return _ChoppedTrace.empty()
 
         # If the file is compressed, decompress and parse it
@@ -616,9 +617,9 @@ class LeakDetector:
         stage3_dir_map = self._get_directory_map(stage3_dir)
 
         # Initialize a progress bar to track the progress of the analysis
-        progress_bar = tqdm(
+        progress_bar = console.progress_bar(
             total=sum(len(trace_files) for trace_files in stage3_dir_map.values()),
-            colour='green',
+            desc="Analyzing traces",
         )
 
         # Prepare the list of work items for multiprocessing:
@@ -653,9 +654,9 @@ class LeakDetector:
         stage3_dir_map = self._get_directory_map(stage3_dir)
 
         # Initialize a progress bar to track the progress of the analysis
-        progress_bar = tqdm(
+        progress_bar = console.progress_bar(
             total=sum(len(trace_files) for trace_files in stage3_dir_map.values()),
-            colour='green',
+            desc="Analyzing traces",
         )
 
         # Prepare the list of work items for multiprocessing:
@@ -792,7 +793,7 @@ class LeakDetector:
                         if not os.path.isfile(filename):
                             filename = filename.replace(".bz2", ".gz")
                         if not os.path.isfile(filename):
-                            print(f"WARNING: trace file not found {filename}")
+                            console.warn(f"trace file not found {filename}")
                         # Append to leakage map
                         parts[0] = filename
                         leakage_map_lines.append(LinesInTracePair(":".join(parts)))

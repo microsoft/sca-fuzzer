@@ -10,12 +10,12 @@ from typing import TYPE_CHECKING, List, Final, Dict
 import os
 import subprocess
 from pathlib import Path
-from tqdm import tqdm
 
 from rvzr.model_dynamorio.trace_decoder import TraceDecoder
 from .util.logger import Logger
 from .util.compressor import Compressor
 from .util.worker_pool import send_to_worker_pool
+from .util import console
 
 if TYPE_CHECKING:
     from .config import Config
@@ -91,7 +91,7 @@ class Tracer:
 
         # Initialize a progress bar to track the progress of the tracing process
         n_inputs = sum(len(v) for v in input_map.values())
-        progress_bar = tqdm(total=n_inputs)
+        progress_bar = console.progress_bar(total=n_inputs, desc="Tracing inputs")
 
         # Process all inputs using a worker pool
         def on_complete(n_processed: int) -> None:

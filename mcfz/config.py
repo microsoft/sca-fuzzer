@@ -87,7 +87,7 @@ class _WorkingDirManager:
 
         # If force overwrite is set, remove the contents of the target directory
         if self.config.force_working_dir_overwrite:
-            print(f"[INFO] Directory {stage_dir} is not empty; removing its contents.")
+            console.info(f"Working directory not empty; removing contents of {stage_dir}")
             self._reset_dirs(stage_dir, stage)
             os.makedirs(stage_dir, exist_ok=True)
             return
@@ -120,7 +120,7 @@ class _WorkingDirManager:
 
         # Create the archive
         shutil.make_archive(archive_path, 'gztar', str(source_dir))
-        print(f"[INFO] Archived {working_dir} to {archive_path}.tar.gz.")
+        console.info(f"Archived {working_dir} → {archive_path}.tar.gz")
 
     def _reset_dirs(self, stage_dir: str, stage: TestingStages) -> None:
         shutil.rmtree(stage_dir)
@@ -498,8 +498,8 @@ class Config:
                 "num_secrets_per_class", "num_secrets_per_class must be at least 2."
                 "(fuzzing is meaningless otherwise).")
         if self.num_secrets_per_class > 10:
-            print("[WARNING] num_secrets_per_class is set to a high value;"
-                  " this may lead to very long fuzzing times.")
+            console.warn("num_secrets_per_class is set to a high value;"
+                         " this may lead to very long fuzzing times.")
 
         if self.compression_tool not in ["gzip", "bzip2", "none"]:
             raise _ConfigException("compression_tool",
