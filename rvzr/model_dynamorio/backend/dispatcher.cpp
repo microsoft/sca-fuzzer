@@ -69,9 +69,9 @@ static void print_func_name(app_pc pc, unsigned int spec_level, unsigned int fun
     }
 }
 
-unsigned int function_level = 0;
-unsigned int n_instr = 0;
-bool transition = false;
+static unsigned int function_level = 0;
+static unsigned int n_instr = 0;
+static bool transition = false;
 
 /// @brief Very heavy instrumentation that prints the current function for each
 /// PC -- use only for debugging!

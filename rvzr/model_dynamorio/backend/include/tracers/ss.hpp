@@ -16,7 +16,7 @@
 struct in_flight_store_t {
     void *address = nullptr;
     uint64_t size = 0;
-    std::vector<uint64_t> value = {};
+    std::vector<uint64_t> value;
 
     void reset()
     {
@@ -39,7 +39,7 @@ class TracerSilentStore : public TracerABC
           value_to_observe(value_to_observe)
     {
     }
-    ~TracerSilentStore() = default;
+    ~TracerSilentStore() override = default;
     TracerSilentStore(const TracerSilentStore &) = delete;
     TracerSilentStore &operator=(const TracerSilentStore &) = delete;
     TracerSilentStore(TracerSilentStore &&) = delete;
