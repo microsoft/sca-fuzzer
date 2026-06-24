@@ -102,7 +102,7 @@ class Tracer:
             work_items=list(input_map.items()),
             num_workers=self._config.num_workers_tracer,
             on_complete=on_complete,
-            task_timeout=600,
+            task_timeout=self._config.tracing_total_timeout_s,
         )
 
         # We're done; close the progress bar
@@ -141,10 +141,18 @@ class Tracer:
             expanded_cmd = self._expand_template_cmd(self._config.template_cmd, input_path)
 
             try:
-                self._collect_one_trace(expanded_cmd, output_base)
+                self._collect_one_trace(expanded_cmd, output_base,
+                                        timeout=self._config.tracing_timeout_s)
             except InstrException:
                 # Mark this test as failed by creating a .failed file
                 Path(f"{output_base}.failed").touch()
+                continue
+            except subprocess.TimeoutExpired:
+                # Mark this test by creating a .timeout file
+                Path(f"{output_base}.timeout").touch()
+                # Remove trace, as it will be corrupted
+                if os.path.exists(f"{output_base}.trace"):
+                    os.remove(f"{output_base}.trace")
                 continue
             except ProgramException:
                 # NOTE: we intentionally ignore ProgramException in the target program,
@@ -152,6 +160,7 @@ class Tracer:
                 # execution;
                 # this is expected and does not affect the correctness of the fuzzing process
                 continue
+
             trace_files.append(f"{output_base}.trace")
 
         if not trace_files:
@@ -172,7 +181,7 @@ class Tracer:
                            expanded_cmd: ExpandedCmd,
                            output_base_path: FilePath,
                            store_mappings: bool = False,
-                           timeout: int = 3600) -> None:
+                           timeout: int = 60 * 5) -> None:
         """
         Execute the target binary on the leakage model and collect a contract trace.
         :raise: InstrException, ProgramException
@@ -192,6 +201,8 @@ class Tracer:
             with open(log_file, "a") as f:
                 f.write("$> " + tracing_cmd + "\n")
                 subprocess.check_call(tracing_cmd, shell=True, stdout=f, stderr=f, timeout=timeout)
+        except subprocess.TimeoutExpired as e:
+            raise e
         except subprocess.CalledProcessError as e:
             if TraceDecoder().is_trace_corrupted(trace_file):
                 raise InstrException() from e
@@ -249,7 +260,9 @@ class Tracer:
             expanded_cmd = self._expand_template_cmd(self._config.template_cmd, ref_input)
             output_base = self._get_output_base_path(ref_input)
             try:
-                self._collect_one_trace(expanded_cmd, output_base, timeout=30, store_mappings=True)
+                self._collect_one_trace(expanded_cmd, output_base,
+                                        timeout=self._config.tracing_timeout_s,
+                                        store_mappings=True)
             except (InstrException, ProgramException, subprocess.TimeoutExpired) as e:
                 print(f"[Det. check] skipping input causing exception or timeout: {ref_input}")
                 print(str(e))
@@ -266,7 +279,8 @@ class Tracer:
 
         for i in [0, 1]:
             output_base = os.path.join(output_dir, f"determinism_check_{i}")
-            self._collect_one_trace(expanded_cmd, output_base)
+            self._collect_one_trace(expanded_cmd, output_base,
+                                    timeout=self._config.tracing_timeout_s)
 
         # compare the traces
         with open(os.path.join(output_dir, "determinism_check_0.trace"), "rb") as f0, \

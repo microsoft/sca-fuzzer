@@ -12,7 +12,7 @@ import json
 import shutil
 
 from dataclasses import dataclass
-from typing import Any, Dict, Final, List, Tuple
+from typing import Any, Dict, Final, List, Tuple, Optional
 from subprocess import run, PIPE
 
 from rvzr.model_dynamorio.trace_decoder import TraceDecoder
@@ -27,9 +27,67 @@ from .leak_detector import _Trace
 class _GdbScriptBuilder:
     """ Encapsulates GDB command syntax and script generation for leak debugging """
 
-    def __init__(self) -> None:
+    def __init__(self, ignored_funcs: Optional[List[str]] = None) -> None:
         self._commands: List[str] = []
         self._n_break: int = 0
+
+        if ignored_funcs:
+            self._declare_skip_hook()
+            for func in ignored_funcs:
+                self._add_skip_hook(func)
+
+    def _declare_skip_hook(self) -> None:
+        """
+        Define a GDB function to skip the rest of the current function.
+        This makes sure that we don't count hits to breakpoints that happen during ignored
+        functions, otherwise me might be inspecting the wrong execution state.
+        Note that we cannot simply use "skip" since it will continue counting hits to the
+        breakpoint.
+        """
+        disable_output = ["    set logging file /dev/null",
+                          "    set logging redirect on",
+                          "    set logging enabled on"]
+        enable_output = ["     set logging enabled off",
+                         "     set logging redirect off"]
+
+        # Define `skip_current_func` to simply reach the end of the current function
+        self._commands.extend([
+            "define skip_current_func",
+            *disable_output,
+            "    finish",
+            *enable_output,
+            "end",
+        ])
+        # Hook `skip_current_func` such that all breakpoints are disabled when executed
+        self._commands.extend([
+            "define hook-skip_current_func",
+            "    disable",  # Disable all breakpoints
+            "end",
+            "",
+            "define hookpost-skip_current_func",
+            "    enable",   # Re-enable breakpoints
+            "    continue",
+            "end",
+        ])
+        # Declare a command to skip the given function
+        self._commands.extend([
+            "define skip_function",
+            *disable_output,
+            "    break $arg0",  # Set a breakpoint at the start of the function to skip
+            "    commands",
+            "        silent",
+            "        skip_current_func",  # Skip the function when breakpoint is hit
+            "    end",
+            *enable_output,
+            "end",
+            ""
+        ])
+
+    def _add_skip_hook(self, func_name: str) -> None:
+        """ Add a command to skip the given function by name """
+        if func_name.strip():
+            self._commands.append(f"skip_function {func_name.strip()}")
+            self._n_break += 1
 
     def breakpoint(self, pc: int, temporary: bool = False) -> int:
         """ Add a breakpoint at the given PC address and return the breakpoint number """
@@ -75,7 +133,8 @@ class _GdbScriptBuilder:
                            path: str,
                            args_cmd: str,
                            fast: bool = False,
-                           single_step: bool = False) -> str:
+                           single_step: bool = False,
+                           ignored_funcs: Optional[List[str]] = None) -> str:
         """
         Create a gdb script that reaches the violation described in leak_info,
         save it to the given path, and return the full gdb command to run it.
@@ -86,9 +145,10 @@ class _GdbScriptBuilder:
         :param fast: If True, skip intermediate gdb prompts (architectural and spec window starts)
         :param single_step: If True, drop to interactive gdb at the first speculative instruction,
             with breakpoints set at all remaining points of interest
+        :param ignored_funcs: List of function names to ignore (skip) during debugging
         :return: The full gdb command string (e.g., ``gdb -x script.gdb --args cmd``)
         """
-        builder = cls()
+        builder = cls(ignored_funcs)
 
         for lvl, win in enumerate(leak_info.spec_windows):
             is_first = lvl == 0
@@ -168,7 +228,8 @@ tmux new-session -s mysession \\; \\
               leak_info: _LeakInfo,
               output_dir: str,
               fast: bool = False,
-              single_step: bool = False) -> str:
+              single_step: bool = False,
+              ignored_funcs: Optional[List[str]] = None) -> str:
         """
         Create gdb scripts and a tmux debug launcher for investigating a leak.
 
@@ -179,6 +240,7 @@ tmux new-session -s mysession \\; \\
         :param output_dir: Directory to write debug scripts into
         :param fast: If True, skip intermediate gdb prompts
         :param single_step: If True, drop to interactive gdb at first speculative instruction
+        :param ignored_funcs: List of function names to ignore (skip) during debugging
         :return: Path to the generated debug.sh script
         """
 
@@ -190,7 +252,8 @@ tmux new-session -s mysession \\; \\
                 os.path.join(output_dir, script_name),
                 " ".join(cmd),
                 fast=fast,
-                single_step=single_step)
+                single_step=single_step,
+                ignored_funcs=ignored_funcs)
 
         ref_gdb_cmd = make_gdb_cmd(os.path.join(output_dir, "000.bin"), "debug_ref.gdb")
         target_gdb_cmd = make_gdb_cmd(str(leak_info.input_path), "debug_target.gdb")
@@ -259,17 +322,19 @@ class _LeakInfo:
         input_file = input_file.replace('.trace', '.bin')
         return FileName(os.path.join(input_dir, input_file))
 
-    def build_gdb_cmd(self, fast: bool = False, single_step: bool = False) -> None:
+    def build_gdb_cmd(self, fast: bool = False, single_step: bool = False,
+                      ignored_funcs: Optional[List[str]] = None) -> None:
         """
         Generate a debug shell script that opens two gdb sessions in tmux.
 
         :param fast: If True, skip intermediate gdb prompts
         :param single_step: If True, drop to interactive gdb at first speculative instruction
+        :param ignored_funcs: List of function names to ignore (skip) during debugging
         """
         assert self.org_template_cmd, "Original template command not set."
         output_dir = os.path.dirname(self.input_path)
         self.gdb_cmd = _DebugScriptBuilder.build(
-            self, output_dir, fast=fast, single_step=single_step)
+            self, output_dir, fast=fast, single_step=single_step, ignored_funcs=ignored_funcs)
 
     def __str__(self) -> str:
         sep = "=" * 80
@@ -347,7 +412,16 @@ class Driller:
         for spec_win in leak_info.spec_windows:
             spec_win.start_pc_gdb = self._translate_pc_to_gdb(spec_win.start_pc)
             spec_win.pc_gdb = self._translate_pc_to_gdb(spec_win.pc)
-        leak_info.build_gdb_cmd(fast=self._fast, single_step=self._single_step)
+
+        # Gather the list of ignored functions
+        ignored_funcs = None
+        if self._config.tracing_ignorelist and os.path.exists(self._config.tracing_ignorelist):
+            with open(self._config.tracing_ignorelist, 'r') as f:
+                ignored_funcs = [line.strip() for line in f if line.strip()]
+
+        # Build the GDB command
+        leak_info.build_gdb_cmd(fast=self._fast, single_step=self._single_step,
+                                ignored_funcs=ignored_funcs)
 
         # Pretty print the details
         print(leak_info)
@@ -416,17 +490,29 @@ class Driller:
 
         assert False, f"Module for PC {pc:#x} not found in mappings.txt"
 
+    def _create_valid_driver_invocation(self) -> List[str]:
+        """
+        Create a valid driver invocation command by replacing the input placeholder with a real seed
+        """
+        first_seed = next(os.scandir(self._config.afl_seed_dir)).name
+        seed_path = os.path.join(self._config.afl_seed_dir, first_seed)
+        return [seed_path if s == "@@" else s for s in self._template_cmd]
+
     def _get_gdb_base(self, module_basename: str) -> int:
         """ Run a dummy gdb session and find the module's base address under gdb """
+
+        dummy_cmd = self._create_valid_driver_invocation()
         gdb_cmd = [
             'gdb',
             '--batch',
             '-ex',
-            'start',
+            f'b {self._config.tracing_entrypoint}',  # break on the entrypoint
+            '-ex',
+            'run',  # run the program to load all modules
             '-ex',
             'info proc mappings',
             '--args',
-        ] + self._template_cmd
+        ] + dummy_cmd
 
         result = run(gdb_cmd, stdout=PIPE, stderr=PIPE, text=True, check=False)
 

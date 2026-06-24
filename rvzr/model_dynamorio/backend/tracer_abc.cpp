@@ -92,7 +92,7 @@ void TracerABC::observe_mem_access(bool /*is_write*/, void * /*address*/, uint64
     // The rest of the functionality - if any - is implemented by subclasses
 }
 
-void TracerABC::observe_exception(dr_siginfo_t *siginfo) const
+void TracerABC::observe_exception(dr_siginfo_t *siginfo)
 {
     if (not tracing_on) {
         return;

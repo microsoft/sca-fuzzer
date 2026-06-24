@@ -802,6 +802,71 @@ class _SharedX86Model(unittest.TestCase):
         # Node: last two rets are inserted by the instrumentation: ignore them
         self.assertEqual(ctraces[0].get_untyped()[:-2], expected_trace)
 
+    @skip_for_backend("uc")
+    def test_silent_store(self) -> None:
+        test_case = InstList(
+            [
+                Inst("xor rax, rax", 3, 0, 0),
+                Inst("xor rbx, rbx", 3, 0, 0),
+                Inst("mov rax, qword ptr [r14]", 3, MAIN_OFFSET + 0, MEM_DEFAULT_VALUE),
+                Inst("mov rbx, qword ptr [r14 + 64]", 4, MAIN_OFFSET + 64, MEM_DEFAULT_VALUE),
+                Inst("mov qword ptr [r14], 0", 7, MAIN_OFFSET + 0, 0),
+                Inst("mov qword ptr [r14 + 64], rbx", 4, MAIN_OFFSET + 64, MEM_DEFAULT_VALUE),
+                Inst("mov qword ptr [r14], 0", 7, MAIN_OFFSET + 0, 0),
+            ],
+            backend=self._backend,
+        )
+        input_ = self._input_builder.get_default_input()
+        ctraces = self._get_trace(obs_clause="ss", test_case=test_case, input_data=[input_])
+        self.assertEqual(len(ctraces), 1)
+
+        expected_trace: List[int] = []
+        expected_trace.append(test_case[0].pc_offset)    # measurement_start
+        expected_trace.append(test_case[1].pc_offset)    # xor
+        expected_trace.append(test_case[2].pc_offset)    # xor
+        expected_trace.append(test_case[3].pc_offset)    # load
+        expected_trace.append(test_case[4].pc_offset)    # load
+        expected_trace.append(test_case[5].pc_offset)    # store
+        expected_trace.append(test_case[6].pc_offset)    # store
+        expected_trace.append(test_case[6].mem_address)  # redundant non-zero store
+        expected_trace.append(test_case[7].pc_offset)    # store
+        expected_trace.append(test_case[7].mem_address)  # redundant zero store
+
+        # Node: last two insts are inserted by the instrumentation: ignore them
+        self.assertEqual(ctraces[0].get_untyped()[:-2], expected_trace)
+
+    @skip_for_backend("uc")
+    def test_silent_store_0(self) -> None:
+        test_case = InstList(
+            [
+                Inst("xor rax, rax", 3, 0, 0),
+                Inst("xor rbx, rbx", 3, 0, 0),
+                Inst("mov rax, qword ptr [r14]", 3, MAIN_OFFSET + 0, MEM_DEFAULT_VALUE),
+                Inst("mov rbx, qword ptr [r14 + 64]", 4, MAIN_OFFSET + 64, MEM_DEFAULT_VALUE),
+                Inst("mov qword ptr [r14], 0", 7, MAIN_OFFSET + 0, 0),
+                Inst("mov qword ptr [r14 + 64], rbx", 4, MAIN_OFFSET + 64, MEM_DEFAULT_VALUE),
+                Inst("mov qword ptr [r14], 0", 7, MAIN_OFFSET + 0, 0),
+            ],
+            backend=self._backend,
+        )
+        input_ = self._input_builder.get_default_input()
+        ctraces = self._get_trace(obs_clause="ss0", test_case=test_case, input_data=[input_])
+        self.assertEqual(len(ctraces), 1)
+
+        expected_trace: List[int] = []
+        expected_trace.append(test_case[0].pc_offset)    # measurement_start
+        expected_trace.append(test_case[1].pc_offset)    # xor
+        expected_trace.append(test_case[2].pc_offset)    # xor
+        expected_trace.append(test_case[3].pc_offset)    # load
+        expected_trace.append(test_case[4].pc_offset)    # load
+        expected_trace.append(test_case[5].pc_offset)    # store
+        expected_trace.append(test_case[6].pc_offset)    # store
+        expected_trace.append(test_case[7].pc_offset)    # store
+        expected_trace.append(test_case[7].mem_address)  # redundant zero store
+
+        # Node: last two insts are inserted by the instrumentation: ignore them
+        self.assertEqual(ctraces[0].get_untyped()[:-2], expected_trace)
+
 
 class X86DRModelTest(_SharedX86Model):
     """Unit tests for the x86 DynamoRIO backend adaptor."""
