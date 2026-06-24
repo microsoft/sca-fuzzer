@@ -366,8 +366,7 @@ class _LeakDetectionWorker:
                 if cur_level >= i_leak_level:
                     continue
                 # ... keep looking for violations if we exited the I-Leak's window
-                else:
-                    i_leak_level = None
+                i_leak_level = None
 
             # Get the relevant preceding instruction
             if cur_level >= prev_level:
@@ -388,8 +387,7 @@ class _LeakDetectionWorker:
                 # TODO: implement resume point
                 if cur_level == 0:
                     break
-                else:
-                    i_leak_level = cur_level
+                i_leak_level = cur_level
 
         if not all_leaks:
             return np.array([], dtype=LeakyInstrDType)

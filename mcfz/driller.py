@@ -99,18 +99,23 @@ class _GdbScriptBuilder:
         return self._n_break
 
     def run(self) -> None:
+        """ Add a command to start program execution """
         self._commands.append("run")
 
     def jump(self, pc: int) -> None:
+        """ Add a command to jump to the given PC address """
         self._commands.append(f"jump *{pc:#x}")
 
     def continue_(self) -> None:
+        """ Add a command to continue program execution """
         self._commands.append("continue")
 
     def delete(self, bp_num: int) -> None:
+        """ Add a command to delete the given breakpoint """
         self._commands.append(f"del {bp_num}")
 
     def ignore(self, bp_num: int, count: int) -> None:
+        """ Add a command to ignore the next `count` hits of the given breakpoint """
         self._commands.append(f"ignore {bp_num} {count}")
 
     def shell_prompt(self, message: str) -> None:
@@ -172,9 +177,9 @@ class _GdbScriptBuilder:
                     break
 
             if not fast:
-                msg = "Reached first architectural instruction" if is_first \
-                    else f'Reached start of spec window (level: {lvl}, pc: {win.start_pc_gdb:#x})'
-                builder.shell_prompt(msg)
+                builder.shell_prompt(
+                    "Reached first architectural instruction" if is_first
+                    else f'Reached start of spec window (level: {lvl}, pc: {win.start_pc_gdb:#x})')
 
             # Reach target instruction
             b_num = builder.breakpoint(win.pc_gdb)
@@ -187,10 +192,10 @@ class _GdbScriptBuilder:
                 label = "leak instruction"
                 builder.shell_message(msg_template.format(label=label, lvl=lvl, win=win.pc_gdb))
                 continue
-            else:
-                label = "mispredicted instruction"
-                builder.shell_prompt(msg_template.format(label=label, lvl=lvl, win=win.pc_gdb))
-                builder.delete(b_num)
+
+            label = "mispredicted instruction"
+            builder.shell_prompt(msg_template.format(label=label, lvl=lvl, win=win.pc_gdb))
+            builder.delete(b_num)
 
         builder.write(path)
         return f'gdb -x {path} --args {args_cmd}'

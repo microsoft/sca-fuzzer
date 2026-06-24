@@ -112,6 +112,11 @@ class Dispatcher
   private:
     dispatcher_state_t state = dispatcher_state_t::OFF;
 
+    /// @brief Whether a trace is currently in progress and still needs to be finalized
+    ///        (i.e., the instrumented function was entered but its end-of-trace marker has not
+    ///        been emitted yet). Used to emit exactly one trace per input.
+    bool trace_active = false;
+
     std::optional<const_app_pc> exit_pc = std::nullopt;
     std::optional<const_app_pc> resume_pc = std::nullopt;
     std::optional<const_app_pc> entry_pc = std::nullopt;
@@ -130,6 +135,10 @@ class Dispatcher
     void pause();
     void resume();
     void stop();
+
+    /// @brief Finalize the trace currently in progress (emit its end-of-trace marker and turn the
+    ///        service modules off). No-op if no trace is in progress.
+    void finalize_trace();
 
     // Instrumentation functions
     bool instrument_instruction(void *drcontext, instrlist_t *bb, instr_t *instr) const;

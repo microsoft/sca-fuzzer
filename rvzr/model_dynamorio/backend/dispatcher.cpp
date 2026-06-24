@@ -409,7 +409,11 @@ void Dispatcher::turn_off_instrumentation() const
 }
 
 // State machine transitions
-void Dispatcher::start_tracing() { turn_on_instrumentation(); }
+void Dispatcher::start_tracing()
+{
+    turn_on_instrumentation();
+    trace_active = true;
+}
 void Dispatcher::pause() { turn_off_instrumentation(); }
 void Dispatcher::resume()
 {
@@ -419,14 +423,27 @@ void Dispatcher::resume()
 void Dispatcher::stop()
 {
     exit_pc = std::nullopt;
-    turn_off_instrumentation();
+    // Emit the end-of-trace marker for the input that just finished executing and turn the
+    // service modules off. The next input re-arms them via start_tracing(). When tracing multiple
+    // inputs in a single process (e.g., the Revizor adapter), this is what separates the traces.
+    finalize_trace();
+}
+void Dispatcher::finalize_trace()
+{
+    if (not trace_active) {
+        return;
+    }
+    taint_tracker->finalize();
+    tracer->finalize();
+    speculator->disable();
+    trace_active = false;
 }
 void Dispatcher::finalize()
 {
     DR_ASSERT_MSG(state == dispatcher_state_t::OFF, "[ERROR] Finalizing while not off.");
-    taint_tracker->finalize();
-    tracer->finalize();
-    speculator->disable();
+    // Finalize any trace still in progress (e.g., the instrumented function was entered but never
+    // architecturally exited). This is a no-op if stop() already finalized the last trace.
+    finalize_trace();
 }
 
 // State machine implementation
