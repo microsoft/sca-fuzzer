@@ -6,13 +6,13 @@ Copyright (C) Microsoft Corporation
 SPDX-License-Identifier: MIT
 """
 from __future__ import annotations
-from typing import TYPE_CHECKING, List, Tuple, Dict, Iterator, NewType, Union, Any, Set
+from typing import TYPE_CHECKING, List, Tuple, Dict, Iterator, NewType, Set, Optional
+from datetime import datetime, timezone
 
 import os
 import json
-from copy import deepcopy
 
-from typing_extensions import assert_never
+from typing_extensions import TypedDict
 
 from .leak_detector import LeakageMap, LeakType, ClauseType, PC, LinesInTracePair
 from .util.dwarf import ModulesInfo
@@ -23,6 +23,9 @@ if TYPE_CHECKING:
 # ==================================================================================================
 # Local type definitions
 # ==================================================================================================
+SCHEMA_VERSION = "1"
+""" Version of the report JSON schema emitted by this module. """
+
 CodeLine = NewType('CodeLine', str)
 """ Location of a line in the source code, used to group leaks by code lines.
     It is a string in the format "filename:line_number", where
@@ -30,140 +33,146 @@ CodeLine = NewType('CodeLine', str)
     * line_number is the line number in the source file.
 """
 
-LeakageLineMapVrb3 = Dict[ClauseType, Dict[
-    LeakType,
-    Dict[
-        CodeLine,
-        Dict[
-            PC,
-            List[LinesInTracePair],
-        ],
-    ],
-]]
-""" Map of unique leaky lines of code, indexed by leak type and code line.
-    The value is a map of PCs where the leak was found, and a list of locations
-    where the leak was found in the trace files.
-"""
 
-LeakageLineMapVrb2 = Dict[ClauseType, Dict[
-    LeakType,
-    Dict[
-        CodeLine,
-        List[PC],
-    ],
-]]
-""" A variant of LeakageLineMap for the lower verbosity level (verbosity 2). """
+class Witness(TypedDict):
+    """ A single trace-pair location where a leak was observed. """
+    trace: str
+    line: int
+    ref_line: int
 
-LeakageLineMapVrb1 = Dict[ClauseType, Dict[
-    LeakType,
-    List[CodeLine],
-]]
-""" A variant of LeakageLineMap for the lowest verbosity level (verbosity 1). """
 
-LeakageLineMap = Union[
-    LeakageLineMapVrb3,
-    LeakageLineMapVrb2,
-    LeakageLineMapVrb1,
-]
+class LeakRecordBase(TypedDict):
+    """ Fields present in a leak record at every verbosity level. """
+    clause: ClauseType
+    type: LeakType
+    file: str
+    line: int
+
+
+class LeakRecord(LeakRecordBase, total=False):
+    """ A single leak. ``pcs`` is added at verbosity >= 2, ``witnesses`` at verbosity >= 3. """
+    pcs: List[str]
+    witnesses: Dict[str, List[Witness]]
+
+
+class ReportMetadata(TypedDict):
+    """ Provenance information shared by all report files of a single run. """
+    tool: str
+    generated_at: str
+    target: str
+    detector: str
+    allowlist: Optional[str]
+
+
+class ReportSummary(TypedDict):
+    """ Aggregate leak counts. """
+    total_leaks: int
+    by_clause: Dict[str, int]
+    by_type: Dict[str, int]
+
+
+class Report(TypedDict):
+    """ Top-level structure of a report file (identical across verbosity levels). """
+    schema_version: str
+    verbosity: int
+    metadata: ReportMetadata
+    summary: ReportSummary
+    leaks: List[LeakRecord]
+
+
+CanonicalMap = Dict[ClauseType, Dict[LeakType, Dict[CodeLine, Dict[str, List[Witness]]]]]
+""" Internal grouping of leaks: clause -> leak type -> code line -> PC (hex) -> witnesses. """
 
 
 # ==================================================================================================
 # Reporting of the analysis results
 # ==================================================================================================
-def _convert_int_keys_to_hex(o: Any) -> Any:
-    """Recursively convert all integer dictionary keys to hex strings."""
-    if isinstance(o, dict):
-        return {
-            (hex(k) if isinstance(k, int) else k): _convert_int_keys_to_hex(v) for k, v in o.items()
-        }
-    if isinstance(o, list):
-        return [_convert_int_keys_to_hex(item) for item in o]
-    if isinstance(o, int):
-        return hex(o)
-    return o
-
-
-def set_default_serialization(obj: Any) -> Any:
-    """ Special-case for serializing sets to JSON """
-    if isinstance(obj, set):
-        return list(obj)
-    raise TypeError
-
-
 class _ReportPrinter:
     """
     Class responsible for printing the analysis results to a report file.
     """
+
+    _CLAUSE_ORDER: Dict[str, int] = {'seq': 0, 'cond': 1}
+    _TYPE_ORDER: Dict[str, int] = {'I': 0, 'D': 1}
 
     def __init__(self, config: Config) -> None:
         self._config = config
         self._modules_info = ModulesInfo(os.path.join(config.stage3_wd, "mappings.txt"))
 
     def final_report(self, leakage_map: LeakageMap, report_dir: str) -> None:
-        """ Print the global map of leaks to the trace log """
+        """
+        Build the canonical leak structure once and emit it at every verbosity level.
+
+        All three reports share the same self-describing schema (metadata + summary + a flat
+        ``leaks`` list); higher verbosity levels only add more detail to each leak record, never
+        change the shape of existing fields.
+        """
+        canonical = self._build_canonical(leakage_map)
+        self._filter_allowlist(canonical)
+        metadata = self._build_metadata()
+
         all_levels: List[ReportVerbosity] = [1, 2, 3]
-        # all_levels: List[ReportVerbosity] = [1]
         for verbosity in all_levels:
-            leakage_line_map = self._group_by_code_line(leakage_map, verbosity)
-            leakage_line_map = self._filter_allowlist(leakage_line_map)
+            report = self._build_report(canonical, verbosity, metadata)
             report_file = os.path.join(report_dir, f"report_verbosity_{verbosity}.json")
-            self._write_report(report_file, leakage_line_map)
+            self._write_report(report_file, report)
 
-    def _write_report(self, report_file: str, leakage_line_map: LeakageLineMap) -> None:
-        """
-        Write the report to the given file in a json format:
-        {
-            "seq": {
-                "I": {
-                    "file:line": {
-                        "0x12345678": ["trace1:10:20", "trace2:15:25"],
-                        ...
-                    },
-                    ...
-                },
-                "D": {
-                    ...
-                }
-            },
-            "cond": {
-                "I": {
-                    ...
-                },
-                "D": {
-                    ...
-                }
-            }
-        }
-        """
-        report_dict = _convert_int_keys_to_hex(leakage_line_map)
+    def _write_report(self, report_file: str, report: Report) -> None:
+        """ Write a report to ``report_file`` as indented JSON. """
         with open(report_file, "w") as f:
-            json.dump(report_dict, f, indent=4, sort_keys=True, default=set_default_serialization)
+            json.dump(report, f, indent=4)
 
-    def _group_by_code_line(self, leakage_map: LeakageMap,
-                            verbosity: ReportVerbosity) -> LeakageLineMap:
+    def _build_metadata(self) -> ReportMetadata:
+        """ Collect provenance information shared by all report files of this run. """
+        return {
+            "tool": "mcfz",
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "target": self._config.bin_native,
+            "detector": "fast" if self._config.use_fast_detector else "python",
+            "allowlist": self._config.allowlist,
+        }
+
+    def _build_canonical(self, leakage_map: LeakageMap) -> CanonicalMap:
         """
-        Transform a LeakageMap object into a LeakageLineMap object by
-        grouping all instructions that map to the same line in the source code and filtering
-        them based on the verbosity level.
+        Group all leaks by execution clause, leak type, source code line, and PC.
 
-        Use DWARF information to get the source code line for each instruction address.
+        Source code lines are resolved from instruction addresses via DWARF information.
+        COND (speculative) violations on a code line that was also found under SEQ
+        (architecturally) are dropped, since the architectural finding subsumes them.
 
-        :param leakage_map: Map of leaks found in the traces, indexed by leak type and PC.
-        :param verbosity: Amount of information to include in the report
-               (see Config.report_verbosity for details).
-        :return: Map of unique leaks, grouped by source code line.
+        :param leakage_map: Map of leaks found in the traces, indexed by clause, type, and PC.
+        :return: Nested map clause -> type -> code line -> PC (hex) -> list of trace witnesses.
         """
-        if verbosity == 1:
-            return self._group_by_code_line_vrb1(leakage_map)
-        if verbosity == 2:
-            return self._group_by_code_line_vrb2(leakage_map)
-        if verbosity == 3:
-            return self._group_by_code_line_vrb3(leakage_map)
-        assert_never(verbosity)
+        canonical: CanonicalMap = {}
+        for clause, leak_type, code_line, pc, locs in self._iter_leaks_with_code_lines(leakage_map):
+            per_line = canonical.setdefault(clause, {}).setdefault(leak_type, {}) \
+                .setdefault(code_line, {})
+            per_line.setdefault(hex(pc), []).extend(self._parse_witness(loc) for loc in locs)
+        self._remove_cond_dups(canonical)
+        return canonical
+
+    def _parse_witness(self, loc: LinesInTracePair) -> Witness:
+        """ Split a packed "trace:line:ref_line" location into a structured witness. """
+        trace, line_str, ref_str = loc.rsplit(":", 2)
+        return {"trace": trace, "line": int(line_str), "ref_line": int(ref_str)}
+
+    def _remove_cond_dups(self, canonical: CanonicalMap) -> None:
+        """ Remove COND violations on code lines that were also found under SEQ. """
+        seq = canonical.get('seq', {})
+        cond = canonical.get('cond', {})
+        for leak_type in seq:
+            if leak_type not in cond:
+                continue
+            seq_lines = set(seq[leak_type].keys())
+            cond[leak_type] = {
+                code_line: witnesses
+                for code_line, witnesses in cond[leak_type].items()
+                if code_line not in seq_lines
+            }
 
     def _iter_leaks_with_code_lines(self, leakage_map: LeakageMap) \
             -> Iterator[Tuple[ClauseType, LeakType, CodeLine, PC, List[LinesInTracePair]]]:
-        """Yield (leak_type, code_line, pc, trace_locations) for each leak in the map."""
+        """Yield (clause, leak_type, code_line, pc, trace_locations) for each leak in the map."""
         for clause_type in leakage_map:
             for leak_type in leakage_map[clause_type]:
                 per_type_map = leakage_map[clause_type][leak_type]
@@ -171,109 +180,102 @@ class _ReportPrinter:
                     source_code_line = CodeLine(self._modules_info.resolve_address(pc))
                     yield clause_type, leak_type, source_code_line, pc, per_type_map[pc]
 
-    def _filter_cond(self, leakage_line_map: Dict[ClauseType, Any], leak_type: LeakType) \
-            -> Dict[CodeLine, Any]:
-        """Remove all COND violations that were also found architecturally (SEQ)"""
-        # Calculate the set difference between cond violations and seq violations
-        seq_violations = leakage_line_map['seq'][leak_type].keys()
-        cond_violations = leakage_line_map['cond'][leak_type].keys()
-        diff = set(cond_violations) - set(seq_violations)
-        # Keep only entries that are part of the set difference
-        old_entries = leakage_line_map['cond'][leak_type]
-        filtered = {diff_code_line: old_entries[diff_code_line] for diff_code_line in diff}
-        return filtered
+    def _build_report(self, canonical: CanonicalMap, verbosity: ReportVerbosity,
+                      metadata: ReportMetadata) -> Report:
+        """ Project the canonical structure into a report at the given verbosity level. """
+        leaks = self._build_leaks(canonical, verbosity)
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "verbosity": verbosity,
+            "metadata": metadata,
+            "summary": self._build_summary(leaks),
+            "leaks": leaks,
+        }
 
-    def _group_by_code_line_vrb3(self, leakage_map: LeakageMap) -> LeakageLineMapVrb3:
-        leakage_line_map: LeakageLineMapVrb3 = {}
-        for clause, leak_type, code_line, pc, locs in self._iter_leaks_with_code_lines(leakage_map):
-            per_type_map = leakage_line_map.setdefault(clause, {}).setdefault(leak_type, {})
-            per_line_map = per_type_map.setdefault(code_line, {})
-            per_line_map.setdefault(pc, []).extend(locs)
-        # Remove COND violations that were also found with SEQ
-        for leak_type in leakage_line_map.get('seq', {}).keys():
-            if leak_type in leakage_line_map.get('cond', {}).keys():
-                leakage_line_map['cond'][leak_type] = self._filter_cond(leakage_line_map, leak_type)
-        # Sort all trace location lists
-        for per_clause in leakage_line_map.values():
-            for per_type in per_clause.values():
-                for per_line in per_type.values():
-                    for loc_list in per_line.values():
-                        loc_list.sort()
+    def _build_leaks(self, canonical: CanonicalMap, verbosity: ReportVerbosity) -> List[LeakRecord]:
+        """
+        Flatten the canonical structure into a sorted list of leak records.
 
-        return leakage_line_map
+        Verbosity controls how much detail each record carries:
+            * 1 - clause, leak type, and source code location only;
+            * 2 - also the PCs of the leaking instructions;
+            * 3 - also the trace witnesses for each PC.
+        """
+        records: List[LeakRecord] = []
+        for clause in canonical:
+            for leak_type in canonical[clause]:
+                for code_line, pc_map in canonical[clause][leak_type].items():
+                    file_name, line = self._split_code_line(code_line)
+                    record: LeakRecord = {
+                        "clause": clause,
+                        "type": leak_type,
+                        "file": file_name,
+                        "line": line,
+                    }
+                    if verbosity >= 2:
+                        record["pcs"] = sorted(pc_map.keys(), key=lambda p: int(p, 16))
+                    if verbosity >= 3:
+                        record["witnesses"] = {
+                            pc:
+                                sorted(
+                                    pc_map[pc],
+                                    key=lambda w: (w["trace"], w["line"], w["ref_line"]))
+                            for pc in sorted(pc_map.keys(), key=lambda p: int(p, 16))
+                        }
+                    records.append(record)
+        records.sort(key=lambda r: (self._CLAUSE_ORDER[r["clause"]], self._TYPE_ORDER[r["type"]], r[
+            "file"], r["line"]))
+        return records
 
-    def _group_by_code_line_vrb2(self, leakage_map: LeakageMap) -> LeakageLineMapVrb2:
-        leakage_line_map: LeakageLineMapVrb2 = {}
-        # Insert all violations
-        for clause, leak_type, code_line, pc, _ in self._iter_leaks_with_code_lines(leakage_map):
-            per_type_map = leakage_line_map.setdefault(clause, {}).setdefault(leak_type, {})
-            per_type_map.setdefault(code_line, []).append(pc)
-        # Remove COND violations that were also found with SEQ
-        for leak_type in leakage_line_map.get('seq', {}).keys():
-            if leak_type in leakage_line_map.get('cond', {}).keys():
-                leakage_line_map['cond'][leak_type] = self._filter_cond(leakage_line_map, leak_type)
-        # Sort all PC lists
-        for per_clause in leakage_line_map.values():
-            for per_type in per_clause.values():
-                for pc_list in per_type.values():
-                    pc_list.sort()
+    def _build_summary(self, leaks: List[LeakRecord]) -> ReportSummary:
+        """ Count the leak records by execution clause and by leak type. """
+        by_clause: Dict[str, int] = {}
+        by_type: Dict[str, int] = {}
+        for leak in leaks:
+            by_clause[leak["clause"]] = by_clause.get(leak["clause"], 0) + 1
+            by_type[leak["type"]] = by_type.get(leak["type"], 0) + 1
+        return {
+            "total_leaks": len(leaks),
+            "by_clause": by_clause,
+            "by_type": by_type,
+        }
 
-        return leakage_line_map
-
-    def _group_by_code_line_vrb1(self, leakage_map: LeakageMap) -> LeakageLineMapVrb1:
-        leakage_line_map: LeakageLineMapVrb1 = {}
-        # Insert all violations
-        for clause, leak_type, code_line, _, _ in self._iter_leaks_with_code_lines(leakage_map):
-            if code_line not in leakage_line_map.setdefault(clause, {}).setdefault(leak_type, []):
-                leakage_line_map[clause][leak_type].append(code_line)
-        # Order them
-        for leak_type in leakage_line_map.get('seq', {}).keys():
-            seq = leakage_line_map.get('seq', {}).get(leak_type, [])
-            # Of the COND violations, only keep the ones that are not also SEQ violations
-            if leak_type in leakage_line_map.get('cond', {}).keys():
-                cond = leakage_line_map.get('cond', {}).get(leak_type, [])
-                leakage_line_map['cond'][leak_type] = sorted(list(set(cond) - set(seq)))
-            # For
-            leakage_line_map['seq'][leak_type] = sorted(seq)
-
-        return leakage_line_map
+    def _split_code_line(self, code_line: CodeLine) -> Tuple[str, int]:
+        """ Split a "file:line" code location into its file and integer line components. """
+        file_name, sep, line_str = code_line.rpartition(":")
+        if not sep:
+            return code_line, 0
+        try:
+            return file_name, int(line_str)
+        except ValueError:
+            return code_line, 0
 
     def _is_allowlisted(self, code_line: str, allowlist: Set[str]) -> bool:
         return any(code_line == entry or code_line.endswith("/" + entry) for entry in allowlist)
 
-    def _filter_allowlist(self, leakage_line_map: LeakageLineMap) -> LeakageLineMap:
+    def _filter_allowlist(self, canonical: CanonicalMap) -> None:
         """
-        Filter the leakage line map by the allowlist of source code lines.
-        The allowlist is a list of source code lines that should be excluded from the report.
+        Remove allowlisted source code lines from the canonical structure in place.
+
+        The allowlist is a file of source code lines that should be excluded from the report.
         Entries support partial path matching: ``filename.c:123`` in the allowlist will match
         ``/path/to/filename.c:123`` in the leakage map.
         """
         allowlist_file = self._config.allowlist
         if not allowlist_file:
-            return leakage_line_map
+            return
 
         # Read the allowlist file and create a set of allowed source code lines
         with open(allowlist_file, "r") as f:
             allowlist = {line.strip() for line in f if line.strip()}
 
-        # Filter the leakage line map by the allowlist
-        filtered_leakage_line_map: LeakageLineMap = deepcopy(leakage_line_map)
-        for clause_type in leakage_line_map:
-            for leak_type in leakage_line_map[clause_type]:
-                per_type_map = leakage_line_map[clause_type][leak_type]
-                filtered_per_type = filtered_leakage_line_map[clause_type][leak_type]
-                if isinstance(per_type_map, list) and isinstance(filtered_per_type, list):
-                    # Verbosity 1: remove allowlisted entries from the list
-                    for cl in per_type_map:
-                        if self._is_allowlisted(cl, allowlist):
-                            filtered_per_type.remove(cl)
-                elif isinstance(per_type_map, dict) and isinstance(filtered_per_type, dict):
-                    # Verbosity 2 or 3: remove allowlisted entries from the dict
-                    for code_line in per_type_map:
-                        if self._is_allowlisted(code_line, allowlist):
-                            filtered_per_type.pop(code_line)
-
-        return filtered_leakage_line_map
+        # Remove every allowlisted code line from every clause/type bucket
+        for clause in canonical:
+            for leak_type in canonical[clause]:
+                per_type = canonical[clause][leak_type]
+                for code_line in list(per_type.keys()):
+                    if self._is_allowlisted(code_line, allowlist):
+                        del per_type[code_line]
 
 
 # ==================================================================================================

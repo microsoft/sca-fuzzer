@@ -14,7 +14,7 @@ from typing import List, Any
 
 import numpy as np
 from mcfz.leak_detector import _LeakDetectionWorker, _Trace, _ChoppedTrace
-from mcfz.reporter import _ReportPrinter
+from mcfz.reporter import _ReportPrinter, CanonicalMap
 from rvzr.model_dynamorio.trace_decoder import TraceEntryType, TraceEntryDType
 
 
@@ -470,3 +470,127 @@ class TestAllowlistMatching(unittest.TestCase):
         printer = object.__new__(_ReportPrinter)
         self.assertTrue(printer._is_allowlisted('/path/to/somefile.c:123', allowlist))
         self.assertFalse(printer._is_allowlisted('/path/to/somefile.c:456', allowlist))
+
+
+class TestReportSchema(unittest.TestCase):
+
+    def _printer(self) -> _ReportPrinter:
+        return object.__new__(_ReportPrinter)
+
+    def test_split_code_line(self) -> None:
+        printer = self._printer()
+        self.assertEqual(printer._split_code_line('lib/3des.c:259'), ('lib/3des.c', 259))
+        self.assertEqual(
+            printer._split_code_line('/a/b/aesasm-gas.asm:273'), ('/a/b/aesasm-gas.asm', 273))
+        self.assertEqual(printer._split_code_line('undefined:0'), ('undefined', 0))
+
+    def test_parse_witness(self) -> None:
+        printer = self._printer()
+        self.assertEqual(
+            printer._parse_witness('/x/001.trace.gz:10229:10300'), {
+                'trace': '/x/001.trace.gz',
+                'line': 10229,
+                'ref_line': 10300
+            })
+
+    def test_build_leaks_verbosity_levels(self) -> None:
+        printer = self._printer()
+        canonical: CanonicalMap = {
+            'seq': {
+                'D': {
+                    'lib/3des.c:259': {
+                        '0x20': [{
+                            'trace': 't',
+                            'line': 2,
+                            'ref_line': 2
+                        }],
+                        '0x10': [{
+                            'trace': 't',
+                            'line': 1,
+                            'ref_line': 1
+                        }],
+                    },
+                },
+            },
+        }
+
+        v1 = printer._build_leaks(canonical, 1)
+        self.assertEqual(v1, [{'clause': 'seq', 'type': 'D', 'file': 'lib/3des.c', 'line': 259}])
+
+        v2 = printer._build_leaks(canonical, 2)
+        self.assertEqual(v2[0]['pcs'], ['0x10', '0x20'])  # sorted numerically, not lexically
+        self.assertNotIn('witnesses', v2[0])
+
+        v3 = printer._build_leaks(canonical, 3)
+        self.assertEqual(list(v3[0]['witnesses'].keys()), ['0x10', '0x20'])
+        self.assertEqual(v3[0]['witnesses']['0x10'], [{'trace': 't', 'line': 1, 'ref_line': 1}])
+
+    def test_build_leaks_sorting(self) -> None:
+        printer = self._printer()
+        witness = {'0x1': [{'trace': 't', 'line': 1, 'ref_line': 1}]}
+        canonical: CanonicalMap = {
+            'cond': {
+                'D': {
+                    'b.c:2': dict(witness)
+                }
+            },
+            'seq': {
+                'I': {
+                    'a.c:1': dict(witness)
+                },
+                'D': {
+                    'a.c:1': dict(witness)
+                },
+            },
+        }
+        leaks = printer._build_leaks(canonical, 1)
+        order = [(leak['clause'], leak['type']) for leak in leaks]
+        # seq before cond, and within seq I before D
+        self.assertEqual(order, [('seq', 'I'), ('seq', 'D'), ('cond', 'D')])
+
+    def test_build_summary(self) -> None:
+        printer = self._printer()
+        leaks = [
+            {
+                'clause': 'seq',
+                'type': 'D',
+                'file': 'a',
+                'line': 1
+            },
+            {
+                'clause': 'seq',
+                'type': 'I',
+                'file': 'b',
+                'line': 2
+            },
+            {
+                'clause': 'cond',
+                'type': 'D',
+                'file': 'c',
+                'line': 3
+            },
+        ]
+        summary = printer._build_summary(leaks)
+        self.assertEqual(summary['total_leaks'], 3)
+        self.assertEqual(summary['by_clause'], {'seq': 2, 'cond': 1})
+        self.assertEqual(summary['by_type'], {'D': 2, 'I': 1})
+
+    def test_remove_cond_dups(self) -> None:
+        printer = self._printer()
+        witness = {'0x1': [{'trace': 't', 'line': 1, 'ref_line': 1}]}
+        canonical: CanonicalMap = {
+            'seq': {
+                'D': {
+                    'a.c:1': dict(witness)
+                }
+            },
+            'cond': {
+                'D': {
+                    'a.c:1': dict(witness),
+                    'b.c:2': dict(witness)
+                }
+            },
+        }
+        printer._remove_cond_dups(canonical)
+        # 'a.c:1' is dropped from cond because it was also found under seq
+        self.assertEqual(list(canonical['cond']['D'].keys()), ['b.c:2'])

@@ -294,17 +294,15 @@ class _SpecWinInfo:
 class _LeakInfo:
 
     def __init__(self, clause_type: str, leak_type: str, code_line: str, pc_hex: str,
-                 location_in_trace: str) -> None:
+                 trace_path: str, trace_line_id: int) -> None:
         # original info from the report
         self.clause_type = clause_type
         self.leak_type = leak_type
         self.code_line = CodeLine(code_line)
         self.org_pc = PC(int(pc_hex, 16))
 
-        # Parse "trace_file_path:target_line:ref_line"
-        parts = location_in_trace.rsplit(':', 2)
-        self.org_trace_path = FileName(parts[0])
-        self.org_trace_line_id = int(parts[1])
+        self.org_trace_path = FileName(trace_path)
+        self.org_trace_line_id = int(trace_line_id)
 
         # spec windows info
         self.spec_windows: List[_SpecWinInfo] = []
@@ -445,21 +443,15 @@ class Driller:
             raise FileNotFoundError(f"Report file not found: {report_file}.")
 
     def _find_pc_in_report(self, report_data: Dict[str, Any], pc_hex: str) -> _LeakInfo:
-        # Search all clauses (seq and cond)
-        for clause in ['seq', 'cond']:
-            data = report_data.get(clause)
-            if data is None:
+        # Search the flat list of leak records for one whose witnesses include this PC
+        for leak in report_data.get("leaks", []):
+            witnesses = leak.get("witnesses", {})
+            if pc_hex not in witnesses:
                 continue
-            # Search in both I (instruction) and D (data) leak types
-            for leak_type in ['I', 'D']:
-                if leak_type not in data:
-                    continue
-                per_type_map = data[leak_type]
-                for code_line, pc_map in per_type_map.items():
-                    if pc_hex in pc_map:
-                        loc = pc_map[pc_hex][0]
-                        leak_info = _LeakInfo(clause, leak_type, code_line, pc_hex, loc)
-                        return leak_info
+            first = witnesses[pc_hex][0]
+            code_line = f"{leak['file']}:{leak['line']}"
+            return _LeakInfo(leak["clause"], leak["type"], code_line, pc_hex, first["trace"],
+                             first["line"])
         raise ValueError(f"PC {pc_hex} not found in the report.")
 
     def _translate_pc_to_gdb(self, pc: int) -> int:
