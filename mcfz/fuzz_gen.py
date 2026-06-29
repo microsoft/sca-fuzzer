@@ -29,6 +29,8 @@ class FuzzGen:
     _config: Config
     _wd: Final[str]  # Working directory for AFL++
     _afl_bin: Final[str]  # Path to the AFL++ binary
+    _AFL_MIN_LEN: Final[int] = 0x10
+    _AFL_MAX_LEN: Final[int] = 0x1000
 
     def __init__(self, config: Config) -> None:
         self._config = config
@@ -40,7 +42,7 @@ class FuzzGen:
     def _build_env(self) -> Dict[str, str]:
         """Build the environment variables for AFL++ processes."""
         env = os.environ.copy()
-        env["AFL_COMPCOV_LEVEL"] = "2"
+        # env["AFL_COMPCOV_LEVEL"] = "2"  # unused; only for QEMU modes
         # env["AFL_PRELOAD"] = self._libcompcov
         env["AFL_KEEP_TRACES"] = "1"
         env["AFL_SKIP_CPUFREQ"] = "1"
@@ -60,10 +62,13 @@ class FuzzGen:
         :return: Complete command list
         """
         afl_flags = [
-            "-V",
-            str(timeout_s), "-c", patched_cmd[0], "-i", seed_dir, "-o", self._wd, "-t",
-            str(self._config.afl_exec_timeout_ms), node_flag, node_name
-        ]
+            "-V", str(timeout_s),  # override the default timeout for each test case
+            "-c", patched_cmd[0],  # use CmpLog
+            "-i", seed_dir, "-o", self._wd,   # input and output directories
+            "-t", str(self._config.afl_exec_timeout_ms),  # per-test-case timeout in ms
+            "-g", str(self._AFL_MIN_LEN), "-G", str(self._AFL_MAX_LEN),  # min/max input length
+            node_flag, node_name
+        ]  # yapf: disable
         return [self._afl_bin] + afl_flags + ["--"] + patched_cmd
 
     def generate(self, timeout_s: int) -> None:
