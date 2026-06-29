@@ -14,22 +14,212 @@
 #include <dr_defines.h>
 #include <dr_tools.h>
 #include <drmgr.h>
+#include <drsyms.h>
 #include <drwrap.h>
 
 #include "cli.hpp"
 #include "dispatcher.hpp"
 #include "factory.hpp"
 #include "observables.hpp"
+#include "types/decoder.hpp"
 #include "util.hpp"
 
 using std::string;
 
-/// Defined by model.cpp
+/// Defined by model.cpp, used by instrumentation callbacks.
 extern std::unique_ptr<Dispatcher> glob_dispatcher; // NOLINT
 
 // =================================================================================================
-// Runtime functions
+// Debug Helpers
 // =================================================================================================
+
+/// @brief Print the name of the current function for a given PC at the given level of nesting.
+static void print_func_name(app_pc pc, unsigned int spec_level, unsigned int function_level)
+{
+    const unsigned int max_func_level = 30;
+    const unsigned int prefix_len =
+        function_level < max_func_level ? function_level : max_func_level;
+    module_data_t *mod = dr_lookup_module(pc);
+    if (mod != nullptr) {
+        drsym_info_t sym_info;
+        const uint8_t NAME_MAX_SIZE = 255;
+        std::array<char, NAME_MAX_SIZE> name{};
+
+        sym_info.struct_size = sizeof(sym_info);
+        sym_info.name = name.begin();
+        sym_info.name_size = sizeof(name);
+        sym_info.file = nullptr; // We don't need the source file name here
+
+        // Print prefix
+        for (int i = 0; i < prefix_len; i++)
+            dr_printf("    ");
+        if (spec_level == 0)
+            dr_printf("[SEQ]");
+        else
+            dr_printf("[SPEC]");
+        // Print function name
+        const size_t offset = pc - mod->start;
+        if (drsym_lookup_address(mod->full_path, offset, &sym_info, DRSYM_DEFAULT_FLAGS) ==
+            DRSYM_SUCCESS) {
+            dr_printf("%p: %s\n", pc, sym_info.name);
+        } else {
+            dr_printf("PC %p (module %s) - symbol not found\n", pc, dr_module_preferred_name(mod));
+        }
+        dr_free_module_data(mod);
+    }
+}
+
+static unsigned int function_level = 0;
+static unsigned int n_instr = 0;
+static bool transition = false;
+
+/// @brief Very heavy instrumentation that prints the current function for each
+/// PC -- use only for debugging!
+static void dbg_print_function(uint64_t opcode, app_pc pc, unsigned int spec_level)
+{
+    if (spec_level == 0) {
+        // Found call: up a level
+        if (opcode == OP_call || opcode == OP_call_ind || opcode == OP_call_far ||
+            opcode == OP_call_far_ind) {
+            transition = true;
+            print_func_name(pc, spec_level, function_level);
+            function_level++;
+            return;
+        }
+        // Found ret: down a level
+        if (opcode == OP_ret || opcode == OP_ret_far || opcode == OP_iret) {
+            transition = true;
+            dr_printf("[omitted %d]\n", n_instr);
+            n_instr = 0;
+            print_func_name(pc, spec_level, function_level);
+            function_level--;
+            return;
+        }
+    }
+
+    if (transition) {
+        // Previous inst was a call or a ret.
+        print_func_name(pc, spec_level, function_level);
+        transition = false;
+    }
+    n_instr++;
+}
+
+/// @brief Print state name.
+static const char *to_string(const dispatcher_state_t &state)
+{
+    switch (state) {
+    case OFF:
+        return "OFF";
+    case INSTRUMENTED:
+        return "INSTRUMENTED";
+    case ON:
+        return "ON";
+    case PAUSED:
+        return "PAUSED";
+    }
+    return "UNKNOWN";
+}
+
+/// @brief Print event name.
+static const char *to_string(const dispatcher_event_t &event)
+{
+    switch (event) {
+    case EV_ENTRY_REACHED:
+        return "EV_ENTRY_REACHED";
+    case EV_ENTRY:
+        return "EV_ENTRY";
+    case EV_PAUSE:
+        return "EV_PAUSE";
+    case EV_RESUME:
+        return "EV_RESUME";
+    case EV_EXIT:
+        return "EV_EXIT";
+    }
+    return "UNKNOWN";
+}
+
+/// @brief Debug function, used to detect invalid modifications of MC
+static inline uint64_t mc_fingerprint(const dr_mcontext_t *mc)
+{
+    return mc->xax ^ mc->xbx ^ mc->xcx ^ mc->xdx ^ mc->xsi ^ mc->xdi ^ mc->xbp ^ mc->xsp ^ mc->r8 ^
+           mc->r9 ^ mc->r10 ^ mc->r11 ^ mc->r12 ^ mc->r13 ^ mc->r14 ^ mc->r15 ^ mc->xflags ^
+           (uint64_t)mc->pc;
+}
+
+// =================================================================================================
+// Instrumentation Callbacks
+// =================================================================================================
+
+/// @brief Helper function to get the return address of the current function
+static app_pc get_return_address()
+{
+    void *drcontext = dr_get_current_drcontext();
+    dr_mcontext_t mc = {sizeof(mc), DR_MC_ALL};
+    dr_get_mcontext(drcontext, &mc);
+
+    return *((app_pc *)mc.xsp);
+}
+
+/// @brief Helper function to cause a speculation rollback
+static void rollback(Dispatcher *dispatcher)
+{
+    void *drcontext = dr_get_current_drcontext();
+    dr_mcontext_t mc = {sizeof(mc), DR_MC_ALL};
+    dr_get_mcontext(drcontext, &mc);
+
+    // Perform rollback
+    const pc_t newpc = dispatcher->speculator->rollback(&mc);
+    mc.pc = (byte *)newpc;
+    dr_redirect_execution(&mc);
+}
+
+/// @brief Callback function called upon entering the instrumented function
+static void entry_callback()
+{
+    Dispatcher *dispatcher = glob_dispatcher.get();
+    DR_ASSERT_MSG(dispatcher != nullptr, "[ERROR] glob_dispatcher is null\n");
+    DR_ASSERT_MSG(not dispatcher->speculator->in_speculation,
+                  "[ERROR] Entering instrumented function during speculation!\n");
+
+    if (not dispatcher->has_exit_pc()) {
+        // Register the return address of the instrumented function, to know when to stop the
+        // instrumentation
+        dispatcher->register_exit_pc(get_return_address());
+    }
+    // Advance state machine
+    dispatcher->handle_event(dispatcher_event_t::EV_ENTRY);
+    // Flush DynamoRIO's code cache. This is necessary to ensure that the instrumentation is applied
+    // to all instructions in the instrumented function, including those that have already been
+    // cached by DynamoRIO before we registered the entry callback.
+    flush_bb_cache();
+}
+
+/// @brief Callback function called upon entering an ignored function
+/// @note In principle we could just check if the current PC is inside the set of
+///       pause PCs in the dispatch callback, as we do with exit_pc and resume_pc,
+///       however (1) the pause pcs are known statically (while resume_pc depends
+///       on the caller of the pause function) and (2) we don't want pay a std::set
+///       lookup on every instruction.
+static void pause_callback()
+{
+    Dispatcher *dispatcher = glob_dispatcher.get();
+    DR_ASSERT_MSG(dispatcher != nullptr, "[ERROR] glob_dispatcher is null\n");
+    // Rollback speculation if we're speculatively entering a pause function
+    if (dispatcher->speculator->in_speculation) {
+        rollback(dispatcher);
+        return; // unreachable
+    }
+    // Advance state machine
+    auto next_state = dispatcher->handle_event(dispatcher_event_t::EV_PAUSE);
+    // Register the return address of this function, to know when to resume the instrumentation.
+    // Ignore nested pauses.
+    if (next_state.has_value()) {
+        DR_ASSERT_MSG(next_state.value() == dispatcher_state_t::PAUSED,
+                      "Invalid transition from PAUSED\n");
+        dispatcher->register_resume_pc(get_return_address());
+    }
+}
 
 /// @brief Dispatch function that calls the per-instruction functions in the service modules
 /// @param mc Machine context of the current instruction
@@ -40,9 +230,10 @@ extern std::unique_ptr<Dispatcher> glob_dispatcher; // NOLINT
 static pc_t instruction_dispatch(dr_mcontext_t *mc, void *dc, const Dispatcher *dispatcher,
                                  instr_obs_t instr)
 {
-    dispatcher->logger->log_instruction(instr, mc, dispatcher->speculator->get_nesting_level());
+    const unsigned int nesting_level = dispatcher->speculator->get_nesting_level();
+    dispatcher->logger->log_instruction(instr, mc, nesting_level);
     dispatcher->taint_tracker->track_instruction(instr, mc, dc);
-    dispatcher->tracer->observe_instruction(instr, mc, dc);
+    dispatcher->tracer->observe_instruction(instr, mc, dc, nesting_level);
     const pc_t next_pc = dispatcher->speculator->handle_instruction(instr, mc, dc);
     return next_pc;
 }
@@ -88,19 +279,31 @@ static pc_t mem_access_dispatch(void *dc, dr_mcontext_t *mc, const Dispatcher *d
 /// @param has_mem_ref Flag indicating whether the instruction has a memory reference
 static void dispatch_callback(uint64_t opcode, uint64_t pc, uint64_t has_mem_ref)
 {
-    // Get the global dispatcher
-    const Dispatcher *dispatcher = glob_dispatcher.get();
+    Dispatcher *dispatcher = glob_dispatcher.get();
     DR_ASSERT_MSG(dispatcher != nullptr, "[ERROR] glob_dispatcher is null\n");
 
-    // Nothing to do if we're outside of the instrumented function
-    if (not dispatcher->is_instrumentation_on()) {
-        return;
+    // check special PCs
+    if (dispatcher->is_exit_pc((app_pc)pc)) {
+        // don't exit speculatively from the instrumented function
+        if (dispatcher->speculator->in_speculation) {
+            rollback(dispatcher);
+            return; // unreachable
+        }
+        dispatcher->handle_event(dispatcher_event_t::EV_EXIT);
+    } else if (dispatcher->is_resume_pc((app_pc)pc)) {
+        dispatcher->handle_event(dispatcher_event_t::EV_RESUME);
     }
+
+    // don't do anything id we're OFF or PAUSED
+    if (not dispatcher->is_instrumentation_on())
+        return;
+    // dbg_print_function(opcode, (app_pc)pc, dispatcher->speculator->get_nesting_level());
 
     // get current context
     void *drcontext = dr_get_current_drcontext();
     dr_mcontext_t mc = {sizeof(mc), DR_MC_ALL};
     dr_get_mcontext(drcontext, &mc);
+    uint64_t mc_before = mc_fingerprint(&mc);
 
     // create an instruction instance for the current instruction
     const instr_obs_t instr = {
@@ -116,8 +319,10 @@ static void dispatch_callback(uint64_t opcode, uint64_t pc, uint64_t has_mem_ref
         dr_redirect_execution(&mc);
         return; // unreachable
     }
-    dr_set_mcontext(drcontext, &mc);
+    // skip mem dispatch if the instruction doesn't access memory
     if (has_mem_ref == 0) {
+        DR_ASSERT_MSG(mc_before == mc_fingerprint(&mc),
+                      "[ERROR] Machine context modified by instruction dispatch functions\n");
         return;
     }
 
@@ -128,107 +333,45 @@ static void dispatch_callback(uint64_t opcode, uint64_t pc, uint64_t has_mem_ref
         dr_redirect_execution(&mc);
         return; // unreachable
     }
-    dr_set_mcontext(drcontext, &mc);
-}
-
-/// @brief Callback function called upon return from the instrumented function
-static void exit_callback()
-{
-    // Get the global dispatcher
-    Dispatcher *dispatcher = glob_dispatcher.get();
-    DR_ASSERT_MSG(dispatcher != nullptr, "[ERROR] glob_dispatcher is null\n");
-    DR_ASSERT_MSG(dispatcher->is_instrumentation_on(),
-                  "[ERROR] Instrumentation disabled when exiting instrumented function");
-
-    // get current context
-    void *drcontext = dr_get_current_drcontext();
-    dr_mcontext_t mc = {sizeof(mc), DR_MC_ALL};
-    dr_get_mcontext(drcontext, &mc);
-
-    // Rollback speculation if we're speculatively exiting the target function
-    if (dispatcher->speculator->in_speculation) {
-        // Perform rollback
-        const pc_t newpc = dispatcher->speculator->rollback(&mc);
-        mc.pc = (byte *)newpc;
-        dr_redirect_execution(&mc);
-        return; // unreachable
-    }
-
-    // Architectural exit: stop the instrumentation
-    flush_bb_cache();
-    dispatcher->finalize();
-    dr_set_mcontext(drcontext, &mc);
-}
-
-bool Dispatcher::handle_exception(void *drcontext, dr_siginfo_t *siginfo) const
-{
-    logger->log_exception(siginfo);
-    // Exceptions on speculative paths are handled by the speculator.
-    const bool redirected = speculator->handle_exception(drcontext, siginfo);
-    if (redirected)
-        return true; // intercepted
-
-    // Architectural exceptions are forwarded to the program
-    dr_printf("[XCPT] Dispatcher::handle_exception: exception on a non-speculative path\n");
-    tracer->observe_exception(siginfo);
-    return false; // not intercepted
+    DR_ASSERT_MSG(mc_before == mc_fingerprint(&mc),
+                  "[ERROR] Machine context modified by instruction dispatch functions\n");
 }
 
 // =================================================================================================
 // Instrumentation-time Methods
 // =================================================================================================
-void Dispatcher::start()
+
+bool Dispatcher::instrument(void *drcontext, instrlist_t *bb, instr_t *instr)
 {
-    DR_ASSERT_MSG(not is_initialized,
-                  "[ERROR] Attempting to initialize Dispatcher multiple times.");
+    app_pc cur_pc = instr_get_app_pc(instr);
+    bool instrumented = false;
 
-    instrumentation_on = true;
-    is_initialized = true;
-
-    // Turn service modules on
-    taint_tracker->enable();
-    tracer->enable();
-    speculator->enable();
-}
-
-void Dispatcher::restart()
-{
-    DR_ASSERT_MSG(is_initialized,
-                  "[ERROR] Attempting to restart Dispatcher without initialization.");
-
-    instrumentation_on = true;
-
-    // Turn service modules on
-    taint_tracker->enable();
-    tracer->enable();
-    speculator->enable();
-}
-
-void Dispatcher::finalize()
-{
-    if (not instrumentation_on)
-        return;
-
-    // Turn service modules off
-    taint_tracker->finalize();
-    tracer->finalize();
-    speculator->disable();
-
-    instrumentation_on = false;
-}
-
-dr_emit_flags_t Dispatcher::instrument_instruction(void *drcontext, instrlist_t *bb,
-                                                   instr_t *instr) const
-{
-    // Nothing to do if we're outside of the instrumented function
-    if (not instrumentation_on) {
-        return DR_EMIT_DEFAULT;
+    // Entry reached
+    if (entry_pc.has_value() and cur_pc == entry_pc.value()) {
+        handle_event(dispatcher_event_t::EV_ENTRY_REACHED);
+        instrument_entry(drcontext, bb, instr);
+        instrumented = true;
     }
 
+    if (state >= dispatcher_state_t::INSTRUMENTED) {
+        // Pause pc reached
+        if (pause_pcs.find(cur_pc) != pause_pcs.end()) {
+            instrument_pause(drcontext, bb, instr);
+            instrumented = true;
+        }
+        // Standard instruction dispatcher
+        instrumented = instrument_instruction(drcontext, bb, instr);
+    }
+
+    return instrumented;
+}
+
+bool Dispatcher::instrument_instruction(void *drcontext, instrlist_t *bb, instr_t *instr) const
+{
     // Get a pointer to the instruction's original form (pre event_bb_app2app call)
     instr_t *org_instr = drmgr_orig_app_instr_for_fetch(drcontext);
     if (org_instr == nullptr) { // DR tell us that this instruction should be skipped
-        return DR_EMIT_DEFAULT;
+        return false;
     }
 
     // Get instruction parameters
@@ -243,18 +386,169 @@ dr_emit_flags_t Dispatcher::instrument_instruction(void *drcontext, instrlist_t 
     dr_insert_clean_call(drcontext, bb, instr, (void *)dispatch_callback, false,
                          dispatch_callback_nargs, opcode, pc_op, has_mem_ref);
 
-    return DR_EMIT_DEFAULT;
+    return true;
 }
 
-void Dispatcher::instrument_exit(void *drcontext, instrlist_t *bb, instr_t *instr) const
+void Dispatcher::instrument_entry(void *drcontext, instrlist_t *bb, instr_t *instr) const
 {
-    dr_insert_clean_call(drcontext, bb, instr, (void *)exit_callback, false, 0);
+    // dr_printf("[DISPATCHER] Instrumenting ENTRY function\n");
+    dr_insert_clean_call(drcontext, bb, instr, (void *)entry_callback, false, 0);
+}
+
+void Dispatcher::instrument_pause(void *drcontext, instrlist_t *bb, instr_t *instr) const
+{
+    // dr_printf("[DISPATCHER] Instrumenting PAUSE function\n");
+    dr_insert_clean_call(drcontext, bb, instr, (void *)pause_callback, false, 0);
+}
+
+// =================================================================================================
+// State Machine Management
+// =================================================================================================
+
+// Helpers to manage service modules
+void Dispatcher::turn_on_instrumentation() const
+{
+    taint_tracker->enable();
+    tracer->enable();
+    speculator->enable();
+}
+void Dispatcher::turn_off_instrumentation() const
+{
+    taint_tracker->disable();
+    tracer->disable();
+    speculator->disable();
+}
+
+// State machine transitions
+void Dispatcher::start_tracing()
+{
+    turn_on_instrumentation();
+    trace_active = true;
+}
+void Dispatcher::pause() { turn_off_instrumentation(); }
+void Dispatcher::resume()
+{
+    resume_pc = std::nullopt;
+    turn_on_instrumentation();
+}
+void Dispatcher::stop()
+{
+    exit_pc = std::nullopt;
+    // Emit the end-of-trace marker for the input that just finished executing and turn the
+    // service modules off. The next input re-arms them via start_tracing(). When tracing multiple
+    // inputs in a single process (e.g., the Revizor adapter), this is what separates the traces.
+    finalize_trace();
+}
+void Dispatcher::finalize_trace()
+{
+    if (not trace_active) {
+        return;
+    }
+    taint_tracker->finalize();
+    tracer->finalize();
+    speculator->disable();
+    trace_active = false;
+}
+void Dispatcher::finalize()
+{
+    // Sanity check against state-machine logic bugs: reaching finalize() while still ON means
+    // event_exit() failed to dispatch EV_EXIT despite instrumentation being on. OFF (normal exit),
+    // INSTRUMENTED (entry PC discovered but never executed), and PAUSED (exited inside an ignored
+    // function) are all legitimate terminal states; only ON is invalid.
+    DR_ASSERT_MSG(state != dispatcher_state_t::ON, "[ERROR] Finalizing while instrumentation on.");
+    // Finalize any trace still in progress (e.g., the instrumented function was entered but never
+    // architecturally exited). This is a no-op if stop() already finalized the last trace.
+    finalize_trace();
+    state = dispatcher_state_t::OFF;
+}
+
+// State machine implementation
+std::optional<dispatcher_state_t> Dispatcher::handle_event(dispatcher_event_t event)
+{
+    // dr_printf("[DISPATCHER] Received event %s in state %s\n", to_string(event),
+    // to_string(state));
+
+    switch (event) {
+    case dispatcher_event_t::EV_ENTRY_REACHED:
+        if (state == dispatcher_state_t::OFF) {
+            // dr_printf("[DISPATCHER] State Machine Transition: OFF → INSTRUMENTED\n");
+            state = dispatcher_state_t::INSTRUMENTED;
+            return state;
+        } else {
+            dr_fprintf(STDERR, "ASSERT FAILURE: Received EV_ENTRY_REACHED in wrong state\n");
+        }
+        break;
+
+    case dispatcher_event_t::EV_ENTRY:
+        if (state == dispatcher_state_t::INSTRUMENTED) {
+            // dr_printf("[DISPATCHER] State Machine Transition: INSTRUMENTED → ON\n");
+            start_tracing();
+            state = dispatcher_state_t::ON;
+            return state;
+        } else {
+            dr_fprintf(STDERR, "ASSERT FAILURE: Received EV_ENTRY in wrong state\n");
+        }
+        break;
+
+    case dispatcher_event_t::EV_PAUSE:
+        if (state == dispatcher_state_t::ON) {
+            // dr_printf("[DISPATCHER] State Machine Transition: ON → PAUSED\n");
+            pause();
+            state = dispatcher_state_t::PAUSED;
+            return state;
+        }
+        break;
+
+    case dispatcher_event_t::EV_RESUME:
+        if (state == dispatcher_state_t::PAUSED) {
+            // dr_printf("[DISPATCHER] State Machine Transition: PAUSED → ON\n");
+            resume();
+            state = dispatcher_state_t::ON;
+            return state;
+        }
+        break;
+
+    case dispatcher_event_t::EV_EXIT:
+        // We can encounter the exit event both in ON and PAUSED states, depending on whether the
+        // exit function is an architectural exit or an exception.
+        if (state == dispatcher_state_t::ON or state == dispatcher_state_t::PAUSED) {
+            // dr_printf("[DISPATCHER] State Machine Transition: %s → OFF\n", to_string(state));
+            stop();
+            state = dispatcher_state_t::OFF;
+            return state;
+        } else {
+            DR_ASSERT_MSG(false, "[ERROR] Received EV_EXIT in wrong state\n");
+        }
+        break;
+
+    default:
+        DR_ASSERT_MSG(false, "[ERROR] Invalid event\n");
+        break;
+    }
+
+    return std::nullopt; // no transition
+}
+
+bool Dispatcher::handle_exception(void *drcontext, dr_siginfo_t *siginfo)
+{
+    logger->log_exception(siginfo);
+    // Exceptions on speculative paths are handled by the speculator.
+    const bool redirected = speculator->handle_exception(drcontext, siginfo);
+    if (redirected)
+        return true; // intercepted
+
+    // Architectural exceptions are forwarded to the program
+    dr_printf("[XCPT] Dispatcher::handle_exception: exception on a non-speculative path\n");
+    tracer->observe_exception(siginfo);
+    // Stop instrumentation.
+    handle_event(dispatcher_event_t::EV_EXIT);
+    return false; // not intercepted, let the program fail
 }
 
 // =================================================================================================
 // Constructors and Destructors
 // =================================================================================================
-Dispatcher::Dispatcher(cli_args_t *cli_args) : instrumentation_on(false)
+Dispatcher::Dispatcher(cli_args_t *cli_args)
 {
     // Create service modules
     logger = create_logger(cli_args->debug_output, cli_args->log_level, cli_args->print_dbg_trace);

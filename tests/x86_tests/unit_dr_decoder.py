@@ -22,31 +22,36 @@ TEST_TRACE: List[Dict[str, Any]] = [
     {
         "addr": 0x0,
         "size": 8,
-        "type": TraceEntryType.ENTRY_PC.value
+        "spec_level": 0,
+        "type": TraceEntryType.ENTRY_PC
     },
     {
         "addr": 0xdeadbeef,
         "size": 4,
-        "type": TraceEntryType.ENTRY_READ.value
+        "spec_level": 0,
+        "type": TraceEntryType.ENTRY_READ
     },
     {
         "addr": 0xcafecafe,
         "size": 8,
-        "type": TraceEntryType.ENTRY_WRITE.value
+        "spec_level": 0,
+        "type": TraceEntryType.ENTRY_WRITE
     },
     {
         "addr": 11,
         "size": 0,
-        "type": TraceEntryType.ENTRY_EXCEPTION.value
+        "spec_level": 0,
+        "type": TraceEntryType.ENTRY_EXCEPTION
     },
     {
         "addr": 0x0,
         "size": 0x0,
-        "type": TraceEntryType.ENTRY_EOT.value
+        "spec_level": 0,
+        "type": TraceEntryType.ENTRY_EOT
     },
 ]
 # Format string to parse a trace entry
-TRACE_FMT = "<QIBxxx"
+TRACE_FMT = "<QBBB"
 
 # ------------------------------------------------------------------------------
 # Debug trace representation
@@ -144,20 +149,22 @@ class DRTraceDecodeTest(unittest.TestCase):
     # --------------------------------------------------------------------------
     # Helpers
     # --------------------------------------------------------------------------
-    def _find_entry_of_type(self, t: TraceEntryType) -> dict[str, Any]:
+    def _find_entry_of_type(self, t: int) -> dict[str, Any]:
         for e in TEST_TRACE:
-            if e["type"] == t.value:
+            if e["type"] == t:
                 return e
 
         raise ValueError(f"No entry for type {t}")
 
     def _encode_from_dict(self, entry: dict[str, Any]) -> bytes:
-        return struct.pack(TRACE_FMT, entry["addr"], entry["size"], entry["type"])
+        return struct.pack(TRACE_FMT, entry["addr"], entry["size"], entry["spec_level"],
+                           entry["type"])
 
     def _check_trace_equivalence(self, expected: dict[str, Any], decoded: Any) -> None:
-        self.assertEqual(expected["addr"], decoded.addr)
-        self.assertEqual(expected["size"], decoded.size)
-        self.assertEqual(expected["type"], TraceEntryType(decoded.type).value)
+        self.assertEqual(expected["addr"], decoded['addr'])
+        self.assertEqual(expected["size"], decoded['size'])
+        self.assertEqual(expected["type"], decoded['type'])
+        self.assertEqual(expected["spec_level"], decoded['spec_level'])
 
     # --------------------------------------------------------------------------
     # Test cases
@@ -179,9 +186,9 @@ class DRTraceDecodeTest(unittest.TestCase):
             f.close()
             # Decode the file
             parsed_traces = decoder.decode_trace_file(f.name)
-            self.assertEqual(len(parsed_traces), 1)
+            self.assertEqual(len(parsed_traces), len(TEST_TRACE))
             # Check decoded entries
-            for idx, decoded in enumerate(parsed_traces[0]):
+            for idx, decoded in enumerate(parsed_traces):
                 self._check_trace_equivalence(TEST_TRACE[idx], decoded)
 
     def test_is_corrupted(self) -> None:
@@ -201,15 +208,38 @@ class DRTraceDecodeTest(unittest.TestCase):
             with NamedTemporaryFile("wb", delete=False) as f:
                 # Write encoded entries to file
                 f.write(marker + t[0])
+                f.close()
 
-            # Decode the file
+            # Check if the file is corrupted
+            is_corrupted = decoder.is_trace_corrupted(f.name)
             if t[1]:
-                with self.assertRaises(ValueError):
-                    decoder.decode_trace_file(f.name)
+                self.assertTrue(is_corrupted)
             else:
-                parsed_traces = decoder.decode_trace_file(f.name)
-                self.assertEqual(len(parsed_traces), 1)
+                self.assertFalse(is_corrupted)
 
+            os.remove(f.name)
+
+    def test_is_corrupted_truncated(self) -> None:
+        decoder = TraceDecoder()
+
+        # Encode the special marker
+        marker = struct.pack("c", "T".encode('utf-8'))
+        marker += b'\x00' * 7  # Padding to ensure the marker is 8 bytes long
+        eot = self._encode_from_dict(self._find_entry_of_type(TraceEntryType.ENTRY_EOT))
+
+        # Truncated files (header only, or header + partial/misaligned entry) are corrupted
+        truncated = [
+            marker,  # marker only, no entries
+            marker + eot[:5],  # marker + partial entry
+            marker + eot + eot[:3],  # marker + full entry + partial (misaligned) entry
+        ]
+
+        for data in truncated:
+            with NamedTemporaryFile("wb", delete=False) as f:
+                f.write(data)
+                f.close()
+
+            self.assertTrue(decoder.is_trace_corrupted(f.name))
             os.remove(f.name)
 
 
@@ -364,6 +394,7 @@ class DRDebugTraceDecodeTest(unittest.TestCase):
             with NamedTemporaryFile("wb", delete=False) as f:
                 # Write encoded entries to file
                 f.write(marker + t[0])
+                f.close()
 
             # Decode the file
             if t[1]:

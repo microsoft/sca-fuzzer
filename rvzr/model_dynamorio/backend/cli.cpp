@@ -52,6 +52,14 @@ const droption_t<string> op_instrumented_func(DROPTION_SCOPE_CLIENT,
                         "instrumented-func", "__libc_start_main",
                         "Name of the function to instrument.",
                         "Name of the function to instrument.");
+const droption_t<bool> op_use_inst_markers(DROPTION_SCOPE_CLIENT,
+                        "use-inst-markers", false,
+                        "Use `mcfz_start_inst` and `mcfz_stop_inst` calls to know when to start (and stop) instrumentation.",
+                        "Use `mcfz_start_inst` and `mcfz_stop_inst` calls to know when to start (and stop) instrumentation.");
+const droption_t<string> op_ignore_list_path(DROPTION_SCOPE_CLIENT,
+                        "ignorelist", "/dev/null",
+                        "Path of the file containing names of the functions to pause instrumentation on.",
+                        "Path of the file containing names of the functions to pause instrumentation on.");
 const droption_t<string> op_trace_output(DROPTION_SCOPE_CLIENT,
                         "trace-output", "rvzr_trace.dat",
                         "Where to save the trace (in binary format).",
@@ -112,6 +120,13 @@ const droption_t<bool> op_list_speculators(DROPTION_SCOPE_CLIENT,
                         "list-speculators", false,
                         "List all available speculators (aka execution clauses).",
                         "List all available speculators (aka execution clauses).");
+
+// Module Mapping Output
+const droption_t<string> op_store_mappings(DROPTION_SCOPE_CLIENT,
+                        "store-mappings", "",
+                        "File to store loaded module addresses.",
+                        "File to store loaded module addresses. "
+                        "When set, records start addresses of all loaded modules and saves them on exit.");
 // clang-format on
 } // namespace
 
@@ -148,6 +163,8 @@ void parse_cli(int argc, const char **argv, DR_PARAM_OUT cli_args_t &parsed_args
     // Set the parsed arguments
     parsed_args.tracer_type = op_tracer_name.get_value();
     parsed_args.instrumented_func = op_instrumented_func.get_value();
+    parsed_args.use_inst_markers = op_use_inst_markers.get_value();
+    parsed_args.ignore_list_path = op_ignore_list_path.get_value();
     parsed_args.trace_output = op_trace_output.get_value();
     parsed_args.print_trace = op_print_trace.get_value();
     parsed_args.log_level = op_log_level.get_value();
@@ -160,6 +177,7 @@ void parse_cli(int argc, const char **argv, DR_PARAM_OUT cli_args_t &parsed_args
     parsed_args.taint_output = op_taint_output.get_value();
     parsed_args.list_tracers = op_list_tracers.get_value();
     parsed_args.list_speculators = op_list_speculators.get_value();
+    parsed_args.mappings_file = op_store_mappings.get_value();
     uint64_t poison_value = op_poison_value.get_value();
     if (poison_value == 0) {
         parsed_args.poison_value = {};

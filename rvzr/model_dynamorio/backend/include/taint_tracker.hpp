@@ -129,6 +129,9 @@ class TaintTracker
     /// @brief Enable the taint tracker
     virtual void enable();
 
+    /// @brief Disable the taint tracker
+    virtual void disable();
+
     /// @brief Disable the taint tracker and store the collected taints to out_path file
     virtual void finalize();
 

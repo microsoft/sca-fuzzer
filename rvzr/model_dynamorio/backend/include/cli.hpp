@@ -21,6 +21,8 @@ struct cli_args_t {
     Mode mode;
     std::string tracer_type;
     std::string instrumented_func;
+    bool use_inst_markers;
+    std::string ignore_list_path;
     std::string trace_output;
     bool print_trace;
     int log_level;
@@ -34,6 +36,7 @@ struct cli_args_t {
     bool list_tracers;
     bool list_speculators;
     std::optional<uint64_t> poison_value;
+    std::string mappings_file;
 };
 
 /// @brief Parse the command line arguments

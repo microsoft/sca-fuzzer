@@ -39,9 +39,8 @@ class TracerABC
     TracerABC(TracerABC &&) = delete;
     TracerABC &operator=(TracerABC &&) = delete;
 
-    static constexpr const unsigned buf_sz = 8 * 1024;
     /// @param  Buffer containing collected trace entries
-    mutable FileBackedBuf<trace_entry_t, buf_sz> trace;
+    mutable FileBackedBuf<trace_entry_t> trace;
 
     // ---------------------------------------------------------------------------------------------
     // Public Methods
@@ -49,6 +48,9 @@ class TracerABC
     /// @brief Starts the tracing process for a wrapped functions
     /// @return void
     virtual void enable();
+
+    /// @brief Disable tracing.
+    virtual void disable();
 
     /// @brief Finalizes the tracing process for a wrapped function
     /// @return void
@@ -61,8 +63,10 @@ class TracerABC
     /// @param instr the observed instruction
     /// @param mc The machine context of the instruction
     /// @param dc The DR context of the instruction
+    /// @param spec_level The speculation level at which the instruction was observed
     /// @return void
-    virtual void observe_instruction(instr_obs_t instr, dr_mcontext_t *mc, void *dc);
+    virtual void observe_instruction(instr_obs_t instr, dr_mcontext_t *mc, void *dc,
+                                     unsigned int spec_level);
 
     /// @brief Record per-memory access information on the trace (e.g., its address and value)
     ///        as defined by the target contract.
@@ -76,7 +80,7 @@ class TracerABC
 
     /// @brief Record an architectural exception with a special marker in the trace.
     /// @param siginfo Information about the exception coming from DynamoRIO.
-    void observe_exception(dr_siginfo_t *siginfo) const;
+    virtual void observe_exception(dr_siginfo_t *siginfo);
 
   protected:
     // ---------------------------------------------------------------------------------------------
@@ -96,6 +100,9 @@ class TracerABC
     /// @brief Shared cache for decoded instructions
     Decoder &decoder;
 
+    /// @brief The level of nesting at which the currently observed event is being executed
+    unsigned int cur_spec_level = 0;
+
     // ---------------------------------------------------------------------------------------------
     // Protected Methods
 
@@ -103,7 +110,8 @@ class TracerABC
     ///        This method is meant to be used by observe_instruction if a given contract requires
     ///        recording PCs in the trace.
     /// @param instr The observed instruction
-    void record_pc(instr_obs_t instr);
+    /// @param spec_level The speculation level at which the exception was observed.
+    void record_pc(instr_obs_t instr, unsigned int spec_level);
 
     /// @brief Create an new mem entry and push it on the trace buffer
     ///        This method is meant to be used by observe_mem_access if a given contract requires

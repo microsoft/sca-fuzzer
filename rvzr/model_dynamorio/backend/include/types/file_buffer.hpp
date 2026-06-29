@@ -12,19 +12,17 @@
 #include <array>
 #include <cstdint>
 #include <fstream>
-#include <iostream>
 #include <sstream>
+
+const uint64_t DEFAULT_FILE_BUFFER_SIZE = 8ULL * 1024 * 1024; // 8 MB
 
 /// @brief A buffer backed by a file: once the buffer reaches a given threshold, it gets
 /// automatically spilled into the backing file. Entries can only be appended to the buffer.
 /// @tparam T All entries pushed to the buffer have this type.
-/// @tparam BufSize Threshold for the buffer.
-template <typename T, unsigned BufSize> class FileBackedBuf
+/// @tparam BufSize Threshold for the buffer (the actual size might be slightly smaller due to
+///         imperfect alignment with respect to sizeof(T)).
+template <typename T, unsigned BufSize = DEFAULT_FILE_BUFFER_SIZE> class FileBackedBuf
 {
-    // An exact number of entries of type T should fit in the buffer
-    static_assert(BufSize % sizeof(T) == 0,
-                  "[ASSERT] FileBackedBuf size must fit an exact number of elements");
-
   private:
     static constexpr const unsigned max_elems = BufSize / sizeof(T);
     unsigned n_elems = 0;

@@ -48,8 +48,12 @@ static std::optional<BranchInfo> get_branch_info(instr_obs_t instr, dr_mcontext_
     return BranchInfo{
         .target = (pc_t)instr_get_branch_target_pc(cur_instr),
         .fallthrough = (pc_t)next_pc,
-        .is_loop = instr_is_cti_loop(cur_instr),
-        .will_jump = instr_jcc_taken(cur_instr, mc->xflags),
+        // JECXZ is part of the "loop" extension but it's not a LOOP instruction
+        .is_loop = instr_is_cti_loop(cur_instr) and instr.opcode != OP_jecxz,
+        // JECXZ is not classified as JCC so we need to check its condition
+        // separately (namely whether RCX is zero)
+        .will_jump =
+            instr.opcode == OP_jecxz ? (mc->xcx == 0) : instr_jcc_taken(cur_instr, mc->xflags),
     };
 }
 

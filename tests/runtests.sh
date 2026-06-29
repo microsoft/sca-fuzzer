@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 AVAILABLE_STAGES=("type_check" "code_style_check" "core_unit_tests" "package_install_test"
-    "km_tests" "arch_unit_tests" "acceptance_tests")
+    "km_tests" "arch_unit_tests" "acceptance_tests"
+    "mcfz_type_check" "mcfz_style_check" "mcfz_unit_test")
 
 function parse_args() {
     IGNORE_ERRORS=false
@@ -171,6 +172,54 @@ function acceptance_tests() {
     fi
 }
 
+function mcfz_type_check() {
+    local enable_strict=$1
+
+    echo ""
+    echo "===== mcfz MyPy ====="
+    cd "$SCRIPT_DIR"/.. || exit
+    MYPYPATH=rvzr/ python3 -m mypy --strict mcfz/*.py \
+        --no-warn-unused-ignores --untyped-calls-exclude=elftools
+    cd - > /dev/null || exit
+
+    if [ "$enable_strict" = true ]; then
+        echo ""
+        cd "$SCRIPT_DIR"/.. || exit
+        echo "===== STRICT CHECK: mcfz MyPy (Unit Tests) ====="
+        MYPYPATH=rvzr/ python3 -m mypy --strict tests/mcfz/unit_*.py \
+            --no-warn-unused-ignores --untyped-calls-exclude=elftools
+        cd - > /dev/null || exit
+    fi
+}
+
+function mcfz_style_check() {
+    local enable_strict=$1
+
+    echo ""
+    echo "===== mcfz style check ====="
+    cd "$SCRIPT_DIR"/.. || exit
+    python3 -m flake8 --max-line-length 100 --ignore E402,W503 mcfz --count --show-source --statistics
+    cd - > /dev/null || exit
+
+    if [ "$enable_strict" = true ]; then
+        echo ""
+        cd "$SCRIPT_DIR"/.. || exit
+        echo "===== STRICT CHECK: mcfz PyLint ====="
+        python3 -m pylint --rcfile=.pylintrc mcfz/*.py
+        cd - > /dev/null || exit
+    fi
+}
+
+function mcfz_unit_test() {
+    echo ""
+    echo "===== mcfz unit tests ====="
+    cd "$SCRIPT_DIR"/.. || exit
+    python3 -m unittest tests.mcfz.unit_config -v
+    echo "-------------"
+    python3 -m unittest tests.mcfz.unit_reporter -v
+    cd - > /dev/null || exit
+}
+
 # ==================================================================================================
 # Runners
 # ==================================================================================================
@@ -198,6 +247,15 @@ function run_one_stage() {
         ;;
     acceptance_tests)
         acceptance_tests
+        ;;
+    mcfz_type_check)
+        mcfz_type_check $STRICT
+        ;;
+    mcfz_style_check)
+        mcfz_style_check $STRICT
+        ;;
+    mcfz_unit_test)
+        mcfz_unit_test
         ;;
     *)
         echo "Unknown stage: $stage"
@@ -234,6 +292,10 @@ function main() {
     km_tests
     arch_unit_tests
     acceptance_tests
+
+    mcfz_type_check $STRICT
+    mcfz_style_check $STRICT
+    mcfz_unit_test
 }
 
 main "$@"

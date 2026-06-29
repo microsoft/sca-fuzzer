@@ -164,6 +164,67 @@ class _SharedX86Model(unittest.TestCase):
         ctraces = model.trace_test_case(input_data, nesting=nesting)
         return ctraces
 
+    def _tc_branch_load(self) -> InstList:
+        return InstList(
+            [
+                Inst("xor rax, rax", 3, 0, 0),
+                Inst("jz .l1", 2, 0, 0),
+                Inst(".l0:", 0, 0, 0),
+                Inst("mov rax, qword ptr [r14]", 3, MAIN_OFFSET + 0, 1),
+                Inst(".l1:", 0, 0, 0),
+            ],
+            backend=self._backend,
+        )
+
+    def _tc_nested_cond(self) -> InstList:
+        return InstList(
+            [
+                Inst("xor rax, rax", 3, 0, 0),  # 8
+                Inst("jz .l2", 2, 0, 0),  # 11 0xb
+                Inst(".l0:", 0, 0, 0),  # 13
+                Inst("mov qword ptr [r14], 1", 7, MAIN_OFFSET + 0, 1),  # 13  0xd
+                Inst("jz .l2", 2, 0, 0),  # 20 0x14
+                Inst(".l1:", 0, 0, 0),  # 22 0x16
+                Inst("mov qword ptr [r14], 2", 7, MAIN_OFFSET + 0, 1),  # 22 0x16
+                Inst("mov rbx, 1", 7, 0, 0),  # 29  0x1d
+                Inst(".l2:", 0, 0, 0),  # 36  0x24
+                Inst("mov rax, qword ptr [r14]", 3, MAIN_OFFSET + 0, 1),  # 36
+            ],
+            backend=self._backend,
+        )
+
+    def _tc_faulty_load(self, backend: Optional[Backend] = None) -> InstList:
+        return InstList(
+            [
+                Inst("mov rax, qword ptr [r14 + 0x1000]", 7, FAULTY_OFFSET, 0),
+                Inst("mov rax, qword ptr [r14 + rax]", 4, MAIN_OFFSET + 3, 0),
+                Inst("mov rbx, qword ptr [r14 + rbx]", 4, MAIN_OFFSET + REG_DEFAULT_VALUE, 0),
+            ],
+            backend=backend if backend is not None else self._backend,
+        )
+
+    def _tc_indirect(self) -> InstList:
+        return InstList(
+            [
+                Inst("xor rax, rax", 3, 0, 0),
+                Inst("jz .end", 2, 0, 0),
+                Inst(".l0:", 0, 0, 0),
+                Inst("lea rax,qword ptr [rip+.l3]", 7, 0, 0),
+                Inst("call rax", 2, 0, 0),
+                Inst(".l1:", 0, 0, 0),
+                Inst("xor rax, rax", 3, 0, 0),
+                Inst("mov rax, qword ptr [rax]", 3, MAIN_OFFSET + 0, 1),
+                Inst("call rax", 2, 0, 0),
+                Inst(".l2:", 0, 0, 0),
+                Inst("jmp .end", 2, 0, 0),
+                Inst(".l3:", 0, 0, 0),
+                Inst("mov rax, qword ptr [r14]", 3, MAIN_OFFSET + 0, 1),
+                Inst("ret", 1, 0, 0),
+                Inst(".end:", 0, 0, 0),
+            ],
+            backend=self._backend,
+        )
+
     def test_no_trace(self) -> None:
         # Test that tracing with no inputs returns an empty list
         test_case = InstList(
@@ -201,13 +262,7 @@ class _SharedX86Model(unittest.TestCase):
         )
 
         reg_values = ctraces[0].get_untyped()
-        self.assertEqual(len(reg_values), 6)
-        self.assertEqual(reg_values[0], 0)
-        self.assertEqual(reg_values[1], 2)
-        self.assertEqual(reg_values[2], 3)
-        self.assertEqual(reg_values[3], 4)
-        self.assertEqual(reg_values[4], 5)
-        self.assertEqual(reg_values[5], 6)
+        self.assertEqual(reg_values, [0, 2, 3, 4, 5, 6])
 
     def test_mismatch_check_mode_2(self) -> None:
         test_case = InstList(
@@ -226,13 +281,7 @@ class _SharedX86Model(unittest.TestCase):
         )
 
         reg_values = ctraces[0].get_untyped()
-        self.assertEqual(len(reg_values), 6)
-        self.assertEqual(reg_values[0], test_case[1].mem_value)
-        self.assertEqual(reg_values[1], REG_DEFAULT_VALUE)
-        self.assertEqual(reg_values[2], REG_DEFAULT_VALUE)
-        self.assertEqual(reg_values[3], REG_DEFAULT_VALUE)
-        self.assertEqual(reg_values[4], REG_DEFAULT_VALUE)
-        self.assertEqual(reg_values[5], REG_DEFAULT_VALUE)
+        self.assertEqual(reg_values, [test_case[1].mem_value] + [REG_DEFAULT_VALUE] * 5)
 
     @skip_for_backend("dr")
     def test_l1d_seq(self) -> None:
@@ -255,16 +304,7 @@ class _SharedX86Model(unittest.TestCase):
 
     def test_ct_seq(self) -> None:
         # Test that the tracing functions create RDBF and RCBF files
-        test_case = InstList(
-            [
-                Inst("xor rax, rax", 3, 0, 0),
-                Inst("jz .l1", 2, 0, 0),
-                Inst(".l0:", 0, 0, 0),
-                Inst("mov rax, qword ptr [r14]", 3, MAIN_OFFSET + 0, 1),
-                Inst(".l1:", 0, 0, 0),
-            ],
-            backend=self._backend,
-        )
+        test_case = self._tc_branch_load()
         input_ = self._input_builder.get_default_input()
         ctraces = self._get_trace(
             test_case=test_case,
@@ -274,16 +314,7 @@ class _SharedX86Model(unittest.TestCase):
         self.assertEqual(ctraces[0].get_untyped(), expected_trace)
 
     def test_checkpoint_rollback_registers(self) -> None:
-        test_case = InstList(
-            [
-                Inst("xor rax, rax", 3, 0, 0),
-                Inst("jz .l1", 2, 0, 0),
-                Inst(".l0:", 0, 0, 0),
-                Inst("mov rax, qword ptr [r14]", 3, MAIN_OFFSET + 0, 1),
-                Inst(".l1:", 0, 0, 0),
-            ],
-            backend=self._backend,
-        )
+        test_case = self._tc_branch_load()
         input_ = InputData()
         ctraces = self._get_trace(
             test_case=test_case,
@@ -318,21 +349,7 @@ class _SharedX86Model(unittest.TestCase):
         self.assertEqual(reg_values[0], TEST_MEM_VALUE_B)
 
     def test_checkpoint_rollback_nested(self) -> None:
-        test_case = InstList(
-            [
-                Inst("xor rax, rax", 3, 0, 0),  # 8
-                Inst("jz .l2", 2, 0, 0),  # 11 0xb
-                Inst(".l0:", 0, 0, 0),  # 13
-                Inst("mov qword ptr [r14], 1", 7, MAIN_OFFSET + 0, 1),  # 13  0xd
-                Inst("jz .l2", 2, 0, 0),  # 20 0x14
-                Inst(".l1:", 0, 0, 0),  # 22 0x16
-                Inst("mov qword ptr [r14], 2", 7, MAIN_OFFSET + 0, 1),  # 22 0x16
-                Inst("mov rbx, 1", 7, 0, 0),  # 29  0x1d
-                Inst(".l2:", 0, 0, 0),  # 36  0x24
-                Inst("mov rax, qword ptr [r14]", 3, MAIN_OFFSET + 0, 1),  # 36
-            ],
-            backend=self._backend,
-        )
+        test_case = self._tc_nested_cond()
         input_ = InputData()
         input_[0]['main'][0] = TEST_MEM_VALUE_B
         input_[0]['gpr'][RBX] = 0x1
@@ -349,21 +366,7 @@ class _SharedX86Model(unittest.TestCase):
         self.assertEqual(reg_values[1], 1)
 
     def test_ct_cond(self) -> None:
-        test_case = InstList(
-            [
-                Inst("xor rax, rax", 3, 0, 0),  # 8
-                Inst("jz .l2", 2, 0, 0),  # 11 0xb
-                Inst(".l0:", 0, 0, 0),  # 13
-                Inst("mov qword ptr [r14], 1", 7, MAIN_OFFSET + 0, 1),  # 13  0xd
-                Inst("jz .l2", 2, 0, 0),  # 20 0x14
-                Inst(".l1:", 0, 0, 0),  # 22 0x16
-                Inst("mov qword ptr [r14], 2", 7, MAIN_OFFSET + 0, 1),  # 22 0x16
-                Inst("mov rbx, 1", 7, 0, 0),  # 29  0x1d
-                Inst(".l2:", 0, 0, 0),  # 36  0x24
-                Inst("mov rax, qword ptr [r14]", 3, MAIN_OFFSET + 0, 1),  # 36
-            ],
-            backend=self._backend,
-        )
+        test_case = self._tc_nested_cond()
         input_ = self._input_builder.get_default_input()
         ctraces = self._get_trace(
             test_case=test_case,
@@ -388,21 +391,7 @@ class _SharedX86Model(unittest.TestCase):
         self.assertEqual(ctraces[0].get_untyped(), expected_trace)
 
     def test_ct_cond_double(self) -> None:
-        test_case = InstList(
-            [
-                Inst("xor rax, rax", 3, 0, 0),  # 8
-                Inst("jz .l2", 2, 0, 0),  # 11 0xb
-                Inst(".l0:", 0, 0, 0),  # 13
-                Inst("mov qword ptr [r14], 1", 7, MAIN_OFFSET + 0, 1),  # 13  0xd
-                Inst("jz .l2", 2, 0, 0),  # 20 0x14
-                Inst(".l1:", 0, 0, 0),  # 22 0x16
-                Inst("mov qword ptr [r14], 2", 7, MAIN_OFFSET + 0, 1),  # 22 0x16
-                Inst("mov rbx, 1", 7, 0, 0),  # 29  0x1d
-                Inst(".l2:", 0, 0, 0),  # 36  0x24
-                Inst("mov rax, qword ptr [r14]", 3, MAIN_OFFSET + 0, 1),  # 36
-            ],
-            backend=self._backend,
-        )
+        test_case = self._tc_nested_cond()
         input_ = self._input_builder.get_default_input()
         ctraces = self._get_trace(
             test_case=test_case,
@@ -493,14 +482,7 @@ class _SharedX86Model(unittest.TestCase):
 
     @skip_for_backend("dr")
     def test_fault_handling(self) -> None:
-        test_case = InstList(
-            [
-                Inst("mov rax, qword ptr [r14 + 0x1000]", 7, FAULTY_OFFSET, 0),
-                Inst("mov rax, qword ptr [r14 + rax]", 4, MAIN_OFFSET + 3, 0),
-                Inst("mov rbx, qword ptr [r14 + rbx]", 4, MAIN_OFFSET + REG_DEFAULT_VALUE, 0),
-            ],
-            backend=self._backend,
-        )
+        test_case = self._tc_faulty_load()
         input_ = self._input_builder.get_default_input()
         ctraces = self._get_trace(
             test_case=test_case, input_data=[input_], nesting=1, pte_mask=PF_MASK)
@@ -513,14 +495,7 @@ class _SharedX86Model(unittest.TestCase):
     @skip_for_backend("dr")
     def test_ct_deh(self) -> None:
         # Test X86UnicornDEH with CTTracer (Delayed Exception Handling)
-        test_case = InstList(
-            [
-                Inst("mov rax, qword ptr [r14 + 0x1000]", 7, FAULTY_OFFSET, 0),
-                Inst("mov rax, qword ptr [r14 + rax]", 4, MAIN_OFFSET + 3, 0),
-                Inst("mov rbx, qword ptr [r14 + rbx]", 4, MAIN_OFFSET + REG_DEFAULT_VALUE, 0),
-            ],
-            backend=self._backend,
-        )
+        test_case = self._tc_faulty_load()
         input_ = self._input_builder.get_default_input()
         ctraces = self._get_trace(
             exec_clause=["delayed-exception-handling"],
@@ -541,14 +516,7 @@ class _SharedX86Model(unittest.TestCase):
 
     @skip_for_backend("dr")
     def test_ct_nullinj_assist(self) -> None:
-        test_case = InstList(
-            [
-                Inst("mov rax, qword ptr [r14 + 0x1000]", 7, FAULTY_OFFSET, 0),
-                Inst("mov rax, qword ptr [r14 + rax]", 4, MAIN_OFFSET + 3, 0),
-                Inst("mov rbx, qword ptr [r14 + rbx]", 4, MAIN_OFFSET + REG_DEFAULT_VALUE, 0),
-            ],
-            backend=self._backend,
-        )
+        test_case = self._tc_faulty_load()
         input_ = self._input_builder.get_default_input()
         ctraces = self._get_trace(
             exec_clause=["nullinj-assist"],
@@ -588,14 +556,7 @@ class _SharedX86Model(unittest.TestCase):
     @skip_for_backend("dr")
     def test_ct_nullinj_term(self) -> None:
         # Test X86UnicornNull with CTTracer (null injection with termination)
-        test_case = InstList(
-            [
-                Inst("mov rax, qword ptr [r14 + 0x1000]", 7, FAULTY_OFFSET, 0),
-                Inst("mov rax, qword ptr [r14 + rax]", 4, MAIN_OFFSET + 3, 0),
-                Inst("mov rbx, qword ptr [r14 + rbx]", 4, MAIN_OFFSET + REG_DEFAULT_VALUE, 0),
-            ],
-            backend=self._backend,
-        )
+        test_case = self._tc_faulty_load()
         input_ = self._input_builder.get_default_input()
         ctraces = self._get_trace(
             exec_clause=["nullinj-fault"],
@@ -626,14 +587,7 @@ class _SharedX86Model(unittest.TestCase):
     @skip_for_backend("dr")
     def test_ct_meltdown(self) -> None:
         # Test X86Meltdown with CTTracer (Meltdown vulnerability)
-        test_case = InstList(
-            [
-                Inst("mov rax, qword ptr [r14 + 0x1000]", 7, FAULTY_OFFSET, 0),
-                Inst("mov rax, qword ptr [r14 + rax]", 4, MAIN_OFFSET + 3, 0),
-                Inst("mov rbx, qword ptr [r14 + rbx]", 4, MAIN_OFFSET + REG_DEFAULT_VALUE, 0),
-            ],
-            backend="uc",
-        )
+        test_case = self._tc_faulty_load(backend="uc")
         input_ = self._input_builder.get_default_input()
         ctraces = self._get_trace(
             exec_clause=["meltdown"], test_case=test_case, input_data=[input_], pte_mask=PF_MASK)
@@ -659,16 +613,7 @@ class _SharedX86Model(unittest.TestCase):
 
     @skip_for_backend("dr")
     def test_arch_seq(self) -> None:
-        test_case = InstList(
-            [
-                Inst("xor rax, rax", 3, 0, 0),
-                Inst("jz .l1", 2, 0, 0),
-                Inst(".l0:", 0, 0, 0),
-                Inst("mov rax, qword ptr [r14]", 3, MAIN_OFFSET + 0, 1),
-                Inst(".l1:", 0, 0, 0),
-            ],
-            backend=self._backend,
-        )
+        test_case = self._tc_branch_load()
         input_ = self._input_builder.get_default_input()
         ctraces = self._get_trace(obs_clause="arch", test_case=test_case, input_data=[input_])
         self.assertEqual(len(ctraces), 1)
@@ -714,26 +659,7 @@ class _SharedX86Model(unittest.TestCase):
 
     @skip_for_backend("uc")
     def test_ind_spec(self) -> None:
-        test_case = InstList(
-            [
-                Inst("xor rax, rax", 3, 0, 0),
-                Inst("jz .end", 2, 0, 0),
-                Inst(".l0:", 0, 0, 0),
-                Inst("lea rax,qword ptr [rip+.l3]", 7, 0, 0),
-                Inst("call rax", 2, 0, 0),
-                Inst(".l1:", 0, 0, 0),
-                Inst("xor rax, rax", 3, 0, 0),
-                Inst("mov rax, qword ptr [rax]", 3, MAIN_OFFSET + 0, 1),
-                Inst("call rax", 2, 0, 0),
-                Inst(".l2:", 0, 0, 0),
-                Inst("jmp .end", 2, 0, 0),
-                Inst(".l3:", 0, 0, 0),
-                Inst("mov rax, qword ptr [r14]", 3, MAIN_OFFSET + 0, 1),
-                Inst("ret", 1, 0, 0),
-                Inst(".end:", 0, 0, 0),
-            ],
-            backend=self._backend,
-        )
+        test_case = self._tc_indirect()
         input_ = self._input_builder.get_default_input()
         ctraces = self._get_trace(
             obs_clause="ind", exec_clause=["cond"], test_case=test_case, input_data=[input_])
@@ -753,26 +679,7 @@ class _SharedX86Model(unittest.TestCase):
 
     @skip_for_backend("uc")
     def test_ind_poison(self) -> None:
-        test_case = InstList(
-            [
-                Inst("xor rax, rax", 3, 0, 0),
-                Inst("jz .end", 2, 0, 0),
-                Inst(".l0:", 0, 0, 0),
-                Inst("lea rax,qword ptr [rip+.l3]", 7, 0, 0),
-                Inst("call rax", 2, 0, 0),
-                Inst(".l1:", 0, 0, 0),
-                Inst("xor rax, rax", 3, 0, 0),
-                Inst("mov rax, qword ptr [rax]", 3, MAIN_OFFSET + 0, 1),
-                Inst("call rax", 2, 0, 0),
-                Inst(".l2:", 0, 0, 0),
-                Inst("jmp .end", 2, 0, 0),
-                Inst(".l3:", 0, 0, 0),
-                Inst("mov rax, qword ptr [r14]", 3, MAIN_OFFSET + 0, 1),
-                Inst("ret", 1, 0, 0),
-                Inst(".end:", 0, 0, 0),
-            ],
-            backend=self._backend,
-        )
+        test_case = self._tc_indirect()
         input_ = self._input_builder.get_default_input()
 
         model = self._get_model("ind", ["cond"], (DATA_BASE, CODE_BASE))
@@ -800,6 +707,71 @@ class _SharedX86Model(unittest.TestCase):
         expected_trace.append(model.poison_value - code_base_addr)  # type: ignore
 
         # Node: last two rets are inserted by the instrumentation: ignore them
+        self.assertEqual(ctraces[0].get_untyped()[:-2], expected_trace)
+
+    @skip_for_backend("uc")
+    def test_silent_store(self) -> None:
+        test_case = InstList(
+            [
+                Inst("xor rax, rax", 3, 0, 0),
+                Inst("xor rbx, rbx", 3, 0, 0),
+                Inst("mov rax, qword ptr [r14]", 3, MAIN_OFFSET + 0, MEM_DEFAULT_VALUE),
+                Inst("mov rbx, qword ptr [r14 + 64]", 4, MAIN_OFFSET + 64, MEM_DEFAULT_VALUE),
+                Inst("mov qword ptr [r14], 0", 7, MAIN_OFFSET + 0, 0),
+                Inst("mov qword ptr [r14 + 64], rbx", 4, MAIN_OFFSET + 64, MEM_DEFAULT_VALUE),
+                Inst("mov qword ptr [r14], 0", 7, MAIN_OFFSET + 0, 0),
+            ],
+            backend=self._backend,
+        )
+        input_ = self._input_builder.get_default_input()
+        ctraces = self._get_trace(obs_clause="ss", test_case=test_case, input_data=[input_])
+        self.assertEqual(len(ctraces), 1)
+
+        expected_trace: List[int] = []
+        expected_trace.append(test_case[0].pc_offset)  # measurement_start
+        expected_trace.append(test_case[1].pc_offset)  # xor
+        expected_trace.append(test_case[2].pc_offset)  # xor
+        expected_trace.append(test_case[3].pc_offset)  # load
+        expected_trace.append(test_case[4].pc_offset)  # load
+        expected_trace.append(test_case[5].pc_offset)  # store
+        expected_trace.append(test_case[6].pc_offset)  # store
+        expected_trace.append(test_case[6].mem_address)  # redundant non-zero store
+        expected_trace.append(test_case[7].pc_offset)  # store
+        expected_trace.append(test_case[7].mem_address)  # redundant zero store
+
+        # Node: last two insts are inserted by the instrumentation: ignore them
+        self.assertEqual(ctraces[0].get_untyped()[:-2], expected_trace)
+
+    @skip_for_backend("uc")
+    def test_silent_store_0(self) -> None:
+        test_case = InstList(
+            [
+                Inst("xor rax, rax", 3, 0, 0),
+                Inst("xor rbx, rbx", 3, 0, 0),
+                Inst("mov rax, qword ptr [r14]", 3, MAIN_OFFSET + 0, MEM_DEFAULT_VALUE),
+                Inst("mov rbx, qword ptr [r14 + 64]", 4, MAIN_OFFSET + 64, MEM_DEFAULT_VALUE),
+                Inst("mov qword ptr [r14], 0", 7, MAIN_OFFSET + 0, 0),
+                Inst("mov qword ptr [r14 + 64], rbx", 4, MAIN_OFFSET + 64, MEM_DEFAULT_VALUE),
+                Inst("mov qword ptr [r14], 0", 7, MAIN_OFFSET + 0, 0),
+            ],
+            backend=self._backend,
+        )
+        input_ = self._input_builder.get_default_input()
+        ctraces = self._get_trace(obs_clause="ss0", test_case=test_case, input_data=[input_])
+        self.assertEqual(len(ctraces), 1)
+
+        expected_trace: List[int] = []
+        expected_trace.append(test_case[0].pc_offset)  # measurement_start
+        expected_trace.append(test_case[1].pc_offset)  # xor
+        expected_trace.append(test_case[2].pc_offset)  # xor
+        expected_trace.append(test_case[3].pc_offset)  # load
+        expected_trace.append(test_case[4].pc_offset)  # load
+        expected_trace.append(test_case[5].pc_offset)  # store
+        expected_trace.append(test_case[6].pc_offset)  # store
+        expected_trace.append(test_case[7].pc_offset)  # store
+        expected_trace.append(test_case[7].mem_address)  # redundant zero store
+
+        # Node: last two insts are inserted by the instrumentation: ignore them
         self.assertEqual(ctraces[0].get_untyped()[:-2], expected_trace)
 
 
@@ -919,16 +891,7 @@ class X86DRModelTest(_SharedX86Model):
         self.assertEqual(rcbf_data[0], 1)  # number of actors
 
         # Check that loading another test case with a different input overwrites the files
-        inst = InstList(
-            [
-                Inst("xor rax, rax", 3, 0, 0),
-                Inst("jz .l1", 2, 0, 0),
-                Inst(".l0:", 0, 0, 0),
-                Inst("mov rax, qword ptr [r14]", 3, MAIN_OFFSET + 0, 1),
-                Inst(".l1:", 0, 0, 0),
-            ],
-            backend=self._backend,
-        )
+        inst = self._tc_branch_load()
         tc = inst.to_test_case()
         input_ = InputData()
         input_[0]["main"][0] = TEST_MEM_VALUE_A

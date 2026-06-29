@@ -59,6 +59,8 @@ void TracerABC::enable()
     tracing_finalized = false;
 }
 
+void TracerABC::disable() { tracing_on = false; }
+
 void TracerABC::finalize()
 {
     if (tracing_finalized) {
@@ -79,7 +81,8 @@ void TracerABC::finalize()
     tracing_finalized = true;
 }
 
-void TracerABC::observe_instruction(instr_obs_t /*instr*/, dr_mcontext_t * /*mc*/, void * /*dc*/)
+void TracerABC::observe_instruction(instr_obs_t /*instr*/, dr_mcontext_t * /*mc*/, void * /*dc*/,
+                                    unsigned int /*spec_level*/)
 {
     // The rest of the functionality - if any - is implemented by subclasses
 }
@@ -89,26 +92,30 @@ void TracerABC::observe_mem_access(bool /*is_write*/, void * /*address*/, uint64
     // The rest of the functionality - if any - is implemented by subclasses
 }
 
-void TracerABC::observe_exception(dr_siginfo_t *siginfo) const
+void TracerABC::observe_exception(dr_siginfo_t *siginfo)
 {
     if (not tracing_on) {
         return;
     }
 
     trace.push_back({.addr = (pc_t)siginfo->access_address,
-                     .size = (uint32_t)siginfo->sig,
+                     .size = (uint8_t)siginfo->sig,
+                     .spec_level = (uint8_t)cur_spec_level,
                      .type = trace_entry_type_t::ENTRY_EXCEPTION});
 }
 
-void TracerABC::record_pc(instr_obs_t instr)
+void TracerABC::record_pc(instr_obs_t instr, unsigned int spec_level = 0)
 {
     taint_tracker.taint(taint_entry_type_t::TAINT_ENTRY_PC);
 
     const trace_entry_t entry = {
         .addr = instr.pc,
         .size = 0,
+        .spec_level = (uint8_t)spec_level,
         .type = trace_entry_type_t::ENTRY_PC,
     };
+
+    cur_spec_level = spec_level;
     trace.push_back(entry);
 }
 
@@ -118,7 +125,8 @@ void TracerABC::record_mem_access(bool is_write, void *address, uint64_t size)
 
     const trace_entry_t entry = {
         .addr = reinterpret_cast<uint64_t>(address),
-        .size = (uint32_t)size,
+        .size = (uint8_t)size,
+        .spec_level = (uint8_t)cur_spec_level,
         .type = (is_write) ? trace_entry_type_t::ENTRY_WRITE : trace_entry_type_t::ENTRY_READ,
     };
     trace.push_back(entry);
