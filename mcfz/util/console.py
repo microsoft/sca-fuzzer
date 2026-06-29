@@ -27,8 +27,8 @@ _CYAN: Final[str] = "\033[36m"
 
 _HEADER_WIDTH: Final[int] = 62
 _PROGRESS_NCOLS: Final[int] = 80
-_PROGRESS_BAR_FORMAT: Final[str] = (
-    "  {desc:<22}{percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]")
+_PROGRESS_BAR_FORMAT: Final[str] = ("  {desc:<22}{percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt} "
+                                    "[{elapsed}<{remaining}, {rate_fmt}]")
 
 
 def _use_color() -> bool:
@@ -83,12 +83,13 @@ def error(message: str) -> None:
     _emit(_paint("  \u2717 ", _RED) + _paint(message, _RED))
 
 
-def progress_bar(total: int, desc: str) -> "tqdm[Any]":
+def progress_bar(total: int, desc: str, unit: str = "exec") -> "tqdm[Any]":
     """
     Create a tqdm progress bar with a consistent McFuzz look.
 
     :param total: Total number of work items the bar tracks.
     :param desc: Short label shown to the left of the bar.
+    :param unit: Unit name used in the rate display (e.g. ``exec`` -> ``exec/s``).
     :return: A configured tqdm instance.
     """
     return tqdm(
@@ -97,5 +98,6 @@ def progress_bar(total: int, desc: str) -> "tqdm[Any]":
         ncols=_PROGRESS_NCOLS,
         colour="cyan",
         bar_format=_PROGRESS_BAR_FORMAT,
+        unit=unit,
         leave=True,
     )

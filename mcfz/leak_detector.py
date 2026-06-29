@@ -656,6 +656,7 @@ class LeakDetector:
         progress_bar = console.progress_bar(
             total=sum(len(trace_files) for trace_files in stage3_dir_map.values()),
             desc="Analyzing traces",
+            unit="trace",
         )
 
         # Prepare the list of work items for multiprocessing:
@@ -693,6 +694,7 @@ class LeakDetector:
         progress_bar = console.progress_bar(
             total=sum(len(trace_files) for trace_files in stage3_dir_map.values()),
             desc="Analyzing traces",
+            unit="trace",
         )
 
         # Prepare the list of work items for multiprocessing:
