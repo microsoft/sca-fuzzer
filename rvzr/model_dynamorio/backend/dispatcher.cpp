@@ -139,6 +139,14 @@ static const char *to_string(const dispatcher_event_t &event)
     return "UNKNOWN";
 }
 
+/// @brief Debug function, used to detect invalid modifications of MC
+static inline uint64_t mc_fingerprint(const dr_mcontext_t *mc)
+{
+    return mc->xax ^ mc->xbx ^ mc->xcx ^ mc->xdx ^ mc->xsi ^ mc->xdi ^ mc->xbp ^ mc->xsp ^ mc->r8 ^
+           mc->r9 ^ mc->r10 ^ mc->r11 ^ mc->r12 ^ mc->r13 ^ mc->r14 ^ mc->r15 ^ mc->xflags ^
+           (uint64_t)mc->pc;
+}
+
 // =================================================================================================
 // Instrumentation Callbacks
 // =================================================================================================
@@ -295,6 +303,7 @@ static void dispatch_callback(uint64_t opcode, uint64_t pc, uint64_t has_mem_ref
     void *drcontext = dr_get_current_drcontext();
     dr_mcontext_t mc = {sizeof(mc), DR_MC_ALL};
     dr_get_mcontext(drcontext, &mc);
+    uint64_t mc_before = mc_fingerprint(&mc);
 
     // create an instruction instance for the current instruction
     const instr_obs_t instr = {
@@ -310,9 +319,10 @@ static void dispatch_callback(uint64_t opcode, uint64_t pc, uint64_t has_mem_ref
         dr_redirect_execution(&mc);
         return; // unreachable
     }
-    dr_set_mcontext(drcontext, &mc);
     // skip mem dispatch if the instruction doesn't access memory
     if (has_mem_ref == 0) {
+        DR_ASSERT_MSG(mc_before == mc_fingerprint(&mc),
+                      "[ERROR] Machine context modified by instruction dispatch functions\n");
         return;
     }
 
@@ -323,7 +333,8 @@ static void dispatch_callback(uint64_t opcode, uint64_t pc, uint64_t has_mem_ref
         dr_redirect_execution(&mc);
         return; // unreachable
     }
-    dr_set_mcontext(drcontext, &mc);
+    DR_ASSERT_MSG(mc_before == mc_fingerprint(&mc),
+                  "[ERROR] Machine context modified by instruction dispatch functions\n");
 }
 
 // =================================================================================================
