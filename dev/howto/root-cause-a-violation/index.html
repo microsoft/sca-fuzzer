@@ -1144,10 +1144,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#step-3-add-comments-to-minimized-program" class="md-nav__link">
+  <a href="#add-comments-to-the-minimized-program" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Step 3: Add Comments to Minimized Program
+        Add Comments to the Minimized Program
       
     </span>
   </a>
@@ -2841,7 +2841,7 @@
 <p class="admonition-title">Minimizer Behavior</p>
 <p>Ideally, the minimizer should be able to reduce the leakage to a single byte. If more then a couple bytes leak, it typically indicates that the violation is non-deterministic, and it might be a good idea to re-run the program minimizer or to change the configuration to increase the number of attempts/increase the noise threshold. If <em>no</em> bytes leak, this is a certain sign that something went wrong; re-run the minimizer.</p>
 </div>
-<h2 id="step-3-add-comments-to-minimized-program">Step 3: Add Comments to Minimized Program</h2>
+<h2 id="add-comments-to-the-minimized-program">Add Comments to the Minimized Program</h2>
 <p>Run the minimizer again with the <code>comment</code> pass enabled to annotate the minimized program with memory access information. This will help you map hardware traces to specific instructions in the program.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>rvzr<span class="w"> </span>minimize<span class="w"> </span>-s<span class="w"> </span>base.json<span class="w"> </span>-c<span class="w"> </span>./violation-0000-0000/minimize.yaml<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">    </span>-t<span class="w"> </span>min.asm<span class="w"> </span>-o<span class="w"> </span>commented.asm<span class="w"> </span>-i<span class="w"> </span>&lt;num_inputs&gt;<span class="w"> </span><span class="se">\</span>
@@ -2853,11 +2853,11 @@
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span>-t<span class="w"> </span>commented.asm<span class="w"> </span>-o<span class="w"> </span>fenced.asm<span class="w"> </span>-i<span class="w"> </span>&lt;num_inputs&gt;<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span>--enable-fence-pass<span class="w"> </span><span class="m">1</span>
 </code></pre></div>
-<p>This pass with attempt to insert an <code>LFENCE</code> after every instruction in the program and check if the violation still occurs.</p>
+<p>This pass will attempt to insert a speculation barrier after every instruction in the program and check if the violation still occurs. The barrier is architecture-specific: <code>LFENCE</code> on x86-64 and <code>dsb sy; isb</code> on arm64.</p>
 <p>In the resulting file (<code>fenced.asm</code>) the region <em>without</em> fences is the one that causes the violation. The remaining instructions are just setting up the data for the violation, and are likely irrelevant.</p>
 <div class="admonition warning">
 <p class="admonition-title">Unexpected Fence Insertion Results</p>
-<p>If an <code>LFENCE</code> is inserted after <em>every</em> instruction in the test case and the violation still occurs, this is most likely due to a bug in the model or the executor. If you are using a custom model, consider checking the model for correctness. If you haven't made changes to the Revizor source code, please, open an issue in the <a href="https://github.com/microsoft/side-channel-fuzzer/issues">bug tracker</a>.</p>
+<p>If a barrier is inserted after <em>every</em> instruction in the test case and the violation still occurs, this is most likely due to a bug in the model or the executor. If you are using a custom model, consider checking the model for correctness. If you haven't made changes to the Revizor source code, please, open an issue in the <a href="https://github.com/microsoft/side-channel-fuzzer/issues">bug tracker</a>.</p>
 </div>
 <h2 id="map-hardware-traces-to-minimized-program-and-data">Map Hardware Traces to Minimized Program and Data</h2>
 <p>When both program and its inputs are minimized, you should be able to identify which instructions caused the cache accesses in the hardware traces and which data was leaked.</p>
@@ -2878,6 +2878,10 @@
 <div class="admonition tip">
 <p class="admonition-title">Input IDs</p>
 <p>If in your case the input IDs have changed after minimization, you can either exclude some of the inputs from the arguments of the <code>reproduce</code> command, or re-run the minimizer with fewer passes.</p>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Inputs must stay grouped into classes</p>
+<p>Reproduction only works when the inputs are grouped into contract-equivalence classes of two or more, because the violating pair must share a class to be compared. If <code>reproduce</code> reports <code>Effective Cls: 0.0</code> and finds no violation, the inputs collapsed into singleton classes; check that the config's <code>inputs_per_class</code> is at least <code>2</code>. Note that the auto-generated <code>reproduce.yaml</code> may override it to <code>1</code>, in which case reproducing through the minimizer's first pass (with <code>minimize.yaml</code>) is more reliable.</p>
 </div>
 <p>We see that the hardware traces have been significantly simplified compared to the original violation, and now there are at most two accessed cache sets in each trace: 0 and 48 for input #1, and 0 and 15 for input #11. This is a good sign: the minimization was successful.</p>
 <p>We can also tell that the only difference between the two traces is the accessed cache set 48 vs 15 . This is the cache set that is causing the violation, and we should be aiming to find the instruction that does the access.</p>
