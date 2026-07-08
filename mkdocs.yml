@@ -146,6 +146,10 @@ nav:
       - Sandbox: ref/sandbox.md
     - Glossary: glossary.md
     - Academic Research: ref/papers.md
+  - MCFuzz:
+    - Overview: mcfz/overview.md
+    - Quick Start: mcfz/quick-start.md
+    - The Fuzzing Harness: mcfz/harness.md
   - FAQ:
     - General Questions: faq/general.md
   - Contribute:
