@@ -1,235 +1,235 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/glossary/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/glossary/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/structure/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/structure/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/faq/general/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/faq/general/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/howto/ask-a-question/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/howto/ask-a-question/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/howto/choose-contract/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/howto/choose-contract/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/howto/design-campaign/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/howto/design-campaign/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/howto/interpret-results/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/howto/interpret-results/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/howto/minimize/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/howto/minimize/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/howto/root-cause-a-violation/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/howto/root-cause-a-violation/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/howto/use-macros/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/howto/use-macros/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/howto/use-templates/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/howto/use-templates/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/internals/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/internals/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/internals/code-structure/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/internals/code-structure/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/internals/architecture/analysis/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/internals/architecture/analysis/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/internals/architecture/code/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/internals/architecture/code/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/internals/architecture/data/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/internals/architecture/data/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/internals/architecture/exec/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/internals/architecture/exec/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/internals/architecture/fuzz/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/internals/architecture/fuzz/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/internals/architecture/isa/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/internals/architecture/isa/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/internals/architecture/logging/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/internals/architecture/logging/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/internals/architecture/mini/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/internals/architecture/mini/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/internals/architecture/model/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/internals/architecture/model/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/internals/architecture/overview/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/internals/architecture/overview/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/internals/contributing/code-style/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/internals/contributing/code-style/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/internals/contributing/general/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/internals/contributing/general/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/internals/contributing/git/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/internals/contributing/git/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/internals/contributing/overview/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/internals/contributing/overview/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/internals/model-backends/model-dr/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/internals/model-backends/model-dr/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/internals/model-backends/model-unicorn/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/internals/model-backends/model-unicorn/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/intro/01-overview/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/intro/01-overview/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/intro/02-install/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/intro/02-install/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/intro/03-primer/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/intro/03-primer/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/intro/04-tutorials/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/intro/04-tutorials/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/intro/start-here/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/intro/start-here/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/intro/tutorials/01-first-fuzz/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/intro/tutorials/01-first-fuzz/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/intro/tutorials/02-first-vuln/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/intro/tutorials/02-first-vuln/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/intro/tutorials/03-faults/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/intro/tutorials/03-faults/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/intro/tutorials/04-isolation/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/intro/tutorials/04-isolation/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/intro/tutorials/05-extending/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/intro/tutorials/05-extending/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/intro/tutorials/tsa-sq/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/intro/tutorials/tsa-sq/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/ref/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/ref/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/ref/artifact-file-formats/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/ref/artifact-file-formats/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/ref/binary-formats/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/ref/binary-formats/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/ref/cli/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/ref/cli/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/ref/config/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/ref/config/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/ref/macros/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/ref/macros/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/ref/minimization-passes/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/ref/minimization-passes/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/ref/modes/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/ref/modes/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/ref/papers/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/ref/papers/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/ref/registers/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/ref/registers/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/ref/runtime-statistic/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/ref/runtime-statistic/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/ref/sandbox/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/ref/sandbox/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/topics/actors/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/topics/actors/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/topics/contracts/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/topics/contracts/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/topics/models/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/topics/models/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/topics/test-case-generation/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/topics/test-case-generation/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
-         <loc>https://github.com/microsoft/side-channel-fuzzer/2.0.0/topics/trace-analysis/</loc>
+         <loc>https://github.com/microsoft/sca-fuzzer/2.0.0/topics/trace-analysis/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
 </urlset>
