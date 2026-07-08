@@ -8,8 +8,11 @@ SPDX-License-Identifier: MIT
 from __future__ import annotations
 
 import os
+import re
 import json
 import shutil
+import tempfile
+import textwrap
 
 from dataclasses import dataclass
 from typing import Any, Dict, Final, List, Tuple, Optional
@@ -20,262 +23,64 @@ from rvzr.model_dynamorio.trace_decoder import TraceDecoder
 from .leak_detector import PC, FileName
 from .reporter import CodeLine
 from .config import Config
+from .util import console
 from .util.compressor import Compressor
+from .util.gdb_script import DebugScriptBuilder
 from .leak_detector import _Trace
 
+# Width of the section-header rules in the `details` report.
+_SECTION_WIDTH: Final[int] = 78
 
-class _GdbScriptBuilder:
-    """ Encapsulates GDB command syntax and script generation for leak debugging """
+# General-purpose registers (plus flags) compared between the two executions at the leak.
+_DIFF_REGS: Final[List[str]] = [
+    "rax", "rbx", "rcx", "rdx", "rsi", "rdi", "rbp", "rsp", "r8", "r9", "r10", "r11", "r12", "r13",
+    "r14", "r15", "eflags"
+]
 
-    def __init__(self, ignored_funcs: Optional[List[str]] = None) -> None:
-        self._commands: List[str] = []
-        self._n_break: int = 0
+# x86 EFLAGS bits relevant to conditional branches (constant-time analysis).
+_EFLAGS_BITS: Final[List[Tuple[str, int]]] = [("CF", 0), ("PF", 2), ("AF", 4), ("ZF", 6), ("SF", 7),
+                                              ("OF", 11)]
 
-        if ignored_funcs:
-            self._declare_skip_hook()
-            for func in ignored_funcs:
-                self._add_skip_hook(func)
-
-    def _declare_skip_hook(self) -> None:
-        """
-        Define a GDB function to skip the rest of the current function.
-        This makes sure that we don't count hits to breakpoints that happen during ignored
-        functions, otherwise me might be inspecting the wrong execution state.
-        Note that we cannot simply use "skip" since it will continue counting hits to the
-        breakpoint.
-        """
-        disable_output = [
-            "    set logging file /dev/null", "    set logging redirect on",
-            "    set logging enabled on"
-        ]
-        enable_output = ["     set logging enabled off", "     set logging redirect off"]
-
-        # Define `skip_current_func` to simply reach the end of the current function
-        self._commands.extend([
-            "define skip_current_func",
-            *disable_output,
-            "    finish",
-            *enable_output,
-            "end",
-        ])
-        # Hook `skip_current_func` such that all breakpoints are disabled when executed
-        self._commands.extend([
-            "define hook-skip_current_func",
-            "    disable",  # Disable all breakpoints
-            "end",
-            "",
-            "define hookpost-skip_current_func",
-            "    enable",  # Re-enable breakpoints
-            "    continue",
-            "end",
-        ])
-        # Declare a command to skip the given function
-        self._commands.extend([
-            "define skip_function",
-            *disable_output,
-            "    break $arg0",  # Set a breakpoint at the start of the function to skip
-            "    commands",
-            "        silent",
-            "        skip_current_func",  # Skip the function when breakpoint is hit
-            "    end",
-            *enable_output,
-            "end",
-            ""
-        ])
-
-    def _add_skip_hook(self, func_name: str) -> None:
-        """ Add a command to skip the given function by name """
-        if func_name.strip():
-            self._commands.append(f"skip_function {func_name.strip()}")
-            self._n_break += 1
-
-    def breakpoint(self, pc: int, temporary: bool = False) -> int:
-        """ Add a breakpoint at the given PC address and return the breakpoint number """
-        if temporary:
-            self._commands.append(f"tbreak *{pc:#x}")
-        else:
-            self._commands.append(f"break *{pc:#x}")
-        self._n_break += 1
-        return self._n_break
-
-    def run(self) -> None:
-        """ Add a command to start program execution """
-        self._commands.append("run")
-
-    def jump(self, pc: int) -> None:
-        """ Add a command to jump to the given PC address """
-        self._commands.append(f"jump *{pc:#x}")
-
-    def continue_(self) -> None:
-        """ Add a command to continue program execution """
-        self._commands.append("continue")
-
-    def delete(self, bp_num: int) -> None:
-        """ Add a command to delete the given breakpoint """
-        self._commands.append(f"del {bp_num}")
-
-    def ignore(self, bp_num: int, count: int) -> None:
-        """ Add a command to ignore the next `count` hits of the given breakpoint """
-        self._commands.append(f"ignore {bp_num} {count}")
-
-    def shell_prompt(self, message: str) -> None:
-        """ Add a shell command that prints a message and waits for user input """
-        self._commands.append(
-            f'shell printf "[MCFZ] {message}. Press [Enter] to continue..." && read _')
-
-    def shell_message(self, message: str) -> None:
-        """ Add a shell command that prints a message without waiting """
-        self._commands.append(f'shell printf "[MCFZ] {message}\\n"')
-
-    def write(self, path: str) -> None:
-        """ Write the accumulated GDB commands to a script file """
-        with open(path, 'w') as f:
-            f.write("\n".join(self._commands))
-
-    @classmethod
-    def create_leak_script(cls,
-                           leak_info: _LeakInfo,
-                           path: str,
-                           args_cmd: str,
-                           fast: bool = False,
-                           single_step: bool = False,
-                           ignored_funcs: Optional[List[str]] = None) -> str:
-        """
-        Create a gdb script that reaches the violation described in leak_info,
-        save it to the given path, and return the full gdb command to run it.
-
-        :param leak_info: Information about the leak to investigate
-        :param path: Path to save the gdb script
-        :param args_cmd: The command (with arguments) to pass to gdb's ``--args``
-        :param fast: If True, skip intermediate gdb prompts (architectural and spec window starts)
-        :param single_step: If True, drop to interactive gdb at the first speculative instruction,
-            with breakpoints set at all remaining points of interest
-        :param ignored_funcs: List of function names to ignore (skip) during debugging
-        :return: The full gdb command string (e.g., ``gdb -x script.gdb --args cmd``)
-        """
-        builder = cls(ignored_funcs)
-
-        for lvl, win in enumerate(leak_info.spec_windows):
-            is_first = lvl == 0
-            is_last = lvl == len(leak_info.spec_windows) - 1
-
-            # Reach start of this window
-            b_num = builder.breakpoint(win.start_pc_gdb, temporary=True)
-            if is_first:
-                builder.run()
-            else:
-                builder.jump(win.start_pc_gdb)
-                if single_step:
-                    # Set breakpoints at all remaining POIs and drop to interactive mode
-                    for remaining_win in leak_info.spec_windows[lvl:]:
-                        builder.breakpoint(remaining_win.pc_gdb)
-                    builder.shell_prompt(
-                        f'Entered single-step mode at first speculative instruction '
-                        f'(pc: {win.start_pc_gdb:#x}). '
-                        f'Breakpoints set at all remaining POIs. '
-                        f'Use ni/si to single-step or continue to reach next POI')
-                    break
-
-            if not fast:
-                builder.shell_prompt(
-                    "Reached first architectural instruction" if is_first else
-                    f'Reached start of spec window (level: {lvl}, pc: {win.start_pc_gdb:#x})')
-
-            # Reach target instruction
-            b_num = builder.breakpoint(win.pc_gdb)
-            if win.pc_occurrence > 0:
-                builder.ignore(b_num, win.pc_occurrence)
-            builder.continue_()
-
-            msg_template = 'Reached {label} (level: {lvl}, pc: {win:#x})'
-            if is_last:
-                label = "leak instruction"
-                builder.shell_message(msg_template.format(label=label, lvl=lvl, win=win.pc_gdb))
-                continue
-
-            label = "mispredicted instruction"
-            builder.shell_prompt(msg_template.format(label=label, lvl=lvl, win=win.pc_gdb))
-            builder.delete(b_num)
-
-        builder.write(path)
-        return f'gdb -x {path} --args {args_cmd}'
+# Maps a conditional-jump mnemonic to the EFLAGS bits whose values its condition reads.
+_JCC_FLAGS: Final[Dict[str, List[str]]] = {
+    "je": ["ZF"],
+    "jz": ["ZF"],
+    "jne": ["ZF"],
+    "jnz": ["ZF"],
+    "ja": ["CF", "ZF"],
+    "jnbe": ["CF", "ZF"],
+    "jbe": ["CF", "ZF"],
+    "jna": ["CF", "ZF"],
+    "jae": ["CF"],
+    "jnb": ["CF"],
+    "jnc": ["CF"],
+    "jb": ["CF"],
+    "jc": ["CF"],
+    "jnae": ["CF"],
+    "jg": ["ZF", "SF", "OF"],
+    "jnle": ["ZF", "SF", "OF"],
+    "jle": ["ZF", "SF", "OF"],
+    "jng": ["ZF", "SF", "OF"],
+    "jge": ["SF", "OF"],
+    "jnl": ["SF", "OF"],
+    "jl": ["SF", "OF"],
+    "jnge": ["SF", "OF"],
+    "js": ["SF"],
+    "jns": ["SF"],
+    "jo": ["OF"],
+    "jno": ["OF"],
+    "jp": ["PF"],
+    "jpe": ["PF"],
+    "jnp": ["PF"],
+    "jpo": ["PF"]
+}
 
 
-class _DebugScriptBuilder:
-    """ Creates the debug bash script that launches tmux with side-by-side gdb sessions """
-
-    _SCRIPT_TEMPLATE: Final[str] = """\
-#!/bin/bash
-# Debug script for violation at PC {pc_hex}
-# Opens two gdb sessions side-by-side using tmux:
-#   Left pane (0):  Reference input (000.bin)
-#   Right pane (1): Target input ({input_basename})
-
-# Kill any existing session with the same name
-tmux kill-session -t mysession 2>/dev/null
-
-# Create new tmux session with two panes and labeled borders
-tmux new-session -s mysession \\; \\
-    set-option -g pane-border-status top \\; \\
-    set-option -g pane-border-format " #{{pane_title}} " \\; \\
-    set-option -g mouse on \\; \\
-    bind-key -n M-Left select-pane -L \\; \\
-    bind-key -n M-Right select-pane -R \\; \\
-    split-window -h \\; \\
-    select-pane -t 0 -T "000.bin" \\; \\
-    select-pane -t 1 -T "{input_basename}" \\; \\
-    send-keys -t 0 '{ref_gdb_cmd}' C-m \\; \\
-    send-keys -t 1 '{target_gdb_cmd}' C-m
-"""
-
-    @classmethod
-    def build(cls,
-              leak_info: _LeakInfo,
-              output_dir: str,
-              fast: bool = False,
-              single_step: bool = False,
-              ignored_funcs: Optional[List[str]] = None) -> str:
-        """
-        Create gdb scripts and a tmux debug launcher for investigating a leak.
-
-        Creates two gdb scripts (for reference and target inputs) and a bash script
-        that launches them side-by-side in tmux.
-
-        :param leak_info: Information about the leak to investigate
-        :param output_dir: Directory to write debug scripts into
-        :param fast: If True, skip intermediate gdb prompts
-        :param single_step: If True, drop to interactive gdb at first speculative instruction
-        :param ignored_funcs: List of function names to ignore (skip) during debugging
-        :return: Path to the generated debug.sh script
-        """
-
-        def make_gdb_cmd(input_path: str, script_name: str) -> str:
-            cmd = [leak_info.bin_path] + \
-                [arg.replace('@@', input_path) for arg in leak_info.org_template_cmd[1:]]
-            return _GdbScriptBuilder.create_leak_script(
-                leak_info,
-                os.path.join(output_dir, script_name),
-                " ".join(cmd),
-                fast=fast,
-                single_step=single_step,
-                ignored_funcs=ignored_funcs)
-
-        ref_gdb_cmd = make_gdb_cmd(os.path.join(output_dir, "000.bin"), "debug_ref.gdb")
-        target_gdb_cmd = make_gdb_cmd(str(leak_info.input_path), "debug_target.gdb")
-
-        # Write the tmux debug script
-        script_path = os.path.join(output_dir, "debug.sh")
-        script_content = cls._SCRIPT_TEMPLATE.format(
-            pc_hex=f"{leak_info.org_pc:#x}",
-            input_basename=os.path.basename(leak_info.input_path),
-            ref_gdb_cmd=ref_gdb_cmd,
-            target_gdb_cmd=target_gdb_cmd,
-        )
-        with open(script_path, 'w') as f:
-            f.write(script_content)
-        os.chmod(script_path, 0o755)
-
-        return script_path
+def _section(title: str) -> str:
+    """ Render a styled section-header rule line for the details report """
+    rule = "\u2500" * max(0, _SECTION_WIDTH - len(title) - 4)
+    return (console.paint(f"\u2501\u2501 {title} ", console.BOLD, console.CYAN)
+            + console.paint(rule, console.CYAN))
 
 
 @dataclass
@@ -289,6 +94,28 @@ class _SpecWinInfo:
     trace_line_id: int = 0
     pc_gdb: int = 0
     pc_occurrence: int = 0
+
+
+def _decode_eflags(value: int) -> Dict[str, int]:
+    """ Decode an x86 EFLAGS value into a map of named arithmetic flags to their bit values """
+    return {name: (value >> bit) & 1 for name, bit in _EFLAGS_BITS}
+
+
+@dataclass
+class _RunState:
+    """ Captured execution state at the leak instruction for a single input """
+    disasm: str
+    regs: Dict[str, int]
+    next_pc: int
+
+
+@dataclass
+class _ReportSections:
+    """ Rendered text blocks of the `details` report, populated by the `Driller` """
+    gdb_cmd: str = ""
+    exec_diff_text: str = ""
+    location_text: str = ""
+    backtrace_text: str = ""
 
 
 class _LeakInfo:
@@ -312,7 +139,7 @@ class _LeakInfo:
         self.input_path: FileName = FileName('')
         self.trace_path: FileName = FileName('')
         self.org_template_cmd: List[str] = []
-        self.gdb_cmd: str = ""
+        self.report = _ReportSections()
 
     @property
     def org_input_path(self) -> FileName:
@@ -324,6 +151,12 @@ class _LeakInfo:
         input_file = trace_file.removesuffix('.bz2').removesuffix('.gz')
         input_file = input_file.replace('.trace', '.bin')
         return FileName(os.path.join(input_dir, input_file))
+
+    def driver_cmd(self, input_path: str) -> List[str]:
+        """ Build the driver invocation: the binary followed by the template arguments with the
+        `@@` placeholder replaced by the given input path """
+        return [self.bin_path] + \
+            [arg.replace('@@', input_path) for arg in self.org_template_cmd[1:]]
 
     def build_gdb_cmd(self,
                       fast: bool = False,
@@ -338,46 +171,115 @@ class _LeakInfo:
         """
         assert self.org_template_cmd, "Original template command not set."
         output_dir = os.path.dirname(self.input_path)
-        self.gdb_cmd = _DebugScriptBuilder.build(
+        self.report.gdb_cmd = DebugScriptBuilder.build(
             self, output_dir, fast=fast, single_step=single_step, ignored_funcs=ignored_funcs)
 
-    def __str__(self) -> str:
-        sep = "=" * 80
+    @property
+    def headline(self) -> str:
+        """ A short noun-phrase naming the kind of leak, for the report banner """
+        if self.leak_type == 'I':
+            return "Secret-dependent branch"
+        return "Secret-dependent memory access"
 
-        lines = [
-            sep,
-            f"Violation Details for PC {self.org_pc:x}",
-            "",
-            f"Source Code Location:  {self.code_line}",
-            f"Violation Type:        {self.clause_type} ({self.leak_type}-type)",
-            f"Orig. Input File:      {self.org_input_path}",
-            f"Orig. Trace File:      {self.org_trace_path}",
-            f"  Target Trace Line:   {self.org_trace_line_id}",
-            sep,
-        ]
+    @property
+    def diagnosis(self) -> str:
+        """ A one-line, human-readable explanation of the leak """
+        if self.leak_type == 'I':
+            text = ("The branch outcome (and thus control flow) depends on a secret, "
+                    "violating constant-time execution.")
+        else:
+            text = ("The address of a load/store depends on a secret, "
+                    "violating constant-time execution.")
+        if self.clause_type != 'seq':
+            text += " The leak is exposed only under speculative execution."
+        return text
 
+    @staticmethod
+    def _wrap_indented(text: str, indent: str = "  ", width: int = 80) -> List[str]:
+        """ Word-wrap text to the given width with a constant indent """
+        return textwrap.wrap(
+            text, width=width, initial_indent=indent,
+            subsequent_indent=indent) or [indent.rstrip()]
+
+    def _render_spec_path(self) -> str:
+        """
+        Render the nested speculation-window tree for a speculative leak. Returns an empty string
+        for architectural (single-window) leaks, whose PC and trace line already appear elsewhere.
+        """
+        if len(self.spec_windows) <= 1:
+            return ""
+
+        lines: List[str] = []
         last_lvl = len(self.spec_windows) - 1
         for lvl, win in enumerate(self.spec_windows):
             prefix = "    " * lvl
             if lvl == 0:
-                lines.append(f"Architectural execution starts at pc {win.start_pc:#x}:")
+                lines.append(f"  Architectural execution starts at pc "
+                             f"{console.paint(f'{win.start_pc:#x}', console.DIM)}:")
             else:
-                lines.append(f"{prefix}├── Start of spec window at PC {win.start_pc:#x}:")
+                lines.append(f"  {prefix}\u251c\u2500\u2500 Start of spec window at PC "
+                             f"{console.paint(f'{win.start_pc:#x}', console.DIM)}:")
 
             if lvl == last_lvl:
-                lines.append(f"{prefix}└── LEAK! At line {win.trace_line_id} (PC: {win.pc:#x})")
-            else:
-                lines.append(f"{prefix}└── MISPREDICTION at line {win.trace_line_id} "
+                tag = console.paint("LEAK!", console.BOLD, console.RED)
+                lines.append(f"  {prefix}\u2514\u2500\u2500 {tag} At line {win.trace_line_id} "
                              f"(PC: {win.pc:#x})")
+            else:
+                tag = console.paint("MISPREDICTION", console.BOLD, console.YELLOW)
+                lines.append(f"  {prefix}\u2514\u2500\u2500 {tag} at line {win.trace_line_id} "
+                             f"(PC: {win.pc:#x})")
+        return "\n".join(lines)
 
-        lines += [
-            sep,
+    def __str__(self) -> str:
+        out: List[str] = [_section("VIOLATION")]
+        kind = console.paint(self.headline, console.BOLD, console.RED)
+        tag = console.paint(f"{self.leak_type}-type \u00b7 {self.clause_type}", console.DIM)
+        out.append(f"  {kind}   {tag}")
+        out.append(f"  {console.paint('Source ', console.DIM)}  "
+                   f"{console.paint(str(self.code_line), console.DIM)}")
+
+        # The same instruction has two addresses: the trace address (recorded during tracing and
+        # passed to `--pc`) and the runtime address it relocates to when re-loaded under gdb with
+        # ASLR disabled. Show both so the reader can map between the report and a gdb session.
+        gdb_pc = self.spec_windows[-1].pc_gdb if self.spec_windows else 0
+        addr_line = (f"  {console.paint('Address', console.DIM)}  {self.org_pc:#x} "
+                     f"{console.paint('(trace, the --pc value)', console.DIM)}")
+        if gdb_pc:
+            addr_line += (f" \u2192 {gdb_pc:#x} "
+                          f"{console.paint('(gdb runtime, ASLR off)', console.DIM)}")
+        out.append(addr_line)
+        out.append("")
+        out += [console.paint(line, console.DIM) for line in self._wrap_indented(self.diagnosis)]
+
+        if self.report.location_text:
+            out += ["", _section("LOCATION"), self.report.location_text]
+
+        spec_block = self._render_spec_path()
+        if spec_block:
+            out += ["", _section("SPECULATION PATH"), spec_block]
+
+        if self.report.exec_diff_text:
+            out += ["", _section("WHY IT LEAKS"), self.report.exec_diff_text]
+
+        if self.report.backtrace_text:
+            out += ["", _section("CALL STACK"), self.report.backtrace_text]
+
+        out += [
             "",
-            "To reproduce with gdb (opens two sessions in tmux):",
-            f"  {self.gdb_cmd}",
+            _section("REPRODUCE"),
+            console.paint("  Two gdb sessions side-by-side in tmux (requires tmux):", console.DIM),
+            f"  {console.paint(self.report.gdb_cmd, console.BOLD)}",
         ]
 
-        return "\n".join(lines) + "\n"
+        out += [
+            "",
+            _section("ARTIFACTS"),
+            f"  {'Input':<6} {console.paint(str(self.org_input_path), console.DIM)}",
+            f"  {'Trace':<6} {console.paint(str(self.org_trace_path), console.DIM)} "
+            f"{console.paint(f'(line {self.org_trace_line_id})', console.DIM)}",
+        ]
+
+        return "\n".join(out) + "\n"
 
 
 class Driller:
@@ -387,11 +289,14 @@ class Driller:
                  config: Config,
                  output_dir: str,
                  fast: bool = False,
-                 single_step: bool = False) -> None:
+                 single_step: bool = False,
+                 keep_trace: bool = False) -> None:
         self._config = config
         self._output_dir = output_dir
         self._fast = fast
         self._single_step = single_step
+        self._keep_trace = keep_trace
+        self._trace_tmpdir: Optional[str] = None
         assert config.bin_native is not None  # enforced by config validation
         self._target_bin = config.bin_native
         self._template_cmd = [config.bin_native if s == "@#" else s for s in config.template_cmd]
@@ -418,6 +323,9 @@ class Driller:
             spec_win.start_pc_gdb = self._translate_pc_to_gdb(spec_win.start_pc)
             spec_win.pc_gdb = self._translate_pc_to_gdb(spec_win.pc)
 
+        # The decompressed trace is no longer needed once speculation windows are known
+        self._cleanup_trace_tmp()
+
         # Gather the list of ignored functions
         ignored_funcs = None
         if self._config.tracing_ignorelist and os.path.exists(self._config.tracing_ignorelist):
@@ -428,8 +336,23 @@ class Driller:
         leak_info.build_gdb_cmd(
             fast=self._fast, single_step=self._single_step, ignored_funcs=ignored_funcs)
 
+        # Capture the leak instruction's disassembly and source context
+        leak_info.report.location_text = self._capture_static_context(leak_info)
+
+        # Diff the reference and target executions at the leak instruction
+        leak_info.report.exec_diff_text = self._compute_exec_diff(leak_info)
+
+        # Capture the call stack at the leak site
+        leak_info.report.backtrace_text = self._capture_backtrace(leak_info)
+
         # Pretty print the details
         print(leak_info)
+
+    def _cleanup_trace_tmp(self) -> None:
+        """ Remove the temporary decompressed trace directory, if one was created """
+        if self._trace_tmpdir:
+            shutil.rmtree(self._trace_tmpdir, ignore_errors=True)
+            self._trace_tmpdir = None
 
     def _check_required_files(self) -> None:
         stag3_dir: str = self._config.stage3_wd
@@ -588,12 +511,18 @@ class Driller:
         ref_input = os.path.join(os.path.dirname(leak_info.org_input_path), "000.bin")
         shutil.copy2(ref_input, os.path.join(self._output_dir, "000.bin"))
 
-        # Traces
-        trace_dest = os.path.join(self._output_dir, os.path.basename(leak_info.org_trace_path))
-        shutil.copy2(leak_info.org_trace_path, trace_dest)
-
+        # Trace: decompress for speculation-window analysis. By default the (large) decompressed
+        # trace is written to a temporary directory and removed once parsed; with keep_trace it is
+        # retained in the output directory for manual inspection.
         compressor = Compressor(self._config)
-        trace_dest_ = compressor.decompress_universal(trace_dest)
+        trace_name = os.path.basename(leak_info.org_trace_path)
+        if self._keep_trace:
+            trace_copy = os.path.join(self._output_dir, trace_name)
+        else:
+            self._trace_tmpdir = tempfile.mkdtemp(prefix="mcfz-trace-")
+            trace_copy = os.path.join(self._trace_tmpdir, trace_name)
+        shutil.copy2(leak_info.org_trace_path, trace_copy)
+        trace_dest_ = compressor.decompress_universal(trace_copy)
 
         # Binary
         bin_dest = os.path.join(self._output_dir, os.path.basename(self._target_bin))
@@ -604,3 +533,408 @@ class Driller:
         leak_info.trace_path = trace_dest_
         leak_info.bin_path = bin_dest
         leak_info.org_template_cmd = self._template_cmd
+
+    def _compute_exec_diff(self, leak_info: _LeakInfo) -> str:
+        """
+        Run the reference and target inputs under gdb up to the leak instruction and return a
+        human-readable diff of their execution state at that point.
+
+        Only the architectural (SEQ) case is supported: a speculative leak instruction never
+        executes architecturally, so it cannot be reached under gdb.
+
+        :param leak_info: Information about the leak to investigate
+        :return: A rendered diff string (or an explanatory message if a diff is unavailable)
+        """
+        if len(leak_info.spec_windows) != 1:
+            return ("  Execution diff is only available for architectural (seq) leaks; "
+                    "this leak occurs under speculation.")
+
+        ref_input = os.path.join(self._output_dir, "000.bin")
+        ref_state = self._capture_leak_state(ref_input, leak_info)
+        tgt_state = self._capture_leak_state(str(leak_info.input_path), leak_info)
+        if ref_state is None or tgt_state is None:
+            return "  Execution diff unavailable (could not capture state under gdb)."
+
+        return self._render_exec_diff(ref_state, tgt_state, leak_info)
+
+    @staticmethod
+    def _run_gdb(ex_cmds: List[str], target_args: List[str]) -> str:
+        """ Run gdb in batch mode with the given ``-ex`` commands and return its stdout """
+        gdb_cmd = ['gdb', '--batch', '-nx']
+        for cmd in ex_cmds:
+            gdb_cmd += ['-ex', cmd]
+        gdb_cmd += ['--args'] + target_args
+        result = run(gdb_cmd, stdout=PIPE, stderr=PIPE, text=True, check=False)
+        return result.stdout
+
+    def _capture_leak_state(self, input_path: str, leak_info: _LeakInfo) -> Optional[_RunState]:
+        """ Run one input under gdb to the leak instruction and capture its execution state """
+        win = leak_info.spec_windows[-1]
+        target_args = leak_info.driver_cmd(input_path)
+
+        ex_cmds = [
+            'set pagination off',
+            'set width 0',
+            'set disable-randomization on',
+            f'tbreak *{win.start_pc_gdb:#x}',
+            'run',
+            f'break *{win.pc_gdb:#x}',
+        ]
+        if win.pc_occurrence > 0:
+            ex_cmds.append(f'ignore 2 {win.pc_occurrence}')
+        ex_cmds += [
+            'continue',
+            r'printf "\n__MCFZ_DIS__\n"',
+            'x/1i $pc',
+            r'printf "__MCFZ_REGS__\n"',
+            'info registers ' + ' '.join(_DIFF_REGS),
+            r'printf "__MCFZ_END__\n"',
+            'stepi',
+            r'printf "__MCFZ_NEXTPC__ %#lx\n", (unsigned long)$pc',
+        ]
+
+        return self._parse_leak_state(self._run_gdb(ex_cmds, target_args))
+
+    @staticmethod
+    def _parse_leak_state(output: str) -> Optional[_RunState]:
+        """ Parse the marker-delimited gdb output produced by `_capture_leak_state` """
+        disasm = ""
+        regs: Dict[str, int] = {}
+        next_pc: Optional[int] = None
+
+        section = ""
+        for line in output.splitlines():
+            stripped = line.strip()
+            if stripped == "__MCFZ_DIS__":
+                section = "dis"
+            elif stripped == "__MCFZ_REGS__":
+                section = "regs"
+            elif stripped == "__MCFZ_END__":
+                section = ""
+            elif stripped.startswith("__MCFZ_NEXTPC__"):
+                parts = stripped.split()
+                if len(parts) >= 2:
+                    try:
+                        next_pc = int(parts[1], 16)
+                    except ValueError:
+                        pass
+            elif section == "dis" and not disasm and stripped:
+                # Collapse the leading "=> " marker and gdb's tab/space padding
+                disasm = " ".join(stripped.removeprefix("=>").split())
+            elif section == "regs":
+                parts = stripped.split()
+                if len(parts) >= 2:
+                    try:
+                        regs[parts[0]] = int(parts[1], 16)
+                    except ValueError:
+                        pass
+
+        if not regs or next_pc is None:
+            return None
+        return _RunState(disasm=disasm, regs=regs, next_pc=next_pc)
+
+    @staticmethod
+    def _parse_branch_target(disasm: str) -> Optional[int]:
+        """ Extract the jump-target address from a disassembled direct branch instruction """
+        # disasm looks like "=> 0x<pc> <sym>:\t<mnemonic> 0x<target> <sym>"; the first address
+        # is the branch PC, the second is its target.
+        addresses = re.findall(r'0x[0-9a-fA-F]+', disasm)
+        if len(addresses) >= 2:
+            try:
+                return int(addresses[1], 16)
+            except ValueError:
+                return None
+        return None
+
+    def _render_exec_diff(self, ref: _RunState, tgt: _RunState, leak_info: _LeakInfo) -> str:
+        """ Render a human-readable diff of the two captured execution states at the leak """
+        is_branch = leak_info.leak_type == 'I'
+        ref_tag = console.paint("reference", console.CYAN)
+        tgt_tag = console.paint("target", console.YELLOW)
+        lines: List[str] = [
+            console.paint(f"  Legend: {ref_tag} input vs {tgt_tag} input", console.DIM)
+        ]
+        if is_branch:
+            lines += self._render_branch_diff(ref, tgt)
+        lines += self._render_reg_diffs(ref, tgt, is_branch)
+        return "\n".join(lines)
+
+    @staticmethod
+    def _render_reg_diffs(ref: _RunState, tgt: _RunState, is_branch: bool) -> List[str]:
+        """ Render the general-purpose registers whose values differ between the two executions """
+        # For a branch leak the deciding flags are reported separately, so eflags is excluded here
+        # to keep the "data" registers distinct.
+        skip = {'eflags'} if is_branch else set()
+        reg_diffs = [(name, ref.regs[name], tgt.regs[name])
+                     for name in _DIFF_REGS
+                     if name not in skip and name in ref.regs and name in tgt.regs
+                     and ref.regs[name] != tgt.regs[name]]
+        if not reg_diffs:
+            if is_branch:
+                return []
+            return ["  No tracked register values differ at the leak instruction."]
+
+        header = ("  Registers feeding the condition that diverge:"
+                  if is_branch else "  Diverging registers:")
+        lines = [header]
+        for name, ref_val, tgt_val in reg_diffs:
+            ref_s = console.paint(f"{ref_val:#018x}", console.CYAN)
+            tgt_s = console.paint(f"{tgt_val:#018x}", console.YELLOW)
+            lines.append(f"    {name:<6} {ref_s}  \u2192  {tgt_s}")
+        return lines
+
+    def _render_branch_diff(self, ref: _RunState, tgt: _RunState) -> List[str]:
+        """ Render the control-flow, branch-target, and deciding-flag detail for an I-type leak """
+        disasm = tgt.disasm or ref.disasm
+        taken_target = self._parse_branch_target(disasm)
+
+        def direction(state: _RunState) -> str:
+            if taken_target is not None:
+                return "branch taken" if state.next_pc == taken_target else "fall-through"
+            return f"next pc {state.next_pc:#x}"
+
+        if ref.next_pc != tgt.next_pc:
+            lines = [
+                console.paint("  Control flow diverges:", console.BOLD, console.RED),
+                f"    {console.paint('reference', console.CYAN)}  \u2192  {direction(ref)}",
+                f"    {console.paint('target', console.YELLOW)}     \u2192  {direction(tgt)}",
+            ]
+        else:
+            lines = [f"  Control flow converges (both {direction(ref)})"]
+
+        lines += self._render_branch_targets(ref, tgt, disasm, taken_target)
+        lines += self._render_deciding_flags(ref, tgt, disasm)
+        return lines
+
+    def _render_branch_targets(self, ref: _RunState, tgt: _RunState, disasm: str,
+                               taken_target: Optional[int]) -> List[str]:
+        """ Render the taken/fall-through targets, annotated with which input reaches each """
+        if taken_target is None:
+            return []
+
+        def who(pc: int) -> str:
+            names = []
+            if ref.next_pc == pc:
+                names.append(console.paint("reference", console.CYAN))
+            if tgt.next_pc == pc:
+                names.append(console.paint("target", console.YELLOW))
+            return f"({', '.join(names)})" if names else ""
+
+        taken_sym = self._parse_branch_target_sym(disasm)
+        taken_str = f"{taken_target:#x}" + (f" {taken_sym}" if taken_sym else "")
+
+        lines = ["  Branch targets:", f"    {'taken':<13}\u2192 {taken_str}   {who(taken_target)}"]
+        fall_through = next((pc for pc in (ref.next_pc, tgt.next_pc) if pc != taken_target), None)
+        if fall_through is not None:
+            lines.append(f"    {'fall-through':<13}\u2192 {fall_through:#x}   {who(fall_through)}")
+        return lines
+
+    def _render_deciding_flags(self, ref: _RunState, tgt: _RunState, disasm: str) -> List[str]:
+        """ Identify which EFLAGS bits the branch condition reads and which of them differ """
+        mnem = self._branch_mnemonic(disasm)
+        tested = _JCC_FLAGS.get(mnem)
+        if not tested or 'eflags' not in ref.regs or 'eflags' not in tgt.regs:
+            return []
+
+        ref_flags = _decode_eflags(ref.regs['eflags'])
+        tgt_flags = _decode_eflags(tgt.regs['eflags'])
+        deciding = [f for f in tested if ref_flags[f] != tgt_flags[f]]
+        if not deciding:
+            return [f"  Branch {mnem} tests {', '.join(tested)} (none of them differ here)."]
+
+        lines = [f"  Branch {mnem} tests {', '.join(tested)}; deciding flag(s) that differ:"]
+        for flag in deciding:
+            ref_s = console.paint(f"reference={ref_flags[flag]}", console.CYAN)
+            tgt_s = console.paint(f"target={tgt_flags[flag]}", console.YELLOW)
+            lines.append(f"    {flag}  {ref_s}  \u2192  {tgt_s}")
+        return lines
+
+    @staticmethod
+    def _branch_mnemonic(disasm: str) -> str:
+        """ Extract the (lowercased) mnemonic from a disassembled branch instruction """
+        after_colon = disasm.split(":", 1)[-1]
+        tokens = after_colon.split()
+        return tokens[0].lower() if tokens else ""
+
+    @staticmethod
+    def _parse_branch_target_sym(disasm: str) -> str:
+        """ Extract the trailing ``<symbol+off>`` annotation of a direct branch's target """
+        match = re.search(r'(<[^>]+>)\s*$', disasm)
+        return match.group(1) if match else ""
+
+    def _capture_backtrace(self, leak_info: _LeakInfo) -> str:
+        """
+        Capture the call stack (backtrace) at the leak site under gdb.
+
+        For an architectural (seq) leak this is the call stack at the leak instruction itself.
+        For a speculative leak the leak instruction is reachable only under speculation, so the
+        backtrace is captured at the start of the (outermost) speculation window — the
+        architectural frame from which speculation toward the leak begins. In both cases the
+        relevant point is the target PC of the outermost speculation window, which is always on
+        the architectural execution path.
+
+        :param leak_info: Information about the leak to investigate
+        :return: A rendered backtrace block (or an explanatory message on failure)
+        """
+        win = leak_info.spec_windows[0]
+        is_spec = len(leak_info.spec_windows) > 1
+        target_args = leak_info.driver_cmd(str(leak_info.input_path))
+
+        ex_cmds = [
+            'set pagination off',
+            'set width 0',
+            'set backtrace limit 64',
+            'set disable-randomization on',
+            f'tbreak *{win.start_pc_gdb:#x}',
+            'run',
+            f'break *{win.pc_gdb:#x}',
+        ]
+        if win.pc_occurrence > 0:
+            ex_cmds.append(f'ignore 2 {win.pc_occurrence}')
+        ex_cmds += [
+            'continue',
+            r'printf "\n__MCFZ_BT__\n"',
+            'bt',
+            r'printf "__MCFZ_END__\n"',
+        ]
+
+        frames = self._parse_backtrace(self._run_gdb(ex_cmds, target_args))
+        if not frames:
+            return "  Backtrace unavailable (could not capture call stack under gdb)."
+
+        if is_spec:
+            note = (f"  Captured at the spec-window start (trace pc {win.pc:#x}); "
+                    f"the leak is reached speculatively from here.")
+        else:
+            note = f"  Captured at the leak instruction (trace pc {win.pc:#x})."
+        return "\n".join([console.paint(note, console.DIM)] + self._format_backtrace(frames))
+
+    def _format_backtrace(self, frames: List[str]) -> List[str]:
+        """ Condense raw gdb frames into aligned ``#N  function   file:line`` lines """
+        parsed = [self._condense_frame(f) for f in frames]
+        func_w = max((len(func) for _, func, _ in parsed), default=0)
+        out: List[str] = []
+        for i, (idx, func, loc) in enumerate(parsed):
+            idx_s = console.paint(f"{idx:<4}", console.DIM)
+            func_s = console.paint(func, console.BOLD) if i == 0 else func
+            loc_s = console.paint(loc, console.DIM) if loc else ""
+            pad = " " * (func_w - len(func))
+            out.append(f"  {idx_s} {func_s}{pad}   {loc_s}".rstrip())
+        return out
+
+    @staticmethod
+    def _condense_frame(frame: str) -> Tuple[str, str, str]:
+        """
+        Split a raw gdb backtrace frame into its ``(index, function, location)`` parts, dropping
+        the verbose argument list and absolute path that make raw frames wrap.
+        """
+        idx_match = re.match(r'(#\d+)\s+', frame)
+        idx = idx_match.group(1) if idx_match else "#?"
+        rest = frame[idx_match.end():] if idx_match else frame
+        # Drop a leading "0x... in " address prefix, if present
+        rest = re.sub(r'^0x[0-9a-fA-F]+\s+in\s+', '', rest)
+        # The function name is everything up to the first " (" argument list
+        func_match = re.match(r'([^\s(]+)', rest)
+        func = func_match.group(1) if func_match else "??"
+        # The source location follows " at " near the end of the frame
+        loc_match = re.search(r'\sat\s+(\S+)', frame)
+        loc = os.path.basename(loc_match.group(1)) if loc_match else ""
+        return idx, func, loc
+
+    @staticmethod
+    def _parse_backtrace(output: str) -> List[str]:
+        """ Parse the marker-delimited gdb `bt` output produced by `_capture_backtrace` """
+        frames: List[str] = []
+        section = ""
+        for line in output.splitlines():
+            stripped = line.strip()
+            if stripped == "__MCFZ_BT__":
+                section = "bt"
+            elif stripped == "__MCFZ_END__":
+                section = ""
+            elif section == "bt" and stripped.startswith("#"):
+                frames.append(" ".join(stripped.split()))
+        return frames
+
+    def _capture_static_context(self, leak_info: _LeakInfo) -> str:
+        """
+        Capture the leak instruction's disassembly and surrounding source lines.
+
+        Loads the target module under gdb (running only to the trace entrypoint, so this works for
+        both architectural and speculative leaks) and reads the instruction and source listing at
+        the leak PC. Returns a rendered "Leak Location" block, or an empty string on failure.
+        """
+        pc_gdb = leak_info.spec_windows[-1].pc_gdb
+        dummy = self._create_valid_driver_invocation()
+
+        ex_cmds = [
+            'set pagination off',
+            'set width 0',
+            'set listsize 7',
+            'set disable-randomization on',
+            f'break {self._config.tracing_entrypoint}',
+            'run',
+            r'printf "\n__MCFZ_DIS__\n"',
+            f'x/1i {pc_gdb:#x}',
+            r'printf "__MCFZ_SRC__\n"',
+            f'list *{pc_gdb:#x}',
+            r'printf "__MCFZ_END__\n"',
+        ]
+
+        return self._parse_static_context(self._run_gdb(ex_cmds, dummy), leak_info)
+
+    @staticmethod
+    def _parse_static_context(output: str, leak_info: _LeakInfo) -> str:
+        """ Parse the marker-delimited gdb output produced by `_capture_static_context` """
+        disasm, source = Driller._split_static_context(output)
+        if not disasm and not source:
+            return ""
+        return Driller._render_static_context(disasm, source, leak_info)
+
+    @staticmethod
+    def _split_static_context(output: str) -> Tuple[str, List[str]]:
+        """ Extract the leak disassembly and source listing from the marker-delimited gdb output """
+        disasm = ""
+        source: List[str] = []
+
+        section = ""
+        for line in output.splitlines():
+            stripped = line.strip()
+            if stripped == "__MCFZ_DIS__":
+                section = "dis"
+            elif stripped == "__MCFZ_SRC__":
+                section = "src"
+            elif stripped == "__MCFZ_END__":
+                section = ""
+            elif section == "dis" and not disasm and stripped:
+                disasm = " ".join(stripped.removeprefix("=>").split())
+            elif section == "src" and stripped:
+                # gdb's `list *addr` prefixes the listing with a redundant
+                # "0x<runtime-addr> is at <file>:<line>." line; the runtime address and source
+                # location are already shown in the VIOLATION banner, so drop it.
+                if re.match(r'0x[0-9a-fA-F]+\s+is at\b', stripped):
+                    continue
+                source.append(line.rstrip())
+
+        return disasm, source
+
+    @staticmethod
+    def _render_static_context(disasm: str, source: List[str], leak_info: _LeakInfo) -> str:
+        """ Render the leak instruction and source listing into a "Leak Location" block """
+        leak_line = str(leak_info.code_line).rsplit(":", 1)[-1]
+        out: List[str] = []
+        if disasm:
+            out.append(f"  {console.paint('Instruction', console.DIM)}  {disasm}")
+        if source:
+            out.append(f"  {console.paint(f'Source ({leak_info.code_line})', console.DIM)}")
+            for src in source:
+                tokens = src.split()
+                line_no = tokens[0] if tokens else ""
+                body = src.strip().expandtabs(4)
+                if line_no == leak_line:
+                    marker = console.paint("\u25b6", console.BOLD, console.RED)
+                    out.append(f"    {marker} {console.paint(body, console.BOLD)}")
+                else:
+                    out.append(f"      {console.paint(body, console.DIM)}")
+
+        return "\n".join(out)

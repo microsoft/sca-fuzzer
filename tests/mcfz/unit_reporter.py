@@ -10,11 +10,11 @@ import os
 import tempfile
 import unittest
 from unittest.mock import MagicMock
-from typing import List, Any
+from typing import List, Any, Dict
 
 import numpy as np
-from mcfz.leak_detector import _LeakDetectionWorker, _Trace, _ChoppedTrace
-from mcfz.reporter import _ReportPrinter, CanonicalMap
+from mcfz.leak_detector import (_LeakDetectionWorker, _Trace, _ChoppedTrace, LinesInTracePair)
+from mcfz.reporter import _ReportPrinter, CanonicalMap, CodeLine, Witness, LeakRecord
 from rvzr.model_dynamorio.trace_decoder import TraceEntryType, TraceEntryDType
 
 
@@ -479,15 +479,16 @@ class TestReportSchema(unittest.TestCase):
 
     def test_split_code_line(self) -> None:
         printer = self._printer()
-        self.assertEqual(printer._split_code_line('lib/3des.c:259'), ('lib/3des.c', 259))
+        self.assertEqual(printer._split_code_line(CodeLine('lib/3des.c:259')), ('lib/3des.c', 259))
         self.assertEqual(
-            printer._split_code_line('/a/b/aesasm-gas.asm:273'), ('/a/b/aesasm-gas.asm', 273))
-        self.assertEqual(printer._split_code_line('undefined:0'), ('undefined', 0))
+            printer._split_code_line(CodeLine('/a/b/aesasm-gas.asm:273')),
+            ('/a/b/aesasm-gas.asm', 273))
+        self.assertEqual(printer._split_code_line(CodeLine('undefined:0')), ('undefined', 0))
 
     def test_parse_witness(self) -> None:
         printer = self._printer()
         self.assertEqual(
-            printer._parse_witness('/x/001.trace.gz:10229:10300'), {
+            printer._parse_witness(LinesInTracePair('/x/001.trace.gz:10229:10300')), {
                 'trace': '/x/001.trace.gz',
                 'line': 10229,
                 'ref_line': 10300
@@ -498,7 +499,7 @@ class TestReportSchema(unittest.TestCase):
         canonical: CanonicalMap = {
             'seq': {
                 'D': {
-                    'lib/3des.c:259': {
+                    CodeLine('lib/3des.c:259'): {
                         '0x20': [{
                             'trace': 't',
                             'line': 2,
@@ -527,19 +528,19 @@ class TestReportSchema(unittest.TestCase):
 
     def test_build_leaks_sorting(self) -> None:
         printer = self._printer()
-        witness = {'0x1': [{'trace': 't', 'line': 1, 'ref_line': 1}]}
+        witness: Dict[str, List[Witness]] = {'0x1': [{'trace': 't', 'line': 1, 'ref_line': 1}]}
         canonical: CanonicalMap = {
             'cond': {
                 'D': {
-                    'b.c:2': dict(witness)
+                    CodeLine('b.c:2'): dict(witness)
                 }
             },
             'seq': {
                 'I': {
-                    'a.c:1': dict(witness)
+                    CodeLine('a.c:1'): dict(witness)
                 },
                 'D': {
-                    'a.c:1': dict(witness)
+                    CodeLine('a.c:1'): dict(witness)
                 },
             },
         }
@@ -550,7 +551,7 @@ class TestReportSchema(unittest.TestCase):
 
     def test_build_summary(self) -> None:
         printer = self._printer()
-        leaks = [
+        leaks: List[LeakRecord] = [
             {
                 'clause': 'seq',
                 'type': 'D',
@@ -577,17 +578,17 @@ class TestReportSchema(unittest.TestCase):
 
     def test_remove_cond_dups(self) -> None:
         printer = self._printer()
-        witness = {'0x1': [{'trace': 't', 'line': 1, 'ref_line': 1}]}
+        witness: Dict[str, List[Witness]] = {'0x1': [{'trace': 't', 'line': 1, 'ref_line': 1}]}
         canonical: CanonicalMap = {
             'seq': {
                 'D': {
-                    'a.c:1': dict(witness)
+                    CodeLine('a.c:1'): dict(witness)
                 }
             },
             'cond': {
                 'D': {
-                    'a.c:1': dict(witness),
-                    'b.c:2': dict(witness)
+                    CodeLine('a.c:1'): dict(witness),
+                    CodeLine('b.c:2'): dict(witness)
                 }
             },
         }

@@ -16,14 +16,16 @@ from typing import Any, Final
 
 from tqdm import tqdm
 
-# ANSI styling codes
-_RESET: Final[str] = "\033[0m"
-_BOLD: Final[str] = "\033[1m"
-_DIM: Final[str] = "\033[2m"
-_RED: Final[str] = "\033[31m"
-_GREEN: Final[str] = "\033[32m"
-_YELLOW: Final[str] = "\033[33m"
-_CYAN: Final[str] = "\033[36m"
+# Public ANSI style codes, used both internally by this module and by modules that build
+# multi-line, inline-styled strings (e.g. the `details` report) rather than emitting one
+# status line at a time.
+RESET: Final[str] = "\033[0m"
+BOLD: Final[str] = "\033[1m"
+DIM: Final[str] = "\033[2m"
+RED: Final[str] = "\033[31m"
+GREEN: Final[str] = "\033[32m"
+YELLOW: Final[str] = "\033[33m"
+CYAN: Final[str] = "\033[36m"
 
 _HEADER_WIDTH: Final[int] = 62
 _PROGRESS_NCOLS: Final[int] = 80
@@ -43,7 +45,12 @@ def _paint(text: str, *codes: str) -> str:
     """Wrap ``text`` in the given ANSI codes, or return it unchanged when color is disabled."""
     if not codes or not _use_color():
         return text
-    return "".join(codes) + text + _RESET
+    return "".join(codes) + text + RESET
+
+
+def paint(text: str, *codes: str) -> str:
+    """ Wrap ``text`` in the given ANSI style codes, honoring the TTY color gate """
+    return _paint(text, *codes)
 
 
 def _emit(message: str) -> None:
@@ -55,32 +62,32 @@ def section(title: str) -> None:
     """Print a bold section header that visually separates pipeline stages."""
     rule = "\u2500" * max(0, _HEADER_WIDTH - len(title) - 4)
     _emit("")
-    _emit(_paint(f"\u2501\u2501 {title} ", _BOLD, _CYAN) + _paint(rule, _CYAN))
+    _emit(_paint(f"\u2501\u2501 {title} ", BOLD, CYAN) + _paint(rule, CYAN))
 
 
 def info(message: str) -> None:
     """Print a primary progress message."""
-    _emit(_paint("  \u2022 ", _CYAN) + message)
+    _emit(_paint("  \u2022 ", CYAN) + message)
 
 
 def detail(message: str) -> None:
     """Print a secondary, dimmed message for low-importance detail."""
-    _emit(_paint(f"    {message}", _DIM))
+    _emit(_paint(f"    {message}", DIM))
 
 
 def success(message: str) -> None:
     """Print a success / completion message."""
-    _emit(_paint("  \u2713 ", _GREEN) + message)
+    _emit(_paint("  \u2713 ", GREEN) + message)
 
 
 def warn(message: str) -> None:
     """Print a warning message."""
-    _emit(_paint("  ! ", _YELLOW) + _paint(message, _YELLOW))
+    _emit(_paint("  ! ", YELLOW) + _paint(message, YELLOW))
 
 
 def error(message: str) -> None:
     """Print an error message."""
-    _emit(_paint("  \u2717 ", _RED) + _paint(message, _RED))
+    _emit(_paint("  \u2717 ", RED) + _paint(message, RED))
 
 
 def progress_bar(total: int, desc: str, unit: str = "exec") -> "tqdm[Any]":

@@ -90,6 +90,13 @@ def _parse_args() -> Any:
         "the given violation as well as temporary files",
     )
     details.add_argument(
+        "--keep-trace",
+        action='store_true',
+        default=False,
+        help="Keep the (large) decompressed trace in the output directory instead of\n"
+        "discarding it after analysis",
+    )
+    details.add_argument(
         "--fast",
         action='store_true',
         default=False,
@@ -146,6 +153,7 @@ def main() -> int:
             output_dir=args.output_dir,
             fast=args.fast,
             single_step=args.single_step,
+            keep_trace=args.keep_trace,
         )
         driller.drill_down(pc=args.pc)
         return 0

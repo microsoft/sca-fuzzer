@@ -280,14 +280,14 @@ class Config:
     Name of the function that triggers instrumentation start. """
 
     max_spec_window: Optional[int] = None
-    _help += """\n\n max_spec_windown (optional)
+    _help += """\n\n max_spec_window (optional)
     Maximum size of the speculation window. """
 
     tracing_total_timeout_s: int = 60 * 60 * 10
     _help += """\n\n tracing_total_timeout_s (optional)
     Maximum time to spend for each worker. """
 
-    tracing_timeout_s: int = 60 * 5
+    tracing_timeout_s: int = 60 * 60
     _help += """\n\n tracing_timeout_s (optional)
     Maximum time to spend on each input. """
 
