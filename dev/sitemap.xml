@@ -165,6 +165,18 @@
          <lastmod>2026-07-08</lastmod>
     </url>
     <url>
+         <loc>https://github.com/microsoft/side-channel-fuzzer/dev/mcfz/harness/</loc>
+         <lastmod>2026-07-08</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/microsoft/side-channel-fuzzer/dev/mcfz/overview/</loc>
+         <lastmod>2026-07-08</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/microsoft/side-channel-fuzzer/dev/mcfz/quick-start/</loc>
+         <lastmod>2026-07-08</lastmod>
+    </url>
+    <url>
          <loc>https://github.com/microsoft/side-channel-fuzzer/dev/ref/</loc>
          <lastmod>2026-07-08</lastmod>
     </url>
