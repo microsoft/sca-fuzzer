@@ -18,31 +18,42 @@
 namespace fs = std::filesystem;
 
 using spec_level_t = uint8_t;
-using PerPCMap = std::map<uint64_t, std::vector<std::string>>;
+
+/// @brief A single trace-pair location where a leak was observed. The field names mirror the
+/// Python `Witness` type so the emitted JSON maps directly onto it. `line`/`ref_line` carry the
+/// reference/target trace indices, respectively.
+struct witness_t {
+    std::string trace;
+    uint64_t line;
+    uint64_t ref_line;
+};
+
+using PerPCMap = std::map<uint64_t, std::vector<witness_t>>;
 using PerLeakTypeMap = std::map<leak_type_t, PerPCMap>;
 using PerClauseMap = std::map<spec_level_t, PerLeakTypeMap>;
 
-/// @brief Print a map of <PC, List[location]> in json format:
+/// @brief Print a map of <PC, List[witness]> in json format:
 ///
-///      "0xdead" : [seed1/001:1234:1234, seed1/002:1234:1234, seed2/001:4567:4567],
-///      "0xbeef" : [seed1/001:4567:4567, seed1/002:1234:1234],
+///      "0xdead" : [{"trace": "seed1/001.leaks", "line": 1234, "ref_line": 1234}, ...],
+///      "0xbeef" : [{"trace": "seed1/001.leaks", "line": 4567, "ref_line": 4567}],
 ///
-void dump_json(const PerPCMap &map)
+static void dump_json(const PerPCMap &map)
 {
     bool first_pc = true;
-    for (auto const &[pc, refs] : map) {
+    for (auto const &[pc, witnesses] : map) {
         if (!first_pc)
             std::cout << ",\n";
         first_pc = false;
 
-        char buf[20];
-        std::snprintf(buf, sizeof(buf), "0x%lx", pc);
-        std::cout << "  \"" << buf << "\": [";
+        std::cout << "  \"0x" << std::hex << pc << std::dec << "\": [";
 
-        for (std::size_t i = 0; i < refs.size(); ++i) {
-            if (i)
+        bool first_witness = true;
+        for (auto const &witness : witnesses) {
+            if (!first_witness)
                 std::cout << ", ";
-            std::cout << "\"" << refs[i] << "\"";
+            first_witness = false;
+            std::cout << R"({"trace": ")" << witness.trace << R"(", "line": )" << witness.line
+                      << R"(, "ref_line": )" << witness.ref_line << "}";
         }
         std::cout << "]";
     }
@@ -51,13 +62,13 @@ void dump_json(const PerPCMap &map)
 /// @brief Print a map of <LeakType, PCMap> in json format:
 ///
 ///    "D" : {
-///        "0xdead" : [seed1/001:1234:1234, seed1/002:1234:1234, seed2/001:4567:4567]
+///        "0xdead" : [{"trace": "seed1/001.leaks", "line": 1234, "ref_line": 1234}, ...]
 ///     },
 ///    "I" : {
-///        "0xbeef" : [seed1/001:4567:4567, seed1/002:1234:1234]
+///        "0xbeef" : [{"trace": "seed1/001.leaks", "line": 4567, "ref_line": 4567}]
 ///     }
 ///
-void dump_json(const PerLeakTypeMap &map)
+static void dump_json(const PerLeakTypeMap &map)
 {
     bool first = true;
     for (auto const &[leak_type, pc_map] : map) {
@@ -81,22 +92,22 @@ void dump_json(const PerLeakTypeMap &map)
 ///
 /// "cond" : {
 ///    "D" : {
-///        "0xdead" : [seed1/001:1234:1234, seed1/002:1234:1234, seed2/001:4567:4567]
+///        "0xdead" : [{"trace": "seed1/001.leaks", "line": 1234, "ref_line": 1234}, ...]
 ///     },
 ///    "I" : {
-///        "0xbeef" : [seed1/001:4567:4567, seed1/002:1234:1234]
+///        "0xbeef" : [{"trace": "seed1/001.leaks", "line": 4567, "ref_line": 4567}]
 ///     }
 ///  },
 /// "seq" : {
 ///    "D" : {
-///        "0xdead" : [seed1/001:1234:1234, seed1/002:1234:1234, seed2/001:4567:4567]
+///        "0xdead" : [{"trace": "seed1/001.leaks", "line": 1234, "ref_line": 1234}, ...]
 ///     },
 ///    "I" : {
-///        "0xbeef" : [seed1/001:4567:4567, seed1/002:1234:1234]
+///        "0xbeef" : [{"trace": "seed1/001.leaks", "line": 4567, "ref_line": 4567}]
 ///     }
 ///  }
 ///
-void dump_json(const PerClauseMap &map)
+static void dump_json(const PerClauseMap &map)
 {
     bool first = true;
     for (auto const &[spec_level, type_map] : map) {
@@ -122,7 +133,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    fs::path root(argv[1]);
+    const fs::path root(argv[1]);
     if (!fs::is_directory(root)) {
         std::cerr << "Not a directory: " << root << "\n";
         return 1;
@@ -143,11 +154,12 @@ int main(int argc, char *argv[])
             if (!f)
                 continue;
             // Read a single .leaks file and add all leaks to the map
-            leak_t leak;
+            leak_t leak{};
             while (f.read(reinterpret_cast<char *>(&leak), sizeof(leak_t))) {
-                std::string tag = file_entry.path().string() + ":" + std::to_string(leak.ref_idx) +
-                                  ":" + std::to_string(leak.tgt_idx);
-                leak_map[leak.spec_level][leak.type][leak.pc].push_back(std::move(tag));
+                witness_t witness{.trace = file_entry.path().string(),
+                                  .line = leak.ref_idx,
+                                  .ref_line = leak.tgt_idx};
+                leak_map[leak.spec_level][leak.type][leak.pc].push_back(std::move(witness));
             }
         }
     }

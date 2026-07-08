@@ -41,6 +41,10 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install flake8 mypy pylint
         python -m pip install .
+    - name: Build leak detector
+      run: |
+        mkdir -p ~/.local/dynamorio
+        make -C rvzr/model_dynamorio leak-detector
     - name: Run
       run: |
         ./tests/runtests.sh --skip-km-tests

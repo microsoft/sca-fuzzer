@@ -14,7 +14,7 @@ import json
 
 from typing_extensions import TypedDict
 
-from .leak_detector import LeakageMap, LeakType, ClauseType, PC, LinesInTracePair
+from .leak_detector import LeakageMap, LeakType, ClauseType, PC, Witness
 from .util.dwarf import ModulesInfo
 
 if TYPE_CHECKING:
@@ -32,13 +32,6 @@ CodeLine = NewType('CodeLine', str)
     * filename is the name of the source file,
     * line_number is the line number in the source file.
 """
-
-
-class Witness(TypedDict):
-    """ A single trace-pair location where a leak was observed. """
-    trace: str
-    line: int
-    ref_line: int
 
 
 class LeakRecordBase(TypedDict):
@@ -60,7 +53,6 @@ class ReportMetadata(TypedDict):
     tool: str
     generated_at: str
     target: str
-    detector: str
     allowlist: Optional[str]
 
 
@@ -128,7 +120,6 @@ class _ReportPrinter:
             "tool": "mcfz",
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "target": self._config.bin_native,
-            "detector": "fast" if self._config.use_fast_detector else "python",
             "allowlist": self._config.allowlist,
         }
 
@@ -147,14 +138,9 @@ class _ReportPrinter:
         for clause, leak_type, code_line, pc, locs in self._iter_leaks_with_code_lines(leakage_map):
             per_line = canonical.setdefault(clause, {}).setdefault(leak_type, {}) \
                 .setdefault(code_line, {})
-            per_line.setdefault(hex(pc), []).extend(self._parse_witness(loc) for loc in locs)
+            per_line.setdefault(hex(pc), []).extend(locs)
         self._remove_cond_dups(canonical)
         return canonical
-
-    def _parse_witness(self, loc: LinesInTracePair) -> Witness:
-        """ Split a packed "trace:line:ref_line" location into a structured witness. """
-        trace, line_str, ref_str = loc.rsplit(":", 2)
-        return {"trace": trace, "line": int(line_str), "ref_line": int(ref_str)}
 
     def _remove_cond_dups(self, canonical: CanonicalMap) -> None:
         """ Remove COND violations on code lines that were also found under SEQ. """
@@ -171,7 +157,7 @@ class _ReportPrinter:
             }
 
     def _iter_leaks_with_code_lines(self, leakage_map: LeakageMap) \
-            -> Iterator[Tuple[ClauseType, LeakType, CodeLine, PC, List[LinesInTracePair]]]:
+            -> Iterator[Tuple[ClauseType, LeakType, CodeLine, PC, List[Witness]]]:
         """Yield (clause, leak_type, code_line, pc, trace_locations) for each leak in the map."""
         for clause_type in leakage_map:
             for leak_type in leakage_map[clause_type]:

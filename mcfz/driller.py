@@ -15,10 +15,12 @@ import tempfile
 import textwrap
 
 from dataclasses import dataclass
-from typing import Any, Dict, Final, List, Tuple, Optional
+from typing import Any, Dict, Final, List, NewType, Tuple, Optional
 from subprocess import run, PIPE
 
-from rvzr.model_dynamorio.trace_decoder import TraceDecoder
+import numpy as np
+
+from rvzr.model_dynamorio.trace_decoder import TraceDecoder, TraceEntryType, TraceEntryArray
 
 from .leak_detector import PC, FileName
 from .reporter import CodeLine
@@ -26,7 +28,15 @@ from .config import Config
 from .util import console
 from .util.compressor import Compressor
 from .util.gdb_script import DebugScriptBuilder
-from .leak_detector import _Trace
+
+TraceFileName = NewType('TraceFileName', str)
+""" Name of the trace file, used to link leaks back the trace file they were found in. """
+
+TracedInstructionDType: Final[np.dtype[np.void]] = np.dtype([
+    ('pc', np.uint64),  # PC of the instruction
+    ('spec_level', np.uint8),  # Level of nested speculation (0 = architectural)
+    ('org_trace_entry_id', np.int32),  # Entry ID in the original (raw) trace
+])
 
 # Width of the section-header rules in the `details` report.
 _SECTION_WIDTH: Final[int] = 78
@@ -74,6 +84,50 @@ _JCC_FLAGS: Final[Dict[str, List[str]]] = {
     "jnp": ["PF"],
     "jpo": ["PF"]
 }
+
+
+class _Trace:
+    """
+    A trace of a contract execution, containing the list of instructions executed
+    during the execution.
+
+    NOTE: This is a Python (numpy) reimplementation of the per-instruction grouping performed
+    by the C++ detector's `TraceReader::next` in
+    `rvzr/model_dynamorio/leak_detector/trace_reader.cpp`. Both encode the same DR-trace-format
+    contract (an instruction begins at an ENTRY_PC entry, `spec_level` is constant within an
+    instruction, and the raw trace index is recorded for localization). The authoritative
+    definition of that on-disk format is `rvzr/model_dynamorio/backend/include/types/trace.hpp`;
+    changes there must be mirrored in both parsers.
+    """
+    file_name: Final[TraceFileName]
+
+    def __init__(self, file_name: str, raw_trace: TraceEntryArray) -> None:
+        """
+        Process the flat trace array into per-instruction records, keeping track of the original
+        entry IDs to enable leak localization.
+
+        E.g., if the raw trace contains entries like this (type, addr):
+        [(PC, 0x100), (READ, 0x200), (WRITE, 0x300), (PC, 0x110), (READ, 0x400)]
+
+        The resulting `instructions` array (dtype TracedInstructionDType) holds one record per PC
+        entry: [(0x100, 0, 0), (0x110, 0, 3)].
+        """
+        self.file_name = TraceFileName(file_name)
+
+        # Count the number of instructions to identify array size
+        counts = np.bincount(raw_trace['type'], minlength=6)
+        num_instructions = counts[TraceEntryType.ENTRY_PC]
+        assert num_instructions < 2 ** 31, \
+            "Too many instructions for int32 offsets; trace parsing would need adjustment"
+
+        # Pre-allocate the instruction array
+        self.instructions = np.zeros(num_instructions, dtype=TracedInstructionDType)
+
+        # Extract the PC entries: their addresses, speculation levels, and original positions
+        is_pc = raw_trace['type'] == TraceEntryType.ENTRY_PC
+        self.instructions['pc'] = raw_trace['addr'][is_pc]
+        self.instructions['spec_level'] = raw_trace['spec_level'][is_pc]
+        self.instructions['org_trace_entry_id'] = np.flatnonzero(is_pc)
 
 
 def _section(title: str) -> str:
@@ -447,6 +501,10 @@ class Driller:
         raise RuntimeError(f"Module {module_basename} not found in gdb mappings output")
 
     def _find_spec_windows(self, leak_info: _LeakInfo) -> List[_SpecWinInfo]:
+        # Reconstructs speculation windows for the drill-down report. The window/misprediction
+        # model here (boundaries at `spec_level` changes; a misprediction sits at `spec_level - 1`
+        # immediately before the window) must stay in sync with the detector's
+        # `skip_spec_window` / `get_prev` in `rvzr/model_dynamorio/leak_detector/trace_reader.cpp`.
         # Parse the trace file
         trace_decoder = TraceDecoder()
         raw_trace = trace_decoder.decode_trace_file(str(leak_info.trace_path))

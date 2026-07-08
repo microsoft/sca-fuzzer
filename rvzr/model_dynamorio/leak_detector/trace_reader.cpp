@@ -14,19 +14,19 @@
 TraceReader::TraceReader(const char *path)
 {
     // Open file
-    int fd = open(path, O_RDONLY);
+    const int fd = open(path, O_RDONLY);
     if (fd < 0) {
         fprintf(stderr, "File not found");
         exit(1);
     }
 
     // Read size
-    struct stat st;
-    if (fstat(fd, &st) < 0) {
+    struct stat file_stat{};
+    if (fstat(fd, &file_stat) < 0) {
         fprintf(stderr, "Cannot stat file");
         exit(1);
     }
-    file_size = (size_t)st.st_size;
+    file_size = (size_t)file_stat.st_size;
     if (file_size < MARKER_SIZE) {
         fprintf(stderr, "error: file too small: %s\n", path);
         exit(1);
@@ -43,13 +43,19 @@ TraceReader::TraceReader(const char *path)
     madvise(raw_data, file_size, MADV_SEQUENTIAL);
 
     // Reinterpret as array of trace entry
-    entries = reinterpret_cast<const trace_entry_t *>((uint64_t)raw_data + MARKER_SIZE);
+    entries =
+        reinterpret_cast<const trace_entry_t *>(static_cast<const char *>(raw_data) + MARKER_SIZE);
 }
 
 TraceReader::~TraceReader() { munmap(raw_data, file_size); }
 
 std::optional<TracedInst> TraceReader::next()
 {
+    // Groups the flat DR trace into one record per instruction. A Python (numpy) reimplementation
+    // of this same grouping lives in `_Trace` in `mcfz/driller.py`; the authoritative on-disk
+    // format is `../backend/include/types/trace.hpp`. Changes to that format must be mirrored in
+    // both parsers.
+
     // Check if the cursor is out of bounds
     if (cursor >= num_entries)
         return std::nullopt;
@@ -108,11 +114,11 @@ TraceReader::get_prev(trace_idx_t idx) const
     if (idx == 0)
         return {0, 0, 0}; // Reached start of trace
 
-    // Start from the previous entry
-    uint8_t cur_level = entries[idx].spec_level;
-    uint64_t prev_idx = idx - 1;
     // Go back until you find a PC entry at the same speculation level
-    for (; prev_idx > 0; prev_idx--) {
+    const uint8_t cur_level = entries[idx].spec_level;
+    uint64_t prev_idx = idx;
+    while (prev_idx > 0) {
+        prev_idx--;
         if (entries[prev_idx].type == trace_entry_type_t::ENTRY_PC and
             entries[prev_idx].spec_level <= cur_level)
             return {entries[prev_idx].addr, entries[prev_idx].spec_level, prev_idx};

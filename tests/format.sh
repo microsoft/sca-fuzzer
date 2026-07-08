@@ -49,7 +49,8 @@ SHFMT_ARGS=(-i 4 -bn -sr -kp)
 PY_DIRS=("rvzr" "mcfz" "tests")
 
 # C/C++ source trees formatted by default. Each has its own .clang-format.
-C_DIRS=("rvzr/executor_km" "rvzr/model_dynamorio/adapter" "rvzr/model_dynamorio/backend")
+C_DIRS=("rvzr/executor_km" "rvzr/model_dynamorio/adapter" "rvzr/model_dynamorio/backend"
+    "rvzr/model_dynamorio/leak_detector")
 
 # Shell source trees formatted by default (relative to the repo root).
 SH_DIRS=(".github/scripts" "tests")

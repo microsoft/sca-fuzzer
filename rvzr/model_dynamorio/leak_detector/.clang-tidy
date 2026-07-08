@@ -1,0 +1,62 @@
+# Reasoning behind excluding some checks:
+# - `misc-include-cleaner`: Too noisy with the transitively-included trace format header.
+# - `modernize-use-trailing-return-type`: Diverges from the rest of the code base.
+# - `readability-braces-around-statements`: Diverges from the rest of the code base.
+# - `cppcoreguidelines-pro-type-vararg`: Needed for printf/fprintf-style diagnostics.
+# - `cppcoreguidelines-pro-type-reinterpret-cast`: Needed to reinterpret the mmap'd trace buffer.
+# - `cppcoreguidelines-pro-bounds-pointer-arithmetic`: The trace buffer is a raw entry array.
+# - `cppcoreguidelines-pro-bounds-constant-array-index`: Same as above.
+# - `cppcoreguidelines-avoid-c-arrays` / `modernize-avoid-c-arrays`: Fixed-size C buffers for snprintf.
+# - `misc-non-private-member-variables-in-classes` (+ cppcoreguidelines alias): Plain data structs.
+# - `llvm-header-guard`: We use `#pragma once` instead.
+# - `modernize-use-using`: Diverges from the rest of the code base.
+# - `bugprone-easily-swappable-parameters`: Many false positives on the small helpers here.
+# - `cppcoreguidelines-avoid-magic-numbers`: Duplicate of readability-magic-numbers.
+# - `cppcoreguidelines-avoid-non-const-global-variables`: N/A but excluded for consistency.
+# - `cppcoreguidelines-owning-memory`: Requires the GSL library, which is not a dependency; the
+#   FILE* handles here are owned via plain RAII in LeakPrinter.
+# - `cppcoreguidelines-avoid-const-or-ref-data-members`: The printer intentionally holds const
+#   references to the trace readers it borrows.
+Checks: >
+    -*,
+    bugprone-*,
+    cppcoreguidelines-*,
+    llvm-*,
+    misc-*,
+    modernize-*,
+    performance-*,
+    readability-*,
+    -misc-include-cleaner,
+    -misc-use-anonymous-namespace,
+    -misc-non-private-member-variables-in-classes,
+    -modernize-use-trailing-return-type,
+    -modernize-use-using,
+    -modernize-avoid-c-arrays,
+    -readability-braces-around-statements,
+    -readability-convert-member-functions-to-static,
+    -cppcoreguidelines-pro-type-vararg,
+    -cppcoreguidelines-pro-type-reinterpret-cast,
+    -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+    -cppcoreguidelines-pro-bounds-constant-array-index,
+    -cppcoreguidelines-avoid-c-arrays,
+    -cppcoreguidelines-non-private-member-variables-in-classes,
+    -cppcoreguidelines-avoid-magic-numbers,
+    -cppcoreguidelines-avoid-non-const-global-variables,
+    -cppcoreguidelines-owning-memory,
+    -cppcoreguidelines-avoid-const-or-ref-data-members,
+    -llvm-header-guard,
+    -bugprone-easily-swappable-parameters
+
+# Turn all the warnings from the checks above into errors.
+WarningsAsErrors: "*"
+
+# Only lint the leak detector's own headers, not the shared trace-format header.
+HeaderFilterRegex: "leak_detector/.*\\.h$"
+
+CheckOptions:
+    - key: readability-magic-numbers.IgnoredIntegerValues
+      value: '0;1;2;3;4;8;-1'
+    - key: readability-identifier-length.IgnoredVariableNames
+      value: "pc|f"
+    - key: readability-identifier-length.IgnoredParameterNames
+      value: "pc|f"

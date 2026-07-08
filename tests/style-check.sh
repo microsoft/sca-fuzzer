@@ -237,7 +237,8 @@ function pylint_check() {
 function dr_clang_tidy() {
     local dr_dir="rvzr/model_dynamorio"
 
-    if [[ ! -d "$dr_dir/adapter/build" ]] && [[ ! -d "$dr_dir/backend/build" ]]; then
+    if [[ ! -d "$dr_dir/adapter/build" ]] && [[ ! -d "$dr_dir/backend/build" ]] \
+                                                                                && [[ ! -d "$dr_dir/leak_detector/build" ]]; then
         echo "[DR] No build directory for DR backend found; skipping clang-tidy check"
         return
     fi
@@ -255,6 +256,7 @@ function dr_clang_tidy() {
 
     run_clang_tidy adapter "$dr_dir/adapter" c h "$changed"
     run_clang_tidy backend "$dr_dir/backend" cpp hpp "$changed" --use-color
+    run_clang_tidy leak_detector "$dr_dir/leak_detector" cpp h "$changed" --use-color
 }
 
 # Extra shellcheck arguments. Empty means the default severity, which reports

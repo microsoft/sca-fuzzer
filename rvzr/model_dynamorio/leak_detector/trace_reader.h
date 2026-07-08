@@ -14,8 +14,7 @@
 #include <vector>
 
 // Import the DR trace format.
-// TODO: Avoid hardcoding this path
-#include "../../rvzr/model_dynamorio/backend/include/types/trace.hpp"
+#include "../backend/include/types/trace.hpp"
 
 static constexpr size_t MARKER_SIZE = 8;
 
@@ -30,8 +29,8 @@ struct TracedInst {
     uint64_t pc = 0;
     uint8_t spec_level = 0;
     uint64_t trace_idx = 0;
-    std::vector<MemAccess> reads = {};
-    std::vector<MemAccess> writes = {};
+    std::vector<MemAccess> reads;
+    std::vector<MemAccess> writes;
 
     void dump() const
     {
@@ -47,6 +46,11 @@ class TraceReader
     TraceReader(const char *path);
     ~TraceReader();
 
+    TraceReader(const TraceReader &) = delete;
+    TraceReader &operator=(const TraceReader &) = delete;
+    TraceReader(TraceReader &&) = delete;
+    TraceReader &operator=(TraceReader &&) = delete;
+
     /// @brief Advance the cursor by one instruction
     std::optional<TracedInst> next();
     /// @brief Advance the cursor until the current speculation window has ended
@@ -56,7 +60,7 @@ class TraceReader
     using pc_t = uint64_t;
     using trace_idx_t = uint64_t;
     using spec_level_t = uint8_t;
-    std::tuple<pc_t, spec_level_t, trace_idx_t> get_prev(trace_idx_t idx) const;
+    [[nodiscard]] std::tuple<pc_t, spec_level_t, trace_idx_t> get_prev(trace_idx_t idx) const;
 
   private:
     const trace_entry_t *entries;

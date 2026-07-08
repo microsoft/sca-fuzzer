@@ -6,7 +6,6 @@ SPDX-License-Identifier: MIT
 """
 from __future__ import annotations
 from typing import TYPE_CHECKING
-from pathlib import Path
 
 from .fuzz_gen import FuzzGen
 from .boost import Boost
@@ -50,7 +49,7 @@ class FuzzerCore:
         :param timeout_s: Timeout for the fuzzing process
         :return: 0 if the target coverage or timeout is reached, 1 if error occurs
         """
-        console.section("Stage 1/4 \u00b7 Fuzzing-based input generation")
+        console.section("Stage 1/4: Fuzzing-based input generation")
         fuzz_gen = FuzzGen(self._config)
         fuzz_gen.generate(timeout_s)
         console.success("Input generation complete.")
@@ -61,7 +60,7 @@ class FuzzerCore:
             Boost inputs by generating public-equivalent variants
         :return: 0 if successful, 1 if error occurs
         """
-        console.section("Stage 2/4 \u00b7 Input boosting")
+        console.section("Stage 2/4: Input boosting")
         boost = Boost(self._config)
         boost.generate()
         console.success("Input boosting complete.")
@@ -71,7 +70,7 @@ class FuzzerCore:
         Fuzzing Stage 3:
             Collect contract traces for each input pair.
         """
-        console.section("Stage 3/4 \u00b7 Trace collection")
+        console.section("Stage 3/4: Trace collection")
         tracer = Tracer(self._config)
         tracer.collect_traces()
         console.success("Trace collection complete.")
@@ -84,17 +83,9 @@ class FuzzerCore:
         :param num_traces: Process only the first N traces (for debugging purposes);
                if 0, process all traces
         """
-        console.section("Stage 4/4 \u00b7 Leak analysis & reporting")
+        console.section("Stage 4/4: Leak analysis & reporting")
         detector = LeakDetector(self._config)
-        if self._config.use_fast_detector:
-            # TODO: find a nicer way to find the fast detector binary
-            fast_reporter_dir = Path(__file__).parent.absolute() / "fast-detector"
-            leak_detector_path = fast_reporter_dir / "leak_detector"
-            merger_path = fast_reporter_dir / "merger"
-            leakage_map = detector.build_leakage_map_fast(self._config.stage3_wd, num_traces,
-                                                          str(leak_detector_path), str(merger_path))
-        else:
-            leakage_map = detector.build_leakage_map(self._config.stage3_wd, num_traces)
+        leakage_map = detector.build_leakage_map(self._config.stage3_wd, num_traces)
 
         reporter = Reporter(self._config)
         reporter.generate_report(leakage_map)

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include <stdio.h>
+#include <cstdio>
 
 // ===================================================================
 // Output format

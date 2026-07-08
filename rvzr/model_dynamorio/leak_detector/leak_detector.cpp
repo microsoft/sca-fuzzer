@@ -31,16 +31,20 @@ class LeakPrinter
     /// @param ref_reader Buffered reader of the reference trace
     /// @param tgt_reader Buffered reader of the target trace
     LeakPrinter(const char *fname, const TraceReader &ref_reader, const TraceReader &tgt_reader)
-        : ref_reader(ref_reader), tgt_reader(tgt_reader)
+        : out(fopen(fname, "wb")), ref_reader(ref_reader), tgt_reader(tgt_reader)
     {
-        out = fopen(fname, "wb");
-        if (!out) {
+        if (out == nullptr) {
             fprintf(stderr, "Cannot create output file %s", fname);
             exit(1);
         }
     }
 
     ~LeakPrinter() { fclose(out); }
+
+    LeakPrinter(const LeakPrinter &) = delete;
+    LeakPrinter &operator=(const LeakPrinter &) = delete;
+    LeakPrinter(LeakPrinter &&) = delete;
+    LeakPrinter &operator=(LeakPrinter &&) = delete;
 
     /// @brief Serialize a D-Leak (memory access divergence) to disk
     /// @param ref_inst Instruction in the reference trace that caused the divergence
@@ -76,7 +80,7 @@ class LeakPrinter
     }
 
   private:
-    FILE *out = nullptr;
+    FILE *out;
     const TraceReader &ref_reader;
     const TraceReader &tgt_reader;
 };
@@ -152,8 +156,9 @@ int main(int argc, char *argv[])
             ref_inst = ref_reader.skip_spec_window(ref_inst->spec_level);
             tgt_inst = tgt_reader.skip_spec_window(tgt_inst->spec_level);
             continue;
+        }
 
-        } else if (not have_same_accesses(*ref_inst, *tgt_inst)) {
+        if (not have_same_accesses(*ref_inst, *tgt_inst)) {
             printer.report_d_leak(*ref_inst, *tgt_inst);
         }
 

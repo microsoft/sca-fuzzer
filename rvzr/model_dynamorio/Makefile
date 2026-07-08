@@ -9,9 +9,12 @@ dr_url := https://github.com/DynamoRIO/dynamorio/releases/download/release_11.3.
 
 CMAKE_FLAGS := -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
-.PHONY: all download_dr backend adapter clean-backend clean-adapter clean
+leak_detector_dir := $(current_dir)/leak_detector
 
-all: download_dr backend adapter
+.PHONY: all download_dr backend adapter leak-detector \
+	clean-backend clean-adapter clean-leak-detector clean
+
+all: download_dr backend adapter leak-detector
 download_dr: $(dr_path)/drrun
 	@echo "DynamoRIO is downloaded and ready to use."
 
@@ -36,13 +39,22 @@ adapter:
 	make -C $(current_dir)/adapter/build
 	make -C $(current_dir)/adapter/build install
 
+leak-detector:
+	mkdir -p $(leak_detector_dir)/build
+	cd $(leak_detector_dir)/build && cmake $(CMAKE_FLAGS) $(leak_detector_dir)
+	make -C $(leak_detector_dir)/build
+	make -C $(leak_detector_dir)/build install
+
 clean-backend:
 	rm -rf $(current_dir)/backend/build
 
 clean-adapter:
 	rm -rf $(current_dir)/adapter/build
 
-clean:  clean-backend clean-adapter
+clean-leak-detector:
+	rm -rf $(leak_detector_dir)/build
+
+clean:  clean-backend clean-adapter clean-leak-detector
 
 uninstall-dr:
 	rm -rf $(dr_path)/DynamoRIO-Linux-*.tar.gz $(dr_path)/drrun
