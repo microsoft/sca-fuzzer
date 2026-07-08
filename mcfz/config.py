@@ -275,8 +275,8 @@ class Config:
     _help += """\n\n tracing_ignorelist (optional)
     File containing a list of symbols for which instrumentation should be paused. """
 
-    tracing_entrypoint: str = "start_driver"
-    _help += """\n\n tracing_entrypoint (start_driver)
+    tracing_entrypoint: str = "start_harness"
+    _help += """\n\n tracing_entrypoint (start_harness)
     Name of the function that triggers instrumentation start. """
 
     max_spec_window: Optional[int] = None

@@ -1,0 +1,6 @@
+# Build artifacts
+harness-native
+harness-afl
+libdummy/build/
+libdummy/build-native/
+libdummy/build-afl/
