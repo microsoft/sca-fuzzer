@@ -34,7 +34,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     name: km_build_${{ matrix.name }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
     - name: Install kernel headers
       run: sudo apt-get update && sudo apt-get install -y linux-headers-$(uname -r) linux-headers-generic
     - name: Build kernel module
