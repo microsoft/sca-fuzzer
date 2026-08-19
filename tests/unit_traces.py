@@ -38,7 +38,7 @@ class TestCTrace(unittest.TestCase):
         values = [0x0, 0x100]
         entries = [CTraceEntry("val", i) for i in values]
         trace = CTrace(entries)
-        hash_ = xxhash.xxh64(str(values), seed=0).intdigest()
+        hash_ = xxhash.xxh64(str(values).encode("utf-8"), seed=0).intdigest()
         self.assertEqual(str(trace), str(hash_))
 
         # 2. Special case - L1D map
@@ -137,7 +137,7 @@ class TestHTrace(unittest.TestCase):
         # __str__
         entries = np.array([(0x100, 0, 0, 0, 0, 0)], dtype=RawHTraceSample)
         trace = HTrace(entries)
-        hash_ = xxhash.xxh64(str(entries['trace']), seed=0).intdigest()
+        hash_ = xxhash.xxh64(str(entries['trace']).encode("utf-8"), seed=0).intdigest()
         self.assertEqual(str(trace), str(hash_))
 
         # full_str: empty trace
